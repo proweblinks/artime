@@ -19,9 +19,6 @@ class VideoWizardController extends Controller
      */
     public function index(Request $request)
     {
-        // TEMPORARY TEST - Remove after debugging
-        return response('Video Wizard Route Works! User: ' . (auth()->user()->name ?? 'Not logged in'));
-
         $projectId = $request->get('project');
         $project = null;
 
