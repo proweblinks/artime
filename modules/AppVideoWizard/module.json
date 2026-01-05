@@ -16,7 +16,7 @@
     },
     "permission": false,
     "menu": {
-        "uri": "app/video-wizard",
+        "uri": "app/video-wizard/studio",
         "role": "client",
         "platform": 1,
         "section": "top",

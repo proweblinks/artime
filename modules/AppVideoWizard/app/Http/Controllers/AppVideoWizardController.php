@@ -60,7 +60,7 @@ class AppVideoWizardController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        return redirect()->route('app.video-wizard.index', ['project' => $project->id]);
+        return redirect()->route('app.video-wizard.studio', ['project' => $project->id]);
     }
 
     /**

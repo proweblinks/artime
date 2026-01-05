@@ -5,34 +5,42 @@ use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes - All routes OUTSIDE nested groups (workaround)
+| Web Routes - Using EXACT AppProfile pattern with nested groups
 |--------------------------------------------------------------------------
 */
 
-// Main wizard page - OUTSIDE nested groups with full explicit path
-Route::middleware(['web', 'auth'])->get('app/video-wizard/create', [AppVideoWizardController::class, 'index'])->name('app.video-wizard.create');
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::group(["prefix" => "app"], function () {
+        Route::group(["prefix" => "video-wizard"], function () {
+            // Main wizard page - renamed from 'create' to 'studio' for testing
+            Route::get('/studio', [AppVideoWizardController::class, 'index'])->name('app.video-wizard.studio');
 
-// Redirect base path
-Route::middleware(['web', 'auth'])->get('app/video-wizard', function() {
-    return redirect()->route('app.video-wizard.create');
-})->name('app.video-wizard.index');
+            // Base path redirects to studio
+            Route::get('/', function() {
+                return redirect()->route('app.video-wizard.studio');
+            })->name('app.video-wizard.index');
 
-// Project management - explicit paths
-Route::middleware(['web', 'auth'])->get('app/video-wizard/projects', [AppVideoWizardController::class, 'projects'])->name('app.video-wizard.projects');
-Route::middleware(['web', 'auth'])->get('app/video-wizard/project/{id}', [AppVideoWizardController::class, 'edit'])->name('app.video-wizard.edit');
-Route::middleware(['web', 'auth'])->delete('app/video-wizard/project/{id}', [AppVideoWizardController::class, 'destroy'])->name('app.video-wizard.destroy');
+            // Projects page (this one works!)
+            Route::get('/projects', [AppVideoWizardController::class, 'projects'])->name('app.video-wizard.projects');
 
-// API endpoints
-Route::middleware(['web', 'auth'])->post('app/video-wizard/save', [AppVideoWizardController::class, 'saveProject'])->name('app.video-wizard.save');
-Route::middleware(['web', 'auth'])->get('app/video-wizard/load/{id}', [AppVideoWizardController::class, 'loadProject'])->name('app.video-wizard.load');
+            // Project management
+            Route::get('/project/{id}', [AppVideoWizardController::class, 'edit'])->name('app.video-wizard.edit');
+            Route::delete('/project/{id}', [AppVideoWizardController::class, 'destroy'])->name('app.video-wizard.destroy');
 
-// AI operations
-Route::middleware(['web', 'auth'])->post('app/video-wizard/improve-concept', [AppVideoWizardController::class, 'improveConcept'])->name('app.video-wizard.improve-concept');
-Route::middleware(['web', 'auth'])->post('app/video-wizard/generate-script', [AppVideoWizardController::class, 'generateScript'])->name('app.video-wizard.generate-script');
-Route::middleware(['web', 'auth'])->post('app/video-wizard/generate-image', [AppVideoWizardController::class, 'generateImage'])->name('app.video-wizard.generate-image');
-Route::middleware(['web', 'auth'])->post('app/video-wizard/generate-voiceover', [AppVideoWizardController::class, 'generateVoiceover'])->name('app.video-wizard.generate-voiceover');
-Route::middleware(['web', 'auth'])->post('app/video-wizard/generate-animation', [AppVideoWizardController::class, 'generateAnimation'])->name('app.video-wizard.generate-animation');
+            // API endpoints
+            Route::post('/save', [AppVideoWizardController::class, 'saveProject'])->name('app.video-wizard.save');
+            Route::get('/load/{id}', [AppVideoWizardController::class, 'loadProject'])->name('app.video-wizard.load');
 
-// Export operations
-Route::middleware(['web', 'auth'])->post('app/video-wizard/export/start', [AppVideoWizardController::class, 'startExport'])->name('app.video-wizard.export.start');
-Route::middleware(['web', 'auth'])->get('app/video-wizard/export/status/{jobId}', [AppVideoWizardController::class, 'exportStatus'])->name('app.video-wizard.export.status');
+            // AI operations
+            Route::post('/improve-concept', [AppVideoWizardController::class, 'improveConcept'])->name('app.video-wizard.improve-concept');
+            Route::post('/generate-script', [AppVideoWizardController::class, 'generateScript'])->name('app.video-wizard.generate-script');
+            Route::post('/generate-image', [AppVideoWizardController::class, 'generateImage'])->name('app.video-wizard.generate-image');
+            Route::post('/generate-voiceover', [AppVideoWizardController::class, 'generateVoiceover'])->name('app.video-wizard.generate-voiceover');
+            Route::post('/generate-animation', [AppVideoWizardController::class, 'generateAnimation'])->name('app.video-wizard.generate-animation');
+
+            // Export operations
+            Route::post('/export/start', [AppVideoWizardController::class, 'startExport'])->name('app.video-wizard.export.start');
+            Route::get('/export/status/{jobId}', [AppVideoWizardController::class, 'exportStatus'])->name('app.video-wizard.export.status');
+        });
+    });
+});
