@@ -1,4 +1,4 @@
-@extends('themes.app.default')
+@extends('layouts.app')
 
 @section('title', __('Video Creator'))
 
