@@ -57,13 +57,6 @@ class AppVideoWizardServiceProvider extends ServiceProvider
     protected function registerLivewireComponents(): void
     {
         Livewire::component('video-wizard', \Modules\AppVideoWizard\Livewire\VideoWizard::class);
-        Livewire::component('video-wizard.step-platform', \Modules\AppVideoWizard\Livewire\Steps\StepPlatform::class);
-        Livewire::component('video-wizard.step-concept', \Modules\AppVideoWizard\Livewire\Steps\StepConcept::class);
-        Livewire::component('video-wizard.step-script', \Modules\AppVideoWizard\Livewire\Steps\StepScript::class);
-        Livewire::component('video-wizard.step-storyboard', \Modules\AppVideoWizard\Livewire\Steps\StepStoryboard::class);
-        Livewire::component('video-wizard.step-animation', \Modules\AppVideoWizard\Livewire\Steps\StepAnimation::class);
-        Livewire::component('video-wizard.step-assembly', \Modules\AppVideoWizard\Livewire\Steps\StepAssembly::class);
-        Livewire::component('video-wizard.step-export', \Modules\AppVideoWizard\Livewire\Steps\StepExport::class);
     }
 
     /**
