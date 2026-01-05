@@ -1,0 +1,2 @@
+<?php echo $__env->make("partials.pricing", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make("partials.faqs", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /home/artime/public_html/resources/themes/guest/nova/resources/views/pages/pricing.blade.php ENDPATH**/ ?>

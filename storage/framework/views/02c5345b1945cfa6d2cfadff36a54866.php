@@ -1,0 +1,1 @@
+<?php echo $__env->make("layouts.app", array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /home/artime/public_html/resources/themes/guest/nova/resources/views/layouts/auth.blade.php ENDPATH**/ ?>
