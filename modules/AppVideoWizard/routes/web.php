@@ -7,19 +7,15 @@ use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
+// Main index route - OUTSIDE groups with explicit full path
+Route::middleware(['web', 'auth'])->get('app/video-wizard', [AppVideoWizardController::class, 'index'])->name('app.video-wizard.index');
+
+// Other routes inside groups
 Route::middleware(['web', 'auth'])->group(function () {
     Route::group(["prefix" => "app"], function () {
         Route::group(["prefix" => "video-wizard"], function () {
-            // Main wizard page
-            Route::get('', [AppVideoWizardController::class, 'index'])->name('app.video-wizard.index');
-
             // Project management
             Route::get('projects', [AppVideoWizardController::class, 'projects'])->name('app.video-wizard.projects');
             Route::get('project/{id}', [AppVideoWizardController::class, 'edit'])->name('app.video-wizard.edit');
