@@ -29,12 +29,6 @@ class AppVideoWizardServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->registerLivewireComponents();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
-
-        // Add permissions like working modules do
-        \Plan::addPermissions($this->name, [
-            "sort" => 4000,
-            "view" => "permissions",
-        ]);
     }
 
     /**
