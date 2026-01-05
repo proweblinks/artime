@@ -14,7 +14,7 @@
             "resources/assets/js/video-preview-engine.js"
         ]
     },
-    "permission": true,
+    "permission": false,
     "menu": {
         "uri": "app/video-wizard",
         "role": "client",
