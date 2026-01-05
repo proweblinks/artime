@@ -1,0 +1,29 @@
+{
+    "name": "AppVideoWizard",
+    "alias": "appvideowizard",
+    "description": "AI-powered video creation wizard - create videos from scratch with AI-generated scripts, images, and animations",
+    "keywords": ["video", "wizard", "ai", "creation"],
+    "priority": 0,
+    "providers": [
+        "Modules\\AppVideoWizard\\Providers\\AppVideoWizardServiceProvider"
+    ],
+    "files": [],
+    "assets": {
+        "css": [],
+        "js": [
+            "resources/assets/js/video-preview-engine.js"
+        ]
+    },
+    "permission": true,
+    "menu": {
+        "uri": "app/video-wizard",
+        "role": "client",
+        "platform": 1,
+        "section": "top",
+        "tab_id": 11,
+        "position": 15000,
+        "name": "Video Creator",
+        "color": "#8b5cf6",
+        "icon": "fa-light fa-video"
+    }
+}
