@@ -17,8 +17,8 @@ use Modules\AppVideoWizard\Http\Controllers\VideoWizardController;
 Route::middleware(['web', 'auth'])->group(function () {
     Route::group(["prefix" => "app"], function () {
         Route::group(["prefix" => "video-wizard"], function () {
-            // Main wizard page using resource pattern
-            Route::resource('/', VideoWizardController::class)->only(['index'])->names('app.video-wizard');
+            // Main wizard page
+            Route::get('/', [VideoWizardController::class, 'index'])->name('app.video-wizard.index');
 
             // Project management
             Route::get('projects', [VideoWizardController::class, 'projects'])->name('app.video-wizard.projects');
