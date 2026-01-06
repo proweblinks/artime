@@ -228,50 +228,192 @@
         margin: 1.5rem 0 !important;
     }
 
-    /* Refined Concept Results */
-    .vw-result-card {
-        background: rgba(16, 185, 129, 0.1) !important;
-        border: 1px solid rgba(16, 185, 129, 0.3) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-top: 1.5rem !important;
-    }
-
-    .vw-result-header {
+    /* Loading Bar */
+    .vw-loading-bar {
         display: flex !important;
         align-items: center !important;
-        gap: 0.5rem !important;
-        color: #34d399 !important;
-        font-weight: 600 !important;
-        margin-bottom: 1rem !important;
+        justify-content: center !important;
+        gap: 0.75rem !important;
+        background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%) !important;
+        padding: 1rem 1.5rem !important;
+        border-radius: 0.5rem !important;
+        margin-bottom: 1.5rem !important;
+        color: white !important;
+        font-weight: 500 !important;
     }
 
-    .vw-result-text {
-        color: rgba(255, 255, 255, 0.85) !important;
+    .vw-loading-bar .vw-spinner {
+        width: 20px !important;
+        height: 20px !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border-top-color: white !important;
+        border-radius: 50% !important;
+        animation: vw-spin 0.8s linear infinite !important;
+    }
+
+    @keyframes vw-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Your Concept Results Card */
+    .vw-your-concept-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border-radius: 1rem !important;
+        padding: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-your-concept-header {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 1rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    .vw-your-concept-icon {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+        border-radius: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.25rem !important;
+    }
+
+    .vw-main-concept-card {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        border-radius: 0.75rem !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-main-concept-title {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .vw-main-concept-text {
+        color: rgba(255, 255, 255, 0.8) !important;
         line-height: 1.7 !important;
-        white-space: pre-wrap !important;
+        font-size: 0.95rem !important;
     }
 
-    .vw-badges {
+    .vw-concept-badges {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 0.5rem !important;
         margin-top: 1rem !important;
     }
 
-    .vw-badge {
+    .vw-concept-badge {
         display: inline-flex !important;
         align-items: center !important;
-        padding: 0.25rem 0.75rem !important;
-        background: rgba(139, 92, 246, 0.2) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        gap: 0.375rem !important;
+        padding: 0.375rem 0.75rem !important;
         border-radius: 1rem !important;
         font-size: 0.8rem !important;
+        font-weight: 500 !important;
+    }
+
+    .vw-concept-badge.engaging {
+        background: rgba(6, 182, 212, 0.2) !important;
+        color: #22d3ee !important;
+    }
+
+    .vw-concept-badge.professional {
+        background: rgba(16, 185, 129, 0.2) !important;
+        color: #34d399 !important;
+    }
+
+    /* Alternative Directions */
+    .vw-alt-directions-label {
+        font-size: 0.85rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .vw-alt-directions-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.75rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    @media (max-width: 768px) {
+        .vw-alt-directions-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .vw-alt-card {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.5rem !important;
+        padding: 1rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+    }
+
+    .vw-alt-card:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+    }
+
+    .vw-alt-card.selected {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        background: rgba(139, 92, 246, 0.15) !important;
+    }
+
+    .vw-alt-card-title {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .vw-alt-card-subtitle {
+        font-size: 0.8rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    .vw-generate-different-btn {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        background: transparent !important;
+        border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        padding: 1rem !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.9rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+    }
+
+    .vw-generate-different-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
         color: #c4b5fd !important;
+        background: rgba(139, 92, 246, 0.05) !important;
     }
 </style>
 
-<div class="vw-concept-step">
+<div class="vw-concept-step" wire:poll.keep-alive>
+    {{-- Loading Bar --}}
+    <div wire:loading wire:target="generateIdeas, enhanceConcept, generateDifferentConcepts" class="vw-loading-bar">
+        <span class="vw-spinner"></span>
+        <span wire:loading wire:target="generateIdeas">{{ __('Generating unique ideas...') }}</span>
+        <span wire:loading wire:target="enhanceConcept">{{ __('Enhancing your concept...') }}</span>
+        <span wire:loading wire:target="generateDifferentConcepts">{{ __('Generating different concepts...') }}</span>
+    </div>
+
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -335,7 +477,7 @@
                 <button class="vw-enhance-btn"
                         wire:click="enhanceConcept"
                         wire:loading.attr="disabled"
-                        wire:target="enhanceConcept">
+                        wire:target="enhanceConcept, generateIdeas">
                     <span wire:loading.remove wire:target="enhanceConcept">✨ {{ __('Enhance with AI') }}</span>
                     <span wire:loading wire:target="enhanceConcept">
                         <span class="vw-spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>
@@ -345,38 +487,6 @@
                 <span class="vw-enhance-hint">{{ __('Auto-extracts styles & fills all fields') }}</span>
             </div>
         </div>
-
-        {{-- AI Enhanced Results --}}
-        @if(!empty($concept['refinedConcept']))
-            <div class="vw-result-card">
-                <div class="vw-result-header">
-                    ✨ {{ __('AI-Enhanced Concept') }}
-                </div>
-                <p class="vw-result-text">{{ $concept['refinedConcept'] }}</p>
-
-                @if(!empty($concept['logline']))
-                    <div class="vw-divider"></div>
-                    <div style="margin-top: 1rem;">
-                        <span style="color: rgba(255,255,255,0.7); font-weight: 600;">{{ __('Logline:') }}</span>
-                        <p style="color: rgba(255,255,255,0.6); font-style: italic; margin-top: 0.25rem;">{{ $concept['logline'] }}</p>
-                    </div>
-                @endif
-
-                <div class="vw-badges">
-                    @if(!empty($concept['suggestedMood']))
-                        <span class="vw-badge">{{ __('Mood:') }} {{ $concept['suggestedMood'] }}</span>
-                    @endif
-                    @if(!empty($concept['suggestedTone']))
-                        <span class="vw-badge">{{ __('Tone:') }} {{ $concept['suggestedTone'] }}</span>
-                    @endif
-                    @if(!empty($concept['keyElements']))
-                        @foreach($concept['keyElements'] as $element)
-                            <span class="vw-badge">{{ $element }}</span>
-                        @endforeach
-                    @endif
-                </div>
-            </div>
-        @endif
 
         <div class="vw-divider"></div>
 
@@ -407,7 +517,7 @@
         <button class="vw-generate-btn"
                 wire:click="generateIdeas"
                 wire:loading.attr="disabled"
-                wire:target="generateIdeas"
+                wire:target="generateIdeas, enhanceConcept"
                 @if(empty($concept['rawInput'])) disabled @endif>
             <span wire:loading.remove wire:target="generateIdeas">✨ {{ __('Generate Unique Ideas') }}</span>
             <span wire:loading wire:target="generateIdeas">
@@ -416,4 +526,67 @@
             </span>
         </button>
     </div>
+
+    {{-- Your Concept Results Section --}}
+    @if(!empty($conceptVariations) && count($conceptVariations) > 0)
+        <div class="vw-your-concept-card">
+            {{-- Header --}}
+            <div class="vw-your-concept-header">
+                <div class="vw-your-concept-icon">🎬</div>
+                <div>
+                    <h3 class="vw-concept-title">{{ __('Your Concept') }}</h3>
+                    <p class="vw-concept-subtitle">{{ __('Select a concept direction below') }}</p>
+                </div>
+            </div>
+
+            {{-- Main Selected Concept Card --}}
+            @php
+                $selectedVariation = $conceptVariations[$selectedConceptIndex] ?? $conceptVariations[0] ?? null;
+            @endphp
+            @if($selectedVariation)
+                <div class="vw-main-concept-card">
+                    <h4 class="vw-main-concept-title">{{ $selectedVariation['title'] ?? (__($productionType ?? 'movie') . ' ' . __('Concept') . ' ' . ($selectedConceptIndex + 1)) }}</h4>
+                    <p class="vw-main-concept-text">{{ $selectedVariation['concept'] ?? $concept['refinedConcept'] ?? $concept['rawInput'] }}</p>
+                    <div class="vw-concept-badges">
+                        @if(!empty($concept['suggestedTone']))
+                            <span class="vw-concept-badge engaging">✨ {{ ucfirst($concept['suggestedTone']) }}</span>
+                        @else
+                            <span class="vw-concept-badge engaging">✨ {{ __('Engaging') }}</span>
+                        @endif
+                        @if(!empty($concept['suggestedMood']))
+                            <span class="vw-concept-badge professional">🎯 {{ ucfirst($concept['suggestedMood']) }}</span>
+                        @else
+                            <span class="vw-concept-badge professional">🎯 {{ __('Professional') }}</span>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Alternative Directions --}}
+            <div class="vw-alt-directions-label">
+                {{ __('Alternative Directions') }} <span style="color: rgba(255,255,255,0.3);">({{ __('click to switch') }})</span>
+            </div>
+            <div class="vw-alt-directions-grid">
+                @foreach($conceptVariations as $index => $variation)
+                    <div class="vw-alt-card {{ $selectedConceptIndex === $index ? 'selected' : '' }}"
+                         wire:click="selectConceptVariation({{ $index }})">
+                        <div class="vw-alt-card-title">{{ ($index + 1) }}. {{ $variation['title'] ?? (__($productionType ?? 'movie') . ' ' . __('Concept') . ' ' . ($index + 1)) }}</div>
+                        <div class="vw-alt-card-subtitle">{{ $variation['angle'] ?? ucfirst($variation['strengths'][0] ?? __('Engaging')) }}</div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Generate Different Concepts Button --}}
+            <button class="vw-generate-different-btn"
+                    wire:click="generateDifferentConcepts"
+                    wire:loading.attr="disabled"
+                    wire:target="generateDifferentConcepts">
+                <span wire:loading.remove wire:target="generateDifferentConcepts">🎬 {{ __('Generate Different Concepts') }}</span>
+                <span wire:loading wire:target="generateDifferentConcepts">
+                    <span class="vw-spinner" style="width: 14px; height: 14px;"></span>
+                    {{ __('Generating...') }}
+                </span>
+            </button>
+        </div>
+    @endif
 </div>

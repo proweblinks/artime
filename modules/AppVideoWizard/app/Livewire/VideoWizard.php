@@ -81,6 +81,15 @@ class VideoWizard extends Component
     public bool $isSaving = false;
     public ?string $error = null;
 
+    // Concept variations state
+    public array $conceptVariations = [];
+    public int $selectedConceptIndex = 0;
+
+    // Script generation options
+    public string $scriptTone = 'engaging';
+    public string $contentDepth = 'detailed';
+    public string $additionalInstructions = '';
+
     /**
      * Mount the component.
      * Note: We accept mixed $project to avoid Livewire's implicit model binding
@@ -340,13 +349,78 @@ class VideoWizard extends Component
                 $this->concept['targetAudience'] = $result['targetAudience'] ?? '';
             }
 
+            // Generate concept variations
+            $variations = $conceptService->generateVariations(
+                $this->concept['refinedConcept'] ?: $this->concept['rawInput'],
+                3,
+                ['teamId' => session('current_team_id', 0)]
+            );
+
+            $this->conceptVariations = $variations;
+            $this->selectedConceptIndex = 0;
+
             $this->saveProject();
 
-            // Move to next step after generating ideas
-            $this->nextStep();
+            // Don't auto-advance - let user review and select concept variation
 
         } catch (\Exception $e) {
             $this->error = __('Failed to generate ideas: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Select a concept variation.
+     */
+    public function selectConceptVariation(int $index): void
+    {
+        if (isset($this->conceptVariations[$index])) {
+            $this->selectedConceptIndex = $index;
+
+            // Update the refined concept with the selected variation
+            $variation = $this->conceptVariations[$index];
+            $this->concept['refinedConcept'] = $variation['concept'] ?? $this->concept['refinedConcept'];
+
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Generate different concepts (re-generate variations).
+     */
+    public function generateDifferentConcepts(): void
+    {
+        if (empty($this->concept['rawInput'])) {
+            $this->error = __('Please enter a concept description first.');
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $conceptService = app(ConceptService::class);
+
+            // Generate new variations
+            $variations = $conceptService->generateVariations(
+                $this->concept['rawInput'], // Use original input for fresh variations
+                3,
+                ['teamId' => session('current_team_id', 0)]
+            );
+
+            $this->conceptVariations = $variations;
+            $this->selectedConceptIndex = 0;
+
+            // Update refined concept with first variation
+            if (!empty($variations[0]['concept'])) {
+                $this->concept['refinedConcept'] = $variations[0]['concept'];
+            }
+
+            $this->saveProject();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate concepts: ') . $e->getMessage();
         } finally {
             $this->isLoading = false;
         }
