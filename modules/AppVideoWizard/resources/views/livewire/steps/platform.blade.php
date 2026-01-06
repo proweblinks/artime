@@ -306,11 +306,10 @@
 
         <div class="vw-format-grid">
             @foreach($formats as $id => $formatConfig)
-                <div wire:click="selectFormat('{{ $id }}')"
-                     onclick="console.log('Click detected on format: {{ $id }}'); console.log('Livewire component:', Livewire.all());"
+                <div @click="console.log('Alpine click: {{ $id }}'); $wire.selectFormat('{{ $id }}')"
                      class="vw-format-card {{ $format === $id ? 'selected' : '' }}"
-                     style="cursor: pointer;">
-                    <span class="vw-format-icon">
+                     style="cursor: pointer; position: relative; z-index: 10;">
+                    <span class="vw-format-icon" style="pointer-events: none;">
                         @switch($id)
                             @case('widescreen') 🖥️ @break
                             @case('vertical') 📱 @break
@@ -339,11 +338,10 @@
 
         <div class="vw-production-grid">
             @foreach($productionTypes as $typeId => $type)
-                <div wire:click="selectProductionType('{{ $typeId }}')"
-                     onclick="console.log('Click detected on production type: {{ $typeId }}'); console.log('Calling Livewire method...');"
+                <div @click="console.log('Alpine click: {{ $typeId }}'); $wire.selectProductionType('{{ $typeId }}')"
                      class="vw-production-card {{ $productionType === $typeId ? 'selected' : '' }}"
-                     style="cursor: pointer;">
-                    <span class="vw-production-icon">
+                     style="cursor: pointer; position: relative; z-index: 10;">
+                    <span class="vw-production-icon" style="pointer-events: none;">
                         @switch($typeId)
                             @case('social') 📱 @break
                             @case('movie') 🎬 @break
@@ -370,8 +368,9 @@
 
                 <div class="vw-subtype-grid">
                     @foreach($productionTypes[$productionType]['subTypes'] as $subId => $subType)
-                        <div wire:click="selectProductionType('{{ $productionType }}', '{{ $subId }}')"
-                             class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}">
+                        <div @click="$wire.selectProductionType('{{ $productionType }}', '{{ $subId }}')"
+                             class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}"
+                             style="cursor: pointer;">
                             <div class="vw-subtype-header">
                                 <span class="vw-subtype-icon">{{ $subType['icon'] ?? '🎯' }}</span>
                                 <span class="vw-subtype-name">{{ $subType['name'] }}</span>

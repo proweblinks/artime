@@ -191,8 +191,9 @@
                 $isReachable = $step <= $maxReachedStep + 1;
             @endphp
 
-            <div @if($isReachable) wire:click="goToStep({{ $step }})" @endif
-                 class="vw-step {{ $isActive ? 'active' : '' }} {{ $isCompleted ? 'completed' : '' }} {{ !$isReachable ? 'disabled' : '' }}">
+            <div @if($isReachable) @click="$wire.goToStep({{ $step }})" @endif
+                 class="vw-step {{ $isActive ? 'active' : '' }} {{ $isCompleted ? 'completed' : '' }} {{ !$isReachable ? 'disabled' : '' }}"
+                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }};">
                 <div class="vw-step-number">
                     @if($isCompleted)
                         ✓
@@ -253,7 +254,7 @@
 
     {{-- Navigation --}}
     <div class="vw-navigation">
-        <button wire:click="previousStep"
+        <button @click="$wire.previousStep()"
                 class="vw-btn vw-btn-ghost"
                 {{ $currentStep <= 1 ? 'disabled' : '' }}>
             ← {{ __('Previous') }}
@@ -267,11 +268,11 @@
         </div>
 
         @if($currentStep < 7)
-            <button wire:click="nextStep" class="vw-btn vw-btn-primary">
+            <button @click="$wire.nextStep()" class="vw-btn vw-btn-primary">
                 {{ __('Continue') }} →
             </button>
         @else
-            <button wire:click="saveProject" class="vw-btn vw-btn-success">
+            <button @click="$wire.saveProject()" class="vw-btn vw-btn-success">
                 {{ __('Export Video') }}
             </button>
         @endif
