@@ -451,6 +451,9 @@ class VideoWizard extends Component
 
             $generatedScript = $scriptService->generateScript($project, [
                 'teamId' => session('current_team_id', 0),
+                'tone' => $this->scriptTone,
+                'contentDepth' => $this->contentDepth,
+                'additionalInstructions' => $this->additionalInstructions,
             ]);
 
             // Update script data

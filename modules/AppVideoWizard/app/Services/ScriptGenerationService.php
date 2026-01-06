@@ -4,56 +4,78 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Facades\AI;
 use Modules\AppVideoWizard\Models\WizardProject;
-use Modules\AppVideoWizard\Models\WizardProcessingJob;
 
 class ScriptGenerationService
 {
     /**
+     * Speaking rate constants (words per minute)
+     * Research: Normal conversational pace is 125-150 WPM
+     */
+    const WPM_SLOW = 120;
+    const WPM_NORMAL = 140;
+    const WPM_FAST = 160;
+
+    /**
+     * Scene duration constants (seconds)
+     * Research: Optimal scene changes every 10-20 seconds for engagement
+     */
+    const SCENE_DURATION_MIN = 10;
+    const SCENE_DURATION_MAX = 25;
+    const SCENE_DURATION_DEFAULT = 15;
+
+    /**
+     * Maximum supported duration (20 minutes = 1200 seconds)
+     */
+    const MAX_DURATION_SECONDS = 1200;
+
+    /**
      * Generate a video script based on project configuration.
+     * Supports videos up to 20 minutes with intelligent scene chunking.
      */
     public function generateScript(WizardProject $project, array $options = []): array
     {
         $concept = $project->concept ?? [];
-        $contentConfig = $project->content_config ?? [];
         $productionType = $project->getProductionTypeConfig();
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
-        $topic = $concept['refinedConcept'] ?? $concept['rawInput'] ?? $contentConfig['topic'] ?? '';
-        $tone = $contentConfig['tone'] ?? 'engaging';
-        $duration = $project->target_duration;
-        $style = $contentConfig['style'] ?? 'engaging';
+        $topic = $concept['refinedConcept'] ?? $concept['rawInput'] ?? '';
+        $tone = $options['tone'] ?? $concept['suggestedTone'] ?? 'engaging';
+        $duration = min($project->target_duration, self::MAX_DURATION_SECONDS);
+        $contentDepth = $options['contentDepth'] ?? 'detailed';
+        $additionalInstructions = $options['additionalInstructions'] ?? '';
 
-        // Calculate target word count based on duration
-        // Average speaking rate is ~150 words per minute
-        $targetWords = (int) ($duration / 60 * 150);
+        // Calculate script parameters
+        $params = $this->calculateScriptParameters($duration, $contentDepth);
 
-        $prompt = $this->buildScriptPrompt([
-            'topic' => $topic,
-            'tone' => $tone,
-            'duration' => $duration,
-            'targetWords' => $targetWords,
-            'style' => $style,
-            'productionType' => $productionType,
-            'concept' => $concept,
-            'aspectRatio' => $project->aspect_ratio,
-        ]);
-
-        // Use ArTime's existing AI service
         \Log::info('VideoWizard: Generating script', [
             'teamId' => $teamId,
             'topic' => substr($topic, 0, 100),
             'duration' => $duration,
+            'sceneCount' => $params['sceneCount'],
+            'targetWords' => $params['targetWords'],
         ]);
 
-        $result = AI::process($prompt, 'text', [
-            'maxResult' => 1
-        ], $teamId);
+        // For videos over 5 minutes, use chunked generation
+        if ($duration > 300) {
+            return $this->generateLongFormScript($topic, $tone, $duration, $params, $concept, $productionType, $additionalInstructions, $teamId);
+        }
 
-        \Log::info('VideoWizard: AI response received', [
-            'hasError' => !empty($result['error']),
-            'dataCount' => count($result['data'] ?? []),
-            'model' => $result['model'] ?? 'unknown',
+        // Standard generation for shorter videos
+        $prompt = $this->buildScriptPrompt([
+            'topic' => $topic,
+            'tone' => $tone,
+            'duration' => $duration,
+            'targetWords' => $params['targetWords'],
+            'sceneCount' => $params['sceneCount'],
+            'wordsPerScene' => $params['wordsPerScene'],
+            'productionType' => $productionType,
+            'concept' => $concept,
+            'contentDepth' => $contentDepth,
+            'additionalInstructions' => $additionalInstructions,
+            'aspectRatio' => $project->aspect_ratio,
         ]);
+
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
 
         if (!empty($result['error'])) {
             \Log::error('VideoWizard: AI error', ['error' => $result['error']]);
@@ -63,25 +85,302 @@ class ScriptGenerationService
         $response = $result['data'][0] ?? '';
 
         if (empty($response)) {
-            \Log::error('VideoWizard: Empty AI response', [
-                'result' => $result,
-            ]);
+            \Log::error('VideoWizard: Empty AI response', ['result' => $result]);
             throw new \Exception('AI returned an empty response. Please try again.');
         }
 
         \Log::info('VideoWizard: Parsing response', [
             'responseLength' => strlen($response),
-            'responsePreview' => substr($response, 0, 200),
+            'responsePreview' => substr($response, 0, 300),
         ]);
 
-        // Parse the response
-        $script = $this->parseScriptResponse($response);
-
-        return $script;
+        return $this->parseScriptResponse($response, $duration);
     }
 
     /**
-     * Build the script generation prompt.
+     * Calculate script parameters based on duration and content depth.
+     */
+    protected function calculateScriptParameters(int $duration, string $contentDepth): array
+    {
+        // Adjust speaking rate based on content depth
+        $wpm = match ($contentDepth) {
+            'quick' => self::WPM_FAST,
+            'standard' => self::WPM_NORMAL,
+            'detailed', 'deep' => self::WPM_SLOW,
+            default => self::WPM_NORMAL,
+        };
+
+        // Calculate total words needed
+        $targetWords = (int) ceil($duration / 60 * $wpm);
+
+        // Calculate optimal scene count (10-20 seconds per scene)
+        // With pause factor of 1.1 for natural breaks
+        $avgSceneDuration = match ($contentDepth) {
+            'quick' => 12,  // Faster pacing
+            'standard' => 15,
+            'detailed' => 18,
+            'deep' => 20,   // More time per concept
+            default => 15,
+        };
+
+        $sceneCount = max(3, (int) ceil($duration / $avgSceneDuration));
+
+        // Words per scene
+        $wordsPerScene = (int) ceil($targetWords / $sceneCount);
+
+        return [
+            'wpm' => $wpm,
+            'targetWords' => $targetWords,
+            'sceneCount' => $sceneCount,
+            'avgSceneDuration' => $avgSceneDuration,
+            'wordsPerScene' => $wordsPerScene,
+        ];
+    }
+
+    /**
+     * Generate long-form script (over 5 minutes) using multi-pass approach.
+     */
+    protected function generateLongFormScript(
+        string $topic,
+        string $tone,
+        int $duration,
+        array $params,
+        array $concept,
+        ?array $productionType,
+        string $additionalInstructions,
+        int $teamId
+    ): array {
+        \Log::info('VideoWizard: Using multi-pass generation for long-form video', [
+            'duration' => $duration,
+            'minutes' => round($duration / 60, 1),
+        ]);
+
+        // Step 1: Generate outline/structure
+        $outlinePrompt = $this->buildOutlinePrompt($topic, $tone, $duration, $params, $concept, $additionalInstructions);
+        $outlineResult = AI::process($outlinePrompt, 'text', ['maxResult' => 1], $teamId);
+
+        if (!empty($outlineResult['error'])) {
+            throw new \Exception($outlineResult['error']);
+        }
+
+        $outline = $this->parseOutlineResponse($outlineResult['data'][0] ?? '');
+
+        \Log::info('VideoWizard: Outline generated', [
+            'sectionCount' => count($outline['sections'] ?? []),
+        ]);
+
+        // Step 2: Generate detailed scenes for each section
+        $allScenes = [];
+        $sections = $outline['sections'] ?? [];
+
+        foreach ($sections as $sectionIndex => $section) {
+            $sectionScenes = $this->generateSectionScenes(
+                $section,
+                $sectionIndex,
+                $topic,
+                $tone,
+                $concept,
+                $teamId
+            );
+            $allScenes = array_merge($allScenes, $sectionScenes);
+        }
+
+        // Re-index scene IDs
+        foreach ($allScenes as $index => &$scene) {
+            $scene['id'] = 'scene-' . ($index + 1);
+        }
+
+        return [
+            'title' => $outline['title'] ?? 'Generated Script',
+            'hook' => $outline['hook'] ?? ($allScenes[0]['narration'] ?? ''),
+            'scenes' => $allScenes,
+            'cta' => $outline['cta'] ?? 'Subscribe for more content!',
+            'totalDuration' => array_sum(array_column($allScenes, 'duration')),
+            'wordCount' => array_sum(array_map(fn($s) => str_word_count($s['narration'] ?? ''), $allScenes)),
+        ];
+    }
+
+    /**
+     * Build outline prompt for long-form videos.
+     */
+    protected function buildOutlinePrompt(
+        string $topic,
+        string $tone,
+        int $duration,
+        array $params,
+        array $concept,
+        string $additionalInstructions
+    ): string {
+        $minutes = round($duration / 60, 1);
+        $sectionCount = max(3, min(8, (int) ceil($duration / 120))); // ~2 min per section
+
+        $prompt = <<<PROMPT
+You are a professional video content strategist. Create a detailed outline for a {$minutes}-minute video.
+
+TOPIC: {$topic}
+TONE: {$tone}
+TOTAL DURATION: {$duration} seconds ({$minutes} minutes)
+SECTIONS NEEDED: {$sectionCount}
+
+PROMPT;
+
+        if (!empty($additionalInstructions)) {
+            $prompt .= "\nADDITIONAL REQUIREMENTS: {$additionalInstructions}\n";
+        }
+
+        $prompt .= <<<PROMPT
+
+Create an outline that divides this video into {$sectionCount} main sections. Each section should:
+- Have a clear focus and purpose
+- Build on the previous section
+- Include engagement hooks every 30-45 seconds
+
+RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
+{
+  "title": "SEO-optimized video title (max 60 chars)",
+  "hook": "Attention-grabbing opening line (5-10 words)",
+  "sections": [
+    {
+      "title": "Section title",
+      "focus": "What this section covers",
+      "duration": 90,
+      "keyPoints": ["point 1", "point 2", "point 3"],
+      "engagementHook": "Question or statement to keep viewers watching"
+    }
+  ],
+  "cta": "Call to action text"
+}
+PROMPT;
+
+        return $prompt;
+    }
+
+    /**
+     * Parse outline response.
+     */
+    protected function parseOutlineResponse(string $response): array
+    {
+        $json = $this->extractJson($response);
+        $outline = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($outline['sections'])) {
+            \Log::warning('VideoWizard: Outline parsing failed', [
+                'response' => substr($response, 0, 500),
+            ]);
+
+            // Create default outline
+            return [
+                'title' => 'Video Script',
+                'hook' => 'Welcome to this video!',
+                'sections' => [
+                    ['title' => 'Introduction', 'focus' => 'Opening', 'duration' => 60, 'keyPoints' => []],
+                    ['title' => 'Main Content', 'focus' => 'Core topic', 'duration' => 120, 'keyPoints' => []],
+                    ['title' => 'Conclusion', 'focus' => 'Wrap up', 'duration' => 60, 'keyPoints' => []],
+                ],
+                'cta' => 'Thanks for watching!',
+            ];
+        }
+
+        return $outline;
+    }
+
+    /**
+     * Generate scenes for a specific section.
+     */
+    protected function generateSectionScenes(
+        array $section,
+        int $sectionIndex,
+        string $topic,
+        string $tone,
+        array $concept,
+        int $teamId
+    ): array {
+        $sectionDuration = $section['duration'] ?? 60;
+        $sceneCount = max(2, (int) ceil($sectionDuration / 15));
+        $avgSceneDuration = (int) ceil($sectionDuration / $sceneCount);
+
+        $keyPointsText = !empty($section['keyPoints'])
+            ? implode("\n- ", $section['keyPoints'])
+            : '';
+
+        $prompt = <<<PROMPT
+You are an expert video script writer. Create {$sceneCount} detailed scenes for a video section.
+
+OVERALL TOPIC: {$topic}
+SECTION: {$section['title']}
+SECTION FOCUS: {$section['focus']}
+SECTION DURATION: {$sectionDuration} seconds
+SCENES NEEDED: {$sceneCount}
+AVERAGE SCENE DURATION: {$avgSceneDuration} seconds
+TONE: {$tone}
+
+KEY POINTS TO COVER:
+- {$keyPointsText}
+
+RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
+{
+  "scenes": [
+    {
+      "id": "scene-1",
+      "title": "Scene title (descriptive)",
+      "narration": "Exactly what the narrator says (25-50 words)",
+      "visualDescription": "Detailed visual description for AI image generation (describe setting, mood, colors, composition)",
+      "duration": {$avgSceneDuration}
+    }
+  ]
+}
+
+REQUIREMENTS:
+- Each scene narration should be 25-50 words
+- Visual descriptions must be detailed and specific for image generation
+- Include mood, lighting, colors, and composition details in visuals
+- Narration should flow naturally from scene to scene
+PROMPT;
+
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+
+        if (!empty($result['error'])) {
+            \Log::warning('VideoWizard: Section generation failed', [
+                'section' => $section['title'],
+                'error' => $result['error'],
+            ]);
+            // Return fallback scene
+            return [[
+                'id' => 'scene-' . ($sectionIndex + 1),
+                'title' => $section['title'],
+                'narration' => $section['focus'] ?? 'Content for this section.',
+                'visualDescription' => 'Visual representation of ' . ($section['title'] ?? 'this section'),
+                'duration' => $sectionDuration,
+            ]];
+        }
+
+        $response = $result['data'][0] ?? '';
+        $json = $this->extractJson($response);
+        $data = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['scenes'])) {
+            \Log::warning('VideoWizard: Section scene parsing failed', [
+                'response' => substr($response, 0, 300),
+            ]);
+            return [[
+                'id' => 'scene-' . ($sectionIndex + 1),
+                'title' => $section['title'],
+                'narration' => $section['focus'] ?? 'Content for this section.',
+                'visualDescription' => 'Visual representation of ' . ($section['title'] ?? 'this section'),
+                'duration' => $sectionDuration,
+            ]];
+        }
+
+        // Add Ken Burns effect to each scene
+        foreach ($data['scenes'] as &$scene) {
+            $scene['kenBurns'] = $this->generateKenBurnsEffect();
+        }
+
+        return $data['scenes'];
+    }
+
+    /**
+     * Build the script generation prompt for standard videos.
      */
     protected function buildScriptPrompt(array $params): string
     {
@@ -89,50 +388,71 @@ class ScriptGenerationService
         $tone = $params['tone'];
         $duration = $params['duration'];
         $targetWords = $params['targetWords'];
-        $concept = $params['concept'];
+        $sceneCount = $params['sceneCount'];
+        $wordsPerScene = $params['wordsPerScene'];
+        $contentDepth = $params['contentDepth'] ?? 'detailed';
+        $additionalInstructions = $params['additionalInstructions'] ?? '';
 
-        $toneDescriptions = [
-            'engaging' => 'conversational, energetic, keeps viewers hooked with dynamic pacing and relatable language',
-            'educational' => 'informative, clear explanations, authoritative yet accessible, with structured learning points',
-            'entertaining' => 'fun, humorous, uses storytelling and personality to captivate, includes jokes',
-            'professional' => 'polished, business-appropriate, credible and trustworthy, with data-backed insights',
+        $minutes = round($duration / 60, 1);
+        $avgSceneDuration = (int) ceil($duration / $sceneCount);
+
+        $toneGuides = [
+            'engaging' => 'conversational, energetic, keeps viewers hooked with dynamic pacing',
+            'professional' => 'polished, authoritative, business-appropriate with credibility',
+            'casual' => 'friendly, relaxed, like talking to a friend',
+            'inspirational' => 'uplifting, motivational, emotionally resonant',
+            'educational' => 'clear, structured, informative with examples',
         ];
+        $toneGuide = $toneGuides[$tone] ?? $toneGuides['engaging'];
 
-        $toneGuide = $toneDescriptions[$tone] ?? $toneDescriptions['engaging'];
-
-        // Calculate scene count based on duration
-        $sceneCount = max(3, min(10, (int) ($duration / 20)));
+        $depthGuides = [
+            'quick' => 'Focus on key points only, minimal detail',
+            'standard' => 'Balanced coverage with some examples',
+            'detailed' => 'Include examples, statistics, and supporting details',
+            'deep' => 'Comprehensive analysis with multiple perspectives',
+        ];
+        $depthGuide = $depthGuides[$contentDepth] ?? $depthGuides['detailed'];
 
         $prompt = <<<PROMPT
-You are an expert video script writer. Create an engaging video script.
+You are an expert video scriptwriter creating a {$minutes}-minute video script.
 
-REQUIREMENTS:
-- Topic: {$topic}
-- Tone: {$tone} - {$toneGuide}
-- Target Duration: {$duration} seconds (~{$targetWords} words)
-- Number of Scenes: {$sceneCount}
+TOPIC: {$topic}
+TONE: {$tone} - {$toneGuide}
+CONTENT DEPTH: {$contentDepth} - {$depthGuide}
+TOTAL DURATION: {$duration} seconds ({$minutes} minutes)
+TARGET WORD COUNT: {$targetWords} words
+NUMBER OF SCENES: {$sceneCount}
+WORDS PER SCENE: ~{$wordsPerScene}
+SCENE DURATION: ~{$avgSceneDuration} seconds each
+
+PROMPT;
+
+        if (!empty($additionalInstructions)) {
+            $prompt .= "\nADDITIONAL REQUIREMENTS: {$additionalInstructions}\n\n";
+        }
+
+        $prompt .= <<<PROMPT
 
 SCRIPT STRUCTURE:
-1. Hook (first 3-5 seconds) - Grab attention immediately
-2. Introduction - Brief overview of what viewers will learn
-3. Main Content - {$sceneCount} scenes with clear value
-4. Call to Action - Subscribe, like, comment
-5. Outro - Wrap up
+1. HOOK (first 5 seconds) - Grab attention immediately with a bold statement or question
+2. INTRODUCTION (10-15 seconds) - Set expectations for what viewers will learn
+3. MAIN CONTENT ({$sceneCount} scenes) - Deliver value with retention hooks every 30-45 seconds
+4. CALL TO ACTION (5-10 seconds) - Clear next step for viewer
 
-FORMAT YOUR RESPONSE AS JSON:
+RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure JSON):
 {
-  "title": "Video title (SEO optimized, max 60 chars)",
-  "hook": "Opening hook text (attention grabber)",
+  "title": "SEO-optimized title (max 60 chars)",
+  "hook": "Attention-grabbing opening (5-10 words)",
   "scenes": [
     {
       "id": "scene-1",
       "title": "Scene title",
-      "narration": "What the narrator says",
-      "visualDescription": "What should be shown visually",
-      "duration": 15,
+      "narration": "What narrator says ({$wordsPerScene} words)",
+      "visualDescription": "Detailed visual for AI image generation (describe setting, mood, colors, lighting, composition)",
+      "duration": {$avgSceneDuration},
       "kenBurns": {
         "startScale": 1.0,
-        "endScale": 1.1,
+        "endScale": 1.15,
         "startX": 0.5,
         "startY": 0.5,
         "endX": 0.5,
@@ -140,16 +460,19 @@ FORMAT YOUR RESPONSE AS JSON:
       }
     }
   ],
-  "cta": "Call to action text",
+  "cta": "Clear call to action",
   "totalDuration": {$duration},
   "wordCount": {$targetWords}
 }
 
-IMPORTANT:
-- Each scene narration should be 10-30 words
-- Visual descriptions should be detailed enough for image generation
-- Include smooth Ken Burns camera movements for each scene
-- Ensure total duration adds up to approximately {$duration} seconds
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY {$sceneCount} scenes
+- Each scene narration MUST be approximately {$wordsPerScene} words
+- Total narration should equal approximately {$targetWords} words
+- Visual descriptions must be detailed enough for AI image generation
+- Include varied Ken Burns movements (scale, position changes)
+- Scene durations should add up to approximately {$duration} seconds
+- NO markdown formatting - output raw JSON only
 PROMPT;
 
         return $prompt;
@@ -158,203 +481,195 @@ PROMPT;
     /**
      * Parse the AI response into a structured script.
      */
-    protected function parseScriptResponse(string $response): array
+    protected function parseScriptResponse(string $response, int $targetDuration = 60): array
     {
         $originalResponse = $response;
 
-        // Clean up response - extract JSON
-        $response = trim($response);
+        \Log::debug('VideoWizard: Raw AI response', [
+            'response' => substr($response, 0, 500),
+        ]);
 
-        // Remove markdown code blocks
-        $response = preg_replace('/```json\s*/i', '', $response);
-        $response = preg_replace('/```\s*/', '', $response);
-        $response = trim($response);
+        // Extract JSON from response
+        $json = $this->extractJson($response);
 
-        // Remove any text before the first {
-        if (($pos = strpos($response, '{')) !== false) {
-            $response = substr($response, $pos);
-        }
+        \Log::debug('VideoWizard: Extracted JSON', [
+            'json' => substr($json, 0, 500),
+        ]);
 
-        // Remove any text after the last }
-        if (($pos = strrpos($response, '}')) !== false) {
-            $response = substr($response, 0, $pos + 1);
-        }
+        // Parse JSON
+        $script = json_decode($json, true);
 
-        // Fix common JSON issues
-        $response = preg_replace('/,\s*}/', '}', $response); // trailing commas in objects
-        $response = preg_replace('/,\s*]/', ']', $response); // trailing commas in arrays
-
-        // Fix unescaped newlines in strings
-        $response = preg_replace('/([^\\\\])"([^"]*)\n([^"]*)"/', '$1"$2\\n$3"', $response);
-
-        // Try to parse JSON
-        $script = json_decode($response, true);
-        $jsonError = json_last_error();
-
-        if ($jsonError !== JSON_ERROR_NONE) {
-            \Log::warning('VideoWizard: Initial JSON parse failed', [
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            \Log::error('VideoWizard: JSON parse error', [
                 'error' => json_last_error_msg(),
-                'responsePreview' => substr($response, 0, 300),
+                'json' => substr($json, 0, 500),
+                'original' => substr($originalResponse, 0, 500),
             ]);
-
-            // Try to extract JSON from the response using different patterns
-            $patterns = [
-                '/\{[^{}]*"scenes"\s*:\s*\[[\s\S]*?\][\s\S]*?\}/s',
-                '/\{[\s\S]*"scenes"[\s\S]*\}/s',
-            ];
-
-            foreach ($patterns as $pattern) {
-                preg_match($pattern, $response, $matches);
-                if (!empty($matches[0])) {
-                    $extracted = $matches[0];
-                    // Fix common issues in extracted JSON
-                    $extracted = preg_replace('/,\s*}/', '}', $extracted);
-                    $extracted = preg_replace('/,\s*]/', ']', $extracted);
-                    $script = json_decode($extracted, true);
-                    if (json_last_error() === JSON_ERROR_NONE && isset($script['scenes'])) {
-                        \Log::info('VideoWizard: JSON extracted with pattern');
-                        break;
-                    }
-                }
-            }
+            throw new \Exception('Failed to parse script response. JSON error: ' . json_last_error_msg());
         }
 
-        // If still no valid script, try to create a fallback from the raw text
-        if (!$script || !isset($script['scenes']) || !is_array($script['scenes'])) {
-            \Log::warning('VideoWizard: Script parsing failed, attempting text fallback', [
-                'responseLength' => strlen($originalResponse),
-                'response' => substr($originalResponse, 0, 1000),
+        if (!isset($script['scenes']) || !is_array($script['scenes']) || empty($script['scenes'])) {
+            \Log::error('VideoWizard: No scenes in parsed response', [
+                'script' => $script,
             ]);
-
-            // Try to create a basic script from the text content
-            $script = $this->createFallbackScript($originalResponse);
-
-            if (!$script) {
-                throw new \Exception('Failed to parse script response. The AI returned an invalid format.');
-            }
+            throw new \Exception('Failed to parse script response. No scenes were generated.');
         }
 
-        // Validate and fix scenes
-        foreach ($script['scenes'] as $index => &$scene) {
-            if (!isset($scene['id'])) {
-                $scene['id'] = 'scene-' . ($index + 1);
-            }
-            if (!isset($scene['duration'])) {
-                $scene['duration'] = 15;
-            }
-            if (!isset($scene['title'])) {
-                $scene['title'] = 'Scene ' . ($index + 1);
-            }
-            if (!isset($scene['narration'])) {
-                $scene['narration'] = '';
-            }
-            if (!isset($scene['visualDescription'])) {
-                $scene['visualDescription'] = $scene['narration'];
-            }
-            if (!isset($scene['kenBurns'])) {
-                $scene['kenBurns'] = [
-                    'startScale' => 1.0,
-                    'endScale' => 1.1,
-                    'startX' => 0.5,
-                    'startY' => 0.5,
-                    'endX' => 0.5,
-                    'endY' => 0.4,
-                ];
-            }
-        }
-
-        // Ensure required fields exist
-        if (!isset($script['title'])) {
-            $script['title'] = 'Untitled Script';
-        }
-        if (!isset($script['hook'])) {
-            $script['hook'] = '';
-        }
-        if (!isset($script['cta'])) {
-            $script['cta'] = '';
-        }
+        // Validate and normalize scenes
+        $script = $this->normalizeScript($script, $targetDuration);
 
         \Log::info('VideoWizard: Script parsed successfully', [
-            'sceneCount' => count($script['scenes']),
             'title' => $script['title'],
+            'sceneCount' => count($script['scenes']),
+            'totalDuration' => array_sum(array_column($script['scenes'], 'duration')),
         ]);
 
         return $script;
     }
 
     /**
-     * Create a fallback script from raw text when JSON parsing fails.
+     * Extract JSON from AI response, handling various formats.
      */
-    protected function createFallbackScript(string $response): ?array
+    protected function extractJson(string $response): string
     {
-        // Try to extract meaningful content from the response
-        $lines = array_filter(array_map('trim', explode("\n", $response)));
+        $response = trim($response);
 
-        if (count($lines) < 3) {
-            return null;
+        // Remove various code block formats
+        // Handle ```json, '''json, ~~~json, etc.
+        $response = preg_replace('/^[`\'~]{3,}(?:json)?\s*/im', '', $response);
+        $response = preg_replace('/[`\'~]{3,}\s*$/im', '', $response);
+
+        // Remove any BOM or invisible characters
+        $response = preg_replace('/^\xEF\xBB\xBF/', '', $response);
+
+        // Find JSON object boundaries
+        $firstBrace = strpos($response, '{');
+        $lastBrace = strrpos($response, '}');
+
+        if ($firstBrace === false || $lastBrace === false || $lastBrace < $firstBrace) {
+            \Log::warning('VideoWizard: No valid JSON braces found', [
+                'response' => substr($response, 0, 200),
+            ]);
+            return $response;
         }
 
-        // Look for scene markers or numbered sections
-        $scenes = [];
-        $currentScene = null;
-        $sceneNumber = 0;
+        $json = substr($response, $firstBrace, $lastBrace - $firstBrace + 1);
 
-        foreach ($lines as $line) {
-            // Check for scene markers like "Scene 1:", "1.", "[Scene 1]", etc.
-            if (preg_match('/^(?:scene\s*)?(\d+)[\.:)\]]/i', $line, $matches)) {
-                if ($currentScene) {
-                    $scenes[] = $currentScene;
-                }
-                $sceneNumber = (int) $matches[1];
-                $currentScene = [
-                    'id' => 'scene-' . $sceneNumber,
-                    'title' => 'Scene ' . $sceneNumber,
-                    'narration' => '',
-                    'visualDescription' => '',
-                    'duration' => 15,
-                ];
-                // Rest of line might be the title
-                $rest = trim(preg_replace('/^(?:scene\s*)?(\d+)[\.:)\]]\s*/i', '', $line));
-                if ($rest) {
-                    $currentScene['title'] = $rest;
-                }
-            } elseif ($currentScene) {
-                // Add to current scene narration
-                if (stripos($line, 'visual') !== false || stripos($line, 'show') !== false) {
-                    $currentScene['visualDescription'] .= ' ' . preg_replace('/^visual[s]?:?\s*/i', '', $line);
-                } else {
-                    $currentScene['narration'] .= ' ' . $line;
-                }
+        // Fix common JSON issues
+        $json = $this->fixJsonIssues($json);
+
+        return $json;
+    }
+
+    /**
+     * Fix common JSON formatting issues.
+     */
+    protected function fixJsonIssues(string $json): string
+    {
+        // Remove trailing commas before } or ]
+        $json = preg_replace('/,(\s*[}\]])/', '$1', $json);
+
+        // Fix unescaped newlines in strings (basic fix)
+        // This is tricky - we'll try a simple approach
+        $json = str_replace(["\r\n", "\r"], "\n", $json);
+
+        // Replace actual newlines inside strings with \n
+        // We need to be careful not to break the JSON structure
+        $json = preg_replace_callback(
+            '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"/s',
+            function ($matches) {
+                $content = $matches[1];
+                // Replace actual newlines with escaped newlines
+                $content = str_replace("\n", "\\n", $content);
+                $content = str_replace("\t", "\\t", $content);
+                return '"' . $content . '"';
+            },
+            $json
+        );
+
+        // Fix double-escaped sequences that might result
+        $json = str_replace('\\\\n', '\\n', $json);
+        $json = str_replace('\\\\t', '\\t', $json);
+
+        return $json;
+    }
+
+    /**
+     * Normalize and validate script structure.
+     */
+    protected function normalizeScript(array $script, int $targetDuration): array
+    {
+        // Ensure required fields
+        $script['title'] = $script['title'] ?? 'Untitled Script';
+        $script['hook'] = $script['hook'] ?? '';
+        $script['cta'] = $script['cta'] ?? '';
+
+        // Normalize each scene
+        $sceneCount = count($script['scenes']);
+        $avgDuration = (int) ceil($targetDuration / $sceneCount);
+
+        foreach ($script['scenes'] as $index => &$scene) {
+            // Ensure ID
+            $scene['id'] = $scene['id'] ?? 'scene-' . ($index + 1);
+
+            // Ensure title
+            $scene['title'] = $scene['title'] ?? 'Scene ' . ($index + 1);
+
+            // Ensure narration
+            $scene['narration'] = $scene['narration'] ?? '';
+
+            // Ensure visual description
+            $scene['visualDescription'] = $scene['visualDescription']
+                ?? $scene['visual_description']
+                ?? $scene['visual']
+                ?? $scene['narration'];
+
+            // Ensure duration is reasonable
+            $scene['duration'] = isset($scene['duration']) && is_numeric($scene['duration'])
+                ? max(5, min(60, (int) $scene['duration']))
+                : $avgDuration;
+
+            // Ensure Ken Burns effect
+            if (!isset($scene['kenBurns']) || !is_array($scene['kenBurns'])) {
+                $scene['kenBurns'] = $this->generateKenBurnsEffect();
             }
         }
 
-        if ($currentScene) {
-            $scenes[] = $currentScene;
-        }
+        // Calculate totals
+        $script['totalDuration'] = array_sum(array_column($script['scenes'], 'duration'));
+        $script['wordCount'] = array_sum(array_map(
+            fn($s) => str_word_count($s['narration'] ?? ''),
+            $script['scenes']
+        ));
 
-        // Clean up scenes
-        foreach ($scenes as &$scene) {
-            $scene['narration'] = trim($scene['narration']);
-            $scene['visualDescription'] = trim($scene['visualDescription']) ?: $scene['narration'];
-        }
+        return $script;
+    }
 
-        if (empty($scenes)) {
-            // Last resort: create a single scene with all content
-            $scenes = [[
-                'id' => 'scene-1',
-                'title' => 'Main Content',
-                'narration' => implode(' ', array_slice($lines, 0, 10)),
-                'visualDescription' => 'Visual representation of the content',
-                'duration' => 30,
-            ]];
-        }
-
-        return [
-            'title' => 'Generated Script',
-            'hook' => $scenes[0]['narration'] ?? '',
-            'scenes' => $scenes,
-            'cta' => '',
+    /**
+     * Generate a random Ken Burns effect configuration.
+     */
+    protected function generateKenBurnsEffect(): array
+    {
+        $effects = [
+            // Zoom in center
+            ['startScale' => 1.0, 'endScale' => 1.15, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+            // Zoom out center
+            ['startScale' => 1.15, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+            // Pan left to right
+            ['startScale' => 1.1, 'endScale' => 1.1, 'startX' => 0.3, 'startY' => 0.5, 'endX' => 0.7, 'endY' => 0.5],
+            // Pan right to left
+            ['startScale' => 1.1, 'endScale' => 1.1, 'startX' => 0.7, 'startY' => 0.5, 'endX' => 0.3, 'endY' => 0.5],
+            // Zoom in top-left
+            ['startScale' => 1.0, 'endScale' => 1.2, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.3, 'endY' => 0.3],
+            // Zoom in bottom-right
+            ['startScale' => 1.0, 'endScale' => 1.2, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.7, 'endY' => 0.7],
+            // Pan up
+            ['startScale' => 1.1, 'endScale' => 1.1, 'startX' => 0.5, 'startY' => 0.6, 'endX' => 0.5, 'endY' => 0.4],
+            // Pan down
+            ['startScale' => 1.1, 'endScale' => 1.1, 'startX' => 0.5, 'startY' => 0.4, 'endX' => 0.5, 'endY' => 0.6],
         ];
+
+        return $effects[array_rand($effects)];
     }
 
     /**
@@ -364,22 +679,20 @@ PROMPT;
     {
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
 
+        $scriptJson = json_encode($script, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
         $prompt = <<<PROMPT
 You are an expert video script editor. Improve the following script based on the instruction.
 
 CURRENT SCRIPT:
-```json
-{$this->jsonEncode($script)}
-```
+{$scriptJson}
 
 INSTRUCTION: {$instruction}
 
-Return the improved script in the same JSON format.
+RESPOND WITH ONLY THE IMPROVED JSON (no markdown, no explanation):
 PROMPT;
 
-        $result = AI::process($prompt, 'text', [
-            'maxResult' => 1
-        ], $teamId);
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
@@ -388,13 +701,5 @@ PROMPT;
         $response = $result['data'][0] ?? '';
 
         return $this->parseScriptResponse($response);
-    }
-
-    /**
-     * Encode array to JSON with proper formatting.
-     */
-    protected function jsonEncode(array $data): string
-    {
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 }
