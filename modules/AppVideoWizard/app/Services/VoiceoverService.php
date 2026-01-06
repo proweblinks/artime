@@ -2,7 +2,7 @@
 
 namespace Modules\AppVideoWizard\Services;
 
-use App\Facades\AIService;
+use App\Facades\AI;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\WizardProject;
@@ -30,17 +30,25 @@ class VoiceoverService
         $narration = $scene['narration'] ?? '';
         $voice = $options['voice'] ?? 'nova';
         $speed = $options['speed'] ?? 1.0;
+        $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
         if (empty($narration)) {
             throw new \Exception('No narration text provided');
         }
 
         // Generate audio using OpenAI TTS
-        $audioContent = AIService::textToSpeech($narration, [
-            'model' => config('appvideowizard.ai_models.voiceover.model', 'tts-1-hd'),
+        $result = AI::process($narration, 'speech', [
             'voice' => $voice,
-            'speed' => $speed,
-        ]);
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $audioContent = $result['data'][0] ?? null;
+        if (!$audioContent) {
+            throw new \Exception('No audio generated');
+        }
 
         // Store the audio file
         $filename = Str::slug($scene['id']) . '-voiceover-' . time() . '.mp3';
@@ -125,14 +133,20 @@ class VoiceoverService
     /**
      * Preview voice with sample text.
      */
-    public function previewVoice(string $voice, string $sampleText = null): string
+    public function previewVoice(string $voice, string $sampleText = null, array $options = []): string
     {
         $text = $sampleText ?? 'This is a preview of the ' . ($this->voices[$voice]['name'] ?? $voice) . ' voice.';
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
 
-        $audioContent = AIService::textToSpeech($text, [
-            'model' => 'tts-1',
+        $result = AI::process($text, 'speech', [
             'voice' => $voice,
-        ]);
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $audioContent = $result['data'][0] ?? '';
 
         // Return base64 encoded audio for preview
         return 'data:audio/mpeg;base64,' . base64_encode($audioContent);

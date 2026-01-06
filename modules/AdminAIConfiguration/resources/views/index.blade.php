@@ -148,6 +148,8 @@
                             'gemini'   => 'Gemini',
                             'claude'   => 'Claude',
                             'deepseek' => 'DeepSeek',
+                            'fal'      => 'FAL AI',
+                            'minimax'  => 'MiniMax',
                         ];
                     @endphp
 
@@ -172,6 +174,20 @@
                             <select class="form-select" name="ai_platform_image">
                                 @foreach ($platformsByCategory['image'] as $p)
                                     <option value="{{ $p }}" {{ get_option('ai_platform_image', 'openai') == $p ? 'selected' : '' }}>
+                                        {{ $labels[$p] ?? ucfirst($p) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    {{-- Video --}}
+                    @if(!empty($platformsByCategory['video']))
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label">{{ __('Video') }}</label>
+                            <select class="form-select" name="ai_platform_video">
+                                @foreach ($platformsByCategory['video'] as $p)
+                                    <option value="{{ $p }}" {{ get_option('ai_platform_video', 'fal') == $p ? 'selected' : '' }}>
                                         {{ $labels[$p] ?? ucfirst($p) }}
                                     </option>
                                 @endforeach
@@ -220,6 +236,164 @@
                 </div>
             </div>
         @endforeach
+
+        {{-- Stock Media Providers --}}
+        <div class="card shadow-none border-gray-300 mb-4">
+            <div class="card-header fw-6">{{ __('Stock Media Providers') }}</div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    {{ __('Configure stock media providers for videos, images, and audio. These are used by Video Wizard and other media features.') }}
+                </p>
+
+                {{-- Pexels --}}
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fab fa-pexels me-2"></i>{{ __('Pexels') }}
+                        <small class="text-muted fw-normal">- {{ __('Stock videos & photos') }}</small>
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">{{ __('API Key') }}</label>
+                            <input type="text" class="form-control" name="media_pexels_api_key"
+                                   value="{{ get_option('media_pexels_api_key', '') }}"
+                                   placeholder="{{ __('Enter Pexels API Key') }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ __('Status') }}</label>
+                            <select class="form-select" name="media_pexels_status">
+                                <option value="1" {{ get_option('media_pexels_status', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                                <option value="0" {{ get_option('media_pexels_status', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Pixabay --}}
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-images me-2"></i>{{ __('Pixabay') }}
+                        <small class="text-muted fw-normal">- {{ __('Stock videos, photos & music') }}</small>
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">{{ __('API Key') }}</label>
+                            <input type="text" class="form-control" name="media_pixabay_api_key"
+                                   value="{{ get_option('media_pixabay_api_key', '') }}"
+                                   placeholder="{{ __('Enter Pixabay API Key') }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ __('Status') }}</label>
+                            <select class="form-select" name="media_pixabay_status">
+                                <option value="1" {{ get_option('media_pixabay_status', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                                <option value="0" {{ get_option('media_pixabay_status', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Freesound --}}
+                <div class="border rounded p-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-music me-2"></i>{{ __('Freesound') }}
+                        <small class="text-muted fw-normal">- {{ __('Sound effects & ambient audio') }}</small>
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">{{ __('API Key') }}</label>
+                            <input type="text" class="form-control" name="media_freesound_api_key"
+                                   value="{{ get_option('media_freesound_api_key', '') }}"
+                                   placeholder="{{ __('Enter Freesound API Key') }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ __('Status') }}</label>
+                            <select class="form-select" name="media_freesound_status">
+                                <option value="1" {{ get_option('media_freesound_status', 1) == 1 ? 'selected' : '' }}>{{ __('Enable') }}</option>
+                                <option value="0" {{ get_option('media_freesound_status', 1) == 0 ? 'selected' : '' }}>{{ __('Disable') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Infrastructure Services --}}
+        <div class="card shadow-none border-gray-300 mb-4">
+            <div class="card-header fw-6">{{ __('Infrastructure Services') }}</div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    {{ __('Configure storage, GPU processing, and video processing services for Video Wizard.') }}
+                </p>
+
+                {{-- Cloudflare R2 Storage --}}
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-cloud me-2"></i>{{ __('Cloudflare R2 Storage') }}
+                        <small class="text-muted fw-normal">- {{ __('Video & asset storage') }}</small>
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ __('Account ID') }}</label>
+                            <input type="text" class="form-control" name="r2_account_id"
+                                   value="{{ get_option('r2_account_id', '') }}"
+                                   placeholder="{{ __('Enter Account ID') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ __('Bucket Name') }}</label>
+                            <input type="text" class="form-control" name="r2_bucket_name"
+                                   value="{{ get_option('r2_bucket_name', '') }}"
+                                   placeholder="{{ __('Enter Bucket Name') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ __('Access Key ID') }}</label>
+                            <input type="text" class="form-control" name="r2_access_key_id"
+                                   value="{{ get_option('r2_access_key_id', '') }}"
+                                   placeholder="{{ __('Enter Access Key ID') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ __('Access Key Secret') }}</label>
+                            <input type="password" class="form-control" name="r2_access_key_secret"
+                                   value="{{ get_option('r2_access_key_secret', '') }}"
+                                   placeholder="{{ __('Enter Access Key Secret') }}">
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">{{ __('Public Domain (Optional)') }}</label>
+                            <input type="url" class="form-control" name="r2_public_domain"
+                                   value="{{ get_option('r2_public_domain', '') }}"
+                                   placeholder="{{ __('e.g., https://cdn.yourdomain.com') }}">
+                            <small class="text-muted">{{ __('Custom domain for public file access. Leave empty to use default R2 URL.') }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- RunPod GPU Processing --}}
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-microchip me-2"></i>{{ __('RunPod GPU Processing') }}
+                        <small class="text-muted fw-normal">- {{ __('Serverless GPU for video generation') }}</small>
+                    </h6>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('API Key') }}</label>
+                        <input type="text" class="form-control" name="runpod_api_key"
+                               value="{{ get_option('runpod_api_key', '') }}"
+                               placeholder="{{ __('Enter RunPod API Key') }}">
+                    </div>
+                </div>
+
+                {{-- Video Processor Service --}}
+                <div class="border rounded p-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-film me-2"></i>{{ __('Video Processor Service') }}
+                        <small class="text-muted fw-normal">- {{ __('Custom video processing microservice') }}</small>
+                    </h6>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('Service URL') }}</label>
+                        <input type="url" class="form-control" name="video_processor_url"
+                               value="{{ get_option('video_processor_url', '') }}"
+                               placeholder="{{ __('e.g., https://video-processor.example.com') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {{-- Save button --}}
         <div class="mt-4">

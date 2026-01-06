@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'view' => 'themes/app/pico/resources/views',
+    'view' => 'resources/views/livewire',
 
     /*
     |--------------------------------------------------------------------------

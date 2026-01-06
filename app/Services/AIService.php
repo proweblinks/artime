@@ -11,17 +11,23 @@ class AIService
     protected $deepSeekService;
     protected $geminiService;
     protected $claudeService;
+    protected $falService;
+    protected $miniMaxService;
 
     public function __construct(
         OpenAIService   $openAIService,
         DeepSeekService $deepSeekService,
         GeminiService   $geminiService,
-        ClaudeService   $claudeService
+        ClaudeService   $claudeService,
+        FalService      $falService,
+        MiniMaxService  $miniMaxService
     ) {
         $this->openAIService   = $openAIService;
         $this->deepSeekService = $deepSeekService;
         $this->geminiService   = $geminiService;
         $this->claudeService   = $claudeService;
+        $this->falService      = $falService;
+        $this->miniMaxService  = $miniMaxService;
     }
 
     /**
@@ -35,7 +41,10 @@ class AIService
             case 'image':
                 $platform  = get_option("ai_platform_image", "openai");
                 break;
-            
+            case 'video':
+                $platform  = get_option("ai_platform_video", "fal");
+                break;
+
             default:
                 $platform  = get_option("ai_platform", "openai");
                 break;
@@ -78,6 +87,8 @@ class AIService
             'deepseek' => $this->deepSeekService,
             'gemini'   => $this->geminiService,
             'claude'   => $this->claudeService,
+            'fal'      => $this->falService,
+            'minimax'  => $this->miniMaxService,
             default    => throw new \Exception("Platform {$platform} not supported"),
         };
     }
@@ -138,6 +149,8 @@ class AIService
             "deepseek" => __("DeepSeek"),
             "gemini"   => __("Gemini"),
             "claude"   => __("Claude"),
+            "fal"      => __("FAL AI"),
+            "minimax"  => __("MiniMax"),
         ];
     }
 

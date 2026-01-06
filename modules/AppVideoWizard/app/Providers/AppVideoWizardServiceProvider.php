@@ -54,11 +54,11 @@ class AppVideoWizardServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register Livewire components.
+     * Register Livewire components manually.
      */
     protected function registerLivewireComponents(): void
     {
-        Livewire::component('video-wizard', \Modules\AppVideoWizard\Livewire\VideoWizard::class);
+        Livewire::component('appvideowizard::video-wizard', \Modules\AppVideoWizard\Livewire\VideoWizard::class);
     }
 
     /**

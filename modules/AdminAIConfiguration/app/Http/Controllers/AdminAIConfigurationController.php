@@ -17,6 +17,8 @@ class AdminAIConfigurationController extends Controller
             'gemini'   => 'Gemini AI',
             'deepseek' => 'Deepseek AI',
             'claude'   => 'Claude AI',
+            'fal'      => 'FAL AI',
+            'minimax'  => 'MiniMax AI',
         ];
 
         // Thứ tự category

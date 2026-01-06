@@ -2,7 +2,7 @@
 
 namespace Modules\AppVideoWizard\Services;
 
-use App\Facades\AIService;
+use App\Facades\AI;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Models\WizardProcessingJob;
 
@@ -16,6 +16,7 @@ class ScriptGenerationService
         $concept = $project->concept ?? [];
         $contentConfig = $project->content_config ?? [];
         $productionType = $project->getProductionTypeConfig();
+        $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
         $topic = $concept['refinedConcept'] ?? $concept['rawInput'] ?? $contentConfig['topic'] ?? '';
         $tone = $contentConfig['tone'] ?? 'engaging';
@@ -38,11 +39,15 @@ class ScriptGenerationService
         ]);
 
         // Use ArTime's existing AI service
-        $response = AIService::generate($prompt, [
-            'model' => config('appvideowizard.ai_models.script.model', 'gpt-4'),
-            'max_tokens' => 4000,
-            'temperature' => 0.8,
-        ]);
+        $result = AI::process($prompt, 'text', [
+            'maxResult' => 1
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = $result['data'][0] ?? '';
 
         // Parse the response
         $script = $this->parseScriptResponse($response);
@@ -176,8 +181,10 @@ PROMPT;
     /**
      * Improve/refine an existing script.
      */
-    public function improveScript(array $script, string $instruction): array
+    public function improveScript(array $script, string $instruction, array $options = []): array
     {
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
+
         $prompt = <<<PROMPT
 You are an expert video script editor. Improve the following script based on the instruction.
 
@@ -191,10 +198,15 @@ INSTRUCTION: {$instruction}
 Return the improved script in the same JSON format.
 PROMPT;
 
-        $response = AIService::generate($prompt, [
-            'model' => config('appvideowizard.ai_models.script.model', 'gpt-4'),
-            'max_tokens' => 4000,
-        ]);
+        $result = AI::process($prompt, 'text', [
+            'maxResult' => 1
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = $result['data'][0] ?? '';
 
         return $this->parseScriptResponse($response);
     }

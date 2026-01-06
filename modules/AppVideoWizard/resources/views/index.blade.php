@@ -4,10 +4,6 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    @livewire(\Modules\AppVideoWizard\Livewire\VideoWizard::class, ['project' => $project ?? null])
+    @livewire('appvideowizard::video-wizard', ['project' => $project])
 </div>
 @endsection
-
-@push('scripts')
-<script src="{{ Module::asset('appvideowizard:js/video-preview-engine.js') }}"></script>
-@endpush

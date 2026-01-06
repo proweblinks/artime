@@ -2,7 +2,7 @@
 
 namespace Modules\AppVideoWizard\Services;
 
-use App\Facades\AIService;
+use App\Facades\AI;
 use Modules\AppVideoWizard\Models\WizardProject;
 
 class ConceptService
@@ -14,14 +14,19 @@ class ConceptService
     {
         $productionType = $options['productionType'] ?? null;
         $productionSubType = $options['productionSubType'] ?? null;
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
 
         $prompt = $this->buildImprovePrompt($rawInput, $productionType, $productionSubType);
 
-        $response = AIService::generate($prompt, [
-            'model' => config('appvideowizard.ai_models.script.model', 'gpt-4'),
-            'max_tokens' => 2000,
-            'temperature' => 0.9,
-        ]);
+        $result = AI::process($prompt, 'text', [
+            'maxResult' => 1
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = $result['data'][0] ?? '';
 
         return $this->parseImproveResponse($response);
     }
@@ -104,8 +109,10 @@ PROMPT;
     /**
      * Generate multiple concept variations.
      */
-    public function generateVariations(string $concept, int $count = 3): array
+    public function generateVariations(string $concept, int $count = 3, array $options = []): array
     {
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
+
         $prompt = <<<PROMPT
 Based on this video concept, generate {$count} unique variations that explore different angles or approaches:
 
@@ -123,12 +130,15 @@ Return as JSON array:
 ]
 PROMPT;
 
-        $response = AIService::generate($prompt, [
-            'model' => config('appvideowizard.ai_models.script.model', 'gpt-4'),
-            'max_tokens' => 2000,
-        ]);
+        $result = AI::process($prompt, 'text', [
+            'maxResult' => 1
+        ], $teamId);
 
-        $response = trim($response);
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = trim($result['data'][0] ?? '');
         $response = preg_replace('/```json\s*/i', '', $response);
         $response = preg_replace('/```\s*/', '', $response);
 
