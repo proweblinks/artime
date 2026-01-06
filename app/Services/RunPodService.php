@@ -13,7 +13,16 @@ class RunPodService
 
     public function __construct()
     {
+        // Always get fresh API key to handle updates
         $this->apiKey = (string) get_option("runpod_api_key", "");
+        $this->initClient();
+    }
+
+    /**
+     * Initialize HTTP client with current API key.
+     */
+    protected function initClient(): void
+    {
         $this->client = new Client([
             'base_uri' => 'https://api.runpod.ai/v2/',
             'headers' => [
@@ -21,6 +30,16 @@ class RunPodService
                 'Content-Type' => 'application/json',
             ],
         ]);
+    }
+
+    /**
+     * Refresh API key from settings (useful if changed after service instantiation).
+     */
+    public function refreshApiKey(): self
+    {
+        $this->apiKey = (string) get_option("runpod_api_key", "");
+        $this->initClient();
+        return $this;
     }
 
     /**

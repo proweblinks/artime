@@ -105,24 +105,41 @@ class ImageGenerationService
         array $resolution,
         array $options = []
     ): array {
-        $endpointId = get_option('runpod_hidream_endpoint', '');
-
-        if (empty($endpointId)) {
-            throw new \Exception('HiDream endpoint not configured. Please set runpod_hidream_endpoint in settings.');
+        // Check API key first
+        $apiKey = get_option('runpod_api_key', '');
+        if (empty($apiKey)) {
+            throw new \Exception('RunPod API key not configured. Go to Admin → AI Configuration → RunPod to add your API key.');
         }
 
-        // HiDream generation settings
+        $endpointId = get_option('runpod_hidream_endpoint', '');
+        if (empty($endpointId)) {
+            throw new \Exception('HiDream endpoint not configured. Go to Admin → AI Configuration → RunPod to add your HiDream endpoint ID.');
+        }
+
+        // HiDream generation settings - send only essential params
+        // The worker will use defaults for anything not specified
         $input = [
             'prompt' => $prompt,
             'width' => $resolution['width'],
             'height' => $resolution['height'],
             'num_inference_steps' => 35,
-            'guidance_scale' => 5,
-            'seed' => -1, // Random seed
+            'guidance_scale' => 5.0,
         ];
+
+        Log::info('HiDream generation request', [
+            'endpointId' => $endpointId,
+            'prompt' => substr($prompt, 0, 100) . '...',
+            'width' => $resolution['width'],
+            'height' => $resolution['height'],
+        ]);
+
+        // Refresh API key in case it was recently updated
+        $this->runPodService->refreshApiKey();
 
         // Start async job
         $result = $this->runPodService->runAsync($endpointId, $input);
+
+        Log::info('HiDream RunPod response', ['result' => $result]);
 
         if (!$result['success']) {
             throw new \Exception($result['error'] ?? 'Failed to start HiDream generation');

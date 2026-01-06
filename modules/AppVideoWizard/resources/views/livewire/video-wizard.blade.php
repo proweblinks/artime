@@ -286,7 +286,7 @@
 
     {{-- Navigation --}}
     <div class="vw-navigation">
-        <button wire:click="previousStep"
+        <button type="button" wire:click="previousStep"
                 class="vw-btn vw-btn-ghost"
                 {{ $currentStep <= 1 ? 'disabled' : '' }}>
             ← {{ __('Previous') }}
@@ -297,8 +297,9 @@
                 <span class="vw-spinner"></span>
                 <span>{{ __('Saving...') }}</span>
             @else
-                <button wire:click="saveProject" class="vw-btn-save" title="{{ __('Save Project') }}">
-                    💾 {{ __('Save') }}
+                <button type="button" wire:click="saveProject" wire:loading.attr="disabled" class="vw-btn-save" title="{{ __('Save Project') }}">
+                    <span wire:loading.remove wire:target="saveProject">💾 {{ __('Save') }}</span>
+                    <span wire:loading wire:target="saveProject">⏳ {{ __('Saving...') }}</span>
                 </button>
                 @if($projectId)
                     <span style="margin-left: 0.5rem; font-size: 0.75rem; color: rgba(0,0,0,0.4);">ID: {{ $projectId }}</span>
@@ -307,11 +308,11 @@
         </div>
 
         @if($currentStep < 7)
-            <button wire:click="nextStep" class="vw-btn vw-btn-primary">
+            <button type="button" wire:click="nextStep" class="vw-btn vw-btn-primary">
                 {{ __('Continue') }} →
             </button>
         @else
-            <button wire:click="saveProject" class="vw-btn vw-btn-success">
+            <button type="button" wire:click="saveProject" class="vw-btn vw-btn-success">
                 {{ __('Export Video') }}
             </button>
         @endif
