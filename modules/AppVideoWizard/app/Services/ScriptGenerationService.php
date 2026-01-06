@@ -137,22 +137,56 @@ PROMPT;
     {
         // Clean up response - extract JSON
         $response = trim($response);
+
+        // Remove markdown code blocks
         $response = preg_replace('/```json\s*/i', '', $response);
         $response = preg_replace('/```\s*/', '', $response);
+
+        // Remove any text before the first {
+        if (($pos = strpos($response, '{')) !== false) {
+            $response = substr($response, $pos);
+        }
+
+        // Remove any text after the last }
+        if (($pos = strrpos($response, '}')) !== false) {
+            $response = substr($response, 0, $pos + 1);
+        }
+
+        // Fix common JSON issues
+        $response = preg_replace('/,\s*}/', '}', $response); // trailing commas in objects
+        $response = preg_replace('/,\s*]/', ']', $response); // trailing commas in arrays
 
         // Try to parse JSON
         $script = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // Try to extract JSON from the response
-            preg_match('/\{[\s\S]*"scenes"[\s\S]*\}/', $response, $matches);
-            if (!empty($matches[0])) {
-                $script = json_decode($matches[0], true);
+            // Try to extract JSON from the response using different patterns
+            $patterns = [
+                '/\{[^{}]*"scenes"\s*:\s*\[[\s\S]*?\][\s\S]*?\}/s',
+                '/\{[\s\S]*"scenes"[\s\S]*\}/s',
+            ];
+
+            foreach ($patterns as $pattern) {
+                preg_match($pattern, $response, $matches);
+                if (!empty($matches[0])) {
+                    $extracted = $matches[0];
+                    // Fix common issues in extracted JSON
+                    $extracted = preg_replace('/,\s*}/', '}', $extracted);
+                    $extracted = preg_replace('/,\s*]/', ']', $extracted);
+                    $script = json_decode($extracted, true);
+                    if (json_last_error() === JSON_ERROR_NONE && isset($script['scenes'])) {
+                        break;
+                    }
+                }
             }
         }
 
-        if (!$script || !isset($script['scenes'])) {
-            throw new \Exception('Failed to parse script response');
+        // If still no valid script, try to build a minimal one from the response
+        if (!$script || !isset($script['scenes']) || !is_array($script['scenes'])) {
+            \Log::warning('Script parsing failed. Raw response: ' . substr($response, 0, 500));
+
+            // Create a fallback script structure
+            throw new \Exception('Failed to parse script response. The AI returned an invalid format.');
         }
 
         // Validate and fix scenes
@@ -162,6 +196,15 @@ PROMPT;
             }
             if (!isset($scene['duration'])) {
                 $scene['duration'] = 15;
+            }
+            if (!isset($scene['title'])) {
+                $scene['title'] = 'Scene ' . ($index + 1);
+            }
+            if (!isset($scene['narration'])) {
+                $scene['narration'] = '';
+            }
+            if (!isset($scene['visualDescription'])) {
+                $scene['visualDescription'] = $scene['narration'];
             }
             if (!isset($scene['kenBurns'])) {
                 $scene['kenBurns'] = [
@@ -173,6 +216,17 @@ PROMPT;
                     'endY' => 0.4,
                 ];
             }
+        }
+
+        // Ensure required fields exist
+        if (!isset($script['title'])) {
+            $script['title'] = 'Untitled Script';
+        }
+        if (!isset($script['hook'])) {
+            $script['hook'] = '';
+        }
+        if (!isset($script['cta'])) {
+            $script['cta'] = '';
         }
 
         return $script;
