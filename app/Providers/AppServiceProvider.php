@@ -141,7 +141,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function registerDB(): void
     {
-        $options = DB::table('options')->get();
+        // Convert to array to avoid Collection serialization issues with config:cache
+        $options = DB::table('options')->get()->toArray();
         config(['options' => $options]);
 
         if( !Schema::hasTable('cache') ){
