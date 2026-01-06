@@ -28,7 +28,7 @@
     <div class="mb-8">
         <ul class="steps steps-horizontal w-full">
             @foreach($stepTitles as $step => $title)
-                <li class="step {{ $currentStep >= $step ? 'step-primary' : '' }} {{ $isStepCompleted($step) ? 'step-success' : '' }}"
+                <li class="step {{ $currentStep >= $step ? 'step-primary' : '' }} {{ $this->isStepCompleted($step) ? 'step-success' : '' }}"
                     wire:click="goToStep({{ $step }})"
                     style="cursor: {{ $step <= $maxReachedStep + 1 ? 'pointer' : 'not-allowed' }}">
                     <span class="hidden md:inline text-xs">{{ $title }}</span>
