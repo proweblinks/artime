@@ -603,12 +603,15 @@ PROMPT;
         // Normalize line endings
         $json = str_replace(["\r\n", "\r"], "\n", $json);
 
-        // Replace smart quotes with regular quotes
-        $json = str_replace(['"', '"', '„', '«', '»'], '"', $json);
-        $json = str_replace([''', ''', '‚', '‹', '›'], "'", $json);
+        // Replace smart quotes with regular quotes (using UTF-8 byte sequences)
+        // " = \xe2\x80\x9c, " = \xe2\x80\x9d, „ = \xe2\x80\x9e, « = \xc2\xab, » = \xc2\xbb
+        $json = str_replace(["\xe2\x80\x9c", "\xe2\x80\x9d", "\xe2\x80\x9e", "\xc2\xab", "\xc2\xbb"], '"', $json);
+        // ' = \xe2\x80\x98, ' = \xe2\x80\x99, ‚ = \xe2\x80\x9a, ‹ = \xe2\x80\xb9, › = \xe2\x80\xba
+        $json = str_replace(["\xe2\x80\x98", "\xe2\x80\x99", "\xe2\x80\x9a", "\xe2\x80\xb9", "\xe2\x80\xba"], "'", $json);
 
         // Replace em/en dashes with regular dashes
-        $json = str_replace(['—', '–'], '-', $json);
+        // — = \xe2\x80\x94, – = \xe2\x80\x93
+        $json = str_replace(["\xe2\x80\x94", "\xe2\x80\x93"], '-', $json);
 
         // Remove trailing commas before } or ]
         $json = preg_replace('/,(\s*[}\]])/', '$1', $json);
