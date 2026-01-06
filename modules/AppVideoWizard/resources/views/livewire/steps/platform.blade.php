@@ -307,7 +307,9 @@
         <div class="vw-format-grid">
             @foreach($formats as $id => $formatConfig)
                 <div wire:click="selectFormat('{{ $id }}')"
-                     class="vw-format-card {{ $format === $id ? 'selected' : '' }}">
+                     onclick="console.log('Click detected on format: {{ $id }}'); console.log('Livewire component:', Livewire.all());"
+                     class="vw-format-card {{ $format === $id ? 'selected' : '' }}"
+                     style="cursor: pointer;">
                     <span class="vw-format-icon">
                         @switch($id)
                             @case('widescreen') 🖥️ @break
@@ -338,7 +340,9 @@
         <div class="vw-production-grid">
             @foreach($productionTypes as $typeId => $type)
                 <div wire:click="selectProductionType('{{ $typeId }}')"
-                     class="vw-production-card {{ $productionType === $typeId ? 'selected' : '' }}">
+                     onclick="console.log('Click detected on production type: {{ $typeId }}'); console.log('Calling Livewire method...');"
+                     class="vw-production-card {{ $productionType === $typeId ? 'selected' : '' }}"
+                     style="cursor: pointer;">
                     <span class="vw-production-icon">
                         @switch($typeId)
                             @case('social') 📱 @break
