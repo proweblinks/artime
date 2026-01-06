@@ -27,9 +27,13 @@ class VideoWizard extends Component
         'rawInput' => '',
         'refinedConcept' => '',
         'keywords' => [],
+        'keyElements' => [],
         'logline' => '',
         'suggestedMood' => null,
         'suggestedTone' => null,
+        'styleReference' => '',
+        'avoidElements' => '',
+        'targetAudience' => '',
     ];
 
     // Step 3: Script
@@ -251,6 +255,34 @@ class VideoWizard extends Component
     public function updateConcept(array $conceptData): void
     {
         $this->concept = array_merge($this->concept, $conceptData);
+        $this->saveProject();
+    }
+
+    /**
+     * Enhance concept with AI.
+     */
+    public function enhanceConcept(): void
+    {
+        if (empty($this->concept['rawInput'])) {
+            return;
+        }
+
+        // TODO: Integrate with AI service to enhance the concept
+        // For now, just save the current state
+        $this->saveProject();
+    }
+
+    /**
+     * Generate unique ideas based on concept.
+     */
+    public function generateIdeas(): void
+    {
+        if (empty($this->concept['rawInput'])) {
+            return;
+        }
+
+        // TODO: Integrate with AI service to generate ideas
+        // For now, just save and proceed
         $this->saveProject();
     }
 
