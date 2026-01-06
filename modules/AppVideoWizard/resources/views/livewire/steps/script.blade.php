@@ -284,29 +284,7 @@
         margin-top: 0.75rem !important;
     }
 
-    /* Loading Bar */
-    .vw-loading-bar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.75rem !important;
-        background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%) !important;
-        padding: 1rem 1.5rem !important;
-        border-radius: 0.5rem !important;
-        margin-bottom: 1.5rem !important;
-        color: white !important;
-        font-weight: 500 !important;
-    }
-
-    .vw-spinner {
-        width: 20px !important;
-        height: 20px !important;
-        border: 2px solid rgba(255, 255, 255, 0.3) !important;
-        border-top-color: white !important;
-        border-radius: 50% !important;
-        animation: vw-spin 0.8s linear infinite !important;
-    }
-
+    /* Spinner Animation */
     @keyframes vw-spin {
         to { transform: rotate(360deg); }
     }
@@ -366,12 +344,6 @@
 </style>
 
 <div class="vw-script-step">
-    {{-- Loading Bar --}}
-    <div wire:loading wire:target="generateScript" class="vw-loading-bar">
-        <span class="vw-spinner"></span>
-        <span>{{ __('Generating your script...') }}</span>
-    </div>
-
     <div class="vw-script-card">
         {{-- Error Message --}}
         @if($error)
@@ -525,8 +497,11 @@
                 wire:loading.attr="disabled"
                 wire:target="generateScript">
             <span wire:loading.remove wire:target="generateScript">🚀 {{ __('Generate Script with AI') }}</span>
-            <span wire:loading wire:target="generateScript">
-                <span class="vw-spinner" style="width: 18px; height: 18px;"></span>
+            <span wire:loading wire:target="generateScript" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                </svg>
                 {{ __('Generating...') }}
             </span>
         </button>

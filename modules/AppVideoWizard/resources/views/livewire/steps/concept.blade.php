@@ -228,29 +228,7 @@
         margin: 1.5rem 0 !important;
     }
 
-    /* Loading Bar */
-    .vw-loading-bar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.75rem !important;
-        background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%) !important;
-        padding: 1rem 1.5rem !important;
-        border-radius: 0.5rem !important;
-        margin-bottom: 1.5rem !important;
-        color: white !important;
-        font-weight: 500 !important;
-    }
-
-    .vw-loading-bar .vw-spinner {
-        width: 20px !important;
-        height: 20px !important;
-        border: 2px solid rgba(255, 255, 255, 0.3) !important;
-        border-top-color: white !important;
-        border-radius: 50% !important;
-        animation: vw-spin 0.8s linear infinite !important;
-    }
-
+    /* Spinner Animation */
     @keyframes vw-spin {
         to { transform: rotate(360deg); }
     }
@@ -406,14 +384,6 @@
 </style>
 
 <div class="vw-concept-step" wire:poll.keep-alive>
-    {{-- Loading Bar --}}
-    <div wire:loading wire:target="generateIdeas, enhanceConcept, generateDifferentConcepts" class="vw-loading-bar">
-        <span class="vw-spinner"></span>
-        <span wire:loading wire:target="generateIdeas">{{ __('Generating unique ideas...') }}</span>
-        <span wire:loading wire:target="enhanceConcept">{{ __('Enhancing your concept...') }}</span>
-        <span wire:loading wire:target="generateDifferentConcepts">{{ __('Generating different concepts...') }}</span>
-    </div>
-
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -479,8 +449,11 @@
                         wire:loading.attr="disabled"
                         wire:target="enhanceConcept, generateIdeas">
                     <span wire:loading.remove wire:target="enhanceConcept">✨ {{ __('Enhance with AI') }}</span>
-                    <span wire:loading wire:target="enhanceConcept">
-                        <span class="vw-spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>
+                    <span wire:loading wire:target="enhanceConcept" style="display: inline-flex; align-items: center; gap: 0.375rem;">
+                        <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                        </svg>
                         {{ __('Enhancing...') }}
                     </span>
                 </button>
@@ -520,8 +493,11 @@
                 wire:target="generateIdeas, enhanceConcept"
                 @if(empty($concept['rawInput'])) disabled @endif>
             <span wire:loading.remove wire:target="generateIdeas">✨ {{ __('Generate Unique Ideas') }}</span>
-            <span wire:loading wire:target="generateIdeas">
-                <span class="vw-spinner" style="width: 18px; height: 18px; border-width: 2px;"></span>
+            <span wire:loading wire:target="generateIdeas" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <svg class="vw-btn-spinner" style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                </svg>
                 {{ __('Generating...') }}
             </span>
         </button>
@@ -582,8 +558,11 @@
                     wire:loading.attr="disabled"
                     wire:target="generateDifferentConcepts">
                 <span wire:loading.remove wire:target="generateDifferentConcepts">🎬 {{ __('Generate Different Concepts') }}</span>
-                <span wire:loading wire:target="generateDifferentConcepts">
-                    <span class="vw-spinner" style="width: 14px; height: 14px;"></span>
+                <span wire:loading wire:target="generateDifferentConcepts" style="display: inline-flex; align-items: center; gap: 0.375rem;">
+                    <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                    </svg>
                     {{ __('Generating...') }}
                 </span>
             </button>
