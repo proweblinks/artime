@@ -54,14 +54,11 @@ class AppVideoWizardServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register Livewire components.
-     * Note: With mhmiton/laravel-modules-livewire package installed,
-     * components are auto-discovered. Use syntax: <livewire:appvideowizard::video-wizard />
+     * Register Livewire components manually.
      */
     protected function registerLivewireComponents(): void
     {
-        // Auto-discovered by mhmiton/laravel-modules-livewire package
-        // Manual registration removed to avoid conflicts
+        Livewire::component('appvideowizard::video-wizard', \Modules\AppVideoWizard\Livewire\VideoWizard::class);
     }
 
     /**
