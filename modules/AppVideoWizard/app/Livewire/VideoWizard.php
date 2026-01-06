@@ -214,6 +214,9 @@ class VideoWizard extends Component
             ])
             ->get();
 
+        // First, clean up any stuck "generating" scenes that don't have valid pending jobs
+        $this->cleanupStuckScenes($project, $pendingJobs);
+
         if ($pendingJobs->isEmpty()) {
             return;
         }
@@ -245,6 +248,43 @@ class VideoWizard extends Component
         // Dispatch event to start polling if we have pending jobs
         if (!empty($this->pendingJobs)) {
             $this->dispatch('resume-job-polling', count: count($this->pendingJobs));
+        }
+    }
+
+    /**
+     * Clean up scenes that are stuck in "generating" status without valid pending jobs.
+     */
+    protected function cleanupStuckScenes(WizardProject $project, $pendingJobs): void
+    {
+        // Get scene indices that have valid pending jobs
+        $validPendingScenes = [];
+        foreach ($pendingJobs as $job) {
+            $inputData = $job->input_data ?? [];
+            $sceneIndex = $inputData['sceneIndex'] ?? null;
+            if ($sceneIndex !== null) {
+                $validPendingScenes[] = $sceneIndex;
+            }
+        }
+
+        // Check each scene in storyboard
+        $needsSave = false;
+        if (isset($this->storyboard['scenes']) && is_array($this->storyboard['scenes'])) {
+            foreach ($this->storyboard['scenes'] as $index => $scene) {
+                // If scene is "generating" but doesn't have a valid pending job, reset it
+                if (($scene['status'] ?? '') === 'generating' && !in_array($index, $validPendingScenes)) {
+                    // Reset to error state to allow regeneration
+                    $this->storyboard['scenes'][$index]['status'] = 'error';
+                    $this->storyboard['scenes'][$index]['error'] = 'Previous generation failed or was interrupted';
+                    unset($this->storyboard['scenes'][$index]['jobId']);
+                    unset($this->storyboard['scenes'][$index]['processingJobId']);
+                    $needsSave = true;
+                }
+            }
+        }
+
+        // Save if we made changes
+        if ($needsSave) {
+            $this->saveProject();
         }
     }
 
