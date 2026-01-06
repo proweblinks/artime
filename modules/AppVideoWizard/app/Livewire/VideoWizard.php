@@ -75,10 +75,13 @@ class VideoWizard extends Component
 
     /**
      * Mount the component.
+     * Note: We accept mixed $project to avoid Livewire's implicit model binding
+     * which fails when null is passed.
      */
-    public function mount(?WizardProject $project = null)
+    public function mount($project = null)
     {
-        if ($project && $project->exists) {
+        // Handle both WizardProject instance and null
+        if ($project instanceof WizardProject && $project->exists) {
             $this->loadProject($project);
         }
     }
