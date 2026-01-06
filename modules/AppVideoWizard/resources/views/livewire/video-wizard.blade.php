@@ -1,14 +1,14 @@
-<div class="video-wizard min-h-screen" x-data="{ showPreview: false }">
+<div class="video-wizard min-h-screen bg-base-100" x-data="{ showPreview: false }">
     {{-- Wizard Header --}}
-    <div class="wizard-header text-center py-6 mb-4">
-        <h1 class="text-3xl font-extrabold bg-gradient-to-r from-purple-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent mb-2">
+    <div class="text-center py-8 mb-6">
+        <h1 class="text-3xl md:text-4xl font-extrabold mb-2" style="background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
             {{ __('Video Creation Wizard') }}
         </h1>
         <p class="text-base-content/60">{{ __('Create professional AI-generated videos from scratch') }}</p>
     </div>
 
     {{-- Stepper --}}
-    <div class="wizard-stepper flex justify-center items-center gap-1 px-2 mb-8 overflow-x-auto pb-2">
+    <div class="flex justify-center items-center gap-1 px-4 mb-10 overflow-x-auto pb-4">
         @foreach($stepTitles as $step => $title)
             @php
                 $isActive = $currentStep === $step;
@@ -17,45 +17,37 @@
             @endphp
 
             <div @if($isReachable) wire:click="goToStep({{ $step }})" @endif
-                 class="wizard-step flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all whitespace-nowrap flex-shrink-0
-                        {{ $isActive ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20' : '' }}
-                        {{ $isCompleted ? 'bg-emerald-500/10 border-emerald-500/30' : '' }}
-                        {{ !$isActive && !$isCompleted ? 'bg-base-content/5 border-base-content/10 hover:bg-base-content/10' : '' }}"
+                 class="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-full transition-all whitespace-nowrap flex-shrink-0
+                        @if($isActive) bg-primary text-primary-content shadow-lg @elseif($isCompleted) bg-success/20 text-success @else bg-base-200 text-base-content/60 hover:bg-base-300 @endif"
                  style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }}; {{ !$isReachable ? 'opacity: 0.4;' : '' }}">
-                <div class="step-number w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
-                            {{ $isActive ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white' : '' }}
-                            {{ $isCompleted ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' : '' }}
-                            {{ !$isActive && !$isCompleted ? 'bg-base-content/10' : '' }}">
+                <div class="w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center text-xs font-bold
+                            @if($isActive) bg-primary-content text-primary @elseif($isCompleted) bg-success text-success-content @else bg-base-300 @endif">
                     @if($isCompleted)
-                        <i class="fa-solid fa-check text-xs"></i>
+                        ✓
                     @else
                         {{ $step }}
                     @endif
                 </div>
-                <span class="step-label text-sm font-medium {{ $isActive ? 'text-white' : 'text-base-content/70' }} hidden md:inline">
-                    {{ $title }}
-                </span>
+                <span class="text-xs md:text-sm font-medium hidden sm:inline">{{ $title }}</span>
             </div>
 
             @if($step < 7)
-                <div class="step-connector w-5 h-0.5 {{ $isCompleted ? 'bg-emerald-500/50' : 'bg-base-content/10' }} flex-shrink-0 hidden sm:block"></div>
+                <div class="w-4 md:w-8 h-0.5 flex-shrink-0 hidden sm:block @if($isCompleted) bg-success @else bg-base-300 @endif"></div>
             @endif
         @endforeach
     </div>
 
     {{-- Error Alert --}}
     @if($error)
-        <div class="alert alert-error mb-4 mx-4">
-            <i class="fa-light fa-exclamation-circle"></i>
+        <div class="alert alert-error mb-6 mx-4 max-w-4xl lg:mx-auto">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>{{ $error }}</span>
-            <button class="btn btn-ghost btn-sm" wire:click="$set('error', null)">
-                <i class="fa-light fa-times"></i>
-            </button>
+            <button class="btn btn-ghost btn-sm" wire:click="$set('error', null)">✕</button>
         </div>
     @endif
 
     {{-- Step Content --}}
-    <div class="wizard-content px-4 max-w-4xl mx-auto">
+    <div class="px-4 max-w-4xl mx-auto">
         @switch($currentStep)
             @case(1)
                 @include('appvideowizard::livewire.steps.platform')
@@ -88,12 +80,11 @@
     </div>
 
     {{-- Navigation --}}
-    <div class="wizard-navigation flex justify-between items-center mt-8 px-4 pb-8 max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mt-10 px-4 pb-10 max-w-4xl mx-auto">
         <button wire:click="previousStep"
                 class="btn btn-ghost gap-2"
                 {{ $currentStep <= 1 ? 'disabled' : '' }}>
-            <i class="fa-light fa-arrow-left"></i>
-            {{ __('Previous') }}
+            ← {{ __('Previous') }}
         </button>
 
         <div class="flex items-center gap-2">
@@ -105,12 +96,10 @@
 
         @if($currentStep < 7)
             <button wire:click="nextStep" class="btn btn-primary gap-2">
-                {{ __('Continue') }}
-                <i class="fa-light fa-arrow-right"></i>
+                {{ __('Continue') }} →
             </button>
         @else
             <button wire:click="saveProject" class="btn btn-success gap-2">
-                <i class="fa-light fa-download"></i>
                 {{ __('Export Video') }}
             </button>
         @endif
