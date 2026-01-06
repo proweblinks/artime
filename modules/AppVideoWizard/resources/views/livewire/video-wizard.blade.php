@@ -16,7 +16,7 @@
                 $isReachable = $step <= $maxReachedStep + 1;
             @endphp
 
-            <div wire:click="{{ $isReachable ? "goToStep($step)" : '' }}"
+            <div @if($isReachable) wire:click="goToStep({{ $step }})" @endif
                  class="wizard-step flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all whitespace-nowrap flex-shrink-0
                         {{ $isActive ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20' : '' }}
                         {{ $isCompleted ? 'bg-emerald-500/10 border-emerald-500/30' : '' }}
