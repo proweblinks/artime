@@ -351,7 +351,7 @@
         cursor: not-allowed;
     }
 
-    /* Progress Stats */
+    /* Progress Stats - Now inside the card */
     .vw-progress-bar {
         display: flex;
         align-items: center;
@@ -360,6 +360,7 @@
         background: rgba(16, 185, 129, 0.08);
         border: 1px solid rgba(16, 185, 129, 0.2);
         border-radius: 0.75rem;
+        margin-top: 1.5rem;
         margin-bottom: 1rem;
     }
 
@@ -422,26 +423,26 @@
         gap: 1rem;
     }
 
-    /* Scene Card */
+    /* Scene Card - Dark theme matching main card */
     .vw-scene-card {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 0.75rem;
         overflow: hidden;
         transition: all 0.2s;
     }
 
     .vw-scene-card:hover {
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.05);
     }
 
     /* Scene Image Container */
     .vw-scene-image-container {
         position: relative;
         aspect-ratio: 16/9;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.4);
         overflow: hidden;
-        border-radius: 0.5rem 0.5rem 0 0;
     }
 
     .vw-scene-image {
@@ -461,8 +462,9 @@
         justify-content: center;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.03);
-        border: 2px dashed rgba(255, 255, 255, 0.2);
-        border-radius: 0.5rem;
+        border: 2px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 0;
+        margin: 0;
     }
 
     .vw-scene-empty-text {
@@ -853,40 +855,39 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Progress Stats & Bulk Actions --}}
-        <div class="vw-progress-bar">
-            <div class="vw-progress-stat">
-                <span class="vw-progress-stat-icon">🖼️</span>
-                <span class="vw-progress-stat-value">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
+            {{-- Progress Stats & Bulk Actions - INSIDE the card --}}
+            <div class="vw-progress-bar">
+                <div class="vw-progress-stat">
+                    <span class="vw-progress-stat-icon">🖼️</span>
+                    <span class="vw-progress-stat-value">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
+                </div>
+                <div class="vw-progress-stat">
+                    <span class="vw-progress-stat-icon">🎬</span>
+                    <span class="vw-progress-stat-value">{{ count($script['scenes']) }}</span>
+                    <span class="vw-progress-stat-label">{{ __('scenes') }}</span>
+                </div>
+                <div class="vw-bulk-actions">
+                    <button class="vw-generate-all-btn"
+                            wire:click="generateAllImages"
+                            wire:loading.attr="disabled"
+                            wire:target="generateAllImages">
+                        <span wire:loading.remove wire:target="generateAllImages">
+                            🎨 {{ __('Generate All Images') }}
+                        </span>
+                        <span wire:loading wire:target="generateAllImages">
+                            <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                            </svg>
+                            {{ __('Generating...') }}
+                        </span>
+                    </button>
+                </div>
             </div>
-            <div class="vw-progress-stat">
-                <span class="vw-progress-stat-icon">🎬</span>
-                <span class="vw-progress-stat-value">{{ count($script['scenes']) }}</span>
-                <span class="vw-progress-stat-label">{{ __('scenes') }}</span>
-            </div>
-            <div class="vw-bulk-actions">
-                <button class="vw-generate-all-btn"
-                        wire:click="generateAllImages"
-                        wire:loading.attr="disabled"
-                        wire:target="generateAllImages">
-                    <span wire:loading.remove wire:target="generateAllImages">
-                        🎨 {{ __('Generate All Images') }}
-                    </span>
-                    <span wire:loading wire:target="generateAllImages">
-                        <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                        </svg>
-                        {{ __('Generating...') }}
-                    </span>
-                </button>
-            </div>
-        </div>
 
-        {{-- Storyboard Grid --}}
-        <div class="vw-storyboard-grid">
+            {{-- Storyboard Grid --}}
+            <div class="vw-storyboard-grid">
             @foreach($script['scenes'] as $index => $scene)
                 @php
                     $storyboardScene = $storyboard['scenes'][$index] ?? null;
@@ -1068,7 +1069,8 @@
                     </div>
                 </div>
             @endforeach
-        </div>
+            </div>
+        </div> {{-- Close vw-storyboard-card --}}
     @endif
 
     {{-- Stock Media Browser Modal --}}
