@@ -273,6 +273,14 @@
 
 <div class="vw-concept-step">
     <div class="vw-concept-card">
+        {{-- Error Message --}}
+        @if($error)
+            <div class="vw-error-alert" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; color: #fca5a5;">
+                <span style="margin-right: 0.5rem;">⚠️</span>
+                {{ $error }}
+            </div>
+        @endif
+
         {{-- Header --}}
         <div class="vw-concept-header">
             <div class="vw-concept-icon">💡</div>

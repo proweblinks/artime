@@ -2,7 +2,7 @@
 
 namespace Modules\AppVideoWizard\Services;
 
-use App\Facades\AIService;
+use App\Facades\AI;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\WizardProject;
@@ -17,6 +17,7 @@ class ImageGenerationService
     {
         $visualDescription = $scene['visualDescription'] ?? '';
         $styleBible = $project->storyboard['styleBible'] ?? null;
+        $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
         // Build the image prompt
         $prompt = $this->buildImagePrompt($visualDescription, $styleBible, $project->aspect_ratio);
@@ -25,11 +26,21 @@ class ImageGenerationService
         $resolution = $this->getResolution($project->aspect_ratio);
 
         // Generate image using ArTime's AI service
-        $imageUrl = AIService::generateImage($prompt, [
-            'model' => config('appvideowizard.ai_models.image.model', 'dall-e-3'),
+        $result = AI::process($prompt, 'image', [
             'size' => $resolution['size'],
-            'quality' => 'hd',
-        ]);
+        ], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        // Extract image URL from result
+        $imageData = $result['data'][0] ?? null;
+        if (!$imageData) {
+            throw new \Exception('No image generated');
+        }
+
+        $imageUrl = is_array($imageData) ? ($imageData['url'] ?? null) : $imageData;
 
         // Download and store the image
         $storedPath = $this->storeImage($imageUrl, $project, $scene['id']);

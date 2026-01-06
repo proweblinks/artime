@@ -5,6 +5,10 @@ namespace Modules\AppVideoWizard\Livewire;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Services\ConceptService;
+use Modules\AppVideoWizard\Services\ScriptGenerationService;
+use Modules\AppVideoWizard\Services\ImageGenerationService;
+use Modules\AppVideoWizard\Services\VoiceoverService;
 
 class VideoWizard extends Component
 {
@@ -264,12 +268,44 @@ class VideoWizard extends Component
     public function enhanceConcept(): void
     {
         if (empty($this->concept['rawInput'])) {
+            $this->error = __('Please enter a concept description first.');
             return;
         }
 
-        // TODO: Integrate with AI service to enhance the concept
-        // For now, just save the current state
-        $this->saveProject();
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $conceptService = app(ConceptService::class);
+
+            $result = $conceptService->improveConcept($this->concept['rawInput'], [
+                'productionType' => $this->productionType,
+                'productionSubType' => $this->productionSubtype,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            // Update concept with AI-enhanced data
+            $this->concept['refinedConcept'] = $result['improvedConcept'] ?? '';
+            $this->concept['logline'] = $result['logline'] ?? '';
+            $this->concept['suggestedMood'] = $result['suggestedMood'] ?? null;
+            $this->concept['suggestedTone'] = $result['suggestedTone'] ?? null;
+            $this->concept['keyElements'] = $result['keyElements'] ?? [];
+            $this->concept['targetAudience'] = $result['targetAudience'] ?? '';
+
+            // Also populate avoid elements if AI suggested them
+            if (!empty($result['avoidElements']) && is_array($result['avoidElements'])) {
+                $this->concept['avoidElements'] = implode(', ', $result['avoidElements']);
+            }
+
+            $this->saveProject();
+
+            $this->dispatch('concept-enhanced');
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to enhance concept: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
     }
 
     /**
@@ -278,12 +314,83 @@ class VideoWizard extends Component
     public function generateIdeas(): void
     {
         if (empty($this->concept['rawInput'])) {
+            $this->error = __('Please enter a concept description first.');
             return;
         }
 
-        // TODO: Integrate with AI service to generate ideas
-        // For now, just save and proceed
-        $this->saveProject();
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $conceptService = app(ConceptService::class);
+
+            // First enhance the concept if not already done
+            if (empty($this->concept['refinedConcept'])) {
+                $result = $conceptService->improveConcept($this->concept['rawInput'], [
+                    'productionType' => $this->productionType,
+                    'productionSubType' => $this->productionSubtype,
+                    'teamId' => session('current_team_id', 0),
+                ]);
+
+                $this->concept['refinedConcept'] = $result['improvedConcept'] ?? '';
+                $this->concept['logline'] = $result['logline'] ?? '';
+                $this->concept['suggestedMood'] = $result['suggestedMood'] ?? null;
+                $this->concept['suggestedTone'] = $result['suggestedTone'] ?? null;
+                $this->concept['keyElements'] = $result['keyElements'] ?? [];
+                $this->concept['targetAudience'] = $result['targetAudience'] ?? '';
+            }
+
+            $this->saveProject();
+
+            // Move to next step after generating ideas
+            $this->nextStep();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate ideas: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate script using AI.
+     */
+    #[On('generate-script')]
+    public function generateScript(): void
+    {
+        if (empty($this->concept['rawInput']) && empty($this->concept['refinedConcept'])) {
+            $this->error = __('Please complete the concept step first.');
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            // Create or update the project first
+            if (!$this->projectId) {
+                $this->saveProject();
+            }
+
+            $project = WizardProject::findOrFail($this->projectId);
+            $scriptService = app(ScriptGenerationService::class);
+
+            $generatedScript = $scriptService->generateScript($project, [
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            // Update script data
+            $this->script = array_merge($this->script, $generatedScript);
+
+            $this->saveProject();
+
+            $this->dispatch('script-generated');
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate script: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
     }
 
     /**
@@ -304,6 +411,239 @@ class VideoWizard extends Component
     {
         $this->storyboard = array_merge($this->storyboard, $storyboardData);
         $this->saveProject();
+    }
+
+    /**
+     * Generate image for a single scene.
+     */
+    #[On('generate-image')]
+    public function generateImage(int $sceneIndex, string $sceneId): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            if (!$this->projectId) {
+                $this->saveProject();
+            }
+
+            $project = WizardProject::findOrFail($this->projectId);
+            $scene = $this->script['scenes'][$sceneIndex] ?? null;
+
+            if (!$scene) {
+                throw new \Exception(__('Scene not found'));
+            }
+
+            $imageService = app(ImageGenerationService::class);
+            $result = $imageService->generateSceneImage($project, $scene, [
+                'sceneIndex' => $sceneIndex,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            // Update storyboard with the generated image
+            if (!isset($this->storyboard['scenes'])) {
+                $this->storyboard['scenes'] = [];
+            }
+            $this->storyboard['scenes'][$sceneIndex] = [
+                'sceneId' => $sceneId,
+                'imageUrl' => $result['imageUrl'],
+                'assetId' => $result['assetId'] ?? null,
+            ];
+
+            $this->saveProject();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate image: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate images for all scenes.
+     */
+    #[On('generate-all-images')]
+    public function generateAllImages(): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            if (!$this->projectId) {
+                $this->saveProject();
+            }
+
+            $project = WizardProject::findOrFail($this->projectId);
+            $imageService = app(ImageGenerationService::class);
+
+            if (!isset($this->storyboard['scenes'])) {
+                $this->storyboard['scenes'] = [];
+            }
+
+            foreach ($this->script['scenes'] as $index => $scene) {
+                // Skip if already has an image
+                if (!empty($this->storyboard['scenes'][$index]['imageUrl'])) {
+                    continue;
+                }
+
+                try {
+                    $result = $imageService->generateSceneImage($project, $scene, [
+                        'sceneIndex' => $index,
+                        'teamId' => session('current_team_id', 0),
+                    ]);
+
+                    $this->storyboard['scenes'][$index] = [
+                        'sceneId' => $scene['id'],
+                        'imageUrl' => $result['imageUrl'],
+                        'assetId' => $result['assetId'] ?? null,
+                    ];
+
+                    $this->saveProject();
+
+                } catch (\Exception $e) {
+                    // Log individual scene errors but continue
+                    \Log::warning("Failed to generate image for scene {$index}: " . $e->getMessage());
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate images: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Regenerate image for a scene.
+     */
+    #[On('regenerate-image')]
+    public function regenerateImage(int $sceneIndex): void
+    {
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        if ($scene) {
+            $this->generateImage($sceneIndex, $scene['id']);
+        }
+    }
+
+    /**
+     * Generate voiceover for a single scene.
+     */
+    #[On('generate-voiceover')]
+    public function generateVoiceover(int $sceneIndex, string $sceneId): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            if (!$this->projectId) {
+                $this->saveProject();
+            }
+
+            $project = WizardProject::findOrFail($this->projectId);
+            $scene = $this->script['scenes'][$sceneIndex] ?? null;
+
+            if (!$scene) {
+                throw new \Exception(__('Scene not found'));
+            }
+
+            $voiceoverService = app(VoiceoverService::class);
+            $result = $voiceoverService->generateSceneVoiceover($project, $scene, [
+                'sceneIndex' => $sceneIndex,
+                'voice' => $this->animation['voiceover']['voice'] ?? 'nova',
+                'speed' => $this->animation['voiceover']['speed'] ?? 1.0,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            // Update animation with the generated voiceover
+            if (!isset($this->animation['scenes'])) {
+                $this->animation['scenes'] = [];
+            }
+            $this->animation['scenes'][$sceneIndex] = [
+                'sceneId' => $sceneId,
+                'voiceoverUrl' => $result['audioUrl'],
+                'assetId' => $result['assetId'] ?? null,
+                'duration' => $result['duration'] ?? null,
+            ];
+
+            $this->saveProject();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate voiceover: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate voiceovers for all scenes.
+     */
+    #[On('generate-all-voiceovers')]
+    public function generateAllVoiceovers(): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            if (!$this->projectId) {
+                $this->saveProject();
+            }
+
+            $project = WizardProject::findOrFail($this->projectId);
+            $voiceoverService = app(VoiceoverService::class);
+
+            if (!isset($this->animation['scenes'])) {
+                $this->animation['scenes'] = [];
+            }
+
+            foreach ($this->script['scenes'] as $index => $scene) {
+                // Skip if already has a voiceover
+                if (!empty($this->animation['scenes'][$index]['voiceoverUrl'])) {
+                    continue;
+                }
+
+                try {
+                    $result = $voiceoverService->generateSceneVoiceover($project, $scene, [
+                        'sceneIndex' => $index,
+                        'voice' => $this->animation['voiceover']['voice'] ?? 'nova',
+                        'speed' => $this->animation['voiceover']['speed'] ?? 1.0,
+                        'teamId' => session('current_team_id', 0),
+                    ]);
+
+                    $this->animation['scenes'][$index] = [
+                        'sceneId' => $scene['id'],
+                        'voiceoverUrl' => $result['audioUrl'],
+                        'assetId' => $result['assetId'] ?? null,
+                        'duration' => $result['duration'] ?? null,
+                    ];
+
+                    $this->saveProject();
+
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to generate voiceover for scene {$index}: " . $e->getMessage());
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate voiceovers: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Regenerate voiceover for a scene.
+     */
+    #[On('regenerate-voiceover')]
+    public function regenerateVoiceover(int $sceneIndex): void
+    {
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        if ($scene) {
+            // Clear existing voiceover first
+            if (isset($this->animation['scenes'][$sceneIndex])) {
+                unset($this->animation['scenes'][$sceneIndex]['voiceoverUrl']);
+            }
+            $this->generateVoiceover($sceneIndex, $scene['id']);
+        }
     }
 
     /**
