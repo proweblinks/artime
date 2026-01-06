@@ -8,7 +8,7 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <livewire:video-wizard :project="$project" />
+    <livewire:appvideowizard::video-wizard :project="$project" />
 </div>
 @endsection
 
