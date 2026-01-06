@@ -177,14 +177,40 @@ class ImageGenerationService
 
         if ($status['status'] === 'COMPLETED') {
             $output = $status['output'] ?? [];
-            $imageUrl = $output['image'] ?? $output['image_url'] ?? null;
+
+            // Log the output structure for debugging
+            Log::info('HiDream RunPod output', [
+                'jobId' => $job->external_job_id,
+                'output' => $output,
+                'outputType' => gettype($output),
+            ]);
+
+            // Extract image URL from various possible output formats
+            $imageUrl = $this->extractImageUrlFromOutput($output);
 
             if ($imageUrl) {
                 // Download and store the image
                 $project = WizardProject::find($job->project_id);
                 $sceneId = $inputData['sceneId'] ?? 'scene';
 
-                $storedPath = $this->storeImage($imageUrl, $project, $sceneId);
+                // Handle both URL and base64 data
+                $storedPath = null;
+                if (str_starts_with($imageUrl, 'data:image/')) {
+                    // Data URL format: data:image/png;base64,xxxxx
+                    $parts = explode(',', $imageUrl, 2);
+                    $base64Data = $parts[1] ?? $imageUrl;
+                    $mimeType = 'image/png';
+                    if (preg_match('/data:([^;]+);/', $imageUrl, $matches)) {
+                        $mimeType = $matches[1];
+                    }
+                    $storedPath = $this->storeBase64Image($base64Data, $mimeType, $project, $sceneId);
+                } elseif (preg_match('/^[a-zA-Z0-9+\/]{100,}={0,2}$/', $imageUrl)) {
+                    // Raw base64 data (no data: prefix)
+                    $storedPath = $this->storeBase64Image($imageUrl, 'image/png', $project, $sceneId);
+                } else {
+                    // Regular URL - download and store
+                    $storedPath = $this->storeImage($imageUrl, $project, $sceneId);
+                }
                 $publicUrl = Storage::disk('public')->url($storedPath);
 
                 // Create asset record
@@ -218,6 +244,20 @@ class ImageGenerationService
                     'assetId' => $asset->id,
                     'sceneIndex' => $inputData['sceneIndex'] ?? null,
                 ];
+            } else {
+                // Job completed but no image URL found in output
+                Log::error('HiDream job completed but no image URL found', [
+                    'jobId' => $job->external_job_id,
+                    'output' => $output,
+                ]);
+
+                $job->markAsFailed('Job completed but no image URL found in output');
+
+                return [
+                    'success' => false,
+                    'status' => 'error',
+                    'error' => 'Image generation completed but output format not recognized. Check logs for details.',
+                ];
             }
         }
 
@@ -237,6 +277,111 @@ class ImageGenerationService
             'status' => 'generating',
             'runpodStatus' => $status['status'],
         ];
+    }
+
+    /**
+     * Extract image URL from various RunPod/ComfyUI worker output formats.
+     *
+     * Handles multiple output formats:
+     * - { "image": "url" } - direct image URL
+     * - { "image_url": "url" } - alternative key
+     * - { "images": ["url1", "url2"] } - ComfyUI array format
+     * - { "message": "url" } - message format from some workers
+     * - "url" - direct string output
+     * - { "status": "success", "message": "url" } - status wrapper format
+     */
+    protected function extractImageUrlFromOutput($output): ?string
+    {
+        // If output is null or empty
+        if (empty($output)) {
+            Log::warning('HiDream output is empty');
+            return null;
+        }
+
+        // If output is already a string URL
+        if (is_string($output)) {
+            if (filter_var($output, FILTER_VALIDATE_URL)) {
+                return $output;
+            }
+            // Could be base64 data
+            if (str_starts_with($output, 'data:image/') || preg_match('/^[a-zA-Z0-9+\/=]+$/', $output)) {
+                Log::info('HiDream output appears to be base64 data');
+                return $output;
+            }
+        }
+
+        // If output is not an array, we can't extract
+        if (!is_array($output)) {
+            Log::warning('HiDream output is not an array', ['type' => gettype($output)]);
+            return null;
+        }
+
+        // Try direct image keys first
+        if (!empty($output['image'])) {
+            return $output['image'];
+        }
+
+        if (!empty($output['image_url'])) {
+            return $output['image_url'];
+        }
+
+        // ComfyUI worker format: { "images": ["url1", "url2", ...] }
+        if (!empty($output['images']) && is_array($output['images'])) {
+            // Return first image from array
+            $firstImage = $output['images'][0] ?? null;
+            if ($firstImage) {
+                // Could be URL string or nested object
+                if (is_string($firstImage)) {
+                    return $firstImage;
+                }
+                if (is_array($firstImage) && !empty($firstImage['url'])) {
+                    return $firstImage['url'];
+                }
+            }
+        }
+
+        // Message format from some workers
+        if (!empty($output['message'])) {
+            $message = $output['message'];
+            if (is_string($message) && filter_var($message, FILTER_VALIDATE_URL)) {
+                return $message;
+            }
+            // Sometimes message contains the URL as part of text
+            if (is_string($message) && preg_match('/(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i', $message, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        // Status wrapper format: { "status": "success", "output": { ... } }
+        if (!empty($output['output']) && is_array($output['output'])) {
+            return $this->extractImageUrlFromOutput($output['output']);
+        }
+
+        // RunPod storage URL format - sometimes in nested structure
+        if (!empty($output['data'])) {
+            if (is_string($output['data']) && filter_var($output['data'], FILTER_VALIDATE_URL)) {
+                return $output['data'];
+            }
+            if (is_array($output['data'])) {
+                return $this->extractImageUrlFromOutput($output['data']);
+            }
+        }
+
+        // Look for any URL-like value in the output
+        foreach ($output as $key => $value) {
+            if (is_string($value) && filter_var($value, FILTER_VALIDATE_URL)) {
+                if (preg_match('/\.(png|jpg|jpeg|webp|gif)(\?.*)?$/i', $value)) {
+                    Log::info("Found image URL in key '{$key}'", ['url' => $value]);
+                    return $value;
+                }
+            }
+        }
+
+        Log::warning('Could not extract image URL from HiDream output', [
+            'outputKeys' => is_array($output) ? array_keys($output) : 'not_array',
+        ]);
+
+        return null;
     }
 
     /**
