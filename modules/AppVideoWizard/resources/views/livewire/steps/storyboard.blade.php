@@ -1111,6 +1111,15 @@
             }
         });
 
+        // Listen for resume polling (after page refresh with pending jobs)
+        Livewire.on('resume-job-polling', (data) => {
+            pendingJobs = data.count || 0;
+            if (pendingJobs > 0) {
+                console.log('Resuming polling for', pendingJobs, 'pending jobs');
+                startPolling();
+            }
+        });
+
         // Listen for poll status updates
         Livewire.on('poll-status', (data) => {
             pendingJobs = data.pendingJobs || 0;

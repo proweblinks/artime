@@ -5,6 +5,7 @@ namespace Modules\AppVideoWizard\Livewire;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Models\WizardProcessingJob;
 use Modules\AppVideoWizard\Services\ConceptService;
 use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
@@ -196,6 +197,54 @@ class VideoWizard extends Component
         // Handle both WizardProject instance and null
         if ($project instanceof WizardProject && $project->exists) {
             $this->loadProject($project);
+            $this->recoverPendingJobs($project);
+        }
+    }
+
+    /**
+     * Recover pending async jobs from database.
+     * This restores job tracking after page refresh.
+     */
+    protected function recoverPendingJobs(WizardProject $project): void
+    {
+        $pendingJobs = WizardProcessingJob::where('project_id', $project->id)
+            ->whereIn('status', [
+                WizardProcessingJob::STATUS_PENDING,
+                WizardProcessingJob::STATUS_PROCESSING
+            ])
+            ->get();
+
+        if ($pendingJobs->isEmpty()) {
+            return;
+        }
+
+        // Restore pending jobs to component state
+        foreach ($pendingJobs as $job) {
+            $inputData = $job->input_data ?? [];
+            $sceneIndex = $inputData['sceneIndex'] ?? null;
+
+            if ($sceneIndex !== null && $job->type === WizardProcessingJob::TYPE_IMAGE_GENERATION) {
+                // Mark scene as generating in storyboard
+                if (!isset($this->storyboard['scenes'][$sceneIndex])) {
+                    $this->storyboard['scenes'][$sceneIndex] = [];
+                }
+                $this->storyboard['scenes'][$sceneIndex]['status'] = 'generating';
+                $this->storyboard['scenes'][$sceneIndex]['jobId'] = $job->external_job_id;
+                $this->storyboard['scenes'][$sceneIndex]['processingJobId'] = $job->id;
+
+                // Add to pendingJobs array for polling
+                $this->pendingJobs[$sceneIndex] = [
+                    'jobId' => $job->external_job_id,
+                    'processingJobId' => $job->id,
+                    'type' => $job->type,
+                    'sceneIndex' => $sceneIndex,
+                ];
+            }
+        }
+
+        // Dispatch event to start polling if we have pending jobs
+        if (!empty($this->pendingJobs)) {
+            $this->dispatch('resume-job-polling', count: count($this->pendingJobs));
         }
     }
 
@@ -231,6 +280,21 @@ class VideoWizard extends Component
         if ($project->assembly) {
             $this->assembly = array_merge($this->assembly, $project->assembly);
         }
+
+        // Restore Scene Memory, Multi-Shot Mode, and Concept Variations from content_config
+        if ($project->content_config) {
+            $config = $project->content_config;
+
+            if (isset($config['sceneMemory'])) {
+                $this->sceneMemory = array_merge($this->sceneMemory, $config['sceneMemory']);
+            }
+            if (isset($config['multiShotMode'])) {
+                $this->multiShotMode = array_merge($this->multiShotMode, $config['multiShotMode']);
+            }
+            if (isset($config['conceptVariations'])) {
+                $this->conceptVariations = $config['conceptVariations'];
+            }
+        }
     }
 
     /**
@@ -239,6 +303,7 @@ class VideoWizard extends Component
     public function saveProject(): void
     {
         $this->isSaving = true;
+        $isNewProject = !$this->projectId;
 
         try {
             $data = [
@@ -256,6 +321,12 @@ class VideoWizard extends Component
                 'storyboard' => $this->storyboard,
                 'animation' => $this->animation,
                 'assembly' => $this->assembly,
+                // Save Scene Memory, Multi-Shot Mode, and Concept Variations
+                'content_config' => [
+                    'sceneMemory' => $this->sceneMemory,
+                    'multiShotMode' => $this->multiShotMode,
+                    'conceptVariations' => $this->conceptVariations,
+                ],
             ];
 
             if ($this->projectId) {
@@ -270,6 +341,11 @@ class VideoWizard extends Component
             }
 
             $this->dispatch('project-saved', projectId: $this->projectId);
+
+            // Update browser URL with project ID for new projects
+            if ($isNewProject && $this->projectId) {
+                $this->dispatch('update-browser-url', projectId: $this->projectId);
+            }
         } catch (\Exception $e) {
             $this->error = 'Failed to save project: ' . $e->getMessage();
         } finally {
@@ -1946,6 +2022,7 @@ class VideoWizard extends Component
         }
 
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = $scenes;
+        $this->saveProject();
     }
 
     /**
@@ -1959,6 +2036,7 @@ class VideoWizard extends Component
 
         $sceneCount = count($this->storyboard['scenes'] ?? []);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
+        $this->saveProject();
     }
 
     /**

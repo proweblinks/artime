@@ -172,7 +172,39 @@
         @keyframes vw-spin {
             to { transform: rotate(360deg); }
         }
+
+        .vw-btn-save {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            padding: 0.5rem 1rem !important;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
+            color: white !important;
+            font-weight: 500 !important;
+            font-size: 0.85rem !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .vw-btn-save:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+        }
     </style>
+
+    {{-- JavaScript for URL updates --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('update-browser-url', ({ projectId }) => {
+                if (projectId) {
+                    const url = new URL(window.location);
+                    url.searchParams.set('project', projectId);
+                    window.history.replaceState({}, '', url);
+                }
+            });
+        });
+    </script>
 
     {{-- Wizard Header --}}
     <div style="text-align: center; padding: 2rem 1rem 1rem;">
@@ -264,6 +296,13 @@
             @if($isSaving)
                 <span class="vw-spinner"></span>
                 <span>{{ __('Saving...') }}</span>
+            @else
+                <button wire:click="saveProject" class="vw-btn-save" title="{{ __('Save Project') }}">
+                    💾 {{ __('Save') }}
+                </button>
+                @if($projectId)
+                    <span style="margin-left: 0.5rem; font-size: 0.75rem; color: rgba(0,0,0,0.4);">ID: {{ $projectId }}</span>
+                @endif
             @endif
         </div>
 
