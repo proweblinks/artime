@@ -2,9 +2,16 @@
 
 @section('title', __('Video Creator'))
 
+@section('css')
+@livewireStyles
+@endsection
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <h1>TEST: Controller and View are working!</h1>
-    <p>If you see this, the route and view work. The issue is Livewire.</p>
+    <livewire:video-wizard :project="$project" />
 </div>
+@endsection
+
+@section('script')
+@livewireScripts
 @endsection
