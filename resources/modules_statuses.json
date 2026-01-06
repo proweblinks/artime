@@ -84,6 +84,7 @@
     "AppTeamJoined": true,
     "AppTeams": true,
     "AppURLShorteners": true,
+    "AppVideoWizard": true,
     "AppWatermark": true,
     "Auth": true,
     "Guest": true,
