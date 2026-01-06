@@ -1,4 +1,4 @@
-{{-- Step 4: Storyboard --}}
+{{-- Step 4: Storyboard - Matching Reference Design --}}
 <style>
     .vw-storyboard-step {
         width: 100%;
@@ -17,47 +17,81 @@
         display: flex !important;
         align-items: center !important;
         gap: 1rem !important;
-        margin-bottom: 1rem !important;
+        margin-bottom: 1.25rem !important;
     }
 
     .vw-storyboard-icon {
-        width: 42px !important;
-        height: 42px !important;
-        min-width: 42px !important;
-        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        background: linear-gradient(135deg, #ec4899 0%, #f97316 100%) !important;
         border-radius: 0.75rem !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 1.25rem !important;
+        font-size: 1.5rem !important;
     }
 
     .vw-storyboard-title {
-        font-size: 1.1rem !important;
+        font-size: 1.25rem !important;
         font-weight: 700 !important;
         color: #ffffff !important;
         margin: 0 !important;
     }
 
     .vw-storyboard-subtitle {
-        font-size: 0.8rem !important;
+        font-size: 0.85rem !important;
         color: rgba(255, 255, 255, 0.5) !important;
-        margin-top: 0.15rem !important;
+        margin-top: 0.25rem !important;
+    }
+
+    /* Section dividers */
+    .vw-section {
+        padding: 1rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-section:first-of-type {
+        border-top: none;
+        padding-top: 0;
+    }
+
+    .vw-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-section-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vw-badge {
+        font-size: 0.55rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .vw-badge-pro {
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+    }
+
+    .vw-badge-new {
+        background: linear-gradient(135deg, #10b981, #06b6d4);
+        color: white;
     }
 
     /* AI Model Selector */
-    .vw-model-selector {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .vw-model-selector-label {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.75rem;
-        margin-bottom: 0.5rem;
-    }
-
     .vw-model-buttons {
         display: flex;
         gap: 0.5rem;
@@ -65,18 +99,19 @@
     }
 
     .vw-model-btn {
-        padding: 0.5rem 0.75rem;
+        padding: 0.6rem 1rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         background: rgba(255, 255, 255, 0.05);
         color: rgba(255, 255, 255, 0.7);
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.15rem;
+        gap: 0.2rem;
         transition: all 0.2s;
+        min-width: 110px;
     }
 
     .vw-model-btn:hover {
@@ -86,7 +121,7 @@
 
     .vw-model-btn.selected {
         border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.2);
+        background: rgba(139, 92, 246, 0.25);
         color: white;
     }
 
@@ -103,41 +138,18 @@
         color: rgba(255, 255, 255, 0.7);
     }
 
-    /* Visual Style Controls */
-    .vw-visual-style-section {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .vw-visual-style-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-    }
-
-    .vw-visual-style-label {
-        color: rgba(255, 255, 255, 0.7);
+    .vw-model-description {
+        color: rgba(255, 255, 255, 0.5);
         font-size: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
+        margin-top: 0.5rem;
+        font-style: italic;
     }
 
-    .vw-pro-badge {
-        font-size: 0.55rem;
-        padding: 0.15rem 0.4rem;
-        background: linear-gradient(135deg, #f59e0b, #ef4444);
-        border-radius: 0.75rem;
-        color: white;
-        font-weight: 600;
-    }
-
+    /* Visual Style Grid */
     .vw-style-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
 
     @media (max-width: 768px) {
@@ -149,28 +161,258 @@
     .vw-style-select-wrapper {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.35rem;
     }
 
     .vw-style-select-label {
-        font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .vw-style-select {
         width: 100%;
-        padding: 0.4rem;
+        padding: 0.6rem 0.75rem;
         background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 0.35rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 0.5rem;
         color: white;
-        font-size: 0.7rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+
+    .vw-style-select:focus {
+        border-color: rgba(139, 92, 246, 0.5);
+        outline: none;
     }
 
     .vw-style-hint {
         color: rgba(255, 255, 255, 0.4);
-        font-size: 0.6rem;
-        margin-top: 0.4rem;
+        font-size: 0.7rem;
+        margin-top: 0.75rem;
+    }
+
+    /* Scene Memory Cards */
+    .vw-memory-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .vw-memory-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .vw-memory-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .vw-memory-icon {
+        font-size: 1.5rem;
+        width: 36px;
+        text-align: center;
+    }
+
+    .vw-memory-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .vw-memory-title {
+        font-weight: 600;
+        color: white;
+        font-size: 0.85rem;
+    }
+
+    .vw-memory-desc {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.7rem;
+        margin-top: 0.15rem;
+    }
+
+    .vw-memory-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vw-edit-btn {
+        padding: 0.35rem 0.75rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.35rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .vw-edit-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .vw-memory-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+        cursor: pointer;
+    }
+
+    /* Technical Specs */
+    .vw-specs-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+
+    .vw-specs-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.8rem;
+    }
+
+    .vw-specs-value {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: white;
+        font-size: 0.8rem;
+    }
+
+    .vw-quality-badge {
+        padding: 0.25rem 0.5rem;
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* Prompt Chain */
+    .vw-chain-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .vw-chain-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .vw-chain-title {
+        font-weight: 600;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .vw-chain-desc {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.75rem;
+    }
+
+    .vw-chain-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .vw-process-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        border: none;
+        border-radius: 0.5rem;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .vw-process-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    }
+
+    .vw-process-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Progress Stats */
+    .vw-progress-bar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .vw-progress-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .vw-progress-stat-icon {
+        font-size: 0.9rem;
+    }
+
+    .vw-progress-stat-value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #10b981;
+    }
+
+    .vw-progress-stat-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .vw-bulk-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    .vw-generate-all-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1.25rem;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        border: none;
+        border-radius: 0.5rem;
+        color: white;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .vw-generate-all-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-generate-all-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     /* Storyboard Grid */
@@ -178,13 +420,12 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 1rem;
-        margin-top: 1rem;
     }
 
     /* Scene Card */
     .vw-scene-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 0.75rem;
         overflow: hidden;
         transition: all 0.2s;
@@ -211,10 +452,10 @@
         position: absolute;
         top: 0.5rem;
         right: 0.5rem;
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.25rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.35rem;
         font-size: 0.65rem;
-        font-weight: 500;
+        font-weight: 600;
         display: flex;
         align-items: center;
         gap: 0.25rem;
@@ -243,12 +484,13 @@
         align-items: center;
         justify-content: center;
         padding: 1rem;
-        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border: 2px dashed rgba(255, 255, 255, 0.15);
         border-radius: 0.5rem;
+        margin: 0.5rem;
     }
 
     .vw-scene-empty-text {
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.5);
         font-size: 0.75rem;
         margin-bottom: 0.75rem;
     }
@@ -275,21 +517,21 @@
     }
 
     .vw-scene-empty-btn.ai {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));
-        border-color: rgba(139, 92, 246, 0.4);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
+        border-color: rgba(139, 92, 246, 0.35);
     }
 
     .vw-scene-empty-btn.ai:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.4));
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(6, 182, 212, 0.35));
     }
 
     .vw-scene-empty-btn.stock {
-        background: rgba(16, 185, 129, 0.2);
-        border-color: rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.35);
     }
 
     .vw-scene-empty-btn.stock:hover {
-        background: rgba(16, 185, 129, 0.3);
+        background: rgba(16, 185, 129, 0.25);
     }
 
     .vw-scene-empty-btn-icon {
@@ -307,13 +549,13 @@
 
     /* Generating State */
     .vw-scene-generating {
-        height: 160px;
-        background: rgba(139, 92, 246, 0.1);
-        border-radius: 0.5rem;
+        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        background: rgba(139, 92, 246, 0.08);
+        gap: 0.75rem;
     }
 
     @keyframes vw-spin {
@@ -326,7 +568,6 @@
         border: 3px solid rgba(139, 92, 246, 0.3);
         border-top-color: #8b5cf6;
         border-radius: 50%;
-        margin-bottom: 0.75rem;
         animation: vw-spin 0.8s linear infinite;
     }
 
@@ -340,6 +581,12 @@
         padding: 0.75rem 1rem;
     }
 
+    .vw-scene-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     .vw-scene-number {
         display: inline-flex;
         align-items: center;
@@ -351,7 +598,6 @@
         font-size: 0.7rem;
         font-weight: 600;
         color: white;
-        margin-right: 0.5rem;
     }
 
     .vw-scene-title {
@@ -381,10 +627,10 @@
 
     .vw-scene-duration {
         font-size: 0.65rem;
-        padding: 0.15rem 0.35rem;
+        padding: 0.2rem 0.4rem;
         background: rgba(6, 182, 212, 0.2);
         color: #67e8f9;
-        border-radius: 0.2rem;
+        border-radius: 0.25rem;
     }
 
     .vw-scene-transition {
@@ -414,91 +660,23 @@
     }
 
     .vw-scene-action-btn.regenerate {
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(139, 92, 246, 0.12);
+        border: 1px solid rgba(139, 92, 246, 0.25);
         color: #c4b5fd;
     }
 
     .vw-scene-action-btn.regenerate:hover {
-        background: rgba(139, 92, 246, 0.25);
+        background: rgba(139, 92, 246, 0.2);
     }
 
     .vw-scene-action-btn.edit {
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         color: rgba(255, 255, 255, 0.7);
     }
 
     .vw-scene-action-btn.edit:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Progress Stats */
-    .vw-progress-stats {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem 1rem;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .vw-progress-stat {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-
-    .vw-progress-stat-icon {
-        font-size: 0.9rem;
-    }
-
-    .vw-progress-stat-value {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #10b981;
-    }
-
-    .vw-progress-stat-label {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
-    }
-
-    /* Bulk Actions */
-    .vw-bulk-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-left: auto;
-    }
-
-    .vw-bulk-action-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .vw-bulk-action-btn.primary {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        border: none;
-        color: white;
-    }
-
-    .vw-bulk-action-btn.primary:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-    }
-
-    .vw-bulk-action-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+        background: rgba(255, 255, 255, 0.08);
     }
 
     /* Alert */
@@ -512,9 +690,15 @@
     }
 
     .vw-alert.warning {
-        background: rgba(251, 191, 36, 0.15);
-        border: 1px solid rgba(251, 191, 36, 0.3);
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.25);
         color: #fbbf24;
+    }
+
+    .vw-alert.error {
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        color: #ef4444;
     }
 
     .vw-alert-icon {
@@ -524,9 +708,32 @@
     .vw-alert-text {
         font-size: 0.9rem;
     }
+
+    .vw-alert-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        font-size: 1.25rem;
+        opacity: 0.7;
+    }
+
+    .vw-alert-close:hover {
+        opacity: 1;
+    }
 </style>
 
 <div class="vw-storyboard-step">
+    {{-- Error Alert --}}
+    @if($error)
+        <div class="vw-alert error">
+            <span class="vw-alert-icon">❌</span>
+            <span class="vw-alert-text">{{ $error }}</span>
+            <button type="button" class="vw-alert-close" wire:click="$set('error', null)">&times;</button>
+        </div>
+    @endif
+
     @if(empty($script['scenes']))
         <div class="vw-alert warning">
             <span class="vw-alert-icon">⚠️</span>
@@ -549,14 +756,17 @@
             </div>
 
             {{-- AI Model Selector --}}
-            <div class="vw-model-selector">
-                <div class="vw-model-selector-label">🤖 {{ __('AI Model for Image Generation:') }}</div>
-                <div class="vw-model-buttons">
+            <div class="vw-section">
+                <div class="vw-section-label">
+                    <span>🤖</span>
+                    <span>{{ __('AI Model for Image Generation:') }}</span>
+                </div>
+                <div class="vw-model-buttons" style="margin-top: 0.75rem;">
                     @php
                         $imageModels = [
-                            'hidream' => ['name' => 'HiDream', 'cost' => 2, 'desc' => 'Artistic & cinematic'],
-                            'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3, 'desc' => 'High quality, fast'],
-                            'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1, 'desc' => 'Quick drafts'],
+                            'hidream' => ['name' => 'HiDream', 'cost' => 2, 'desc' => 'Artistic & cinematic style'],
+                            'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3, 'desc' => 'High quality, fast generation'],
+                            'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1, 'desc' => 'Quick drafts, lower cost'],
                         ];
                         $selectedModel = $storyboard['imageModel'] ?? 'hidream';
                     @endphp
@@ -566,20 +776,21 @@
                                 wire:click="$set('storyboard.imageModel', '{{ $modelId }}')"
                                 title="{{ $model['desc'] }}">
                             <span class="vw-model-btn-name">{{ $model['name'] }}</span>
-                            <span class="vw-model-btn-cost">{{ $model['cost'] }} {{ __('tokens') }}</span>
+                            <span class="vw-model-btn-cost">{{ $model['cost'] }} {{ $model['cost'] === 1 ? __('token') : __('tokens') }}</span>
                         </button>
                     @endforeach
                 </div>
+                <p class="vw-model-description">{{ $imageModels[$selectedModel]['desc'] ?? '' }}</p>
             </div>
 
             {{-- Visual Style Controls --}}
-            <div class="vw-visual-style-section">
-                <div class="vw-visual-style-header">
-                    <div class="vw-visual-style-label">
+            <div class="vw-section">
+                <div class="vw-section-header">
+                    <div class="vw-section-label">
                         <span>🎬</span>
                         <span>{{ __('Visual Style') }}</span>
                     </div>
-                    <span class="vw-pro-badge">PRO</span>
+                    <span class="vw-badge vw-badge-pro">PRO</span>
                 </div>
                 <div class="vw-style-grid">
                     {{-- Mood --}}
@@ -587,14 +798,14 @@
                         <span class="vw-style-select-label">{{ __('Mood') }}</span>
                         <select class="vw-style-select" wire:model.live="storyboard.visualStyle.mood">
                             <option value="">{{ __('Auto') }}</option>
-                            <option value="epic">🎬 {{ __('Epic') }}</option>
-                            <option value="intimate">💝 {{ __('Intimate') }}</option>
-                            <option value="mysterious">🔮 {{ __('Mysterious') }}</option>
-                            <option value="energetic">⚡ {{ __('Energetic') }}</option>
-                            <option value="contemplative">🌙 {{ __('Contemplative') }}</option>
-                            <option value="tense">😰 {{ __('Tense') }}</option>
-                            <option value="hopeful">🌅 {{ __('Hopeful') }}</option>
-                            <option value="professional">💼 {{ __('Professional') }}</option>
+                            <option value="epic">{{ __('Epic') }}</option>
+                            <option value="intimate">{{ __('Intimate') }}</option>
+                            <option value="mysterious">{{ __('Mysterious') }}</option>
+                            <option value="energetic">{{ __('Energetic') }}</option>
+                            <option value="contemplative">{{ __('Contemplative') }}</option>
+                            <option value="tense">{{ __('Tense') }}</option>
+                            <option value="hopeful">{{ __('Hopeful') }}</option>
+                            <option value="professional">{{ __('Professional') }}</option>
                         </select>
                     </div>
                     {{-- Lighting --}}
@@ -602,12 +813,12 @@
                         <span class="vw-style-select-label">{{ __('Lighting') }}</span>
                         <select class="vw-style-select" wire:model.live="storyboard.visualStyle.lighting">
                             <option value="">{{ __('Auto') }}</option>
-                            <option value="natural">☀️ {{ __('Natural') }}</option>
-                            <option value="golden-hour">🌅 {{ __('Golden Hour') }}</option>
-                            <option value="blue-hour">🌙 {{ __('Blue Hour') }}</option>
-                            <option value="high-key">💡 {{ __('High Key') }}</option>
-                            <option value="low-key">🌑 {{ __('Low Key/Noir') }}</option>
-                            <option value="neon">💜 {{ __('Neon') }}</option>
+                            <option value="natural">{{ __('Natural') }}</option>
+                            <option value="golden-hour">{{ __('Golden Hour') }}</option>
+                            <option value="blue-hour">{{ __('Blue Hour') }}</option>
+                            <option value="high-key">{{ __('High Key') }}</option>
+                            <option value="low-key">{{ __('Low Key/Noir') }}</option>
+                            <option value="neon">{{ __('Neon') }}</option>
                         </select>
                     </div>
                     {{-- Colors --}}
@@ -615,12 +826,12 @@
                         <span class="vw-style-select-label">{{ __('Colors') }}</span>
                         <select class="vw-style-select" wire:model.live="storyboard.visualStyle.colorPalette">
                             <option value="">{{ __('Auto') }}</option>
-                            <option value="teal-orange">🎬 {{ __('Teal/Orange') }}</option>
-                            <option value="warm-tones">🔥 {{ __('Warm') }}</option>
-                            <option value="cool-tones">❄️ {{ __('Cool') }}</option>
-                            <option value="desaturated">🌫️ {{ __('Desaturated') }}</option>
-                            <option value="vibrant">🌈 {{ __('Vibrant') }}</option>
-                            <option value="pastel">🎀 {{ __('Pastel') }}</option>
+                            <option value="teal-orange">{{ __('Teal/Orange') }}</option>
+                            <option value="warm-tones">{{ __('Warm Tones') }}</option>
+                            <option value="cool-tones">{{ __('Cool Tones') }}</option>
+                            <option value="desaturated">{{ __('Desaturated') }}</option>
+                            <option value="vibrant">{{ __('Vibrant') }}</option>
+                            <option value="pastel">{{ __('Pastel') }}</option>
                         </select>
                     </div>
                     {{-- Shot --}}
@@ -628,36 +839,161 @@
                         <span class="vw-style-select-label">{{ __('Shot') }}</span>
                         <select class="vw-style-select" wire:model.live="storyboard.visualStyle.composition">
                             <option value="">{{ __('Auto') }}</option>
-                            <option value="wide">🏔️ {{ __('Wide') }}</option>
-                            <option value="medium">👤 {{ __('Medium') }}</option>
-                            <option value="close-up">😊 {{ __('Close-up') }}</option>
-                            <option value="extreme-close-up">👁️ {{ __('Extreme CU') }}</option>
-                            <option value="low-angle">⬆️ {{ __('Low Angle') }}</option>
-                            <option value="birds-eye">🦅 {{ __("Bird's Eye") }}</option>
+                            <option value="wide">{{ __('Wide') }}</option>
+                            <option value="medium">{{ __('Medium') }}</option>
+                            <option value="close-up">{{ __('Close-up') }}</option>
+                            <option value="extreme-close-up">{{ __('Extreme CU') }}</option>
+                            <option value="low-angle">{{ __('Low Angle') }}</option>
+                            <option value="birds-eye">{{ __("Bird's Eye") }}</option>
                         </select>
                     </div>
                 </div>
-                <div class="vw-style-hint">
+                <p class="vw-style-hint">
                     💡 {{ __('"Auto" uses genre-appropriate defaults based on your content settings') }}
+                </p>
+            </div>
+
+            {{-- Scene Memory Section --}}
+            <div class="vw-section">
+                <div class="vw-section-header">
+                    <div class="vw-section-label">
+                        <span>🧠</span>
+                        <span>{{ __('Scene Memory') }}</span>
+                    </div>
+                    <span class="vw-badge vw-badge-new">NEW</span>
+                </div>
+                <p class="vw-style-hint" style="margin-top: 0; margin-bottom: 0.75rem;">
+                    {{ __('Visual consistency with Style, Character & Location Bibles') }}
+                </p>
+                <div class="vw-memory-grid">
+                    {{-- Style Bible --}}
+                    <div class="vw-memory-card">
+                        <div class="vw-memory-icon">🎨</div>
+                        <div class="vw-memory-content">
+                            <div class="vw-memory-title">{{ __('Style Bible') }}</div>
+                            <div class="vw-memory-desc">{{ __('Visual DNA') }}</div>
+                        </div>
+                        <div class="vw-memory-actions">
+                            <button type="button" class="vw-edit-btn" wire:click="$dispatch('open-style-bible-modal')">
+                                {{ __('Edit') }}
+                            </button>
+                            <input type="checkbox"
+                                   class="vw-memory-checkbox"
+                                   wire:model.live="sceneMemory.styleBible.enabled"
+                                   title="{{ __('Enable Style Bible') }}">
+                        </div>
+                    </div>
+
+                    {{-- Character Bible --}}
+                    <div class="vw-memory-card">
+                        <div class="vw-memory-icon">👤</div>
+                        <div class="vw-memory-content">
+                            <div class="vw-memory-title">{{ __('Character Bible') }}</div>
+                            <div class="vw-memory-desc">{{ __('Consistent faces') }}</div>
+                        </div>
+                        <div class="vw-memory-actions">
+                            <button type="button" class="vw-edit-btn" wire:click="$dispatch('open-character-bible-modal')">
+                                {{ __('Edit') }}
+                            </button>
+                            <input type="checkbox"
+                                   class="vw-memory-checkbox"
+                                   wire:model.live="sceneMemory.characterBible.enabled"
+                                   title="{{ __('Enable Character Bible') }}">
+                        </div>
+                    </div>
+
+                    {{-- Location Bible --}}
+                    <div class="vw-memory-card">
+                        <div class="vw-memory-icon">📍</div>
+                        <div class="vw-memory-content">
+                            <div class="vw-memory-title">{{ __('Location Bible') }}</div>
+                            <div class="vw-memory-desc">{{ __('Consistent environments') }}</div>
+                        </div>
+                        <div class="vw-memory-actions">
+                            <button type="button" class="vw-edit-btn" wire:click="$dispatch('open-location-bible-modal')">
+                                {{ __('Edit') }}
+                            </button>
+                            <input type="checkbox"
+                                   class="vw-memory-checkbox"
+                                   wire:model.live="sceneMemory.locationBible.enabled"
+                                   title="{{ __('Enable Location Bible') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Technical Specs Section --}}
+            <div class="vw-section">
+                <div class="vw-section-header">
+                    <div class="vw-section-label">
+                        <span>⚙️</span>
+                        <span>{{ __('Technical Specs') }}</span>
+                    </div>
+                </div>
+                <div class="vw-specs-row">
+                    <span class="vw-specs-label">{{ __('Output Quality') }}</span>
+                    <div class="vw-specs-value">
+                        <span class="vw-quality-badge">{{ __('4K quality') }}</span>
+                        <input type="checkbox"
+                               class="vw-memory-checkbox"
+                               wire:model.live="storyboard.technicalSpecs.enabled"
+                               title="{{ __('Enable 4K quality output') }}"
+                               checked>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Prompt Chain Section --}}
+            <div class="vw-section">
+                <div class="vw-chain-row">
+                    <div class="vw-chain-info">
+                        <div class="vw-section-label" style="margin-bottom: 0.25rem;">
+                            <span>⚡</span>
+                            <span>{{ __('Prompt Chain') }}</span>
+                        </div>
+                        <div class="vw-chain-desc">{{ __('Hollywood-grade scene blueprints') }}</div>
+                    </div>
+                    <div class="vw-chain-actions">
+                        <button type="button"
+                                class="vw-process-btn"
+                                wire:click="processPromptChain"
+                                wire:loading.attr="disabled"
+                                wire:target="processPromptChain">
+                            <span wire:loading.remove wire:target="processPromptChain">
+                                ⚡ {{ __('Process Chain') }}
+                            </span>
+                            <span wire:loading wire:target="processPromptChain">
+                                <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                </svg>
+                                {{ __('Processing...') }}
+                            </span>
+                        </button>
+                        <input type="checkbox"
+                               class="vw-memory-checkbox"
+                               wire:model.live="storyboard.promptChain.enabled"
+                               title="{{ __('Enable Prompt Chain') }}"
+                               checked>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- Progress Stats & Bulk Actions --}}
-        <div class="vw-progress-stats">
+        <div class="vw-progress-bar">
             <div class="vw-progress-stat">
                 <span class="vw-progress-stat-icon">🖼️</span>
                 <span class="vw-progress-stat-value">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
-                <span class="vw-progress-stat-label">{{ __('images') }}</span>
             </div>
             <div class="vw-progress-stat">
                 <span class="vw-progress-stat-icon">🎬</span>
                 <span class="vw-progress-stat-value">{{ count($script['scenes']) }}</span>
-                <span class="vw-progress-stat-label">{{ __('scenes total') }}</span>
+                <span class="vw-progress-stat-label">{{ __('scenes') }}</span>
             </div>
             <div class="vw-bulk-actions">
-                <button class="vw-bulk-action-btn primary"
-                        wire:click="$dispatch('generate-all-images')"
+                <button class="vw-generate-all-btn"
+                        wire:click="generateAllImages"
                         wire:loading.attr="disabled"
                         wire:target="generateAllImages">
                     <span wire:loading.remove wire:target="generateAllImages">
@@ -686,7 +1022,7 @@
                 <div class="vw-scene-card">
                     {{-- Image Container --}}
                     <div class="vw-scene-image-container">
-                        @if($status === 'generating' || ($isLoading && !$imageUrl))
+                        @if($status === 'generating')
                             {{-- Generating State --}}
                             <div class="vw-scene-generating">
                                 <div class="vw-spinner"></div>
@@ -709,15 +1045,15 @@
                                 <div class="vw-scene-empty-buttons">
                                     <button type="button"
                                             class="vw-scene-empty-btn ai"
-                                            wire:click="$dispatch('generate-image', { sceneIndex: {{ $index }}, sceneId: '{{ $scene['id'] }}' })"
+                                            wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                             wire:loading.attr="disabled">
                                         <span class="vw-scene-empty-btn-icon">🎨</span>
                                         <span>{{ __('AI Generate') }}</span>
-                                        <span class="vw-scene-empty-btn-cost">2 {{ __('tokens') }}</span>
+                                        <span class="vw-scene-empty-btn-cost">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
                                     </button>
                                     <button type="button"
                                             class="vw-scene-empty-btn stock"
-                                            @click="$dispatch('open-stock-browser', { sceneIndex: {{ $index }}, sceneDesc: '{{ addslashes(Str::limit($scene['visualDescription'] ?? $scene['narration'] ?? '', 100)) }}' })">
+                                            wire:click="openStockBrowser({{ $index }})">
                                         <span class="vw-scene-empty-btn-icon">📷</span>
                                         <span>{{ __('Stock Media') }}</span>
                                         <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
@@ -729,7 +1065,7 @@
 
                     {{-- Scene Info --}}
                     <div class="vw-scene-info">
-                        <div>
+                        <div class="vw-scene-header">
                             <span class="vw-scene-number">{{ $index + 1 }}</span>
                             <span class="vw-scene-title">{{ $scene['title'] ?? __('Scene') . ' ' . ($index + 1) }}</span>
                         </div>
@@ -745,13 +1081,13 @@
                         <div class="vw-scene-actions">
                             <button type="button"
                                     class="vw-scene-action-btn regenerate"
-                                    wire:click="$dispatch('regenerate-image', { sceneIndex: {{ $index }} })"
+                                    wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                     wire:loading.attr="disabled">
                                 🔄 {{ __('Regenerate') }}
                             </button>
                             <button type="button"
                                     class="vw-scene-action-btn edit"
-                                    onclick="alert('Edit prompt coming soon!')">
+                                    wire:click="openEditPromptModal({{ $index }})">
                                 ✏️ {{ __('Edit Prompt') }}
                             </button>
                         </div>
@@ -762,374 +1098,27 @@
     @endif
 
     {{-- Stock Media Browser Modal --}}
-    <div x-data="{
-        isOpen: false,
-        sceneIndex: 0,
-        searchQuery: '',
-        mediaType: 'image',
-        results: [],
-        isSearching: false,
-        selectedMedia: null,
+    @include('appvideowizard::livewire.modals.stock-browser')
 
-        open(sceneIndex, sceneDesc) {
-            this.sceneIndex = sceneIndex;
-            this.searchQuery = sceneDesc || '';
-            this.results = [];
-            this.selectedMedia = null;
-            this.isOpen = true;
-            if (this.searchQuery) {
-                this.search();
-            }
-        },
+    {{-- Style Bible Modal --}}
+    @include('appvideowizard::livewire.modals.style-bible')
 
-        close() {
-            this.isOpen = false;
-            this.results = [];
-            this.selectedMedia = null;
-        },
+    {{-- Character Bible Modal --}}
+    @include('appvideowizard::livewire.modals.character-bible')
 
-        async search() {
-            if (!this.searchQuery.trim()) return;
-            this.isSearching = true;
-            this.results = [];
+    {{-- Location Bible Modal --}}
+    @include('appvideowizard::livewire.modals.location-bible')
 
-            $wire.dispatch('search-stock-media', {
-                query: this.searchQuery,
-                type: this.mediaType,
-                sceneIndex: this.sceneIndex
-            });
-        },
-
-        selectMedia(media) {
-            this.selectedMedia = media;
-            this.isSearching = true;
-
-            $wire.dispatch('select-stock-media', {
-                sceneIndex: this.sceneIndex,
-                mediaUrl: media.url,
-                mediaId: media.id,
-                type: media.type
-            });
-        }
-    }"
-    @open-stock-browser.window="open($event.detail.sceneIndex, $event.detail.sceneDesc)"
-    @stock-media-results.window="results = $event.detail.results; isSearching = false;"
-    @stock-media-selected.window="close(); isSearching = false;"
-    x-show="isOpen"
-    x-cloak
-    class="vw-stock-modal-overlay">
-        <div class="vw-stock-modal" @click.away="close()">
-            {{-- Header --}}
-            <div class="vw-stock-modal-header">
-                <div>
-                    <h3 class="vw-stock-modal-title">📷 {{ __('Stock Media Browser') }}</h3>
-                    <p class="vw-stock-modal-subtitle">{{ __('Free royalty-free media from Pexels') }}</p>
-                </div>
-                <button type="button" @click="close()" class="vw-stock-modal-close">&times;</button>
-            </div>
-
-            {{-- Search --}}
-            <div class="vw-stock-search">
-                <div class="vw-stock-search-row">
-                    <input type="text"
-                           x-model="searchQuery"
-                           @keydown.enter="search()"
-                           placeholder="{{ __('Search for images or videos...') }}"
-                           class="vw-stock-search-input">
-                    <select x-model="mediaType" class="vw-stock-type-select">
-                        <option value="image">📷 {{ __('Images') }}</option>
-                        <option value="video">🎬 {{ __('Videos') }}</option>
-                    </select>
-                    <button type="button" @click="search()" :disabled="isSearching" class="vw-stock-search-btn">
-                        <span x-show="!isSearching">🔍 {{ __('Search') }}</span>
-                        <span x-show="isSearching" class="vw-stock-spinner"></span>
-                    </button>
-                </div>
-            </div>
-
-            {{-- Results Grid --}}
-            <div class="vw-stock-results">
-                <template x-if="isSearching && results.length === 0">
-                    <div class="vw-stock-loading">
-                        <div class="vw-spinner"></div>
-                        <span>{{ __('Searching...') }}</span>
-                    </div>
-                </template>
-
-                <template x-if="!isSearching && results.length === 0 && searchQuery">
-                    <div class="vw-stock-empty">
-                        <span>🔍</span>
-                        <p>{{ __('No results found. Try a different search term.') }}</p>
-                    </div>
-                </template>
-
-                <div class="vw-stock-grid" x-show="results.length > 0">
-                    <template x-for="media in results" :key="media.id">
-                        <div class="vw-stock-item" @click="selectMedia(media)" :class="{ 'selected': selectedMedia?.id === media.id }">
-                            <div class="vw-stock-item-image">
-                                <img :src="media.thumbnail || media.preview" :alt="media.id" loading="lazy">
-                                <template x-if="media.type === 'video'">
-                                    <div class="vw-stock-video-badge">
-                                        <span>▶</span>
-                                        <span x-text="media.duration ? Math.round(media.duration) + 's' : ''"></span>
-                                    </div>
-                                </template>
-                            </div>
-                            <div class="vw-stock-item-info">
-                                <span class="vw-stock-item-source" x-text="media.source"></span>
-                                <span class="vw-stock-item-author" x-text="'by ' + media.author"></span>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{-- Edit Prompt Modal --}}
+    @include('appvideowizard::livewire.modals.edit-prompt')
 </div>
-
-<style>
-    /* Stock Media Modal Styles */
-    .vw-stock-modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        padding: 1rem;
-    }
-
-    .vw-stock-modal {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.99) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        border-radius: 1rem;
-        width: 100%;
-        max-width: 900px;
-        max-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .vw-stock-modal-header {
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .vw-stock-modal-title {
-        margin: 0;
-        color: white;
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-
-    .vw-stock-modal-subtitle {
-        margin: 0.25rem 0 0 0;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.8rem;
-    }
-
-    .vw-stock-modal-close {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0.25rem;
-        line-height: 1;
-    }
-
-    .vw-stock-search {
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .vw-stock-search-row {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .vw-stock-search-input {
-        flex: 1;
-        padding: 0.75rem 1rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 0.5rem;
-        color: white;
-        font-size: 0.9rem;
-    }
-
-    .vw-stock-search-input::placeholder {
-        color: rgba(255, 255, 255, 0.4);
-    }
-
-    .vw-stock-type-select {
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 0.5rem;
-        color: white;
-        font-size: 0.85rem;
-    }
-
-    .vw-stock-search-btn {
-        padding: 0.75rem 1.25rem;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        border: none;
-        border-radius: 0.5rem;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        min-width: 100px;
-        justify-content: center;
-    }
-
-    .vw-stock-search-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-    }
-
-    .vw-stock-results {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem 1.25rem;
-    }
-
-    .vw-stock-loading,
-    .vw-stock-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem;
-        color: rgba(255, 255, 255, 0.6);
-        gap: 1rem;
-    }
-
-    .vw-stock-empty span {
-        font-size: 3rem;
-    }
-
-    .vw-stock-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 1rem;
-    }
-
-    .vw-stock-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 0.5rem;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .vw-stock-item:hover {
-        border-color: rgba(139, 92, 246, 0.5);
-        transform: translateY(-2px);
-    }
-
-    .vw-stock-item.selected {
-        border-color: #8b5cf6;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
-    }
-
-    .vw-stock-item-image {
-        position: relative;
-        aspect-ratio: 16/10;
-        background: rgba(0, 0, 0, 0.3);
-    }
-
-    .vw-stock-item-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .vw-stock-video-badge {
-        position: absolute;
-        bottom: 0.5rem;
-        right: 0.5rem;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.7rem;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-
-    .vw-stock-item-info {
-        padding: 0.5rem 0.75rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .vw-stock-item-source {
-        font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
-        text-transform: capitalize;
-    }
-
-    .vw-stock-item-author {
-        font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.4);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 100px;
-    }
-
-    .vw-stock-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: vw-spin 0.8s linear infinite;
-    }
-
-    [x-cloak] {
-        display: none !important;
-    }
-
-    /* Generating state indicator */
-    .vw-scene-generating {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        gap: 0.75rem;
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .vw-scene-generating .vw-spinner {
-        width: 32px;
-        height: 32px;
-    }
-
-    .vw-scene-generating-text {
-        font-size: 0.8rem;
-    }
-</style>
 
 <script>
     document.addEventListener('livewire:init', () => {
         let pollInterval = null;
         let pendingJobs = 0;
 
-        // Start polling when HiDream images are being generated
+        // Listen for image generation started
         Livewire.on('image-generation-started', (data) => {
             if (data.async) {
                 pendingJobs++;
@@ -1163,7 +1152,7 @@
                 } else {
                     stopPolling();
                 }
-            }, 3000); // Poll every 3 seconds
+            }, 3000);
         }
 
         function stopPolling() {
@@ -1175,14 +1164,7 @@
 
         // Check for pending jobs on page load
         setTimeout(() => {
-            const component = Livewire.find(document.querySelector('[wire\\:id]')?.getAttribute('wire:id'));
-            if (component) {
-                const count = component.getPendingJobsCount?.() || 0;
-                if (count > 0) {
-                    pendingJobs = count;
-                    startPolling();
-                }
-            }
+            Livewire.dispatch('check-pending-jobs');
         }, 1000);
     });
 </script>

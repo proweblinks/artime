@@ -60,6 +60,18 @@ class VideoWizard extends Component
             'colorPalette' => '',
             'composition' => '',
         ],
+        'technicalSpecs' => [
+            'enabled' => true,
+            'quality' => '4k',
+            'positive' => 'high quality, detailed, professional, 8K resolution, sharp focus',
+            'negative' => 'blurry, low quality, ugly, distorted, watermark, nsfw, text, logo',
+        ],
+        'promptChain' => [
+            'enabled' => true,
+            'status' => 'pending',
+            'processedAt' => null,
+            'scenes' => [],
+        ],
     ];
 
     // Step 5: Animation
@@ -1225,12 +1237,13 @@ class VideoWizard extends Component
     /**
      * Add character to Character Bible.
      */
-    public function addCharacter(string $name, string $description): void
+    public function addCharacter(string $name = '', string $description = ''): void
     {
         $this->sceneMemory['characterBible']['characters'][] = [
             'id' => uniqid('char_'),
             'name' => $name,
             'description' => $description,
+            'appliedScenes' => [],
             'referenceImage' => null,
         ];
         $this->saveProject();
@@ -1260,11 +1273,14 @@ class VideoWizard extends Component
     /**
      * Add location to Location Bible.
      */
-    public function addLocation(string $name, string $description): void
+    public function addLocation(string $name = '', string $description = ''): void
     {
         $this->sceneMemory['locationBible']['locations'][] = [
             'id' => uniqid('loc_'),
             'name' => $name,
+            'type' => 'exterior',
+            'timeOfDay' => 'day',
+            'weather' => 'clear',
             'description' => $description,
             'referenceImage' => null,
         ];
@@ -1353,6 +1369,406 @@ class VideoWizard extends Component
                 'tokenCost' => 1,
             ],
         ];
+    }
+
+    // =========================================================================
+    // PROMPT CHAIN METHODS
+    // =========================================================================
+
+    /**
+     * Process prompt chain for all scenes.
+     */
+    public function processPromptChain(): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $this->storyboard['promptChain']['status'] = 'processing';
+
+            // Process each scene
+            foreach ($this->script['scenes'] as $index => $scene) {
+                $this->storyboard['promptChain']['scenes'][$index] = [
+                    'sceneId' => $scene['id'],
+                    'imagePrompt' => $this->buildScenePrompt($scene, $index),
+                    'processed' => true,
+                ];
+            }
+
+            $this->storyboard['promptChain']['status'] = 'ready';
+            $this->storyboard['promptChain']['processedAt'] = now()->toIso8601String();
+
+            $this->saveProject();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to process prompt chain: ') . $e->getMessage();
+            $this->storyboard['promptChain']['status'] = 'error';
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Build prompt for a scene.
+     */
+    protected function buildScenePrompt(array $scene, int $index): string
+    {
+        $prompt = $scene['visualDescription'] ?? $scene['narration'] ?? '';
+
+        // Add style bible
+        if ($this->sceneMemory['styleBible']['enabled']) {
+            $styleBible = $this->sceneMemory['styleBible'];
+            if (!empty($styleBible['style'])) {
+                $prompt = $styleBible['style'] . ', ' . $prompt;
+            }
+            if (!empty($styleBible['colorGrade'])) {
+                $prompt .= ', ' . $styleBible['colorGrade'];
+            }
+            if (!empty($styleBible['atmosphere'])) {
+                $prompt .= ', ' . $styleBible['atmosphere'];
+            }
+        }
+
+        // Add visual style
+        $visualStyle = $this->storyboard['visualStyle'] ?? [];
+        if (!empty($visualStyle['mood'])) {
+            $prompt .= ', ' . $visualStyle['mood'] . ' mood';
+        }
+        if (!empty($visualStyle['lighting'])) {
+            $prompt .= ', ' . $visualStyle['lighting'] . ' lighting';
+        }
+        if (!empty($visualStyle['colorPalette'])) {
+            $prompt .= ', ' . $visualStyle['colorPalette'] . ' color palette';
+        }
+
+        // Add technical specs
+        if ($this->storyboard['technicalSpecs']['enabled'] ?? true) {
+            $prompt .= ', ' . ($this->storyboard['technicalSpecs']['positive'] ?? 'high quality, detailed, professional');
+        }
+
+        return $prompt;
+    }
+
+    // =========================================================================
+    // EDIT PROMPT MODAL METHODS
+    // =========================================================================
+
+    /**
+     * Open edit prompt modal.
+     */
+    public function openEditPromptModal(int $sceneIndex): void
+    {
+        $this->editPromptSceneIndex = $sceneIndex;
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        $this->editPromptText = $scene['visualDescription'] ?? $scene['narration'] ?? '';
+        $this->showEditPromptModal = true;
+
+        $this->dispatch('open-edit-prompt-modal', ['sceneIndex' => $sceneIndex]);
+    }
+
+    /**
+     * Append text to current prompt.
+     */
+    public function appendToPrompt(string $text): void
+    {
+        if (!empty($this->editPromptText)) {
+            $this->editPromptText .= ', ' . $text;
+        } else {
+            $this->editPromptText = $text;
+        }
+    }
+
+    // =========================================================================
+    // STYLE TEMPLATE METHODS
+    // =========================================================================
+
+    /**
+     * Apply a style template.
+     */
+    public function applyStyleTemplate(string $template): void
+    {
+        $templates = [
+            'cinematic' => [
+                'style' => 'Cinematic photorealistic photography, Hollywood blockbuster look, shot on ARRI Alexa',
+                'colorGrade' => 'Teal and orange color grading, lifted blacks, cinematic LUT',
+                'atmosphere' => 'Dramatic atmosphere, volumetric lighting, lens flares',
+                'camera' => 'Anamorphic lenses, shallow depth of field, wide establishing shots',
+                'visualDNA' => 'Epic scale, professional cinematography, Marvel quality visuals',
+            ],
+            'documentary' => [
+                'style' => 'Documentary photography, authentic realism, natural lighting',
+                'colorGrade' => 'Natural colors, slight desaturation, documentary grade',
+                'atmosphere' => 'Authentic atmosphere, real-world environments',
+                'camera' => 'Handheld camera feel, natural framing, observational style',
+                'visualDNA' => 'Authentic, journalistic, National Geographic quality',
+            ],
+            'anime' => [
+                'style' => 'Anime art style, cel-shaded, Japanese animation aesthetic',
+                'colorGrade' => 'Vibrant saturated colors, anime color palette',
+                'atmosphere' => 'Stylized atmosphere, dramatic lighting, expressive',
+                'camera' => 'Dynamic angles, action lines, anime cinematography',
+                'visualDNA' => 'Studio Ghibli quality, detailed backgrounds, expressive characters',
+            ],
+            'noir' => [
+                'style' => 'Film noir style, black and white, high contrast',
+                'colorGrade' => 'Monochrome, deep blacks, high contrast',
+                'atmosphere' => 'Moody, mysterious, shadowy atmosphere',
+                'camera' => 'Low-key lighting, dramatic shadows, Dutch angles',
+                'visualDNA' => 'Classic film noir, 1940s aesthetic, detective movie quality',
+            ],
+            '3d' => [
+                'style' => 'Pixar-style 3D animation, stylized 3D rendering',
+                'colorGrade' => 'Vibrant colors, soft gradients, 3D render quality',
+                'atmosphere' => 'Whimsical atmosphere, clean environments',
+                'camera' => 'Smooth camera movements, 3D depth, cinematic framing',
+                'visualDNA' => 'Pixar quality, Disney animation, high-end 3D render',
+            ],
+        ];
+
+        if (isset($templates[$template])) {
+            $this->sceneMemory['styleBible'] = array_merge(
+                $this->sceneMemory['styleBible'],
+                $templates[$template],
+                ['enabled' => true]
+            );
+            $this->saveProject();
+        }
+    }
+
+    // =========================================================================
+    // CHARACTER BIBLE METHODS
+    // =========================================================================
+
+    /**
+     * Auto-detect characters from script.
+     */
+    public function autoDetectCharacters(): void
+    {
+        // Simple detection - look for names in dialogue
+        $characters = [];
+        foreach ($this->script['scenes'] as $scene) {
+            if (isset($scene['dialogue']) && is_array($scene['dialogue'])) {
+                foreach ($scene['dialogue'] as $dialogue) {
+                    $speaker = $dialogue['speaker'] ?? null;
+                    if ($speaker && !in_array($speaker, $characters)) {
+                        $characters[] = $speaker;
+                    }
+                }
+            }
+        }
+
+        foreach ($characters as $name) {
+            $exists = collect($this->sceneMemory['characterBible']['characters'])
+                ->where('name', $name)
+                ->isNotEmpty();
+
+            if (!$exists) {
+                $this->sceneMemory['characterBible']['characters'][] = [
+                    'id' => uniqid('char_'),
+                    'name' => $name,
+                    'description' => '',
+                    'appliedScenes' => [],
+                    'referenceImage' => null,
+                ];
+            }
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Edit a character.
+     */
+    public function editCharacter(int $index): void
+    {
+        // Handled by Alpine.js x-data
+    }
+
+    /**
+     * Generate character portrait.
+     */
+    public function generateCharacterPortrait(int $index): void
+    {
+        $character = $this->sceneMemory['characterBible']['characters'][$index] ?? null;
+        if (!$character) return;
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            // Build portrait prompt
+            $prompt = "Character portrait, " . $character['description'];
+            $prompt .= ", professional photography, studio lighting, headshot";
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => $character['id'],
+                        'visualDescription' => $prompt,
+                    ], [
+                        'model' => 'nanobanana-pro',
+                        'sceneIndex' => 'char_' . $index,
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $result['imageUrl'];
+                        $this->saveProject();
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate portrait: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    // =========================================================================
+    // LOCATION BIBLE METHODS
+    // =========================================================================
+
+    /**
+     * Auto-detect locations from script.
+     */
+    public function autoDetectLocations(): void
+    {
+        // Simple detection from visual descriptions
+        foreach ($this->script['scenes'] as $index => $scene) {
+            $visual = $scene['visualDescription'] ?? '';
+            if (empty($visual)) continue;
+
+            // Check if location already exists for this scene
+            $exists = collect($this->sceneMemory['locationBible']['locations'])
+                ->where('name', 'Scene ' . ($index + 1) . ' Location')
+                ->isNotEmpty();
+
+            if (!$exists && !empty($visual)) {
+                $this->sceneMemory['locationBible']['locations'][] = [
+                    'id' => uniqid('loc_'),
+                    'name' => 'Scene ' . ($index + 1) . ' Location',
+                    'type' => 'exterior',
+                    'timeOfDay' => 'day',
+                    'weather' => 'clear',
+                    'description' => $visual,
+                    'referenceImage' => null,
+                ];
+            }
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Apply location template.
+     */
+    public function applyLocationTemplate(string $template): void
+    {
+        $templates = [
+            'urban' => [
+                'name' => 'Urban City',
+                'type' => 'exterior',
+                'timeOfDay' => 'night',
+                'weather' => 'clear',
+                'description' => 'Modern cityscape, tall buildings, neon lights, busy streets, urban environment',
+            ],
+            'forest' => [
+                'name' => 'Forest',
+                'type' => 'exterior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'description' => 'Dense forest, tall trees, dappled sunlight, natural environment, lush vegetation',
+            ],
+            'office' => [
+                'name' => 'Office',
+                'type' => 'interior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'description' => 'Modern office interior, clean design, glass walls, professional workspace',
+            ],
+            'studio' => [
+                'name' => 'Studio',
+                'type' => 'interior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'description' => 'Professional studio setup, controlled lighting, clean backdrop, production environment',
+            ],
+        ];
+
+        if (isset($templates[$template])) {
+            $this->sceneMemory['locationBible']['locations'][] = array_merge(
+                ['id' => uniqid('loc_'), 'referenceImage' => null],
+                $templates[$template]
+            );
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Edit a location.
+     */
+    public function editLocation(int $index): void
+    {
+        // Handled by Alpine.js x-data
+    }
+
+    /**
+     * Generate location reference.
+     */
+    public function generateLocationReference(int $index): void
+    {
+        $location = $this->sceneMemory['locationBible']['locations'][$index] ?? null;
+        if (!$location) return;
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            // Build location prompt
+            $prompt = $location['description'];
+            $prompt .= ", " . $location['type'] . ", " . $location['timeOfDay'];
+            if ($location['weather'] !== 'clear') {
+                $prompt .= ", " . $location['weather'] . " weather";
+            }
+            $prompt .= ", establishing shot, wide angle, professional photography";
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => $location['id'],
+                        'visualDescription' => $prompt,
+                    ], [
+                        'model' => 'nanobanana-pro',
+                        'sceneIndex' => 'loc_' . $index,
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $result['imageUrl'];
+                        $this->saveProject();
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate location reference: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Check for pending jobs on page load.
+     */
+    #[On('check-pending-jobs')]
+    public function checkPendingJobs(): void
+    {
+        if (!empty($this->pendingJobs)) {
+            $this->dispatch('poll-status', ['pendingJobs' => count($this->pendingJobs)]);
+        }
     }
 
     /**
