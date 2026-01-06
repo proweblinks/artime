@@ -177,7 +177,11 @@ class VideoWizard extends Component
         if ($step <= $this->maxReachedStep + 1) {
             $this->currentStep = $step;
             $this->maxReachedStep = max($this->maxReachedStep, $step);
-            $this->saveProject();
+
+            // Only save if user is authenticated
+            if (auth()->check()) {
+                $this->saveProject();
+            }
         }
     }
 
@@ -213,8 +217,7 @@ class VideoWizard extends Component
                 max($platform['minDuration'], $this->targetDuration)
             );
         }
-
-        $this->saveProject();
+        // Note: Don't auto-save on selection - will save on step navigation
     }
 
     /**
@@ -228,8 +231,7 @@ class VideoWizard extends Component
         if (isset($formats[$formatId])) {
             $this->aspectRatio = $formats[$formatId]['aspectRatio'];
         }
-
-        $this->saveProject();
+        // Note: Don't auto-save on selection - will save on step navigation
     }
 
     /**
@@ -239,7 +241,7 @@ class VideoWizard extends Component
     {
         $this->productionType = $type;
         $this->productionSubtype = $subtype;
-        $this->saveProject();
+        // Note: Don't auto-save on selection - will save on step navigation
     }
 
     /**

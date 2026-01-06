@@ -88,6 +88,89 @@
         .vw-step-label { display: none !important; }
         .vw-step-number { width: 24px !important; height: 24px !important; min-width: 24px !important; }
     }
+
+    /* Navigation */
+    .vw-navigation {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-top: 2.5rem !important;
+        padding: 0 1rem 2.5rem !important;
+        max-width: 56rem !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .vw-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 0.5rem !important;
+        font-weight: 500 !important;
+        font-size: 0.95rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        border: none !important;
+    }
+
+    .vw-btn:disabled {
+        opacity: 0.4 !important;
+        cursor: not-allowed !important;
+    }
+
+    .vw-btn-ghost {
+        background: transparent !important;
+        color: rgba(0, 0, 0, 0.6) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .vw-btn-ghost:hover:not(:disabled) {
+        background: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .vw-btn-primary {
+        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+        color: white !important;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
+    }
+
+    .vw-btn-primary:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .vw-btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: white !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    .vw-btn-success:hover:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .vw-saving-indicator {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        font-size: 0.875rem !important;
+        color: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .vw-spinner {
+        width: 16px !important;
+        height: 16px !important;
+        border: 2px solid rgba(139, 92, 246, 0.2) !important;
+        border-top-color: #8b5cf6 !important;
+        border-radius: 50% !important;
+        animation: vw-spin 0.8s linear infinite !important;
+    }
+
+    @keyframes vw-spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
 
 <div class="video-wizard min-h-screen" x-data="{ showPreview: false }">
@@ -169,26 +252,26 @@
     </div>
 
     {{-- Navigation --}}
-    <div class="flex justify-between items-center mt-10 px-4 pb-10 max-w-4xl mx-auto">
+    <div class="vw-navigation">
         <button wire:click="previousStep"
-                class="btn btn-ghost gap-2"
+                class="vw-btn vw-btn-ghost"
                 {{ $currentStep <= 1 ? 'disabled' : '' }}>
             ← {{ __('Previous') }}
         </button>
 
-        <div class="flex items-center gap-2">
+        <div class="vw-saving-indicator">
             @if($isSaving)
-                <span class="loading loading-spinner loading-sm text-primary"></span>
-                <span class="text-sm text-base-content/60">{{ __('Saving...') }}</span>
+                <span class="vw-spinner"></span>
+                <span>{{ __('Saving...') }}</span>
             @endif
         </div>
 
         @if($currentStep < 7)
-            <button wire:click="nextStep" class="btn btn-primary gap-2">
+            <button wire:click="nextStep" class="vw-btn vw-btn-primary">
                 {{ __('Continue') }} →
             </button>
         @else
-            <button wire:click="saveProject" class="btn btn-success gap-2">
+            <button wire:click="saveProject" class="vw-btn vw-btn-success">
                 {{ __('Export Video') }}
             </button>
         @endif
