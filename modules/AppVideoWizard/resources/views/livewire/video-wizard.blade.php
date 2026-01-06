@@ -1,14 +1,106 @@
-<div class="video-wizard min-h-screen bg-base-100" x-data="{ showPreview: false }">
+{{-- Embedded CSS for Stepper (ensures styles aren't overridden) --}}
+<style>
+    .vw-stepper {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 0.25rem !important;
+        padding: 1rem 0.5rem !important;
+        margin-bottom: 2rem !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .vw-stepper::-webkit-scrollbar { display: none !important; }
+
+    .vw-step {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        padding: 0.5rem 1rem !important;
+        background: rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        border-radius: 2rem !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+    .vw-step:hover { background: rgba(0, 0, 0, 0.08) !important; }
+    .vw-step.active {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%) !important;
+        border-color: rgba(139, 92, 246, 0.5) !important;
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.15) !important;
+    }
+    .vw-step.completed {
+        background: rgba(16, 185, 129, 0.1) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    .vw-step.disabled {
+        opacity: 0.4 !important;
+        cursor: not-allowed !important;
+    }
+
+    .vw-step-number {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        border-radius: 50% !important;
+        background: rgba(0, 0, 0, 0.1) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        flex-shrink: 0 !important;
+        color: inherit !important;
+    }
+    .vw-step.active .vw-step-number {
+        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+        color: white !important;
+    }
+    .vw-step.completed .vw-step-number {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: white !important;
+    }
+
+    .vw-step-label {
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        color: rgba(0, 0, 0, 0.6) !important;
+    }
+    .vw-step.active .vw-step-label { color: #8b5cf6 !important; }
+    .vw-step.completed .vw-step-label { color: #10b981 !important; }
+
+    .vw-connector {
+        width: 20px !important;
+        height: 2px !important;
+        background: rgba(0, 0, 0, 0.1) !important;
+        flex-shrink: 0 !important;
+    }
+    .vw-connector.completed { background: rgba(16, 185, 129, 0.5) !important; }
+
+    @media (max-width: 768px) {
+        .vw-stepper { justify-content: flex-start !important; padding: 0.75rem !important; }
+        .vw-step { padding: 0.4rem 0.75rem !important; }
+        .vw-step-label { display: none !important; }
+        .vw-step-number { width: 24px !important; height: 24px !important; min-width: 24px !important; }
+    }
+</style>
+
+<div class="video-wizard min-h-screen" x-data="{ showPreview: false }">
     {{-- Wizard Header --}}
-    <div class="text-center py-8 mb-6">
-        <h1 class="text-3xl md:text-4xl font-extrabold mb-2" style="background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+    <div style="text-align: center; padding: 2rem 1rem 1rem;">
+        <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
             {{ __('Video Creation Wizard') }}
         </h1>
-        <p class="text-base-content/60">{{ __('Create professional AI-generated videos from scratch') }}</p>
+        <p style="color: rgba(0,0,0,0.5); font-size: 0.95rem;">{{ __('Create professional AI-generated videos from scratch') }}</p>
     </div>
 
     {{-- Stepper --}}
-    <div class="flex justify-center items-center gap-1 px-4 mb-10 overflow-x-auto pb-4">
+    <div class="vw-stepper">
         @foreach($stepTitles as $step => $title)
             @php
                 $isActive = $currentStep === $step;
@@ -17,22 +109,19 @@
             @endphp
 
             <div @if($isReachable) wire:click="goToStep({{ $step }})" @endif
-                 class="flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 rounded-full transition-all whitespace-nowrap flex-shrink-0
-                        @if($isActive) bg-primary text-primary-content shadow-lg @elseif($isCompleted) bg-success/20 text-success @else bg-base-200 text-base-content/60 hover:bg-base-300 @endif"
-                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }}; {{ !$isReachable ? 'opacity: 0.4;' : '' }}">
-                <div class="w-6 h-6 md:w-7 md:h-7 rounded-full flex items-center justify-center text-xs font-bold
-                            @if($isActive) bg-primary-content text-primary @elseif($isCompleted) bg-success text-success-content @else bg-base-300 @endif">
+                 class="vw-step {{ $isActive ? 'active' : '' }} {{ $isCompleted ? 'completed' : '' }} {{ !$isReachable ? 'disabled' : '' }}">
+                <div class="vw-step-number">
                     @if($isCompleted)
                         ✓
                     @else
                         {{ $step }}
                     @endif
                 </div>
-                <span class="text-xs md:text-sm font-medium hidden sm:inline">{{ $title }}</span>
+                <span class="vw-step-label">{{ $title }}</span>
             </div>
 
             @if($step < 7)
-                <div class="w-4 md:w-8 h-0.5 flex-shrink-0 hidden sm:block @if($isCompleted) bg-success @else bg-base-300 @endif"></div>
+                <div class="vw-connector {{ $isCompleted ? 'completed' : '' }}"></div>
             @endif
         @endforeach
     </div>
