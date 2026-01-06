@@ -501,13 +501,25 @@ PROMPT;
             'scriptType' => gettype($script),
         ]);
 
+        // If initial parse failed, try more aggressive repair
         if ($jsonError !== JSON_ERROR_NONE) {
-            \Log::error('VideoWizard: JSON parse error', [
+            \Log::warning('VideoWizard: Initial JSON parse failed, trying repair', [
                 'error' => $jsonErrorMsg,
-                'json' => substr($json, 0, 500),
-                'original' => substr($originalResponse, 0, 500),
             ]);
-            throw new \Exception('Failed to parse script response. JSON error: ' . $jsonErrorMsg);
+
+            // Try rebuilding JSON from extracted fields
+            $script = $this->rebuildScriptFromResponse($originalResponse);
+
+            if ($script !== null) {
+                \Log::info('VideoWizard: JSON rebuilt successfully from response');
+            } else {
+                \Log::error('VideoWizard: JSON parse error - could not repair', [
+                    'error' => $jsonErrorMsg,
+                    'json' => substr($json, 0, 500),
+                    'original' => substr($originalResponse, 0, 500),
+                ]);
+                throw new \Exception('Failed to parse script response. JSON error: ' . $jsonErrorMsg);
+            }
         }
 
         // Check if we got a valid result
@@ -585,32 +597,171 @@ PROMPT;
      */
     protected function fixJsonIssues(string $json): string
     {
+        // Remove control characters except newlines and tabs
+        $json = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $json);
+
+        // Normalize line endings
+        $json = str_replace(["\r\n", "\r"], "\n", $json);
+
+        // Replace smart quotes with regular quotes
+        $json = str_replace(['"', '"', '„', '«', '»'], '"', $json);
+        $json = str_replace([''', ''', '‚', '‹', '›'], "'", $json);
+
+        // Replace em/en dashes with regular dashes
+        $json = str_replace(['—', '–'], '-', $json);
+
         // Remove trailing commas before } or ]
         $json = preg_replace('/,(\s*[}\]])/', '$1', $json);
 
-        // Fix unescaped newlines in strings (basic fix)
-        // This is tricky - we'll try a simple approach
-        $json = str_replace(["\r\n", "\r"], "\n", $json);
+        // Fix common issues with unescaped characters inside strings
+        // This is a multi-pass approach
 
-        // Replace actual newlines inside strings with \n
-        // We need to be careful not to break the JSON structure
-        $json = preg_replace_callback(
-            '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"/s',
-            function ($matches) {
-                $content = $matches[1];
-                // Replace actual newlines with escaped newlines
-                $content = str_replace("\n", "\\n", $content);
-                $content = str_replace("\t", "\\t", $content);
-                return '"' . $content . '"';
-            },
-            $json
-        );
-
-        // Fix double-escaped sequences that might result
-        $json = str_replace('\\\\n', '\\n', $json);
-        $json = str_replace('\\\\t', '\\t', $json);
+        // First pass: Find and fix obvious issues
+        $json = $this->fixUnescapedQuotesInStrings($json);
 
         return $json;
+    }
+
+    /**
+     * Attempt to rebuild script from response when JSON parsing fails.
+     * Uses regex to extract key fields and rebuild a valid structure.
+     */
+    protected function rebuildScriptFromResponse(string $response): ?array
+    {
+        $scenes = [];
+
+        // Try to extract title
+        $title = 'Generated Script';
+        if (preg_match('/"title"\s*:\s*"([^"]+)"/', $response, $m)) {
+            $title = $m[1];
+        }
+
+        // Try to extract hook
+        $hook = '';
+        if (preg_match('/"hook"\s*:\s*"([^"]+)"/', $response, $m)) {
+            $hook = $m[1];
+        }
+
+        // Try to extract CTA
+        $cta = '';
+        if (preg_match('/"cta"\s*:\s*"([^"]+)"/', $response, $m)) {
+            $cta = $m[1];
+        }
+
+        // Try to extract scenes using multiple approaches
+        // Approach 1: Find scene objects
+        if (preg_match_all('/"id"\s*:\s*"(scene-\d+)"[^}]*"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $index => $match) {
+                $scenes[] = [
+                    'id' => $match[1],
+                    'title' => 'Scene ' . ($index + 1),
+                    'narration' => $match[2],
+                    'visualDescription' => $match[3],
+                    'duration' => 15,
+                ];
+            }
+        }
+
+        // Approach 2: Try different field order
+        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $index => $match) {
+                $scenes[] = [
+                    'id' => 'scene-' . ($index + 1),
+                    'title' => 'Scene ' . ($index + 1),
+                    'narration' => $match[1],
+                    'visualDescription' => $match[2],
+                    'duration' => 15,
+                ];
+            }
+        }
+
+        // Approach 3: Just find narration fields
+        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"/', $response, $matches)) {
+            foreach ($matches[1] as $index => $narration) {
+                $scenes[] = [
+                    'id' => 'scene-' . ($index + 1),
+                    'title' => 'Scene ' . ($index + 1),
+                    'narration' => $narration,
+                    'visualDescription' => $narration,
+                    'duration' => 15,
+                ];
+            }
+        }
+
+        if (empty($scenes)) {
+            return null;
+        }
+
+        return [
+            'title' => $title,
+            'hook' => $hook,
+            'scenes' => $scenes,
+            'cta' => $cta,
+        ];
+    }
+
+    /**
+     * Fix unescaped quotes inside JSON strings.
+     * This uses a state machine approach to properly handle JSON structure.
+     */
+    protected function fixUnescapedQuotesInStrings(string $json): string
+    {
+        $result = '';
+        $inString = false;
+        $escape = false;
+        $len = strlen($json);
+
+        for ($i = 0; $i < $len; $i++) {
+            $char = $json[$i];
+            $nextChar = $i < $len - 1 ? $json[$i + 1] : '';
+
+            if ($escape) {
+                $result .= $char;
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\') {
+                $escape = true;
+                $result .= $char;
+                continue;
+            }
+
+            if ($char === '"') {
+                if (!$inString) {
+                    // Starting a string
+                    $inString = true;
+                    $result .= $char;
+                } else {
+                    // Potentially ending a string - check context
+                    // Look ahead to see if this looks like end of string
+                    $restOfLine = substr($json, $i + 1, 50);
+
+                    // If followed by :, ,, }, ], or whitespace + these, it's probably end of string
+                    if (preg_match('/^\s*[,:}\]]/', $restOfLine)) {
+                        $inString = false;
+                        $result .= $char;
+                    } else if (preg_match('/^\s*$/', $restOfLine)) {
+                        // End of JSON
+                        $inString = false;
+                        $result .= $char;
+                    } else {
+                        // Probably an unescaped quote inside string - escape it
+                        $result .= '\\"';
+                    }
+                }
+            } else if ($inString && $char === "\n") {
+                // Newline inside string - escape it
+                $result .= '\\n';
+            } else if ($inString && $char === "\t") {
+                // Tab inside string - escape it
+                $result .= '\\t';
+            } else {
+                $result .= $char;
+            }
+        }
+
+        return $result;
     }
 
     /**
