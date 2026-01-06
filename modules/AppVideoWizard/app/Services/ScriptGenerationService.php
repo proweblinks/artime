@@ -485,34 +485,53 @@ PROMPT;
     {
         $originalResponse = $response;
 
-        \Log::debug('VideoWizard: Raw AI response', [
-            'response' => substr($response, 0, 500),
-        ]);
-
         // Extract JSON from response
         $json = $this->extractJson($response);
 
-        \Log::debug('VideoWizard: Extracted JSON', [
-            'json' => substr($json, 0, 500),
+        // Parse JSON - capture error immediately before any logging (Log uses json_encode which resets json_last_error)
+        $script = json_decode($json, true);
+        $jsonError = json_last_error();
+        $jsonErrorMsg = json_last_error_msg();
+
+        // Now safe to log
+        \Log::debug('VideoWizard: Parsing attempt', [
+            'jsonLength' => strlen($json),
+            'jsonPreview' => substr($json, 0, 300),
+            'jsonError' => $jsonErrorMsg,
+            'scriptType' => gettype($script),
         ]);
 
-        // Parse JSON
-        $script = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        if ($jsonError !== JSON_ERROR_NONE) {
             \Log::error('VideoWizard: JSON parse error', [
-                'error' => json_last_error_msg(),
+                'error' => $jsonErrorMsg,
                 'json' => substr($json, 0, 500),
                 'original' => substr($originalResponse, 0, 500),
             ]);
-            throw new \Exception('Failed to parse script response. JSON error: ' . json_last_error_msg());
+            throw new \Exception('Failed to parse script response. JSON error: ' . $jsonErrorMsg);
+        }
+
+        // Check if we got a valid result
+        if ($script === null) {
+            \Log::error('VideoWizard: JSON decoded to null', [
+                'json' => substr($json, 0, 500),
+            ]);
+            throw new \Exception('Failed to parse script response. AI returned empty or invalid data.');
+        }
+
+        if (!is_array($script)) {
+            \Log::error('VideoWizard: JSON decoded to non-array', [
+                'type' => gettype($script),
+                'json' => substr($json, 0, 500),
+            ]);
+            throw new \Exception('Failed to parse script response. Expected object, got ' . gettype($script));
         }
 
         if (!isset($script['scenes']) || !is_array($script['scenes']) || empty($script['scenes'])) {
             \Log::error('VideoWizard: No scenes in parsed response', [
-                'script' => $script,
+                'scriptKeys' => array_keys($script),
+                'script' => substr(json_encode($script), 0, 500),
             ]);
-            throw new \Exception('Failed to parse script response. No scenes were generated.');
+            throw new \Exception('Failed to parse script response. No scenes array found in response.');
         }
 
         // Validate and normalize scenes
