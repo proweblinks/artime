@@ -52,6 +52,13 @@ class VideoWizard extends Component
     public array $storyboard = [
         'scenes' => [],
         'styleBible' => null,
+        'imageModel' => 'flux',
+        'visualStyle' => [
+            'mood' => '',
+            'lighting' => '',
+            'colorPalette' => '',
+            'composition' => '',
+        ],
     ];
 
     // Step 5: Animation
