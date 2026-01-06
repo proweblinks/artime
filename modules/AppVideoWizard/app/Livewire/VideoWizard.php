@@ -1973,6 +1973,7 @@ class VideoWizard extends Component
         }
 
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = $scenes;
+        $this->saveProject();
     }
 
     /**
@@ -1986,6 +1987,7 @@ class VideoWizard extends Component
 
         $sceneCount = count($this->storyboard['scenes'] ?? []);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
+        $this->saveProject();
     }
 
     /**
