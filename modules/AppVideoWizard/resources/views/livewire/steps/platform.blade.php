@@ -306,7 +306,7 @@
 
         <div class="vw-format-grid">
             @foreach($formats as $id => $formatConfig)
-                <div @click="$wire.selectFormat('{{ $id }}')"
+                <div wire:click="selectFormat('{{ $id }}')"
                      class="vw-format-card {{ $format === $id ? 'selected' : '' }}"
                      style="cursor: pointer;">
                     <span class="vw-format-icon" style="pointer-events: none;">
@@ -338,7 +338,7 @@
 
         <div class="vw-production-grid">
             @foreach($productionTypes as $typeId => $type)
-                <div @click="$wire.selectProductionType('{{ $typeId }}')"
+                <div wire:click="selectProductionType('{{ $typeId }}')"
                      class="vw-production-card {{ $productionType === $typeId ? 'selected' : '' }}"
                      style="cursor: pointer;">
                     <span class="vw-production-icon" style="pointer-events: none;">
@@ -368,7 +368,7 @@
 
                 <div class="vw-subtype-grid">
                     @foreach($productionTypes[$productionType]['subTypes'] as $subId => $subType)
-                        <div @click="$wire.selectProductionType('{{ $productionType }}', '{{ $subId }}')"
+                        <div wire:click="selectProductionType('{{ $productionType }}', '{{ $subId }}')"
                              class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}"
                              style="cursor: pointer;">
                             <div class="vw-subtype-header">
