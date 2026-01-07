@@ -917,14 +917,27 @@
         @php
             $productionTypes = config('appvideowizard.production_types', []);
             $typeName = $productionTypes[$productionType]['name'] ?? ucfirst($productionType ?? 'movie');
+            // Safety: ensure typeName is string
+            if (is_array($typeName)) $typeName = reset($typeName) ?: 'Video';
+            $typeName = is_string($typeName) ? $typeName : strval($typeName ?? 'Video');
+
             $subtypeName = '';
             if ($productionSubtype && isset($productionTypes[$productionType]['subTypes'][$productionSubtype])) {
                 $subtypeName = $productionTypes[$productionType]['subTypes'][$productionSubtype]['name'];
             }
+            // Safety: ensure subtypeName is string
+            if (is_array($subtypeName)) $subtypeName = reset($subtypeName) ?: '';
+            $subtypeName = is_string($subtypeName) ? $subtypeName : '';
+
             $durationMin = floor($targetDuration / 60);
             $durationSec = $targetDuration % 60;
             $durationText = $durationMin > 0 ? ($durationMin . 'm' . ($durationSec > 0 ? ' ' . $durationSec . 's' : '')) : ($durationSec . 's');
-            $conceptText = $concept['refinedConcept'] ?: $concept['rawInput'];
+
+            // Safety: ensure conceptText is string
+            $conceptText = $concept['refinedConcept'] ?? $concept['rawInput'] ?? '';
+            if (is_array($conceptText)) $conceptText = reset($conceptText) ?: '';
+            if (is_array($conceptText)) $conceptText = reset($conceptText) ?: '';
+            $conceptText = is_string($conceptText) ? $conceptText : '';
             $charCount = strlen($conceptText);
         @endphp
 
@@ -950,8 +963,17 @@
             <div class="vw-concept-meta">
                 <div class="vw-concept-meta-left">
                     @php
-                        $safeSuggestedMood = is_string($concept['suggestedMood'] ?? null) ? $concept['suggestedMood'] : (is_array($concept['suggestedMood'] ?? null) ? implode(', ', $concept['suggestedMood']) : '');
-                        $safeSuggestedTone = is_string($concept['suggestedTone'] ?? null) ? $concept['suggestedTone'] : (is_array($concept['suggestedTone'] ?? null) ? implode(', ', $concept['suggestedTone']) : '');
+                        // Safely extract mood - handle nested arrays
+                        $rawSugMood = $concept['suggestedMood'] ?? null;
+                        if (is_array($rawSugMood)) $rawSugMood = reset($rawSugMood) ?: null;
+                        if (is_array($rawSugMood)) $rawSugMood = reset($rawSugMood) ?: null;
+                        $safeSuggestedMood = is_string($rawSugMood) ? $rawSugMood : '';
+
+                        // Safely extract tone - handle nested arrays
+                        $rawSugTone = $concept['suggestedTone'] ?? null;
+                        if (is_array($rawSugTone)) $rawSugTone = reset($rawSugTone) ?: null;
+                        if (is_array($rawSugTone)) $rawSugTone = reset($rawSugTone) ?: null;
+                        $safeSuggestedTone = is_string($rawSugTone) ? $rawSugTone : '';
                     @endphp
                     @if(!empty($safeSuggestedMood))
                         <div class="vw-concept-meta-item">
@@ -1194,39 +1216,78 @@
 
             @foreach($script['scenes'] as $index => $scene)
                 @php
-                    // Safety net: ensure all fields are strings even if sanitization didn't run
-                    // (e.g., old projects loaded before fix was deployed, or AI returned unexpected types)
+                    // Safety net: ensure all fields are strings
+                    // Using explicit level-by-level unwrapping (no loops - Blade compatibility)
 
-                    // Helper function to extract string from potentially nested arrays
-                    $extractString = function($value, $default = '') use (&$extractString) {
-                        if (is_string($value)) return $value;
-                        if (is_numeric($value)) return (string)$value;
-                        if (is_array($value)) {
-                            foreach ($value as $item) {
-                                $result = $extractString($item, '');
-                                if ($result !== '') return $result;
-                            }
-                        }
-                        return $default;
-                    };
+                    // Extract title - unwrap up to 5 levels
+                    $rawTitle = $scene['title'] ?? null;
+                    if (is_array($rawTitle)) $rawTitle = reset($rawTitle) ?: null;
+                    if (is_array($rawTitle)) $rawTitle = reset($rawTitle) ?: null;
+                    if (is_array($rawTitle)) $rawTitle = reset($rawTitle) ?: null;
+                    if (is_array($rawTitle)) $rawTitle = reset($rawTitle) ?: null;
+                    if (is_array($rawTitle)) $rawTitle = reset($rawTitle) ?: null;
+                    $safeTitle = is_string($rawTitle) ? $rawTitle : (__('Scene') . ' ' . ($index + 1));
 
-                    $safeTitle = $extractString($scene['title'] ?? null, __('Scene') . ' ' . ($index + 1));
-                    $safeNarration = $extractString($scene['narration'] ?? null, '');
-                    $safeVisualPrompt = $extractString($scene['visualPrompt'] ?? null, '');
-                    $safeVisualDescription = $extractString($scene['visualDescription'] ?? null, '');
-                    $safeMood = $extractString($scene['mood'] ?? null, '');
-                    $safeTransition = $extractString($scene['transition'] ?? null, 'cut');
+                    // Extract narration
+                    $rawNarration = $scene['narration'] ?? null;
+                    if (is_array($rawNarration)) $rawNarration = reset($rawNarration) ?: null;
+                    if (is_array($rawNarration)) $rawNarration = reset($rawNarration) ?: null;
+                    if (is_array($rawNarration)) $rawNarration = reset($rawNarration) ?: null;
+                    $safeNarration = is_string($rawNarration) ? $rawNarration : '';
+
+                    // Extract visualPrompt
+                    $rawVisualPrompt = $scene['visualPrompt'] ?? null;
+                    if (is_array($rawVisualPrompt)) $rawVisualPrompt = reset($rawVisualPrompt) ?: null;
+                    if (is_array($rawVisualPrompt)) $rawVisualPrompt = reset($rawVisualPrompt) ?: null;
+                    if (is_array($rawVisualPrompt)) $rawVisualPrompt = reset($rawVisualPrompt) ?: null;
+                    $safeVisualPrompt = is_string($rawVisualPrompt) ? $rawVisualPrompt : '';
+
+                    // Extract visualDescription
+                    $rawVisualDescription = $scene['visualDescription'] ?? null;
+                    if (is_array($rawVisualDescription)) $rawVisualDescription = reset($rawVisualDescription) ?: null;
+                    if (is_array($rawVisualDescription)) $rawVisualDescription = reset($rawVisualDescription) ?: null;
+                    if (is_array($rawVisualDescription)) $rawVisualDescription = reset($rawVisualDescription) ?: null;
+                    $safeVisualDescription = is_string($rawVisualDescription) ? $rawVisualDescription : '';
+
+                    // Extract mood - unwrap up to 5 levels
+                    $rawMood = $scene['mood'] ?? null;
+                    if (is_array($rawMood)) $rawMood = reset($rawMood) ?: null;
+                    if (is_array($rawMood)) $rawMood = reset($rawMood) ?: null;
+                    if (is_array($rawMood)) $rawMood = reset($rawMood) ?: null;
+                    if (is_array($rawMood)) $rawMood = reset($rawMood) ?: null;
+                    if (is_array($rawMood)) $rawMood = reset($rawMood) ?: null;
+                    $safeMood = is_string($rawMood) ? $rawMood : '';
+                    $moodDisplay = (is_string($safeMood) && $safeMood !== '') ? ucfirst($safeMood) : '';
+
+                    // Extract transition
+                    $rawTransition = $scene['transition'] ?? null;
+                    if (is_array($rawTransition)) $rawTransition = reset($rawTransition) ?: null;
+                    if (is_array($rawTransition)) $rawTransition = reset($rawTransition) ?: null;
+                    $safeTransition = is_string($rawTransition) ? $rawTransition : 'cut';
+
+                    // Extract duration
                     $safeDuration = is_numeric($scene['duration'] ?? null) ? (int)$scene['duration'] : 15;
+
+                    // Extract sceneId
+                    $rawSceneId = $scene['id'] ?? null;
+                    if (is_array($rawSceneId)) $rawSceneId = reset($rawSceneId) ?: null;
+                    if (is_array($rawSceneId)) $rawSceneId = reset($rawSceneId) ?: null;
+                    $sceneId = is_string($rawSceneId) ? $rawSceneId : ('scene_' . $index);
 
                     // Use visualPrompt first, fall back to visualDescription
                     $displayVisualPrompt = $safeVisualPrompt ?: $safeVisualDescription;
 
                     // Check music only status
                     $isMusicOnly = isset($scene['voiceover']['enabled']) && !$scene['voiceover']['enabled'];
-                    $sceneId = $extractString($scene['id'] ?? null, 'scene_' . $index);
 
                     // Get transition label
                     $transitionLabel = $transitions[$safeTransition] ?? 'Cut';
+
+                    // FINAL SAFETY: Force all display variables to strings using strval
+                    $safeTitle = is_array($safeTitle) ? '' : strval($safeTitle);
+                    $safeDuration = is_array($safeDuration) ? 15 : intval($safeDuration);
+                    $transitionLabel = is_array($transitionLabel) ? 'Cut' : strval($transitionLabel);
+                    $moodDisplay = is_array($moodDisplay) ? '' : strval($moodDisplay);
                 @endphp
                 <div class="vw-advanced-scene-card"
                      x-data="{ expanded: false }"
@@ -1244,8 +1305,8 @@
                         <div class="vw-scene-meta-badges">
                             <span class="vw-scene-meta-badge">{{ $safeDuration }}s</span>
                             <span class="vw-scene-meta-badge">{{ $transitionLabel }}</span>
-                            @if($safeMood)
-                                <span class="vw-scene-meta-badge">{{ ucfirst($safeMood) }}</span>
+                            @if($moodDisplay !== '')
+                                <span class="vw-scene-meta-badge">{{ $moodDisplay }}</span>
                             @endif
                         </div>
                     </div>
@@ -1319,8 +1380,9 @@
                                 <select class="vw-scene-transition-select"
                                         wire:change="updateSceneTransition({{ $index }}, $event.target.value)">
                                     @foreach($transitions as $key => $label)
+                                        @php $safeLabel = is_string($label) ? $label : (is_array($label) ? (reset($label) ?: $key) : strval($label ?? $key)); @endphp
                                         <option value="{{ $key }}" {{ $safeTransition === $key ? 'selected' : '' }}>
-                                            {{ $label }}
+                                            {{ $safeLabel }}
                                         </option>
                                     @endforeach
                                 </select>
