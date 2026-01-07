@@ -4,9 +4,23 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Facades\AI;
 use Modules\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Models\VwGenerationLog;
 
 class ScriptGenerationService
 {
+    /**
+     * PromptService instance for loading prompts from DB.
+     */
+    protected PromptService $promptService;
+
+    /**
+     * Constructor.
+     */
+    public function __construct(?PromptService $promptService = null)
+    {
+        $this->promptService = $promptService ?? new PromptService();
+    }
+
     /**
      * Speaking rate constants (words per minute)
      * Research: Normal conversational pace is 125-150 WPM
@@ -61,7 +75,7 @@ class ScriptGenerationService
         }
 
         // Standard generation for shorter videos
-        $prompt = $this->buildScriptPrompt([
+        $promptParams = [
             'topic' => $topic,
             'tone' => $tone,
             'duration' => $duration,
@@ -73,12 +87,20 @@ class ScriptGenerationService
             'contentDepth' => $contentDepth,
             'additionalInstructions' => $additionalInstructions,
             'aspectRatio' => $project->aspect_ratio,
-        ]);
+        ];
+
+        $prompt = $this->buildScriptPrompt($promptParams);
+        $startTime = microtime(true);
 
         $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
         if (!empty($result['error'])) {
             \Log::error('VideoWizard: AI error', ['error' => $result['error']]);
+
+            // Log the failure
+            $this->logGeneration('script_generation', $promptParams, [], 'failed', $result['error'], null, $durationMs, $project->id);
+
             throw new \Exception($result['error']);
         }
 
@@ -86,6 +108,10 @@ class ScriptGenerationService
 
         if (empty($response)) {
             \Log::error('VideoWizard: Empty AI response', ['result' => $result]);
+
+            // Log the failure
+            $this->logGeneration('script_generation', $promptParams, [], 'failed', 'Empty AI response', null, $durationMs, $project->id);
+
             throw new \Exception('AI returned an empty response. Please try again.');
         }
 
@@ -94,7 +120,42 @@ class ScriptGenerationService
             'responsePreview' => substr($response, 0, 300),
         ]);
 
-        return $this->parseScriptResponse($response, $duration);
+        $parsedScript = $this->parseScriptResponse($response, $duration);
+
+        // Log successful generation
+        $this->logGeneration('script_generation', $promptParams, $parsedScript, 'success', null, null, $durationMs, $project->id);
+
+        return $parsedScript;
+    }
+
+    /**
+     * Log an AI generation event.
+     */
+    protected function logGeneration(
+        string $promptSlug,
+        array $inputData,
+        array $outputData,
+        string $status = 'success',
+        ?string $errorMessage = null,
+        ?int $tokensUsed = null,
+        ?int $durationMs = null,
+        ?int $projectId = null
+    ): void {
+        try {
+            $this->promptService->logGeneration(
+                $promptSlug,
+                $inputData,
+                $outputData,
+                $status,
+                $errorMessage,
+                $tokensUsed,
+                $durationMs,
+                $projectId
+            );
+        } catch (\Exception $e) {
+            // Don't let logging failures break the main flow
+            \Log::warning('VideoWizard: Failed to log generation', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -381,6 +442,7 @@ PROMPT;
 
     /**
      * Build the script generation prompt for standard videos.
+     * Uses PromptService to load from DB, falls back to hardcoded if not available.
      */
     protected function buildScriptPrompt(array $params): string
     {
@@ -396,22 +458,33 @@ PROMPT;
         $minutes = round($duration / 60, 1);
         $avgSceneDuration = (int) ceil($duration / $sceneCount);
 
-        $toneGuides = [
-            'engaging' => 'conversational, energetic, keeps viewers hooked with dynamic pacing',
-            'professional' => 'polished, authoritative, business-appropriate with credibility',
-            'casual' => 'friendly, relaxed, like talking to a friend',
-            'inspirational' => 'uplifting, motivational, emotionally resonant',
-            'educational' => 'clear, structured, informative with examples',
-        ];
-        $toneGuide = $toneGuides[$tone] ?? $toneGuides['engaging'];
+        $toneGuide = $this->promptService->getToneGuide($tone);
+        $depthGuide = $this->promptService->getDepthGuide($contentDepth);
 
-        $depthGuides = [
-            'quick' => 'Focus on key points only, minimal detail',
-            'standard' => 'Balanced coverage with some examples',
-            'detailed' => 'Include examples, statistics, and supporting details',
-            'deep' => 'Comprehensive analysis with multiple perspectives',
-        ];
-        $depthGuide = $depthGuides[$contentDepth] ?? $depthGuides['detailed'];
+        // Try to load prompt from database
+        $compiledPrompt = $this->promptService->getCompiledPrompt('script_generation', [
+            'topic' => $topic,
+            'tone' => $tone,
+            'toneGuide' => $toneGuide,
+            'contentDepth' => $contentDepth,
+            'depthGuide' => $depthGuide,
+            'duration' => $duration,
+            'minutes' => $minutes,
+            'targetWords' => $targetWords,
+            'sceneCount' => $sceneCount,
+            'wordsPerScene' => $wordsPerScene,
+            'avgSceneDuration' => $avgSceneDuration,
+            'additionalInstructions' => !empty($additionalInstructions)
+                ? "\nADDITIONAL REQUIREMENTS: {$additionalInstructions}\n"
+                : '',
+        ]);
+
+        if ($compiledPrompt) {
+            return $compiledPrompt;
+        }
+
+        // Fallback to hardcoded prompt if DB prompt not available
+        \Log::info('VideoWizard: Using fallback hardcoded prompt for script_generation');
 
         $prompt = <<<PROMPT
 You are an expert video scriptwriter creating a {$minutes}-minute video script.
