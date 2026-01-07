@@ -293,11 +293,7 @@
     }
 </style>
 
-<div class="vw-platform-step" x-data="{
-    selectedFormat: '{{ $format }}',
-    selectedType: '{{ $productionType }}',
-    selectedSubtype: '{{ $productionSubtype }}'
-}">
+<div class="vw-platform-step">
     {{-- Video Format Card --}}
     <div class="vw-content-card">
         <div class="vw-card-header">
@@ -310,9 +306,8 @@
 
         <div class="vw-format-grid">
             @foreach($formats as $id => $formatConfig)
-                <div @click="selectedFormat = '{{ $id }}'; $wire.selectFormat('{{ $id }}')"
-                     :class="{ 'selected': selectedFormat === '{{ $id }}' }"
-                     class="vw-format-card"
+                <div wire:click="selectFormat('{{ $id }}')"
+                     class="vw-format-card {{ $format === $id ? 'selected' : '' }}"
                      style="cursor: pointer;">
                     <span class="vw-format-icon" style="pointer-events: none;">
                         @switch($id)
@@ -343,9 +338,8 @@
 
         <div class="vw-production-grid">
             @foreach($productionTypes as $typeId => $type)
-                <div @click="selectedType = '{{ $typeId }}'; selectedSubtype = ''; $wire.selectProductionType('{{ $typeId }}')"
-                     :class="{ 'selected': selectedType === '{{ $typeId }}' }"
-                     class="vw-production-card"
+                <div wire:click="selectProductionType('{{ $typeId }}')"
+                     class="vw-production-card {{ $productionType === $typeId ? 'selected' : '' }}"
                      style="cursor: pointer;">
                     <span class="vw-production-icon" style="pointer-events: none;">
                         @switch($typeId)
@@ -374,9 +368,8 @@
 
                 <div class="vw-subtype-grid">
                     @foreach($productionTypes[$productionType]['subTypes'] as $subId => $subType)
-                        <div @click="selectedSubtype = '{{ $subId }}'; $wire.selectProductionType('{{ $productionType }}', '{{ $subId }}')"
-                             :class="{ 'selected': selectedSubtype === '{{ $subId }}' }"
-                             class="vw-subtype-card"
+                        <div wire:click="selectProductionType('{{ $productionType }}', '{{ $subId }}')"
+                             class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}"
                              style="cursor: pointer;">
                             <div class="vw-subtype-header">
                                 <span class="vw-subtype-icon">{{ $subType['icon'] ?? '🎯' }}</span>

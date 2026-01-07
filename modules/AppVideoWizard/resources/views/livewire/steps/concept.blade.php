@@ -623,9 +623,14 @@
         opacity: 0.5 !important;
         pointer-events: none !important;
     }
+
+    .vw-loading-opacity {
+        opacity: 0.6 !important;
+        pointer-events: none !important;
+    }
 </style>
 
-<div class="vw-concept-step" wire:poll.keep-alive>
+<div class="vw-concept-step">
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -788,10 +793,13 @@
             <div class="vw-alt-directions-label">
                 {{ __('Alternative Directions') }} <span style="color: rgba(255,255,255,0.3);">({{ __('click to switch') }})</span>
             </div>
-            <div class="vw-alt-directions-grid">
+            <div class="vw-alt-directions-grid" wire:loading.class="vw-loading-opacity" wire:target="selectConceptVariation">
                 @foreach($conceptVariations as $index => $variation)
                     <div class="vw-alt-card {{ $selectedConceptIndex === $index ? 'selected' : '' }}"
-                         wire:click="selectConceptVariation({{ $index }})">
+                         wire:click="selectConceptVariation({{ $index }})"
+                         wire:loading.attr="disabled"
+                         wire:target="selectConceptVariation"
+                         style="{{ $selectedConceptIndex === $index ? '' : 'cursor: pointer;' }}">
                         <div class="vw-alt-card-title">{{ ($index + 1) }}. {{ $variation['title'] ?? (__($productionType ?? 'movie') . ' ' . __('Concept') . ' ' . ($index + 1)) }}</div>
                         <div class="vw-alt-card-subtitle">{{ $variation['angle'] ?? ucfirst($variation['strengths'][0] ?? __('Engaging')) }}</div>
                     </div>
