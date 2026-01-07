@@ -1201,7 +1201,7 @@
                         <div class="vw-scene-meta-badges">
                             <span class="vw-scene-meta-badge">{{ $scene['duration'] ?? 15 }}s</span>
                             <span class="vw-scene-meta-badge">{{ $transitions[$scene['transition'] ?? 'cut'] ?? 'Cut' }}</span>
-                            @if(!empty($scene['mood']))
+                            @if(!empty($scene['mood']) && is_string($scene['mood']))
                                 <span class="vw-scene-meta-badge">{{ ucfirst($scene['mood']) }}</span>
                             @endif
                         </div>
