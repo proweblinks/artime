@@ -24,6 +24,10 @@ class VideoWizard extends Component
     // Import file for project import
     public $importFile;
 
+    // Reference image uploads for Character/Location Bible
+    public $characterImageUpload;
+    public $locationImageUpload;
+
     // Project state
     public ?int $projectId = null;
     public string $projectName = 'Untitled Video';
@@ -2427,9 +2431,95 @@ class VideoWizard extends Component
             'id' => uniqid('char_'),
             'name' => $name,
             'description' => $description,
+            'role' => 'Supporting',
             'appliedScenes' => [],
+            'traits' => [],
             'referenceImage' => null,
         ];
+        $this->saveProject();
+    }
+
+    /**
+     * Add a trait to a character.
+     */
+    public function addCharacterTrait(int $characterIndex, string $trait = ''): void
+    {
+        $trait = trim($trait);
+        if (empty($trait)) {
+            return;
+        }
+
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex])) {
+            return;
+        }
+
+        // Initialize traits array if not exists
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'])) {
+            $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'] = [];
+        }
+
+        // Avoid duplicates (case-insensitive)
+        $existingTraits = array_map('strtolower', $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits']);
+        if (in_array(strtolower($trait), $existingTraits)) {
+            return;
+        }
+
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'][] = $trait;
+        $this->saveProject();
+    }
+
+    /**
+     * Remove a trait from a character.
+     */
+    public function removeCharacterTrait(int $characterIndex, int $traitIndex): void
+    {
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'][$traitIndex])) {
+            return;
+        }
+
+        unset($this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'][$traitIndex]);
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'] = array_values(
+            $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits']
+        );
+        $this->saveProject();
+    }
+
+    /**
+     * Apply a preset trait set to a character based on archetype.
+     */
+    public function applyTraitPreset(int $characterIndex, string $preset): void
+    {
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex])) {
+            return;
+        }
+
+        $presets = [
+            'hero' => ['confident', 'determined', 'courageous', 'charismatic'],
+            'villain' => ['cunning', 'menacing', 'calculating', 'powerful'],
+            'mentor' => ['wise', 'patient', 'experienced', 'supportive'],
+            'comic' => ['witty', 'playful', 'energetic', 'quirky'],
+            'mysterious' => ['enigmatic', 'reserved', 'observant', 'cryptic'],
+            'professional' => ['competent', 'focused', 'reliable', 'articulate'],
+            'creative' => ['imaginative', 'passionate', 'expressive', 'innovative'],
+            'leader' => ['authoritative', 'decisive', 'inspiring', 'strategic'],
+        ];
+
+        if (!isset($presets[$preset])) {
+            return;
+        }
+
+        // Merge with existing traits, avoiding duplicates
+        $currentTraits = $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'] ?? [];
+        $currentTraitsLower = array_map('strtolower', $currentTraits);
+
+        foreach ($presets[$preset] as $trait) {
+            if (!in_array(strtolower($trait), $currentTraitsLower)) {
+                $currentTraits[] = $trait;
+                $currentTraitsLower[] = strtolower($trait);
+            }
+        }
+
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'] = $currentTraits;
         $this->saveProject();
     }
 
@@ -2472,10 +2562,158 @@ class VideoWizard extends Component
             'type' => 'exterior',
             'timeOfDay' => 'day',
             'weather' => 'clear',
+            'atmosphere' => '',
             'description' => $description,
+            'scenes' => [],
+            'stateChanges' => [],
             'referenceImage' => null,
         ];
         $this->saveProject();
+    }
+
+    /**
+     * Add a state change to a location for a specific scene.
+     */
+    public function addLocationState(int $locationIndex, int $sceneIndex, string $state = ''): void
+    {
+        $state = trim($state);
+        if (empty($state)) {
+            return;
+        }
+
+        if (!isset($this->sceneMemory['locationBible']['locations'][$locationIndex])) {
+            return;
+        }
+
+        // Initialize stateChanges array if not exists
+        if (!isset($this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'])) {
+            $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] = [];
+        }
+
+        // Check if state already exists for this scene - update it
+        $found = false;
+        foreach ($this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] as $idx => $change) {
+            if (($change['scene'] ?? -1) === $sceneIndex) {
+                $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][$idx]['state'] = $state;
+                $found = true;
+                break;
+            }
+        }
+
+        // Add new state change if not found
+        if (!$found) {
+            $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][] = [
+                'scene' => $sceneIndex,
+                'state' => $state,
+            ];
+
+            // Sort by scene index
+            usort(
+                $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'],
+                fn($a, $b) => ($a['scene'] ?? 0) <=> ($b['scene'] ?? 0)
+            );
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Remove a state change from a location.
+     */
+    public function removeLocationState(int $locationIndex, int $stateIndex): void
+    {
+        if (!isset($this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][$stateIndex])) {
+            return;
+        }
+
+        unset($this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][$stateIndex]);
+        $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] = array_values(
+            $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges']
+        );
+        $this->saveProject();
+    }
+
+    /**
+     * Apply a preset state progression to a location.
+     */
+    public function applyLocationStatePreset(int $locationIndex, string $preset): void
+    {
+        if (!isset($this->sceneMemory['locationBible']['locations'][$locationIndex])) {
+            return;
+        }
+
+        $scenes = $this->sceneMemory['locationBible']['locations'][$locationIndex]['scenes'] ?? [];
+        if (count($scenes) < 2) {
+            return; // Need at least 2 scenes for a state progression
+        }
+
+        // Sort scenes
+        sort($scenes);
+        $firstScene = $scenes[0];
+        $lastScene = $scenes[count($scenes) - 1];
+
+        $presets = [
+            'destruction' => [
+                ['state' => 'pristine, intact'],
+                ['state' => 'damaged, destruction visible'],
+            ],
+            'time-of-day' => [
+                ['state' => 'morning light, fresh atmosphere'],
+                ['state' => 'evening, golden hour lighting'],
+            ],
+            'weather-change' => [
+                ['state' => 'clear skies, bright'],
+                ['state' => 'stormy, dramatic clouds'],
+            ],
+            'abandonment' => [
+                ['state' => 'inhabited, active, signs of life'],
+                ['state' => 'abandoned, dusty, overgrown'],
+            ],
+            'transformation' => [
+                ['state' => 'ordinary, mundane'],
+                ['state' => 'transformed, magical, ethereal'],
+            ],
+            'tension' => [
+                ['state' => 'calm, peaceful'],
+                ['state' => 'tense, foreboding'],
+            ],
+        ];
+
+        if (!isset($presets[$preset])) {
+            return;
+        }
+
+        // Apply first state to first scene, second state to last scene
+        $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] = [
+            ['scene' => $firstScene, 'state' => $presets[$preset][0]['state']],
+            ['scene' => $lastScene, 'state' => $presets[$preset][1]['state']],
+        ];
+
+        $this->saveProject();
+    }
+
+    /**
+     * Get the location state for a specific scene index.
+     */
+    protected function getLocationStateForScene(array $location, int $sceneIndex): ?string
+    {
+        $stateChanges = $location['stateChanges'] ?? [];
+        if (empty($stateChanges)) {
+            return null;
+        }
+
+        // Find the most recent state change at or before this scene
+        $applicableState = null;
+        foreach ($stateChanges as $change) {
+            $changeScene = $change['scene'] ?? -1;
+            if ($changeScene <= $sceneIndex) {
+                $applicableState = $change['state'] ?? null;
+            } else {
+                break; // Since sorted, no need to continue
+            }
+        }
+
+        return $applicableState;
     }
 
     /**
@@ -2661,7 +2899,15 @@ class VideoWizard extends Component
                 foreach ($sceneCharacters as $character) {
                     if (!empty($character['description'])) {
                         $name = $character['name'] ?? 'Character';
-                        $characterDescriptions[] = "{$name}: {$character['description']}";
+                        $charDesc = "{$name}: {$character['description']}";
+
+                        // Include traits if available for personality/expression guidance
+                        $traits = $character['traits'] ?? [];
+                        if (!empty($traits)) {
+                            $charDesc .= ' (personality: ' . implode(', ', array_slice($traits, 0, 4)) . ')';
+                        }
+
+                        $characterDescriptions[] = $charDesc;
                     }
                 }
                 if (!empty($characterDescriptions)) {
@@ -2696,6 +2942,12 @@ class VideoWizard extends Component
 
                 if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
                     $locationParts[] = $sceneLocation['weather'] . ' weather';
+                }
+
+                // Include location state for this scene if available
+                $locationState = $this->getLocationStateForScene($sceneLocation, $index);
+                if ($locationState) {
+                    $locationParts[] = 'current state: ' . $locationState;
                 }
 
                 if (!empty($locationParts)) {
@@ -4641,6 +4893,51 @@ class VideoWizard extends Component
     }
 
     /**
+     * Upload a reference image for a character.
+     */
+    public function uploadCharacterPortrait(int $index): void
+    {
+        if (!$this->characterImageUpload) {
+            return;
+        }
+
+        $this->validate([
+            'characterImageUpload' => 'image|max:10240', // 10MB max
+        ]);
+
+        try {
+            // Generate unique filename
+            $filename = 'character_' . uniqid() . '_' . time() . '.' . $this->characterImageUpload->getClientOriginalExtension();
+
+            // Store in public disk under wizard-assets
+            $path = $this->characterImageUpload->storeAs('wizard-assets/characters', $filename, 'public');
+
+            // Get the public URL
+            $url = \Storage::disk('public')->url($path);
+
+            // Update character with the uploaded image
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $url;
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageSource'] = 'upload';
+
+            // Clear the upload
+            $this->characterImageUpload = null;
+
+            $this->saveProject();
+
+            // Dispatch debug event
+            $this->dispatch('vw-debug', [
+                'type' => 'character_image_upload',
+                'characterIndex' => $index,
+                'filename' => $filename,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Character image upload failed', ['error' => $e->getMessage()]);
+            $this->error = __('Failed to upload image: ') . $e->getMessage();
+        }
+    }
+
+    /**
      * Apply character template.
      */
     public function applyCharacterTemplate(int $index, string $template): void
@@ -4831,6 +5128,51 @@ class VideoWizard extends Component
         if (isset($this->sceneMemory['locationBible']['locations'][$index])) {
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = null;
             $this->saveProject();
+        }
+    }
+
+    /**
+     * Upload a reference image for a location.
+     */
+    public function uploadLocationReference(int $index): void
+    {
+        if (!$this->locationImageUpload) {
+            return;
+        }
+
+        $this->validate([
+            'locationImageUpload' => 'image|max:10240', // 10MB max
+        ]);
+
+        try {
+            // Generate unique filename
+            $filename = 'location_' . uniqid() . '_' . time() . '.' . $this->locationImageUpload->getClientOriginalExtension();
+
+            // Store in public disk under wizard-assets
+            $path = $this->locationImageUpload->storeAs('wizard-assets/locations', $filename, 'public');
+
+            // Get the public URL
+            $url = \Storage::disk('public')->url($path);
+
+            // Update location with the uploaded image
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $url;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageSource'] = 'upload';
+
+            // Clear the upload
+            $this->locationImageUpload = null;
+
+            $this->saveProject();
+
+            // Dispatch debug event
+            $this->dispatch('vw-debug', [
+                'type' => 'location_image_upload',
+                'locationIndex' => $index,
+                'filename' => $filename,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Location image upload failed', ['error' => $e->getMessage()]);
+            $this->error = __('Failed to upload image: ') . $e->getMessage();
         }
     }
 

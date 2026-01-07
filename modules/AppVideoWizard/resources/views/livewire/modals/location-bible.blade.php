@@ -109,6 +109,33 @@
                                     <span wire:loading.remove wire:target="generateLocationReference">🎨 {{ __('Generate Reference') }}</span>
                                     <span wire:loading wire:target="generateLocationReference">{{ __('Generating...') }}</span>
                                 </button>
+
+                                {{-- Upload Button & Input --}}
+                                <div x-data="{ uploading: false }" style="position: relative; margin-top: 0.35rem;">
+                                    <input type="file"
+                                           wire:model="locationImageUpload"
+                                           accept="image/*"
+                                           x-on:livewire-upload-start="uploading = true"
+                                           x-on:livewire-upload-finish="uploading = false; $wire.uploadLocationReference({{ $editIndex }})"
+                                           x-on:livewire-upload-error="uploading = false"
+                                           style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;">
+                                    <button type="button"
+                                            style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: rgba(255,255,255,0.8); font-size: 0.75rem; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                        <template x-if="!uploading">
+                                            <span>📤 {{ __('Upload Image') }}</span>
+                                        </template>
+                                        <template x-if="uploading">
+                                            <span>{{ __('Uploading...') }}</span>
+                                        </template>
+                                    </button>
+                                </div>
+
+                                {{-- Source indicator --}}
+                                @if(!empty($currentLocation['referenceImage']) && !empty($currentLocation['referenceImageSource']))
+                                    <div style="text-align: center; margin-top: 0.25rem; font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                        {{ $currentLocation['referenceImageSource'] === 'upload' ? __('Uploaded') : __('AI Generated') }}
+                                    </div>
+                                @endif
                             </div>
 
                             {{-- Basic Info --}}
@@ -196,6 +223,87 @@
                                     {{ __('No scenes available yet') }}
                                 </div>
                             @endif
+                        </div>
+
+                        {{-- State History (Expandable) --}}
+                        @php
+                            $assignedScenes = $currentLocation['scenes'] ?? [];
+                            $hasAssignedScenes = count($assignedScenes) >= 2;
+                        @endphp
+                        <div x-data="{ stateOpen: true, newStateScene: '', newStateText: '' }" style="margin-top: 1rem;">
+                            <button type="button"
+                                    @click="stateOpen = !stateOpen"
+                                    style="display: flex; align-items: center; gap: 0.35rem; width: 100%; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 0.35rem;">
+                                <span style="color: rgba(255,255,255,0.6); font-size: 0.7rem; transition: transform 0.2s;" :style="stateOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
+                                <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">{{ __('State History') }}</span>
+                                <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; margin-left: 0.25rem;">({{ count($currentLocation['stateChanges'] ?? []) }})</span>
+                            </button>
+
+                            <div x-show="stateOpen" x-collapse>
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.65rem; margin: 0 0 0.5rem 0;">
+                                    {{ __('Track how this location changes across scenes (e.g., pristine → damaged)') }}
+                                </p>
+
+                                {{-- Current State Changes --}}
+                                <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.5rem;">
+                                    @forelse($currentLocation['stateChanges'] ?? [] as $stateIdx => $stateChange)
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.35rem;">
+                                            <span style="background: rgba(245,158,11,0.3); color: #fcd34d; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">
+                                                S{{ ($stateChange['scene'] ?? 0) + 1 }}
+                                            </span>
+                                            <span style="flex: 1; color: rgba(255,255,255,0.8); font-size: 0.7rem;">
+                                                {{ $stateChange['state'] ?? '' }}
+                                            </span>
+                                            <button type="button"
+                                                    wire:click="removeLocationState({{ $editIndex }}, {{ $stateIdx }})"
+                                                    style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; padding: 0; line-height: 1; font-size: 0.75rem;"
+                                                    title="{{ __('Remove') }}">&times;</button>
+                                        </div>
+                                    @empty
+                                        <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem; font-style: italic; padding: 0.25rem 0;">
+                                            {{ __('No state changes defined yet') }}
+                                        </div>
+                                    @endforelse
+                                </div>
+
+                                {{-- Add New State Change --}}
+                                @if($hasAssignedScenes)
+                                    <div style="display: flex; gap: 0.35rem; margin-bottom: 0.5rem;">
+                                        <select x-model="newStateScene"
+                                                style="width: 70px; padding: 0.35rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem;">
+                                            <option value="">{{ __('Scene') }}</option>
+                                            @foreach($assignedScenes as $sceneIdx)
+                                                <option value="{{ $sceneIdx }}">S{{ $sceneIdx + 1 }}</option>
+                                            @endforeach
+                                        </select>
+                                        <input type="text"
+                                               x-model="newStateText"
+                                               @keydown.enter.prevent="if(newStateScene !== '' && newStateText.trim()) { $wire.addLocationState({{ $editIndex }}, parseInt(newStateScene), newStateText.trim()); newStateScene = ''; newStateText = ''; }"
+                                               placeholder="{{ __('State description (e.g., damaged, foggy)') }}"
+                                               style="flex: 1; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem;">
+                                        <button type="button"
+                                                @click="if(newStateScene !== '' && newStateText.trim()) { $wire.addLocationState({{ $editIndex }}, parseInt(newStateScene), newStateText.trim()); newStateScene = ''; newStateText = ''; }"
+                                                style="padding: 0.35rem 0.5rem; background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); border-radius: 0.35rem; color: #fcd34d; font-size: 0.65rem; cursor: pointer;">
+                                            + {{ __('Add') }}
+                                        </button>
+                                    </div>
+
+                                    {{-- State Presets --}}
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                                        <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; margin-right: 0.25rem;">{{ __('Presets:') }}</span>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'destruction')" style="padding: 0.2rem 0.4rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 0.25rem; color: #fca5a5; font-size: 0.55rem; cursor: pointer;">💥 {{ __('Destruction') }}</button>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'time-of-day')" style="padding: 0.2rem 0.4rem; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); border-radius: 0.25rem; color: #fcd34d; font-size: 0.55rem; cursor: pointer;">🌅 {{ __('Time') }}</button>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'weather-change')" style="padding: 0.2rem 0.4rem; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.2); border-radius: 0.25rem; color: #67e8f9; font-size: 0.55rem; cursor: pointer;">🌧️ {{ __('Weather') }}</button>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'abandonment')" style="padding: 0.2rem 0.4rem; background: rgba(107,114,128,0.2); border: 1px solid rgba(107,114,128,0.3); border-radius: 0.25rem; color: #9ca3af; font-size: 0.55rem; cursor: pointer;">🏚️ {{ __('Abandon') }}</button>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'transformation')" style="padding: 0.2rem 0.4rem; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.25rem; color: #c4b5fd; font-size: 0.55rem; cursor: pointer;">✨ {{ __('Transform') }}</button>
+                                        <button type="button" wire:click="applyLocationStatePreset({{ $editIndex }}, 'tension')" style="padding: 0.2rem 0.4rem; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.2); border-radius: 0.25rem; color: #fca5a5; font-size: 0.55rem; cursor: pointer;">⚡ {{ __('Tension') }}</button>
+                                    </div>
+                                @else
+                                    <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem; font-style: italic;">
+                                        {{ __('Assign at least 2 scenes to add state changes') }}
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
                         {{-- Delete Location Button --}}
