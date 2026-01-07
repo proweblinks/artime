@@ -846,6 +846,170 @@ PROMPT;
     }
 
     /**
+     * Regenerate a single scene.
+     */
+    public function regenerateScene(WizardProject $project, int $sceneIndex, array $options = []): ?array
+    {
+        $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
+        $existingScene = $options['existingScene'] ?? [];
+        $tone = $options['tone'] ?? 'engaging';
+        $contentDepth = $options['contentDepth'] ?? 'detailed';
+
+        $concept = $project->concept ?? [];
+        $topic = $concept['refinedConcept'] ?? $concept['rawInput'] ?? '';
+
+        $prompt = <<<PROMPT
+You are an expert video scriptwriter. Regenerate this scene with fresh content while maintaining the video's theme.
+
+TOPIC: {$topic}
+TONE: {$tone}
+SCENE NUMBER: {$sceneIndex} + 1
+CURRENT SCENE TITLE: {$existingScene['title']}
+CURRENT DURATION: {$existingScene['duration']} seconds
+
+Generate a new version of this scene with:
+- Fresh narration that fits the same duration
+- New visual description for AI image generation
+- Maintain connection to the overall topic
+
+RESPOND WITH ONLY THIS JSON (no markdown):
+{
+  "id": "{$existingScene['id']}",
+  "title": "New scene title",
+  "narration": "New narrator text (match duration)",
+  "visualDescription": "Detailed visual for AI image generation",
+  "visualPrompt": "Concise prompt for image AI (50-100 words)",
+  "voiceover": {
+    "enabled": true,
+    "text": "",
+    "voiceId": null,
+    "status": "pending"
+  },
+  "duration": {$existingScene['duration']},
+  "mood": "cinematic",
+  "status": "draft"
+}
+PROMPT;
+
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = $result['data'][0] ?? '';
+        $json = $this->extractJson($response);
+        $scene = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($scene['narration'])) {
+            return null;
+        }
+
+        // Ensure Ken Burns effect
+        $scene['kenBurns'] = $this->generateKenBurnsEffect();
+
+        return $scene;
+    }
+
+    /**
+     * Generate a visual prompt for a scene based on its narration.
+     */
+    public function generateVisualPromptForScene(string $narration, array $concept, array $options = []): string
+    {
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $mood = $options['mood'] ?? 'cinematic';
+        $style = $options['style'] ?? '';
+        $productionType = $options['productionType'] ?? 'movie';
+        $aspectRatio = $options['aspectRatio'] ?? '16:9';
+
+        $styleContext = !empty($style) ? "STYLE REFERENCE: {$style}" : '';
+        $conceptContext = !empty($concept['refinedConcept'])
+            ? "OVERALL CONCEPT: {$concept['refinedConcept']}"
+            : '';
+
+        $prompt = <<<PROMPT
+You are a cinematographer creating a visual prompt for AI image generation.
+
+NARRATION: {$narration}
+{$conceptContext}
+{$styleContext}
+MOOD: {$mood}
+PRODUCTION TYPE: {$productionType}
+ASPECT RATIO: {$aspectRatio}
+
+Create a detailed visual prompt that:
+1. Captures the essence of the narration visually
+2. Includes specific details: lighting, colors, composition, camera angle
+3. Sets the appropriate mood and atmosphere
+4. Is optimized for AI image generation (Stable Diffusion/DALL-E style)
+
+RESPOND WITH ONLY THE PROMPT TEXT (no JSON, no explanation, just the visual description):
+PROMPT;
+
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $visualPrompt = trim($result['data'][0] ?? '');
+
+        // Clean up any markdown or extra formatting
+        $visualPrompt = preg_replace('/^```.*?\n/', '', $visualPrompt);
+        $visualPrompt = preg_replace('/\n```$/', '', $visualPrompt);
+        $visualPrompt = trim($visualPrompt);
+
+        return $visualPrompt;
+    }
+
+    /**
+     * Generate voiceover text for a scene based on its narration.
+     */
+    public function generateVoiceoverForScene(string $narration, array $concept, array $options = []): string
+    {
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $narrationStyle = $options['narrationStyle'] ?? 'voiceover';
+        $tone = $options['tone'] ?? 'engaging';
+
+        // For simple voiceover, the narration IS the voiceover text
+        if ($narrationStyle === 'voiceover' || $narrationStyle === 'narrator') {
+            return $narration;
+        }
+
+        // For dialogue or special cases, we might need to transform it
+        if ($narrationStyle === 'dialogue') {
+            $prompt = <<<PROMPT
+Convert this narration into natural dialogue between characters.
+
+NARRATION: {$narration}
+TONE: {$tone}
+
+Create dialogue that:
+1. Conveys the same information as the narration
+2. Sounds natural and conversational
+3. Uses character names (SPEAKER: dialogue format)
+
+RESPOND WITH ONLY THE DIALOGUE TEXT (no explanation):
+PROMPT;
+
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+
+            if (!empty($result['error'])) {
+                return $narration; // Fallback to original
+            }
+
+            return trim($result['data'][0] ?? $narration);
+        }
+
+        // For 'none' style, return empty
+        if ($narrationStyle === 'none') {
+            return '';
+        }
+
+        return $narration;
+    }
+
+    /**
      * Improve/refine an existing script.
      */
     public function improveScript(array $script, string $instruction, array $options = []): array

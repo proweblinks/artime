@@ -391,6 +391,238 @@
         color: #c4b5fd !important;
         background: rgba(139, 92, 246, 0.05) !important;
     }
+
+    /* Character Intelligence Section */
+    .vw-character-intel-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border-radius: 1rem !important;
+        padding: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-character-intel-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    .vw-character-intel-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+    }
+
+    .vw-character-intel-icon {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%) !important;
+        border-radius: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.25rem !important;
+    }
+
+    .vw-character-intel-title {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin: 0 !important;
+    }
+
+    .vw-character-intel-subtitle {
+        font-size: 0.8rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        margin-top: 0.125rem !important;
+    }
+
+    .vw-character-intel-toggle {
+        position: relative !important;
+        width: 44px !important;
+        height: 24px !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        cursor: pointer !important;
+        transition: background 0.2s !important;
+    }
+
+    .vw-character-intel-toggle.active {
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+    }
+
+    .vw-character-intel-toggle::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 2px !important;
+        left: 2px !important;
+        width: 20px !important;
+        height: 20px !important;
+        background: white !important;
+        border-radius: 50% !important;
+        transition: transform 0.2s !important;
+    }
+
+    .vw-character-intel-toggle.active::after {
+        transform: translateX(20px) !important;
+    }
+
+    .vw-narration-style-section {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-narration-style-label {
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .vw-narration-style-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+
+    @media (max-width: 768px) {
+        .vw-narration-style-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    .vw-narration-style-btn {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 1rem 0.75rem !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.5rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        text-align: center !important;
+    }
+
+    .vw-narration-style-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+    }
+
+    .vw-narration-style-btn.selected {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+    }
+
+    .vw-narration-style-btn.disabled {
+        opacity: 0.4 !important;
+        cursor: not-allowed !important;
+        text-decoration: line-through !important;
+    }
+
+    .vw-narration-style-icon {
+        font-size: 1.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .vw-narration-style-name {
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+    }
+
+    .vw-narration-style-btn.selected .vw-narration-style-name {
+        color: #c4b5fd !important;
+    }
+
+    .vw-character-count-section {
+        margin-top: 1.5rem !important;
+    }
+
+    .vw-character-count-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .vw-character-count-label {
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .vw-character-count-suggested {
+        font-size: 0.8rem !important;
+        color: #34d399 !important;
+        font-weight: 500 !important;
+    }
+
+    .vw-character-slider-container {
+        position: relative !important;
+        padding: 0.5rem 0 !important;
+    }
+
+    .vw-character-slider {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 100% !important;
+        height: 6px !important;
+        background: linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.6) 100%) !important;
+        border-radius: 3px !important;
+        outline: none !important;
+        cursor: pointer !important;
+    }
+
+    .vw-character-slider::-webkit-slider-thumb {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        width: 20px !important;
+        height: 20px !important;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+        border-radius: 50% !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
+    }
+
+    .vw-character-slider::-moz-range-thumb {
+        width: 20px !important;
+        height: 20px !important;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+        border-radius: 50% !important;
+        cursor: pointer !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
+    }
+
+    .vw-character-count-value {
+        position: absolute !important;
+        right: 0 !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        color: #c4b5fd !important;
+        min-width: 30px !important;
+        text-align: right !important;
+    }
+
+    .vw-character-count-hint {
+        font-size: 0.8rem !important;
+        color: rgba(255, 255, 255, 0.4) !important;
+        margin-top: 0.5rem !important;
+    }
+
+    .vw-character-intel-disabled {
+        opacity: 0.5 !important;
+        pointer-events: none !important;
+    }
 </style>
 
 <div class="vw-concept-step" wire:poll.keep-alive>
@@ -582,6 +814,83 @@
                     </span>
                 </span>
             </button>
+        </div>
+    @endif
+
+    {{-- Character Intelligence Section --}}
+    @if(!empty($conceptVariations) && count($conceptVariations) > 0)
+        <div class="vw-character-intel-card">
+            {{-- Header with Toggle --}}
+            <div class="vw-character-intel-header">
+                <div class="vw-character-intel-left">
+                    <div class="vw-character-intel-icon">👥</div>
+                    <div>
+                        <h3 class="vw-character-intel-title">{{ __('Character Intelligence') }}</h3>
+                        <p class="vw-character-intel-subtitle">{{ __('AI-suggested based on your production type') }}</p>
+                    </div>
+                </div>
+                <div class="vw-character-intel-toggle {{ $characterIntelligence['enabled'] ? 'active' : '' }}"
+                     wire:click="updateCharacterIntelligence('enabled', {{ $characterIntelligence['enabled'] ? 'false' : 'true' }})"
+                     title="{{ $characterIntelligence['enabled'] ? __('Disable') : __('Enable') }} {{ __('Character Intelligence') }}">
+                </div>
+            </div>
+
+            {{-- Content (conditionally shown based on enabled state) --}}
+            <div class="{{ !$characterIntelligence['enabled'] ? 'vw-character-intel-disabled' : '' }}">
+                {{-- Narration Style Section --}}
+                <div class="vw-narration-style-section">
+                    <div class="vw-narration-style-label">{{ __('NARRATION STYLE') }}</div>
+                    <div class="vw-narration-style-grid">
+                        @php
+                            $narrationStyles = config('appvideowizard.narration_styles', [
+                                'voiceover' => ['name' => 'Voiceover', 'icon' => '🎙️', 'description' => 'Off-screen narrator'],
+                                'dialogue' => ['name' => 'Dialogue', 'icon' => '💬', 'description' => 'Character conversations', 'disabled' => true],
+                                'narrator' => ['name' => 'Narrator', 'icon' => '📖', 'description' => 'On-screen narrator'],
+                                'none' => ['name' => 'No Voice', 'icon' => '🔇', 'description' => 'Music/ambient only'],
+                            ]);
+                        @endphp
+                        @foreach($narrationStyles as $styleKey => $style)
+                            <button type="button"
+                                    class="vw-narration-style-btn {{ $characterIntelligence['narrationStyle'] === $styleKey ? 'selected' : '' }} {{ !empty($style['disabled']) ? 'disabled' : '' }}"
+                                    wire:click="updateCharacterIntelligence('narrationStyle', '{{ $styleKey }}')"
+                                    @if(!empty($style['disabled'])) disabled title="{{ __('Coming soon') }}" @endif
+                                    @if(!$characterIntelligence['enabled']) disabled @endif>
+                                <span class="vw-narration-style-icon">{{ $style['icon'] }}</span>
+                                <span class="vw-narration-style-name">{{ __($style['name']) }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Character Count Section --}}
+                <div class="vw-character-count-section">
+                    <div class="vw-character-count-header">
+                        <span class="vw-character-count-label">{{ __('CHARACTER COUNT') }}</span>
+                        <span class="vw-character-count-suggested">{{ __('SUGGESTED:') }} {{ $characterIntelligence['suggestedCount'] }}</span>
+                    </div>
+                    <div class="vw-character-slider-container" style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="range"
+                               class="vw-character-slider"
+                               min="1"
+                               max="10"
+                               step="1"
+                               value="{{ $characterIntelligence['characterCount'] }}"
+                               wire:change="updateCharacterIntelligence('characterCount', $event.target.value)"
+                               @if(!$characterIntelligence['enabled']) disabled @endif
+                               style="flex: 1;">
+                        <span class="vw-character-count-value" style="position: relative; transform: none;">{{ $characterIntelligence['characterCount'] }}</span>
+                    </div>
+                    <p class="vw-character-count-hint">
+                        @if($characterIntelligence['characterCount'] < 2)
+                            {{ __('Single character focus - monologue style') }}
+                        @elseif($characterIntelligence['characterCount'] <= 4)
+                            {{ __('Minimum 2 characters recommended for dynamic scenes') }}
+                        @else
+                            {{ __('Multiple characters - ensemble cast style') }}
+                        @endif
+                    </p>
+                </div>
+            </div>
         </div>
     @endif
 </div>
