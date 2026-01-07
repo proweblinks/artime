@@ -334,6 +334,11 @@ class VideoWizard extends Component
                 $this->characterIntelligence = array_merge($this->characterIntelligence, $config['characterIntelligence']);
             }
         }
+
+        // Recalculate voice status if script exists
+        if (!empty($this->script['scenes'])) {
+            $this->recalculateVoiceStatus();
+        }
     }
 
     /**
@@ -670,6 +675,9 @@ class VideoWizard extends Component
 
             // Update script data
             $this->script = array_merge($this->script, $generatedScript);
+
+            // Recalculate voice status based on new script
+            $this->recalculateVoiceStatus();
 
             $this->saveProject();
 
