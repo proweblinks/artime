@@ -13,6 +13,7 @@ use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\VoiceoverService;
 use Modules\AppVideoWizard\Services\StockMediaService;
 use Modules\AppVideoWizard\Services\CharacterExtractionService;
+use Modules\AppVideoWizard\Services\LocationExtractionService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Illuminate\Support\Facades\Log;
 
@@ -2606,44 +2607,166 @@ class VideoWizard extends Component
     }
 
     /**
-     * Build prompt for a scene.
+     * Build comprehensive prompt for a scene integrating all Bibles.
+     *
+     * Prompt Chain Architecture (5 Layers):
+     * 1. Style Bible - Visual DNA, style, color grade, atmosphere, camera
+     * 2. Character Bible - Character descriptions for characters in this scene
+     * 3. Location Bible - Location description for this scene
+     * 4. Scene Content - Visual description + visual style settings
+     * 5. Technical Specs - Quality and format specifications
      */
     protected function buildScenePrompt(array $scene, int $index): string
     {
-        $prompt = $scene['visualDescription'] ?? $scene['narration'] ?? '';
+        $parts = [];
 
-        // Add style bible
-        if ($this->sceneMemory['styleBible']['enabled']) {
+        // =========================================================================
+        // LAYER 1: STYLE BIBLE (Visual DNA)
+        // =========================================================================
+        if ($this->sceneMemory['styleBible']['enabled'] ?? false) {
             $styleBible = $this->sceneMemory['styleBible'];
+            $styleParts = [];
+
             if (!empty($styleBible['style'])) {
-                $prompt = $styleBible['style'] . ', ' . $prompt;
+                $styleParts[] = $styleBible['style'];
             }
             if (!empty($styleBible['colorGrade'])) {
-                $prompt .= ', ' . $styleBible['colorGrade'];
+                $styleParts[] = $styleBible['colorGrade'];
             }
             if (!empty($styleBible['atmosphere'])) {
-                $prompt .= ', ' . $styleBible['atmosphere'];
+                $styleParts[] = $styleBible['atmosphere'];
+            }
+            if (!empty($styleBible['camera'])) {
+                $styleParts[] = $styleBible['camera'];
+            }
+
+            if (!empty($styleParts)) {
+                $parts[] = 'STYLE: ' . implode(', ', $styleParts);
+            }
+
+            if (!empty($styleBible['visualDNA'])) {
+                $parts[] = 'QUALITY: ' . $styleBible['visualDNA'];
             }
         }
 
-        // Add visual style
+        // =========================================================================
+        // LAYER 2: CHARACTER BIBLE (Characters in this scene)
+        // =========================================================================
+        if ($this->sceneMemory['characterBible']['enabled'] ?? false) {
+            $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+            $sceneCharacters = $this->getCharactersForSceneIndex($characters, $index);
+
+            if (!empty($sceneCharacters)) {
+                $characterDescriptions = [];
+                foreach ($sceneCharacters as $character) {
+                    if (!empty($character['description'])) {
+                        $name = $character['name'] ?? 'Character';
+                        $characterDescriptions[] = "{$name}: {$character['description']}";
+                    }
+                }
+                if (!empty($characterDescriptions)) {
+                    $parts[] = 'CHARACTERS: ' . implode('. ', $characterDescriptions);
+                }
+            }
+        }
+
+        // =========================================================================
+        // LAYER 3: LOCATION BIBLE (Location for this scene)
+        // =========================================================================
+        if ($this->sceneMemory['locationBible']['enabled'] ?? false) {
+            $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+            $sceneLocation = $this->getLocationForSceneIndex($locations, $index);
+
+            if ($sceneLocation) {
+                $locationParts = [];
+
+                $locName = $sceneLocation['name'] ?? '';
+                $locType = $sceneLocation['type'] ?? '';
+                if ($locName) {
+                    $locationParts[] = $locName . ($locType ? " ({$locType})" : '');
+                }
+
+                if (!empty($sceneLocation['description'])) {
+                    $locationParts[] = $sceneLocation['description'];
+                }
+
+                if (!empty($sceneLocation['timeOfDay'])) {
+                    $locationParts[] = $sceneLocation['timeOfDay'];
+                }
+
+                if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
+                    $locationParts[] = $sceneLocation['weather'] . ' weather';
+                }
+
+                if (!empty($locationParts)) {
+                    $parts[] = 'LOCATION: ' . implode(', ', $locationParts);
+                }
+            }
+        }
+
+        // =========================================================================
+        // LAYER 4: SCENE CONTENT (Visual description + Visual Style)
+        // =========================================================================
         $visualStyle = $this->storyboard['visualStyle'] ?? [];
+        $visualParts = [];
+
         if (!empty($visualStyle['mood'])) {
-            $prompt .= ', ' . $visualStyle['mood'] . ' mood';
+            $visualParts[] = $visualStyle['mood'] . ' mood';
         }
         if (!empty($visualStyle['lighting'])) {
-            $prompt .= ', ' . $visualStyle['lighting'] . ' lighting';
+            $visualParts[] = $visualStyle['lighting'] . ' lighting';
         }
         if (!empty($visualStyle['colorPalette'])) {
-            $prompt .= ', ' . $visualStyle['colorPalette'] . ' color palette';
+            $visualParts[] = $visualStyle['colorPalette'] . ' color palette';
+        }
+        if (!empty($visualStyle['composition'])) {
+            $visualParts[] = $visualStyle['composition'] . ' shot';
         }
 
-        // Add technical specs
+        if (!empty($visualParts)) {
+            $parts[] = 'VISUAL: ' . implode(', ', $visualParts);
+        }
+
+        // Scene visual description
+        $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
+        if (!empty($visualDescription)) {
+            $parts[] = 'SCENE: ' . $visualDescription;
+        }
+
+        // =========================================================================
+        // LAYER 5: TECHNICAL SPECS
+        // =========================================================================
         if ($this->storyboard['technicalSpecs']['enabled'] ?? true) {
-            $prompt .= ', ' . ($this->storyboard['technicalSpecs']['positive'] ?? 'high quality, detailed, professional');
+            $techSpecs = $this->storyboard['technicalSpecs']['positive'] ?? 'high quality, detailed, professional, 8K resolution';
+            $parts[] = $techSpecs;
         }
 
-        return $prompt;
+        return implode('. ', array_filter($parts));
+    }
+
+    /**
+     * Get characters that appear in a specific scene (for prompt building).
+     */
+    protected function getCharactersForSceneIndex(array $characters, int $sceneIndex): array
+    {
+        return array_filter($characters, function ($character) use ($sceneIndex) {
+            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            return in_array($sceneIndex, $appliedScenes);
+        });
+    }
+
+    /**
+     * Get the primary location for a specific scene (for prompt building).
+     */
+    protected function getLocationForSceneIndex(array $locations, int $sceneIndex): ?array
+    {
+        foreach ($locations as $location) {
+            $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
+            if (in_array($sceneIndex, $scenes)) {
+                return $location;
+            }
+        }
+        return null;
     }
 
     // =========================================================================
@@ -3464,11 +3587,19 @@ class VideoWizard extends Component
     }
 
     /**
-     * Auto-populate Style Bible based on production type.
+     * Auto-populate Style Bible based on production type, concept, and platform.
+     * Creates comprehensive visual consistency settings for the entire video.
      */
     protected function autoPopulateStyleBible(): void
     {
+        // Get base defaults from production type
         $styleDefaults = $this->getStyleBibleDefaultsForProductionType();
+
+        // Enhance with concept data (mood, tone from AI concept refinement)
+        $styleDefaults = $this->enhanceStyleWithConceptData($styleDefaults);
+
+        // Add platform-specific optimizations
+        $styleDefaults = $this->addPlatformOptimizations($styleDefaults);
 
         if (!empty($styleDefaults)) {
             $this->sceneMemory['styleBible'] = array_merge(
@@ -3476,11 +3607,252 @@ class VideoWizard extends Component
                 $styleDefaults,
                 ['enabled' => true]
             );
+
+            // Also populate storyboard visualStyle for UI dropdowns
+            $this->populateStoryboardVisualStyle($styleDefaults);
+        }
+
+        // Dispatch event for debugging
+        $this->dispatch('vw-debug', [
+            'type' => 'style_bible_populated',
+            'productionType' => $this->productionType,
+            'productionSubtype' => $this->productionSubtype,
+            'platform' => $this->platform,
+            'hasConcept' => !empty($this->concept['suggestedMood']),
+        ]);
+    }
+
+    /**
+     * Enhance style defaults with data from concept refinement.
+     */
+    protected function enhanceStyleWithConceptData(array $styleDefaults): array
+    {
+        $concept = $this->concept ?? [];
+
+        // Apply suggested mood from concept
+        if (!empty($concept['suggestedMood'])) {
+            $moodStyles = $this->getMoodStyleEnhancements($concept['suggestedMood']);
+            if (!empty($moodStyles)) {
+                // Append mood-specific enhancements to atmosphere
+                if (!empty($styleDefaults['atmosphere'])) {
+                    $styleDefaults['atmosphere'] .= ', ' . $moodStyles['atmosphere'];
+                } else {
+                    $styleDefaults['atmosphere'] = $moodStyles['atmosphere'];
+                }
+
+                // Add mood-specific color adjustments
+                if (!empty($moodStyles['colorAdjustment']) && !empty($styleDefaults['colorGrade'])) {
+                    $styleDefaults['colorGrade'] .= ', ' . $moodStyles['colorAdjustment'];
+                }
+            }
+        }
+
+        // Apply suggested tone from concept
+        if (!empty($concept['suggestedTone'])) {
+            $toneStyles = $this->getToneStyleEnhancements($concept['suggestedTone']);
+            if (!empty($toneStyles)) {
+                // Enhance visual style with tone
+                if (!empty($styleDefaults['style'])) {
+                    $styleDefaults['style'] .= ', ' . $toneStyles['style'];
+                }
+            }
+        }
+
+        // Apply style reference from concept if available
+        if (!empty($concept['styleReference'])) {
+            $styleDefaults['visualDNA'] = ($styleDefaults['visualDNA'] ?? '') .
+                ', inspired by: ' . $concept['styleReference'];
+        }
+
+        return $styleDefaults;
+    }
+
+    /**
+     * Get mood-specific style enhancements.
+     */
+    protected function getMoodStyleEnhancements(string $mood): array
+    {
+        $mood = strtolower(trim($mood));
+
+        $moodMap = [
+            'inspiring' => [
+                'atmosphere' => 'uplifting, hopeful, motivational lighting',
+                'colorAdjustment' => 'warm golden tones, bright highlights',
+                'lighting' => 'bright',
+                'colorPalette' => 'warm',
+            ],
+            'mysterious' => [
+                'atmosphere' => 'enigmatic, shadowy, intriguing',
+                'colorAdjustment' => 'deep shadows, selective lighting',
+                'lighting' => 'dramatic',
+                'colorPalette' => 'cool',
+            ],
+            'energetic' => [
+                'atmosphere' => 'dynamic, vibrant, high-energy',
+                'colorAdjustment' => 'saturated colors, punchy contrast',
+                'lighting' => 'bright',
+                'colorPalette' => 'vibrant',
+            ],
+            'calm' => [
+                'atmosphere' => 'peaceful, serene, meditative',
+                'colorAdjustment' => 'soft pastels, gentle gradients',
+                'lighting' => 'soft',
+                'colorPalette' => 'pastel',
+            ],
+            'dramatic' => [
+                'atmosphere' => 'intense, powerful, emotionally charged',
+                'colorAdjustment' => 'high contrast, deep blacks',
+                'lighting' => 'dramatic',
+                'colorPalette' => 'rich',
+            ],
+            'playful' => [
+                'atmosphere' => 'fun, whimsical, lighthearted',
+                'colorAdjustment' => 'bright, cheerful colors',
+                'lighting' => 'bright',
+                'colorPalette' => 'vibrant',
+            ],
+            'nostalgic' => [
+                'atmosphere' => 'warm memories, vintage feel, wistful',
+                'colorAdjustment' => 'warm sepia tones, film grain effect',
+                'lighting' => 'golden',
+                'colorPalette' => 'warm',
+            ],
+            'professional' => [
+                'atmosphere' => 'polished, confident, authoritative',
+                'colorAdjustment' => 'clean, balanced colors',
+                'lighting' => 'studio',
+                'colorPalette' => 'neutral',
+            ],
+            'dark' => [
+                'atmosphere' => 'moody, intense, brooding',
+                'colorAdjustment' => 'desaturated, heavy shadows',
+                'lighting' => 'low-key',
+                'colorPalette' => 'dark',
+            ],
+            'romantic' => [
+                'atmosphere' => 'intimate, warm, emotionally tender',
+                'colorAdjustment' => 'soft warm tones, dreamy highlights',
+                'lighting' => 'golden',
+                'colorPalette' => 'warm',
+            ],
+        ];
+
+        return $moodMap[$mood] ?? [];
+    }
+
+    /**
+     * Get tone-specific style enhancements.
+     */
+    protected function getToneStyleEnhancements(string $tone): array
+    {
+        $tone = strtolower(trim($tone));
+
+        $toneMap = [
+            'professional' => ['style' => 'polished corporate aesthetic'],
+            'casual' => ['style' => 'relaxed approachable visuals'],
+            'humorous' => ['style' => 'playful bright comedic framing'],
+            'serious' => ['style' => 'formal authoritative composition'],
+            'engaging' => ['style' => 'dynamic attention-grabbing visuals'],
+            'informative' => ['style' => 'clear educational presentation'],
+            'conversational' => ['style' => 'friendly intimate framing'],
+            'authoritative' => ['style' => 'commanding powerful presence'],
+            'inspirational' => ['style' => 'uplifting heroic imagery'],
+            'emotional' => ['style' => 'expressive intimate cinematography'],
+        ];
+
+        return $toneMap[$tone] ?? [];
+    }
+
+    /**
+     * Add platform-specific optimizations to style.
+     */
+    protected function addPlatformOptimizations(array $styleDefaults): array
+    {
+        $platform = $this->platform ?? '';
+
+        $platformOptimizations = [
+            'youtube' => [
+                'technicalNote' => 'optimized for YouTube, thumbnail-friendly compositions',
+                'composition' => 'wide establishing shots, clear focal points',
+            ],
+            'instagram' => [
+                'technicalNote' => 'Instagram-optimized, mobile-first visuals',
+                'composition' => 'vertical-friendly framing, bold visuals',
+                'colorAdjustment' => 'Instagram-aesthetic colors',
+            ],
+            'tiktok' => [
+                'technicalNote' => 'TikTok-optimized, fast-paced visuals',
+                'composition' => 'vertical format, dynamic movement',
+                'colorAdjustment' => 'high contrast, trend-aware palette',
+            ],
+            'facebook' => [
+                'technicalNote' => 'Facebook-optimized, feed-friendly',
+                'composition' => 'clear focal points, text-safe zones',
+            ],
+            'linkedin' => [
+                'technicalNote' => 'LinkedIn professional standards',
+                'composition' => 'professional framing, business-appropriate',
+                'colorAdjustment' => 'corporate color palette',
+            ],
+            'twitter' => [
+                'technicalNote' => 'Twitter/X optimized, scroll-stopping',
+                'composition' => 'impactful opening frames, clear messaging',
+            ],
+        ];
+
+        if (isset($platformOptimizations[$platform])) {
+            $opts = $platformOptimizations[$platform];
+
+            // Add technical note to visualDNA
+            if (!empty($opts['technicalNote'])) {
+                $styleDefaults['visualDNA'] = ($styleDefaults['visualDNA'] ?? '') .
+                    ', ' . $opts['technicalNote'];
+            }
+
+            // Store composition preference
+            if (!empty($opts['composition'])) {
+                $styleDefaults['platformComposition'] = $opts['composition'];
+            }
+        }
+
+        return $styleDefaults;
+    }
+
+    /**
+     * Populate storyboard visualStyle settings from Style Bible.
+     */
+    protected function populateStoryboardVisualStyle(array $styleDefaults): void
+    {
+        // Map Style Bible data to storyboard visualStyle dropdowns
+        $concept = $this->concept ?? [];
+        $suggestedMood = strtolower($concept['suggestedMood'] ?? '');
+
+        // Get mood enhancements for dropdown values
+        $moodEnhancements = $this->getMoodStyleEnhancements($suggestedMood);
+
+        // Set mood dropdown
+        if (!empty($moodEnhancements['lighting'])) {
+            $this->storyboard['visualStyle']['lighting'] = $moodEnhancements['lighting'];
+        }
+
+        if (!empty($moodEnhancements['colorPalette'])) {
+            $this->storyboard['visualStyle']['colorPalette'] = $moodEnhancements['colorPalette'];
+        }
+
+        // Set mood based on concept
+        if (!empty($suggestedMood)) {
+            $this->storyboard['visualStyle']['mood'] = $suggestedMood;
+        }
+
+        // Set composition from platform optimization
+        if (!empty($styleDefaults['platformComposition'])) {
+            $this->storyboard['visualStyle']['composition'] = $styleDefaults['platformComposition'];
         }
     }
 
     /**
      * Get Style Bible defaults based on production type.
+     * Includes camera language and comprehensive visual settings.
      */
     protected function getStyleBibleDefaultsForProductionType(): array
     {
@@ -3489,91 +3861,150 @@ class VideoWizard extends Component
 
         $defaults = [
             'commercial' => [
-                'style' => 'Professional commercial style, clean visuals, product-focused',
-                'colorGrade' => 'Bright, vibrant colors, commercial quality',
-                'atmosphere' => 'Upbeat, modern, engaging atmosphere',
-                'visualDNA' => 'High-end commercial production, Madison Avenue quality',
+                'style' => 'Professional commercial style, clean visuals, product-focused, high production value',
+                'colorGrade' => 'Bright, vibrant colors, commercial quality, balanced exposure',
+                'atmosphere' => 'Upbeat, modern, engaging atmosphere, aspirational',
+                'camera' => 'Smooth dolly shots, product close-ups, clean compositions, studio lighting',
+                'visualDNA' => 'High-end commercial production, Madison Avenue quality, broadcast-ready',
             ],
             'social_media' => [
-                'style' => 'Dynamic social media style, eye-catching, trend-focused',
-                'colorGrade' => 'High contrast, saturated colors, mobile-optimized',
-                'atmosphere' => 'Energetic, engaging, scroll-stopping',
-                'visualDNA' => 'Viral content quality, platform-native aesthetic',
+                'style' => 'Dynamic social media style, eye-catching, trend-focused, thumb-stopping',
+                'colorGrade' => 'High contrast, saturated colors, mobile-optimized, bold palette',
+                'atmosphere' => 'Energetic, engaging, scroll-stopping, relatable',
+                'camera' => 'Dynamic angles, quick cuts, selfie-style, handheld energy',
+                'visualDNA' => 'Viral content quality, platform-native aesthetic, share-worthy',
             ],
             'educational' => [
-                'style' => 'Clear educational style, informative visuals',
-                'colorGrade' => 'Neutral colors, good contrast for readability',
-                'atmosphere' => 'Professional, trustworthy, accessible',
-                'visualDNA' => 'Documentary quality, educational content standard',
+                'style' => 'Clear educational style, informative visuals, well-organized, accessible',
+                'colorGrade' => 'Neutral colors, good contrast for readability, balanced',
+                'atmosphere' => 'Professional, trustworthy, accessible, approachable',
+                'camera' => 'Steady shots, clear framing, presenter-focused, diagram-friendly',
+                'visualDNA' => 'Documentary quality, educational content standard, TED-talk aesthetic',
             ],
             'entertainment' => [
-                'style' => 'Cinematic entertainment style, dramatic visuals',
-                'colorGrade' => 'Film-quality color grading, Hollywood look',
-                'atmosphere' => 'Immersive, engaging, theatrical',
-                'visualDNA' => 'Netflix quality, premium streaming standard',
+                'style' => 'Cinematic entertainment style, dramatic visuals, theatrical quality',
+                'colorGrade' => 'Film-quality color grading, Hollywood look, rich tones',
+                'atmosphere' => 'Immersive, engaging, theatrical, emotionally resonant',
+                'camera' => 'Cinematic movements, dramatic angles, depth of field, ARRI-style',
+                'visualDNA' => 'Netflix quality, premium streaming standard, binge-worthy',
             ],
             'corporate' => [
-                'style' => 'Professional corporate style, polished visuals',
-                'colorGrade' => 'Clean, professional color palette, brand-aligned',
-                'atmosphere' => 'Trustworthy, sophisticated, business-appropriate',
-                'visualDNA' => 'Fortune 500 quality, executive presentation standard',
+                'style' => 'Professional corporate style, polished visuals, brand-aligned',
+                'colorGrade' => 'Clean, professional color palette, brand-consistent',
+                'atmosphere' => 'Trustworthy, sophisticated, business-appropriate, confident',
+                'camera' => 'Steady corporate shots, executive framing, office environments',
+                'visualDNA' => 'Fortune 500 quality, executive presentation standard, investor-ready',
             ],
             'music_video' => [
-                'style' => 'Creative music video style, artistic visuals',
-                'colorGrade' => 'Bold color choices, artistic grading',
-                'atmosphere' => 'Rhythmic, expressive, genre-appropriate',
-                'visualDNA' => 'MTV quality, artistic music visual standard',
+                'style' => 'Creative music video style, artistic visuals, rhythm-driven',
+                'colorGrade' => 'Bold color choices, artistic grading, mood-driven palette',
+                'atmosphere' => 'Rhythmic, expressive, genre-appropriate, visceral',
+                'camera' => 'Creative movements, beat-synced, performance shots, artistic angles',
+                'visualDNA' => 'MTV quality, artistic music visual standard, chart-topping aesthetic',
             ],
             'documentary' => [
-                'style' => 'Documentary style, authentic visuals, journalistic',
-                'colorGrade' => 'Natural color grading, realistic tones',
-                'atmosphere' => 'Authentic, immersive, story-driven',
-                'visualDNA' => 'HBO Documentary quality, cinéma vérité standard',
+                'style' => 'Documentary style, authentic visuals, journalistic integrity',
+                'colorGrade' => 'Natural color grading, realistic tones, authentic look',
+                'atmosphere' => 'Authentic, immersive, story-driven, truthful',
+                'camera' => 'Handheld authenticity, interview setups, b-roll rich, observational',
+                'visualDNA' => 'HBO Documentary quality, cinéma vérité standard, award-worthy',
             ],
             'animation' => [
-                'style' => 'Animated style, stylized visuals, character-driven',
-                'colorGrade' => 'Vibrant animation colors, stylized palette',
-                'atmosphere' => 'Whimsical, expressive, visually dynamic',
-                'visualDNA' => 'Pixar quality, premium animation standard',
+                'style' => 'Animated style, stylized visuals, character-driven, expressive',
+                'colorGrade' => 'Vibrant animation colors, stylized palette, bold choices',
+                'atmosphere' => 'Whimsical, expressive, visually dynamic, imaginative',
+                'camera' => 'Virtual camera movements, impossible angles, smooth transitions',
+                'visualDNA' => 'Pixar quality, premium animation standard, family-friendly',
+            ],
+            'lifestyle' => [
+                'style' => 'Lifestyle aesthetic, aspirational visuals, authentic moments',
+                'colorGrade' => 'Warm, inviting colors, Instagram-worthy palette',
+                'atmosphere' => 'Relatable, aspirational, warm, inviting',
+                'camera' => 'Natural light preference, candid moments, lifestyle b-roll',
+                'visualDNA' => 'Influencer quality, lifestyle brand aesthetic, Pinterest-worthy',
+            ],
+            'product' => [
+                'style' => 'Product showcase style, detail-focused, premium presentation',
+                'colorGrade' => 'Clean whites, accurate colors, studio quality',
+                'atmosphere' => 'Premium, desirable, detailed, luxurious',
+                'camera' => 'Macro details, 360 rotations, studio lighting, product hero shots',
+                'visualDNA' => 'Apple-quality product visuals, e-commerce premium, catalog-ready',
+            ],
+            'testimonial' => [
+                'style' => 'Authentic testimonial style, trustworthy, personal connection',
+                'colorGrade' => 'Natural skin tones, warm and inviting, professional',
+                'atmosphere' => 'Genuine, trustworthy, relatable, convincing',
+                'camera' => 'Interview framing, eye-level connection, comfortable distance',
+                'visualDNA' => 'Customer story quality, social proof aesthetic, trust-building',
             ],
         ];
 
-        // Check for subtype-specific overrides
+        // Comprehensive subtype-specific overrides with camera
         $subtypeDefaults = [
             'action' => [
-                'style' => 'High-energy action style, dynamic camera work',
+                'style' => 'High-energy action style, dynamic camera work, intense visuals',
                 'colorGrade' => 'Desaturated with punchy highlights, action movie look',
                 'atmosphere' => 'Intense, adrenaline-pumping, explosive',
+                'camera' => 'Fast tracking shots, crash zooms, impact angles, shaky-cam energy',
             ],
             'comedy' => [
-                'style' => 'Bright comedy style, well-lit, inviting',
+                'style' => 'Bright comedy style, well-lit, inviting, comedic timing',
                 'colorGrade' => 'Warm, friendly colors, sitcom aesthetic',
                 'atmosphere' => 'Light-hearted, fun, accessible',
+                'camera' => 'Wide comedy frames, reaction shots, timing-focused cuts',
             ],
             'drama' => [
-                'style' => 'Dramatic cinematic style, emotional lighting',
+                'style' => 'Dramatic cinematic style, emotional lighting, character-focused',
                 'colorGrade' => 'Rich, moody color grading, prestige TV look',
                 'atmosphere' => 'Emotional, immersive, character-focused',
+                'camera' => 'Intimate close-ups, slow reveals, emotional beats, shallow DOF',
             ],
             'horror' => [
-                'style' => 'Dark horror style, unsettling visuals',
+                'style' => 'Dark horror style, unsettling visuals, tension-building',
                 'colorGrade' => 'Desaturated, cold tones, high contrast shadows',
                 'atmosphere' => 'Tense, unsettling, atmospheric dread',
+                'camera' => 'Creeping movements, POV horror, jump scare setups, off-kilter angles',
             ],
             'sci-fi' => [
-                'style' => 'Futuristic sci-fi style, high-tech visuals',
+                'style' => 'Futuristic sci-fi style, high-tech visuals, otherworldly',
                 'colorGrade' => 'Cool blues and teals, neon accents, tech aesthetic',
                 'atmosphere' => 'Futuristic, immersive, technologically advanced',
+                'camera' => 'Smooth glides, HUD overlays, vast establishing shots, tech details',
             ],
             'fantasy' => [
-                'style' => 'Epic fantasy style, magical visuals',
-                'colorGrade' => 'Rich saturated colors, ethereal tones',
+                'style' => 'Epic fantasy style, magical visuals, mythical grandeur',
+                'colorGrade' => 'Rich saturated colors, ethereal tones, golden magic',
                 'atmosphere' => 'Magical, epic, otherworldly',
+                'camera' => 'Sweeping vistas, hero shots, magical reveals, epic scale',
+            ],
+            'thriller' => [
+                'style' => 'Suspenseful thriller style, tension-building visuals',
+                'colorGrade' => 'Cold, clinical tones with warm accent pops',
+                'atmosphere' => 'Suspenseful, paranoid, edge-of-seat tension',
+                'camera' => 'Slow push-ins, surveillance angles, claustrophobic framing',
+            ],
+            'romance' => [
+                'style' => 'Romantic visual style, soft and dreamy, intimate',
+                'colorGrade' => 'Warm, soft focus, romantic glow, skin-flattering',
+                'atmosphere' => 'Intimate, warm, emotionally tender',
+                'camera' => 'Soft focus close-ups, two-shots, golden hour preference',
+            ],
+            'sports' => [
+                'style' => 'Dynamic sports style, high-energy, athletic',
+                'colorGrade' => 'High contrast, energetic colors, broadcast quality',
+                'atmosphere' => 'Competitive, exciting, triumphant',
+                'camera' => 'Super slow-mo, tracking athletes, victory moments, wide action',
+            ],
+            'travel' => [
+                'style' => 'Travel documentary style, wanderlust-inducing, exploration',
+                'colorGrade' => 'Natural vibrant colors, location-authentic palette',
+                'atmosphere' => 'Adventurous, inspiring, culturally rich',
+                'camera' => 'Drone aerials, ground-level exploration, local details, golden hour',
             ],
         ];
 
         // Start with production type defaults
-        $result = $defaults[$productionType] ?? [];
+        $result = $defaults[$productionType] ?? $defaults['entertainment'];
 
         // Merge subtype overrides if available
         if ($productionSubtype && isset($subtypeDefaults[$productionSubtype])) {
@@ -3820,10 +4251,94 @@ class VideoWizard extends Component
     }
 
     /**
-     * Auto-detect locations from script (enhanced version with pattern matching).
-     * Uses visual descriptions to infer location types, time of day, and weather.
+     * Auto-detect locations from script content using AI extraction.
+     * Falls back to pattern matching if AI fails.
      */
     protected function autoDetectLocationsFromScript(): void
+    {
+        // Try AI-powered extraction first
+        try {
+            $service = app(LocationExtractionService::class);
+
+            $result = $service->extractLocations($this->script, [
+                'teamId' => session('current_team_id', 0),
+                'genre' => $this->productionType ?? 'General',
+                'productionType' => $this->productionType,
+                'productionMode' => 'standard',
+                'styleBible' => $this->sceneMemory['styleBible'] ?? null,
+            ]);
+
+            if ($result['success'] && !empty($result['locations'])) {
+                Log::info('LocationExtraction: AI extraction successful', [
+                    'count' => count($result['locations']),
+                ]);
+
+                // Add AI-extracted locations to Location Bible
+                foreach ($result['locations'] as $location) {
+                    // Check if already exists
+                    $exists = collect($this->sceneMemory['locationBible']['locations'])
+                        ->filter(fn($loc) => strtolower($loc['name'] ?? '') === strtolower($location['name']))
+                        ->isNotEmpty();
+
+                    if (!$exists) {
+                        $this->sceneMemory['locationBible']['locations'][] = [
+                            'id' => $location['id'] ?? uniqid('loc_'),
+                            'name' => $location['name'],
+                            'description' => $location['description'] ?? '',
+                            'type' => $location['type'] ?? 'exterior',
+                            'timeOfDay' => $location['timeOfDay'] ?? 'day',
+                            'weather' => $location['weather'] ?? 'clear',
+                            'atmosphere' => $location['atmosphere'] ?? '',
+                            'scenes' => $location['scenes'] ?? [],
+                            'stateChanges' => $location['stateChanges'] ?? [],
+                            'referenceImage' => null,
+                            'autoDetected' => true,
+                            'aiGenerated' => true,
+                        ];
+                    }
+                }
+
+                // Enable Location Bible if we detected any locations
+                if (!empty($result['locations'])) {
+                    $this->sceneMemory['locationBible']['enabled'] = true;
+                }
+
+                // Dispatch event for debugging
+                $this->dispatch('vw-debug', [
+                    'type' => 'location_extraction',
+                    'method' => 'ai',
+                    'count' => count($result['locations']),
+                ]);
+
+                return; // AI extraction successful, no need for fallback
+            }
+
+            // If AI returned no locations but was successful, video might be abstract
+            if ($result['success'] && empty($result['locations'])) {
+                Log::info('LocationExtraction: AI determined no distinct locations in video');
+                $this->dispatch('vw-debug', [
+                    'type' => 'location_extraction',
+                    'method' => 'ai',
+                    'count' => 0,
+                    'message' => 'No distinct locations detected',
+                ]);
+                return;
+            }
+
+        } catch (\Exception $e) {
+            Log::warning('LocationExtraction: AI extraction failed, falling back to pattern matching', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback to pattern-based detection
+        $this->autoDetectLocationsWithPatterns();
+    }
+
+    /**
+     * Pattern-based location detection (fallback method).
+     */
+    protected function autoDetectLocationsWithPatterns(): void
     {
         $locationMap = [];
 
@@ -3873,6 +4388,7 @@ class VideoWizard extends Component
                     'scenes' => $data['scenes'],
                     'referenceImage' => null,
                     'autoDetected' => true,
+                    'patternMatched' => true,
                 ];
             }
         }
@@ -3881,6 +4397,13 @@ class VideoWizard extends Component
         if (!empty($locationMap)) {
             $this->sceneMemory['locationBible']['enabled'] = true;
         }
+
+        // Dispatch event for debugging
+        $this->dispatch('vw-debug', [
+            'type' => 'location_extraction',
+            'method' => 'pattern',
+            'count' => count($locationMap),
+        ]);
     }
 
     /**
@@ -4186,29 +4709,8 @@ class VideoWizard extends Component
      */
     public function autoDetectLocations(): void
     {
-        // Simple detection from visual descriptions
-        foreach ($this->script['scenes'] as $index => $scene) {
-            $visual = $scene['visualDescription'] ?? '';
-            if (empty($visual)) continue;
-
-            // Check if location already exists for this scene
-            $exists = collect($this->sceneMemory['locationBible']['locations'])
-                ->where('name', 'Scene ' . ($index + 1) . ' Location')
-                ->isNotEmpty();
-
-            if (!$exists && !empty($visual)) {
-                $this->sceneMemory['locationBible']['locations'][] = [
-                    'id' => uniqid('loc_'),
-                    'name' => 'Scene ' . ($index + 1) . ' Location',
-                    'type' => 'exterior',
-                    'timeOfDay' => 'day',
-                    'weather' => 'clear',
-                    'description' => $visual,
-                    'referenceImage' => null,
-                ];
-            }
-        }
-
+        // Use AI-powered extraction (with pattern fallback)
+        $this->autoDetectLocationsFromScript();
         $this->saveProject();
     }
 

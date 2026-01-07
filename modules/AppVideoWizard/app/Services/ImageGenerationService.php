@@ -73,10 +73,12 @@ class ImageGenerationService
         $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? '';
         $styleBible = $project->storyboard['styleBible'] ?? null;
         $visualStyle = $project->storyboard['visualStyle'] ?? null;
+        $sceneMemory = $project->storyboard['sceneMemory'] ?? null;
+        $sceneIndex = $options['sceneIndex'] ?? null;
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
-        // Build the image prompt with visual style enhancements
-        $prompt = $this->buildImagePrompt($visualDescription, $styleBible, $visualStyle, $project);
+        // Build the image prompt with all Bible integrations (Style, Character, Location)
+        $prompt = $this->buildImagePrompt($visualDescription, $styleBible, $visualStyle, $project, $sceneMemory, $sceneIndex);
 
         // Get resolution based on aspect ratio
         $resolution = $this->getResolution($project->aspect_ratio);
@@ -496,37 +498,145 @@ class ImageGenerationService
     }
 
     /**
-     * Build the image generation prompt with visual style enhancements.
+     * Build comprehensive image prompt integrating all Bibles.
+     *
+     * Prompt Chain Architecture (4 Layers):
+     * 1. Style Bible - Visual DNA, style, color grade, atmosphere, camera
+     * 2. Character Bible - Character descriptions for this scene
+     * 3. Location Bible - Location descriptions for this scene
+     * 4. Scene Content - Visual description + visual style + technical specs
      */
     protected function buildImagePrompt(
         string $visualDescription,
         ?array $styleBible,
         ?array $visualStyle,
-        WizardProject $project
+        WizardProject $project,
+        ?array $sceneMemory = null,
+        ?int $sceneIndex = null
     ): string {
         $parts = [];
 
-        // Layer 1: Style Bible (if enabled)
+        // =========================================================================
+        // LAYER 1: STYLE BIBLE (Visual DNA)
+        // =========================================================================
         if ($styleBible && ($styleBible['enabled'] ?? false)) {
             $styleParts = [];
+
+            // Core visual style
             if (!empty($styleBible['style'])) {
                 $styleParts[] = $styleBible['style'];
             }
+
+            // Color grading
             if (!empty($styleBible['colorGrade'])) {
                 $styleParts[] = $styleBible['colorGrade'];
             }
-            if (!empty($styleBible['lighting'])) {
-                $styleParts[] = $styleBible['lighting'];
-            }
+
+            // Atmosphere/mood
             if (!empty($styleBible['atmosphere'])) {
                 $styleParts[] = $styleBible['atmosphere'];
             }
+
+            // Camera language (new field)
+            if (!empty($styleBible['camera'])) {
+                $styleParts[] = $styleBible['camera'];
+            }
+
             if (!empty($styleParts)) {
                 $parts[] = 'STYLE: ' . implode(', ', $styleParts);
             }
+
+            // Visual DNA as quality anchor
+            if (!empty($styleBible['visualDNA'])) {
+                $parts[] = 'QUALITY: ' . $styleBible['visualDNA'];
+            }
         }
 
-        // Layer 2: Visual Style parameters
+        // =========================================================================
+        // LAYER 2: CHARACTER BIBLE (Characters in this scene)
+        // =========================================================================
+        if ($sceneMemory && $sceneIndex !== null) {
+            $characterBible = $sceneMemory['characterBible'] ?? null;
+            if ($characterBible && ($characterBible['enabled'] ?? false) && !empty($characterBible['characters'])) {
+                $sceneCharacters = $this->getCharactersForScene($characterBible['characters'], $sceneIndex);
+                if (!empty($sceneCharacters)) {
+                    $characterDescriptions = [];
+                    foreach ($sceneCharacters as $character) {
+                        if (!empty($character['description'])) {
+                            $name = $character['name'] ?? 'Character';
+                            $characterDescriptions[] = "{$name}: {$character['description']}";
+                        }
+                    }
+                    if (!empty($characterDescriptions)) {
+                        $parts[] = 'CHARACTERS: ' . implode('. ', $characterDescriptions);
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // LAYER 3: LOCATION BIBLE (Location for this scene)
+        // =========================================================================
+        if ($sceneMemory && $sceneIndex !== null) {
+            $locationBible = $sceneMemory['locationBible'] ?? null;
+            if ($locationBible && ($locationBible['enabled'] ?? false) && !empty($locationBible['locations'])) {
+                $sceneLocation = $this->getLocationForScene($locationBible['locations'], $sceneIndex);
+                if ($sceneLocation) {
+                    $locationParts = [];
+
+                    // Location name and type
+                    $locName = $sceneLocation['name'] ?? '';
+                    $locType = $sceneLocation['type'] ?? '';
+                    if ($locName) {
+                        $locationParts[] = $locName . ($locType ? " ({$locType})" : '');
+                    }
+
+                    // Location description
+                    if (!empty($sceneLocation['description'])) {
+                        $locationParts[] = $sceneLocation['description'];
+                    }
+
+                    // Time of day
+                    if (!empty($sceneLocation['timeOfDay'])) {
+                        $timeDescriptions = [
+                            'day' => 'daytime, natural daylight',
+                            'night' => 'nighttime, dark with artificial or moonlight',
+                            'dawn' => 'dawn, early morning light, soft colors',
+                            'dusk' => 'dusk, twilight, fading light',
+                            'golden-hour' => 'golden hour, warm sunset lighting',
+                        ];
+                        $locationParts[] = $timeDescriptions[$sceneLocation['timeOfDay']] ?? $sceneLocation['timeOfDay'];
+                    }
+
+                    // Weather
+                    if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
+                        $weatherDescriptions = [
+                            'cloudy' => 'overcast sky, diffused light',
+                            'rainy' => 'rain, wet surfaces, reflections',
+                            'foggy' => 'fog, mist, atmospheric haze',
+                            'stormy' => 'storm, dramatic clouds, lightning',
+                            'snowy' => 'snow, winter, frost',
+                        ];
+                        $locationParts[] = $weatherDescriptions[$sceneLocation['weather']] ?? $sceneLocation['weather'];
+                    }
+
+                    // Atmosphere if available
+                    if (!empty($sceneLocation['atmosphere'])) {
+                        $locationParts[] = $sceneLocation['atmosphere'] . ' atmosphere';
+                    }
+
+                    if (!empty($locationParts)) {
+                        $parts[] = 'LOCATION: ' . implode(', ', $locationParts);
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // LAYER 4: SCENE CONTENT (Visual description + Visual Style)
+        // =========================================================================
+
+        // Visual Style parameters from storyboard UI
         if ($visualStyle) {
             $visualParts = [];
 
@@ -541,6 +651,12 @@ class ImageGenerationService
                     'tense' => 'tense, suspenseful, high stakes',
                     'hopeful' => 'hopeful, optimistic, warm',
                     'professional' => 'professional, polished, business-like',
+                    'inspiring' => 'inspiring, uplifting, motivational',
+                    'dramatic' => 'dramatic, intense, emotionally charged',
+                    'playful' => 'playful, fun, lighthearted',
+                    'nostalgic' => 'nostalgic, warm memories, vintage feel',
+                    'dark' => 'dark, moody, brooding',
+                    'romantic' => 'romantic, intimate, tender',
                 ];
                 $visualParts[] = $moodDescriptions[$visualStyle['mood']] ?? $visualStyle['mood'];
             }
@@ -554,6 +670,11 @@ class ImageGenerationService
                     'high-key' => 'high-key lighting, bright and minimal shadows',
                     'low-key' => 'low-key lighting, dramatic shadows, noir style',
                     'neon' => 'neon lighting, cyberpunk, vibrant colored lights',
+                    'studio' => 'studio lighting, controlled, professional',
+                    'dramatic' => 'dramatic lighting, strong contrast, shadows',
+                    'soft' => 'soft diffused lighting, gentle shadows',
+                    'bright' => 'bright, well-lit, clear visibility',
+                    'golden' => 'golden warm lighting, sun-kissed',
                 ];
                 $visualParts[] = $lightingDescriptions[$visualStyle['lighting']] ?? $visualStyle['lighting'];
             }
@@ -563,10 +684,15 @@ class ImageGenerationService
                 $colorDescriptions = [
                     'teal-orange' => 'cinematic teal and orange color grading',
                     'warm-tones' => 'warm color palette, reds and oranges',
+                    'warm' => 'warm color palette, inviting tones',
                     'cool-tones' => 'cool color palette, blues and greens',
+                    'cool' => 'cool color palette, blues and teals',
                     'desaturated' => 'desaturated colors, muted tones',
                     'vibrant' => 'vibrant, saturated, bold colors',
                     'pastel' => 'pastel colors, soft and gentle tones',
+                    'neutral' => 'neutral color palette, balanced tones',
+                    'rich' => 'rich, deep colors, luxurious palette',
+                    'dark' => 'dark color palette, shadowy tones',
                 ];
                 $visualParts[] = $colorDescriptions[$visualStyle['colorPalette']] ?? $visualStyle['colorPalette'];
             }
@@ -580,25 +706,84 @@ class ImageGenerationService
                     'extreme-close-up' => 'extreme close-up, detail focus',
                     'low-angle' => 'low angle shot, powerful perspective',
                     'birds-eye' => 'bird\'s eye view, overhead perspective',
+                    'over-shoulder' => 'over the shoulder shot',
+                    'tracking' => 'tracking shot perspective',
                 ];
                 $visualParts[] = $shotDescriptions[$visualStyle['composition']] ?? $visualStyle['composition'];
             }
 
             if (!empty($visualParts)) {
-                $parts[] = 'VISUAL STYLE: ' . implode(', ', $visualParts);
+                $parts[] = 'VISUAL: ' . implode(', ', $visualParts);
             }
         }
 
-        // Layer 3: Main visual description (the scene content)
+        // Main visual description (the scene content)
         if (!empty($visualDescription)) {
-            $parts[] = $visualDescription;
+            $parts[] = 'SCENE: ' . $visualDescription;
         }
 
-        // Layer 4: Technical quality specs
-        $parts[] = '4K, ultra detailed, cinematic, professional composition';
+        // =========================================================================
+        // LAYER 5: TECHNICAL SPECS
+        // =========================================================================
+        $technicalSpecs = $project->storyboard['technicalSpecs'] ?? null;
+        if ($technicalSpecs && ($technicalSpecs['enabled'] ?? true)) {
+            $techParts = [];
 
-        // Combine all parts
-        return implode('. ', array_filter($parts));
+            // Positive prompts
+            if (!empty($technicalSpecs['positive'])) {
+                $techParts[] = $technicalSpecs['positive'];
+            } else {
+                $techParts[] = 'high quality, detailed, professional, 8K resolution, sharp focus';
+            }
+
+            // Quality based on aspect ratio
+            $aspectRatio = $project->aspect_ratio ?? '16:9';
+            $techParts[] = "optimized for {$aspectRatio} aspect ratio";
+
+            $parts[] = implode(', ', $techParts);
+        } else {
+            // Default technical specs
+            $parts[] = '4K, ultra detailed, cinematic, professional composition';
+        }
+
+        // Combine all parts with proper separation
+        $finalPrompt = implode('. ', array_filter($parts));
+
+        // Log for debugging
+        Log::debug('ImageGenerationService: Built prompt', [
+            'sceneIndex' => $sceneIndex,
+            'promptLength' => strlen($finalPrompt),
+            'hasStyleBible' => !empty($styleBible['enabled']),
+            'hasCharacterBible' => !empty($sceneMemory['characterBible']['enabled']),
+            'hasLocationBible' => !empty($sceneMemory['locationBible']['enabled']),
+        ]);
+
+        return $finalPrompt;
+    }
+
+    /**
+     * Get characters that appear in a specific scene.
+     */
+    protected function getCharactersForScene(array $characters, int $sceneIndex): array
+    {
+        return array_filter($characters, function ($character) use ($sceneIndex) {
+            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            return in_array($sceneIndex, $appliedScenes);
+        });
+    }
+
+    /**
+     * Get the primary location for a specific scene.
+     */
+    protected function getLocationForScene(array $locations, int $sceneIndex): ?array
+    {
+        foreach ($locations as $location) {
+            $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
+            if (in_array($sceneIndex, $scenes)) {
+                return $location;
+            }
+        }
+        return null;
     }
 
     /**
