@@ -99,14 +99,60 @@
                        placeholder="{{ __('Search projects...') }}"
                        wire:model.live.debounce.300ms="projectManagerSearch">
             </div>
-            <div class="vw-pm-sort">
+            <div class="vw-pm-sort-group">
                 <select class="vw-pm-sort-select" wire:model.live="projectManagerSort">
                     <option value="updated_at">{{ __('Last Modified') }}</option>
                     <option value="created_at">{{ __('Date Created') }}</option>
                     <option value="name">{{ __('Name') }}</option>
                 </select>
+                <button type="button"
+                        class="vw-pm-sort-dir-btn"
+                        wire:click="toggleProjectManagerSortDirection"
+                        title="{{ $projectManagerSortDirection === 'asc' ? __('Ascending') : __('Descending') }}">
+                    @if($projectManagerSortDirection === 'asc')
+                        ↑
+                    @else
+                        ↓
+                    @endif
+                </button>
             </div>
+            <button type="button"
+                    class="vw-pm-select-btn {{ $projectManagerSelectMode ? 'active' : '' }}"
+                    wire:click="toggleProjectManagerSelectMode"
+                    title="{{ __('Select multiple') }}">
+                ☑️ {{ __('Select') }}
+            </button>
         </div>
+
+        {{-- Bulk Actions Bar --}}
+        @if($projectManagerSelectMode)
+            <div class="vw-pm-bulk-bar">
+                <div class="vw-pm-bulk-info">
+                    <span class="vw-pm-bulk-count">{{ count($projectManagerSelected) }}</span>
+                    {{ __('selected') }}
+                </div>
+                <div class="vw-pm-bulk-actions">
+                    <button type="button"
+                            class="vw-pm-bulk-btn"
+                            wire:click="selectAllProjects">
+                        {{ __('Select All') }}
+                    </button>
+                    <button type="button"
+                            class="vw-pm-bulk-btn"
+                            wire:click="deselectAllProjects">
+                        {{ __('Deselect All') }}
+                    </button>
+                    @if(count($projectManagerSelected) > 0)
+                        <button type="button"
+                                class="vw-pm-bulk-btn vw-pm-bulk-btn-delete"
+                                wire:click="deleteSelectedProjects"
+                                wire:confirm="{{ __('Are you sure you want to delete') }} {{ count($projectManagerSelected) }} {{ __('projects? This cannot be undone.') }}">
+                            🗑️ {{ __('Delete Selected') }}
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @endif
 
         {{-- Projects Grid --}}
         <div class="vw-pm-content" wire:loading.class="vw-pm-loading" wire:target="loadProjectManagerProjects, setProjectManagerStatusFilter">
@@ -158,6 +204,16 @@
 
                             {{-- Card Header --}}
                             <div class="vw-pm-card-header">
+                                @if($projectManagerSelectMode)
+                                    <button type="button"
+                                            class="vw-pm-card-checkbox {{ in_array($project['id'], $projectManagerSelected) ? 'checked' : '' }}"
+                                            wire:click="toggleProjectSelection({{ $project['id'] }})"
+                                            @if($isCurrent) disabled title="{{ __('Cannot select currently open project') }}" @endif>
+                                        @if(in_array($project['id'], $projectManagerSelected))
+                                            ✓
+                                        @endif
+                                    </button>
+                                @endif
                                 <div class="vw-pm-card-platform">
                                     <span class="vw-pm-card-platform-icon">{{ $platformIcon }}</span>
                                     <span class="vw-pm-card-platform-name">{{ $platformName }}</span>
@@ -312,7 +368,7 @@
         {{-- Loading Overlay --}}
         <div class="vw-pm-loading-overlay"
              wire:loading.flex
-             wire:target="loadProjectFromManager, deleteProjectFromManager, createNewProject, duplicateProject, renameProject, setProjectManagerStatusFilter">
+             wire:target="loadProjectFromManager, deleteProjectFromManager, createNewProject, duplicateProject, renameProject, setProjectManagerStatusFilter, deleteSelectedProjects">
             <div class="vw-pm-loading-spinner"></div>
             <span class="vw-pm-loading-text">{{ __('Please wait...') }}</span>
         </div>
@@ -592,6 +648,146 @@
 .vw-pm-sort-select:focus {
     outline: none;
     border-color: rgba(139, 92, 246, 0.5);
+}
+
+.vw-pm-sort-group {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.vw-pm-sort-dir-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vw-pm-sort-dir-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #fff;
+}
+
+.vw-pm-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.vw-pm-select-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #fff;
+}
+
+.vw-pm-select-btn.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #fff;
+}
+
+/* Bulk Actions Bar */
+.vw-pm-bulk-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.vw-pm-bulk-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.vw-pm-bulk-count {
+    font-weight: 700;
+    color: #8b5cf6;
+}
+
+.vw-pm-bulk-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.vw-pm-bulk-btn {
+    padding: 0.375rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.375rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vw-pm-bulk-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.vw-pm-bulk-btn-delete {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+.vw-pm-bulk-btn-delete:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+/* Card Checkbox */
+.vw-pm-card-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(139, 92, 246, 0.4);
+    border-radius: 0.25rem;
+    color: #fff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.vw-pm-card-checkbox:hover:not(:disabled) {
+    border-color: rgba(139, 92, 246, 0.7);
+    background: rgba(139, 92, 246, 0.2);
+}
+
+.vw-pm-card-checkbox.checked {
+    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    border-color: transparent;
+}
+
+.vw-pm-card-checkbox:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 /* Content */

@@ -142,6 +142,7 @@ class VideoWizard extends Component
     public array $projectManagerProjects = [];
     public string $projectManagerSearch = '';
     public string $projectManagerSort = 'updated_at';
+    public string $projectManagerSortDirection = 'desc';
     public string $projectManagerStatusFilter = 'all';
     public int $projectManagerPage = 1;
     public int $projectManagerPerPage = 12;
@@ -152,6 +153,8 @@ class VideoWizard extends Component
         'in_progress' => 0,
         'complete' => 0,
     ];
+    public array $projectManagerSelected = [];
+    public bool $projectManagerSelectMode = false;
 
     // Scene Memory state (Style Bible, Character Bible, Location Bible)
     public array $sceneMemory = [
@@ -2400,13 +2403,8 @@ class VideoWizard extends Component
             $query->where('status', $this->projectManagerStatusFilter);
         }
 
-        // Apply sorting
-        $sortField = $this->projectManagerSort;
-        $sortDirection = 'desc';
-        if ($sortField === 'name') {
-            $sortDirection = 'asc';
-        }
-        $query->orderBy($sortField, $sortDirection);
+        // Apply sorting with direction
+        $query->orderBy($this->projectManagerSort, $this->projectManagerSortDirection);
 
         // Get total count for pagination (after status filter)
         $this->projectManagerTotal = $query->count();
@@ -2785,6 +2783,83 @@ class VideoWizard extends Component
         $this->projectManagerStatusFilter = $status;
         $this->projectManagerPage = 1; // Reset to first page when changing filter
         $this->loadProjectManagerProjects();
+    }
+
+    /**
+     * Toggle sort direction in project manager.
+     */
+    public function toggleProjectManagerSortDirection(): void
+    {
+        $this->projectManagerSortDirection = $this->projectManagerSortDirection === 'asc' ? 'desc' : 'asc';
+        $this->loadProjectManagerProjects();
+    }
+
+    /**
+     * Toggle select mode in project manager.
+     */
+    public function toggleProjectManagerSelectMode(): void
+    {
+        $this->projectManagerSelectMode = !$this->projectManagerSelectMode;
+        if (!$this->projectManagerSelectMode) {
+            $this->projectManagerSelected = [];
+        }
+    }
+
+    /**
+     * Toggle selection of a project.
+     */
+    public function toggleProjectSelection(int $projectId): void
+    {
+        if (in_array($projectId, $this->projectManagerSelected)) {
+            $this->projectManagerSelected = array_values(array_diff($this->projectManagerSelected, [$projectId]));
+        } else {
+            $this->projectManagerSelected[] = $projectId;
+        }
+    }
+
+    /**
+     * Select all visible projects.
+     */
+    public function selectAllProjects(): void
+    {
+        $this->projectManagerSelected = array_column($this->projectManagerProjects, 'id');
+    }
+
+    /**
+     * Deselect all projects.
+     */
+    public function deselectAllProjects(): void
+    {
+        $this->projectManagerSelected = [];
+    }
+
+    /**
+     * Delete selected projects.
+     */
+    public function deleteSelectedProjects(): void
+    {
+        try {
+            if (empty($this->projectManagerSelected)) {
+                return;
+            }
+
+            // Don't delete the currently loaded project
+            $toDelete = array_filter($this->projectManagerSelected, fn($id) => $id !== $this->projectId);
+
+            WizardProject::whereIn('id', $toDelete)->delete();
+
+            // Reset selection
+            $this->projectManagerSelected = [];
+            $this->projectManagerSelectMode = false;
+
+            // Reload the project list
+            $this->loadProjectManagerProjects();
+
+            $this->dispatch('projects-deleted', ['count' => count($toDelete)]);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete selected projects: ' . $e->getMessage());
+            $this->error = __('Failed to delete selected projects');
+        }
     }
 
     /**
