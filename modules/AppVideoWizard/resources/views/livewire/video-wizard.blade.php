@@ -331,4 +331,133 @@
 
     {{-- Project Manager Modal --}}
     @include('appvideowizard::livewire.modals.project-manager')
+
+    {{-- Debug Console Logger --}}
+    @if(config('app.debug', false) || session('login_as') === 'admin')
+    <script>
+    (function() {
+        // Video Wizard Debug Logger
+        const VWDebug = {
+            enabled: true,
+            prefix: '🎬 [VideoWizard]',
+
+            log(...args) {
+                if (this.enabled) console.log(this.prefix, ...args);
+            },
+
+            error(...args) {
+                console.error(this.prefix, '❌', ...args);
+            },
+
+            warn(...args) {
+                console.warn(this.prefix, '⚠️', ...args);
+            },
+
+            success(...args) {
+                if (this.enabled) console.log(this.prefix, '✅', ...args);
+            },
+
+            api(action, data) {
+                if (this.enabled) {
+                    console.groupCollapsed(this.prefix + ' API: ' + action);
+                    console.log('Data:', data);
+                    console.log('Time:', new Date().toISOString());
+                    console.groupEnd();
+                }
+            }
+        };
+
+        // Make globally accessible
+        window.VWDebug = VWDebug;
+
+        // Livewire event listeners
+        document.addEventListener('livewire:init', () => {
+            VWDebug.log('Livewire initialized');
+
+            // Track all Livewire dispatched events
+            Livewire.hook('message.sent', ({ component, commit, respond }) => {
+                const calls = commit.calls || [];
+                calls.forEach(call => {
+                    VWDebug.api('Method Call: ' + call.method, call.params);
+                });
+            });
+
+            Livewire.hook('message.received', ({ component, response }) => {
+                if (response.effects?.html) {
+                    VWDebug.log('Component updated');
+                }
+                if (response.effects?.dispatches) {
+                    response.effects.dispatches.forEach(d => {
+                        VWDebug.success('Event dispatched:', d.name, d.params);
+                    });
+                }
+            });
+
+            Livewire.hook('message.failed', ({ component, message }) => {
+                VWDebug.error('Request failed:', message);
+            });
+
+            // Listen for specific Video Wizard events
+            const vwEvents = [
+                'concept-enhanced', 'ideas-generated', 'script-generated',
+                'scene-regenerated', 'visual-prompt-generated', 'voiceover-text-generated',
+                'image-generated', 'storyboard-generated', 'scene-added', 'scene-deleted'
+            ];
+
+            vwEvents.forEach(event => {
+                Livewire.on(event, (data) => {
+                    VWDebug.success('Event: ' + event, data || '');
+                });
+            });
+
+            // Listen for server-side debug events (connected with Admin Generation Logs)
+            Livewire.on('vw-debug', (eventData) => {
+                const data = eventData[0] || eventData;
+                const action = data.action || 'unknown';
+                const message = data.message || '';
+                const level = data.level || 'log';
+                const details = data.data || {};
+
+                console.groupCollapsed(VWDebug.prefix + ' Server: ' + action);
+                console.log('Message:', message);
+                if (Object.keys(details).length > 0) {
+                    console.log('Details:', details);
+                }
+                console.log('Time:', new Date().toISOString());
+                console.log('💡 View full logs at: Admin > Video Creator > Logs');
+                console.groupEnd();
+
+                // Also log to main console based on level
+                switch (level) {
+                    case 'error':
+                        VWDebug.error(action + ':', message);
+                        break;
+                    case 'warn':
+                        VWDebug.warn(action + ':', message);
+                        break;
+                    default:
+                        VWDebug.log(action + ':', message);
+                }
+            });
+        });
+
+        // Track errors
+        @if($error ?? null)
+        VWDebug.error('Server Error:', @json($error));
+        @endif
+
+        // Log initial state
+        VWDebug.log('Component mounted', {
+            projectId: {{ $projectId ?? 'null' }},
+            currentStep: {{ $currentStep ?? 1 }},
+            platform: '{{ $platform ?? "unknown" }}',
+            productionType: '{{ $productionType ?? "unknown" }}'
+        });
+
+        // Help text
+        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #8b5cf6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%cUse window.VWDebug to control logging. Set VWDebug.enabled = false to disable.', 'color: #666;');
+    })();
+    </script>
+    @endif
 </div>

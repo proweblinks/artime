@@ -1196,14 +1196,26 @@
                 @php
                     // Safety net: ensure all fields are strings even if sanitization didn't run
                     // (e.g., old projects loaded before fix was deployed, or AI returned unexpected types)
-                    $safeTitle = is_string($scene['title'] ?? null) ? $scene['title'] : (__('Scene') . ' ' . ($index + 1));
-                    $safeNarration = is_string($scene['narration'] ?? null) ? $scene['narration'] : '';
-                    $safeVisualPrompt = is_string($scene['visualPrompt'] ?? null) ? $scene['visualPrompt'] : '';
-                    $safeVisualDescription = is_string($scene['visualDescription'] ?? null) ? $scene['visualDescription'] : '';
-                    // Mood can sometimes be an array from AI - extract string safely
-                    $rawMood = $scene['mood'] ?? null;
-                    $safeMood = is_string($rawMood) ? $rawMood : (is_array($rawMood) ? (is_string($rawMood[0] ?? null) ? $rawMood[0] : '') : '');
-                    $safeTransition = is_string($scene['transition'] ?? null) ? $scene['transition'] : 'cut';
+
+                    // Helper function to extract string from potentially nested arrays
+                    $extractString = function($value, $default = '') use (&$extractString) {
+                        if (is_string($value)) return $value;
+                        if (is_numeric($value)) return (string)$value;
+                        if (is_array($value)) {
+                            foreach ($value as $item) {
+                                $result = $extractString($item, '');
+                                if ($result !== '') return $result;
+                            }
+                        }
+                        return $default;
+                    };
+
+                    $safeTitle = $extractString($scene['title'] ?? null, __('Scene') . ' ' . ($index + 1));
+                    $safeNarration = $extractString($scene['narration'] ?? null, '');
+                    $safeVisualPrompt = $extractString($scene['visualPrompt'] ?? null, '');
+                    $safeVisualDescription = $extractString($scene['visualDescription'] ?? null, '');
+                    $safeMood = $extractString($scene['mood'] ?? null, '');
+                    $safeTransition = $extractString($scene['transition'] ?? null, 'cut');
                     $safeDuration = is_numeric($scene['duration'] ?? null) ? (int)$scene['duration'] : 15;
 
                     // Use visualPrompt first, fall back to visualDescription
@@ -1211,7 +1223,7 @@
 
                     // Check music only status
                     $isMusicOnly = isset($scene['voiceover']['enabled']) && !$scene['voiceover']['enabled'];
-                    $sceneId = is_string($scene['id'] ?? null) ? $scene['id'] : ('scene_' . $index);
+                    $sceneId = $extractString($scene['id'] ?? null, 'scene_' . $index);
 
                     // Get transition label
                     $transitionLabel = $transitions[$safeTransition] ?? 'Cut';

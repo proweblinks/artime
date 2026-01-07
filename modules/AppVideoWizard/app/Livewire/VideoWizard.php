@@ -12,6 +12,8 @@ use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\VoiceoverService;
 use Modules\AppVideoWizard\Services\StockMediaService;
+use Modules\AppVideoWizard\Models\VwGenerationLog;
+use Illuminate\Support\Facades\Log;
 
 class VideoWizard extends Component
 {
@@ -560,15 +562,43 @@ class VideoWizard extends Component
      */
     public function enhanceConcept(): void
     {
+        $startTime = microtime(true);
+        $promptSlug = 'concept-enhance';
+
+        // Dispatch debug event to browser
+        $this->dispatch('vw-debug', [
+            'action' => 'enhance-concept-start',
+            'message' => 'Starting AI concept enhancement',
+            'data' => [
+                'rawInput' => substr($this->concept['rawInput'] ?? '', 0, 100) . '...',
+                'productionType' => $this->productionType,
+                'productionSubtype' => $this->productionSubtype,
+            ]
+        ]);
+
         if (empty($this->concept['rawInput'])) {
             $this->error = __('Please enter a concept description first.');
+            $this->dispatch('vw-debug', [
+                'action' => 'enhance-concept-error',
+                'message' => 'No concept input provided',
+                'level' => 'warn'
+            ]);
             return;
         }
 
         $this->isLoading = true;
         $this->error = null;
 
+        $inputData = [
+            'rawInput' => $this->concept['rawInput'],
+            'productionType' => $this->productionType,
+            'productionSubType' => $this->productionSubtype,
+            'teamId' => session('current_team_id', 0),
+        ];
+
         try {
+            Log::info('VideoWizard: Starting concept enhancement', $inputData);
+
             $conceptService = app(ConceptService::class);
 
             $result = $conceptService->improveConcept($this->concept['rawInput'], [
@@ -576,6 +606,24 @@ class VideoWizard extends Component
                 'productionSubType' => $this->productionSubtype,
                 'teamId' => session('current_team_id', 0),
             ]);
+
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+
+            // Log success to admin panel
+            try {
+                VwGenerationLog::logSuccess(
+                    $promptSlug,
+                    $inputData,
+                    $result,
+                    null, // tokens - not available from ConceptService
+                    $durationMs,
+                    $this->projectId,
+                    auth()->id(),
+                    session('current_team_id')
+                );
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation success', ['error' => $logEx->getMessage()]);
+            }
 
             // Update concept with AI-enhanced data
             $this->concept['refinedConcept'] = $result['improvedConcept'] ?? '';
@@ -592,10 +640,64 @@ class VideoWizard extends Component
 
             $this->saveProject();
 
+            // Dispatch success debug event
+            $this->dispatch('vw-debug', [
+                'action' => 'enhance-concept-success',
+                'message' => 'Concept enhanced successfully',
+                'data' => [
+                    'duration_ms' => $durationMs,
+                    'has_refined' => !empty($this->concept['refinedConcept']),
+                    'has_logline' => !empty($this->concept['logline']),
+                    'mood' => $this->concept['suggestedMood'],
+                    'tone' => $this->concept['suggestedTone'],
+                ]
+            ]);
+
             $this->dispatch('concept-enhanced');
 
+            Log::info('VideoWizard: Concept enhancement completed', [
+                'project_id' => $this->projectId,
+                'duration_ms' => $durationMs,
+            ]);
+
         } catch (\Exception $e) {
-            $this->error = __('Failed to enhance concept: ') . $e->getMessage();
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+            $errorMessage = $e->getMessage();
+
+            // Log failure to admin panel
+            try {
+                VwGenerationLog::logFailure(
+                    $promptSlug,
+                    $inputData,
+                    $errorMessage,
+                    $durationMs,
+                    $this->projectId,
+                    auth()->id(),
+                    session('current_team_id')
+                );
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation failure', ['error' => $logEx->getMessage()]);
+            }
+
+            // Dispatch error debug event
+            $this->dispatch('vw-debug', [
+                'action' => 'enhance-concept-error',
+                'message' => 'Concept enhancement failed: ' . $errorMessage,
+                'level' => 'error',
+                'data' => [
+                    'error' => $errorMessage,
+                    'duration_ms' => $durationMs,
+                    'trace' => $e->getTraceAsString(),
+                ]
+            ]);
+
+            Log::error('VideoWizard: Concept enhancement failed', [
+                'project_id' => $this->projectId,
+                'error' => $errorMessage,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->error = __('Failed to enhance concept: ') . $errorMessage;
         } finally {
             $this->isLoading = false;
         }
@@ -606,15 +708,33 @@ class VideoWizard extends Component
      */
     public function generateIdeas(): void
     {
+        $startTime = microtime(true);
+        $promptSlug = 'concept-ideas';
+
+        $this->dispatch('vw-debug', [
+            'action' => 'generate-ideas-start',
+            'message' => 'Starting AI idea generation',
+            'data' => ['rawInput' => substr($this->concept['rawInput'] ?? '', 0, 100) . '...']
+        ]);
+
         if (empty($this->concept['rawInput'])) {
             $this->error = __('Please enter a concept description first.');
+            $this->dispatch('vw-debug', ['action' => 'generate-ideas-error', 'message' => 'No concept input', 'level' => 'warn']);
             return;
         }
 
         $this->isLoading = true;
         $this->error = null;
 
+        $inputData = [
+            'rawInput' => $this->concept['rawInput'],
+            'productionType' => $this->productionType,
+            'teamId' => session('current_team_id', 0),
+        ];
+
         try {
+            Log::info('VideoWizard: Starting idea generation', $inputData);
+
             $conceptService = app(ConceptService::class);
 
             // First enhance the concept if not already done
@@ -640,15 +760,56 @@ class VideoWizard extends Component
                 ['teamId' => session('current_team_id', 0)]
             );
 
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+
+            // Log success
+            try {
+                VwGenerationLog::logSuccess(
+                    $promptSlug,
+                    $inputData,
+                    ['variations_count' => count($variations)],
+                    null,
+                    $durationMs,
+                    $this->projectId,
+                    auth()->id(),
+                    session('current_team_id')
+                );
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation success', ['error' => $logEx->getMessage()]);
+            }
+
             $this->conceptVariations = $variations;
             $this->selectedConceptIndex = 0;
 
             $this->saveProject();
 
-            // Don't auto-advance - let user review and select concept variation
+            $this->dispatch('vw-debug', [
+                'action' => 'generate-ideas-success',
+                'message' => 'Ideas generated successfully',
+                'data' => ['variations_count' => count($variations), 'duration_ms' => $durationMs]
+            ]);
+
+            Log::info('VideoWizard: Idea generation completed', ['variations' => count($variations), 'duration_ms' => $durationMs]);
 
         } catch (\Exception $e) {
-            $this->error = __('Failed to generate ideas: ') . $e->getMessage();
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+            $errorMessage = $e->getMessage();
+
+            try {
+                VwGenerationLog::logFailure($promptSlug, $inputData, $errorMessage, $durationMs, $this->projectId, auth()->id(), session('current_team_id'));
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation failure', ['error' => $logEx->getMessage()]);
+            }
+
+            $this->dispatch('vw-debug', [
+                'action' => 'generate-ideas-error',
+                'message' => 'Idea generation failed: ' . $errorMessage,
+                'level' => 'error',
+                'data' => ['error' => $errorMessage, 'duration_ms' => $durationMs]
+            ]);
+
+            Log::error('VideoWizard: Idea generation failed', ['error' => $errorMessage]);
+            $this->error = __('Failed to generate ideas: ') . $errorMessage;
         } finally {
             $this->isLoading = false;
         }
@@ -716,15 +877,46 @@ class VideoWizard extends Component
     #[On('generate-script')]
     public function generateScript(): void
     {
+        $startTime = microtime(true);
+        $promptSlug = 'script-generation';
+
+        // Dispatch debug event to browser
+        $this->dispatch('vw-debug', [
+            'action' => 'generate-script-start',
+            'message' => 'Starting AI script generation',
+            'data' => [
+                'project_id' => $this->projectId,
+                'tone' => $this->scriptTone,
+                'contentDepth' => $this->contentDepth,
+                'targetDuration' => $this->targetDuration,
+            ]
+        ]);
+
         if (empty($this->concept['rawInput']) && empty($this->concept['refinedConcept'])) {
             $this->error = __('Please complete the concept step first.');
+            $this->dispatch('vw-debug', [
+                'action' => 'generate-script-error',
+                'message' => 'No concept input provided',
+                'level' => 'warn'
+            ]);
             return;
         }
 
         $this->isLoading = true;
         $this->error = null;
 
+        $inputData = [
+            'concept' => substr($this->concept['refinedConcept'] ?: $this->concept['rawInput'], 0, 200),
+            'tone' => $this->scriptTone,
+            'contentDepth' => $this->contentDepth,
+            'targetDuration' => $this->targetDuration,
+            'additionalInstructions' => $this->additionalInstructions,
+            'teamId' => session('current_team_id', 0),
+        ];
+
         try {
+            Log::info('VideoWizard: Starting script generation', $inputData);
+
             // Create or update the project first
             if (!$this->projectId) {
                 $this->saveProject();
@@ -740,6 +932,24 @@ class VideoWizard extends Component
                 'additionalInstructions' => $this->additionalInstructions,
             ]);
 
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+
+            // Log success to admin panel
+            try {
+                VwGenerationLog::logSuccess(
+                    $promptSlug,
+                    $inputData,
+                    ['scenes_count' => count($generatedScript['scenes'] ?? [])],
+                    null,
+                    $durationMs,
+                    $this->projectId,
+                    auth()->id(),
+                    session('current_team_id')
+                );
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation success', ['error' => $logEx->getMessage()]);
+            }
+
             // Update script data
             $this->script = array_merge($this->script, $generatedScript);
 
@@ -751,10 +961,62 @@ class VideoWizard extends Component
 
             $this->saveProject();
 
+            // Dispatch success debug event
+            $this->dispatch('vw-debug', [
+                'action' => 'generate-script-success',
+                'message' => 'Script generated successfully',
+                'data' => [
+                    'duration_ms' => $durationMs,
+                    'scenes_count' => count($this->script['scenes'] ?? []),
+                ]
+            ]);
+
             $this->dispatch('script-generated');
 
+            Log::info('VideoWizard: Script generation completed', [
+                'project_id' => $this->projectId,
+                'duration_ms' => $durationMs,
+                'scenes_count' => count($this->script['scenes'] ?? []),
+            ]);
+
         } catch (\Exception $e) {
-            $this->error = __('Failed to generate script: ') . $e->getMessage();
+            $durationMs = (int)((microtime(true) - $startTime) * 1000);
+            $errorMessage = $e->getMessage();
+
+            // Log failure to admin panel
+            try {
+                VwGenerationLog::logFailure(
+                    $promptSlug,
+                    $inputData,
+                    $errorMessage,
+                    $durationMs,
+                    $this->projectId,
+                    auth()->id(),
+                    session('current_team_id')
+                );
+            } catch (\Exception $logEx) {
+                Log::warning('VideoWizard: Failed to log generation failure', ['error' => $logEx->getMessage()]);
+            }
+
+            // Dispatch error debug event
+            $this->dispatch('vw-debug', [
+                'action' => 'generate-script-error',
+                'message' => 'Script generation failed: ' . $errorMessage,
+                'level' => 'error',
+                'data' => [
+                    'error' => $errorMessage,
+                    'duration_ms' => $durationMs,
+                    'trace' => $e->getTraceAsString(),
+                ]
+            ]);
+
+            Log::error('VideoWizard: Script generation failed', [
+                'project_id' => $this->projectId,
+                'error' => $errorMessage,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $this->error = __('Failed to generate script: ') . $errorMessage;
         } finally {
             $this->isLoading = false;
         }
@@ -1196,7 +1458,8 @@ class VideoWizard extends Component
     }
 
     /**
-     * Ensure a value is a string. If it's an array or other type, return default.
+     * Ensure a value is a string. If it's an array, recursively extract first string.
+     * Handles nested arrays like [['value']] that AI sometimes returns.
      */
     protected function ensureString($value, string $default = ''): string
     {
@@ -1205,6 +1468,15 @@ class VideoWizard extends Component
         }
         if (is_numeric($value)) {
             return (string)$value;
+        }
+        // Handle arrays - recursively extract first string value
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                $result = $this->ensureString($item, '');
+                if ($result !== '') {
+                    return $result;
+                }
+            }
         }
         return $default;
     }
