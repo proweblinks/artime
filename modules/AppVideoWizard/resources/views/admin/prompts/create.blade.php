@@ -50,7 +50,7 @@
                         <div class="mb-3">
                             <label class="form-label d-flex justify-content-between">
                                 <span>{{ __('Prompt Template') }}</span>
-                                <small class="text-muted">{{ __('Use {{variable}} for placeholders') }}</small>
+                                <small class="text-muted">{{ __('Use') }} &#123;&#123;variable&#125;&#125; {{ __('for placeholders') }}</small>
                             </label>
                             <textarea name="prompt_template" class="form-control font-monospace @error('prompt_template') is-invalid @enderror" rows="20" required placeholder="{{ __('Enter your prompt template here...') }}">{{ old('prompt_template') }}</textarea>
                             @error('prompt_template')

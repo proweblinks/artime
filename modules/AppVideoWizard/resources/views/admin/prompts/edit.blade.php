@@ -61,7 +61,7 @@
                         <div class="mb-3">
                             <label class="form-label d-flex justify-content-between">
                                 <span>{{ __('Prompt Template') }}</span>
-                                <small class="text-muted">{{ __('Use {{variable}} for placeholders') }}</small>
+                                <small class="text-muted">{{ __('Use') }} &#123;&#123;variable&#125;&#125; {{ __('for placeholders') }}</small>
                             </label>
                             <textarea name="prompt_template" id="promptTemplate" class="form-control font-monospace @error('prompt_template') is-invalid @enderror" rows="20" required>{{ old('prompt_template', $prompt->prompt_template) }}</textarea>
                             @error('prompt_template')
@@ -74,7 +74,7 @@
                             <div class="alert alert-info small">
                                 <strong>{{ __('Detected Variables:') }}</strong>
                                 @foreach($placeholders as $var)
-                                    <code class="ms-2">@{{ {{ $var }} }}</code>
+                                    <code class="ms-2">&#123;&#123;{{ $var }}&#125;&#125;</code>
                                 @endforeach
                             </div>
                         @endif
