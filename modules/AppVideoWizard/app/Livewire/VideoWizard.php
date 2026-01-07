@@ -137,6 +137,12 @@ class VideoWizard extends Component
     public int $editPromptSceneIndex = 0;
     public string $editPromptText = '';
 
+    // Project Manager Modal state
+    public bool $showProjectManager = false;
+    public array $projectManagerProjects = [];
+    public string $projectManagerSearch = '';
+    public string $projectManagerSort = 'updated_at';
+
     // Scene Memory state (Style Bible, Character Bible, Location Bible)
     public array $sceneMemory = [
         'styleBible' => [
@@ -2329,6 +2335,297 @@ class VideoWizard extends Component
         } else {
             $this->editPromptText = $text;
         }
+    }
+
+    // =========================================================================
+    // PROJECT MANAGER METHODS
+    // =========================================================================
+
+    /**
+     * Open project manager modal and load projects.
+     */
+    public function openProjectManager(): void
+    {
+        $this->loadProjectManagerProjects();
+        $this->showProjectManager = true;
+    }
+
+    /**
+     * Close project manager modal.
+     */
+    public function closeProjectManager(): void
+    {
+        $this->showProjectManager = false;
+    }
+
+    /**
+     * Load projects for the project manager.
+     */
+    public function loadProjectManagerProjects(): void
+    {
+        $userId = auth()->id();
+        $teamId = session('current_team_id', 0);
+
+        $query = WizardProject::where(function ($q) use ($userId, $teamId) {
+            $q->where('user_id', $userId);
+            if ($teamId) {
+                $q->orWhere('team_id', $teamId);
+            }
+        });
+
+        // Apply search filter
+        if (!empty($this->projectManagerSearch)) {
+            $query->where('name', 'like', '%' . $this->projectManagerSearch . '%');
+        }
+
+        // Apply sorting
+        $sortField = $this->projectManagerSort;
+        $sortDirection = 'desc';
+        if ($sortField === 'name') {
+            $sortDirection = 'asc';
+        }
+        $query->orderBy($sortField, $sortDirection);
+
+        // Get projects with limited fields for performance
+        $projects = $query->take(50)->get();
+
+        $this->projectManagerProjects = $projects->map(function ($project) {
+            return [
+                'id' => $project->id,
+                'name' => $project->name,
+                'platform' => $project->platform,
+                'status' => $project->status,
+                'target_duration' => $project->target_duration,
+                'script' => $project->script ?? [],
+                'created_at' => $project->created_at?->toIso8601String(),
+                'updated_at' => $project->updated_at?->toIso8601String(),
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Load a project from the project manager.
+     */
+    public function loadProjectFromManager(int $projectId): void
+    {
+        $userId = auth()->id();
+        $teamId = session('current_team_id', 0);
+
+        $project = WizardProject::where('id', $projectId)
+            ->where(function ($q) use ($userId, $teamId) {
+                $q->where('user_id', $userId);
+                if ($teamId) {
+                    $q->orWhere('team_id', $teamId);
+                }
+            })
+            ->first();
+
+        if (!$project) {
+            $this->error = __('Project not found or access denied.');
+            return;
+        }
+
+        // Load the project
+        $this->loadProject($project);
+
+        // Close modal and update URL
+        $this->showProjectManager = false;
+        $this->dispatch('update-browser-url', ['projectId' => $projectId]);
+        $this->dispatch('project-loaded', ['projectId' => $projectId]);
+    }
+
+    /**
+     * Delete a project from the project manager.
+     */
+    public function deleteProjectFromManager(int $projectId): void
+    {
+        $userId = auth()->id();
+        $teamId = session('current_team_id', 0);
+
+        $project = WizardProject::where('id', $projectId)
+            ->where(function ($q) use ($userId, $teamId) {
+                $q->where('user_id', $userId);
+                if ($teamId) {
+                    $q->orWhere('team_id', $teamId);
+                }
+            })
+            ->first();
+
+        if (!$project) {
+            $this->error = __('Project not found or access denied.');
+            return;
+        }
+
+        // Check if we're deleting the current project
+        $isDeletingCurrent = $this->projectId === $projectId;
+
+        // Delete associated assets and jobs
+        $project->assets()->delete();
+        $project->processingJobs()->delete();
+        $project->delete();
+
+        // If we deleted the current project, reset to new project
+        if ($isDeletingCurrent) {
+            $this->createNewProject();
+        }
+
+        // Refresh the projects list
+        $this->loadProjectManagerProjects();
+
+        $this->dispatch('project-deleted', ['projectId' => $projectId]);
+    }
+
+    /**
+     * Create a new project (reset wizard state).
+     */
+    public function createNewProject(): void
+    {
+        // Reset all state to defaults
+        $this->projectId = null;
+        $this->projectName = 'Untitled Video';
+        $this->currentStep = 1;
+        $this->maxReachedStep = 1;
+
+        $this->platform = null;
+        $this->aspectRatio = '16:9';
+        $this->targetDuration = 60;
+        $this->format = null;
+        $this->productionType = null;
+        $this->productionSubtype = null;
+
+        $this->concept = [
+            'rawInput' => '',
+            'refinedConcept' => '',
+            'keywords' => [],
+            'keyElements' => [],
+            'logline' => '',
+            'suggestedMood' => null,
+            'suggestedTone' => null,
+            'styleReference' => '',
+            'avoidElements' => '',
+            'targetAudience' => '',
+        ];
+
+        $this->characterIntelligence = [
+            'enabled' => true,
+            'narrationStyle' => 'voiceover',
+            'characterCount' => 4,
+            'suggestedCount' => 4,
+            'characters' => [],
+        ];
+
+        $this->script = [
+            'title' => '',
+            'hook' => '',
+            'scenes' => [],
+            'cta' => '',
+            'totalDuration' => 0,
+            'totalNarrationTime' => 0,
+        ];
+
+        $this->voiceStatus = [
+            'dialogueLines' => 0,
+            'speakers' => 0,
+            'voicesMapped' => 0,
+            'scenesWithDialogue' => 0,
+            'scenesWithVoiceover' => 0,
+            'pendingVoices' => 0,
+        ];
+
+        $this->storyboard = [
+            'scenes' => [],
+            'styleBible' => null,
+            'imageModel' => 'nanobanana',
+            'visualStyle' => [
+                'mood' => '',
+                'lighting' => '',
+                'colorPalette' => '',
+                'composition' => '',
+            ],
+            'technicalSpecs' => [
+                'enabled' => true,
+                'quality' => '4k',
+                'positive' => 'high quality, detailed, professional, 8K resolution, sharp focus',
+                'negative' => 'blurry, low quality, ugly, distorted, watermark, nsfw, text, logo',
+            ],
+            'promptChain' => [
+                'enabled' => true,
+                'status' => 'pending',
+                'processedAt' => null,
+                'scenes' => [],
+            ],
+        ];
+
+        $this->animation = [
+            'scenes' => [],
+            'voiceover' => [
+                'voice' => 'nova',
+                'speed' => 1.0,
+            ],
+        ];
+
+        $this->assembly = [
+            'transitions' => [],
+            'defaultTransition' => 'fade',
+            'music' => ['enabled' => false, 'trackId' => null, 'volume' => 30],
+            'captions' => [
+                'enabled' => true,
+                'style' => 'karaoke',
+                'position' => 'bottom',
+                'size' => 1,
+            ],
+        ];
+
+        $this->sceneMemory = [
+            'styleBible' => [
+                'enabled' => false,
+                'style' => '',
+                'colorGrade' => '',
+                'atmosphere' => '',
+                'visualDNA' => '',
+            ],
+            'characterBible' => [
+                'enabled' => false,
+                'characters' => [],
+            ],
+            'locationBible' => [
+                'enabled' => false,
+                'locations' => [],
+            ],
+        ];
+
+        $this->multiShotMode = [
+            'enabled' => false,
+            'defaultShotCount' => 3,
+        ];
+
+        $this->conceptVariations = [];
+        $this->selectedConceptIndex = 0;
+        $this->pendingJobs = [];
+        $this->error = null;
+
+        // Close the modal
+        $this->showProjectManager = false;
+
+        // Update browser URL
+        $this->dispatch('update-browser-url', ['projectId' => null]);
+        $this->dispatch('project-created');
+    }
+
+    /**
+     * React to search/sort changes in project manager.
+     */
+    public function updatedProjectManagerSearch(): void
+    {
+        $this->loadProjectManagerProjects();
+    }
+
+    /**
+     * React to sort changes in project manager.
+     */
+    public function updatedProjectManagerSort(): void
+    {
+        $this->loadProjectManagerProjects();
     }
 
     // =========================================================================
