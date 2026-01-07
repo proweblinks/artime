@@ -1195,48 +1195,51 @@
             @foreach($script['scenes'] as $index => $scene)
                 @php
                     // Safety net: ensure all fields are strings even if sanitization didn't run
-                    // (e.g., old projects loaded before fix was deployed, or AI returned unexpected types)
+                    // Direct inline extraction - no closures for maximum compatibility
 
-                    // Helper function to extract string from potentially nested arrays (non-recursive for PHP compatibility)
-                    $extractString = function($value, $default = '') {
-                        // Keep unwrapping arrays until we find a string or run out of arrays
-                        $maxDepth = 10; // Prevent infinite loops
-                        $current = $value;
-                        for ($i = 0; $i < $maxDepth; $i++) {
-                            if (is_string($current)) {
-                                return $current;
-                            }
-                            if (is_numeric($current)) {
-                                return (string)$current;
-                            }
-                            if (is_array($current) && !empty($current)) {
-                                $current = reset($current); // Get first element
-                                continue;
-                            }
-                            break;
-                        }
-                        return $default;
-                    };
+                    // Extract title
+                    $rawTitle = $scene['title'] ?? null;
+                    while (is_array($rawTitle) && !empty($rawTitle)) { $rawTitle = reset($rawTitle); }
+                    $safeTitle = is_string($rawTitle) ? $rawTitle : (is_numeric($rawTitle) ? (string)$rawTitle : (__('Scene') . ' ' . ($index + 1)));
 
-                    $safeTitle = $extractString($scene['title'] ?? null, __('Scene') . ' ' . ($index + 1));
-                    $safeNarration = $extractString($scene['narration'] ?? null, '');
-                    $safeVisualPrompt = $extractString($scene['visualPrompt'] ?? null, '');
-                    $safeVisualDescription = $extractString($scene['visualDescription'] ?? null, '');
-                    $safeMood = $extractString($scene['mood'] ?? null, '');
-                    $safeTransition = $extractString($scene['transition'] ?? null, 'cut');
+                    // Extract narration
+                    $rawNarration = $scene['narration'] ?? null;
+                    while (is_array($rawNarration) && !empty($rawNarration)) { $rawNarration = reset($rawNarration); }
+                    $safeNarration = is_string($rawNarration) ? $rawNarration : '';
+
+                    // Extract visualPrompt
+                    $rawVisualPrompt = $scene['visualPrompt'] ?? null;
+                    while (is_array($rawVisualPrompt) && !empty($rawVisualPrompt)) { $rawVisualPrompt = reset($rawVisualPrompt); }
+                    $safeVisualPrompt = is_string($rawVisualPrompt) ? $rawVisualPrompt : '';
+
+                    // Extract visualDescription
+                    $rawVisualDescription = $scene['visualDescription'] ?? null;
+                    while (is_array($rawVisualDescription) && !empty($rawVisualDescription)) { $rawVisualDescription = reset($rawVisualDescription); }
+                    $safeVisualDescription = is_string($rawVisualDescription) ? $rawVisualDescription : '';
+
+                    // Extract mood - most problematic field
+                    $rawMood = $scene['mood'] ?? null;
+                    while (is_array($rawMood) && !empty($rawMood)) { $rawMood = reset($rawMood); }
+                    $safeMood = is_string($rawMood) ? $rawMood : '';
+
+                    // Extract transition
+                    $rawTransition = $scene['transition'] ?? null;
+                    while (is_array($rawTransition) && !empty($rawTransition)) { $rawTransition = reset($rawTransition); }
+                    $safeTransition = is_string($rawTransition) ? $rawTransition : 'cut';
+
+                    // Extract duration
                     $safeDuration = is_numeric($scene['duration'] ?? null) ? (int)$scene['duration'] : 15;
 
-                    // Final safety: ensure these are definitely strings
-                    $safeTitle = is_string($safeTitle) ? $safeTitle : '';
-                    $safeMood = is_string($safeMood) ? $safeMood : '';
-                    $safeTransition = is_string($safeTransition) ? $safeTransition : 'cut';
+                    // Extract sceneId
+                    $rawSceneId = $scene['id'] ?? null;
+                    while (is_array($rawSceneId) && !empty($rawSceneId)) { $rawSceneId = reset($rawSceneId); }
+                    $sceneId = is_string($rawSceneId) ? $rawSceneId : ('scene_' . $index);
 
                     // Use visualPrompt first, fall back to visualDescription
                     $displayVisualPrompt = $safeVisualPrompt ?: $safeVisualDescription;
 
                     // Check music only status
                     $isMusicOnly = isset($scene['voiceover']['enabled']) && !$scene['voiceover']['enabled'];
-                    $sceneId = $extractString($scene['id'] ?? null, 'scene_' . $index);
 
                     // Get transition label
                     $transitionLabel = $transitions[$safeTransition] ?? 'Cut';
