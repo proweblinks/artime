@@ -142,6 +142,9 @@ class VideoWizard extends Component
     public array $projectManagerProjects = [];
     public string $projectManagerSearch = '';
     public string $projectManagerSort = 'updated_at';
+    public int $projectManagerPage = 1;
+    public int $projectManagerPerPage = 12;
+    public int $projectManagerTotal = 0;
 
     // Scene Memory state (Style Bible, Character Bible, Location Bible)
     public array $sceneMemory = [
@@ -2359,7 +2362,7 @@ class VideoWizard extends Component
     }
 
     /**
-     * Load projects for the project manager.
+     * Load projects for the project manager with pagination.
      */
     public function loadProjectManagerProjects(): void
     {
@@ -2386,21 +2389,130 @@ class VideoWizard extends Component
         }
         $query->orderBy($sortField, $sortDirection);
 
-        // Get projects with limited fields for performance
-        $projects = $query->take(50)->get();
+        // Get total count for pagination
+        $this->projectManagerTotal = $query->count();
+
+        // Calculate offset for pagination
+        $offset = ($this->projectManagerPage - 1) * $this->projectManagerPerPage;
+
+        // Get paginated projects
+        $projects = $query->skip($offset)->take($this->projectManagerPerPage)->get();
 
         $this->projectManagerProjects = $projects->map(function ($project) {
+            // Calculate step progress (1-7 steps)
+            $stepsCompleted = $this->calculateProjectStepProgress($project);
+
             return [
                 'id' => $project->id,
                 'name' => $project->name,
                 'platform' => $project->platform,
-                'status' => $project->status,
+                'status' => $project->status ?? $this->detectProjectStatus($project),
                 'target_duration' => $project->target_duration,
                 'script' => $project->script ?? [],
+                'stepsCompleted' => $stepsCompleted,
                 'created_at' => $project->created_at?->toIso8601String(),
                 'updated_at' => $project->updated_at?->toIso8601String(),
             ];
         })->toArray();
+    }
+
+    /**
+     * Calculate the step progress of a project.
+     */
+    protected function calculateProjectStepProgress($project): int
+    {
+        $steps = 0;
+
+        // Step 1: Platform selected
+        if (!empty($project->platform)) {
+            $steps = 1;
+        }
+
+        // Step 2: Concept filled
+        $concept = $project->concept ?? [];
+        if (!empty($concept) && (!empty($concept['rawInput'] ?? '') || !empty($concept['refinedConcept'] ?? ''))) {
+            $steps = 2;
+        }
+
+        // Step 3: Script has scenes
+        $script = $project->script ?? [];
+        if (!empty($script) && isset($script['scenes']) && count($script['scenes'] ?? []) > 0) {
+            $steps = 3;
+        }
+
+        // Step 4: Storyboard has frames
+        $storyboard = $project->storyboard ?? [];
+        if (!empty($storyboard) && (isset($storyboard['frames']) || isset($storyboard['scenes']))) {
+            $steps = 4;
+        }
+
+        // Step 5: Animation configured
+        $animation = $project->animation ?? [];
+        if (!empty($animation)) {
+            $steps = 5;
+        }
+
+        // Step 6: Assembly configured
+        $assembly = $project->assembly ?? [];
+        if (!empty($assembly)) {
+            $steps = 6;
+        }
+
+        // Step 7: Exported
+        if (!empty($assembly) && isset($assembly['exported']) && $assembly['exported']) {
+            $steps = 7;
+        }
+
+        return $steps;
+    }
+
+    /**
+     * Detect project status based on its data.
+     */
+    protected function detectProjectStatus($project): string
+    {
+        $steps = $this->calculateProjectStepProgress($project);
+
+        if ($steps >= 7) {
+            return 'complete';
+        } elseif ($steps >= 3) {
+            return 'in_progress';
+        }
+
+        return 'draft';
+    }
+
+    /**
+     * Go to a specific page in project manager.
+     */
+    public function projectManagerGoToPage(int $page): void
+    {
+        $totalPages = ceil($this->projectManagerTotal / $this->projectManagerPerPage);
+        $this->projectManagerPage = max(1, min($page, $totalPages));
+        $this->loadProjectManagerProjects();
+    }
+
+    /**
+     * Go to next page in project manager.
+     */
+    public function projectManagerNextPage(): void
+    {
+        $totalPages = ceil($this->projectManagerTotal / $this->projectManagerPerPage);
+        if ($this->projectManagerPage < $totalPages) {
+            $this->projectManagerPage++;
+            $this->loadProjectManagerProjects();
+        }
+    }
+
+    /**
+     * Go to previous page in project manager.
+     */
+    public function projectManagerPrevPage(): void
+    {
+        if ($this->projectManagerPage > 1) {
+            $this->projectManagerPage--;
+            $this->loadProjectManagerProjects();
+        }
     }
 
     /**
@@ -2613,10 +2725,11 @@ class VideoWizard extends Component
     }
 
     /**
-     * React to search/sort changes in project manager.
+     * React to search changes in project manager.
      */
     public function updatedProjectManagerSearch(): void
     {
+        $this->projectManagerPage = 1; // Reset to first page when searching
         $this->loadProjectManagerProjects();
     }
 
@@ -2625,6 +2738,7 @@ class VideoWizard extends Component
      */
     public function updatedProjectManagerSort(): void
     {
+        $this->projectManagerPage = 1; // Reset to first page when changing sort
         $this->loadProjectManagerProjects();
     }
 
