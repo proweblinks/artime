@@ -207,7 +207,18 @@
     </script>
 
     {{-- Wizard Header --}}
-    <div style="text-align: center; padding: 2rem 1rem 1rem;">
+    <div style="position: relative; text-align: center; padding: 2rem 1rem 1rem;">
+        {{-- My Projects Button (Top Right) --}}
+        <button wire:click="openProjectManager"
+                style="position: absolute; top: 1.5rem; right: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none; border-radius: 0.5rem; color: white; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(99, 102, 241, 0.3)';">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            {{ __('My Projects') }}
+        </button>
+
         <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
             {{ __('Video Creation Wizard') }}
         </h1>
@@ -317,4 +328,7 @@
             </button>
         @endif
     </div>
+
+    {{-- Project Manager Modal --}}
+    @include('appvideowizard::livewire.modals.project-manager')
 </div>
