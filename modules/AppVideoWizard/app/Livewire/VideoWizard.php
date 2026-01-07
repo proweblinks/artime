@@ -317,7 +317,7 @@ class VideoWizard extends Component
             $this->assembly = array_merge($this->assembly, $project->assembly);
         }
 
-        // Restore Scene Memory, Multi-Shot Mode, and Concept Variations from content_config
+        // Restore Scene Memory, Multi-Shot Mode, Concept Variations, and Character Intelligence from content_config
         if ($project->content_config) {
             $config = $project->content_config;
 
@@ -329,6 +329,9 @@ class VideoWizard extends Component
             }
             if (isset($config['conceptVariations'])) {
                 $this->conceptVariations = $config['conceptVariations'];
+            }
+            if (isset($config['characterIntelligence'])) {
+                $this->characterIntelligence = array_merge($this->characterIntelligence, $config['characterIntelligence']);
             }
         }
     }
@@ -357,11 +360,12 @@ class VideoWizard extends Component
                 'storyboard' => $this->storyboard,
                 'animation' => $this->animation,
                 'assembly' => $this->assembly,
-                // Save Scene Memory, Multi-Shot Mode, and Concept Variations
+                // Save Scene Memory, Multi-Shot Mode, Concept Variations, and Character Intelligence
                 'content_config' => [
                     'sceneMemory' => $this->sceneMemory,
                     'multiShotMode' => $this->multiShotMode,
                     'conceptVariations' => $this->conceptVariations,
+                    'characterIntelligence' => $this->characterIntelligence,
                 ],
             ];
 
@@ -1098,6 +1102,13 @@ class VideoWizard extends Component
     public function updateCharacterIntelligence(string $field, $value): void
     {
         if (in_array($field, ['enabled', 'narrationStyle', 'characterCount'])) {
+            // Cast values to proper types
+            if ($field === 'enabled') {
+                $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            } elseif ($field === 'characterCount') {
+                $value = (int) $value;
+            }
+
             $this->characterIntelligence[$field] = $value;
 
             // Recalculate suggested character count based on production type
