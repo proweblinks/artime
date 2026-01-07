@@ -65,9 +65,9 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="card bg-secondary text-white h-100">
-                <div class="card-body text-center">
-                    <div class="fs-11 text-white-50">{{ __('Tokens') }}</div>
+            <div class="card h-100" style="background-color: #6366f1;">
+                <div class="card-body text-center text-white">
+                    <div class="fs-11 opacity-75">{{ __('Tokens') }}</div>
                     <div class="fs-24 fw-bold">{{ number_format($stats['total_tokens'] / 1000, 1) }}K</div>
                 </div>
             </div>

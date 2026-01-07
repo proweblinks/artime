@@ -107129,6 +107129,10 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
   align-items: center;
   cursor: pointer;
   gap: 10px;
+  border-radius: 8px 0 0 8px;
+  margin-right: -0.825rem;
+  padding-right: calc(0.5rem + 0.825rem);
+  transition: background-color 0.15s ease-in-out;
 }
 
 .sidebar .menu .menu-item .menu-link:after {
@@ -107163,6 +107167,12 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
 
 .sidebar .menu .menu-item .menu-link:hover {
   color: #675dff;
+  background-color: rgba(139, 92, 246, 0.15);
+}
+
+.sidebar .menu .menu-item .menu-link.text-primary,
+.sidebar .menu .menu-item .menu-link.active {
+  background-color: rgba(139, 92, 246, 0.18);
 }
 
 .sidebar .menu .menu-item .menu-link .menu-bullet {
