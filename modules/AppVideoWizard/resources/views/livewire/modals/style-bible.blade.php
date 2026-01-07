@@ -8,7 +8,7 @@
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
     <div class="vw-modal"
          @click.away="isOpen = false"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 1rem; width: 100%; max-width: 700px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -20,6 +20,74 @@
 
         {{-- Content --}}
         <div style="flex: 1; overflow-y: auto; padding: 1.25rem;">
+            {{-- Reference Image Section --}}
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Reference Image') }}</label>
+                <div style="display: flex; gap: 1rem;">
+                    {{-- Image Preview --}}
+                    <div style="width: 180px; flex-shrink: 0;">
+                        @if(!empty($sceneMemory['styleBible']['referenceImage']))
+                            <div style="position: relative;">
+                                <img src="{{ $sceneMemory['styleBible']['referenceImage'] }}"
+                                     style="width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.2);">
+                                {{-- Source indicator --}}
+                                <div style="position: absolute; top: 0.25rem; left: 0.25rem; background: rgba(0,0,0,0.7); padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem; color: rgba(255,255,255,0.8);">
+                                    {{ ($sceneMemory['styleBible']['referenceImageSource'] ?? '') === 'upload' ? '📤 ' . __('Uploaded') : '🎨 ' . __('AI Generated') }}
+                                </div>
+                                {{-- Remove button --}}
+                                <button type="button"
+                                        wire:click="removeStyleReference"
+                                        style="position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(239,68,68,0.9); border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 0.8rem;"
+                                        title="{{ __('Remove') }}">&times;</button>
+                            </div>
+                        @else
+                            <div style="width: 100%; aspect-ratio: 16/9; background: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.2); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <span style="font-size: 1.5rem; color: rgba(255,255,255,0.3);">🖼️</span>
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 0.25rem;">{{ __('No reference yet') }}</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Upload/Generate Buttons --}}
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
+                        {{-- Generate Button --}}
+                        <button type="button"
+                                wire:click="generateStyleReference"
+                                wire:loading.attr="disabled"
+                                wire:target="generateStyleReference"
+                                {{ $isGeneratingStyleRef ? 'disabled' : '' }}
+                                style="padding: 0.6rem 1rem; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 0.5rem; color: white; font-size: 0.8rem; cursor: pointer; font-weight: 500; {{ $isGeneratingStyleRef ? 'opacity: 0.5;' : '' }}">
+                            <span wire:loading.remove wire:target="generateStyleReference">🎨 {{ __('Generate Reference from Settings') }}</span>
+                            <span wire:loading wire:target="generateStyleReference">{{ __('Generating...') }}</span>
+                        </button>
+
+                        {{-- Upload Button --}}
+                        <div x-data="{ uploading: false }" style="position: relative;">
+                            <input type="file"
+                                   wire:model="styleImageUpload"
+                                   accept="image/*"
+                                   x-on:livewire-upload-start="uploading = true"
+                                   x-on:livewire-upload-finish="uploading = false; $wire.uploadStyleReference()"
+                                   x-on:livewire-upload-error="uploading = false"
+                                   style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;">
+                            <button type="button"
+                                    style="width: 100%; padding: 0.6rem 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.8rem; cursor: pointer; font-weight: 500;">
+                                <template x-if="!uploading">
+                                    <span>📤 {{ __('Upload Reference Image') }}</span>
+                                </template>
+                                <template x-if="uploading">
+                                    <span>{{ __('Uploading...') }}</span>
+                                </template>
+                            </button>
+                        </div>
+
+                        <p style="color: rgba(255,255,255,0.4); font-size: 0.65rem; margin: 0;">
+                            💡 {{ __('The reference image helps maintain visual consistency across all scenes.') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {{-- Quick Templates --}}
             <div style="margin-bottom: 1.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Quick Templates') }}</label>
@@ -29,6 +97,7 @@
                     <button type="button" wire:click="applyStyleTemplate('anime')" style="padding: 0.4rem 0.75rem; background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.3); border-radius: 0.35rem; color: #f9a8d4; font-size: 0.75rem; cursor: pointer;">🎌 {{ __('Anime') }}</button>
                     <button type="button" wire:click="applyStyleTemplate('noir')" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.75rem; cursor: pointer;">🖤 {{ __('Film Noir') }}</button>
                     <button type="button" wire:click="applyStyleTemplate('3d')" style="padding: 0.4rem 0.75rem; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3); border-radius: 0.35rem; color: #fcd34d; font-size: 0.75rem; cursor: pointer;">🎮 {{ __('3D Stylized') }}</button>
+                    <button type="button" wire:click="applyStyleTemplate('photorealistic')" style="padding: 0.4rem 0.75rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); border-radius: 0.35rem; color: #67e8f9; font-size: 0.75rem; cursor: pointer;">📷 {{ __('Photorealistic') }}</button>
                 </div>
             </div>
 

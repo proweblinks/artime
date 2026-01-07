@@ -320,6 +320,64 @@
         font-size: 0.75rem;
     }
 
+    .vw-chain-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.35rem;
+    }
+
+    .vw-chain-badge {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .vw-chain-badge-ready {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .vw-chain-badge-processing {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fcd34d;
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        animation: vw-pulse 1.5s infinite;
+    }
+
+    .vw-chain-badge-idle {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .vw-chain-stats {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-chain-stat {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.25rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    @keyframes vw-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
     .vw-chain-actions {
         display: flex;
         align-items: center;
@@ -660,15 +718,91 @@
                 <p class="vw-model-description">{{ $imageModels[$selectedModel]['desc'] ?? '' }}</p>
             </div>
 
+            {{-- Video Model Selector (Coming Soon) --}}
+            <div class="vw-section" style="opacity: 0.6;">
+                <div class="vw-section-header">
+                    <div class="vw-section-label">
+                        <span>🎬</span>
+                        <span>{{ __('Video Model') }}</span>
+                    </div>
+                    <span style="font-size: 0.55rem; padding: 0.15rem 0.5rem; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); border-radius: 0.5rem; color: #a5b4fc;">
+                        {{ __('COMING SOON') }}
+                    </span>
+                </div>
+                <div class="vw-model-buttons" style="pointer-events: none;">
+                    @php
+                        $videoModels = [
+                            'minimax' => ['name' => 'Minimax', 'cost' => 5, 'desc' => 'Fast video generation, 5-10s clips'],
+                            'multitalk' => ['name' => 'Multitalk', 'cost' => 8, 'desc' => 'Lip-sync & dialogue, character animation'],
+                            'kling' => ['name' => 'Kling AI', 'cost' => 10, 'desc' => 'High-quality cinematic motion'],
+                        ];
+                        $selectedVideoModel = $storyboard['videoModel'] ?? 'minimax';
+                    @endphp
+                    @foreach($videoModels as $modelId => $model)
+                        <button type="button"
+                                class="vw-model-btn {{ $selectedVideoModel === $modelId ? 'selected' : '' }}"
+                                style="opacity: 0.5; cursor: not-allowed;"
+                                disabled
+                                title="{{ $model['desc'] }}">
+                            <span class="vw-model-btn-name">{{ $model['name'] }}</span>
+                            <span class="vw-model-btn-cost">{{ $model['cost'] }} {{ __('tokens') }}</span>
+                        </button>
+                    @endforeach
+                </div>
+                <p class="vw-model-description" style="color: rgba(255,255,255,0.4);">
+                    💡 {{ __('Video generation will animate your scenes with motion and optional lip-sync.') }}
+                </p>
+            </div>
+
             {{-- Visual Style Controls --}}
+            @php
+                $hasActiveStyles = !empty($storyboard['visualStyle']['mood'] ?? '') ||
+                                   !empty($storyboard['visualStyle']['lighting'] ?? '') ||
+                                   !empty($storyboard['visualStyle']['colorPalette'] ?? '') ||
+                                   !empty($storyboard['visualStyle']['composition'] ?? '');
+                $activeStyleParts = [];
+                if (!empty($storyboard['visualStyle']['mood'])) {
+                    $activeStyleParts[] = ucfirst($storyboard['visualStyle']['mood']) . ' mood';
+                }
+                if (!empty($storyboard['visualStyle']['lighting'])) {
+                    $activeStyleParts[] = ucfirst(str_replace('-', ' ', $storyboard['visualStyle']['lighting'])) . ' lighting';
+                }
+                if (!empty($storyboard['visualStyle']['colorPalette'])) {
+                    $activeStyleParts[] = ucfirst(str_replace('-', ' ', $storyboard['visualStyle']['colorPalette']));
+                }
+                if (!empty($storyboard['visualStyle']['composition'])) {
+                    $activeStyleParts[] = ucfirst(str_replace('-', ' ', $storyboard['visualStyle']['composition'])) . ' shot';
+                }
+            @endphp
             <div class="vw-section">
                 <div class="vw-section-header">
                     <div class="vw-section-label">
                         <span>🎬</span>
                         <span>{{ __('Visual Style') }}</span>
                     </div>
-                    <span class="vw-badge vw-badge-pro">PRO</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        @if($hasActiveStyles)
+                            <span style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.5rem; color: #6ee7b7;">
+                                ✓ {{ __('Connected') }}
+                            </span>
+                        @endif
+                        <span class="vw-badge vw-badge-pro">PRO</span>
+                    </div>
                 </div>
+                {{-- Active Style Preview --}}
+                @if($hasActiveStyles)
+                    <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1)); border: 1px solid rgba(16,185,129,0.2); border-radius: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                            <span style="font-size: 0.65rem; color: #6ee7b7; font-weight: 600;">🔗 {{ __('Active Style Profile') }}</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
+                            {{ implode(' • ', $activeStyleParts) }}
+                        </div>
+                        <div style="margin-top: 0.35rem; font-size: 0.55rem; color: rgba(255,255,255,0.4);">
+                            → {{ __('Applied to all AI-generated images via Layer 4 in Prompt Chain') }}
+                        </div>
+                    </div>
+                @endif
                 <div class="vw-style-grid">
                     {{-- Mood --}}
                     <div class="vw-style-select-wrapper">
@@ -864,37 +998,95 @@
             </div>
 
             {{-- Prompt Chain Section --}}
-            <div class="vw-section">
+            @php
+                $chainStatus = $storyboard['promptChain']['status'] ?? 'idle';
+                $chainEnabled = $storyboard['promptChain']['enabled'] ?? true;
+                $chainScenes = $storyboard['promptChain']['scenes'] ?? [];
+                $chainProcessedAt = $storyboard['promptChain']['processedAt'] ?? null;
+                $processedCount = count($chainScenes);
+                $totalScenes = count($script['scenes'] ?? []);
+            @endphp
+            <div class="vw-section" style="background: {{ $chainStatus === 'ready' ? 'rgba(251, 191, 36, 0.08)' : 'transparent' }}; border-radius: 0.5rem; margin: 0 -0.5rem; padding: 0.75rem 0.5rem;">
                 <div class="vw-chain-row">
-                    <div class="vw-chain-info">
+                    <div class="vw-chain-info" style="flex: 1;">
                         <div class="vw-section-label" style="margin-bottom: 0.25rem;">
-                            <span>⚡</span>
+                            <span>⛓️</span>
                             <span>{{ __('Prompt Chain') }}</span>
                         </div>
-                        <div class="vw-chain-desc">{{ __('Hollywood-grade scene blueprints') }}</div>
+                        <div class="vw-chain-desc">
+                            @if($chainStatus === 'ready')
+                                {{ __('Optimized prompts ready for generation') }}
+                            @elseif($chainStatus === 'processing')
+                                {{ __('Processing scene blueprints...') }}
+                            @else
+                                {{ __('Hollywood-grade scene blueprints') }}
+                            @endif
+                        </div>
+                        {{-- Status Badge Row --}}
+                        <div class="vw-chain-status">
+                            @if($chainStatus === 'ready')
+                                <span class="vw-chain-badge vw-chain-badge-ready">✓ {{ __('Ready') }}</span>
+                            @elseif($chainStatus === 'processing')
+                                <span class="vw-chain-badge vw-chain-badge-processing">⏳ {{ __('Processing') }}</span>
+                            @else
+                                <span class="vw-chain-badge vw-chain-badge-idle">○ {{ __('Not Processed') }}</span>
+                            @endif
+                            @if($chainProcessedAt && $chainStatus === 'ready')
+                                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                    {{ \Carbon\Carbon::parse($chainProcessedAt)->diffForHumans() }}
+                                </span>
+                            @endif
+                        </div>
+                        {{-- Stats when ready --}}
+                        @if($chainStatus === 'ready' && $processedCount > 0)
+                            <div class="vw-chain-stats">
+                                <span class="vw-chain-stat">🖼️ {{ $processedCount }} {{ __('Image Prompts') }}</span>
+                                <span class="vw-chain-stat">🎬 {{ $processedCount }} {{ __('Video Templates') }}</span>
+                                <span class="vw-chain-stat">↔️ {{ $processedCount }} {{ __('Transitions') }}</span>
+                            </div>
+                        @endif
                     </div>
                     <div class="vw-chain-actions">
-                        <button type="button"
-                                class="vw-process-btn"
-                                wire:click="processPromptChain"
-                                wire:loading.attr="disabled"
-                                wire:target="processPromptChain">
-                            <span wire:loading.remove wire:target="processPromptChain">
-                                ⚡ {{ __('Process Chain') }}
-                            </span>
-                            <span wire:loading wire:target="processPromptChain">
-                                <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                </svg>
-                                {{ __('Processing...') }}
-                            </span>
-                        </button>
+                        @if($chainStatus === 'ready')
+                            <button type="button"
+                                    class="vw-process-btn"
+                                    wire:click="processPromptChain"
+                                    wire:loading.attr="disabled"
+                                    wire:target="processPromptChain"
+                                    style="background: rgba(251, 191, 36, 0.3); border: 1px solid rgba(251, 191, 36, 0.5);">
+                                <span wire:loading.remove wire:target="processPromptChain">
+                                    🔄 {{ __('Refresh') }}
+                                </span>
+                                <span wire:loading wire:target="processPromptChain">
+                                    <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                    </svg>
+                                </span>
+                            </button>
+                        @else
+                            <button type="button"
+                                    class="vw-process-btn"
+                                    wire:click="processPromptChain"
+                                    wire:loading.attr="disabled"
+                                    wire:target="processPromptChain">
+                                <span wire:loading.remove wire:target="processPromptChain">
+                                    ⚡ {{ __('Process Chain') }}
+                                </span>
+                                <span wire:loading wire:target="processPromptChain">
+                                    <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                    </svg>
+                                    {{ __('Processing...') }}
+                                </span>
+                            </button>
+                        @endif
                         <input type="checkbox"
                                class="vw-memory-checkbox"
                                wire:model.live="storyboard.promptChain.enabled"
                                title="{{ __('Enable Prompt Chain') }}"
-                               checked>
+                               {{ $chainEnabled ? 'checked' : '' }}>
                     </div>
                 </div>
             </div>
@@ -940,6 +1132,7 @@
                     $prompt = $storyboardScene['prompt'] ?? $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
                     $hasMultiShot = isset($multiShotMode['decomposedScenes'][$index]);
                     $decomposed = $hasMultiShot ? $multiShotMode['decomposedScenes'][$index] : null;
+                    $hasChainData = isset($storyboard['promptChain']['scenes'][$index]) && ($storyboard['promptChain']['status'] ?? '') === 'ready';
                 @endphp
                 <div class="vw-scene-card">
                     {{-- Image Container with Overlays --}}
@@ -955,6 +1148,13 @@
                                 <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">
                                     📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}
                                 </span>
+                            </div>
+                        @endif
+
+                        {{-- Chain Processed Indicator - Below scene number if chain is ready --}}
+                        @if($hasChainData && ($storyboard['promptChain']['enabled'] ?? true))
+                            <div style="position: absolute; top: 2rem; left: 0.5rem; background: rgba(251,191,36,0.9); color: #1a1a1a; padding: 0.1rem 0.4rem; border-radius: 0.2rem; font-size: 0.5rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
+                                ⛓️ {{ __('CHAIN') }}
                             </div>
                         @endif
 
@@ -1080,21 +1280,71 @@
 
                     {{-- Multi-Shot Timeline (if decomposed) --}}
                     @if($hasMultiShot && !empty($decomposed['shots']))
-                        <div style="padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(139,92,246,0.05);">
-                            <div style="display: flex; gap: 0.25rem; overflow-x: auto;">
+                        <div style="padding: 0.6rem 0.75rem; border-top: 1px solid rgba(139,92,246,0.2); background: linear-gradient(180deg, rgba(139,92,246,0.08), rgba(139,92,246,0.03));">
+                            {{-- Header row --}}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    📽️ {{ __('SHOT TIMELINE') }} ({{ count($decomposed['shots']) }})
+                                </span>
+                                <button type="button"
+                                        wire:click="openMultiShotModal({{ $index }})"
+                                        style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #a78bfa; cursor: pointer;">
+                                    ✂️ {{ __('Edit') }}
+                                </button>
+                            </div>
+                            {{-- Shots Grid --}}
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.35rem;">
                                 @foreach($decomposed['shots'] as $shotIdx => $shot)
-                                    <div style="width: 40px; height: 24px; border-radius: 0.2rem; overflow: hidden; border: 2px solid {{ ($decomposed['selectedShot'] ?? 0) === $shotIdx ? '#8b5cf6' : 'rgba(255,255,255,0.1)' }}; cursor: pointer; flex-shrink: 0; position: relative;"
-                                         wire:click="selectShot({{ $index }}, {{ $shotIdx }})">
-                                        @if(($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']))
-                                            <img src="{{ $shot['imageUrl'] }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                        @else
-                                            <div style="width: 100%; height: 100%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
-                                                <span style="font-size: 0.5rem; color: rgba(255,255,255,0.4);">{{ $shotIdx + 1 }}</span>
+                                    @php
+                                        $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIdx;
+                                        $shotStatus = $shot['status'] ?? 'pending';
+                                        $shotType = ucfirst($shot['type'] ?? 'shot');
+                                        $shotTypeIcons = [
+                                            'establishing' => '🏔️',
+                                            'medium' => '👤',
+                                            'close-up' => '🔍',
+                                            'reaction' => '😮',
+                                            'detail' => '✨',
+                                            'wide' => '🌄',
+                                        ];
+                                        $shotIcon = $shotTypeIcons[strtolower($shot['type'] ?? '')] ?? '🎬';
+                                    @endphp
+                                    <div style="cursor: pointer; position: relative; border-radius: 0.35rem; overflow: hidden; border: 2px solid {{ $isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.1)' }}; background: {{ $isSelected ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;"
+                                         wire:click="selectShot({{ $index }}, {{ $shotIdx }})"
+                                         title="{{ $shot['description'] ?? 'Shot ' . ($shotIdx + 1) }}">
+                                        {{-- Thumbnail --}}
+                                        <div style="aspect-ratio: 16/10; position: relative;">
+                                            @if($shotStatus === 'ready' && !empty($shot['imageUrl']))
+                                                <img src="{{ $shot['imageUrl'] }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                            @elseif($shotStatus === 'generating')
+                                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(139,92,246,0.1);">
+                                                    <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite; color: #8b5cf6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                    </svg>
+                                                </div>
+                                            @else
+                                                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.03);">
+                                                    <span style="font-size: 1rem;">{{ $shotIcon }}</span>
+                                                </div>
+                                            @endif
+                                            {{-- Shot Number Badge --}}
+                                            <div style="position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.75); color: white; padding: 0.1rem 0.25rem; border-radius: 0.15rem; font-size: 0.5rem; font-weight: 600;">
+                                                #{{ $shotIdx + 1 }}
                                             </div>
-                                        @endif
-                                        @if(($decomposed['selectedShot'] ?? 0) === $shotIdx)
-                                            <div style="position: absolute; bottom: 1px; right: 1px; width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%;"></div>
-                                        @endif
+                                            {{-- Selected Indicator --}}
+                                            @if($isSelected)
+                                                <div style="position: absolute; top: 2px; right: 2px; background: #10b981; color: white; padding: 0.1rem 0.2rem; border-radius: 0.15rem; font-size: 0.5rem;">
+                                                    ✓
+                                                </div>
+                                            @endif
+                                        </div>
+                                        {{-- Shot Type Label --}}
+                                        <div style="padding: 0.2rem; text-align: center;">
+                                            <span style="font-size: 0.5rem; color: {{ $isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.5)' }}; font-weight: 500; text-transform: capitalize;">
+                                                {{ Str::limit($shotType, 8) }}
+                                            </span>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>

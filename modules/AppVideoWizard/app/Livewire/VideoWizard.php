@@ -24,9 +24,11 @@ class VideoWizard extends Component
     // Import file for project import
     public $importFile;
 
-    // Reference image uploads for Character/Location Bible
+    // Reference image uploads for Character/Location/Style Bible
     public $characterImageUpload;
     public $locationImageUpload;
+    public $styleImageUpload;
+    public bool $isGeneratingStyleRef = false;
 
     // Project state
     public ?int $projectId = null;
@@ -146,10 +148,13 @@ class VideoWizard extends Component
     public array $stockSearchResults = [];
     public bool $stockSearching = false;
 
-    // Edit Prompt Modal state
+    // Edit Prompt/Scene Modal state
     public bool $showEditPromptModal = false;
     public int $editPromptSceneIndex = 0;
     public string $editPromptText = '';
+    public string $editSceneNarration = '';
+    public int $editSceneDuration = 8;
+    public string $editSceneTransition = 'cut';
 
     // Project Manager Modal state
     public bool $showProjectManager = false;
@@ -177,7 +182,10 @@ class VideoWizard extends Component
             'style' => '',
             'colorGrade' => '',
             'atmosphere' => '',
+            'camera' => '',
             'visualDNA' => '',
+            'referenceImage' => '',
+            'referenceImageSource' => '',
         ],
         'characterBible' => [
             'enabled' => false,
@@ -2321,11 +2329,11 @@ class VideoWizard extends Component
     }
 
     // =========================================================================
-    // EDIT PROMPT METHODS
+    // EDIT PROMPT/SCENE METHODS
     // =========================================================================
 
     /**
-     * Open edit prompt modal for a scene.
+     * Open edit prompt modal for a scene (full scene editing).
      */
     #[On('open-edit-prompt')]
     public function openEditPrompt(int $sceneIndex): void
@@ -2341,6 +2349,11 @@ class VideoWizard extends Component
             ?? $scriptScene['visualDescription']
             ?? $scriptScene['narration']
             ?? '';
+
+        // Load scene properties for full scene editing
+        $this->editSceneNarration = $scriptScene['narration'] ?? '';
+        $this->editSceneDuration = (int) ($scriptScene['duration'] ?? 8);
+        $this->editSceneTransition = $scriptScene['transition'] ?? 'cut';
     }
 
     /**
@@ -2350,6 +2363,41 @@ class VideoWizard extends Component
     {
         $this->showEditPromptModal = false;
         $this->editPromptText = '';
+        $this->editSceneNarration = '';
+        $this->editSceneDuration = 8;
+        $this->editSceneTransition = 'cut';
+    }
+
+    /**
+     * Save scene properties only (without regenerating image).
+     */
+    public function saveSceneProperties(): void
+    {
+        // Update script scene properties
+        if (isset($this->script['scenes'][$this->editPromptSceneIndex])) {
+            $this->script['scenes'][$this->editPromptSceneIndex]['narration'] = $this->editSceneNarration;
+            $this->script['scenes'][$this->editPromptSceneIndex]['duration'] = $this->editSceneDuration;
+            $this->script['scenes'][$this->editPromptSceneIndex]['transition'] = $this->editSceneTransition;
+
+            // Update visual description if provided
+            if (!empty($this->editPromptText)) {
+                $this->script['scenes'][$this->editPromptSceneIndex]['visualDescription'] = $this->editPromptText;
+            }
+        }
+
+        // Store the custom prompt in storyboard
+        if (!empty($this->editPromptText)) {
+            if (!isset($this->storyboard['scenes'])) {
+                $this->storyboard['scenes'] = [];
+            }
+            if (!isset($this->storyboard['scenes'][$this->editPromptSceneIndex])) {
+                $this->storyboard['scenes'][$this->editPromptSceneIndex] = [];
+            }
+            $this->storyboard['scenes'][$this->editPromptSceneIndex]['prompt'] = $this->editPromptText;
+        }
+
+        $this->saveProject();
+        $this->closeEditPrompt();
     }
 
     /**
@@ -2362,9 +2410,12 @@ class VideoWizard extends Component
             return;
         }
 
-        // Update the script scene's visual description
+        // First save all scene properties
         if (isset($this->script['scenes'][$this->editPromptSceneIndex])) {
             $this->script['scenes'][$this->editPromptSceneIndex]['visualDescription'] = $this->editPromptText;
+            $this->script['scenes'][$this->editPromptSceneIndex]['narration'] = $this->editSceneNarration;
+            $this->script['scenes'][$this->editPromptSceneIndex]['duration'] = $this->editSceneDuration;
+            $this->script['scenes'][$this->editPromptSceneIndex]['transition'] = $this->editSceneTransition;
         }
 
         // Store the custom prompt in storyboard
@@ -5036,6 +5087,121 @@ class VideoWizard extends Component
         } finally {
             $this->isLoading = false;
         }
+    }
+
+    // =========================================================================
+    // STYLE BIBLE REFERENCE IMAGE METHODS
+    // =========================================================================
+
+    /**
+     * Upload a reference image for Style Bible.
+     */
+    public function uploadStyleReference(): void
+    {
+        if (!$this->styleImageUpload) {
+            return;
+        }
+
+        $this->validate([
+            'styleImageUpload' => 'image|max:10240', // 10MB max
+        ]);
+
+        try {
+            // Generate unique filename
+            $filename = 'style_ref_' . uniqid() . '_' . time() . '.' . $this->styleImageUpload->getClientOriginalExtension();
+
+            // Store in public disk under wizard-assets
+            $path = $this->styleImageUpload->storeAs('wizard-assets/styles', $filename, 'public');
+
+            // Get the public URL
+            $url = \Storage::disk('public')->url($path);
+
+            // Update Style Bible with the uploaded image
+            $this->sceneMemory['styleBible']['referenceImage'] = $url;
+            $this->sceneMemory['styleBible']['referenceImageSource'] = 'upload';
+
+            // Clear the upload
+            $this->styleImageUpload = null;
+
+            $this->saveProject();
+        } catch (\Exception $e) {
+            $this->error = __('Failed to upload style reference: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Generate style reference image based on Style Bible settings.
+     */
+    public function generateStyleReference(): void
+    {
+        $styleBible = $this->sceneMemory['styleBible'] ?? [];
+
+        // Build prompt from style bible fields
+        $parts = [];
+        if (!empty($styleBible['style'])) {
+            $parts[] = $styleBible['style'];
+        }
+        if (!empty($styleBible['colorGrade'])) {
+            $parts[] = $styleBible['colorGrade'];
+        }
+        if (!empty($styleBible['atmosphere'])) {
+            $parts[] = $styleBible['atmosphere'];
+        }
+        if (!empty($styleBible['camera'])) {
+            $parts[] = $styleBible['camera'];
+        }
+        if (!empty($styleBible['visualDNA'])) {
+            $parts[] = $styleBible['visualDNA'];
+        }
+
+        if (empty($parts)) {
+            $this->error = __('Please fill in some style settings before generating a reference.');
+            return;
+        }
+
+        $this->isGeneratingStyleRef = true;
+        $this->error = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            // Build style reference prompt
+            $prompt = "Style reference, visual mood board, " . implode(', ', $parts);
+            $prompt .= ", cinematic, artistic composition, reference image";
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => 'style_ref_' . uniqid(),
+                        'visualDescription' => $prompt,
+                    ], [
+                        'model' => 'nanobanana-pro',
+                        'sceneIndex' => 'style_ref',
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->sceneMemory['styleBible']['referenceImage'] = $result['imageUrl'];
+                        $this->sceneMemory['styleBible']['referenceImageSource'] = 'ai';
+                        $this->saveProject();
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate style reference: ') . $e->getMessage();
+        } finally {
+            $this->isGeneratingStyleRef = false;
+        }
+    }
+
+    /**
+     * Remove style reference image.
+     */
+    public function removeStyleReference(): void
+    {
+        $this->sceneMemory['styleBible']['referenceImage'] = '';
+        $this->sceneMemory['styleBible']['referenceImageSource'] = '';
+        $this->saveProject();
     }
 
     // =========================================================================
