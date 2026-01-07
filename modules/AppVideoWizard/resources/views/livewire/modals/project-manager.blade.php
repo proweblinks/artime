@@ -104,6 +104,8 @@
                             $durationText = $duration >= 60
                                 ? floor($duration / 60) . 'm ' . ($duration % 60) . 's'
                                 : $duration . 's';
+                            $stepsCompleted = $project['stepsCompleted'] ?? 0;
+                            $stepLabels = ['Platform', 'Concept', 'Script', 'Storyboard', 'Animation', 'Assembly', 'Export'];
                         @endphp
                         <div class="vw-pm-card {{ $isCurrent ? 'vw-pm-card-current' : '' }}"
                              wire:key="project-{{ $project['id'] }}">
@@ -173,6 +175,21 @@
                                 </div>
                             </div>
 
+                            {{-- Step Progress --}}
+                            <div class="vw-pm-card-progress">
+                                <div class="vw-pm-card-progress-label">
+                                    <span>{{ __('Progress') }}</span>
+                                    <span>{{ $stepsCompleted }}/7</span>
+                                </div>
+                                <div class="vw-pm-card-progress-bar">
+                                    @for($i = 1; $i <= 7; $i++)
+                                        <div class="vw-pm-card-progress-step {{ $i <= $stepsCompleted ? 'completed' : '' }}"
+                                             title="{{ $stepLabels[$i - 1] ?? 'Step ' . $i }}">
+                                        </div>
+                                    @endfor
+                                </div>
+                            </div>
+
                             {{-- Card Actions --}}
                             <div class="vw-pm-card-actions">
                                 @if($isCurrent)
@@ -210,6 +227,39 @@
                         </div>
                     @endforeach
                 </div>
+
+                {{-- Pagination --}}
+                @php
+                    $totalPages = ceil($projectManagerTotal / $projectManagerPerPage);
+                @endphp
+                @if($totalPages > 1)
+                    <div class="vw-pm-pagination">
+                        <div class="vw-pm-pagination-info">
+                            {{ __('Showing') }} {{ (($projectManagerPage - 1) * $projectManagerPerPage) + 1 }}-{{ min($projectManagerPage * $projectManagerPerPage, $projectManagerTotal) }} {{ __('of') }} {{ $projectManagerTotal }}
+                        </div>
+                        <div class="vw-pm-pagination-controls">
+                            <button type="button"
+                                    class="vw-pm-pagination-btn"
+                                    wire:click="projectManagerPrevPage"
+                                    {{ $projectManagerPage <= 1 ? 'disabled' : '' }}>
+                                ←
+                            </button>
+                            @for($p = max(1, $projectManagerPage - 2); $p <= min($totalPages, $projectManagerPage + 2); $p++)
+                                <button type="button"
+                                        class="vw-pm-pagination-btn {{ $p === $projectManagerPage ? 'active' : '' }}"
+                                        wire:click="projectManagerGoToPage({{ $p }})">
+                                    {{ $p }}
+                                </button>
+                            @endfor
+                            <button type="button"
+                                    class="vw-pm-pagination-btn"
+                                    wire:click="projectManagerNextPage"
+                                    {{ $projectManagerPage >= $totalPages ? 'disabled' : '' }}>
+                                →
+                            </button>
+                        </div>
+                    </div>
+                @endif
             @endif
         </div>
 
@@ -703,6 +753,92 @@
 
 .vw-pm-card-meta-icon {
     font-size: 0.75rem;
+}
+
+/* Step Progress */
+.vw-pm-card-progress {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.vw-pm-card-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vw-pm-card-progress-bar {
+    display: flex;
+    gap: 3px;
+}
+
+.vw-pm-card-progress-step {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.vw-pm-card-progress-step.completed {
+    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+}
+
+/* Pagination */
+.vw-pm-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    margin-top: 1rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.vw-pm-pagination-info {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.vw-pm-pagination-controls {
+    display: flex;
+    gap: 0.375rem;
+}
+
+.vw-pm-pagination-btn {
+    min-width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 0.375rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vw-pm-pagination-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #fff;
+}
+
+.vw-pm-pagination-btn.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    border-color: transparent;
+    color: #fff;
+}
+
+.vw-pm-pagination-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .vw-pm-card-actions {
