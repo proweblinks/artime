@@ -799,23 +799,66 @@
                 </div>
             </div>
 
-            {{-- Technical Specs Section --}}
-            <div class="vw-section">
-                <div class="vw-section-header">
+            {{-- Technical Specs Section (Expandable) --}}
+            <div class="vw-section" x-data="{ specsOpen: false }">
+                <div class="vw-section-header" style="cursor: pointer;" @click="specsOpen = !specsOpen">
                     <div class="vw-section-label">
+                        <span style="transition: transform 0.2s;" :style="specsOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
                         <span>⚙️</span>
                         <span>{{ __('Technical Specs') }}</span>
                     </div>
-                </div>
-                <div class="vw-specs-row">
-                    <span class="vw-specs-label">{{ __('Output Quality') }}</span>
-                    <div class="vw-specs-value">
-                        <span class="vw-quality-badge">{{ __('4K quality') }}</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="vw-quality-badge">{{ $storyboard['technicalSpecs']['quality'] ?? '4K' }} {{ __('quality') }}</span>
                         <input type="checkbox"
                                class="vw-memory-checkbox"
                                wire:model.live="storyboard.technicalSpecs.enabled"
-                               title="{{ __('Enable 4K quality output') }}"
-                               checked>
+                               title="{{ __('Enable Technical Specs') }}"
+                               @click.stop>
+                    </div>
+                </div>
+
+                {{-- Expandable Content --}}
+                <div x-show="specsOpen" x-collapse style="margin-top: 0.75rem;">
+                    {{-- Output Quality --}}
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">{{ __('Output Quality') }}</label>
+                        <select class="vw-style-select" wire:model.live="storyboard.technicalSpecs.quality" style="max-width: 200px;">
+                            <option value="4k">{{ __('4K (3840×2160)') }}</option>
+                            <option value="2k">{{ __('2K (2560×1440)') }}</option>
+                            <option value="1080p">{{ __('1080p (1920×1080)') }}</option>
+                            <option value="720p">{{ __('720p (1280×720)') }}</option>
+                        </select>
+                    </div>
+
+                    {{-- Positive Prompts --}}
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
+                            ✅ {{ __('Positive Prompts') }}
+                            <span style="color: rgba(255,255,255,0.3); font-weight: normal;">({{ __('enhance quality') }})</span>
+                        </label>
+                        <textarea wire:model.live.debounce.500ms="storyboard.technicalSpecs.positive"
+                                  placeholder="{{ __('high quality, detailed, professional, 8K resolution, sharp focus, cinematic...') }}"
+                                  style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
+                    </div>
+
+                    {{-- Negative Prompts --}}
+                    <div style="margin-bottom: 0.5rem;">
+                        <label style="display: block; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
+                            ❌ {{ __('Negative Prompts') }}
+                            <span style="color: rgba(255,255,255,0.3); font-weight: normal;">({{ __('avoid these') }})</span>
+                        </label>
+                        <textarea wire:model.live.debounce.500ms="storyboard.technicalSpecs.negative"
+                                  placeholder="{{ __('blurry, low quality, ugly, distorted, watermark, text, logo, nsfw...') }}"
+                                  style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 0.5rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
+                    </div>
+
+                    {{-- Quick Presets --}}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">
+                        <span style="color: rgba(255,255,255,0.4); font-size: 0.65rem; margin-right: 0.25rem;">{{ __('Presets:') }}</span>
+                        <button type="button" wire:click="applyTechnicalSpecsPreset('cinematic')" style="padding: 0.2rem 0.5rem; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.25rem; color: #c4b5fd; font-size: 0.6rem; cursor: pointer;">🎬 {{ __('Cinematic') }}</button>
+                        <button type="button" wire:click="applyTechnicalSpecsPreset('photorealistic')" style="padding: 0.2rem 0.5rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); border-radius: 0.25rem; color: #67e8f9; font-size: 0.6rem; cursor: pointer;">📷 {{ __('Photorealistic') }}</button>
+                        <button type="button" wire:click="applyTechnicalSpecsPreset('artistic')" style="padding: 0.2rem 0.5rem; background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.3); border-radius: 0.25rem; color: #f472b6; font-size: 0.6rem; cursor: pointer;">🎨 {{ __('Artistic') }}</button>
+                        <button type="button" wire:click="applyTechnicalSpecsPreset('documentary')" style="padding: 0.2rem 0.5rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 0.25rem; color: #6ee7b7; font-size: 0.6rem; cursor: pointer;">📹 {{ __('Documentary') }}</button>
                     </div>
                 </div>
             </div>

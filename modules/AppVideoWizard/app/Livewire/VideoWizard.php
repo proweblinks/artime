@@ -2845,6 +2845,47 @@ class VideoWizard extends Component
     }
 
     /**
+     * Apply a technical specs preset for quick configuration.
+     */
+    public function applyTechnicalSpecsPreset(string $preset): void
+    {
+        $presets = [
+            'cinematic' => [
+                'quality' => '4k',
+                'positive' => 'cinematic, film grain, anamorphic lens, shallow depth of field, dramatic lighting, professional color grading, 8K resolution, HDR, masterpiece',
+                'negative' => 'blurry, low quality, amateur, oversaturated, cartoon, anime, illustration, watermark, text, logo, nsfw, deformed',
+            ],
+            'photorealistic' => [
+                'quality' => '4k',
+                'positive' => 'photorealistic, ultra detailed, DSLR photo, natural lighting, sharp focus, 8K UHD, professional photography, realistic textures, high resolution',
+                'negative' => 'cartoon, anime, illustration, 3D render, CGI, artificial, blurry, low quality, watermark, text, deformed, oversaturated',
+            ],
+            'artistic' => [
+                'quality' => '2k',
+                'positive' => 'artistic, stylized, vibrant colors, creative composition, expressive, beautiful artwork, detailed illustration, concept art quality',
+                'negative' => 'blurry, low quality, pixelated, watermark, text, logo, amateur, poorly drawn, ugly',
+            ],
+            'documentary' => [
+                'quality' => '4k',
+                'positive' => 'documentary style, authentic, natural, candid, observational, informative, real-world, high quality footage, professional',
+                'negative' => 'staged, artificial, cartoon, fantasy, blurry, low quality, watermark, text, logo, glamorous, stylized',
+            ],
+        ];
+
+        if (!isset($presets[$preset])) {
+            return;
+        }
+
+        $this->storyboard['technicalSpecs'] = array_merge(
+            $this->storyboard['technicalSpecs'],
+            $presets[$preset],
+            ['enabled' => true]
+        );
+
+        $this->saveProject();
+    }
+
+    /**
      * Build comprehensive prompt for a scene integrating all Bibles.
      *
      * Prompt Chain Architecture (5 Layers):
