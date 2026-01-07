@@ -529,12 +529,70 @@ return [
     | Scene transition configurations
     */
     'transitions' => [
-        'fade' => ['id' => 'fade', 'name' => 'Fade', 'duration' => 0.5],
-        'cut' => ['id' => 'cut', 'name' => 'Cut', 'duration' => 0],
-        'slide-left' => ['id' => 'slide-left', 'name' => 'Slide Left', 'duration' => 0.5],
-        'slide-right' => ['id' => 'slide-right', 'name' => 'Slide Right', 'duration' => 0.5],
-        'zoom-in' => ['id' => 'zoom-in', 'name' => 'Zoom In', 'duration' => 0.5],
-        'zoom-out' => ['id' => 'zoom-out', 'name' => 'Zoom Out', 'duration' => 0.5],
+        'cut' => ['id' => 'cut', 'name' => 'Cut', 'duration' => 0, 'icon' => '✂️'],
+        'fade' => ['id' => 'fade', 'name' => 'Fade', 'duration' => 0.5, 'icon' => '🌫️'],
+        'dissolve' => ['id' => 'dissolve', 'name' => 'Dissolve', 'duration' => 0.8, 'icon' => '💫'],
+        'wipe' => ['id' => 'wipe', 'name' => 'Wipe', 'duration' => 0.5, 'icon' => '➡️'],
+        'slide-left' => ['id' => 'slide-left', 'name' => 'Slide Left', 'duration' => 0.5, 'icon' => '⬅️'],
+        'slide-right' => ['id' => 'slide-right', 'name' => 'Slide Right', 'duration' => 0.5, 'icon' => '➡️'],
+        'zoom-in' => ['id' => 'zoom-in', 'name' => 'Zoom In', 'duration' => 0.5, 'icon' => '🔍'],
+        'zoom-out' => ['id' => 'zoom-out', 'name' => 'Zoom Out', 'duration' => 0.5, 'icon' => '🔎'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Narration Styles
+    |--------------------------------------------------------------------------
+    | Character Intelligence narration style configurations
+    */
+    'narration_styles' => [
+        'voiceover' => [
+            'id' => 'voiceover',
+            'name' => 'Voiceover',
+            'icon' => '🎙️',
+            'description' => 'Narrator speaks over visuals',
+            'requiresVoice' => true,
+            'requiresCharacters' => false,
+        ],
+        'dialogue' => [
+            'id' => 'dialogue',
+            'name' => 'Dialogue',
+            'icon' => '💬',
+            'description' => 'Characters speak to each other',
+            'requiresVoice' => true,
+            'requiresCharacters' => true,
+        ],
+        'narrator' => [
+            'id' => 'narrator',
+            'name' => 'Narrator',
+            'icon' => '📖',
+            'description' => 'Third-person storytelling voice',
+            'requiresVoice' => true,
+            'requiresCharacters' => false,
+        ],
+        'none' => [
+            'id' => 'none',
+            'name' => 'No Voice',
+            'icon' => '🔇',
+            'description' => 'Music/ambient only - no spoken words',
+            'requiresVoice' => false,
+            'requiresCharacters' => false,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Voice Options
+    |--------------------------------------------------------------------------
+    | Available voices for voiceover generation
+    */
+    'voices' => [
+        'alloy' => ['id' => 'alloy', 'name' => 'Alloy', 'gender' => 'neutral', 'style' => 'versatile', 'icon' => '🎭'],
+        'echo' => ['id' => 'echo', 'name' => 'Echo', 'gender' => 'male', 'style' => 'warm', 'icon' => '🎤'],
+        'fable' => ['id' => 'fable', 'name' => 'Fable', 'gender' => 'neutral', 'style' => 'storytelling', 'icon' => '📚'],
+        'onyx' => ['id' => 'onyx', 'name' => 'Onyx', 'gender' => 'male', 'style' => 'deep', 'icon' => '🎵'],
+        'nova' => ['id' => 'nova', 'name' => 'Nova', 'gender' => 'female', 'style' => 'friendly', 'icon' => '✨'],
+        'shimmer' => ['id' => 'shimmer', 'name' => 'Shimmer', 'gender' => 'female', 'style' => 'bright', 'icon' => '💫'],
     ],
 
     /*

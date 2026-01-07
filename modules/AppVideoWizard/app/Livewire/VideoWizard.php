@@ -42,12 +42,33 @@ class VideoWizard extends Component
         'targetAudience' => '',
     ];
 
+    // Step 2: Character Intelligence (affects script generation)
+    public array $characterIntelligence = [
+        'enabled' => true,
+        'narrationStyle' => 'voiceover', // voiceover, dialogue, narrator, none
+        'characterCount' => 4,
+        'suggestedCount' => 4,
+        'characters' => [], // Will be populated after script generation
+    ];
+
     // Step 3: Script
     public array $script = [
         'title' => '',
         'hook' => '',
         'scenes' => [],
         'cta' => '',
+        'totalDuration' => 0,
+        'totalNarrationTime' => 0,
+    ];
+
+    // Step 3: Voice & Dialogue Status
+    public array $voiceStatus = [
+        'dialogueLines' => 0,
+        'speakers' => 0,
+        'voicesMapped' => 0,
+        'scenesWithDialogue' => 0,
+        'scenesWithVoiceover' => 0,
+        'pendingVoices' => 0,
     ];
 
     // Step 4: Storyboard
@@ -665,6 +686,451 @@ class VideoWizard extends Component
     {
         $this->script = array_merge($this->script, $scriptData);
         $this->saveProject();
+    }
+
+    /**
+     * Toggle "Music only" (no voiceover) for a scene.
+     */
+    public function toggleSceneMusicOnly(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $currentValue = $this->script['scenes'][$sceneIndex]['voiceover']['enabled'] ?? true;
+        $this->script['scenes'][$sceneIndex]['voiceover']['enabled'] = !$currentValue;
+
+        $this->recalculateVoiceStatus();
+        $this->saveProject();
+    }
+
+    /**
+     * Update scene duration.
+     */
+    public function updateSceneDuration(int $sceneIndex, int $duration): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->script['scenes'][$sceneIndex]['duration'] = max(1, min(300, $duration));
+        $this->recalculateScriptTotals();
+        $this->saveProject();
+    }
+
+    /**
+     * Update scene transition.
+     */
+    public function updateSceneTransition(int $sceneIndex, string $transition): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $validTransitions = array_keys(config('appvideowizard.transitions', []));
+        if (!in_array($transition, $validTransitions)) {
+            $transition = 'cut';
+        }
+
+        $this->script['scenes'][$sceneIndex]['transition'] = $transition;
+        $this->saveProject();
+    }
+
+    /**
+     * Update scene visual prompt.
+     */
+    public function updateSceneVisualPrompt(int $sceneIndex, string $prompt): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->script['scenes'][$sceneIndex]['visualPrompt'] = $prompt;
+        $this->saveProject();
+    }
+
+    /**
+     * Update scene narration text.
+     */
+    public function updateSceneNarration(int $sceneIndex, string $narration): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->script['scenes'][$sceneIndex]['narration'] = $narration;
+        $this->recalculateScriptTotals();
+        $this->saveProject();
+    }
+
+    /**
+     * Update scene voiceover text.
+     */
+    public function updateSceneVoiceover(int $sceneIndex, string $text): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        if (!isset($this->script['scenes'][$sceneIndex]['voiceover'])) {
+            $this->script['scenes'][$sceneIndex]['voiceover'] = [
+                'enabled' => true,
+                'text' => '',
+                'voiceId' => null,
+                'status' => 'pending',
+            ];
+        }
+
+        $this->script['scenes'][$sceneIndex]['voiceover']['text'] = $text;
+        $this->recalculateVoiceStatus();
+        $this->saveProject();
+    }
+
+    /**
+     * Regenerate a single scene.
+     */
+    public function regenerateScene(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $project = WizardProject::findOrFail($this->projectId);
+            $scriptService = app(ScriptGenerationService::class);
+
+            $regeneratedScene = $scriptService->regenerateScene($project, $sceneIndex, [
+                'teamId' => session('current_team_id', 0),
+                'tone' => $this->scriptTone,
+                'contentDepth' => $this->contentDepth,
+                'existingScene' => $this->script['scenes'][$sceneIndex],
+            ]);
+
+            if ($regeneratedScene) {
+                // Preserve certain fields from the original scene
+                $regeneratedScene['id'] = $this->script['scenes'][$sceneIndex]['id'];
+                $regeneratedScene['transition'] = $this->script['scenes'][$sceneIndex]['transition'] ?? 'cut';
+
+                $this->script['scenes'][$sceneIndex] = $regeneratedScene;
+                $this->recalculateScriptTotals();
+                $this->recalculateVoiceStatus();
+                $this->saveProject();
+
+                $this->dispatch('scene-regenerated', ['sceneIndex' => $sceneIndex]);
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to regenerate scene: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Reorder a scene (move up or down).
+     */
+    public function reorderScene(int $sceneIndex, string $direction): void
+    {
+        $scenes = $this->script['scenes'] ?? [];
+        $sceneCount = count($scenes);
+
+        if ($sceneIndex < 0 || $sceneIndex >= $sceneCount) {
+            return;
+        }
+
+        $newIndex = $direction === 'up' ? $sceneIndex - 1 : $sceneIndex + 1;
+
+        if ($newIndex < 0 || $newIndex >= $sceneCount) {
+            return;
+        }
+
+        // Swap scenes
+        $temp = $scenes[$sceneIndex];
+        $scenes[$sceneIndex] = $scenes[$newIndex];
+        $scenes[$newIndex] = $temp;
+
+        // Reindex array
+        $this->script['scenes'] = array_values($scenes);
+        $this->saveProject();
+
+        $this->dispatch('scenes-reordered');
+    }
+
+    /**
+     * Delete a scene.
+     */
+    public function deleteScene(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        // Don't allow deleting the last scene
+        if (count($this->script['scenes']) <= 1) {
+            $this->error = __('Cannot delete the last scene.');
+            return;
+        }
+
+        // Remove the scene
+        array_splice($this->script['scenes'], $sceneIndex, 1);
+
+        // Also remove corresponding storyboard scene if exists
+        if (isset($this->storyboard['scenes'][$sceneIndex])) {
+            array_splice($this->storyboard['scenes'], $sceneIndex, 1);
+        }
+
+        $this->recalculateScriptTotals();
+        $this->recalculateVoiceStatus();
+        $this->saveProject();
+
+        $this->dispatch('scene-deleted', ['sceneIndex' => $sceneIndex]);
+    }
+
+    /**
+     * Add a new scene.
+     */
+    public function addScene(): void
+    {
+        $sceneCount = count($this->script['scenes'] ?? []);
+        $newSceneId = 'scene_' . ($sceneCount + 1) . '_' . time();
+
+        $newScene = [
+            'id' => $newSceneId,
+            'title' => __('Scene') . ' ' . ($sceneCount + 1),
+            'narration' => '',
+            'visualDescription' => '',
+            'visualPrompt' => '',
+            'voiceover' => [
+                'enabled' => true,
+                'text' => '',
+                'voiceId' => null,
+                'status' => 'pending',
+            ],
+            'duration' => 15,
+            'transition' => 'cut',
+            'mood' => 'neutral',
+            'status' => 'draft',
+        ];
+
+        $this->script['scenes'][] = $newScene;
+        $this->recalculateScriptTotals();
+        $this->recalculateVoiceStatus();
+        $this->saveProject();
+
+        $this->dispatch('scene-added', ['sceneIndex' => $sceneCount]);
+    }
+
+    /**
+     * Generate visual prompt for a scene using AI.
+     */
+    public function generateVisualPrompt(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $scene = $this->script['scenes'][$sceneIndex];
+        $narration = $scene['narration'] ?? '';
+
+        if (empty($narration)) {
+            $this->error = __('Scene has no narration to generate visual prompt from.');
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $scriptService = app(ScriptGenerationService::class);
+
+            $visualPrompt = $scriptService->generateVisualPromptForScene(
+                $narration,
+                $this->concept,
+                [
+                    'mood' => $scene['mood'] ?? $this->concept['suggestedMood'] ?? 'cinematic',
+                    'style' => $this->concept['styleReference'] ?? '',
+                    'productionType' => $this->productionType,
+                    'aspectRatio' => $this->aspectRatio,
+                ]
+            );
+
+            $this->script['scenes'][$sceneIndex]['visualPrompt'] = $visualPrompt;
+            $this->saveProject();
+
+            $this->dispatch('visual-prompt-generated', ['sceneIndex' => $sceneIndex]);
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate visual prompt: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate voiceover text for a scene using AI.
+     */
+    public function generateVoiceoverText(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $scene = $this->script['scenes'][$sceneIndex];
+        $narration = $scene['narration'] ?? '';
+
+        if (empty($narration)) {
+            // Use narration as voiceover text if no separate voiceover needed
+            $this->script['scenes'][$sceneIndex]['voiceover']['text'] = $narration;
+            $this->saveProject();
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $scriptService = app(ScriptGenerationService::class);
+
+            $voiceoverText = $scriptService->generateVoiceoverForScene(
+                $narration,
+                $this->concept,
+                [
+                    'narrationStyle' => $this->characterIntelligence['narrationStyle'] ?? 'voiceover',
+                    'tone' => $this->scriptTone,
+                ]
+            );
+
+            $this->script['scenes'][$sceneIndex]['voiceover']['text'] = $voiceoverText;
+            $this->recalculateVoiceStatus();
+            $this->saveProject();
+
+            $this->dispatch('voiceover-text-generated', ['sceneIndex' => $sceneIndex]);
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate voiceover text: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Recalculate script totals (duration, narration time).
+     */
+    protected function recalculateScriptTotals(): void
+    {
+        $totalDuration = 0;
+        $totalNarrationTime = 0;
+
+        foreach ($this->script['scenes'] ?? [] as $scene) {
+            $totalDuration += $scene['duration'] ?? 15;
+
+            // Estimate narration time based on word count (150 words/minute)
+            $narration = $scene['narration'] ?? '';
+            $wordCount = str_word_count($narration);
+            $totalNarrationTime += ($wordCount / 150) * 60;
+        }
+
+        $this->script['totalDuration'] = $totalDuration;
+        $this->script['totalNarrationTime'] = round($totalNarrationTime, 1);
+    }
+
+    /**
+     * Recalculate voice status from script scenes.
+     */
+    protected function recalculateVoiceStatus(): void
+    {
+        $dialogueLines = 0;
+        $speakers = [];
+        $voicesMapped = 0;
+        $scenesWithDialogue = 0;
+        $scenesWithVoiceover = 0;
+        $pendingVoices = 0;
+
+        foreach ($this->script['scenes'] ?? [] as $scene) {
+            $voiceover = $scene['voiceover'] ?? [];
+
+            if ($voiceover['enabled'] ?? true) {
+                $scenesWithVoiceover++;
+
+                if (!empty($voiceover['text'])) {
+                    $dialogueLines++;
+
+                    if (!empty($voiceover['voiceId'])) {
+                        $voicesMapped++;
+                    } else {
+                        $pendingVoices++;
+                    }
+                } else {
+                    $pendingVoices++;
+                }
+            }
+
+            // Count speakers from dialogue (if narrationStyle is dialogue)
+            if ($this->characterIntelligence['narrationStyle'] === 'dialogue') {
+                // Extract speaker names from narration (format: "SPEAKER: text")
+                $narration = $scene['narration'] ?? '';
+                if (preg_match_all('/^([A-Z][A-Z\s]+):/m', $narration, $matches)) {
+                    foreach ($matches[1] as $speaker) {
+                        $speakers[trim($speaker)] = true;
+                        $dialogueLines++;
+                    }
+                    $scenesWithDialogue++;
+                }
+            }
+        }
+
+        $this->voiceStatus = [
+            'dialogueLines' => $dialogueLines,
+            'speakers' => count($speakers),
+            'voicesMapped' => $voicesMapped,
+            'scenesWithDialogue' => $scenesWithDialogue,
+            'scenesWithVoiceover' => $scenesWithVoiceover,
+            'pendingVoices' => $pendingVoices,
+        ];
+    }
+
+    /**
+     * Update Character Intelligence settings.
+     */
+    public function updateCharacterIntelligence(string $field, $value): void
+    {
+        if (in_array($field, ['enabled', 'narrationStyle', 'characterCount'])) {
+            $this->characterIntelligence[$field] = $value;
+
+            // Recalculate suggested character count based on production type
+            if ($field === 'narrationStyle' || $field === 'enabled') {
+                $this->characterIntelligence['suggestedCount'] = $this->calculateSuggestedCharacterCount();
+            }
+
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Calculate suggested character count based on production type and narration style.
+     */
+    protected function calculateSuggestedCharacterCount(): int
+    {
+        $narrationStyle = $this->characterIntelligence['narrationStyle'] ?? 'voiceover';
+
+        // No characters needed for voiceover or none
+        if (in_array($narrationStyle, ['voiceover', 'narrator', 'none'])) {
+            return 0;
+        }
+
+        // For dialogue, suggest based on production type
+        $productionType = $this->productionType ?? 'social';
+
+        return match ($productionType) {
+            'movie' => 4,
+            'series' => 5,
+            'commercial' => 2,
+            'educational' => 1,
+            default => 2,
+        };
     }
 
     /**
