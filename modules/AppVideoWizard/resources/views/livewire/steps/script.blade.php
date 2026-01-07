@@ -496,15 +496,20 @@
         background: rgba(139, 92, 246, 0.1) !important;
     }
 
-    /* Full Script Modal */
+    /* Full Script Modal - hidden by default */
     .vw-full-script-modal {
         position: fixed !important;
         inset: 0 !important;
         z-index: 100 !important;
-        display: flex !important;
+        display: none !important; /* Hidden by default */
         align-items: center !important;
         justify-content: center !important;
         padding: 2rem !important;
+    }
+
+    /* Only show when .is-open class is added by Alpine */
+    .vw-full-script-modal.is-open {
+        display: flex !important;
     }
 
     .vw-full-script-overlay {
@@ -1116,9 +1121,20 @@
             }
 
             // Safety net: ensure script fields are strings even if sanitization didn't run
-            $safeScriptTitle = is_string($script['title'] ?? null) ? $script['title'] : __('Your Script');
-            $safeHook = is_string($script['hook'] ?? null) ? $script['hook'] : '';
-            $safeCta = is_string($script['cta'] ?? null) ? $script['cta'] : '';
+            $rawScriptTitle = $script['title'] ?? null;
+            if (is_array($rawScriptTitle)) $rawScriptTitle = reset($rawScriptTitle) ?: null;
+            if (is_array($rawScriptTitle)) $rawScriptTitle = reset($rawScriptTitle) ?: null;
+            $safeScriptTitle = is_string($rawScriptTitle) ? $rawScriptTitle : __('Your Script');
+
+            $rawHook = $script['hook'] ?? null;
+            if (is_array($rawHook)) $rawHook = reset($rawHook) ?: null;
+            if (is_array($rawHook)) $rawHook = reset($rawHook) ?: null;
+            $safeHook = is_string($rawHook) ? $rawHook : '';
+
+            $rawCta = $script['cta'] ?? null;
+            if (is_array($rawCta)) $rawCta = reset($rawCta) ?: null;
+            if (is_array($rawCta)) $rawCta = reset($rawCta) ?: null;
+            $safeCta = is_string($rawCta) ? $rawCta : '';
         @endphp
 
         <div class="vw-script-card vw-script-results">
@@ -1435,14 +1451,14 @@
              @keydown.escape.window="showFullScript = false">
             <template x-teleport="body">
                 <div x-show="showFullScript"
+                     :class="{ 'is-open': showFullScript }"
                      x-transition:enter="transition ease-out duration-200"
                      x-transition:enter-start="opacity-0"
                      x-transition:enter-end="opacity-100"
                      x-transition:leave="transition ease-in duration-150"
                      x-transition:leave-start="opacity-100"
                      x-transition:leave-end="opacity-0"
-                     class="vw-full-script-modal"
-                     style="display: none;">
+                     class="vw-full-script-modal">
                     <div class="vw-full-script-overlay" @click="showFullScript = false"></div>
                     <div class="vw-full-script-content"
                          x-transition:enter="transition ease-out duration-200"
@@ -1467,9 +1483,16 @@
 
                             @foreach($script['scenes'] as $index => $scene)
                                 @php
-                                    // Safety net for modal scene display
-                                    $modalSceneTitle = is_string($scene['title'] ?? null) ? $scene['title'] : '';
-                                    $modalSceneNarration = is_string($scene['narration'] ?? null) ? $scene['narration'] : '';
+                                    // Safety net for modal scene display - handle nested arrays
+                                    $rawModalTitle = $scene['title'] ?? null;
+                                    if (is_array($rawModalTitle)) $rawModalTitle = reset($rawModalTitle) ?: null;
+                                    if (is_array($rawModalTitle)) $rawModalTitle = reset($rawModalTitle) ?: null;
+                                    $modalSceneTitle = is_string($rawModalTitle) ? $rawModalTitle : ('Scene ' . ($index + 1));
+
+                                    $rawModalNarr = $scene['narration'] ?? null;
+                                    if (is_array($rawModalNarr)) $rawModalNarr = reset($rawModalNarr) ?: null;
+                                    if (is_array($rawModalNarr)) $rawModalNarr = reset($rawModalNarr) ?: null;
+                                    $modalSceneNarration = is_string($rawModalNarr) ? $rawModalNarr : '';
                                 @endphp
                                 <strong style="color: #c4b5fd;">{{ __('SCENE') }} {{ $index + 1 }}: {{ $modalSceneTitle }}</strong>
                                 <br>{{ $modalSceneNarration }}

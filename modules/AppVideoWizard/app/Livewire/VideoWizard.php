@@ -478,8 +478,14 @@ class VideoWizard extends Component
 
         // Can only go to steps we've reached or the next step
         if ($step <= $this->maxReachedStep + 1) {
+            $previousStep = $this->currentStep;
             $this->currentStep = $step;
             $this->maxReachedStep = max($this->maxReachedStep, $step);
+
+            // Step Transition Hook: Auto-populate Scene Memory when entering Storyboard (step 4)
+            if ($step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
+                $this->autoPopulateSceneMemory();
+            }
 
             // Only save if user is authenticated
             if (auth()->check()) {
@@ -3416,6 +3422,532 @@ class VideoWizard extends Component
             );
             $this->saveProject();
         }
+    }
+
+    // =========================================================================
+    // STEP TRANSITION HOOK - AUTO-POPULATE SCENE MEMORY
+    // =========================================================================
+
+    /**
+     * Auto-populate Scene Memory when entering Storyboard step.
+     * This applies information from the Script step to Character Bible, Location Bible, and Style Bible.
+     */
+    protected function autoPopulateSceneMemory(): void
+    {
+        // Skip if already has characters or locations (don't override user edits)
+        $hasExistingCharacters = !empty($this->sceneMemory['characterBible']['characters']);
+        $hasExistingLocations = !empty($this->sceneMemory['locationBible']['locations']);
+        $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
+
+        // 1. Auto-populate Style Bible based on production type (if not already set)
+        if (!$hasExistingStyle) {
+            $this->autoPopulateStyleBible();
+        }
+
+        // 2. Auto-detect characters from script (if none exist)
+        if (!$hasExistingCharacters) {
+            $this->autoDetectCharactersFromScript();
+        }
+
+        // 3. Auto-detect locations from script (if none exist)
+        if (!$hasExistingLocations) {
+            $this->autoDetectLocationsFromScript();
+        }
+
+        // Dispatch event to notify UI
+        $this->dispatch('scene-memory-populated', [
+            'characters' => count($this->sceneMemory['characterBible']['characters']),
+            'locations' => count($this->sceneMemory['locationBible']['locations']),
+            'styleBibleEnabled' => $this->sceneMemory['styleBible']['enabled'],
+        ]);
+    }
+
+    /**
+     * Auto-populate Style Bible based on production type.
+     */
+    protected function autoPopulateStyleBible(): void
+    {
+        $styleDefaults = $this->getStyleBibleDefaultsForProductionType();
+
+        if (!empty($styleDefaults)) {
+            $this->sceneMemory['styleBible'] = array_merge(
+                $this->sceneMemory['styleBible'],
+                $styleDefaults,
+                ['enabled' => true]
+            );
+        }
+    }
+
+    /**
+     * Get Style Bible defaults based on production type.
+     */
+    protected function getStyleBibleDefaultsForProductionType(): array
+    {
+        $productionType = $this->productionType ?? '';
+        $productionSubtype = $this->productionSubtype ?? '';
+
+        $defaults = [
+            'commercial' => [
+                'style' => 'Professional commercial style, clean visuals, product-focused',
+                'colorGrade' => 'Bright, vibrant colors, commercial quality',
+                'atmosphere' => 'Upbeat, modern, engaging atmosphere',
+                'visualDNA' => 'High-end commercial production, Madison Avenue quality',
+            ],
+            'social_media' => [
+                'style' => 'Dynamic social media style, eye-catching, trend-focused',
+                'colorGrade' => 'High contrast, saturated colors, mobile-optimized',
+                'atmosphere' => 'Energetic, engaging, scroll-stopping',
+                'visualDNA' => 'Viral content quality, platform-native aesthetic',
+            ],
+            'educational' => [
+                'style' => 'Clear educational style, informative visuals',
+                'colorGrade' => 'Neutral colors, good contrast for readability',
+                'atmosphere' => 'Professional, trustworthy, accessible',
+                'visualDNA' => 'Documentary quality, educational content standard',
+            ],
+            'entertainment' => [
+                'style' => 'Cinematic entertainment style, dramatic visuals',
+                'colorGrade' => 'Film-quality color grading, Hollywood look',
+                'atmosphere' => 'Immersive, engaging, theatrical',
+                'visualDNA' => 'Netflix quality, premium streaming standard',
+            ],
+            'corporate' => [
+                'style' => 'Professional corporate style, polished visuals',
+                'colorGrade' => 'Clean, professional color palette, brand-aligned',
+                'atmosphere' => 'Trustworthy, sophisticated, business-appropriate',
+                'visualDNA' => 'Fortune 500 quality, executive presentation standard',
+            ],
+            'music_video' => [
+                'style' => 'Creative music video style, artistic visuals',
+                'colorGrade' => 'Bold color choices, artistic grading',
+                'atmosphere' => 'Rhythmic, expressive, genre-appropriate',
+                'visualDNA' => 'MTV quality, artistic music visual standard',
+            ],
+            'documentary' => [
+                'style' => 'Documentary style, authentic visuals, journalistic',
+                'colorGrade' => 'Natural color grading, realistic tones',
+                'atmosphere' => 'Authentic, immersive, story-driven',
+                'visualDNA' => 'HBO Documentary quality, cinéma vérité standard',
+            ],
+            'animation' => [
+                'style' => 'Animated style, stylized visuals, character-driven',
+                'colorGrade' => 'Vibrant animation colors, stylized palette',
+                'atmosphere' => 'Whimsical, expressive, visually dynamic',
+                'visualDNA' => 'Pixar quality, premium animation standard',
+            ],
+        ];
+
+        // Check for subtype-specific overrides
+        $subtypeDefaults = [
+            'action' => [
+                'style' => 'High-energy action style, dynamic camera work',
+                'colorGrade' => 'Desaturated with punchy highlights, action movie look',
+                'atmosphere' => 'Intense, adrenaline-pumping, explosive',
+            ],
+            'comedy' => [
+                'style' => 'Bright comedy style, well-lit, inviting',
+                'colorGrade' => 'Warm, friendly colors, sitcom aesthetic',
+                'atmosphere' => 'Light-hearted, fun, accessible',
+            ],
+            'drama' => [
+                'style' => 'Dramatic cinematic style, emotional lighting',
+                'colorGrade' => 'Rich, moody color grading, prestige TV look',
+                'atmosphere' => 'Emotional, immersive, character-focused',
+            ],
+            'horror' => [
+                'style' => 'Dark horror style, unsettling visuals',
+                'colorGrade' => 'Desaturated, cold tones, high contrast shadows',
+                'atmosphere' => 'Tense, unsettling, atmospheric dread',
+            ],
+            'sci-fi' => [
+                'style' => 'Futuristic sci-fi style, high-tech visuals',
+                'colorGrade' => 'Cool blues and teals, neon accents, tech aesthetic',
+                'atmosphere' => 'Futuristic, immersive, technologically advanced',
+            ],
+            'fantasy' => [
+                'style' => 'Epic fantasy style, magical visuals',
+                'colorGrade' => 'Rich saturated colors, ethereal tones',
+                'atmosphere' => 'Magical, epic, otherworldly',
+            ],
+        ];
+
+        // Start with production type defaults
+        $result = $defaults[$productionType] ?? [];
+
+        // Merge subtype overrides if available
+        if ($productionSubtype && isset($subtypeDefaults[$productionSubtype])) {
+            $result = array_merge($result, $subtypeDefaults[$productionSubtype]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Auto-detect characters from script content (enhanced version).
+     * Analyzes narration and visual descriptions to identify potential characters.
+     */
+    protected function autoDetectCharactersFromScript(): void
+    {
+        $detectedCharacters = [];
+        $characterScenes = []; // Track which scenes each character appears in
+
+        // Common character indicators
+        $characterPatterns = [
+            // Named roles
+            '/\b(the\s+)?(protagonist|hero|heroine|narrator|speaker|presenter|host|expert|customer|client|user|employee|manager|CEO|founder|leader|teacher|student|doctor|nurse|chef|artist)\b/i',
+            // Personal pronouns with context (he, she, they followed by verbs)
+            '/\b(he|she|they)\s+(is|are|was|were|walks?|runs?|speaks?|says?|looks?|stands?|sits?)\b/i',
+            // A/The person descriptions
+            '/\b(a|the)\s+(young|old|middle-aged|professional|business|confident|mysterious|elegant)\s+(man|woman|person|figure|individual)\b/i',
+            // Proper names (capitalized words that could be names)
+            '/\b([A-Z][a-z]+)\s+(says?|speaks?|walks?|looks?|appears?|enters?|exits?|stands?)\b/',
+        ];
+
+        foreach ($this->script['scenes'] as $sceneIndex => $scene) {
+            $sceneText = '';
+
+            // Combine all text sources
+            if (!empty($scene['narration'])) {
+                $sceneText .= ' ' . $scene['narration'];
+            }
+            if (!empty($scene['visualDescription'])) {
+                $sceneText .= ' ' . $scene['visualDescription'];
+            }
+            if (!empty($scene['visual'])) {
+                $sceneText .= ' ' . $scene['visual'];
+            }
+
+            // Check for dialogue speakers
+            if (isset($scene['dialogue']) && is_array($scene['dialogue'])) {
+                foreach ($scene['dialogue'] as $dialogue) {
+                    $speaker = $dialogue['speaker'] ?? null;
+                    if ($speaker) {
+                        $normalizedName = ucfirst(strtolower(trim($speaker)));
+                        if (!isset($detectedCharacters[$normalizedName])) {
+                            $detectedCharacters[$normalizedName] = [
+                                'name' => $normalizedName,
+                                'description' => '',
+                                'source' => 'dialogue',
+                            ];
+                            $characterScenes[$normalizedName] = [];
+                        }
+                        if (!in_array($sceneIndex, $characterScenes[$normalizedName])) {
+                            $characterScenes[$normalizedName][] = $sceneIndex;
+                        }
+                    }
+                }
+            }
+
+            // Detect characters from text patterns
+            foreach ($characterPatterns as $pattern) {
+                if (preg_match_all($pattern, $sceneText, $matches, PREG_SET_ORDER)) {
+                    foreach ($matches as $match) {
+                        $characterName = $this->normalizeCharacterName($match[0]);
+                        if ($characterName && strlen($characterName) > 2) {
+                            if (!isset($detectedCharacters[$characterName])) {
+                                $detectedCharacters[$characterName] = [
+                                    'name' => $characterName,
+                                    'description' => $this->inferCharacterDescription($sceneText, $characterName),
+                                    'source' => 'pattern',
+                                ];
+                                $characterScenes[$characterName] = [];
+                            }
+                            if (!in_array($sceneIndex, $characterScenes[$characterName])) {
+                                $characterScenes[$characterName][] = $sceneIndex;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add detected characters to Character Bible
+        foreach ($detectedCharacters as $name => $data) {
+            // Check if already exists
+            $exists = collect($this->sceneMemory['characterBible']['characters'])
+                ->where('name', $name)
+                ->isNotEmpty();
+
+            if (!$exists) {
+                $this->sceneMemory['characterBible']['characters'][] = [
+                    'id' => uniqid('char_'),
+                    'name' => $data['name'],
+                    'description' => $data['description'],
+                    'appliedScenes' => $characterScenes[$name] ?? [],
+                    'referenceImage' => null,
+                    'autoDetected' => true,
+                ];
+            }
+        }
+
+        // Enable Character Bible if we detected any characters
+        if (!empty($detectedCharacters)) {
+            $this->sceneMemory['characterBible']['enabled'] = true;
+        }
+    }
+
+    /**
+     * Normalize character name from pattern match.
+     */
+    protected function normalizeCharacterName(string $match): ?string
+    {
+        // Remove articles and clean up
+        $name = preg_replace('/^(the|a|an)\s+/i', '', trim($match));
+        $name = preg_replace('/\s+(says?|speaks?|walks?|looks?|appears?|enters?|exits?|stands?|sits?|is|are|was|were|runs?).*$/i', '', $name);
+        $name = trim($name);
+
+        // Capitalize properly
+        $name = ucwords(strtolower($name));
+
+        // Skip if too short or just a pronoun
+        $skipWords = ['he', 'she', 'they', 'it', 'we', 'you', 'i'];
+        if (strlen($name) < 3 || in_array(strtolower($name), $skipWords)) {
+            return null;
+        }
+
+        return $name;
+    }
+
+    /**
+     * Infer character description from context.
+     */
+    protected function inferCharacterDescription(string $text, string $characterName): string
+    {
+        // Look for descriptive phrases near the character name
+        $patterns = [
+            '/\b' . preg_quote($characterName, '/') . '\s*,?\s*(a\s+)?([\w\s]+(?:man|woman|person|figure))/i',
+            '/\b([\w\s]+(?:man|woman|person))\s+(?:named|called)\s+' . preg_quote($characterName, '/') . '/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $match)) {
+                return ucfirst(trim($match[0]));
+            }
+        }
+
+        return ''; // Return empty if no description found
+    }
+
+    /**
+     * Auto-detect locations from script (enhanced version with pattern matching).
+     * Uses visual descriptions to infer location types, time of day, and weather.
+     */
+    protected function autoDetectLocationsFromScript(): void
+    {
+        $locationMap = [];
+
+        foreach ($this->script['scenes'] as $sceneIndex => $scene) {
+            $visual = $scene['visualDescription'] ?? $scene['visual'] ?? '';
+            $narration = $scene['narration'] ?? '';
+            $fullText = $visual . ' ' . $narration;
+
+            if (empty(trim($fullText))) {
+                continue;
+            }
+
+            // Infer location from visual description
+            $locationName = $this->inferLocationFromVisual($fullText);
+            $normalizedName = strtolower(trim($locationName));
+
+            if ($locationName && $locationName !== 'Unknown') {
+                if (!isset($locationMap[$normalizedName])) {
+                    $locationMap[$normalizedName] = [
+                        'name' => $locationName,
+                        'type' => $this->inferLocationType($fullText),
+                        'timeOfDay' => $this->inferTimeOfDay($fullText),
+                        'weather' => $this->inferWeather($fullText),
+                        'description' => $this->extractLocationDescription($visual),
+                        'scenes' => [],
+                    ];
+                }
+                $locationMap[$normalizedName]['scenes'][] = $sceneIndex;
+            }
+        }
+
+        // Add detected locations to Location Bible
+        foreach ($locationMap as $normalizedName => $data) {
+            // Check if already exists
+            $exists = collect($this->sceneMemory['locationBible']['locations'])
+                ->filter(fn($loc) => strtolower($loc['name'] ?? '') === $normalizedName)
+                ->isNotEmpty();
+
+            if (!$exists) {
+                $this->sceneMemory['locationBible']['locations'][] = [
+                    'id' => uniqid('loc_'),
+                    'name' => $data['name'],
+                    'type' => $data['type'],
+                    'timeOfDay' => $data['timeOfDay'],
+                    'weather' => $data['weather'],
+                    'description' => $data['description'],
+                    'scenes' => $data['scenes'],
+                    'referenceImage' => null,
+                    'autoDetected' => true,
+                ];
+            }
+        }
+
+        // Enable Location Bible if we detected any locations
+        if (!empty($locationMap)) {
+            $this->sceneMemory['locationBible']['enabled'] = true;
+        }
+    }
+
+    /**
+     * Infer location name from visual description using pattern matching.
+     * Based on the original video-creation-wizard LOCATION_BIBLE_GENERATOR.inferLocationFromVisual
+     */
+    protected function inferLocationFromVisual(string $visual): string
+    {
+        if (empty($visual)) {
+            return 'Unknown';
+        }
+
+        $v = strtolower($visual);
+
+        // Location patterns (most specific first)
+        $locationPatterns = [
+            ['pattern' => '/\b(dojo|training hall|martial arts)\b/i', 'name' => 'The Dojo'],
+            ['pattern' => '/\b(boardroom|conference room|meeting room)\b/i', 'name' => 'Boardroom'],
+            ['pattern' => '/\b(office|corporate|workspace|desk)\b/i', 'name' => 'Office'],
+            ['pattern' => '/\b(warehouse|factory|industrial|abandoned building)\b/i', 'name' => 'Warehouse'],
+            ['pattern' => '/\b(forest|woods|trees|jungle|nature trail)\b/i', 'name' => 'Forest'],
+            ['pattern' => '/\b(street|alley|urban|city|downtown|sidewalk)\b/i', 'name' => 'City Streets'],
+            ['pattern' => '/\b(rooftop|roof|skyline|terrace)\b/i', 'name' => 'Rooftop'],
+            ['pattern' => '/\b(beach|shore|coast|ocean|sea|waves)\b/i', 'name' => 'Beach'],
+            ['pattern' => '/\b(lab|laboratory|research|science|experiment)\b/i', 'name' => 'Laboratory'],
+            ['pattern' => '/\b(home|house|apartment|living room|bedroom|kitchen)\b/i', 'name' => 'Home Interior'],
+            ['pattern' => '/\b(hospital|medical|clinic|emergency room)\b/i', 'name' => 'Hospital'],
+            ['pattern' => '/\b(bar|pub|club|restaurant|cafe|coffee shop)\b/i', 'name' => 'Restaurant/Bar'],
+            ['pattern' => '/\b(castle|fortress|palace|throne|medieval)\b/i', 'name' => 'Castle'],
+            ['pattern' => '/\b(cave|cavern|underground|tunnel)\b/i', 'name' => 'Cave'],
+            ['pattern' => '/\b(ship|boat|vessel|deck|yacht|cruise)\b/i', 'name' => 'Ship/Boat'],
+            ['pattern' => '/\b(mountain|peak|summit|cliff|hiking)\b/i', 'name' => 'Mountain'],
+            ['pattern' => '/\b(park|garden|lawn|outdoor|backyard)\b/i', 'name' => 'Park/Garden'],
+            ['pattern' => '/\b(studio|stage|set|backdrop|production)\b/i', 'name' => 'Studio'],
+            ['pattern' => '/\b(gym|fitness|workout|training|exercise)\b/i', 'name' => 'Gym'],
+            ['pattern' => '/\b(school|classroom|university|campus|lecture)\b/i', 'name' => 'School/University'],
+            ['pattern' => '/\b(airport|terminal|airplane|flight|gate)\b/i', 'name' => 'Airport'],
+            ['pattern' => '/\b(hotel|lobby|reception|suite|resort)\b/i', 'name' => 'Hotel'],
+            ['pattern' => '/\b(store|shop|retail|mall|shopping)\b/i', 'name' => 'Retail Store'],
+            ['pattern' => '/\b(highway|road|driving|car|vehicle)\b/i', 'name' => 'Highway/Road'],
+            ['pattern' => '/\b(desert|sand|dunes|arid|dry)\b/i', 'name' => 'Desert'],
+            ['pattern' => '/\b(space|spacecraft|spaceship|stars|galaxy|cosmos)\b/i', 'name' => 'Space'],
+            ['pattern' => '/\b(farm|barn|rural|countryside|fields|crops)\b/i', 'name' => 'Farm/Rural'],
+        ];
+
+        foreach ($locationPatterns as $item) {
+            if (preg_match($item['pattern'], $v)) {
+                return $item['name'];
+            }
+        }
+
+        return 'General Location';
+    }
+
+    /**
+     * Infer location type (interior/exterior) from text.
+     */
+    protected function inferLocationType(string $text): string
+    {
+        $t = strtolower($text);
+
+        $interiorKeywords = ['inside', 'interior', 'indoor', 'room', 'office', 'home', 'building', 'house', 'apartment', 'studio', 'lab', 'hospital', 'hotel', 'restaurant', 'bar', 'store', 'mall'];
+        $exteriorKeywords = ['outside', 'exterior', 'outdoor', 'street', 'park', 'beach', 'mountain', 'forest', 'ocean', 'sky', 'rooftop', 'desert', 'highway', 'road'];
+
+        foreach ($interiorKeywords as $keyword) {
+            if (strpos($t, $keyword) !== false) {
+                return 'interior';
+            }
+        }
+
+        foreach ($exteriorKeywords as $keyword) {
+            if (strpos($t, $keyword) !== false) {
+                return 'exterior';
+            }
+        }
+
+        return 'exterior'; // Default to exterior
+    }
+
+    /**
+     * Infer time of day from text context.
+     * Based on original video-creation-wizard LOCATION_BIBLE_GENERATOR.inferTimeOfDay
+     */
+    protected function inferTimeOfDay(string $text): string
+    {
+        $t = strtolower($text);
+
+        if (preg_match('/\b(dawn|sunrise|first light|early morning)\b/', $t)) {
+            return 'dawn';
+        }
+        if (preg_match('/\b(morning|bright day|fresh day)\b/', $t)) {
+            return 'day';
+        }
+        if (preg_match('/\b(noon|midday|harsh sun|overhead sun)\b/', $t)) {
+            return 'day';
+        }
+        if (preg_match('/\b(afternoon|warm light|late day)\b/', $t)) {
+            return 'day';
+        }
+        if (preg_match('/\b(golden hour|sunset|orange light|evening sun)\b/', $t)) {
+            return 'golden-hour';
+        }
+        if (preg_match('/\b(dusk|twilight|fading light)\b/', $t)) {
+            return 'dusk';
+        }
+        if (preg_match('/\b(night|darkness|moonlight|stars|neon|midnight|deep night)\b/', $t)) {
+            return 'night';
+        }
+
+        return 'day'; // Default
+    }
+
+    /**
+     * Infer weather from text context.
+     * Based on original video-creation-wizard LOCATION_BIBLE_GENERATOR.inferWeather
+     */
+    protected function inferWeather(string $text): string
+    {
+        $t = strtolower($text);
+
+        if (preg_match('/\b(storm|thunder|lightning)\b/', $t)) {
+            return 'stormy';
+        }
+        if (preg_match('/\b(heavy rain|downpour|torrential)\b/', $t)) {
+            return 'rainy';
+        }
+        if (preg_match('/\b(rain|drizzle|wet|raining)\b/', $t)) {
+            return 'rainy';
+        }
+        if (preg_match('/\b(fog|mist|haze|foggy)\b/', $t)) {
+            return 'foggy';
+        }
+        if (preg_match('/\b(snow|blizzard|frost|winter|cold)\b/', $t)) {
+            return 'snowy';
+        }
+        if (preg_match('/\b(cloudy|overcast|grey sky)\b/', $t)) {
+            return 'cloudy';
+        }
+        if (preg_match('/\b(sunny|bright|clear sky|blue sky)\b/', $t)) {
+            return 'clear';
+        }
+
+        return 'clear'; // Default
+    }
+
+    /**
+     * Extract location description from visual text.
+     */
+    protected function extractLocationDescription(string $visual): string
+    {
+        // Clean up and truncate for description
+        $description = trim($visual);
+
+        if (strlen($description) > 200) {
+            $description = substr($description, 0, 197) . '...';
+        }
+
+        return $description;
     }
 
     // =========================================================================
