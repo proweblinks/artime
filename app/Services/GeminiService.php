@@ -300,7 +300,30 @@ class GeminiService
         // An optional negative prompt to guide the model away from unwanted elements
         $negativePrompt = $options['negativePrompt'] ?? 'ugly, deformed, blurry, low resolution, watermark, text, signature, words, letters, numbers, logo, screenshot, cartoon, out of frame';
 
-        // --- 3. Dynamic Image Prompt Template (Enhanced) ---
+        // --- 3. Configuration (Using more explicit checks) ---
+        $generationConfig = [];
+
+        // NOTE: aspectRatio is NOT supported in generationConfig for Gemini image generation models
+        // The gemini-2.0-flash-exp-image-generation model generates at a fixed resolution
+        // Instead, we include aspect ratio guidance in the prompt itself below
+        $requestedAspectRatio = $options['aspectRatio'] ?? '16:9';
+
+        // Handle number of images (sampleCount is also not supported in this model)
+        // Keeping code structure but commented out for future model support
+        // if (!empty($options['count']) && (int)$options['count'] > 1) {
+        //     $generationConfig['sampleCount'] = (int)$options['count'];
+        // }
+
+        // Add aspect ratio guidance to the prompt
+        $aspectRatioGuidance = match($requestedAspectRatio) {
+            '9:16' => 'Generate in portrait/vertical orientation (9:16 aspect ratio, taller than wide).',
+            '1:1' => 'Generate in square format (1:1 aspect ratio, equal width and height).',
+            '4:5' => 'Generate in portrait format (4:5 aspect ratio, slightly taller than wide).',
+            '3:4' => 'Generate in portrait format (3:4 aspect ratio, portrait orientation).',
+            default => 'Generate in widescreen landscape format (16:9 aspect ratio, wider than tall).',
+        };
+
+        // Enhanced image prompt with aspect ratio guidance
         $imagePrompt = <<<EOT
     Generate a single, high-quality, aesthetically pleasing image based on the following content.
 
@@ -309,24 +332,12 @@ class GeminiService
     Generation Parameters:
     - Art Style and Quality: {$style}
     - Vibe and Tone: {$tone}
+    - Image Format: {$aspectRatioGuidance}
     - Focus: Use creative visual metaphors, abstract concepts, or a detailed scene to tell the story of the content.
     - Negative Guidelines (AVOID): {$negativePrompt}
     - Crucial Constraint: DO NOT include any text, words, letters, numbers, logos, or watermarks.
 
     EOT;
-
-        // --- 4. Configuration (Using more explicit checks) ---
-        $generationConfig = [];
-
-        // Aspect Ratio (e.g., '1:1', '16:9', '3:4')
-        if (!empty($options['aspectRatio'])) {
-            $generationConfig['aspectRatio'] = $options['aspectRatio'];
-        }
-        
-        // Handle number of images
-        if (!empty($options['count']) && (int)$options['count'] > 1) {
-            $generationConfig['sampleCount'] = (int)$options['count'];
-        }
 
 
         // --- 5. API Payload Construction ---
