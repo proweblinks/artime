@@ -1723,13 +1723,74 @@
                 </div>
             </div>
         @else
+            {{-- Pacing Selector (Hollywood-style scene architecture) --}}
+            @php
+                $currentPacing = $content['pacing'] ?? 'balanced';
+                $sceneCount = $this->calculateSceneCount();
+                $estimatedShots = $this->calculateEstimatedShotCount();
+                $clipDuration = $this->getClipDuration();
+                $sceneDuration = $script['timing']['sceneDuration'] ?? 35;
+            @endphp
+            <div style="margin-bottom: 1.25rem; padding: 1rem; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 0.75rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 0.25rem;">🎬 {{ __('Pacing & Scene Structure') }}</div>
+                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ __('Hollywood-style: scenes contain multiple shots') }}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ __('Clip duration') }}</div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #06b6d4;">{{ $clipDuration }}s</div>
+                    </div>
+                </div>
+
+                {{-- Pacing Options --}}
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <button wire:click="setPacing('fast')"
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'fast' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'fast' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                        <div style="font-size: 1rem; margin-bottom: 0.2rem;">⚡</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'fast' ? '#a78bfa' : 'white' }};">{{ __('Fast') }}</div>
+                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~25s {{ __('scenes') }}</div>
+                    </button>
+                    <button wire:click="setPacing('balanced')"
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'balanced' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'balanced' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                        <div style="font-size: 1rem; margin-bottom: 0.2rem;">🎭</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'balanced' ? '#a78bfa' : 'white' }};">{{ __('Balanced') }}</div>
+                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~35s {{ __('scenes') }}</div>
+                    </button>
+                    <button wire:click="setPacing('contemplative')"
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'contemplative' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'contemplative' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                        <div style="font-size: 1rem; margin-bottom: 0.2rem;">🌊</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'contemplative' ? '#a78bfa' : 'white' }};">{{ __('Contemplative') }}</div>
+                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~45s {{ __('scenes') }}</div>
+                    </button>
+                </div>
+
+                {{-- Scene/Shot Preview --}}
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 0.6rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #8b5cf6;">{{ $sceneCount }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('scenes') }}</div>
+                    </div>
+                    <div style="color: rgba(255,255,255,0.3);">→</div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #06b6d4;">{{ $estimatedShots }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('shots') }}</div>
+                    </div>
+                    <div style="color: rgba(255,255,255,0.3);">→</div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">{{ floor($targetDuration / 60) }}:{{ str_pad($targetDuration % 60, 2, '0', STR_PAD_LEFT) }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('video') }}</div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Start Progressive Generation Button --}}
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                 <button style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.75rem; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                         wire:click="startProgressiveGeneration"
                         wire:loading.attr="disabled"
                         wire:target="startProgressiveGeneration">
-                    <span wire:loading.remove wire:target="startProgressiveGeneration">🎬 {{ __('Generate Script') }} ({{ $this->calculateSceneCount() }} {{ __('scenes') }})</span>
+                    <span wire:loading.remove wire:target="startProgressiveGeneration">🎬 {{ __('Generate Script') }} ({{ $sceneCount }} {{ __('scenes') }})</span>
                     <span wire:loading wire:target="startProgressiveGeneration">
                         <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
@@ -1741,7 +1802,7 @@
             </div>
 
             <p style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin: 0;">
-                {{ __('Generates scenes in batches of 5 for better quality') }} • {{ __('Powered by') }} {{ get_option('ai_platform', 'GPT-4o') }}
+                {{ __('Each scene (~:sceneDur s) will be decomposed into :shots shots', ['sceneDur' => $sceneDuration, 'shots' => ceil($sceneDuration / $clipDuration)]) }} • {{ __('Powered by') }} {{ get_option('ai_platform', 'GPT-4o') }}
             </p>
         @endif
     </div>
