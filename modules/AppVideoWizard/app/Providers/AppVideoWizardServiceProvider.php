@@ -93,6 +93,12 @@ class AppVideoWizardServiceProvider extends ServiceProvider
                         'icon' => 'fa-light fa-message-bot',
                     ],
                     [
+                        'uri' => 'admin/video-wizard/narrative',
+                        'name' => 'Narrative Structures',
+                        'position' => 85,
+                        'icon' => 'fa-light fa-film',
+                    ],
+                    [
                         'uri' => 'admin/video-wizard/production-types',
                         'name' => 'Production Types',
                         'position' => 80,

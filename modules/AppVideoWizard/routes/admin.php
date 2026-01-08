@@ -5,6 +5,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\VideoWizardAdminController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\PromptController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\ProductionTypeController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenerationLogController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +70,26 @@ Route::middleware(['web', 'auth'])->group(function () {
                 ->name('admin.video-wizard.production-types.reorder');
             Route::post('/seed-defaults', [ProductionTypeController::class, 'seedDefaults'])
                 ->name('admin.video-wizard.production-types.seed-defaults');
+        });
+
+        // Narrative Structures Management (Hollywood-level script generation)
+        Route::prefix('narrative')->group(function () {
+            Route::get('/', [NarrativeStructureController::class, 'index'])
+                ->name('admin.video-wizard.narrative.index');
+            Route::get('/story-arcs', [NarrativeStructureController::class, 'storyArcs'])
+                ->name('admin.video-wizard.narrative.story-arcs');
+            Route::get('/presets', [NarrativeStructureController::class, 'presets'])
+                ->name('admin.video-wizard.narrative.presets');
+            Route::get('/tension-curves', [NarrativeStructureController::class, 'tensionCurves'])
+                ->name('admin.video-wizard.narrative.tension-curves');
+            Route::get('/emotional-journeys', [NarrativeStructureController::class, 'emotionalJourneys'])
+                ->name('admin.video-wizard.narrative.emotional-journeys');
+            Route::post('/update-settings', [NarrativeStructureController::class, 'updateSettings'])
+                ->name('admin.video-wizard.narrative.update-settings');
+            Route::post('/toggle', [NarrativeStructureController::class, 'toggle'])
+                ->name('admin.video-wizard.narrative.toggle');
+            Route::get('/export', [NarrativeStructureController::class, 'export'])
+                ->name('admin.video-wizard.narrative.export');
         });
 
         // Generation Logs

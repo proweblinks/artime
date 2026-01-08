@@ -628,6 +628,121 @@
         opacity: 0.6 !important;
         pointer-events: none !important;
     }
+
+    /* Enhancement Preview Section */
+    .vw-enhancement-preview {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+        border-radius: 0.75rem !important;
+        padding: 1.25rem !important;
+        margin-top: 1rem !important;
+        animation: vw-fade-in 0.3s ease-out !important;
+    }
+
+    @keyframes vw-fade-in {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .vw-enhancement-header {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .vw-enhancement-badge {
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
+        color: white !important;
+        padding: 0.25rem 0.75rem !important;
+        border-radius: 1rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+    }
+
+    .vw-enhancement-logline {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-left: 3px solid #10b981 !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0.5rem 0.5rem 0 !important;
+        margin-bottom: 1rem !important;
+        font-style: italic !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .vw-enhancement-refined {
+        color: rgba(255, 255, 255, 0.8) !important;
+        line-height: 1.6 !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .vw-enhancement-meta {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .vw-enhancement-tag {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        padding: 0.25rem 0.6rem !important;
+        border-radius: 0.35rem !important;
+        font-size: 0.75rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .vw-enhancement-tag.mood {
+        background: rgba(139, 92, 246, 0.15) !important;
+        border-color: rgba(139, 92, 246, 0.3) !important;
+        color: #c4b5fd !important;
+    }
+
+    .vw-enhancement-tag.tone {
+        background: rgba(236, 72, 153, 0.15) !important;
+        border-color: rgba(236, 72, 153, 0.3) !important;
+        color: #f9a8d4 !important;
+    }
+
+    .vw-enhancement-actions {
+        display: flex !important;
+        gap: 0.5rem !important;
+        margin-top: 1rem !important;
+        padding-top: 1rem !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .vw-apply-btn {
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
+        color: white !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        border: none !important;
+        cursor: pointer !important;
+        transition: transform 0.2s, box-shadow 0.2s !important;
+    }
+
+    .vw-apply-btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .vw-dismiss-btn {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.8rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        cursor: pointer !important;
+    }
+
+    .vw-dismiss-btn:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+    }
 </style>
 
 <div class="vw-concept-step">
@@ -682,7 +797,7 @@
         {{-- Main Input --}}
         <div class="vw-field-group">
             <label class="vw-field-label">{{ __("What's your video about?") }}</label>
-            <textarea wire:model.blur="concept.rawInput"
+            <textarea wire:model.live.debounce.300ms="concept.rawInput"
                       class="vw-textarea"
                       placeholder="{{ __("Describe your idea, theme, or story... Be creative! Examples:
 • A mysterious figure discovers an ancient power
@@ -708,6 +823,56 @@
                 </button>
                 <span class="vw-enhance-hint">{{ __('Auto-extracts styles & fills all fields') }}</span>
             </div>
+
+            {{-- Enhancement Preview - Shows after AI enhancement --}}
+            @if(!empty($concept['refinedConcept']))
+                <div class="vw-enhancement-preview">
+                    <div class="vw-enhancement-header">
+                        <span class="vw-enhancement-badge">✨ {{ __('AI Enhanced') }}</span>
+                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">{{ __('Preview of your enhanced concept') }}</span>
+                    </div>
+
+                    {{-- Logline --}}
+                    @if(!empty($concept['logline']))
+                        <div class="vw-enhancement-logline">
+                            "{{ $concept['logline'] }}"
+                        </div>
+                    @endif
+
+                    {{-- Refined Concept --}}
+                    <div class="vw-enhancement-refined">
+                        {{ $concept['refinedConcept'] }}
+                    </div>
+
+                    {{-- Mood/Tone/Key Elements --}}
+                    <div class="vw-enhancement-meta">
+                        @if(!empty($concept['suggestedMood']))
+                            <span class="vw-enhancement-tag mood">🎭 {{ ucfirst($concept['suggestedMood']) }}</span>
+                        @endif
+                        @if(!empty($concept['suggestedTone']))
+                            <span class="vw-enhancement-tag tone">🎯 {{ ucfirst($concept['suggestedTone']) }}</span>
+                        @endif
+                        @if(!empty($concept['targetAudience']))
+                            <span class="vw-enhancement-tag">👥 {{ $concept['targetAudience'] }}</span>
+                        @endif
+                        @if(!empty($concept['keyElements']) && is_array($concept['keyElements']))
+                            @foreach(array_slice($concept['keyElements'], 0, 3) as $element)
+                                <span class="vw-enhancement-tag">{{ $element }}</span>
+                            @endforeach
+                        @endif
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="vw-enhancement-actions">
+                        <button type="button" class="vw-apply-btn" wire:click="applyEnhancedConcept">
+                            ✓ {{ __('Apply Enhancement') }}
+                        </button>
+                        <button type="button" class="vw-dismiss-btn" wire:click="dismissEnhancement">
+                            {{ __('Keep Original') }}
+                        </button>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="vw-divider"></div>

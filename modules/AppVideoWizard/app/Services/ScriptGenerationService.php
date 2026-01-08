@@ -58,6 +58,12 @@ class ScriptGenerationService
         $contentDepth = $options['contentDepth'] ?? 'detailed';
         $additionalInstructions = $options['additionalInstructions'] ?? '';
 
+        // Narrative Structure Intelligence options
+        $narrativePreset = $options['narrativePreset'] ?? null;
+        $storyArc = $options['storyArc'] ?? null;
+        $tensionCurve = $options['tensionCurve'] ?? null;
+        $emotionalJourney = $options['emotionalJourney'] ?? null;
+
         // Calculate script parameters
         $params = $this->calculateScriptParameters($duration, $contentDepth);
 
@@ -87,6 +93,11 @@ class ScriptGenerationService
             'contentDepth' => $contentDepth,
             'additionalInstructions' => $additionalInstructions,
             'aspectRatio' => $project->aspect_ratio,
+            // Narrative Structure Intelligence
+            'narrativePreset' => $narrativePreset,
+            'storyArc' => $storyArc,
+            'tensionCurve' => $tensionCurve,
+            'emotionalJourney' => $emotionalJourney,
         ];
 
         $prompt = $this->buildScriptPrompt($promptParams);
@@ -442,7 +453,7 @@ PROMPT;
 
     /**
      * Build the script generation prompt for standard videos.
-     * Uses PromptService to load from DB, falls back to hardcoded if not available.
+     * Uses multi-layer prompt assembly for Hollywood-level script generation.
      */
     protected function buildScriptPrompt(array $params): string
     {
@@ -455,14 +466,20 @@ PROMPT;
         $contentDepth = $params['contentDepth'] ?? 'detailed';
         $additionalInstructions = $params['additionalInstructions'] ?? '';
 
+        // Narrative Structure Intelligence
+        $narrativePreset = $params['narrativePreset'] ?? null;
+        $storyArc = $params['storyArc'] ?? null;
+        $tensionCurve = $params['tensionCurve'] ?? null;
+        $emotionalJourney = $params['emotionalJourney'] ?? null;
+
         $minutes = round($duration / 60, 1);
         $avgSceneDuration = (int) ceil($duration / $sceneCount);
 
         $toneGuide = $this->promptService->getToneGuide($tone);
         $depthGuide = $this->promptService->getDepthGuide($contentDepth);
 
-        // Try to load prompt from database
-        $compiledPrompt = $this->promptService->getCompiledPrompt('script_generation', [
+        // Build multi-layer prompt
+        $prompt = $this->buildMultiLayerPrompt([
             'topic' => $topic,
             'tone' => $tone,
             'toneGuide' => $toneGuide,
@@ -474,54 +491,229 @@ PROMPT;
             'sceneCount' => $sceneCount,
             'wordsPerScene' => $wordsPerScene,
             'avgSceneDuration' => $avgSceneDuration,
-            'additionalInstructions' => !empty($additionalInstructions)
-                ? "\nADDITIONAL REQUIREMENTS: {$additionalInstructions}\n"
-                : '',
+            'additionalInstructions' => $additionalInstructions,
+            'narrativePreset' => $narrativePreset,
+            'storyArc' => $storyArc,
+            'tensionCurve' => $tensionCurve,
+            'emotionalJourney' => $emotionalJourney,
         ]);
 
-        if ($compiledPrompt) {
-            return $compiledPrompt;
+        return $prompt;
+    }
+
+    /**
+     * Build multi-layer prompt for Hollywood-level script generation.
+     * Layers: Foundation → Narrative → Content → Stylistic → Technical → Output
+     */
+    protected function buildMultiLayerPrompt(array $params): string
+    {
+        $topic = $params['topic'];
+        $tone = $params['tone'];
+        $toneGuide = $params['toneGuide'];
+        $duration = $params['duration'];
+        $minutes = $params['minutes'];
+        $targetWords = $params['targetWords'];
+        $sceneCount = $params['sceneCount'];
+        $wordsPerScene = $params['wordsPerScene'];
+        $avgSceneDuration = $params['avgSceneDuration'];
+        $contentDepth = $params['contentDepth'];
+        $depthGuide = $params['depthGuide'];
+        $additionalInstructions = $params['additionalInstructions'];
+
+        // Get narrative structure configs
+        $narrativePreset = $params['narrativePreset'];
+        $storyArc = $params['storyArc'];
+        $tensionCurve = $params['tensionCurve'];
+        $emotionalJourney = $params['emotionalJourney'];
+
+        // Load configs
+        $narrativePresets = config('appvideowizard.narrative_presets', []);
+        $storyArcs = config('appvideowizard.story_arcs', []);
+        $tensionCurves = config('appvideowizard.tension_curves', []);
+        $emotionalJourneys = config('appvideowizard.emotional_journeys', []);
+
+        // Get preset config and apply defaults if not explicitly set
+        $presetConfig = $narrativePresets[$narrativePreset] ?? null;
+        if ($presetConfig) {
+            $storyArc = $storyArc ?? ($presetConfig['defaultArc'] ?? null);
+            $tensionCurve = $tensionCurve ?? ($presetConfig['defaultTension'] ?? null);
+            $emotionalJourney = $emotionalJourney ?? ($presetConfig['defaultEmotion'] ?? null);
         }
 
-        // Fallback to hardcoded prompt if DB prompt not available
-        \Log::info('VideoWizard: Using fallback hardcoded prompt for script_generation');
+        // Get specific configs
+        $arcConfig = $storyArcs[$storyArc] ?? null;
+        $curveConfig = $tensionCurves[$tensionCurve] ?? null;
+        $journeyConfig = $emotionalJourneys[$emotionalJourney] ?? null;
 
-        $prompt = <<<PROMPT
-You are an expert video scriptwriter creating a {$minutes}-minute video script.
+        // === LAYER 1: FOUNDATION (Role & Expertise) ===
+        $prompt = "You are a Hollywood-level video scriptwriter with expertise in narrative structure, emotional storytelling, and viewer engagement optimization.\n\n";
 
-TOPIC: {$topic}
-TONE: {$tone} - {$toneGuide}
-CONTENT DEPTH: {$contentDepth} - {$depthGuide}
-TOTAL DURATION: {$duration} seconds ({$minutes} minutes)
-TARGET WORD COUNT: {$targetWords} words
-NUMBER OF SCENES: {$sceneCount}
-WORDS PER SCENE: ~{$wordsPerScene}
-SCENE DURATION: ~{$avgSceneDuration} seconds each
+        // === LAYER 2: NARRATIVE STRUCTURE ===
+        if ($presetConfig || $arcConfig || $curveConfig || $journeyConfig) {
+            $prompt .= "=== NARRATIVE STRUCTURE INTELLIGENCE ===\n";
 
-PROMPT;
+            if ($presetConfig) {
+                $prompt .= "STORYTELLING FORMULA: {$presetConfig['name']}\n";
+                $prompt .= "Formula Guide: {$presetConfig['description']}\n";
+                if (!empty($presetConfig['tips'])) {
+                    $prompt .= "Pro Tips: {$presetConfig['tips']}\n";
+                }
+                $prompt .= "\n";
+            }
+
+            if ($arcConfig) {
+                $prompt .= "STORY ARC: {$arcConfig['name']}\n";
+                $prompt .= "Arc Description: {$arcConfig['description']}\n";
+                if (!empty($arcConfig['beats'])) {
+                    $beats = implode(' → ', array_map(fn($b) => ucwords(str_replace('_', ' ', $b)), $arcConfig['beats']));
+                    $prompt .= "Story Beats: {$beats}\n";
+                }
+                if (!empty($arcConfig['structure'])) {
+                    $structureParts = [];
+                    foreach ($arcConfig['structure'] as $part => $percentage) {
+                        $structureParts[] = ucfirst($part) . " ({$percentage}%)";
+                    }
+                    $prompt .= "Time Distribution: " . implode(' | ', $structureParts) . "\n";
+                }
+                $prompt .= "\n";
+            }
+
+            if ($curveConfig) {
+                $prompt .= "TENSION CURVE: {$curveConfig['name']}\n";
+                $prompt .= "Pacing Style: {$curveConfig['description']}\n";
+                if (!empty($curveConfig['curve'])) {
+                    $curveVisual = implode('→', array_map(fn($v) => $v . '%', $curveConfig['curve']));
+                    $prompt .= "Tension Levels (10-point scale): {$curveVisual}\n";
+                }
+                $prompt .= "\n";
+            }
+
+            if ($journeyConfig) {
+                $prompt .= "EMOTIONAL JOURNEY: {$journeyConfig['name']}\n";
+                $prompt .= "Viewer Journey: {$journeyConfig['description']}\n";
+                if (!empty($journeyConfig['emotionArc'])) {
+                    $emotionArc = implode(' → ', array_map(fn($e) => ucfirst($e), $journeyConfig['emotionArc']));
+                    $prompt .= "Emotional Beats: {$emotionArc}\n";
+                }
+                if (!empty($journeyConfig['endFeeling'])) {
+                    $prompt .= "Target End Feeling: {$journeyConfig['endFeeling']}\n";
+                }
+                $prompt .= "\n";
+            }
+        }
+
+        // === LAYER 3: CONTENT CONTEXT ===
+        $prompt .= "=== CONTENT PARAMETERS ===\n";
+        $prompt .= "TOPIC: {$topic}\n";
+        $prompt .= "TONE: {$tone} - {$toneGuide}\n";
+        $prompt .= "CONTENT DEPTH: {$contentDepth} - {$depthGuide}\n";
+        $prompt .= "TOTAL DURATION: {$duration} seconds ({$minutes} minutes)\n";
+        $prompt .= "TARGET WORD COUNT: {$targetWords} words\n";
+        $prompt .= "NUMBER OF SCENES: {$sceneCount}\n";
+        $prompt .= "WORDS PER SCENE: ~{$wordsPerScene}\n";
+        $prompt .= "SCENE DURATION: ~{$avgSceneDuration} seconds each\n\n";
 
         if (!empty($additionalInstructions)) {
-            $prompt .= "\nADDITIONAL REQUIREMENTS: {$additionalInstructions}\n\n";
+            $prompt .= "ADDITIONAL REQUIREMENTS: {$additionalInstructions}\n\n";
         }
 
-        $prompt .= <<<PROMPT
+        // === LAYER 4: STRUCTURE GUIDANCE ===
+        $prompt .= "=== SCRIPT STRUCTURE ===\n";
 
-SCRIPT STRUCTURE:
-1. HOOK (first 5 seconds) - Grab attention immediately with a bold statement or question
-2. INTRODUCTION (10-15 seconds) - Set expectations for what viewers will learn
-3. MAIN CONTENT ({$sceneCount} scenes) - Deliver value with retention hooks every 30-45 seconds
-4. CALL TO ACTION (5-10 seconds) - Clear next step for viewer
+        // Build structure based on story arc or defaults
+        if ($arcConfig && !empty($arcConfig['structure'])) {
+            $prompt .= "Follow the {$arcConfig['name']} structure:\n";
+            $scenesAssigned = 0;
+            $structureIndex = 1;
+            foreach ($arcConfig['structure'] as $part => $percentage) {
+                $partScenes = max(1, round($sceneCount * ($percentage / 100)));
+                if ($scenesAssigned + $partScenes > $sceneCount) {
+                    $partScenes = $sceneCount - $scenesAssigned;
+                }
+                $partDuration = round($duration * ($percentage / 100));
+                $prompt .= "{$structureIndex}. " . strtoupper($part) . " (~{$percentage}% = {$partDuration}s, {$partScenes} scenes)\n";
+                $scenesAssigned += $partScenes;
+                $structureIndex++;
+            }
+        } else {
+            // Default structure
+            $prompt .= "1. HOOK (first 5 seconds) - Grab attention immediately\n";
+            $prompt .= "2. INTRODUCTION (10-15 seconds) - Set expectations\n";
+            $prompt .= "3. MAIN CONTENT ({$sceneCount} scenes) - Deliver value with retention hooks every 30-45 seconds\n";
+            $prompt .= "4. CALL TO ACTION (5-10 seconds) - Clear next step for viewer\n";
+        }
 
-RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure JSON):
+        $prompt .= "\n";
+
+        // === LAYER 5: ENGAGEMENT TECHNIQUES ===
+        $prompt .= "=== ENGAGEMENT TECHNIQUES ===\n";
+
+        if ($presetConfig) {
+            // Platform-specific engagement
+            if ($narrativePreset === 'youtube-standard' || $narrativePreset === 'youtube-retention') {
+                $prompt .= "- Insert pattern breaks every 45-60 seconds (\"But here's where it gets interesting...\")\n";
+                $prompt .= "- Use open loops to maintain curiosity (\"I'll reveal the secret in a moment...\")\n";
+                $prompt .= "- Include micro-CTAs throughout (\"Stay with me...\")\n";
+            } elseif ($narrativePreset === 'tiktok-viral') {
+                $prompt .= "- First 1-2 words must stop the scroll\n";
+                $prompt .= "- Build tension rapidly to payoff at 80% mark\n";
+                $prompt .= "- End with loop-worthy moment that makes viewers rewatch\n";
+            } elseif ($narrativePreset === 'cinematic-short') {
+                $prompt .= "- Use visual storytelling over exposition\n";
+                $prompt .= "- Let emotional moments breathe\n";
+                $prompt .= "- Build character investment before conflict\n";
+            } elseif ($narrativePreset === 'documentary-feature') {
+                $prompt .= "- Ground claims in evidence and facts\n";
+                $prompt .= "- Use revelations strategically for impact\n";
+                $prompt .= "- Leave viewers with thought-provoking conclusions\n";
+            } elseif ($narrativePreset === 'thriller-short' || $narrativePreset === 'horror-short') {
+                $prompt .= "- Plant subtle clues that pay off later\n";
+                $prompt .= "- Use silence and restraint for maximum impact\n";
+                $prompt .= "- Build dread through atmosphere, not just events\n";
+            }
+        } else {
+            // Default engagement techniques
+            $prompt .= "- Use retention hooks every 30-45 seconds\n";
+            $prompt .= "- Ask rhetorical questions to maintain engagement\n";
+            $prompt .= "- Tease upcoming content to keep viewers watching\n";
+        }
+
+        $prompt .= "\n";
+
+        // === LAYER 6: CINEMATOGRAPHY GUIDANCE ===
+        $prompt .= "=== PROFESSIONAL CINEMATOGRAPHY ===\n";
+        $prompt .= $this->buildCinematographyGuidance($narrativePreset, $emotionalJourney, $sceneCount);
+        $prompt .= "\n";
+
+        // === LAYER 7: SCENE BEAT SYSTEM ===
+        $prompt .= "=== SCENE MICRO-STRUCTURE ===\n";
+        $prompt .= $this->buildSceneBeatGuidance($sceneCount, $narrativePreset);
+        $prompt .= "\n";
+
+        // === LAYER 8: RETENTION HOOKS ===
+        if ($duration >= 30) {
+            $prompt .= $this->buildRetentionHookGuidance($duration, $narrativePreset);
+            $prompt .= "\n";
+        }
+
+        // === LAYER 9: TRANSITION GUIDANCE ===
+        $prompt .= $this->buildTransitionGuidance($narrativePreset, $emotionalJourney);
+        $prompt .= "\n";
+
+        // === LAYER 10: OUTPUT FORMAT ===
+        $prompt .= "=== OUTPUT FORMAT ===\n";
+        $prompt .= "RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure JSON):\n";
+        $prompt .= <<<JSON
 {
   "title": "SEO-optimized title (max 60 chars)",
-  "hook": "Attention-grabbing opening (5-10 words)",
+  "hook": "Attention-grabbing opening line (5-10 words)",
   "scenes": [
     {
       "id": "scene-1",
-      "title": "Scene title",
-      "narration": "What narrator says ({$wordsPerScene} words)",
-      "visualDescription": "Detailed visual for AI image generation (describe setting, mood, colors, lighting, composition)",
+      "title": "Descriptive scene title",
+      "narration": "Narrator text (~{$wordsPerScene} words) - emotionally resonant, matches tension curve",
+      "visualDescription": "Cinematic visual: [SHOT TYPE] [SUBJECT/ACTION]. [LIGHTING]. [COLOR MOOD]. [COMPOSITION]. [ATMOSPHERE]",
+      "mood": "Scene emotional tone (matches emotional journey beat)",
       "duration": {$avgSceneDuration},
       "kenBurns": {
         "startScale": 1.0,
@@ -537,18 +729,285 @@ RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure 
   "totalDuration": {$duration},
   "wordCount": {$targetWords}
 }
+JSON;
 
-CRITICAL REQUIREMENTS:
-- Generate EXACTLY {$sceneCount} scenes
-- Each scene narration MUST be approximately {$wordsPerScene} words
-- Total narration should equal approximately {$targetWords} words
-- Visual descriptions must be detailed enough for AI image generation
-- Include varied Ken Burns movements (scale, position changes)
-- Scene durations should add up to approximately {$duration} seconds
-- NO markdown formatting - output raw JSON only
-PROMPT;
+        $prompt .= "\n\n=== CRITICAL REQUIREMENTS ===\n";
+        $prompt .= "- Generate EXACTLY {$sceneCount} scenes\n";
+        $prompt .= "- Each scene narration MUST be approximately {$wordsPerScene} words\n";
+        $prompt .= "- Total narration should equal approximately {$targetWords} words\n";
+
+        if ($curveConfig) {
+            $prompt .= "- Match scene intensity to the {$curveConfig['name']} tension curve\n";
+        }
+
+        if ($journeyConfig) {
+            $prompt .= "- Progress through the {$journeyConfig['name']} emotional journey\n";
+        }
+
+        if ($arcConfig) {
+            $prompt .= "- Follow the {$arcConfig['name']} story structure strictly\n";
+        }
+
+        $prompt .= "- Visual descriptions must be detailed enough for AI image generation\n";
+        $prompt .= "- Include varied Ken Burns movements (scale, position changes)\n";
+        $prompt .= "- Scene durations should add up to approximately {$duration} seconds\n";
+        $prompt .= "- NO markdown formatting - output raw JSON only\n";
 
         return $prompt;
+    }
+
+    /**
+     * Build professional cinematography guidance based on narrative context.
+     */
+    protected function buildCinematographyGuidance(?string $narrativePreset, ?string $emotionalJourney, int $sceneCount): string
+    {
+        $shotTypes = config('appvideowizard.shot_types', []);
+        $lightingStyles = config('appvideowizard.lighting_styles', []);
+        $colorGrades = config('appvideowizard.color_grades', []);
+        $compositions = config('appvideowizard.compositions', []);
+        $cameraMovements = config('appvideowizard.camera_movements', []);
+
+        $guidance = "Use professional cinematography language in visualDescription:\n\n";
+
+        // Shot type progression based on scene position
+        $guidance .= "SHOT TYPE PROGRESSION (vary throughout video):\n";
+        $guidance .= "- Opening: Wide or Extreme Wide (establish context)\n";
+        $guidance .= "- Development: Medium, Medium-Wide (content delivery)\n";
+        $guidance .= "- Emotional moments: Close-Up, Medium Close-Up (connection)\n";
+        $guidance .= "- Climax/Impact: Extreme Close-Up or dramatic Wide\n";
+        $guidance .= "- Ending: Wide (resolution) or Close-Up (call to action)\n\n";
+
+        // Available shot types
+        $shotList = [];
+        foreach (array_slice($shotTypes, 0, 6) as $shot) {
+            $shotList[] = $shot['abbrev'] ?? $shot['name'];
+        }
+        $guidance .= "Available shots: " . implode(', ', $shotList) . "\n\n";
+
+        // Lighting recommendations based on preset/emotion
+        $guidance .= "LIGHTING STYLE (match emotional tone):\n";
+        $suggestedLighting = $this->getSuggestedLighting($narrativePreset, $emotionalJourney);
+        foreach ($suggestedLighting as $lighting) {
+            if (isset($lightingStyles[$lighting])) {
+                $guidance .= "- {$lightingStyles[$lighting]['name']}: {$lightingStyles[$lighting]['promptHint']}\n";
+            }
+        }
+        $guidance .= "\n";
+
+        // Color grading suggestions
+        $guidance .= "COLOR GRADING (maintain consistency):\n";
+        $suggestedColors = $this->getSuggestedColorGrade($narrativePreset, $emotionalJourney);
+        foreach ($suggestedColors as $color) {
+            if (isset($colorGrades[$color])) {
+                $guidance .= "- {$colorGrades[$color]['name']}: {$colorGrades[$color]['promptHint']}\n";
+            }
+        }
+        $guidance .= "\n";
+
+        // Composition guidance
+        $guidance .= "COMPOSITION TECHNIQUES:\n";
+        $compList = ['rule-of-thirds', 'centered', 'leading-lines', 'depth-layering'];
+        foreach ($compList as $comp) {
+            if (isset($compositions[$comp])) {
+                $guidance .= "- {$compositions[$comp]['name']}: {$compositions[$comp]['description']}\n";
+            }
+        }
+        $guidance .= "\n";
+
+        // Camera movement suggestions (for Ken Burns)
+        $guidance .= "CAMERA MOVEMENT (reflected in kenBurns values):\n";
+        $guidance .= "- Push In (build intensity): startScale=1.0, endScale=1.2\n";
+        $guidance .= "- Pull Out (reveal): startScale=1.2, endScale=1.0\n";
+        $guidance .= "- Pan Left/Right: vary startX/endX (0.3 to 0.7)\n";
+        $guidance .= "- Tilt Up/Down: vary startY/endY (0.3 to 0.7)\n";
+        $guidance .= "- Static (emphasis): startScale=endScale=1.0\n";
+
+        return $guidance;
+    }
+
+    /**
+     * Build scene beat guidance for micro-structure within scenes.
+     */
+    protected function buildSceneBeatGuidance(int $sceneCount, ?string $narrativePreset): string
+    {
+        $sceneBeats = config('appvideowizard.scene_beats', []);
+
+        $guidance = "Each scene should follow internal beat structure:\n\n";
+
+        foreach ($sceneBeats as $beat) {
+            $guidance .= "- {$beat['name']} ({$beat['percentage']}%): {$beat['purpose']}\n";
+        }
+
+        $guidance .= "\nApply this rhythm to each scene's narration:\n";
+        $guidance .= "1. SETUP (~first quarter): Orient viewer, establish what scene is about\n";
+        $guidance .= "2. DEVELOPMENT (~middle half): Build content, deliver information/emotion\n";
+        $guidance .= "3. PAYOFF (~final quarter): Key insight, memorable moment, bridge to next scene\n\n";
+
+        // Platform-specific beat adjustments
+        if ($narrativePreset === 'tiktok-viral') {
+            $guidance .= "For TikTok: Compress setup dramatically (1-2 words), maximize payoff impact\n";
+        } elseif ($narrativePreset === 'youtube-standard' || $narrativePreset === 'youtube-retention') {
+            $guidance .= "For YouTube: Each scene payoff should tease the next scene's setup\n";
+        } elseif ($narrativePreset === 'cinematic-short') {
+            $guidance .= "For Cinematic: Let emotional beats breathe, don't rush development\n";
+        }
+
+        return $guidance;
+    }
+
+    /**
+     * Build retention hook injection guidance.
+     */
+    protected function buildRetentionHookGuidance(int $duration, ?string $narrativePreset): string
+    {
+        $retentionHooks = config('appvideowizard.retention_hooks', []);
+
+        $guidance = "=== RETENTION HOOKS ===\n";
+        $guidance .= "Inject engagement hooks throughout to maintain viewer attention:\n\n";
+
+        // Determine which hooks apply based on duration
+        $applicableHooks = [];
+        foreach ($retentionHooks as $hookId => $hook) {
+            if (isset($hook['insertAfter']) && $hook['insertAfter'] <= $duration) {
+                $applicableHooks[$hookId] = $hook;
+            }
+        }
+
+        if (empty($applicableHooks)) {
+            // For very short videos, still use question hooks
+            $applicableHooks['question'] = $retentionHooks['question'] ?? [];
+        }
+
+        foreach ($applicableHooks as $hookId => $hook) {
+            $guidance .= "AT ~{$hook['insertAfter']}s - {$hook['name']}:\n";
+            if (!empty($hook['templates'])) {
+                $examples = array_slice($hook['templates'], 0, 2);
+                $guidance .= "  Examples: \"" . implode('\" or \"', $examples) . "\"\n";
+            }
+        }
+
+        $guidance .= "\n";
+
+        // Platform-specific retention strategies
+        if ($narrativePreset === 'youtube-retention') {
+            $guidance .= "YouTube Retention Strategy:\n";
+            $guidance .= "- Use open loops: Promise information, deliver later\n";
+            $guidance .= "- Pattern breaks every 45-60s to reset attention\n";
+            $guidance .= "- Micro-CTAs: 'Stay with me...', 'Keep watching...'\n";
+        } elseif ($narrativePreset === 'tiktok-viral') {
+            $guidance .= "TikTok Retention Strategy:\n";
+            $guidance .= "- First 0.5 seconds must stop scroll\n";
+            $guidance .= "- Build anticipation to 80% mark payoff\n";
+            $guidance .= "- End with loop-worthy moment\n";
+        }
+
+        return $guidance;
+    }
+
+    /**
+     * Build transition guidance for scene connections.
+     */
+    protected function buildTransitionGuidance(?string $narrativePreset, ?string $emotionalJourney): string
+    {
+        $transitions = config('appvideowizard.transitions', []);
+
+        $guidance = "=== SCENE TRANSITIONS ===\n";
+        $guidance .= "Suggest appropriate transitions between scenes in the 'transition' field:\n\n";
+
+        // Recommend transitions based on context
+        $recommended = ['cut', 'fade', 'dissolve'];
+
+        if ($narrativePreset === 'tiktok-viral') {
+            $recommended = ['cut', 'zoom', 'flash'];
+            $guidance .= "For TikTok: Use dynamic transitions (cut, zoom, flash)\n";
+        } elseif ($narrativePreset === 'cinematic-short') {
+            $recommended = ['dissolve', 'fade', 'cut'];
+            $guidance .= "For Cinematic: Use elegant transitions (dissolve, fade)\n";
+        } elseif ($narrativePreset === 'documentary-feature') {
+            $recommended = ['cut', 'fade', 'dissolve'];
+            $guidance .= "For Documentary: Use clean transitions (cut, fade)\n";
+        } elseif ($emotionalJourney === 'horror' || $emotionalJourney === 'thriller') {
+            $recommended = ['cut', 'flash', 'fade'];
+            $guidance .= "For Suspense: Use sharp transitions, occasional flash for scares\n";
+        }
+
+        $guidance .= "Recommended: " . implode(', ', $recommended) . "\n";
+        $guidance .= "Available: " . implode(', ', array_keys($transitions)) . "\n";
+
+        return $guidance;
+    }
+
+    /**
+     * Get suggested lighting styles based on narrative context.
+     */
+    protected function getSuggestedLighting(?string $preset, ?string $emotion): array
+    {
+        // Map presets/emotions to lighting styles
+        $presetLighting = [
+            'youtube-standard' => ['natural', 'high-key', 'studio'],
+            'tiktok-viral' => ['neon', 'high-key', 'natural'],
+            'cinematic-short' => ['golden-hour', 'low-key', 'rembrandt'],
+            'documentary-feature' => ['natural', 'studio', 'golden-hour'],
+            'thriller-short' => ['low-key', 'silhouette', 'blue-hour'],
+            'horror-short' => ['low-key', 'silhouette', 'candlelight'],
+            'inspirational' => ['golden-hour', 'high-key', 'natural'],
+            'commercial-spot' => ['studio', 'high-key', 'natural'],
+        ];
+
+        $emotionLighting = [
+            'triumph' => ['golden-hour', 'high-key'],
+            'thriller' => ['low-key', 'blue-hour'],
+            'horror' => ['low-key', 'silhouette'],
+            'comedy' => ['high-key', 'natural'],
+            'educational' => ['natural', 'studio'],
+            'meditative' => ['golden-hour', 'natural'],
+        ];
+
+        if ($preset && isset($presetLighting[$preset])) {
+            return $presetLighting[$preset];
+        }
+
+        if ($emotion && isset($emotionLighting[$emotion])) {
+            return $emotionLighting[$emotion];
+        }
+
+        return ['natural', 'golden-hour', 'studio'];
+    }
+
+    /**
+     * Get suggested color grades based on narrative context.
+     */
+    protected function getSuggestedColorGrade(?string $preset, ?string $emotion): array
+    {
+        $presetColors = [
+            'youtube-standard' => ['vibrant', 'warm', 'neutral'],
+            'tiktok-viral' => ['vibrant', 'high-contrast', 'neon'],
+            'cinematic-short' => ['teal-orange', 'desaturated', 'warm'],
+            'documentary-feature' => ['neutral', 'desaturated', 'cool'],
+            'thriller-short' => ['desaturated', 'cool', 'high-contrast'],
+            'horror-short' => ['desaturated', 'cool', 'monochrome'],
+            'inspirational' => ['warm', 'golden-hour', 'vibrant'],
+            'commercial-spot' => ['vibrant', 'warm', 'high-contrast'],
+        ];
+
+        $emotionColors = [
+            'triumph' => ['warm', 'vibrant'],
+            'thriller' => ['desaturated', 'cool'],
+            'horror' => ['desaturated', 'monochrome'],
+            'comedy' => ['vibrant', 'warm'],
+            'educational' => ['neutral', 'cool'],
+            'nostalgia' => ['vintage', 'warm'],
+        ];
+
+        if ($preset && isset($presetColors[$preset])) {
+            return $presetColors[$preset];
+        }
+
+        if ($emotion && isset($emotionColors[$emotion])) {
+            return $emotionColors[$emotion];
+        }
+
+        return ['neutral', 'warm', 'teal-orange'];
     }
 
     /**
