@@ -5903,36 +5903,90 @@ class VideoWizard extends Component
                 'type' => 'exterior',
                 'timeOfDay' => 'night',
                 'weather' => 'clear',
+                'mood' => 'energetic',
                 'description' => 'Modern cityscape, tall buildings, neon lights, busy streets, urban environment',
+                'lightingStyle' => 'Neon signs with wet surface reflections',
+            ],
+            'urban-night' => [
+                'name' => 'Urban Night',
+                'type' => 'exterior',
+                'timeOfDay' => 'night',
+                'weather' => 'clear',
+                'mood' => 'mysterious',
+                'description' => 'Dark city streets at night, neon signs, rain-slicked pavement, atmospheric fog, cyberpunk aesthetic',
+                'lightingStyle' => 'Neon signs reflecting on wet surfaces, dramatic shadows, colorful lighting',
             ],
             'forest' => [
                 'name' => 'Forest',
                 'type' => 'exterior',
                 'timeOfDay' => 'day',
                 'weather' => 'clear',
+                'mood' => 'peaceful',
                 'description' => 'Dense forest, tall trees, dappled sunlight, natural environment, lush vegetation',
+                'lightingStyle' => 'Dappled sunlight through leaves, natural golden light',
+            ],
+            'tech-lab' => [
+                'name' => 'Tech Lab',
+                'type' => 'interior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'mood' => 'neutral',
+                'description' => 'High-tech laboratory, advanced equipment, holographic displays, sterile white surfaces, futuristic design',
+                'lightingStyle' => 'Clean LED lighting, blue accent lights, holographic glow',
+            ],
+            'desert' => [
+                'name' => 'Desert Sunset',
+                'type' => 'exterior',
+                'timeOfDay' => 'golden-hour',
+                'weather' => 'clear',
+                'mood' => 'peaceful',
+                'description' => 'Vast desert landscape, sand dunes, dramatic sunset sky, warm orange and red colors, endless horizon',
+                'lightingStyle' => 'Golden hour warmth, long shadows, dramatic sky colors',
+            ],
+            'industrial' => [
+                'name' => 'Industrial',
+                'type' => 'interior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'mood' => 'tense',
+                'description' => 'Industrial factory interior, metal structures, pipes, machinery, warehouse atmosphere, gritty textures',
+                'lightingStyle' => 'Harsh overhead lighting, dramatic shadows, dust particles in light',
+            ],
+            'space' => [
+                'name' => 'Space Station',
+                'type' => 'interior',
+                'timeOfDay' => 'night',
+                'weather' => 'clear',
+                'mood' => 'mysterious',
+                'description' => 'Futuristic space station interior, curved corridors, control panels, view of stars through windows, zero-gravity elements',
+                'lightingStyle' => 'Ambient blue-white lighting, starlight through windows, holographic displays',
             ],
             'office' => [
                 'name' => 'Office',
                 'type' => 'interior',
                 'timeOfDay' => 'day',
                 'weather' => 'clear',
+                'mood' => 'neutral',
                 'description' => 'Modern office interior, clean design, glass walls, professional workspace',
+                'lightingStyle' => 'Soft diffused lighting, natural light from windows',
             ],
             'studio' => [
                 'name' => 'Studio',
                 'type' => 'interior',
                 'timeOfDay' => 'day',
                 'weather' => 'clear',
+                'mood' => 'neutral',
                 'description' => 'Professional studio setup, controlled lighting, clean backdrop, production environment',
+                'lightingStyle' => 'Three-point lighting setup, controlled studio lights',
             ],
         ];
 
         if (isset($templates[$template])) {
             $this->sceneMemory['locationBible']['locations'][] = array_merge(
-                ['id' => uniqid('loc_'), 'referenceImage' => null],
+                ['id' => uniqid('loc_'), 'referenceImage' => null, 'referenceImageStatus' => null],
                 $templates[$template]
             );
+            $this->editingLocationIndex = count($this->sceneMemory['locationBible']['locations']) - 1;
             $this->saveProject();
         }
     }
