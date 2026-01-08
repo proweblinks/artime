@@ -242,7 +242,7 @@
                                 </button>
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
-                                @foreach($storyboard['scenes'] ?? [] as $sceneIdx => $scene)
+                                @foreach($script['scenes'] ?? [] as $sceneIdx => $scene)
                                     @php
                                         $assignedScenes = $currentLocation['scenes'] ?? [];
                                         $isAssigned = in_array($sceneIdx, $assignedScenes);
@@ -260,7 +260,7 @@
                             <div style="font-size: 0.5rem; color: rgba(255,255,255,0.4); margin-top: 0.2rem;">
                                 {{ $assignedScenesCount === 0 ? __('Currently applies to ALL scenes') : __('Applies to :count scene(s)', ['count' => $assignedScenesCount]) }}
                             </div>
-                            @if(empty($storyboard['scenes']))
+                            @if(empty($script['scenes']))
                                 <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem; padding: 0.5rem;">
                                     {{ __('No scenes available yet') }}
                                 </div>
