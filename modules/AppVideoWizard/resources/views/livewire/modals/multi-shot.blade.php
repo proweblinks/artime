@@ -212,12 +212,26 @@
 
                                     {{-- Shot Type Badge --}}
                                     <div style="position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(139, 92, 246, 0.8); color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem; z-index: 2;">
-                                        {{ ucfirst($shot['type'] ?? 'shot') }}
+                                        {{ ucfirst(str_replace('_', ' ', $shot['type'] ?? 'shot')) }}
                                     </div>
 
-                                    {{-- Transferred Badge --}}
+                                    {{-- Audio Type Badge --}}
+                                    @php
+                                        $hasDialogue = !empty($shot['dialogue']) && count($shot['dialogue']) > 0;
+                                        $audioType = $hasDialogue ? 'dialogue' : 'music';
+                                        $audioConfig = [
+                                            'dialogue' => ['icon' => '💬', 'label' => __('Dialogue'), 'bg' => 'rgba(251, 191, 36, 0.9)'],
+                                            'music' => ['icon' => '🎵', 'label' => __('Music'), 'bg' => 'rgba(59, 130, 246, 0.7)'],
+                                        ];
+                                        $audio = $audioConfig[$audioType];
+                                    @endphp
+                                    <div style="position: absolute; top: 1.5rem; right: 0.25rem; background: {{ $audio['bg'] }}; color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.45rem; z-index: 2; display: flex; align-items: center; gap: 0.1rem;">
+                                        {{ $audio['icon'] }} {{ $audio['label'] }}
+                                    </div>
+
+                                    {{-- Transferred Badge (positioned below audio badge) --}}
                                     @if($wasTransferred)
-                                        <div style="position: absolute; top: 1.5rem; right: 0.25rem; background: rgba(16, 185, 129, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; z-index: 2;">
+                                        <div style="position: absolute; top: 2.6rem; right: 0.25rem; background: rgba(16, 185, 129, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; z-index: 2;">
                                             🔗 from {{ $shot['transferredFrom'] + 1 }}
                                         </div>
                                     @endif
@@ -280,43 +294,116 @@
                                     {{-- Shot Info & Controls --}}
                                     <div style="padding: 0.4rem;">
                                         {{-- Camera & Duration --}}
-                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.6); margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            {{ $shot['cameraMovement'] ?? 'static' }} •
-                                            <span style="color: {{ $durationColor }};">{{ $shotDuration }}s</span>
+                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.6); margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                {{ $shot['cameraMovement'] ?? 'static' }} •
+                                                <span style="color: {{ $durationColor }};">{{ $shotDuration }}s</span>
+                                            </span>
+                                            {{-- Token Cost --}}
+                                            <span style="font-size: 0.5rem; color: #fbbf24;">⚡ {{ ($shotDuration <= 5 ? 100 : ($shotDuration <= 6 ? 120 : 200)) }}t</span>
                                         </div>
 
+                                        {{-- Shot 1: Scene Image Status --}}
+                                        @if($shotIndex === 0)
+                                            @if($hasImage)
+                                                <div style="text-align: center; padding: 0.2rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
+                                                    <div style="font-size: 0.5rem; color: #10b981;">🔗 {{ __('Scene image') }}</div>
+                                                </div>
+                                            @else
+                                                <div style="text-align: center; padding: 0.2rem; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
+                                                    <div style="font-size: 0.5rem; color: #f59e0b;">⚠ {{ __('Generate scene image first') }}</div>
+                                                </div>
+                                            @endif
+                                        @else
+                                            {{-- Shots 2+: Frame Transfer Status --}}
+                                            @if(!$hasImage && $wasTransferred === false)
+                                                <div style="text-align: center; padding: 0.2rem; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
+                                                    <div style="font-size: 0.5rem; color: #a78bfa;">⏳ {{ __('Waiting for frame from Shot :num', ['num' => $shotIndex]) }}</div>
+                                                </div>
+                                            @elseif($wasTransferred)
+                                                <div style="text-align: center; padding: 0.2rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
+                                                    <div style="font-size: 0.5rem; color: #10b981;">🔗 {{ __('Frame from Shot :num', ['num' => $shot['transferredFrom'] + 1]) }}</div>
+                                                </div>
+                                            @endif
+                                        @endif
+
                                         {{-- Duration Control --}}
-                                        <div style="display: flex; gap: 0.2rem; margin-bottom: 0.3rem;">
-                                            @foreach([5, 6, 10] as $dur)
-                                                <button type="button"
-                                                        wire:click.stop="setShotDuration({{ $multiShotSceneIndex }}, {{ $shotIndex }}, {{ $dur }})"
-                                                        style="flex: 1; padding: 0.2rem; font-size: 0.55rem; background: {{ $shotDuration === $dur ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $shotDuration === $dur ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.2rem; color: white; cursor: pointer;">
-                                                    {{ $dur }}s
-                                                </button>
-                                            @endforeach
+                                        <div style="font-size: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.3rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.15rem;">
+                                                <span style="color: #3b82f6; font-weight: 600;">⏱️ {{ __('Duration') }}</span>
+                                                <span style="color: {{ $durationColor }}; font-weight: 500;">{{ $shotDuration }}s</span>
+                                            </div>
+                                            <div style="display: flex; gap: 0.2rem; margin-bottom: 0.15rem;">
+                                                @foreach([5, 6, 10] as $dur)
+                                                    @php
+                                                        $durColor = $dur === 5 ? 'rgba(34, 197, 94' : ($dur === 6 ? 'rgba(234, 179, 8' : 'rgba(59, 130, 246');
+                                                        $isSelected = $shotDuration === $dur;
+                                                    @endphp
+                                                    <button type="button"
+                                                            wire:click.stop="setShotDuration({{ $multiShotSceneIndex }}, {{ $shotIndex }}, {{ $dur }})"
+                                                            style="flex: 1; padding: 0.15rem 0.25rem; font-size: 0.5rem; background: {{ $isSelected ? $durColor . ', 0.3)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $isSelected ? $durColor . ', 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.2rem; color: white; cursor: pointer;">
+                                                        {{ $dur }}s
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                            @php
+                                                $shotType = $shot['type'] ?? 'medium';
+                                                $recommendedDuration = match($shotType) {
+                                                    'establishing', 'establishing_wide', 'wide' => 6,
+                                                    'close-up', 'detail', 'reaction' => 5,
+                                                    default => 6
+                                                };
+                                            @endphp
+                                            <div style="font-size: 0.4rem; color: rgba(255,255,255,0.5); line-height: 1.2;">
+                                                💡 {{ $recommendedDuration }}s {{ __('optimal for :type shot', ['type' => str_replace('_', ' ', $shotType)]) }}
+                                            </div>
                                         </div>
 
                                         {{-- Action Buttons --}}
-                                        <div style="display: flex; gap: 0.2rem;">
-                                            @if($hasImage && !$hasVideo)
-                                                <button type="button"
-                                                        wire:click.stop="generateShotVideo({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="flex: 1; padding: 0.25rem; font-size: 0.55rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.2rem; color: #67e8f9; cursor: pointer;">
-                                                    🎬 Animate
-                                                </button>
-                                            @endif
-                                            @if($hasVideo && !$isLastShot)
-                                                <button type="button"
-                                                        wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="flex: 1; padding: 0.25rem; font-size: 0.55rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.2rem; color: #10b981; cursor: pointer;">
-                                                    🎯 Capture
-                                                </button>
-                                            @endif
-                                            @if($hasImage)
+                                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                            @if($hasVideo)
+                                                {{-- Play Video --}}
                                                 <button type="button"
                                                         wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="flex: 1; padding: 0.25rem; font-size: 0.55rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: rgba(255,255,255,0.7); cursor: pointer;">
-                                                    👁️ View
+                                                        x-on:click="setTimeout(() => $wire.set('shotPreviewTab', 'video'), 100)"
+                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3)); border: 1px solid rgba(16, 185, 129, 0.5); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500;">
+                                                    ▶️ {{ __('Play Video') }}
+                                                </button>
+                                            @elseif($hasImage && !$isGeneratingVideo)
+                                                {{-- Animate Button with Model Indicator --}}
+                                                <button type="button"
+                                                        wire:click.stop="generateShotVideo({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                                    🎬 {{ __('Animate') }}
+                                                    <span style="font-size: 0.45rem; background: rgba(59, 130, 246, 0.5); padding: 0.1rem 0.2rem; border-radius: 0.15rem;">{{ __('Standard') }}</span>
+                                                </button>
+                                            @elseif($isGeneratingVideo)
+                                                {{-- Video Generation Status --}}
+                                                <div style="text-align: center; padding: 0.35rem; background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.3rem;">
+                                                    <div style="font-size: 0.6rem; color: #67e8f9; font-weight: 500;">
+                                                        {{ ($shot['videoStatus'] ?? '') === 'generating' ? '🎬 ' . __('Starting...') : '⏳ ' . __('Rendering...') }}
+                                                    </div>
+                                                    <div style="margin-top: 0.25rem; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                                        <div style="height: 100%; width: 60%; background: linear-gradient(90deg, #06b6d4, #22d3ee); animation: pulse 1.5s ease-in-out infinite;"></div>
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            @if($hasVideo && !$isLastShot)
+                                                {{-- Capture Frame to Next Shot --}}
+                                                <button type="button"
+                                                        wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3)); border: 1px solid rgba(16, 185, 129, 0.5); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500;">
+                                                    🎯 {{ __('Capture') }} → {{ __('Shot') }} {{ $shotIndex + 2 }}
+                                                </button>
+                                            @endif
+
+                                            @if($hasVideo)
+                                                {{-- Re-Animate --}}
+                                                <button type="button"
+                                                        wire:click.stop="generateShotVideo({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                        style="width: 100%; padding: 0.25rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.3rem; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.55rem;">
+                                                    🔄 {{ __('Re-Animate') }}
                                                 </button>
                                             @endif
                                         </div>
@@ -353,6 +440,10 @@
 <style>
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 .shot-hover-overlay:hover {
     opacity: 1 !important;
