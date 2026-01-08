@@ -1989,8 +1989,23 @@ class VideoWizard extends Component
             return;
         }
 
+        // Toggle in script array
         $currentValue = $this->script['scenes'][$sceneIndex]['voiceover']['enabled'] ?? true;
-        $this->script['scenes'][$sceneIndex]['voiceover']['enabled'] = !$currentValue;
+        $newValue = !$currentValue;
+        $this->script['scenes'][$sceneIndex]['voiceover']['enabled'] = $newValue;
+
+        // Also sync to animation array for UI state
+        // musicOnly = true when voiceover.enabled = false
+        if (!isset($this->animation['scenes'][$sceneIndex])) {
+            $this->animation['scenes'][$sceneIndex] = [];
+        }
+        $this->animation['scenes'][$sceneIndex]['musicOnly'] = !$newValue;
+
+        // If enabling music only, clear any existing voiceover
+        if ($this->animation['scenes'][$sceneIndex]['musicOnly']) {
+            unset($this->animation['scenes'][$sceneIndex]['voiceoverUrl']);
+            unset($this->animation['scenes'][$sceneIndex]['assetId']);
+        }
 
         $this->recalculateVoiceStatus();
         $this->saveProject();
@@ -3228,27 +3243,6 @@ class VideoWizard extends Component
     }
 
     /**
-     * Toggle Music Only mode for a scene (no voiceover).
-     */
-    public function toggleSceneMusicOnly(int $sceneIndex): void
-    {
-        if (!isset($this->animation['scenes'][$sceneIndex])) {
-            $this->animation['scenes'][$sceneIndex] = [];
-        }
-
-        $currentValue = $this->animation['scenes'][$sceneIndex]['musicOnly'] ?? false;
-        $this->animation['scenes'][$sceneIndex]['musicOnly'] = !$currentValue;
-
-        // If enabling music only, clear any existing voiceover
-        if ($this->animation['scenes'][$sceneIndex]['musicOnly']) {
-            unset($this->animation['scenes'][$sceneIndex]['voiceoverUrl']);
-            unset($this->animation['scenes'][$sceneIndex]['assetId']);
-        }
-
-        $this->saveProject();
-    }
-
-    /**
      * Remove voiceover from a scene.
      */
     public function removeVoiceover(int $sceneIndex): void
@@ -3285,9 +3279,9 @@ class VideoWizard extends Component
     public function toggleCameraMovement(int $sceneIndex, string $movement): void
     {
         $validMovements = [
-            'pan_left', 'pan_right', 'zoom_in', 'zoom_out',
-            'push_in', 'pull_out', 'tilt_up', 'tilt_down',
-            'tracking', 'static'
+            'Pan left', 'Pan right', 'Zoom in', 'Zoom out',
+            'Push in', 'Pull out', 'Tilt up', 'Tilt down',
+            'Tracking shot', 'Static shot'
         ];
 
         if (!in_array($movement, $validMovements)) {
