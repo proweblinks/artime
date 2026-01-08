@@ -4095,7 +4095,9 @@ class VideoWizard extends Component
     {
         return array_filter($characters, function ($character) use ($sceneIndex) {
             $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
-            return in_array($sceneIndex, $appliedScenes);
+            // Empty array means "applies to ALL scenes" (default behavior)
+            // Non-empty array means "applies only to these specific scenes"
+            return empty($appliedScenes) || in_array($sceneIndex, $appliedScenes);
         });
     }
 
@@ -4106,7 +4108,9 @@ class VideoWizard extends Component
     {
         foreach ($locations as $location) {
             $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
-            if (in_array($sceneIndex, $scenes)) {
+            // Empty array means "applies to ALL scenes" (default behavior)
+            // Non-empty array means "applies only to these specific scenes"
+            if (empty($scenes) || in_array($sceneIndex, $scenes)) {
                 return $location;
             }
         }
