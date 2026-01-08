@@ -191,9 +191,106 @@
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
         }
+
+        /* Modern Transition Overlay */
+        .vw-transition-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: vw-fadeIn 0.3s ease;
+        }
+
+        @keyframes vw-fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .vw-transition-content {
+            background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            border-radius: 1.5rem;
+            padding: 2.5rem 3rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            max-width: 400px;
+            animation: vw-slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes vw-slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .vw-transition-spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .vw-transition-spinner::before,
+        .vw-transition-spinner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+
+        .vw-transition-spinner::before {
+            border-top-color: #8b5cf6;
+            border-right-color: #06b6d4;
+            animation: vw-spin 1s linear infinite;
+        }
+
+        .vw-transition-spinner::after {
+            border-bottom-color: #10b981;
+            border-left-color: #f59e0b;
+            animation: vw-spin 1.5s linear infinite reverse;
+            inset: 8px;
+        }
+
+        .vw-transition-message {
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+        }
+
+        .vw-transition-submessage {
+            font-size: 0.875rem;
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Button loading state */
+        .vw-btn-loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .vw-btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: vw-spin 0.8s linear infinite;
+            right: 1rem;
+        }
     </style>
 
-    {{-- JavaScript for URL updates --}}
+    {{-- JavaScript for URL updates and async step transitions --}}
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('update-browser-url', ({ projectId }) => {
@@ -203,8 +300,34 @@
                     window.history.replaceState({}, '', url);
                 }
             });
+
+            // Handle deferred scene memory population after step transition
+            // This triggers after the view renders, preventing UI blocking
+            Livewire.on('step-changed', ({ step, needsPopulation }) => {
+                if (needsPopulation) {
+                    // Small delay to ensure view has rendered
+                    setTimeout(() => {
+                        @this.call('handleDeferredSceneMemoryPopulation');
+                    }, 100);
+                }
+            });
         });
     </script>
+
+    {{-- Modern Transition Overlay --}}
+    @if($isTransitioning)
+        <div class="vw-transition-overlay" wire:key="transition-overlay">
+            <div class="vw-transition-content">
+                <div class="vw-transition-spinner"></div>
+                <div class="vw-transition-message">
+                    {{ $transitionMessage ?? __('Preparing next step...') }}
+                </div>
+                <div class="vw-transition-submessage">
+                    {{ __('This may take a few seconds') }}
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Wizard Header --}}
     <div style="position: relative; text-align: center; padding: 2rem 1rem 1rem;">
@@ -319,8 +442,18 @@
         </div>
 
         @if($currentStep < 7)
-            <button type="button" wire:click="nextStep" class="vw-btn vw-btn-primary">
-                {{ __('Continue') }} →
+            <button type="button"
+                    wire:click="nextStep"
+                    wire:loading.attr="disabled"
+                    wire:loading.class="vw-btn-loading"
+                    class="vw-btn vw-btn-primary {{ $isTransitioning ? 'vw-btn-loading' : '' }}"
+                    {{ $isTransitioning ? 'disabled' : '' }}>
+                <span wire:loading.remove wire:target="nextStep,handleDeferredSceneMemoryPopulation">
+                    {{ __('Continue') }} →
+                </span>
+                <span wire:loading wire:target="nextStep,handleDeferredSceneMemoryPopulation">
+                    {{ __('Loading...') }}
+                </span>
             </button>
         @else
             <button type="button" wire:click="saveProject" class="vw-btn vw-btn-success">

@@ -137,6 +137,8 @@ class VideoWizard extends Component
     // UI state
     public bool $isLoading = false;
     public bool $isSaving = false;
+    public bool $isTransitioning = false;  // Track step transitions for loading overlay
+    public ?string $transitionMessage = null;  // Message to show during transition
     public ?string $error = null;
 
     // Stock Media Browser state
@@ -641,14 +643,40 @@ class VideoWizard extends Component
             $this->maxReachedStep = max($this->maxReachedStep, $step);
 
             // Step Transition Hook: Auto-populate Scene Memory when entering Storyboard (step 4)
+            // Use deferred async call to prevent blocking the UI
             if ($step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
-                $this->autoPopulateSceneMemory();
+                $this->isTransitioning = true;
+                $this->transitionMessage = __('Analyzing script for characters and locations...');
+
+                // Dispatch event to trigger async population after view renders
+                $this->dispatch('step-changed', step: $step, needsPopulation: true);
             }
 
             // Only save if user is authenticated
             if (auth()->check()) {
                 $this->saveProject();
             }
+        }
+    }
+
+    /**
+     * Handle deferred scene memory population after step transition.
+     * This is called async after the view renders to prevent blocking.
+     */
+    #[On('populate-scene-memory')]
+    public function handleDeferredSceneMemoryPopulation(): void
+    {
+        if (!$this->isTransitioning) {
+            return;
+        }
+
+        try {
+            $this->autoPopulateSceneMemory();
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Scene memory population failed', ['error' => $e->getMessage()]);
+        } finally {
+            $this->isTransitioning = false;
+            $this->transitionMessage = null;
         }
     }
 
@@ -4512,16 +4540,19 @@ class VideoWizard extends Component
 
         // 1. Auto-populate Style Bible based on production type (if not already set)
         if (!$hasExistingStyle) {
+            $this->transitionMessage = __('Setting up visual style...');
             $this->autoPopulateStyleBible();
         }
 
         // 2. Auto-detect characters from script (if none exist)
         if (!$hasExistingCharacters) {
+            $this->transitionMessage = __('Detecting characters from script...');
             $this->autoDetectCharactersFromScript();
         }
 
         // 3. Auto-detect locations from script (if none exist)
         if (!$hasExistingLocations) {
+            $this->transitionMessage = __('Identifying locations...');
             $this->autoDetectLocationsFromScript();
         }
 
