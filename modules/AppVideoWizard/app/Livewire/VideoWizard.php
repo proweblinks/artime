@@ -78,7 +78,7 @@ class VideoWizard extends Component
         'totalNarrationTime' => 0,
     ];
 
-    // Step 3: Progressive Script Generation State
+    /// Step 3: Progressive Script Generation State
     public array $scriptGeneration = [
         'status' => 'idle',              // 'idle' | 'generating' | 'paused' | 'complete'
         'targetSceneCount' => 0,         // Total scenes needed (e.g., 30)
@@ -88,6 +88,8 @@ class VideoWizard extends Component
         'totalBatches' => 0,             // Total batches needed
         'batches' => [],                 // Batch status tracking
         'autoGenerate' => false,         // Auto-continue to next batch
+        'maxRetries' => 3,               // Max retry attempts per batch
+        'retryDelayMs' => 1000,          // Base delay for exponential backoff (1s, 2s, 4s)
     ];
 
     // Step 3: Voice & Dialogue Status
@@ -283,6 +285,10 @@ class VideoWizard extends Component
     public bool $showLocationBibleModal = false;
     public int $editingLocationIndex = 0;
     public bool $isGeneratingLocationRef = false;
+
+    // Scene Overwrite Confirmation Modal
+    public bool $showSceneOverwriteModal = false;
+    public string $sceneOverwriteAction = 'replace'; // 'replace' or 'append'
 
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
@@ -537,6 +543,21 @@ class VideoWizard extends Component
             if (isset($config['characterIntelligence'])) {
                 $this->characterIntelligence = array_merge($this->characterIntelligence, $config['characterIntelligence']);
             }
+
+            // Restore script generation state (for resuming after browser refresh)
+            if (isset($config['scriptGeneration'])) {
+                $this->scriptGeneration = array_merge($this->scriptGeneration, $config['scriptGeneration']);
+                // If generation was in progress, set to paused so user can resume
+                if (in_array($this->scriptGeneration['status'], ['generating', 'retrying'])) {
+                    $this->scriptGeneration['status'] = 'paused';
+                    // Also update any generating/retrying batches to pending
+                    foreach ($this->scriptGeneration['batches'] as &$batch) {
+                        if (in_array($batch['status'], ['generating', 'retrying'])) {
+                            $batch['status'] = 'pending';
+                        }
+                    }
+                }
+            }
         }
 
         // Recalculate voice status if script exists
@@ -606,12 +627,13 @@ class VideoWizard extends Component
                 'storyboard' => $this->storyboard,
                 'animation' => $this->animation,
                 'assembly' => $this->assembly,
-                // Save Scene Memory, Multi-Shot Mode, Concept Variations, and Character Intelligence
+                // Save Scene Memory, Multi-Shot Mode, Concept Variations, Character Intelligence, and Script Generation State
                 'content_config' => [
                     'sceneMemory' => $this->sceneMemory,
                     'multiShotMode' => $this->multiShotMode,
                     'conceptVariations' => $this->conceptVariations,
                     'characterIntelligence' => $this->characterIntelligence,
+                    'scriptGeneration' => $this->scriptGeneration,
                 ],
             ];
 
@@ -1524,7 +1546,7 @@ class VideoWizard extends Component
 
     /**
      * Start progressive script generation.
-     * Initializes batch tracking and generates first batch.
+     * If scenes exist, shows confirmation modal first.
      */
     #[On('start-progressive-generation')]
     public function startProgressiveGeneration(): void
@@ -1534,19 +1556,69 @@ class VideoWizard extends Component
             return;
         }
 
+        // Check if scenes already exist - show confirmation modal
+        $existingSceneCount = count($this->script['scenes'] ?? []);
+        if ($existingSceneCount > 0) {
+            $this->showSceneOverwriteModal = true;
+            return;
+        }
+
+        // No existing scenes - proceed directly
+        $this->executeProgressiveGeneration('replace');
+    }
+
+    /**
+     * Handle scene overwrite confirmation.
+     */
+    public function confirmSceneOverwrite(string $action): void
+    {
+        $this->showSceneOverwriteModal = false;
+        $this->sceneOverwriteAction = $action;
+
+        if ($action === 'cancel') {
+            return;
+        }
+
+        $this->executeProgressiveGeneration($action);
+    }
+
+    /**
+     * Execute the progressive generation with specified action.
+     * @param string $action 'replace' to start fresh, 'append' to add to existing scenes
+     */
+    protected function executeProgressiveGeneration(string $action): void
+    {
         $this->isLoading = true;
         $this->error = null;
 
         try {
             $targetSceneCount = $this->calculateSceneCount();
             $batchSize = 5;
+
+            // If appending, adjust target count
+            $existingSceneCount = 0;
+            if ($action === 'append') {
+                $existingSceneCount = count($this->script['scenes'] ?? []);
+                // Calculate how many more scenes we need
+                $remainingScenes = max(0, $targetSceneCount - $existingSceneCount);
+                if ($remainingScenes === 0) {
+                    $this->error = __('You already have :count scenes. Target is :target scenes.', [
+                        'count' => $existingSceneCount,
+                        'target' => $targetSceneCount,
+                    ]);
+                    $this->isLoading = false;
+                    return;
+                }
+                $targetSceneCount = $remainingScenes;
+            }
+
             $totalBatches = (int) ceil($targetSceneCount / $batchSize);
 
             // Initialize batch tracking
             $batches = [];
             for ($i = 0; $i < $totalBatches; $i++) {
-                $startScene = ($i * $batchSize) + 1;
-                $endScene = min(($i + 1) * $batchSize, $targetSceneCount);
+                $startScene = $existingSceneCount + ($i * $batchSize) + 1;
+                $endScene = $existingSceneCount + min(($i + 1) * $batchSize, $targetSceneCount);
 
                 $batches[] = [
                     'batchNumber' => $i + 1,
@@ -1555,13 +1627,15 @@ class VideoWizard extends Component
                     'status' => 'pending',
                     'generatedAt' => null,
                     'sceneIds' => [],
+                    'retryCount' => 0,
+                    'lastError' => null,
                 ];
             }
 
             $this->scriptGeneration = [
                 'status' => 'generating',
-                'targetSceneCount' => $targetSceneCount,
-                'generatedSceneCount' => 0,
+                'targetSceneCount' => $existingSceneCount + $targetSceneCount,
+                'generatedSceneCount' => $existingSceneCount,
                 'batchSize' => $batchSize,
                 'currentBatch' => 0,
                 'totalBatches' => $totalBatches,
@@ -1569,22 +1643,26 @@ class VideoWizard extends Component
                 'autoGenerate' => false,
             ];
 
-            // Initialize script structure
-            $this->script = [
-                'title' => $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? 'Untitled',
-                'hook' => '',
-                'scenes' => [],
-                'cta' => '',
-                'totalDuration' => 0,
-                'totalNarrationTime' => 0,
-            ];
+            // Initialize or keep script structure based on action
+            if ($action === 'replace') {
+                $this->script = [
+                    'title' => $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? 'Untitled',
+                    'hook' => '',
+                    'scenes' => [],
+                    'cta' => '',
+                    'totalDuration' => 0,
+                    'totalNarrationTime' => 0,
+                ];
+            }
+            // If appending, keep existing script structure
 
             $this->saveProject();
 
             // Dispatch event for UI update
             $this->dispatch('progressive-generation-started', [
-                'targetSceneCount' => $targetSceneCount,
+                'targetSceneCount' => $this->scriptGeneration['targetSceneCount'],
                 'totalBatches' => $totalBatches,
+                'action' => $action,
             ]);
 
             // Generate first batch
@@ -1698,29 +1776,91 @@ class VideoWizard extends Component
                 $this->saveProject();
 
             } else {
-                $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'error';
-                $this->scriptGeneration['status'] = 'paused';
-                $this->error = $result['error'] ?? __('Failed to generate batch');
-
-                Log::error('VideoWizard: Batch generation failed', [
-                    'batch' => $batch['batchNumber'],
-                    'error' => $result['error'] ?? 'Unknown error',
-                ]);
+                $errorMessage = $result['error'] ?? __('Failed to generate batch');
+                $this->handleBatchError($currentBatchIndex, $errorMessage);
             }
 
         } catch (\Exception $e) {
-            $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'error';
-            $this->scriptGeneration['status'] = 'paused';
-            $this->error = __('Batch generation failed: ') . $e->getMessage();
-
-            Log::error('VideoWizard: Batch generation exception', [
-                'batch' => $currentBatchIndex + 1,
-                'error' => $e->getMessage(),
-            ]);
+            $this->handleBatchError($currentBatchIndex, $e->getMessage());
         } finally {
             $this->isLoading = false;
             $this->saveProject();
         }
+    }
+
+    /**
+     * Handle batch generation error with exponential backoff retry.
+     */
+    protected function handleBatchError(int $batchIndex, string $errorMessage): void
+    {
+        $batch = &$this->scriptGeneration['batches'][$batchIndex];
+        $batch['retryCount'] = ($batch['retryCount'] ?? 0) + 1;
+        $batch['lastError'] = $errorMessage;
+        $maxRetries = $this->scriptGeneration['maxRetries'] ?? 3;
+
+        Log::warning('VideoWizard: Batch generation failed', [
+            'batch' => $batch['batchNumber'],
+            'retryCount' => $batch['retryCount'],
+            'maxRetries' => $maxRetries,
+            'error' => $errorMessage,
+        ]);
+
+        if ($batch['retryCount'] < $maxRetries) {
+            // Calculate exponential backoff delay: 1s, 2s, 4s
+            $delayMs = ($this->scriptGeneration['retryDelayMs'] ?? 1000) * pow(2, $batch['retryCount'] - 1);
+
+            $batch['status'] = 'retrying';
+            $this->error = __('Batch :num failed, retrying in :sec seconds... (Attempt :attempt/:max)', [
+                'num' => $batch['batchNumber'],
+                'sec' => $delayMs / 1000,
+                'attempt' => $batch['retryCount'] + 1,
+                'max' => $maxRetries,
+            ]);
+
+            // Dispatch delayed retry event
+            $this->dispatch('retry-batch-delayed', [
+                'batchIndex' => $batchIndex,
+                'delayMs' => $delayMs,
+            ]);
+
+        } else {
+            // Max retries exceeded - mark as failed
+            $batch['status'] = 'error';
+            $this->scriptGeneration['status'] = 'paused';
+            $this->error = __('Batch :num failed after :max attempts: :error', [
+                'num' => $batch['batchNumber'],
+                'max' => $maxRetries,
+                'error' => $errorMessage,
+            ]);
+
+            Log::error('VideoWizard: Batch generation failed permanently', [
+                'batch' => $batch['batchNumber'],
+                'error' => $errorMessage,
+            ]);
+        }
+    }
+
+    /**
+     * Execute delayed retry for a batch (called from JS after delay).
+     */
+    #[On('execute-delayed-retry')]
+    public function executeDelayedRetry(int $batchIndex): void
+    {
+        if (!isset($this->scriptGeneration['batches'][$batchIndex])) {
+            return;
+        }
+
+        $batch = $this->scriptGeneration['batches'][$batchIndex];
+        if ($batch['status'] !== 'retrying') {
+            return;
+        }
+
+        // Reset to pending and retry
+        $this->scriptGeneration['batches'][$batchIndex]['status'] = 'pending';
+        $this->scriptGeneration['currentBatch'] = $batchIndex;
+        $this->error = null;
+
+        $this->generateNextBatch();
     }
 
     /**

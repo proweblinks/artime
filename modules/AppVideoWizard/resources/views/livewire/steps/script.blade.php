@@ -289,6 +289,12 @@
         to { transform: rotate(360deg); }
     }
 
+    /* Pulse Animation for active batches */
+    @keyframes vw-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
     /* Loading content inner wrapper */
     .vw-loading-inner {
         display: inline-flex;
@@ -1645,15 +1651,23 @@
                     @foreach($scriptGeneration['batches'] as $batchIndex => $batch)
                         @php
                             $statusConfig = [
-                                'complete' => ['bg' => 'rgba(16, 185, 129, 0.2)', 'border' => 'rgba(16, 185, 129, 0.4)', 'icon' => '✅', 'color' => '#10b981'],
-                                'generating' => ['bg' => 'rgba(251, 191, 36, 0.2)', 'border' => 'rgba(251, 191, 36, 0.4)', 'icon' => '⏳', 'color' => '#fbbf24'],
-                                'pending' => ['bg' => 'rgba(255, 255, 255, 0.05)', 'border' => 'rgba(255, 255, 255, 0.1)', 'icon' => '⏸️', 'color' => 'rgba(255,255,255,0.5)'],
-                                'error' => ['bg' => 'rgba(239, 68, 68, 0.2)', 'border' => 'rgba(239, 68, 68, 0.4)', 'icon' => '❌', 'color' => '#ef4444'],
+                                'complete' => ['bg' => 'rgba(16, 185, 129, 0.2)', 'border' => 'rgba(16, 185, 129, 0.4)', 'icon' => '✅', 'color' => '#10b981', 'pulse' => false],
+                                'generating' => ['bg' => 'rgba(251, 191, 36, 0.2)', 'border' => 'rgba(251, 191, 36, 0.4)', 'icon' => '⏳', 'color' => '#fbbf24', 'pulse' => true],
+                                'retrying' => ['bg' => 'rgba(251, 146, 60, 0.2)', 'border' => 'rgba(251, 146, 60, 0.4)', 'icon' => '🔄', 'color' => '#fb923c', 'pulse' => true],
+                                'pending' => ['bg' => 'rgba(255, 255, 255, 0.05)', 'border' => 'rgba(255, 255, 255, 0.1)', 'icon' => '⏸️', 'color' => 'rgba(255,255,255,0.5)', 'pulse' => false],
+                                'error' => ['bg' => 'rgba(239, 68, 68, 0.2)', 'border' => 'rgba(239, 68, 68, 0.4)', 'icon' => '❌', 'color' => '#ef4444', 'pulse' => false],
                             ];
                             $style = $statusConfig[$batch['status']] ?? $statusConfig['pending'];
+                            $retryInfo = isset($batch['retryCount']) && $batch['retryCount'] > 0
+                                ? ' (' . $batch['retryCount'] . '/' . ($scriptGeneration['maxRetries'] ?? 3) . ')'
+                                : '';
                         @endphp
-                        <div style="background: {{ $style['bg'] }}; border: 1px solid {{ $style['border'] }}; border-radius: 0.5rem; padding: 0.6rem 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="font-size: 1rem;">{{ $style['icon'] }}</span>
+                        <div style="background: {{ $style['bg'] }}; border: 1px solid {{ $style['border'] }}; border-radius: 0.5rem; padding: 0.6rem 0.75rem; display: flex; align-items: center; gap: 0.75rem; {{ $style['pulse'] ? 'animation: vw-pulse 2s ease-in-out infinite;' : '' }}">
+                            @if($style['pulse'])
+                                <span style="font-size: 1rem; animation: vw-spin 1.5s linear infinite;">{{ $style['icon'] }}</span>
+                            @else
+                                <span style="font-size: 1rem;">{{ $style['icon'] }}</span>
+                            @endif
                             <div style="flex: 1;">
                                 <span style="color: white; font-weight: 500; font-size: 0.9rem;">{{ __('Batch') }} {{ $batch['batchNumber'] }}</span>
                                 <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-left: 0.5rem;">
@@ -1667,7 +1681,7 @@
                                 </button>
                             @endif
                             <span style="color: {{ $style['color'] }}; font-size: 0.75rem; text-transform: capitalize;">
-                                {{ __($batch['status']) }}
+                                {{ __($batch['status']) }}{{ $retryInfo }}
                             </span>
                         </div>
                     @endforeach
@@ -2152,4 +2166,80 @@
             </template>
         </div>
     @endif
+
+    {{-- Scene Overwrite Confirmation Modal --}}
+    @if($showSceneOverwriteModal)
+        <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);">
+            <div style="background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 1rem; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                {{-- Header --}}
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #ef4444); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                        ⚠️
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 0;">
+                            {{ __('Existing Scenes Found') }}
+                        </h3>
+                        <p style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); margin: 0.25rem 0 0;">
+                            {{ __('You already have') }} {{ count($script['scenes'] ?? []) }} {{ __('scenes generated') }}
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Message --}}
+                <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                    {{ __('What would you like to do with your existing scenes?') }}
+                </p>
+
+                {{-- Options --}}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    {{-- Replace Option --}}
+                    <button wire:click="confirmSceneOverwrite('replace')"
+                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.75rem; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
+                            onmouseover="this.style.background='linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.4))'"
+                            onmouseout="this.style.background='linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3))'">
+                        <span style="font-size: 1.25rem;">🔄</span>
+                        <div>
+                            <div style="color: #fca5a5;">{{ __('Replace All') }}</div>
+                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 400;">{{ __('Delete existing scenes and start fresh') }}</div>
+                        </div>
+                    </button>
+
+                    {{-- Append Option --}}
+                    <button wire:click="confirmSceneOverwrite('append')"
+                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3)); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 0.75rem; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
+                            onmouseover="this.style.background='linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.4))'"
+                            onmouseout="this.style.background='linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3))'">
+                        <span style="font-size: 1.25rem;">➕</span>
+                        <div>
+                            <div style="color: #86efac;">{{ __('Add More') }}</div>
+                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 400;">{{ __('Keep existing scenes and generate additional ones') }}</div>
+                        </div>
+                    </button>
+                </div>
+
+                {{-- Cancel Button --}}
+                <button wire:click="$set('showSceneOverwriteModal', false)"
+                        style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.5rem; color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'"
+                        onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">
+                    {{ __('Cancel') }}
+                </button>
+            </div>
+        </div>
+    @endif
 </div>
+
+{{-- JavaScript for Delayed Retry with Exponential Backoff --}}
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('retry-batch-delayed', (data) => {
+            const { batchIndex, delayMs } = data[0] || data;
+            console.log(`Retrying batch ${batchIndex} in ${delayMs}ms...`);
+
+            setTimeout(() => {
+                Livewire.dispatch('execute-delayed-retry', { batchIndex: batchIndex });
+            }, delayMs);
+        });
+    });
+</script>
