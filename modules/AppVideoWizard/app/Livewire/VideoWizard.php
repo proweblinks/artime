@@ -5735,9 +5735,19 @@ class VideoWizard extends Component
         try {
             $imageService = app(ImageGenerationService::class);
 
-            // Build portrait prompt
-            $prompt = "Character portrait, " . $character['description'];
-            $prompt .= ", professional photography, studio lighting, headshot";
+            // Build portrait-optimized prompt (matching reference implementation)
+            $promptParts = [
+                'Professional studio portrait photograph',
+                $character['description'],
+                'Standing pose facing camera',
+                'Clean pure white background',
+                'Professional studio lighting with soft shadows',
+                'High quality, detailed, sharp focus',
+                'Full body visible from head to feet',
+                'Neutral expression, confident pose',
+                'Fashion photography style, catalog quality',
+            ];
+            $prompt = implode('. ', $promptParts);
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -5747,7 +5757,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'char_' . $index,
+                        'sceneIndex' => null, // Portraits don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -5851,7 +5861,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'style_ref',
+                        'sceneIndex' => null, // Style references don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -6125,13 +6135,30 @@ class VideoWizard extends Component
         try {
             $imageService = app(ImageGenerationService::class);
 
-            // Build location prompt
-            $prompt = $location['description'];
-            $prompt .= ", " . $location['type'] . ", " . $location['timeOfDay'];
-            if ($location['weather'] !== 'clear') {
-                $prompt .= ", " . $location['weather'] . " weather";
+            // Build location-optimized prompt
+            $promptParts = [
+                'Cinematic establishing shot',
+                $location['description'],
+                ucfirst($location['type']) . ' setting',
+                ucfirst($location['timeOfDay']) . ' lighting',
+            ];
+
+            if (!empty($location['weather']) && $location['weather'] !== 'clear') {
+                $promptParts[] = ucfirst($location['weather']) . ' weather conditions';
             }
-            $prompt .= ", establishing shot, wide angle, professional photography";
+
+            if (!empty($location['mood'])) {
+                $promptParts[] = ucfirst($location['mood']) . ' atmosphere';
+            }
+
+            $promptParts = array_merge($promptParts, [
+                'Wide angle composition',
+                'High production value',
+                'Professional cinematography',
+                'No people or characters',
+                'Empty environment reference shot',
+            ]);
+            $prompt = implode('. ', $promptParts);
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -6141,7 +6168,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'loc_' . $index,
+                        'sceneIndex' => null, // Location references don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -6415,7 +6442,7 @@ class VideoWizard extends Component
                         'visualDescription' => $shot['prompt'],
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
-                        'sceneIndex' => "shot_{$sceneIndex}_{$shotIndex}",
+                        'sceneIndex' => $sceneIndex, // Pass actual scene index for character/location context
                     ]);
 
                     if ($result['success']) {
