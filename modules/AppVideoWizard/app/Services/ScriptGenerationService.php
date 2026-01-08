@@ -1408,18 +1408,28 @@ JSON;
             $cta = $this->unescapeJsonString($m[1]);
         }
 
-        // Find the scenes array - look for "scenes": [ ... ]
+        // Try multiple approaches and use the one that finds the most scenes
+        $scenesByBraces = [];
+        $scenesByRegex = [];
+
+        // Approach 1: Find scenes array and extract by balanced braces
         if (preg_match('/"scenes"\s*:\s*\[/s', $response, $match, PREG_OFFSET_CAPTURE)) {
             $arrayStart = $match[0][1] + strlen($match[0][0]);
-
-            // Find each scene object by matching balanced braces
-            $scenes = $this->extractScenesFromArray($response, $arrayStart);
+            $scenesByBraces = $this->extractScenesFromArray($response, $arrayStart);
         }
 
-        // Fallback: Try to find individual scene patterns
-        if (empty($scenes)) {
-            $scenes = $this->extractScenesWithRegex($response);
-        }
+        // Approach 2: Always try regex as well (don't skip even if braces found some)
+        $scenesByRegex = $this->extractScenesWithRegex($response);
+
+        // Use whichever approach found more scenes
+        $scenes = count($scenesByRegex) > count($scenesByBraces) ? $scenesByRegex : $scenesByBraces;
+
+        \Log::info('VideoWizard: rebuildScriptFromResponse scene extraction', [
+            'byBraces' => count($scenesByBraces),
+            'byRegex' => count($scenesByRegex),
+            'using' => count($scenesByRegex) > count($scenesByBraces) ? 'regex' : 'braces',
+            'finalCount' => count($scenes),
+        ]);
 
         if (empty($scenes)) {
             \Log::warning('VideoWizard: rebuildScriptFromResponse found no scenes', [

@@ -4186,6 +4186,114 @@ class VideoWizard extends Component
     }
 
     /**
+     * Get comprehensive debug snapshot of all wizard state.
+     * Used for troubleshooting issues by capturing every setting and selection.
+     */
+    public function getDebugSnapshot(): array
+    {
+        return [
+            '_meta' => [
+                'version' => '2.0',
+                'generated_at' => now()->toIso8601String(),
+                'php_version' => phpversion(),
+                'laravel_version' => app()->version(),
+                'user_id' => auth()->id(),
+                'team_id' => session('current_team_id'),
+            ],
+            'wizard_state' => [
+                'project_id' => $this->projectId,
+                'project_name' => $this->projectName,
+                'current_step' => $this->currentStep,
+                'max_reached_step' => $this->maxReachedStep,
+                'is_loading' => $this->isLoading,
+                'is_saving' => $this->isSaving,
+                'error' => $this->error,
+            ],
+            'platform_settings' => [
+                'platform' => $this->platform,
+                'aspect_ratio' => $this->aspectRatio,
+                'target_duration' => $this->targetDuration,
+                'format' => $this->format,
+                'production_type' => $this->productionType,
+                'production_subtype' => $this->productionSubtype,
+                'content_format_override' => $this->contentFormatOverride ?? null,
+            ],
+            'script_settings' => [
+                'script_tone' => $this->scriptTone,
+                'content_depth' => $this->contentDepth,
+                'additional_instructions' => $this->additionalInstructions,
+                'narrative_preset' => $this->narrativePreset,
+                'story_arc' => $this->storyArc,
+                'tension_curve' => $this->tensionCurve,
+                'emotional_journey' => $this->emotionalJourney,
+            ],
+            'concept' => $this->concept,
+            'script' => [
+                'title' => $this->script['title'] ?? null,
+                'hook' => $this->script['hook'] ?? null,
+                'cta' => $this->script['cta'] ?? null,
+                'scene_count' => count($this->script['scenes'] ?? []),
+                'total_duration' => collect($this->script['scenes'] ?? [])->sum('duration'),
+                'scenes_summary' => collect($this->script['scenes'] ?? [])->map(fn($s, $i) => [
+                    'index' => $i,
+                    'id' => $s['id'] ?? null,
+                    'duration' => $s['duration'] ?? null,
+                    'has_narration' => !empty($s['narration']),
+                    'has_visual' => !empty($s['visualDescription']),
+                ])->toArray(),
+            ],
+            'storyboard' => [
+                'visual_style' => $this->storyboard['visualStyle'] ?? null,
+                'image_model' => $this->storyboard['imageModel'] ?? null,
+                'style_bible_enabled' => $this->storyboard['styleBible']['enabled'] ?? false,
+                'prompt_chain_status' => $this->storyboard['promptChain']['status'] ?? null,
+            ],
+            'scene_memory' => [
+                'style_bible_enabled' => $this->sceneMemory['styleBible']['enabled'] ?? false,
+                'character_bible_enabled' => $this->sceneMemory['characterBible']['enabled'] ?? false,
+                'character_count' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+                'location_bible_enabled' => $this->sceneMemory['locationBible']['enabled'] ?? false,
+                'location_count' => count($this->sceneMemory['locationBible']['locations'] ?? []),
+            ],
+            'pending_jobs' => array_keys($this->pendingJobs ?? []),
+            'config_snapshot' => [
+                'platform_config' => config('appvideowizard.platforms.' . $this->platform) ?? null,
+                'production_type_config' => $this->productionType
+                    ? config('appvideowizard.production_types.' . $this->productionType)
+                    : null,
+            ],
+        ];
+    }
+
+    /**
+     * Export debug snapshot as downloadable JSON file.
+     */
+    public function exportDebugSnapshot(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $snapshot = $this->getDebugSnapshot();
+        $filename = 'wizard-debug-' . ($this->projectId ?? 'new') . '-' . now()->format('Y-m-d-His') . '.json';
+
+        return response()->streamDownload(function () use ($snapshot) {
+            echo json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, [
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
+    /**
+     * Dispatch debug snapshot to browser console (for development).
+     */
+    public function logDebugSnapshot(): void
+    {
+        $snapshot = $this->getDebugSnapshot();
+        $this->dispatch('vw-debug', [
+            'action' => 'debug-snapshot',
+            'message' => 'Full wizard state snapshot',
+            'data' => $snapshot,
+        ]);
+    }
+
+    /**
      * Import a project from JSON file.
      */
     public function importProject($file): void
