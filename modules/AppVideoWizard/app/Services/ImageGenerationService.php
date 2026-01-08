@@ -913,25 +913,43 @@ class ImageGenerationService
         try {
             $contents = Http::timeout(60)->get($imageUrl)->body();
         } catch (\Exception $e) {
+            Log::warning('ImageGeneration: HTTP fetch failed, trying file_get_contents', [
+                'url' => $imageUrl,
+                'error' => $e->getMessage(),
+            ]);
             $contents = file_get_contents($imageUrl);
+        }
+
+        if (empty($contents)) {
+            Log::error('ImageGeneration: Failed to download image', ['url' => $imageUrl]);
+            throw new \Exception('Failed to download image from URL');
         }
 
         $filename = Str::slug($sceneId) . '-' . time() . '.png';
         $path = "wizard-projects/{$project->id}/images/{$filename}";
 
-        // Store the image
         $stored = Storage::disk('public')->put($path, $contents);
 
         if (!$stored) {
-            Log::error('ImageGenerationService: Failed to store image', [
+            Log::error('ImageGeneration: Failed to store image', [
                 'path' => $path,
-                'projectId' => $project->id,
+                'contentLength' => strlen($contents),
             ]);
             throw new \Exception('Failed to store image to disk');
         }
 
-        // Verify file exists and log details
-        $this->verifyStoredImage($path, $project->id);
+        // Verify the file was actually stored
+        if (!Storage::disk('public')->exists($path)) {
+            Log::error('ImageGeneration: Image file does not exist after storage', ['path' => $path]);
+            throw new \Exception('Image file was not saved correctly');
+        }
+
+        $fullUrl = Storage::disk('public')->url($path);
+        Log::info('ImageGeneration: Image stored successfully', [
+            'path' => $path,
+            'url' => $fullUrl,
+            'size' => strlen($contents),
+        ]);
 
         return $path;
     }
@@ -943,11 +961,8 @@ class ImageGenerationService
     {
         $contents = base64_decode($base64Data);
 
-        if ($contents === false) {
-            Log::error('ImageGenerationService: Failed to decode base64 image data', [
-                'projectId' => $project->id,
-                'sceneId' => $sceneId,
-            ]);
+        if (empty($contents)) {
+            Log::error('ImageGeneration: Failed to decode base64 image');
             throw new \Exception('Failed to decode base64 image data');
         }
 
@@ -960,61 +975,30 @@ class ImageGenerationService
         $filename = Str::slug($sceneId) . '-' . time() . '.' . $extension;
         $path = "wizard-projects/{$project->id}/images/{$filename}";
 
-        // Store the image
         $stored = Storage::disk('public')->put($path, $contents);
 
         if (!$stored) {
-            Log::error('ImageGenerationService: Failed to store base64 image', [
+            Log::error('ImageGeneration: Failed to store base64 image', [
                 'path' => $path,
-                'projectId' => $project->id,
+                'contentLength' => strlen($contents),
             ]);
             throw new \Exception('Failed to store image to disk');
         }
 
-        // Verify file exists and log details
-        $this->verifyStoredImage($path, $project->id);
+        // Verify the file was actually stored
+        if (!Storage::disk('public')->exists($path)) {
+            Log::error('ImageGeneration: Base64 image file does not exist after storage', ['path' => $path]);
+            throw new \Exception('Image file was not saved correctly');
+        }
 
-        return $path;
-    }
-
-    /**
-     * Verify that a stored image is accessible and log storage status.
-     */
-    protected function verifyStoredImage(string $path, int $projectId): void
-    {
-        // Check if file exists in storage
-        $exists = Storage::disk('public')->exists($path);
-        $url = Storage::disk('public')->url($path);
-        $fullPath = Storage::disk('public')->path($path);
-
-        // Check if the public symlink exists
-        $publicStoragePath = public_path('storage');
-        $symlinkExists = file_exists($publicStoragePath) || is_link($publicStoragePath);
-
-        Log::info('ImageGenerationService: Image stored verification', [
+        $fullUrl = Storage::disk('public')->url($path);
+        Log::info('ImageGeneration: Base64 image stored successfully', [
             'path' => $path,
-            'url' => $url,
-            'fullPath' => $fullPath,
-            'projectId' => $projectId,
-            'fileExists' => $exists,
-            'fileSize' => $exists ? Storage::disk('public')->size($path) : 0,
-            'storageLinkExists' => $symlinkExists,
+            'url' => $fullUrl,
+            'size' => strlen($contents),
         ]);
 
-        if (!$exists) {
-            Log::error('ImageGenerationService: Image file does not exist after storage', [
-                'path' => $path,
-                'fullPath' => $fullPath,
-            ]);
-        }
-
-        if (!$symlinkExists) {
-            Log::warning('ImageGenerationService: Storage symlink missing - images will return 404!', [
-                'expectedPath' => $publicStoragePath,
-                'solution' => 'Run: php artisan storage:link',
-                'projectId' => $projectId,
-            ]);
-        }
+        return $path;
     }
 
     /**
