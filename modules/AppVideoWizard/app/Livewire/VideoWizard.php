@@ -220,6 +220,7 @@ class VideoWizard extends Component
     public ?string $tensionCurve = null; // Pacing dynamics
     public ?string $emotionalJourney = null; // The feeling arc for viewers
     public bool $showNarrativeAdvanced = false; // Toggle for advanced options
+    public ?string $contentFormatOverride = null; // Manual override: 'short' or 'feature' (null = auto from duration)
 
     // Multi-Shot Mode state
     public array $multiShotMode = [
@@ -590,11 +591,50 @@ class VideoWizard extends Component
     }
 
     /**
-     * Get the content format category based on duration.
+     * Get the content format category based on duration or manual override.
      */
     public function getContentFormat(): string
     {
+        // Manual override takes precedence
+        if ($this->contentFormatOverride !== null) {
+            return $this->contentFormatOverride;
+        }
         return $this->isFeatureLength() ? 'feature' : 'short';
+    }
+
+    /**
+     * Toggle between short and feature format manually.
+     */
+    public function toggleContentFormat(): void
+    {
+        $currentFormat = $this->getContentFormat();
+        $this->contentFormatOverride = ($currentFormat === 'short') ? 'feature' : 'short';
+
+        // Clear current preset when format changes so user selects appropriate one
+        $this->narrativePreset = null;
+
+        // Auto-apply the default preset for the new format
+        $mapping = $this->getPresetMappingForProduction();
+        if (!empty($mapping['default'])) {
+            $this->applyNarrativePreset($mapping['default']);
+        }
+    }
+
+    /**
+     * Set content format explicitly.
+     */
+    public function setContentFormat(string $format): void
+    {
+        if (in_array($format, ['short', 'feature'])) {
+            $this->contentFormatOverride = $format;
+
+            // Clear current preset and apply new default
+            $this->narrativePreset = null;
+            $mapping = $this->getPresetMappingForProduction();
+            if (!empty($mapping['default'])) {
+                $this->applyNarrativePreset($mapping['default']);
+            }
+        }
     }
 
     /**

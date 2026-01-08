@@ -996,6 +996,40 @@
     }
 
     /* Cascading preset organization styles */
+    .vw-format-toggle {
+        display: inline-flex !important;
+        margin-left: 0.75rem !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border-radius: 0.375rem !important;
+        padding: 0.125rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .vw-format-btn {
+        padding: 0.25rem 0.75rem !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.03em !important;
+        border: none !important;
+        background: transparent !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        cursor: pointer !important;
+        border-radius: 0.25rem !important;
+        transition: all 0.2s !important;
+    }
+
+    .vw-format-btn:hover {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .vw-format-btn.active {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(168, 85, 247, 0.3) 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.3) !important;
+    }
+
+    /* Legacy badge styles - kept for compatibility */
     .vw-format-badge {
         display: inline-block !important;
         padding: 0.125rem 0.5rem !important;
@@ -1388,11 +1422,19 @@
             <div class="vw-narrative-presets-row">
                 <div class="vw-narrative-preset-label">
                     {{ __('Storytelling Formula') }}
-                    @if($isFeature)
-                        <span class="vw-format-badge feature">{{ __('Feature Film') }}</span>
-                    @else
-                        <span class="vw-format-badge short">{{ __('Short Form') }}</span>
-                    @endif
+                    {{-- Format Toggle - Click to switch between Short Form and Feature Film --}}
+                    <div class="vw-format-toggle" title="{{ __('Click to switch format') }}">
+                        <button type="button"
+                                class="vw-format-btn {{ !$isFeature ? 'active' : '' }}"
+                                wire:click="setContentFormat('short')">
+                            {{ __('Short') }}
+                        </button>
+                        <button type="button"
+                                class="vw-format-btn {{ $isFeature ? 'active' : '' }}"
+                                wire:click="setContentFormat('feature')">
+                            {{ __('Feature') }}
+                        </button>
+                    </div>
                     @if($hasProductionType && !empty($organizedPresets['recommended']))
                         <span class="vw-preset-context-hint">
                             — {{ __('Recommended for') }} {{ config('appvideowizard.production_types.' . $productionType . '.name', $productionType) }}
