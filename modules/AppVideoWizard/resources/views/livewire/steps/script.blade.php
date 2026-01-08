@@ -1609,24 +1609,127 @@
                       placeholder="{{ __('Any specific requirements? e.g., Include a personal story, mention specific products, focus on beginners...') }}"></textarea>
         </div>
 
-        {{-- Generate Button --}}
-        <button class="vw-generate-script-btn"
-                wire:click="generateScript"
-                wire:loading.attr="disabled"
-                wire:target="generateScript">
-            <span wire:loading.remove wire:target="generateScript">🚀 {{ __('Generate Script with AI') }}</span>
-            <span wire:loading wire:target="generateScript">
-                <span class="vw-loading-inner">
-                    <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                    </svg>
-                    {{ __('Generating...') }}
-                </span>
-            </span>
-        </button>
+        {{-- Progressive Generation Panel --}}
+        @if($scriptGeneration['status'] !== 'idle')
+            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
+                {{-- Header --}}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="color: white; font-size: 1.1rem; font-weight: 600; margin: 0;">
+                            🎬 {{ __('Script Generation') }}
+                        </h3>
+                        <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+                            {{ $targetDuration }}s {{ __('video') }} → {{ $scriptGeneration['targetSceneCount'] }} {{ __('scenes') }}
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="color: #8b5cf6; font-size: 1.5rem; font-weight: 700;">
+                            {{ $scriptGeneration['generatedSceneCount'] }} / {{ $scriptGeneration['targetSceneCount'] }}
+                        </span>
+                        <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">{{ __('scenes generated') }}</p>
+                    </div>
+                </div>
 
-        <p class="vw-cost-estimate">{{ __('Estimated cost: ~5 tokens • Powered by') }} {{ get_option('ai_platform', 'GPT-4o') }}</p>
+                {{-- Progress Bar --}}
+                @php
+                    $progress = $scriptGeneration['targetSceneCount'] > 0
+                        ? ($scriptGeneration['generatedSceneCount'] / $scriptGeneration['targetSceneCount']) * 100
+                        : 0;
+                @endphp
+                <div style="background: rgba(255,255,255,0.1); border-radius: 0.5rem; height: 12px; overflow: hidden; margin-bottom: 1rem;">
+                    <div style="background: linear-gradient(90deg, #8b5cf6, #06b6d4); height: 100%; width: {{ $progress }}%; transition: width 0.5s ease;"></div>
+                </div>
+
+                {{-- Batch List --}}
+                <div style="display: grid; gap: 0.5rem; margin-bottom: 1rem; max-height: 200px; overflow-y: auto;">
+                    @foreach($scriptGeneration['batches'] as $batchIndex => $batch)
+                        @php
+                            $statusConfig = [
+                                'complete' => ['bg' => 'rgba(16, 185, 129, 0.2)', 'border' => 'rgba(16, 185, 129, 0.4)', 'icon' => '✅', 'color' => '#10b981'],
+                                'generating' => ['bg' => 'rgba(251, 191, 36, 0.2)', 'border' => 'rgba(251, 191, 36, 0.4)', 'icon' => '⏳', 'color' => '#fbbf24'],
+                                'pending' => ['bg' => 'rgba(255, 255, 255, 0.05)', 'border' => 'rgba(255, 255, 255, 0.1)', 'icon' => '⏸️', 'color' => 'rgba(255,255,255,0.5)'],
+                                'error' => ['bg' => 'rgba(239, 68, 68, 0.2)', 'border' => 'rgba(239, 68, 68, 0.4)', 'icon' => '❌', 'color' => '#ef4444'],
+                            ];
+                            $style = $statusConfig[$batch['status']] ?? $statusConfig['pending'];
+                        @endphp
+                        <div style="background: {{ $style['bg'] }}; border: 1px solid {{ $style['border'] }}; border-radius: 0.5rem; padding: 0.6rem 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 1rem;">{{ $style['icon'] }}</span>
+                            <div style="flex: 1;">
+                                <span style="color: white; font-weight: 500; font-size: 0.9rem;">{{ __('Batch') }} {{ $batch['batchNumber'] }}</span>
+                                <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-left: 0.5rem;">
+                                    {{ __('Scenes') }} {{ $batch['startScene'] }}-{{ $batch['endScene'] }}
+                                </span>
+                            </div>
+                            @if($batch['status'] === 'error')
+                                <button wire:click="retryBatch({{ $batchIndex }})"
+                                        style="background: rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.5); color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                    🔄 {{ __('Retry') }}
+                                </button>
+                            @endif
+                            <span style="color: {{ $style['color'] }}; font-size: 0.75rem; text-transform: capitalize;">
+                                {{ __($batch['status']) }}
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Action Buttons --}}
+                <div style="display: flex; gap: 1rem;">
+                    @if($scriptGeneration['status'] === 'complete')
+                        <div style="flex: 1; padding: 0.75rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.5rem; text-align: center;">
+                            <span style="color: #10b981; font-weight: 600;">✅ {{ __('All :count scenes generated!', ['count' => $scriptGeneration['targetSceneCount']]) }}</span>
+                        </div>
+                        <button wire:click="resetProgressiveGeneration"
+                                style="padding: 0.75rem 1rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.5rem; color: #f87171; cursor: pointer; font-size: 0.85rem;">
+                            🗑️ {{ __('Reset') }}
+                        </button>
+                    @elseif($scriptGeneration['status'] === 'paused' || $scriptGeneration['status'] === 'generating')
+                        <button wire:click="generateNextBatch"
+                                wire:loading.attr="disabled"
+                                wire:target="generateNextBatch"
+                                @if($scriptGeneration['status'] === 'generating') disabled @endif
+                                style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: {{ $scriptGeneration['status'] === 'generating' ? '0.6' : '1' }};">
+                            <span wire:loading.remove wire:target="generateNextBatch">🚀 {{ __('Generate Next Batch') }}</span>
+                            <span wire:loading wire:target="generateNextBatch">
+                                <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                </svg>
+                                {{ __('Generating...') }}
+                            </span>
+                        </button>
+
+                        <button wire:click="generateAllRemaining"
+                                wire:loading.attr="disabled"
+                                @if($scriptGeneration['status'] === 'generating') disabled @endif
+                                style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: {{ $scriptGeneration['status'] === 'generating' ? '0.6' : '1' }};">
+                            ⚡ {{ __('Auto-Generate All') }}
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @else
+            {{-- Start Progressive Generation Button --}}
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.75rem; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                        wire:click="startProgressiveGeneration"
+                        wire:loading.attr="disabled"
+                        wire:target="startProgressiveGeneration">
+                    <span wire:loading.remove wire:target="startProgressiveGeneration">🎬 {{ __('Generate Script') }} ({{ $this->calculateSceneCount() }} {{ __('scenes') }})</span>
+                    <span wire:loading wire:target="startProgressiveGeneration">
+                        <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                        </svg>
+                        {{ __('Starting...') }}
+                    </span>
+                </button>
+            </div>
+
+            <p style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin: 0;">
+                {{ __('Generates scenes in batches of 5 for better quality') }} • {{ __('Powered by') }} {{ get_option('ai_platform', 'GPT-4o') }}
+            </p>
+        @endif
     </div>
 
     {{-- Script Results (shown after generation) --}}

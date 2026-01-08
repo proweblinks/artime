@@ -299,6 +299,268 @@ class ScriptGenerationService
         ];
     }
 
+    // =========================================================================
+    // PROGRESSIVE BATCH-BASED SCENE GENERATION
+    // =========================================================================
+
+    /**
+     * Generate a batch of scenes with context continuity.
+     *
+     * @param WizardProject $project The project
+     * @param int $startScene Starting scene number (1-indexed)
+     * @param int $endScene Ending scene number (1-indexed)
+     * @param int $totalScenes Total scenes in the full script
+     * @param string $context Context from previous scenes
+     * @param array $options Generation options
+     * @return array ['success' => bool, 'scenes' => array, 'error' => string|null]
+     */
+    public function generateSceneBatch(
+        WizardProject $project,
+        int $startScene,
+        int $endScene,
+        int $totalScenes,
+        string $context,
+        array $options = []
+    ): array {
+        $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
+        $topic = $options['topic'] ?? $project->concept['refinedConcept'] ?? $project->concept['rawInput'] ?? '';
+        $sceneCount = $endScene - $startScene + 1;
+
+        \Log::info('VideoWizard: Generating scene batch', [
+            'startScene' => $startScene,
+            'endScene' => $endScene,
+            'totalScenes' => $totalScenes,
+            'sceneCount' => $sceneCount,
+        ]);
+
+        // Build the batch prompt
+        $prompt = $this->buildBatchPrompt(
+            $topic,
+            $startScene,
+            $endScene,
+            $totalScenes,
+            $context,
+            $options
+        );
+
+        // Call AI
+        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+
+        if (!empty($result['error'])) {
+            return ['success' => false, 'error' => $result['error'], 'scenes' => []];
+        }
+
+        $response = $result['data'][0] ?? '';
+
+        try {
+            $parsed = $this->parseBatchResponse($response, $startScene, $endScene);
+
+            if (empty($parsed['scenes'])) {
+                return ['success' => false, 'error' => 'No scenes parsed from response', 'scenes' => []];
+            }
+
+            \Log::info('VideoWizard: Batch generated successfully', [
+                'scenesGenerated' => count($parsed['scenes']),
+            ]);
+
+            return ['success' => true, 'scenes' => $parsed['scenes'], 'error' => null];
+
+        } catch (\Exception $e) {
+            \Log::error('VideoWizard: Batch parsing failed', [
+                'error' => $e->getMessage(),
+                'response' => substr($response, 0, 500),
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage(), 'scenes' => []];
+        }
+    }
+
+    /**
+     * Build context string from existing scenes for batch continuity.
+     *
+     * @param array $existingScenes Scenes generated so far
+     * @param int $batchNumber Current batch number (1-indexed)
+     * @param int $totalBatches Total number of batches
+     * @return string Context for AI prompt
+     */
+    public function buildBatchContext(array $existingScenes, int $batchNumber, int $totalBatches): string
+    {
+        $context = "";
+
+        if (empty($existingScenes)) {
+            $context .= "=== NARRATIVE POSITION: OPENING ===\n";
+            $context .= "This is the BEGINNING of the video.\n";
+            $context .= "- Create a strong hook in the first scene to grab attention\n";
+            $context .= "- Introduce the main topic/premise clearly\n";
+            $context .= "- Set the tone and style for the entire video\n";
+            $context .= "- Make the viewer want to continue watching\n";
+            return $context;
+        }
+
+        // Summary of narrative so far
+        $context .= "=== STORY SO FAR ===\n";
+        $context .= "Previously generated " . count($existingScenes) . " scenes.\n\n";
+
+        // Last 3 scenes for direct continuity
+        $context .= "RECENT SCENES (maintain continuity with these):\n";
+        $recentScenes = array_slice($existingScenes, -3);
+        foreach ($recentScenes as $scene) {
+            $title = $scene['title'] ?? 'Untitled';
+            $narration = $scene['narration'] ?? '';
+            $context .= "• Scene \"{$title}\": " . substr($narration, 0, 120) . "...\n";
+        }
+        $context .= "\n";
+
+        // Narrative position guidance based on where we are in the story
+        $position = $batchNumber / $totalBatches;
+        $context .= "=== NARRATIVE POSITION ===\n";
+
+        if ($position <= 0.25) {
+            $context .= "You are in the SETUP phase (first quarter of the video).\n";
+            $context .= "- Continue building the foundation established in scene 1\n";
+            $context .= "- Introduce key concepts, characters, or ideas\n";
+            $context .= "- Maintain viewer engagement with interesting content\n";
+            $context .= "- Set up what's coming next\n";
+        } elseif ($position <= 0.5) {
+            $context .= "You are in the DEVELOPMENT phase (second quarter).\n";
+            $context .= "- Deepen the narrative with more detail\n";
+            $context .= "- Add complexity and nuance to the topic\n";
+            $context .= "- Build momentum towards the midpoint\n";
+            $context .= "- Keep the viewer invested in the content\n";
+        } elseif ($position <= 0.75) {
+            $context .= "You are in the ESCALATION phase (third quarter).\n";
+            $context .= "- Increase the intensity or importance of content\n";
+            $context .= "- Present key revelations or turning points\n";
+            $context .= "- Build towards the climax/main point\n";
+            $context .= "- Create anticipation for the conclusion\n";
+        } else {
+            $context .= "You are in the RESOLUTION phase (final quarter).\n";
+            $context .= "- Bring the narrative to a satisfying conclusion\n";
+            $context .= "- Deliver the main message or takeaway\n";
+            $context .= "- Summarize key points if appropriate\n";
+            $context .= "- Include a strong call-to-action in the FINAL scene\n";
+        }
+
+        return $context;
+    }
+
+    /**
+     * Build the prompt for generating a batch of scenes.
+     */
+    protected function buildBatchPrompt(
+        string $topic,
+        int $startScene,
+        int $endScene,
+        int $totalScenes,
+        string $context,
+        array $options
+    ): string {
+        $sceneCount = $endScene - $startScene + 1;
+        $tone = $options['tone'] ?? 'engaging';
+        $contentDepth = $options['contentDepth'] ?? 'detailed';
+        $productionType = $options['productionType'] ?? 'standard';
+
+        // Calculate scene duration based on production type
+        $sceneDurations = [
+            'tiktok-viral' => 3,
+            'youtube-short' => 5,
+            'short-form' => 4,
+            'standard' => 6,
+            'cinematic' => 8,
+            'documentary' => 10,
+            'long-form' => 8,
+        ];
+        $sceneDuration = $sceneDurations[$productionType] ?? 6;
+
+        // Words per scene (roughly 2.5 words per second for narration)
+        $wordsPerScene = (int) round($sceneDuration * 2.5);
+
+        $prompt = <<<PROMPT
+You are an expert video scriptwriter. Generate scenes {$startScene} to {$endScene} of a {$totalScenes}-scene video.
+
+TOPIC: {$topic}
+
+TONE: {$tone}
+CONTENT DEPTH: {$contentDepth}
+
+{$context}
+
+=== REQUIREMENTS ===
+- Generate EXACTLY {$sceneCount} scenes (scenes {$startScene} through {$endScene})
+- Each scene duration: approximately {$sceneDuration} seconds
+- Each scene narration: approximately {$wordsPerScene} words
+- Maintain narrative continuity with any previous scenes
+- Each scene MUST have unique, meaningful content
+- NO generic transitions or filler content
+- NO placeholder text like "transition" or "more to come"
+- Every scene must advance the narrative
+
+=== JSON FORMAT ===
+Respond with ONLY valid JSON (no markdown, no explanation):
+{
+  "scenes": [
+    {
+      "id": "scene-{$startScene}",
+      "title": "Descriptive scene title (2-5 words)",
+      "narration": "Full narrator script for this scene (~{$wordsPerScene} words)",
+      "visualDescription": "Detailed visual description for AI image generation (50-100 words)",
+      "mood": "Scene emotional tone (one word: inspiring, dramatic, peaceful, exciting, etc.)",
+      "transition": "cut"
+    }
+  ]
+}
+
+Generate exactly {$sceneCount} scenes starting from scene-{$startScene} to scene-{$endScene}.
+PROMPT;
+
+        return $prompt;
+    }
+
+    /**
+     * Parse batch generation response.
+     */
+    protected function parseBatchResponse(string $response, int $startScene, int $endScene): array
+    {
+        $expectedCount = $endScene - $startScene + 1;
+
+        // Extract JSON from response
+        $json = $this->extractJson($response);
+
+        // Parse JSON
+        $data = json_decode($json, true);
+        $jsonError = json_last_error();
+
+        if ($jsonError !== JSON_ERROR_NONE || !isset($data['scenes'])) {
+            // Try recovery methods
+            $data = $this->tryAggressiveJsonRepair($json);
+
+            if ($data === null || !isset($data['scenes'])) {
+                $data = $this->rebuildScriptFromResponse($response);
+            }
+
+            if ($data === null || empty($data['scenes'])) {
+                throw new \Exception('Failed to parse batch response: ' . json_last_error_msg());
+            }
+        }
+
+        $scenes = [];
+        foreach ($data['scenes'] as $index => $scene) {
+            $sceneNumber = $startScene + $index;
+            $scenes[] = $this->sanitizeScene($scene, $sceneNumber - 1);
+            $scenes[count($scenes) - 1]['id'] = 'scene-' . $sceneNumber;
+        }
+
+        // Validate we got the expected number of scenes
+        if (count($scenes) < $expectedCount) {
+            \Log::warning('VideoWizard: Batch returned fewer scenes than expected', [
+                'expected' => $expectedCount,
+                'received' => count($scenes),
+            ]);
+        }
+
+        return ['scenes' => $scenes];
+    }
+
     /**
      * Build outline prompt for long-form videos.
      */
