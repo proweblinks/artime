@@ -2182,6 +2182,23 @@ class VideoWizard extends Component
                 throw new \Exception(__('Scene not found'));
             }
 
+            // Initialize scenes array if needed
+            if (!isset($this->storyboard['scenes'])) {
+                $this->storyboard['scenes'] = [];
+            }
+
+            // Set generating status BEFORE the API call for immediate UI feedback
+            $this->storyboard['scenes'][$sceneIndex] = [
+                'sceneId' => $sceneId,
+                'imageUrl' => null,
+                'assetId' => null,
+                'status' => 'generating',
+                'source' => 'ai',
+            ];
+
+            // Force save and UI update before the potentially slow API call
+            $this->saveProject();
+
             $imageService = app(ImageGenerationService::class);
             $result = $imageService->generateSceneImage($project, $scene, [
                 'sceneIndex' => $sceneIndex,
@@ -2189,21 +2206,10 @@ class VideoWizard extends Component
                 'model' => $this->storyboard['imageModel'] ?? 'nanobanana', // Use UI-selected model
             ]);
 
-            // Update storyboard with the generated image or set generating state
-            if (!isset($this->storyboard['scenes'])) {
-                $this->storyboard['scenes'] = [];
-            }
-
             if ($result['async'] ?? false) {
-                // HiDream async job - set generating state and start polling
-                $this->storyboard['scenes'][$sceneIndex] = [
-                    'sceneId' => $sceneId,
-                    'imageUrl' => null,
-                    'assetId' => null,
-                    'status' => 'generating',
-                    'jobId' => $result['jobId'] ?? null,
-                    'processingJobId' => $result['processingJobId'] ?? null,
-                ];
+                // HiDream async job - update with job ID for polling
+                $this->storyboard['scenes'][$sceneIndex]['jobId'] = $result['jobId'] ?? null;
+                $this->storyboard['scenes'][$sceneIndex]['processingJobId'] = $result['processingJobId'] ?? null;
 
                 $this->saveProject();
 
@@ -2226,6 +2232,12 @@ class VideoWizard extends Component
             }
 
         } catch (\Exception $e) {
+            // Set error status on failure
+            if (isset($this->storyboard['scenes'][$sceneIndex])) {
+                $this->storyboard['scenes'][$sceneIndex]['status'] = 'error';
+                $this->storyboard['scenes'][$sceneIndex]['error'] = $e->getMessage();
+                $this->saveProject();
+            }
             $this->error = __('Failed to generate image: ') . $e->getMessage();
         } finally {
             $this->isLoading = false;
@@ -2254,30 +2266,42 @@ class VideoWizard extends Component
                 $this->storyboard['scenes'] = [];
             }
 
+            // First pass: Set all pending scenes to 'generating' status for immediate UI feedback
+            $scenesToGenerate = [];
             foreach ($this->script['scenes'] as $index => $scene) {
-                // Skip if already has an image or is generating
                 $existingScene = $this->storyboard['scenes'][$index] ?? null;
-                if (!empty($existingScene['imageUrl']) || ($existingScene['status'] ?? '') === 'generating') {
-                    continue;
+                if (empty($existingScene['imageUrl']) && ($existingScene['status'] ?? '') !== 'generating') {
+                    $this->storyboard['scenes'][$index] = [
+                        'sceneId' => $scene['id'],
+                        'imageUrl' => null,
+                        'assetId' => null,
+                        'status' => 'generating',
+                        'source' => 'ai',
+                    ];
+                    $scenesToGenerate[] = $index;
                 }
+            }
+
+            // Save with all 'generating' statuses for immediate UI update
+            if (!empty($scenesToGenerate)) {
+                $this->saveProject();
+            }
+
+            // Second pass: Actually generate images
+            foreach ($scenesToGenerate as $index) {
+                $scene = $this->script['scenes'][$index];
 
                 try {
                     $result = $imageService->generateSceneImage($project, $scene, [
                         'sceneIndex' => $index,
                         'teamId' => session('current_team_id', 0),
-                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana', // Use UI-selected model
+                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana',
                     ]);
 
                     if ($result['async'] ?? false) {
-                        // HiDream async job
-                        $this->storyboard['scenes'][$index] = [
-                            'sceneId' => $scene['id'],
-                            'imageUrl' => null,
-                            'assetId' => null,
-                            'status' => 'generating',
-                            'jobId' => $result['jobId'] ?? null,
-                            'processingJobId' => $result['processingJobId'] ?? null,
-                        ];
+                        // HiDream async job - update with job ID
+                        $this->storyboard['scenes'][$index]['jobId'] = $result['jobId'] ?? null;
+                        $this->storyboard['scenes'][$index]['processingJobId'] = $result['processingJobId'] ?? null;
                         $hasAsyncJobs = true;
                     } else {
                         // Sync generation - image is ready
@@ -2293,8 +2317,11 @@ class VideoWizard extends Component
                     $this->saveProject();
 
                 } catch (\Exception $e) {
-                    // Log individual scene errors but continue
-                    \Log::warning("Failed to generate image for scene {$index}: " . $e->getMessage());
+                    // Set error status on failure
+                    $this->storyboard['scenes'][$index]['status'] = 'error';
+                    $this->storyboard['scenes'][$index]['error'] = $e->getMessage();
+                    $this->saveProject();
+                    Log::warning("Failed to generate image for scene {$index}: " . $e->getMessage());
                 }
             }
 

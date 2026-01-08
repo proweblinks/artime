@@ -1241,7 +1241,40 @@
                                 </div>
                             @elseif($imageUrl)
                                 {{-- Image Ready --}}
-                                <img src="{{ $imageUrl }}" alt="Scene {{ $index + 1 }}" class="vw-scene-image">
+                                <img src="{{ $imageUrl }}"
+                                     alt="Scene {{ $index + 1 }}"
+                                     class="vw-scene-image"
+                                     data-scene-id="{{ $scene['id'] }}"
+                                     data-retry-count="0"
+                                     onload="this.dataset.loaded='true'; this.parentElement.querySelector('.vw-image-placeholder')?.style && (this.parentElement.querySelector('.vw-image-placeholder').style.display='none');"
+                                     onerror="
+                                        this.onerror=null;
+                                        const retryCount = parseInt(this.dataset.retryCount || '0');
+                                        if (retryCount < 3) {
+                                            this.dataset.retryCount = retryCount + 1;
+                                            setTimeout(() => {
+                                                const url = this.src.split('&t=')[0].split('?t=')[0];
+                                                this.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+                                                this.onerror = function() {
+                                                    this.style.display='none';
+                                                    this.parentElement.querySelector('.vw-image-placeholder').style.display='flex';
+                                                };
+                                            }, 2000);
+                                        } else {
+                                            this.style.display='none';
+                                            this.parentElement.querySelector('.vw-image-placeholder').style.display='flex';
+                                        }
+                                     ">
+                                {{-- Placeholder with retry option if image fails after retries --}}
+                                <div class="vw-image-placeholder" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); gap: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">🖼️</span>
+                                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ __('Image not available') }}</span>
+                                    <button type="button"
+                                            wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                            style="padding: 0.3rem 0.6rem; border-radius: 0.3rem; border: 1px solid rgba(139,92,246,0.5); background: rgba(139,92,246,0.3); color: white; cursor: pointer; font-size: 0.65rem;">
+                                        🔄 {{ __('Regenerate') }}
+                                    </button>
+                                </div>
 
                                 {{-- Source Badge - Below scene number --}}
                                 <div style="position: absolute; top: 2rem; left: 0.5rem; background: {{ $source === 'stock' ? 'rgba(16,185,129,0.9)' : 'rgba(139,92,246,0.9)' }}; color: white; padding: 0.15rem 0.4rem; border-radius: 0.2rem; font-size: 0.55rem; z-index: 10;">
@@ -1318,20 +1351,39 @@
                                 </div>
                             @else
                                 {{-- Empty/Pending State --}}
-                                <div class="vw-scene-empty">
+                                {{-- Show loading spinner while generating (wire:loading targets this specific scene) --}}
+                                <div class="vw-scene-generating"
+                                     wire:loading
+                                     wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                     style="display: none;">
+                                    <div class="vw-spinner"></div>
+                                    <span class="vw-generating-text">{{ __('Generating...') }}</span>
+                                </div>
+                                <div class="vw-scene-empty"
+                                     wire:loading.remove
+                                     wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
                                     <div class="vw-scene-empty-text">{{ __('Choose image source:') }}</div>
                                     <div class="vw-scene-empty-buttons">
                                         <button type="button"
                                                 class="vw-scene-empty-btn ai"
                                                 wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                                wire:loading.attr="disabled">
-                                            <span class="vw-scene-empty-btn-icon">🎨</span>
-                                            <span>{{ __('AI Generate') }}</span>
-                                            <span class="vw-scene-empty-btn-cost">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
+                                                wire:loading.attr="disabled"
+                                                wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                            <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨</span>
+                                            <span wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ __('AI Generate') }}</span>
+                                            <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                                <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
                                         </button>
                                         <button type="button"
                                                 class="vw-scene-empty-btn stock"
-                                                wire:click="openStockBrowser({{ $index }})">
+                                                wire:click="openStockBrowser({{ $index }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
                                             <span class="vw-scene-empty-btn-icon">📷</span>
                                             <span>{{ __('Stock Media') }}</span>
                                             <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
