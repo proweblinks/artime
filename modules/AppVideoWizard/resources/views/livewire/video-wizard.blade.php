@@ -465,6 +465,15 @@
     {{-- Project Manager Modal --}}
     @include('appvideowizard::livewire.modals.project-manager')
 
+    {{-- Multi-Shot Decomposition Modal --}}
+    @include('appvideowizard::livewire.modals.multi-shot')
+
+    {{-- Shot Preview Modal --}}
+    @include('appvideowizard::livewire.modals.shot-preview')
+
+    {{-- Frame Capture Modal --}}
+    @include('appvideowizard::livewire.modals.frame-capture')
+
     {{-- Debug Console Logger --}}
     @if(config('app.debug', false) || session('login_as') === 'admin')
     <script>

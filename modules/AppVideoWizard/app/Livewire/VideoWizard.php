@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class VideoWizard extends Component
 {
@@ -235,6 +236,18 @@ class VideoWizard extends Component
     public bool $showMultiShotModal = false;
     public int $multiShotSceneIndex = 0;
     public int $multiShotCount = 3;
+
+    // Shot Preview Modal state
+    public bool $showShotPreviewModal = false;
+    public int $shotPreviewSceneIndex = 0;
+    public int $shotPreviewShotIndex = 0;
+    public string $shotPreviewTab = 'image'; // 'image' or 'video'
+
+    // Frame Capture Modal state
+    public bool $showFrameCaptureModal = false;
+    public int $frameCaptureSceneIndex = 0;
+    public int $frameCaptureShotIndex = 0;
+    public ?string $capturedFrame = null;
 
     // Upscale Modal state
     public bool $showUpscaleModal = false;
@@ -6124,18 +6137,34 @@ class VideoWizard extends Component
             // Use Gemini to decompose scene into shots
             $imageService = app(ImageGenerationService::class);
 
+            // Calculate duration per shot (default 6s each, adjustable)
+            $sceneDuration = $scene['duration'] ?? 30;
+            $baseShotDuration = max(5, min(10, intval($sceneDuration / $this->multiShotCount)));
+
             $shots = [];
             for ($i = 0; $i < $this->multiShotCount; $i++) {
                 $shotType = $this->getShotTypeForIndex($i, $this->multiShotCount);
+                $cameraMovement = $this->getCameraMovementForShot($shotType['type'], $i);
+
                 $shots[] = [
                     'id' => uniqid('shot_'),
                     'index' => $i,
                     'type' => $shotType['type'],
+                    'shotType' => $shotType['type'],
                     'description' => $shotType['description'],
                     'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
                     'imageUrl' => null,
+                    'videoUrl' => null,
                     'status' => 'pending',
+                    'videoStatus' => 'pending',
                     'fromSceneImage' => $i === 0, // First shot can use scene image
+                    'duration' => $baseShotDuration,
+                    'selectedDuration' => $baseShotDuration,
+                    'durationClass' => $baseShotDuration <= 5 ? 'quick' : ($baseShotDuration <= 6 ? 'short' : 'standard'),
+                    'cameraMovement' => $cameraMovement,
+                    'narrativeBeat' => [
+                        'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription),
+                    ],
                 ];
             }
 
@@ -6206,6 +6235,48 @@ class VideoWizard extends Component
         }
 
         return $prompt;
+    }
+
+    /**
+     * Get camera movement for a shot based on its type.
+     */
+    protected function getCameraMovementForShot(string $shotType, int $index): string
+    {
+        $movements = [
+            'establishing' => 'slow pan',
+            'medium' => 'static',
+            'close-up' => 'push in',
+            'reaction' => 'quick cut',
+            'detail' => 'slow zoom',
+            'wide' => 'drift',
+        ];
+
+        return $movements[$shotType] ?? 'static';
+    }
+
+    /**
+     * Get motion description for video generation based on shot type.
+     */
+    protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription): string
+    {
+        $baseDescriptions = [
+            'establishing' => 'Slow pan across the scene, establishing the environment and atmosphere',
+            'medium' => 'Subtle movement focusing on the main subject with gentle camera motion',
+            'close-up' => 'Slight push in emphasizing details and expressions',
+            'reaction' => 'Quick responsive movement capturing emotional response',
+            'detail' => 'Slow zoom highlighting specific important elements',
+            'wide' => 'Expansive view with subtle camera drift revealing the full scene',
+        ];
+
+        $base = $baseDescriptions[$shotType] ?? 'Natural subtle movement maintaining visual interest';
+
+        // Add context from visual description if available
+        if (strlen($visualDescription) > 20) {
+            $contextSnippet = substr($visualDescription, 0, 100);
+            return "{$base}. Context: {$contextSnippet}";
+        }
+
+        return $base;
     }
 
     /**
@@ -6319,6 +6390,288 @@ class VideoWizard extends Component
         if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex])) {
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['selectedShot'] = $shotIndex;
             $this->saveProject();
+        }
+    }
+
+    /**
+     * Open shot preview modal.
+     */
+    public function openShotPreviewModal(int $sceneIndex, int $shotIndex): void
+    {
+        $this->shotPreviewSceneIndex = $sceneIndex;
+        $this->shotPreviewShotIndex = $shotIndex;
+        $this->shotPreviewTab = 'image';
+        $this->showShotPreviewModal = true;
+    }
+
+    /**
+     * Close shot preview modal.
+     */
+    public function closeShotPreviewModal(): void
+    {
+        $this->showShotPreviewModal = false;
+    }
+
+    /**
+     * Switch tab in shot preview modal.
+     */
+    public function switchShotPreviewTab(string $tab): void
+    {
+        $this->shotPreviewTab = $tab;
+    }
+
+    /**
+     * Open frame capture modal.
+     */
+    public function openFrameCaptureModal(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        if (empty($shot['videoUrl'])) {
+            $this->error = __('Generate video first to capture frames');
+            return;
+        }
+
+        $this->frameCaptureSceneIndex = $sceneIndex;
+        $this->frameCaptureShotIndex = $shotIndex;
+        $this->capturedFrame = null;
+        $this->showFrameCaptureModal = true;
+    }
+
+    /**
+     * Close frame capture modal.
+     */
+    public function closeFrameCaptureModal(): void
+    {
+        $this->showFrameCaptureModal = false;
+        $this->capturedFrame = null;
+    }
+
+    /**
+     * Set captured frame from JavaScript.
+     */
+    public function setCapturedFrame(string $frameDataUrl): void
+    {
+        $this->capturedFrame = $frameDataUrl;
+    }
+
+    /**
+     * Transfer captured frame to next shot.
+     */
+    public function transferFrameToNextShot(): void
+    {
+        if (!$this->capturedFrame) {
+            $this->error = __('No frame captured');
+            return;
+        }
+
+        $sceneIndex = $this->frameCaptureSceneIndex;
+        $shotIndex = $this->frameCaptureShotIndex;
+        $nextShotIndex = $shotIndex + 1;
+
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$nextShotIndex])) {
+            $this->error = __('Next shot not found');
+            return;
+        }
+
+        try {
+            // Save the captured frame to storage
+            $imageService = app(ImageGenerationService::class);
+            $filename = "frame_capture_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+
+            // Decode base64 and save
+            $frameData = preg_replace('/^data:image\/\w+;base64,/', '', $this->capturedFrame);
+            $frameData = base64_decode($frameData);
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $path = "wizard-projects/{$project->id}/frames/{$filename}";
+                    Storage::disk('public')->put($path, $frameData);
+                    $imageUrl = Storage::disk('public')->url($path);
+
+                    // Update next shot with transferred frame
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageUrl'] = $imageUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['status'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['transferredFrom'] = $shotIndex;
+
+                    $this->saveProject();
+                    $this->closeFrameCaptureModal();
+                }
+            }
+        } catch (\Exception $e) {
+            $this->error = __('Failed to transfer frame: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Set shot duration.
+     */
+    public function setShotDuration(int $sceneIndex, int $shotIndex, int $duration): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            return;
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $duration;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['duration'] = $duration;
+
+        // Update duration class
+        $durationClass = $duration <= 5 ? 'quick' : ($duration <= 6 ? 'short' : 'standard');
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['durationClass'] = $durationClass;
+
+        $this->saveProject();
+    }
+
+    /**
+     * Calculate total duration of all shots in a decomposed scene.
+     */
+    public function calculateSceneTotalDuration(int $sceneIndex): int
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || empty($decomposed['shots'])) {
+            return 0;
+        }
+
+        $total = 0;
+        foreach ($decomposed['shots'] as $shot) {
+            $total += $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
+        }
+        return $total;
+    }
+
+    /**
+     * Reset decomposition for a scene.
+     */
+    public function resetDecomposition(int $sceneIndex): void
+    {
+        if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex])) {
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]);
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Generate video for a specific shot.
+     */
+    public function generateShotVideo(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        if (empty($shot['imageUrl'])) {
+            $this->error = __('Generate image first');
+            return;
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'generating';
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $animationService = app(\Starter\AppVideoWizard\Services\AnimationService::class);
+            $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    // Build motion description for the shot
+                    $motionPrompt = $this->buildShotMotionPrompt($shot);
+
+                    $result = $animationService->generateAnimation($project, [
+                        'imageUrl' => $shot['imageUrl'],
+                        'prompt' => $motionPrompt,
+                        'model' => $this->animation['model'] ?? 'minimax',
+                        'duration' => $duration,
+                    ]);
+
+                    if ($result['success']) {
+                        if (isset($result['videoUrl'])) {
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                        } elseif (isset($result['taskId'])) {
+                            // Async job - store for polling
+                            $this->pendingJobs["shot_video_{$sceneIndex}_{$shotIndex}"] = [
+                                'taskId' => $result['taskId'],
+                                'type' => 'shot_video',
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                            ];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
+                        }
+                        $this->saveProject();
+                    } else {
+                        throw new \Exception($result['error'] ?? __('Animation failed'));
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+            $this->error = __('Failed to generate shot video: ') . $e->getMessage();
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Build motion prompt for a shot.
+     */
+    protected function buildShotMotionPrompt(array $shot): string
+    {
+        $prompt = '';
+
+        // Use narrative beat motion description if available
+        if (!empty($shot['narrativeBeat']['motionDescription'])) {
+            $prompt = $shot['narrativeBeat']['motionDescription'];
+        } elseif (!empty($shot['description'])) {
+            $prompt = $shot['description'];
+        } else {
+            // Build from shot type
+            $shotType = $shot['type'] ?? 'medium';
+            $cameraMovement = $shot['cameraMovement'] ?? 'static';
+
+            $movements = [
+                'establishing' => 'slow pan across the scene, establishing the environment',
+                'medium' => 'subtle movement focusing on the subject',
+                'close-up' => 'slight push in, emphasizing details',
+                'reaction' => 'quick cut, capturing the reaction',
+                'detail' => 'slow zoom on key details',
+                'wide' => 'expansive view with subtle camera drift',
+            ];
+
+            $prompt = $movements[$shotType] ?? 'natural subtle movement';
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Generate all shot videos for a decomposed scene.
+     */
+    public function generateAllShotVideos(int $sceneIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed) {
+            $this->error = __('Scene not decomposed');
+            return;
+        }
+
+        foreach ($decomposed['shots'] as $shotIndex => $shot) {
+            if (!empty($shot['imageUrl']) && ($shot['videoStatus'] ?? 'pending') !== 'ready') {
+                $this->generateShotVideo($sceneIndex, $shotIndex);
+            }
         }
     }
 
