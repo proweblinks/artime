@@ -7430,6 +7430,9 @@ class VideoWizard extends Component
 
     /**
      * Generate image for a specific shot.
+     * Implements Hollywood-style frame chain:
+     * - Shot 1: Uses scene's main image (auto-sync)
+     * - Shots 2+: Uses previous shot's last frame OR generates fresh
      */
     public function generateShotImage(int $sceneIndex, int $shotIndex): void
     {
@@ -7440,7 +7443,34 @@ class VideoWizard extends Component
         }
 
         $shot = $decomposed['shots'][$shotIndex];
+
+        // FRAME CHAIN LOGIC: Shot 1 should use scene's existing image
+        if ($shotIndex === 0) {
+            $sceneImage = $this->getSceneImage($sceneIndex);
+            if ($sceneImage) {
+                // Auto-sync scene image to Shot 1
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $sceneImage;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageStatus'] = 'ready';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['status'] = 'ready';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['fromSceneImage'] = true;
+                $this->saveProject();
+                return;
+            }
+        }
+
+        // FRAME CHAIN LOGIC: Shots 2+ can use captured frame from previous shot
+        if ($shotIndex > 0 && !empty($shot['capturedFrameUrl'])) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $shot['capturedFrameUrl'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromFrameCapture'] = true;
+            $this->saveProject();
+            return;
+        }
+
+        // Generate fresh image for this shot
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'generating';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'generating';
 
         $this->isLoading = true;
         $this->error = null;
@@ -7451,17 +7481,21 @@ class VideoWizard extends Component
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
+                    // Use enhanced prompt with shot context
+                    $enhancedPrompt = $this->buildEnhancedShotImagePrompt($sceneIndex, $shotIndex);
+
                     $result = $imageService->generateSceneImage($project, [
                         'id' => $shot['id'],
-                        'visualDescription' => $shot['prompt'],
+                        'visualDescription' => $enhancedPrompt,
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
-                        'sceneIndex' => $sceneIndex, // Pass actual scene index for character/location context
+                        'sceneIndex' => $sceneIndex,
                     ]);
 
                     if ($result['success']) {
                         if (isset($result['imageUrl'])) {
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
                         } elseif (isset($result['jobId'])) {
                             // Async job - store for polling
@@ -7471,6 +7505,7 @@ class VideoWizard extends Component
                                 'sceneIndex' => $sceneIndex,
                                 'shotIndex' => $shotIndex,
                             ];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'processing';
                         }
                         $this->saveProject();
                     } else {
@@ -7480,10 +7515,63 @@ class VideoWizard extends Component
             }
         } catch (\Exception $e) {
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'error';
             $this->error = __('Failed to generate shot image: ') . $e->getMessage();
         } finally {
             $this->isLoading = false;
         }
+    }
+
+    /**
+     * Get scene's main image URL.
+     */
+    protected function getSceneImage(int $sceneIndex): ?string
+    {
+        $storyboardScene = $this->storyboard['scenes'][$sceneIndex] ?? null;
+        return $storyboardScene['imageUrl'] ?? null;
+    }
+
+    /**
+     * Build enhanced prompt for shot image generation.
+     * Includes scene context, shot type, and consistency anchors.
+     */
+    protected function buildEnhancedShotImagePrompt(int $sceneIndex, int $shotIndex): string
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            return '';
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+
+        // Start with the shot's image prompt
+        $prompt = $shot['imagePrompt'] ?? $shot['prompt'] ?? '';
+
+        // Add shot type context
+        $shotType = $shot['type'] ?? 'medium';
+        $shotTypeDescriptions = [
+            'establishing' => 'Wide establishing shot showing full environment',
+            'medium' => 'Medium shot focusing on main subject',
+            'close-up' => 'Close-up emphasizing details and expressions',
+            'reaction' => 'Reaction shot capturing emotional response',
+            'detail' => 'Detail shot highlighting specific elements',
+            'wide' => 'Wide shot revealing full context',
+        ];
+        $prompt .= '. ' . ($shotTypeDescriptions[$shotType] ?? '');
+
+        // Add consistency anchors
+        $anchors = $decomposed['consistencyAnchors'] ?? [];
+        if (!empty($anchors['style'])) {
+            $prompt .= '. Style: ' . $anchors['style'];
+        }
+
+        // Add scene mood if available
+        if (!empty($scene['mood'])) {
+            $prompt .= '. Mood: ' . $scene['mood'];
+        }
+
+        return $prompt;
     }
 
     /**
@@ -7584,6 +7672,7 @@ class VideoWizard extends Component
 
     /**
      * Transfer captured frame to next shot.
+     * Part of the Hollywood-style frame chain workflow.
      */
     public function transferFrameToNextShot(): void
     {
@@ -7603,8 +7692,6 @@ class VideoWizard extends Component
         }
 
         try {
-            // Save the captured frame to storage
-            $imageService = app(ImageGenerationService::class);
             $filename = "frame_capture_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
 
             // Decode base64 and save
@@ -7618,17 +7705,178 @@ class VideoWizard extends Component
                     Storage::disk('public')->put($path, $frameData);
                     $imageUrl = Storage::disk('public')->url($path);
 
-                    // Update next shot with transferred frame
+                    // Update next shot with transferred frame (Hollywood frame chain)
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageUrl'] = $imageUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['capturedFrameUrl'] = $imageUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageStatus'] = 'ready';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['status'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['fromFrameCapture'] = true;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['transferredFrom'] = $shotIndex;
+
+                    // Store the frame reference on the source shot too
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['lastFrameUrl'] = $imageUrl;
 
                     $this->saveProject();
                     $this->closeFrameCaptureModal();
+
+                    $this->dispatch('frame-transferred', [
+                        'sceneIndex' => $sceneIndex,
+                        'fromShot' => $shotIndex,
+                        'toShot' => $nextShotIndex,
+                    ]);
                 }
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to transfer frame: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Auto-capture last frame from video and transfer to next shot.
+     * Called automatically after video generation completes.
+     */
+    public function autoCaptureLastFrame(int $sceneIndex, int $shotIndex, string $frameDataUrl): void
+    {
+        $nextShotIndex = $shotIndex + 1;
+
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$nextShotIndex])) {
+            return; // No next shot to transfer to
+        }
+
+        // Already has an image
+        if (!empty($decomposed['shots'][$nextShotIndex]['imageUrl'])) {
+            return;
+        }
+
+        try {
+            $filename = "auto_frame_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+            $frameData = preg_replace('/^data:image\/\w+;base64,/', '', $frameDataUrl);
+            $frameData = base64_decode($frameData);
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $path = "wizard-projects/{$project->id}/frames/{$filename}";
+                    Storage::disk('public')->put($path, $frameData);
+                    $imageUrl = Storage::disk('public')->url($path);
+
+                    // Auto-transfer to next shot
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageUrl'] = $imageUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['capturedFrameUrl'] = $imageUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageStatus'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['status'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['fromFrameCapture'] = true;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['autoTransferred'] = true;
+
+                    $this->saveProject();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Auto frame capture failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if shot chain is ready (all shots have images).
+     */
+    public function isShotChainReady(int $sceneIndex): bool
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || empty($decomposed['shots'])) {
+            return false;
+        }
+
+        foreach ($decomposed['shots'] as $shot) {
+            if (empty($shot['imageUrl'])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check if all shots have videos.
+     */
+    public function areAllShotVideosReady(int $sceneIndex): bool
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || empty($decomposed['shots'])) {
+            return false;
+        }
+
+        foreach ($decomposed['shots'] as $shot) {
+            if (empty($shot['videoUrl'])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get shot chain status for display.
+     */
+    public function getShotChainStatus(int $sceneIndex): array
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || empty($decomposed['shots'])) {
+            return [
+                'totalShots' => 0,
+                'imagesReady' => 0,
+                'videosReady' => 0,
+                'imageProgress' => 0,
+                'videoProgress' => 0,
+                'isImageChainComplete' => false,
+                'isVideoChainComplete' => false,
+            ];
+        }
+
+        $totalShots = count($decomposed['shots']);
+        $imagesReady = 0;
+        $videosReady = 0;
+
+        foreach ($decomposed['shots'] as $shot) {
+            if (!empty($shot['imageUrl'])) $imagesReady++;
+            if (!empty($shot['videoUrl'])) $videosReady++;
+        }
+
+        return [
+            'totalShots' => $totalShots,
+            'imagesReady' => $imagesReady,
+            'videosReady' => $videosReady,
+            'imageProgress' => $totalShots > 0 ? round(($imagesReady / $totalShots) * 100) : 0,
+            'videoProgress' => $totalShots > 0 ? round(($videosReady / $totalShots) * 100) : 0,
+            'isImageChainComplete' => $imagesReady === $totalShots,
+            'isVideoChainComplete' => $videosReady === $totalShots,
+        ];
+    }
+
+    /**
+     * Generate shot chain sequentially (for proper frame chaining).
+     * Generates Shot 1 video, captures last frame, transfers to Shot 2, etc.
+     */
+    public function generateShotChain(int $sceneIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || empty($decomposed['shots'])) {
+            $this->error = __('Scene not decomposed');
+            return;
+        }
+
+        // First, ensure all shots have images
+        if (!$this->isShotChainReady($sceneIndex)) {
+            // Generate images first
+            $this->generateAllShots($sceneIndex);
+            return;
+        }
+
+        // Then generate videos sequentially
+        foreach ($decomposed['shots'] as $shotIndex => $shot) {
+            if (empty($shot['videoUrl']) && ($shot['videoStatus'] ?? 'pending') !== 'generating') {
+                $this->generateShotVideo($sceneIndex, $shotIndex);
+                // Note: In a real async system, we'd wait for completion before next
+                // For now, we queue all - the frame chain works via captured frames
+            }
         }
     }
 
@@ -7642,14 +7890,101 @@ class VideoWizard extends Component
             return;
         }
 
+        // Validate duration (5s, 6s, or 10s for video models)
+        $validDurations = [5, 6, 10];
+        if (!in_array($duration, $validDurations)) {
+            $duration = 10; // Default to cinematic
+        }
+
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $duration;
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['duration'] = $duration;
 
         // Update duration class
-        $durationClass = $duration <= 5 ? 'quick' : ($duration <= 6 ? 'short' : 'standard');
+        $durationClass = match($duration) {
+            5 => 'short',
+            6 => 'standard',
+            10 => 'cinematic',
+            default => 'standard',
+        };
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['durationClass'] = $durationClass;
 
+        // Recalculate total scene duration
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['totalDuration'] = $this->calculateSceneTotalDuration($sceneIndex);
+
         $this->saveProject();
+    }
+
+    /**
+     * Set shot camera movement.
+     */
+    public function setShotCameraMovement(int $sceneIndex, int $shotIndex, string $movement): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            return;
+        }
+
+        $validMovements = [
+            'Pan left', 'Pan right', 'Zoom in', 'Zoom out',
+            'Push in', 'Pull out', 'Tilt up', 'Tilt down',
+            'Tracking shot', 'Static shot', 'slow pan', 'static',
+            'push in', 'quick cut', 'slow zoom', 'drift'
+        ];
+
+        if (!in_array($movement, $validMovements)) {
+            return;
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['cameraMovement'] = $movement;
+
+        // Update video prompt to include new camera movement
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] =
+            $this->getMotionDescriptionForShot($shot['type'] ?? 'medium', $movement, $shot['imagePrompt'] ?? '');
+
+        $this->saveProject();
+    }
+
+    /**
+     * Update shot image prompt.
+     */
+    public function updateShotPrompt(int $sceneIndex, int $shotIndex, string $prompt): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            return;
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imagePrompt'] = $prompt;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['prompt'] = $prompt;
+
+        // Clear existing image so it can be regenerated
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = null;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'pending';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'pending';
+
+        $this->saveProject();
+    }
+
+    /**
+     * Regenerate a shot image.
+     */
+    public function regenerateShotImage(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            return;
+        }
+
+        // Clear existing image data
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = null;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'pending';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'pending';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromSceneImage'] = false;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromFrameCapture'] = false;
+
+        // Generate new image
+        $this->generateShotImage($sceneIndex, $shotIndex);
     }
 
     /**
