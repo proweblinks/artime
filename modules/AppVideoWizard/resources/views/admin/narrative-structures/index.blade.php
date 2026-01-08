@@ -2,6 +2,16 @@
 
 @section('title', __('Narrative Structures'))
 
+@section('css')
+{{-- Tailwind CSS for admin panel styling --}}
+<script src="https://cdn.tailwindcss.com"></script>
+{{-- Alpine.js for tab functionality --}}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+@endsection
+
 @section('content')
 <div class="bg-gray-900 min-h-screen py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,12 +40,12 @@
                 <button @click="activeTab = 'narrative'"
                         :class="activeTab === 'narrative' ? 'border-purple-500 text-purple-400' : 'border-transparent text-gray-400 hover:text-white'"
                         class="px-4 py-3 text-sm font-medium border-b-2 transition">
-                    <i class="fas fa-film mr-2"></i>{{ __('Narrative Structure') }}
+                    <i class="fas fa-book mr-2"></i>{{ __('Narrative Structure') }}
                 </button>
                 <button @click="activeTab = 'cinematography'"
                         :class="activeTab === 'cinematography' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-400 hover:text-white'"
                         class="px-4 py-3 text-sm font-medium border-b-2 transition">
-                    <i class="fas fa-camera-movie mr-2"></i>{{ __('Cinematography') }}
+                    <i class="fas fa-video mr-2"></i>{{ __('Cinematography') }}
                 </button>
                 <button @click="activeTab = 'engagement'"
                         :class="activeTab === 'engagement' ? 'border-orange-500 text-orange-400' : 'border-transparent text-gray-400 hover:text-white'"
@@ -45,7 +55,7 @@
                 <button @click="activeTab = 'advanced'"
                         :class="activeTab === 'advanced' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-400 hover:text-white'"
                         class="px-4 py-3 text-sm font-medium border-b-2 transition">
-                    <i class="fas fa-wand-magic-sparkles mr-2"></i>{{ __('Advanced') }}
+                    <i class="fas fa-magic mr-2"></i>{{ __('Advanced') }}
                 </button>
             </div>
 

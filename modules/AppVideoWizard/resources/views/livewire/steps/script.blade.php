@@ -995,6 +995,69 @@
         color: #ffffff !important;
     }
 
+    /* Cascading preset organization styles */
+    .vw-preset-context-hint {
+        font-size: 0.75rem !important;
+        color: rgba(16, 185, 129, 0.8) !important;
+        font-weight: 400 !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+    }
+
+    .vw-narrative-preset-btn.recommended {
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        background: rgba(16, 185, 129, 0.08) !important;
+        position: relative !important;
+    }
+
+    .vw-narrative-preset-btn.recommended:hover {
+        border-color: rgba(16, 185, 129, 0.5) !important;
+        background: rgba(16, 185, 129, 0.15) !important;
+    }
+
+    .vw-narrative-preset-btn.recommended.selected {
+        border-color: rgba(16, 185, 129, 0.7) !important;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+    }
+
+    .vw-preset-recommended-badge {
+        position: absolute !important;
+        top: 2px !important;
+        right: 4px !important;
+        font-size: 0.6rem !important;
+        color: rgba(16, 185, 129, 0.9) !important;
+        font-weight: 700 !important;
+    }
+
+    .vw-narrative-preset-btn.compatible {
+        opacity: 0.85 !important;
+    }
+
+    .vw-presets-other-details {
+        margin-top: 0.5rem !important;
+    }
+
+    .vw-presets-other-toggle {
+        font-size: 0.75rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        cursor: pointer !important;
+        padding: 0.25rem 0 !important;
+        user-select: none !important;
+    }
+
+    .vw-presets-other-toggle:hover {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .vw-presets-other .vw-narrative-preset-btn {
+        opacity: 0.7 !important;
+    }
+
+    .vw-presets-other .vw-narrative-preset-btn:hover {
+        opacity: 1 !important;
+    }
+
     .vw-narrative-tip {
         display: flex !important;
         align-items: flex-start !important;
@@ -1292,27 +1355,46 @@
             </div>
 
             {{-- Narrative Presets - Platform-optimized storytelling --}}
+            {{-- Now organized by production type selection from Step 1 --}}
             @php
-                $narrativePresets = config('appvideowizard.narrative_presets', []);
+                $organizedPresets = $this->getOrganizedNarrativePresets();
+                $hasProductionType = !empty($productionType);
             @endphp
             <div class="vw-narrative-presets-row">
-                <div class="vw-narrative-preset-label">{{ __('Storytelling Formula') }}</div>
-                <div class="vw-narrative-presets-grid">
-                    @foreach(array_slice($narrativePresets, 0, 6) as $key => $preset)
-                        <button type="button"
-                                class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
-                                wire:click="applyNarrativePreset('{{ $key }}')"
-                                title="{{ $preset['description'] ?? '' }}">
-                            <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
-                            <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
-                        </button>
-                    @endforeach
+                <div class="vw-narrative-preset-label">
+                    {{ __('Storytelling Formula') }}
+                    @if($hasProductionType && !empty($organizedPresets['recommended']))
+                        <span class="vw-preset-context-hint">
+                            — {{ __('Recommended for') }} {{ config('appvideowizard.production_types.' . $productionType . '.name', $productionType) }}
+                            @if($productionSubtype)
+                                ({{ config('appvideowizard.production_types.' . $productionType . '.subTypes.' . $productionSubtype . '.name', $productionSubtype) }})
+                            @endif
+                        </span>
+                    @endif
                 </div>
-                @if(count($narrativePresets) > 6)
-                    <div class="vw-narrative-presets-grid" style="margin-top: 0.5rem;">
-                        @foreach(array_slice($narrativePresets, 6) as $key => $preset)
+
+                {{-- Recommended Presets (shown prominently when production type is set) --}}
+                @if(!empty($organizedPresets['recommended']))
+                    <div class="vw-narrative-presets-grid vw-presets-recommended">
+                        @foreach($organizedPresets['recommended'] as $key => $preset)
                             <button type="button"
-                                    class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
+                                    class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }} recommended"
+                                    wire:click="applyNarrativePreset('{{ $key }}')"
+                                    title="{{ $preset['description'] ?? '' }}">
+                                <span class="vw-preset-recommended-badge">✓</span>
+                                <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
+                                <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Compatible Presets (shown but not highlighted) --}}
+                @if(!empty($organizedPresets['compatible']))
+                    <div class="vw-narrative-presets-grid vw-presets-compatible" style="margin-top: 0.5rem;">
+                        @foreach($organizedPresets['compatible'] as $key => $preset)
+                            <button type="button"
+                                    class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }} compatible"
                                     wire:click="applyNarrativePreset('{{ $key }}')"
                                     title="{{ $preset['description'] ?? '' }}">
                                 <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
@@ -1321,13 +1403,51 @@
                         @endforeach
                     </div>
                 @endif
+
+                {{-- Other Presets (collapsed when production type is set) --}}
+                @if(!empty($organizedPresets['other']))
+                    @if($hasProductionType)
+                        <details class="vw-presets-other-details" style="margin-top: 0.5rem;">
+                            <summary class="vw-presets-other-toggle">
+                                {{ __('Show all presets') }} ({{ count($organizedPresets['other']) }} {{ __('more') }})
+                            </summary>
+                            <div class="vw-narrative-presets-grid vw-presets-other" style="margin-top: 0.5rem;">
+                                @foreach($organizedPresets['other'] as $key => $preset)
+                                    <button type="button"
+                                            class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
+                                            wire:click="applyNarrativePreset('{{ $key }}')"
+                                            title="{{ $preset['description'] ?? '' }}">
+                                        <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
+                                        <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </details>
+                    @else
+                        {{-- No production type selected, show all presets normally --}}
+                        <div class="vw-narrative-presets-grid" style="margin-top: 0.5rem;">
+                            @foreach($organizedPresets['other'] as $key => $preset)
+                                <button type="button"
+                                        class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
+                                        wire:click="applyNarrativePreset('{{ $key }}')"
+                                        title="{{ $preset['description'] ?? '' }}">
+                                    <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
+                                    <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
             </div>
 
             {{-- Active Preset Tips --}}
-            @if($narrativePreset && isset($narrativePresets[$narrativePreset]))
+            @php
+                $allNarrativePresets = config('appvideowizard.narrative_presets', []);
+            @endphp
+            @if($narrativePreset && isset($allNarrativePresets[$narrativePreset]))
                 <div class="vw-narrative-tip">
                     <span class="vw-narrative-tip-icon">💡</span>
-                    <span>{{ $narrativePresets[$narrativePreset]['tips'] ?? $narrativePresets[$narrativePreset]['description'] }}</span>
+                    <span>{{ $allNarrativePresets[$narrativePreset]['tips'] ?? $allNarrativePresets[$narrativePreset]['description'] }}</span>
                 </div>
             @endif
 

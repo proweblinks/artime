@@ -565,13 +565,88 @@ class VideoWizard extends Component
     }
 
     /**
-     * Update production type.
+     * Update production type and auto-apply recommended narrative preset.
+     * This enables cascading selection where Step 1 choices influence Step 3 defaults.
      */
     public function selectProductionType(string $type, ?string $subtype = null): void
     {
         $this->productionType = $type;
         $this->productionSubtype = $subtype;
+
+        // Get the recommended preset mapping and auto-apply default
+        $mapping = $this->getPresetMappingForProduction();
+        if (!empty($mapping['default']) && empty($this->narrativePreset)) {
+            $this->applyNarrativePreset($mapping['default']);
+        }
         // Note: Don't auto-save on selection - will save on step navigation
+    }
+
+    /**
+     * Get the preset mapping for current production type/subtype.
+     * Returns recommended, compatible, and hidden presets.
+     */
+    public function getPresetMappingForProduction(): array
+    {
+        $mappings = config('appvideowizard.production_preset_mapping', []);
+
+        if (empty($this->productionType) || !isset($mappings[$this->productionType])) {
+            return [
+                'default' => null,
+                'recommended' => [],
+                'compatible' => [],
+                'hidden' => [],
+            ];
+        }
+
+        $typeMapping = $mappings[$this->productionType];
+
+        // First check for specific subtype mapping, then fall back to _default
+        if (!empty($this->productionSubtype) && isset($typeMapping[$this->productionSubtype])) {
+            return $typeMapping[$this->productionSubtype];
+        }
+
+        return $typeMapping['_default'] ?? [
+            'default' => null,
+            'recommended' => [],
+            'compatible' => [],
+            'hidden' => [],
+        ];
+    }
+
+    /**
+     * Get narrative presets organized by recommendation level.
+     * Used by the view to display presets with proper hierarchy.
+     */
+    public function getOrganizedNarrativePresets(): array
+    {
+        $allPresets = config('appvideowizard.narrative_presets', []);
+        $mapping = $this->getPresetMappingForProduction();
+
+        $recommended = [];
+        $compatible = [];
+        $other = [];
+
+        foreach ($allPresets as $key => $preset) {
+            // Skip hidden presets
+            if (in_array($key, $mapping['hidden'] ?? [])) {
+                continue;
+            }
+
+            if (in_array($key, $mapping['recommended'] ?? [])) {
+                $recommended[$key] = $preset;
+            } elseif (in_array($key, $mapping['compatible'] ?? [])) {
+                $compatible[$key] = $preset;
+            } else {
+                $other[$key] = $preset;
+            }
+        }
+
+        return [
+            'recommended' => $recommended,
+            'compatible' => $compatible,
+            'other' => $other,
+            'defaultPreset' => $mapping['default'] ?? null,
+        ];
     }
 
     /**

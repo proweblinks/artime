@@ -814,6 +814,219 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Production Type to Preset Mapping
+    |--------------------------------------------------------------------------
+    | Maps production types/subtypes to recommended narrative presets.
+    | This enables cascading selection: Step 1 choices influence Step 3 options.
+    |
+    | Structure:
+    | - 'default' => The preset auto-selected when this production type is chosen
+    | - 'recommended' => Array of presets shown as primary options
+    | - 'compatible' => Array of presets that work but aren't primary
+    | - 'hidden' => Array of presets that don't make sense for this type
+    */
+    'production_preset_mapping' => [
+        // === SOCIAL CONTENT ===
+        'social' => [
+            '_default' => [
+                'default' => 'tiktok-viral',
+                'recommended' => ['tiktok-viral', 'youtube-standard'],
+                'compatible' => ['inspirational', 'educational-explainer'],
+                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'viral' => [
+                'default' => 'tiktok-viral',
+                'recommended' => ['tiktok-viral'],
+                'compatible' => ['youtube-standard'],
+                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'educational-short' => [
+                'default' => 'educational-explainer',
+                'recommended' => ['educational-explainer', 'youtube-standard'],
+                'compatible' => ['tiktok-viral'],
+                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'story-short' => [
+                'default' => 'tiktok-viral',
+                'recommended' => ['tiktok-viral', 'inspirational'],
+                'compatible' => ['youtube-standard'],
+                'hidden' => ['documentary-feature', 'series-episode'],
+            ],
+            'product' => [
+                'default' => 'commercial-spot',
+                'recommended' => ['commercial-spot', 'tiktok-viral'],
+                'compatible' => ['youtube-standard'],
+                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'lifestyle' => [
+                'default' => 'youtube-standard',
+                'recommended' => ['youtube-standard', 'tiktok-viral', 'inspirational'],
+                'compatible' => [],
+                'hidden' => ['documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'meme-comedy' => [
+                'default' => 'tiktok-viral',
+                'recommended' => ['tiktok-viral'],
+                'compatible' => ['youtube-standard'],
+                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'inspirational'],
+            ],
+        ],
+
+        // === MOVIE/FILM ===
+        'movie' => [
+            '_default' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short', 'inspirational'],
+                'compatible' => ['thriller-short', 'horror-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+            ],
+            'action' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short'],
+                'compatible' => ['thriller-short', 'inspirational'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'horror-short'],
+            ],
+            'drama' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short', 'inspirational'],
+                'compatible' => ['documentary-feature'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer', 'thriller-short', 'horror-short'],
+            ],
+            'thriller' => [
+                'default' => 'thriller-short',
+                'recommended' => ['thriller-short', 'cinematic-short'],
+                'compatible' => [],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'inspirational', 'horror-short'],
+            ],
+            'horror' => [
+                'default' => 'horror-short',
+                'recommended' => ['horror-short'],
+                'compatible' => ['thriller-short', 'cinematic-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'inspirational'],
+            ],
+            'scifi' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short'],
+                'compatible' => ['thriller-short', 'inspirational'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'horror-short'],
+            ],
+            'comedy' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short'],
+                'compatible' => ['inspirational'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'thriller-short', 'horror-short'],
+            ],
+        ],
+
+        // === SERIES/EPISODES ===
+        'series' => [
+            '_default' => [
+                'default' => 'series-episode',
+                'recommended' => ['series-episode'],
+                'compatible' => ['cinematic-short', 'thriller-short', 'horror-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+            ],
+            'episode' => [
+                'default' => 'series-episode',
+                'recommended' => ['series-episode'],
+                'compatible' => ['cinematic-short', 'thriller-short', 'horror-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer'],
+            ],
+            'mini-series' => [
+                'default' => 'series-episode',
+                'recommended' => ['series-episode'],
+                'compatible' => ['cinematic-short', 'documentary-feature'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+            ],
+        ],
+
+        // === EDUCATIONAL ===
+        'educational' => [
+            '_default' => [
+                'default' => 'educational-explainer',
+                'recommended' => ['educational-explainer', 'documentary-feature'],
+                'compatible' => ['youtube-standard', 'inspirational'],
+                'hidden' => ['tiktok-viral', 'commercial-spot', 'thriller-short', 'horror-short', 'cinematic-short'],
+            ],
+            'tutorial' => [
+                'default' => 'educational-explainer',
+                'recommended' => ['educational-explainer'],
+                'compatible' => ['youtube-standard'],
+                'hidden' => ['tiktok-viral', 'documentary-feature', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short', 'series-episode'],
+            ],
+            'explainer' => [
+                'default' => 'educational-explainer',
+                'recommended' => ['educational-explainer'],
+                'compatible' => ['youtube-standard', 'documentary-feature'],
+                'hidden' => ['tiktok-viral', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short', 'series-episode'],
+            ],
+            'documentary' => [
+                'default' => 'documentary-feature',
+                'recommended' => ['documentary-feature'],
+                'compatible' => ['educational-explainer', 'inspirational'],
+                'hidden' => ['tiktok-viral', 'youtube-standard', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short'],
+            ],
+        ],
+
+        // === MUSIC VIDEO ===
+        'music' => [
+            '_default' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short', 'inspirational'],
+                'compatible' => ['tiktok-viral'],
+                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode'],
+            ],
+            'narrative' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short', 'inspirational'],
+                'compatible' => ['thriller-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode'],
+            ],
+            'performance' => [
+                'default' => 'cinematic-short',
+                'recommended' => ['cinematic-short'],
+                'compatible' => ['tiktok-viral', 'inspirational'],
+                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+            'lyric' => [
+                'default' => 'inspirational',
+                'recommended' => ['inspirational', 'cinematic-short'],
+                'compatible' => ['tiktok-viral'],
+                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode', 'thriller-short', 'horror-short'],
+            ],
+        ],
+
+        // === COMMERCIAL/PROMO ===
+        'commercial' => [
+            '_default' => [
+                'default' => 'commercial-spot',
+                'recommended' => ['commercial-spot'],
+                'compatible' => ['inspirational', 'tiktok-viral'],
+                'hidden' => ['documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short'],
+            ],
+            'product-ad' => [
+                'default' => 'commercial-spot',
+                'recommended' => ['commercial-spot'],
+                'compatible' => ['tiktok-viral'],
+                'hidden' => ['youtube-standard', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short', 'inspirational'],
+            ],
+            'brand' => [
+                'default' => 'commercial-spot',
+                'recommended' => ['commercial-spot', 'inspirational'],
+                'compatible' => ['cinematic-short'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'educational-explainer'],
+            ],
+            'testimonial' => [
+                'default' => 'commercial-spot',
+                'recommended' => ['commercial-spot', 'documentary-feature'],
+                'compatible' => ['inspirational'],
+                'hidden' => ['youtube-standard', 'tiktok-viral', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short', 'educational-explainer'],
+            ],
+        ],
+    ],
+
     // Tension Curves - Pacing dynamics throughout the video
     'tension_curves' => [
         'steady-build' => [

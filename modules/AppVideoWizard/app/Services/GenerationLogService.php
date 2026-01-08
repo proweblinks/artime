@@ -131,7 +131,7 @@ class GenerationLogService
 
         return VwGenerationLog::where('created_at', '>=', $startDate)
             ->whereNotNull('user_id')
-            ->with('user:id,name,email')
+            ->with('user:id,fullname,email')
             ->selectRaw('user_id,
                 COUNT(*) as generation_count,
                 SUM(tokens_used) as total_tokens,
@@ -216,7 +216,7 @@ class GenerationLogService
      */
     public function exportToCsv(?string $startDate = null, ?string $endDate = null): string
     {
-        $query = VwGenerationLog::with(['user:id,name', 'project:id,name']);
+        $query = VwGenerationLog::with(['user:id,fullname', 'project:id,name']);
 
         if ($startDate) {
             $query->where('created_at', '>=', $startDate);
@@ -235,7 +235,7 @@ class GenerationLogService
                 "%d,\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%d,%d,%.6f,\"%s\"\n",
                 $log->id,
                 $log->created_at->toIso8601String(),
-                $log->user?->name ?? 'N/A',
+                $log->user?->fullname ?? 'N/A',
                 $log->project?->name ?? 'N/A',
                 $log->prompt_slug,
                 $log->prompt_version ?? 0,
