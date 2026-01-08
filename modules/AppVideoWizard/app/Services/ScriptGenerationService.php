@@ -1373,7 +1373,7 @@ JSON;
 
     /**
      * Attempt to rebuild script from response when JSON parsing fails.
-     * Uses regex to extract key fields and rebuild a valid structure.
+     * Uses more robust approach to extract scenes from malformed JSON.
      */
     protected function rebuildScriptFromResponse(string $response): ?array
     {
@@ -1381,65 +1381,46 @@ JSON;
 
         // Try to extract title
         $title = 'Generated Script';
-        if (preg_match('/"title"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $title = $m[1];
+        if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $title = $this->unescapeJsonString($m[1]);
         }
 
         // Try to extract hook
         $hook = '';
-        if (preg_match('/"hook"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $hook = $m[1];
+        if (preg_match('/"hook"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $hook = $this->unescapeJsonString($m[1]);
         }
 
         // Try to extract CTA
         $cta = '';
-        if (preg_match('/"cta"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $cta = $m[1];
+        if (preg_match('/"cta"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $cta = $this->unescapeJsonString($m[1]);
         }
 
-        // Try to extract scenes using multiple approaches
-        // Approach 1: Find scene objects
-        if (preg_match_all('/"id"\s*:\s*"(scene-\d+)"[^}]*"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $index => $match) {
-                $scenes[] = [
-                    'id' => $match[1],
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $match[2],
-                    'visualDescription' => $match[3],
-                    'duration' => 15,
-                ];
-            }
+        // Find the scenes array - look for "scenes": [ ... ]
+        if (preg_match('/"scenes"\s*:\s*\[/s', $response, $match, PREG_OFFSET_CAPTURE)) {
+            $arrayStart = $match[0][1] + strlen($match[0][0]);
+
+            // Find each scene object by matching balanced braces
+            $scenes = $this->extractScenesFromArray($response, $arrayStart);
         }
 
-        // Approach 2: Try different field order
-        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $index => $match) {
-                $scenes[] = [
-                    'id' => 'scene-' . ($index + 1),
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $match[1],
-                    'visualDescription' => $match[2],
-                    'duration' => 15,
-                ];
-            }
-        }
-
-        // Approach 3: Just find narration fields
-        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"/', $response, $matches)) {
-            foreach ($matches[1] as $index => $narration) {
-                $scenes[] = [
-                    'id' => 'scene-' . ($index + 1),
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $narration,
-                    'visualDescription' => $narration,
-                    'duration' => 15,
-                ];
-            }
+        // Fallback: Try to find individual scene patterns
+        if (empty($scenes)) {
+            $scenes = $this->extractScenesWithRegex($response);
         }
 
         if (empty($scenes)) {
+            \Log::warning('VideoWizard: rebuildScriptFromResponse found no scenes', [
+                'responseLength' => strlen($response),
+                'responsePreview' => substr($response, 0, 500),
+            ]);
             return null;
         }
+
+        \Log::info('VideoWizard: rebuildScriptFromResponse recovered scenes', [
+            'sceneCount' => count($scenes),
+        ]);
 
         return [
             'title' => $title,
@@ -1447,6 +1428,183 @@ JSON;
             'scenes' => $scenes,
             'cta' => $cta,
         ];
+    }
+
+    /**
+     * Extract scenes from the scenes array by finding balanced braces.
+     */
+    protected function extractScenesFromArray(string $response, int $startPos): array
+    {
+        $scenes = [];
+        $len = strlen($response);
+        $pos = $startPos;
+        $sceneIndex = 0;
+
+        while ($pos < $len) {
+            // Skip whitespace and commas
+            while ($pos < $len && (ctype_space($response[$pos]) || $response[$pos] === ',')) {
+                $pos++;
+            }
+
+            // Check for end of array
+            if ($pos >= $len || $response[$pos] === ']') {
+                break;
+            }
+
+            // Expect opening brace for scene object
+            if ($response[$pos] === '{') {
+                $sceneStart = $pos;
+                $braceCount = 1;
+                $pos++;
+
+                // Find matching closing brace
+                $inString = false;
+                $escape = false;
+                while ($pos < $len && $braceCount > 0) {
+                    $char = $response[$pos];
+
+                    if ($escape) {
+                        $escape = false;
+                    } elseif ($char === '\\' && $inString) {
+                        $escape = true;
+                    } elseif ($char === '"' && !$escape) {
+                        $inString = !$inString;
+                    } elseif (!$inString) {
+                        if ($char === '{') $braceCount++;
+                        elseif ($char === '}') $braceCount--;
+                    }
+                    $pos++;
+                }
+
+                if ($braceCount === 0) {
+                    $sceneJson = substr($response, $sceneStart, $pos - $sceneStart);
+                    $scene = $this->parseSceneObject($sceneJson, $sceneIndex);
+                    if ($scene) {
+                        $scenes[] = $scene;
+                        $sceneIndex++;
+                    }
+                }
+            } else {
+                // Unexpected character, move forward
+                $pos++;
+            }
+        }
+
+        return $scenes;
+    }
+
+    /**
+     * Parse a single scene object JSON string.
+     */
+    protected function parseSceneObject(string $sceneJson, int $index): ?array
+    {
+        // First try standard JSON decode
+        $scene = json_decode($sceneJson, true);
+        if ($scene !== null && isset($scene['narration'])) {
+            $scene['id'] = $scene['id'] ?? 'scene-' . ($index + 1);
+            return $scene;
+        }
+
+        // If that fails, extract fields with regex
+        $scene = [
+            'id' => 'scene-' . ($index + 1),
+            'title' => 'Scene ' . ($index + 1),
+            'narration' => '',
+            'visualDescription' => '',
+            'duration' => 15,
+        ];
+
+        // Extract narration
+        if (preg_match('/"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['narration'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract visualDescription
+        if (preg_match('/"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['visualDescription'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract title
+        if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['title'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract id
+        if (preg_match('/"id"\s*:\s*"(scene-\d+)"/s', $sceneJson, $m)) {
+            $scene['id'] = $m[1];
+        }
+
+        // Extract duration
+        if (preg_match('/"duration"\s*:\s*(\d+)/s', $sceneJson, $m)) {
+            $scene['duration'] = (int)$m[1];
+        }
+
+        // Extract mood
+        if (preg_match('/"mood"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['mood'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract transition
+        if (preg_match('/"transition"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['transition'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Only return if we have meaningful content
+        if (!empty($scene['narration']) || !empty($scene['visualDescription'])) {
+            return $scene;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fallback: Extract scenes using regex patterns.
+     */
+    protected function extractScenesWithRegex(string $response): array
+    {
+        $scenes = [];
+
+        // Pattern to match scene-like structures - find all "narration" fields
+        if (preg_match_all('/"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $narrationMatches, PREG_OFFSET_CAPTURE)) {
+            foreach ($narrationMatches[1] as $index => $match) {
+                $narration = $this->unescapeJsonString($match[0]);
+                $position = $match[1];
+
+                // Look for visualDescription near this narration (within 500 chars)
+                $searchRange = substr($response, max(0, $position - 200), 700);
+                $visualDescription = $narration; // Default to narration
+
+                if (preg_match('/"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $searchRange, $vm)) {
+                    $visualDescription = $this->unescapeJsonString($vm[1]);
+                }
+
+                // Look for duration near this narration
+                $duration = 15;
+                if (preg_match('/"duration"\s*:\s*(\d+)/s', $searchRange, $dm)) {
+                    $duration = (int)$dm[1];
+                }
+
+                $scenes[] = [
+                    'id' => 'scene-' . ($index + 1),
+                    'title' => 'Scene ' . ($index + 1),
+                    'narration' => $narration,
+                    'visualDescription' => $visualDescription,
+                    'duration' => $duration,
+                ];
+            }
+        }
+
+        return $scenes;
+    }
+
+    /**
+     * Unescape a JSON string value.
+     */
+    protected function unescapeJsonString(string $str): string
+    {
+        // Handle common escape sequences
+        $str = str_replace(['\\n', '\\r', '\\t', '\\"', '\\\\'], ["\n", "\r", "\t", '"', '\\'], $str);
+        return $str;
     }
 
     /**

@@ -679,12 +679,60 @@ class VideoWizard extends Component
         if (isset($platforms[$platformId])) {
             $platform = $platforms[$platformId];
             $this->aspectRatio = $platform['defaultFormat'];
-            $this->targetDuration = min(
-                $platform['maxDuration'],
-                max($platform['minDuration'], $this->targetDuration)
-            );
+
+            // Get the max duration - but respect production type's suggested range if it's higher
+            $maxDuration = $platform['maxDuration'];
+            $minDuration = $platform['minDuration'];
+
+            // If production type is set and allows longer videos, use that range instead
+            $productionDuration = $this->getProductionTypeDurationRange();
+            if ($productionDuration) {
+                // Use the higher of platform max or production type max (for movies/films)
+                $maxDuration = max($maxDuration, $productionDuration['max']);
+                $minDuration = $productionDuration['min'];
+            }
+
+            // Only adjust duration if it's outside the valid range
+            if ($this->targetDuration < $minDuration) {
+                $this->targetDuration = $minDuration;
+            } elseif ($this->targetDuration > $maxDuration) {
+                $this->targetDuration = $maxDuration;
+            }
         }
         // Note: Don't auto-save on selection - will save on step navigation
+    }
+
+    /**
+     * Get the suggested duration range for the selected production type.
+     */
+    public function getProductionTypeDurationRange(): ?array
+    {
+        if (empty($this->productionType)) {
+            return null;
+        }
+
+        $productionTypes = config('appvideowizard.production_types', []);
+        $type = $productionTypes[$this->productionType] ?? null;
+
+        if (!$type) {
+            return null;
+        }
+
+        // Check if subtype has a specific duration range
+        if ($this->productionSubtype && isset($type['subTypes'][$this->productionSubtype]['suggestedDuration'])) {
+            return $type['subTypes'][$this->productionSubtype]['suggestedDuration'];
+        }
+
+        // Look for duration in any subtype as a fallback
+        if (isset($type['subTypes']) && is_array($type['subTypes'])) {
+            foreach ($type['subTypes'] as $subtype) {
+                if (isset($subtype['suggestedDuration'])) {
+                    return $subtype['suggestedDuration'];
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
