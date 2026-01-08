@@ -139,14 +139,14 @@ class ScriptGenerationService
         $expectedSceneCount = $params['sceneCount'];
 
         if ($actualSceneCount < $expectedSceneCount) {
-            \Log::warning('VideoWizard: Scene count below expected, interpolating', [
+            \Log::warning('VideoWizard: Scene count below expected', [
                 'expected' => $expectedSceneCount,
                 'actual' => $actualSceneCount,
                 'deficit' => $expectedSceneCount - $actualSceneCount,
+                'note' => 'Use progressive batch generation for exact scene counts',
             ]);
-
-            // Interpolate additional scenes if we're significantly below target
-            $parsedScript = $this->interpolateScenes($parsedScript, $expectedSceneCount, $duration);
+            // Note: Old interpolateScenes method removed - use progressive batch generation instead
+            // The new batch system generates scenes incrementally with proper context continuity
         }
 
         // Log successful generation
@@ -2495,172 +2495,6 @@ JSON;
         ];
 
         return $effects[array_rand($effects)];
-    }
-
-    /**
-     * Interpolate scenes to reach target scene count.
-     * When AI returns fewer scenes than expected, this method adds scenes
-     * by splitting longer scenes or creating transitional scenes.
-     */
-    protected function interpolateScenes(array $script, int $targetSceneCount, int $targetDuration): array
-    {
-        $scenes = $script['scenes'] ?? [];
-        $currentCount = count($scenes);
-
-        if ($currentCount >= $targetSceneCount || $currentCount === 0) {
-            return $script;
-        }
-
-        $scenesToAdd = $targetSceneCount - $currentCount;
-        $avgSceneDuration = (int) ceil($targetDuration / $targetSceneCount);
-
-        \Log::info('VideoWizard: Interpolating scenes', [
-            'currentCount' => $currentCount,
-            'targetCount' => $targetSceneCount,
-            'scenesToAdd' => $scenesToAdd,
-            'avgDuration' => $avgSceneDuration,
-        ]);
-
-        // Strategy: Split the longest scenes to create more
-        // Sort scenes by duration (descending) to find candidates for splitting
-        $scenesWithIndex = [];
-        foreach ($scenes as $index => $scene) {
-            $scenesWithIndex[] = [
-                'index' => $index,
-                'scene' => $scene,
-                'duration' => $scene['duration'] ?? $avgSceneDuration,
-            ];
-        }
-
-        // Sort by duration descending
-        usort($scenesWithIndex, fn($a, $b) => $b['duration'] <=> $a['duration']);
-
-        // Split scenes that are longer than average
-        $newScenes = [];
-        $splitCount = 0;
-
-        foreach ($scenes as $index => $scene) {
-            $sceneDuration = $scene['duration'] ?? $avgSceneDuration;
-
-            // Check if this scene should be split (longer than 1.5x average and we still need more scenes)
-            if ($splitCount < $scenesToAdd && $sceneDuration > $avgSceneDuration * 1.5) {
-                // Split this scene into two
-                $halfDuration = (int) ceil($sceneDuration / 2);
-                $narration = $scene['narration'] ?? '';
-                $words = explode(' ', $narration);
-                $midPoint = (int) ceil(count($words) / 2);
-
-                // First half
-                $scene1 = $scene;
-                $scene1['id'] = 'scene-' . (count($newScenes) + 1);
-                $scene1['narration'] = implode(' ', array_slice($words, 0, $midPoint));
-                $scene1['duration'] = $halfDuration;
-                $scene1['kenBurns'] = $this->generateKenBurnsEffect();
-                $newScenes[] = $scene1;
-
-                // Second half - create as continuation
-                $scene2 = $scene;
-                $scene2['id'] = 'scene-' . (count($newScenes) + 1);
-                $scene2['title'] = ($scene['title'] ?? 'Scene') . ' (continued)';
-                $scene2['narration'] = implode(' ', array_slice($words, $midPoint));
-                $scene2['duration'] = $sceneDuration - $halfDuration;
-                $scene2['kenBurns'] = $this->generateKenBurnsEffect();
-                $newScenes[] = $scene2;
-
-                $splitCount++;
-
-                \Log::debug('VideoWizard: Split scene', [
-                    'originalIndex' => $index,
-                    'originalDuration' => $sceneDuration,
-                    'newDurations' => [$halfDuration, $sceneDuration - $halfDuration],
-                ]);
-            } else {
-                // Keep scene as-is but update ID
-                $scene['id'] = 'scene-' . (count($newScenes) + 1);
-                $newScenes[] = $scene;
-            }
-        }
-
-        // If we still need more scenes after splitting, add transition scenes
-        while (count($newScenes) < $targetSceneCount) {
-            $insertIndex = count($newScenes);
-            $prevScene = $newScenes[$insertIndex - 1] ?? null;
-
-            $transitionScene = [
-                'id' => 'scene-' . ($insertIndex + 1),
-                'title' => 'Transition',
-                'narration' => $this->generateTransitionNarration($prevScene),
-                'visualDescription' => $this->generateTransitionVisual($prevScene),
-                'duration' => $avgSceneDuration,
-                'mood' => $prevScene['mood'] ?? 'contemplative',
-                'transition' => 'dissolve',
-                'kenBurns' => $this->generateKenBurnsEffect(),
-            ];
-
-            $newScenes[] = $transitionScene;
-
-            \Log::debug('VideoWizard: Added transition scene', [
-                'index' => $insertIndex,
-            ]);
-        }
-
-        // Re-index all scenes
-        foreach ($newScenes as $index => &$scene) {
-            $scene['id'] = 'scene-' . ($index + 1);
-        }
-
-        $script['scenes'] = $newScenes;
-
-        \Log::info('VideoWizard: Interpolation complete', [
-            'finalSceneCount' => count($newScenes),
-            'targetCount' => $targetSceneCount,
-        ]);
-
-        return $script;
-    }
-
-    /**
-     * Generate transition narration based on previous scene.
-     */
-    protected function generateTransitionNarration(?array $prevScene): string
-    {
-        if (!$prevScene) {
-            return 'Let us explore this further...';
-        }
-
-        $transitions = [
-            'But there is more to this story...',
-            'And the journey continues...',
-            'This brings us to an important point...',
-            'Now, let us consider another aspect...',
-            'Taking a moment to reflect on this...',
-            'The significance of this cannot be understated...',
-            'Building on what we have learned...',
-            'This naturally leads us to...',
-        ];
-
-        return $transitions[array_rand($transitions)];
-    }
-
-    /**
-     * Generate transition visual description based on previous scene.
-     */
-    protected function generateTransitionVisual(?array $prevScene): string
-    {
-        if (!$prevScene) {
-            return 'Wide establishing shot, cinematic atmosphere, soft lighting';
-        }
-
-        $baseVisual = $prevScene['visualDescription'] ?? '';
-
-        $transitions = [
-            'Soft focus transition, dreamy atmosphere, ' . substr($baseVisual, 0, 50),
-            'Wide angle perspective, establishing context, cinematic lighting',
-            'Medium shot with gentle camera movement, contemplative mood',
-            'Atmospheric wide shot, soft bokeh in background, warm tones',
-        ];
-
-        return $transitions[array_rand($transitions)];
     }
 
     /**
