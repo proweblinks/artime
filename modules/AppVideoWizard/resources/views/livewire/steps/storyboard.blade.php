@@ -1276,13 +1276,28 @@
                                     </button>
                                 </div>
 
-                                {{-- Source Badge - Below scene number --}}
-                                <div style="position: absolute; top: 2rem; left: 0.5rem; background: {{ $source === 'stock' ? 'rgba(16,185,129,0.9)' : 'rgba(139,92,246,0.9)' }}; color: white; padding: 0.15rem 0.4rem; border-radius: 0.2rem; font-size: 0.55rem; z-index: 10;">
-                                    @if($source === 'stock')
-                                        📷 {{ __('Stock') }}
-                                    @else
-                                        🎨 {{ __('AI') }}
+                                @php
+                                    $isVideo = $source === 'stock-video';
+                                    $sourceBgColor = $source === 'stock' ? 'rgba(16,185,129,0.9)' : ($isVideo ? 'rgba(6,182,212,0.9)' : 'rgba(139,92,246,0.9)');
+                                    $sourceLabel = $source === 'stock' ? '📷 ' . __('Stock') : ($isVideo ? '🎬 ' . __('Video') : '🎨 ' . __('AI'));
+                                    $clipDuration = $storyboardScene['stockInfo']['clipDuration'] ?? $storyboardScene['stockInfo']['duration'] ?? null;
+                                @endphp
+
+                                {{-- Video Play Icon Overlay --}}
+                                @if($isVideo)
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 36px; height: 36px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5;">
+                                        <div style="width: 0; height: 0; border-left: 10px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent; margin-left: 2px;"></div>
+                                    </div>
+                                    @if($clipDuration)
+                                        <div style="position: absolute; bottom: 2.5rem; right: 0.4rem; background: rgba(0,0,0,0.8); color: white; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-size: 0.6rem; z-index: 10;">
+                                            {{ gmdate($clipDuration >= 3600 ? 'H:i:s' : 'i:s', (int)$clipDuration) }}
+                                        </div>
                                     @endif
+                                @endif
+
+                                {{-- Source Badge - Below scene number --}}
+                                <div style="position: absolute; top: 2rem; left: 0.5rem; background: {{ $sourceBgColor }}; color: white; padding: 0.15rem 0.4rem; border-radius: 0.2rem; font-size: 0.55rem; z-index: 10;">
+                                    {!! $sourceLabel !!}
                                 </div>
 
                                 {{-- Action Buttons Overlay - Bottom of image --}}
