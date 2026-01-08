@@ -583,6 +583,119 @@
         color: rgba(255, 255, 255, 0.4);
     }
 
+    /* Scene Navigation */
+    .vw-scene-navigation {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vw-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 0.4rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .vw-nav-btn:hover:not(:disabled) {
+        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(139, 92, 246, 0.1);
+        color: #a78bfa;
+    }
+
+    .vw-nav-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .vw-scene-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.6rem;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.4rem;
+    }
+
+    .vw-scene-indicator-current {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #a78bfa;
+    }
+
+    .vw-scene-indicator-total {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .vw-duration-display {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.6rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 0.4rem;
+    }
+
+    .vw-duration-icon {
+        font-size: 0.75rem;
+    }
+
+    .vw-duration-value {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #10b981;
+    }
+
+    .vw-duration-label {
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Keyboard shortcuts hint */
+    .vw-keyboard-hint {
+        position: fixed;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        background: rgba(15, 15, 28, 0.95);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.5rem;
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.6);
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+    }
+
+    .vw-keyboard-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 22px;
+        padding: 0 0.4rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.25rem;
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
     /* Main Preview Container */
     .vw-preview-container {
         position: relative;
@@ -1141,7 +1254,24 @@
                             $isStockVideo = ($selectedStoryboardScene['source'] ?? '') === 'stock-video';
                         @endphp
 
-                        {{-- Preview Header --}}
+                        {{-- Preview Header with Navigation --}}
+                        @php
+                            // Calculate total duration
+                            $totalDuration = 0;
+                            foreach ($scriptScenes as $s) {
+                                $totalDuration += $s['duration'] ?? 8;
+                            }
+                            $totalMinutes = floor($totalDuration / 60);
+                            $totalSeconds = $totalDuration % 60;
+                            $durationFormatted = $totalMinutes > 0
+                                ? sprintf('%d:%02d', $totalMinutes, $totalSeconds)
+                                : sprintf('0:%02d', $totalSeconds);
+
+                            // Current scene duration
+                            $currentDuration = $selectedScene['duration'] ?? 8;
+                            $hasPrevScene = $selectedIndex > 0;
+                            $hasNextScene = $selectedIndex < ($totalScenes - 1);
+                        @endphp
                         <div class="vw-preview-header">
                             <div class="vw-preview-title">
                                 <span class="vw-preview-title-icon">🎬</span>
@@ -1155,22 +1285,39 @@
                                 @endif
                             </div>
                             <div class="vw-preview-tools">
-                                <button type="button" class="vw-preview-tool-btn pip">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="3" width="20" height="14" rx="2"/>
-                                        <rect x="11" y="9" width="10" height="8" rx="1" fill="currentColor" opacity="0.3"/>
-                                    </svg>
-                                    {{ __('PiP') }}
-                                </button>
-                                <button type="button" class="vw-preview-tool-btn device">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="3" width="20" height="14" rx="2"/>
-                                        <line x1="8" y1="21" x2="16" y2="21"/>
-                                        <line x1="12" y1="17" x2="12" y2="21"/>
-                                    </svg>
-                                    {{ __('Preview') }}
-                                </button>
-                                <span class="vw-preview-scene-count">{{ __('Scene') }} {{ $selectedIndex + 1 }} {{ __('of') }} {{ $totalScenes }}</span>
+                                {{-- Scene Navigation --}}
+                                <div class="vw-scene-navigation">
+                                    <button type="button"
+                                            class="vw-nav-btn"
+                                            wire:click="$set('animation.selectedSceneIndex', {{ max(0, $selectedIndex - 1) }})"
+                                            {{ !$hasPrevScene ? 'disabled' : '' }}
+                                            title="{{ __('Previous Scene') }} (←)">
+                                        ←
+                                    </button>
+                                    <div class="vw-scene-indicator">
+                                        <span class="vw-scene-indicator-current">{{ $selectedIndex + 1 }}</span>
+                                        <span class="vw-scene-indicator-total">/ {{ $totalScenes }}</span>
+                                    </div>
+                                    <button type="button"
+                                            class="vw-nav-btn"
+                                            wire:click="$set('animation.selectedSceneIndex', {{ min($totalScenes - 1, $selectedIndex + 1) }})"
+                                            {{ !$hasNextScene ? 'disabled' : '' }}
+                                            title="{{ __('Next Scene') }} (→)">
+                                        →
+                                    </button>
+                                </div>
+
+                                {{-- Duration Display --}}
+                                <div class="vw-duration-display" title="{{ __('Total video duration') }}">
+                                    <span class="vw-duration-icon">⏱️</span>
+                                    <span class="vw-duration-value">{{ $durationFormatted }}</span>
+                                    <span class="vw-duration-label">{{ __('total') }}</span>
+                                </div>
+
+                                {{-- Scene Duration --}}
+                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 0.25rem;">
+                                    {{ $currentDuration }}s
+                                </div>
                             </div>
                         </div>
 
@@ -1584,5 +1731,90 @@
                 </div>
             </div>
         </div>
+
+        {{-- Keyboard Shortcuts Hint --}}
+        <div class="vw-keyboard-hint" id="keyboard-hint">
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="vw-keyboard-key">←</span>
+                <span class="vw-keyboard-key">→</span>
+                <span>{{ __('Navigate') }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="vw-keyboard-key">V</span>
+                <span>{{ __('Voice') }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="vw-keyboard-key">A</span>
+                <span>{{ __('Animate') }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="vw-keyboard-key">Space</span>
+                <span>{{ __('Play') }}</span>
+            </div>
+            <button type="button"
+                    onclick="document.getElementById('keyboard-hint').style.display='none'"
+                    style="margin-left: 0.5rem; background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 0.7rem;">
+                ✕
+            </button>
+        </div>
     </div>
+
+    {{-- Keyboard Shortcuts Script --}}
+    <script>
+        document.addEventListener('keydown', function(e) {
+            // Only handle if not in an input/textarea
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const totalScenes = {{ $totalScenes }};
+            const currentIndex = {{ $selectedIndex }};
+
+            switch(e.key) {
+                case 'ArrowLeft':
+                    if (currentIndex > 0) {
+                        @this.set('animation.selectedSceneIndex', currentIndex - 1);
+                    }
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    if (currentIndex < totalScenes - 1) {
+                        @this.set('animation.selectedSceneIndex', currentIndex + 1);
+                    }
+                    e.preventDefault();
+                    break;
+                case 'v':
+                case 'V':
+                    // Generate voiceover for current scene
+                    @this.dispatch('generate-voiceover', {
+                        sceneIndex: currentIndex,
+                        sceneId: '{{ $selectedScene['id'] ?? '' }}'
+                    });
+                    break;
+                case 'a':
+                case 'A':
+                    // Animate current scene
+                    @this.dispatch('animate-scene', { sceneIndex: currentIndex });
+                    break;
+                case ' ':
+                    // Play/pause video preview
+                    const video = document.querySelector('.vw-preview-video');
+                    if (video) {
+                        if (video.paused) {
+                            video.play();
+                        } else {
+                            video.pause();
+                        }
+                        e.preventDefault();
+                    }
+                    break;
+                case 'Home':
+                    @this.set('animation.selectedSceneIndex', 0);
+                    e.preventDefault();
+                    break;
+                case 'End':
+                    @this.set('animation.selectedSceneIndex', totalScenes - 1);
+                    e.preventDefault();
+                    break;
+            }
+        });
+    </script>
 @endif
