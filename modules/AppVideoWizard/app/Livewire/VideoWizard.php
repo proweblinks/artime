@@ -78,6 +78,18 @@ class VideoWizard extends Component
         'totalNarrationTime' => 0,
     ];
 
+    // Step 3: Progressive Script Generation State
+    public array $scriptGeneration = [
+        'status' => 'idle',              // 'idle' | 'generating' | 'paused' | 'complete'
+        'targetSceneCount' => 0,         // Total scenes needed (e.g., 30)
+        'generatedSceneCount' => 0,      // Scenes generated so far
+        'batchSize' => 5,                // Scenes per batch
+        'currentBatch' => 0,             // Current batch index (0-indexed)
+        'totalBatches' => 0,             // Total batches needed
+        'batches' => [],                 // Batch status tracking
+        'autoGenerate' => false,         // Auto-continue to next batch
+    ];
+
     // Step 3: Voice & Dialogue Status
     public array $voiceStatus = [
         'dialogueLines' => 0,
@@ -1480,6 +1492,291 @@ class VideoWizard extends Component
         } finally {
             $this->isLoading = false;
         }
+    }
+
+    // =========================================================================
+    // PROGRESSIVE SCRIPT GENERATION (Batch-Based)
+    // =========================================================================
+
+    /**
+     * Calculate exact scene count based on duration and production type.
+     */
+    public function calculateSceneCount(): int
+    {
+        $targetDuration = $this->targetDuration ?? 60;
+        $productionType = $this->production['type'] ?? 'standard';
+
+        // Scene duration based on production type
+        $sceneDurations = [
+            'tiktok-viral' => 3,      // Fast cuts, 3s per scene
+            'youtube-short' => 5,     // Medium pace, 5s per scene
+            'short-form' => 4,        // Short form content
+            'standard' => 6,          // Standard pace, 6s per scene
+            'cinematic' => 8,         // Slower, cinematic, 8s per scene
+            'documentary' => 10,      // Documentary style, 10s per scene
+            'long-form' => 8,         // Long form content
+        ];
+
+        $sceneDuration = $sceneDurations[$productionType] ?? 6;
+
+        return (int) ceil($targetDuration / $sceneDuration);
+    }
+
+    /**
+     * Start progressive script generation.
+     * Initializes batch tracking and generates first batch.
+     */
+    #[On('start-progressive-generation')]
+    public function startProgressiveGeneration(): void
+    {
+        if (empty($this->concept['rawInput']) && empty($this->concept['refinedConcept'])) {
+            $this->error = __('Please complete the concept step first.');
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $targetSceneCount = $this->calculateSceneCount();
+            $batchSize = 5;
+            $totalBatches = (int) ceil($targetSceneCount / $batchSize);
+
+            // Initialize batch tracking
+            $batches = [];
+            for ($i = 0; $i < $totalBatches; $i++) {
+                $startScene = ($i * $batchSize) + 1;
+                $endScene = min(($i + 1) * $batchSize, $targetSceneCount);
+
+                $batches[] = [
+                    'batchNumber' => $i + 1,
+                    'startScene' => $startScene,
+                    'endScene' => $endScene,
+                    'status' => 'pending',
+                    'generatedAt' => null,
+                    'sceneIds' => [],
+                ];
+            }
+
+            $this->scriptGeneration = [
+                'status' => 'generating',
+                'targetSceneCount' => $targetSceneCount,
+                'generatedSceneCount' => 0,
+                'batchSize' => $batchSize,
+                'currentBatch' => 0,
+                'totalBatches' => $totalBatches,
+                'batches' => $batches,
+                'autoGenerate' => false,
+            ];
+
+            // Initialize script structure
+            $this->script = [
+                'title' => $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? 'Untitled',
+                'hook' => '',
+                'scenes' => [],
+                'cta' => '',
+                'totalDuration' => 0,
+                'totalNarrationTime' => 0,
+            ];
+
+            $this->saveProject();
+
+            // Dispatch event for UI update
+            $this->dispatch('progressive-generation-started', [
+                'targetSceneCount' => $targetSceneCount,
+                'totalBatches' => $totalBatches,
+            ]);
+
+            // Generate first batch
+            $this->generateNextBatch();
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to start generation: ') . $e->getMessage();
+            $this->scriptGeneration['status'] = 'idle';
+            Log::error('VideoWizard: Progressive generation start failed', [
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate the next batch of scenes.
+     */
+    #[On('generate-next-batch')]
+    public function generateNextBatch(): void
+    {
+        $currentBatchIndex = $this->scriptGeneration['currentBatch'];
+
+        if ($currentBatchIndex >= $this->scriptGeneration['totalBatches']) {
+            $this->scriptGeneration['status'] = 'complete';
+            $this->dispatch('progressive-generation-complete');
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        // Update batch status
+        $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'generating';
+        $this->scriptGeneration['status'] = 'generating';
+
+        try {
+            $batch = $this->scriptGeneration['batches'][$currentBatchIndex];
+            $scriptService = app(ScriptGenerationService::class);
+            $project = WizardProject::findOrFail($this->projectId);
+
+            // Build context from existing scenes
+            $context = $scriptService->buildBatchContext(
+                $this->script['scenes'] ?? [],
+                $batch['batchNumber'],
+                $this->scriptGeneration['totalBatches']
+            );
+
+            // Generate this batch
+            $result = $scriptService->generateSceneBatch(
+                $project,
+                $batch['startScene'],
+                $batch['endScene'],
+                $this->scriptGeneration['targetSceneCount'],
+                $context,
+                [
+                    'topic' => $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '',
+                    'tone' => $this->scriptTone ?? 'engaging',
+                    'contentDepth' => $this->contentDepth ?? 'detailed',
+                    'productionType' => $this->production['type'] ?? 'standard',
+                    'teamId' => session('current_team_id', 0),
+                    'narrativePreset' => $this->narrativePreset,
+                    'emotionalJourney' => $this->emotionalJourney,
+                ]
+            );
+
+            if ($result['success'] && !empty($result['scenes'])) {
+                // Sanitize and append new scenes
+                foreach ($result['scenes'] as $index => $scene) {
+                    $sceneIndex = count($this->script['scenes']);
+                    $this->script['scenes'][] = $this->sanitizeScene($scene, $sceneIndex);
+                }
+
+                // Update batch status
+                $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'complete';
+                $this->scriptGeneration['batches'][$currentBatchIndex]['generatedAt'] = now()->toDateTimeString();
+                $this->scriptGeneration['batches'][$currentBatchIndex]['sceneIds'] = array_column($result['scenes'], 'id');
+
+                // Update counts
+                $this->scriptGeneration['generatedSceneCount'] = count($this->script['scenes']);
+                $this->scriptGeneration['currentBatch']++;
+
+                // Recalculate totals
+                $this->recalculateScriptTotals();
+                $this->recalculateVoiceStatus();
+
+                // Check if complete
+                if ($this->scriptGeneration['currentBatch'] >= $this->scriptGeneration['totalBatches']) {
+                    $this->scriptGeneration['status'] = 'complete';
+                    $this->autoDetectCharacterIntelligence();
+                    $this->dispatch('progressive-generation-complete');
+                    $this->dispatch('script-generated');
+                } else {
+                    $this->scriptGeneration['status'] = 'paused';
+
+                    // Dispatch batch complete event
+                    $this->dispatch('batch-generated', [
+                        'batchNumber' => $batch['batchNumber'],
+                        'scenesGenerated' => count($result['scenes']),
+                        'totalGenerated' => $this->scriptGeneration['generatedSceneCount'],
+                    ]);
+
+                    // Auto-continue if enabled
+                    if ($this->scriptGeneration['autoGenerate']) {
+                        $this->generateNextBatch();
+                        return;
+                    }
+                }
+
+                $this->saveProject();
+
+            } else {
+                $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'error';
+                $this->scriptGeneration['status'] = 'paused';
+                $this->error = $result['error'] ?? __('Failed to generate batch');
+
+                Log::error('VideoWizard: Batch generation failed', [
+                    'batch' => $batch['batchNumber'],
+                    'error' => $result['error'] ?? 'Unknown error',
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            $this->scriptGeneration['batches'][$currentBatchIndex]['status'] = 'error';
+            $this->scriptGeneration['status'] = 'paused';
+            $this->error = __('Batch generation failed: ') . $e->getMessage();
+
+            Log::error('VideoWizard: Batch generation exception', [
+                'batch' => $currentBatchIndex + 1,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Auto-generate all remaining batches.
+     */
+    #[On('generate-all-remaining')]
+    public function generateAllRemaining(): void
+    {
+        $this->scriptGeneration['autoGenerate'] = true;
+        $this->generateNextBatch();
+    }
+
+    /**
+     * Retry failed batch.
+     */
+    public function retryBatch(int $batchIndex): void
+    {
+        if (!isset($this->scriptGeneration['batches'][$batchIndex])) {
+            return;
+        }
+
+        // Reset batch status
+        $this->scriptGeneration['batches'][$batchIndex]['status'] = 'pending';
+        $this->scriptGeneration['currentBatch'] = $batchIndex;
+        $this->scriptGeneration['status'] = 'paused';
+
+        // Generate the batch
+        $this->generateNextBatch();
+    }
+
+    /**
+     * Reset progressive generation.
+     */
+    public function resetProgressiveGeneration(): void
+    {
+        $this->scriptGeneration = [
+            'status' => 'idle',
+            'targetSceneCount' => 0,
+            'generatedSceneCount' => 0,
+            'batchSize' => 5,
+            'currentBatch' => 0,
+            'totalBatches' => 0,
+            'batches' => [],
+            'autoGenerate' => false,
+        ];
+
+        $this->script = [
+            'title' => '',
+            'hook' => '',
+            'scenes' => [],
+            'cta' => '',
+            'totalDuration' => 0,
+            'totalNarrationTime' => 0,
+        ];
+
+        $this->saveProject();
     }
 
     /**
@@ -5735,9 +6032,19 @@ class VideoWizard extends Component
         try {
             $imageService = app(ImageGenerationService::class);
 
-            // Build portrait prompt
-            $prompt = "Character portrait, " . $character['description'];
-            $prompt .= ", professional photography, studio lighting, headshot";
+            // Build portrait-optimized prompt (matching reference implementation)
+            $promptParts = [
+                'Professional studio portrait photograph',
+                $character['description'],
+                'Standing pose facing camera',
+                'Clean pure white background',
+                'Professional studio lighting with soft shadows',
+                'High quality, detailed, sharp focus',
+                'Full body visible from head to feet',
+                'Neutral expression, confident pose',
+                'Fashion photography style, catalog quality',
+            ];
+            $prompt = implode('. ', $promptParts);
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -5747,7 +6054,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'char_' . $index,
+                        'sceneIndex' => null, // Portraits don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -5851,7 +6158,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'style_ref',
+                        'sceneIndex' => null, // Style references don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -6125,13 +6432,30 @@ class VideoWizard extends Component
         try {
             $imageService = app(ImageGenerationService::class);
 
-            // Build location prompt
-            $prompt = $location['description'];
-            $prompt .= ", " . $location['type'] . ", " . $location['timeOfDay'];
-            if ($location['weather'] !== 'clear') {
-                $prompt .= ", " . $location['weather'] . " weather";
+            // Build location-optimized prompt
+            $promptParts = [
+                'Cinematic establishing shot',
+                $location['description'],
+                ucfirst($location['type']) . ' setting',
+                ucfirst($location['timeOfDay']) . ' lighting',
+            ];
+
+            if (!empty($location['weather']) && $location['weather'] !== 'clear') {
+                $promptParts[] = ucfirst($location['weather']) . ' weather conditions';
             }
-            $prompt .= ", establishing shot, wide angle, professional photography";
+
+            if (!empty($location['mood'])) {
+                $promptParts[] = ucfirst($location['mood']) . ' atmosphere';
+            }
+
+            $promptParts = array_merge($promptParts, [
+                'Wide angle composition',
+                'High production value',
+                'Professional cinematography',
+                'No people or characters',
+                'Empty environment reference shot',
+            ]);
+            $prompt = implode('. ', $promptParts);
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -6141,7 +6465,7 @@ class VideoWizard extends Component
                         'visualDescription' => $prompt,
                     ], [
                         'model' => 'nanobanana-pro',
-                        'sceneIndex' => 'loc_' . $index,
+                        'sceneIndex' => null, // Location references don't belong to any scene
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
@@ -6415,7 +6739,7 @@ class VideoWizard extends Component
                         'visualDescription' => $shot['prompt'],
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
-                        'sceneIndex' => "shot_{$sceneIndex}_{$shotIndex}",
+                        'sceneIndex' => $sceneIndex, // Pass actual scene index for character/location context
                     ]);
 
                     if ($result['success']) {
