@@ -897,6 +897,218 @@
         font-size: 0.8rem !important;
         color: rgba(255, 255, 255, 0.6) !important;
     }
+
+    /* Narrative Structure Intelligence Styles */
+    .vw-narrative-section {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border-radius: 0.75rem !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-narrative-clear-btn {
+        background: rgba(239, 68, 68, 0.2) !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        color: #fca5a5 !important;
+        padding: 0.375rem 0.75rem !important;
+        border-radius: 0.375rem !important;
+        font-size: 0.75rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+    }
+
+    .vw-narrative-clear-btn:hover {
+        background: rgba(239, 68, 68, 0.3) !important;
+        border-color: rgba(239, 68, 68, 0.5) !important;
+    }
+
+    .vw-narrative-presets-row {
+        margin-top: 0.75rem !important;
+    }
+
+    .vw-narrative-preset-label {
+        font-size: 0.8rem !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        margin-bottom: 0.5rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .vw-narrative-presets-grid {
+        display: grid !important;
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 0.5rem !important;
+    }
+
+    @media (max-width: 1024px) {
+        .vw-narrative-presets-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .vw-narrative-presets-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+    }
+
+    .vw-narrative-preset-btn {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.625rem 0.5rem !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.5rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        text-align: center !important;
+        min-height: 60px !important;
+    }
+
+    .vw-narrative-preset-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+    }
+
+    .vw-narrative-preset-btn.selected {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.15) 100%) !important;
+        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
+    }
+
+    .vw-preset-icon {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .vw-preset-name {
+        font-size: 0.7rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-weight: 500 !important;
+        line-height: 1.2 !important;
+    }
+
+    .vw-narrative-preset-btn.selected .vw-preset-name {
+        color: #ffffff !important;
+    }
+
+    .vw-narrative-tip {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+        margin-top: 0.75rem !important;
+        padding: 0.75rem !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border-radius: 0.5rem !important;
+        font-size: 0.8rem !important;
+        color: #c4b5fd !important;
+        line-height: 1.5 !important;
+    }
+
+    .vw-narrative-tip-icon {
+        flex-shrink: 0 !important;
+    }
+
+    .vw-narrative-advanced-toggle {
+        margin-top: 1rem !important;
+    }
+
+    .vw-advanced-toggle-btn {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        background: transparent !important;
+        border: none !important;
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 0.85rem !important;
+        cursor: pointer !important;
+        padding: 0.5rem 0 !important;
+        transition: color 0.2s !important;
+    }
+
+    .vw-advanced-toggle-btn:hover {
+        color: #c4b5fd !important;
+    }
+
+    .vw-advanced-active-badge {
+        background: rgba(34, 197, 94, 0.2) !important;
+        color: #22c55e !important;
+        padding: 0.125rem 0.5rem !important;
+        border-radius: 0.25rem !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    .vw-narrative-advanced-panel {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1rem !important;
+        margin-top: 1rem !important;
+        padding-top: 1rem !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    @media (max-width: 1024px) {
+        .vw-narrative-advanced-panel {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    .vw-narrative-option-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.375rem !important;
+    }
+
+    .vw-narrative-option-label {
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+    }
+
+    .vw-option-sublabel {
+        font-size: 0.75rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        font-weight: 400 !important;
+        margin-left: 0.25rem !important;
+    }
+
+    .vw-narrative-select {
+        width: 100% !important;
+        padding: 0.625rem 0.75rem !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 0.5rem !important;
+        color: #ffffff !important;
+        font-size: 0.85rem !important;
+        cursor: pointer !important;
+        transition: border-color 0.2s !important;
+    }
+
+    .vw-narrative-select:focus {
+        outline: none !important;
+        border-color: rgba(139, 92, 246, 0.5) !important;
+    }
+
+    .vw-narrative-select option {
+        background: #1a1a2e !important;
+        color: #ffffff !important;
+    }
+
+    .vw-option-description {
+        font-size: 0.75rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        line-height: 1.4 !important;
+        padding: 0.375rem !important;
+        background: rgba(0, 0, 0, 0.2) !important;
+        border-radius: 0.25rem !important;
+    }
 </style>
 
 <div class="vw-script-step">
@@ -1060,6 +1272,138 @@
                     <span class="vw-selector-btn-subtitle">{{ __('Full analysis') }}</span>
                 </button>
             </div>
+        </div>
+
+        {{-- Narrative Structure Intelligence Section --}}
+        <div class="vw-selector-section vw-narrative-section">
+            <div class="vw-selector-label" style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    🎬 {{ __('Narrative Structure') }}
+                    <span class="vw-selector-sublabel">— {{ __('Hollywood-level storytelling') }}</span>
+                </div>
+                @if($narrativePreset || $storyArc || $tensionCurve || $emotionalJourney)
+                    <button type="button"
+                            class="vw-narrative-clear-btn"
+                            wire:click="clearNarrativeSettings"
+                            title="{{ __('Clear all narrative settings') }}">
+                        ✕ {{ __('Clear') }}
+                    </button>
+                @endif
+            </div>
+
+            {{-- Narrative Presets - Platform-optimized storytelling --}}
+            @php
+                $narrativePresets = config('appvideowizard.narrative_presets', []);
+            @endphp
+            <div class="vw-narrative-presets-row">
+                <div class="vw-narrative-preset-label">{{ __('Storytelling Formula') }}</div>
+                <div class="vw-narrative-presets-grid">
+                    @foreach(array_slice($narrativePresets, 0, 6) as $key => $preset)
+                        <button type="button"
+                                class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
+                                wire:click="applyNarrativePreset('{{ $key }}')"
+                                title="{{ $preset['description'] ?? '' }}">
+                            <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
+                            <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
+                        </button>
+                    @endforeach
+                </div>
+                @if(count($narrativePresets) > 6)
+                    <div class="vw-narrative-presets-grid" style="margin-top: 0.5rem;">
+                        @foreach(array_slice($narrativePresets, 6) as $key => $preset)
+                            <button type="button"
+                                    class="vw-narrative-preset-btn {{ $narrativePreset === $key ? 'selected' : '' }}"
+                                    wire:click="applyNarrativePreset('{{ $key }}')"
+                                    title="{{ $preset['description'] ?? '' }}">
+                                <span class="vw-preset-icon">{{ $preset['icon'] ?? '📺' }}</span>
+                                <span class="vw-preset-name">{{ $preset['name'] ?? $key }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- Active Preset Tips --}}
+            @if($narrativePreset && isset($narrativePresets[$narrativePreset]))
+                <div class="vw-narrative-tip">
+                    <span class="vw-narrative-tip-icon">💡</span>
+                    <span>{{ $narrativePresets[$narrativePreset]['tips'] ?? $narrativePresets[$narrativePreset]['description'] }}</span>
+                </div>
+            @endif
+
+            {{-- Advanced Options Toggle --}}
+            <div class="vw-narrative-advanced-toggle">
+                <button type="button"
+                        class="vw-advanced-toggle-btn"
+                        wire:click="$toggle('showNarrativeAdvanced')">
+                    <span>{{ $showNarrativeAdvanced ? '▼' : '▶' }}</span>
+                    {{ __('Advanced Narrative Options') }}
+                    @if($storyArc || $tensionCurve || $emotionalJourney)
+                        <span class="vw-advanced-active-badge">{{ __('Active') }}</span>
+                    @endif
+                </button>
+            </div>
+
+            {{-- Advanced Options Panel --}}
+            @if($showNarrativeAdvanced)
+                @php
+                    $storyArcs = config('appvideowizard.story_arcs', []);
+                    $tensionCurves = config('appvideowizard.tension_curves', []);
+                    $emotionalJourneys = config('appvideowizard.emotional_journeys', []);
+                @endphp
+                <div class="vw-narrative-advanced-panel">
+                    {{-- Story Arc Selection --}}
+                    <div class="vw-narrative-option-group">
+                        <label class="vw-narrative-option-label">
+                            📐 {{ __('Story Arc') }}
+                            <span class="vw-option-sublabel">{{ __('How the narrative unfolds') }}</span>
+                        </label>
+                        <select wire:model.live="storyArc" class="vw-narrative-select">
+                            <option value="">{{ __('Auto (from preset)') }}</option>
+                            @foreach($storyArcs as $key => $arc)
+                                <option value="{{ $key }}">{{ $arc['icon'] ?? '' }} {{ $arc['name'] ?? $key }}</option>
+                            @endforeach
+                        </select>
+                        @if($storyArc && isset($storyArcs[$storyArc]))
+                            <div class="vw-option-description">{{ $storyArcs[$storyArc]['description'] ?? '' }}</div>
+                        @endif
+                    </div>
+
+                    {{-- Tension Curve Selection --}}
+                    <div class="vw-narrative-option-group">
+                        <label class="vw-narrative-option-label">
+                            📈 {{ __('Tension Curve') }}
+                            <span class="vw-option-sublabel">{{ __('Pacing dynamics') }}</span>
+                        </label>
+                        <select wire:model.live="tensionCurve" class="vw-narrative-select">
+                            <option value="">{{ __('Auto (from preset)') }}</option>
+                            @foreach($tensionCurves as $key => $curve)
+                                <option value="{{ $key }}">{{ $curve['icon'] ?? '' }} {{ $curve['name'] ?? $key }}</option>
+                            @endforeach
+                        </select>
+                        @if($tensionCurve && isset($tensionCurves[$tensionCurve]))
+                            <div class="vw-option-description">{{ $tensionCurves[$tensionCurve]['description'] ?? '' }}</div>
+                        @endif
+                    </div>
+
+                    {{-- Emotional Journey Selection --}}
+                    <div class="vw-narrative-option-group">
+                        <label class="vw-narrative-option-label">
+                            🎭 {{ __('Emotional Journey') }}
+                            <span class="vw-option-sublabel">{{ __('Viewer feeling arc') }}</span>
+                        </label>
+                        <select wire:model.live="emotionalJourney" class="vw-narrative-select">
+                            <option value="">{{ __('Auto (from preset)') }}</option>
+                            @foreach($emotionalJourneys as $key => $journey)
+                                <option value="{{ $key }}">{{ $journey['icon'] ?? '' }} {{ $journey['name'] ?? $key }}</option>
+                            @endforeach
+                        </select>
+                        @if($emotionalJourney && isset($emotionalJourneys[$emotionalJourney]))
+                            <div class="vw-option-description">{{ $emotionalJourneys[$emotionalJourney]['description'] ?? '' }}</div>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Additional Instructions --}}

@@ -284,4 +284,124 @@ USER;
         }
         return array_unique($normalized);
     }
+
+    /**
+     * Auto-detect Character Intelligence settings from script.
+     * Analyzes script to suggest: narration style, character count, voice assignments.
+     *
+     * @param array $script The script data with scenes
+     * @param array $options Additional options
+     * @return array Character Intelligence suggestions
+     */
+    public function autoDetectCharacterIntelligence(array $script, array $options = []): array
+    {
+        $scenes = $script['scenes'] ?? [];
+        $productionType = $options['productionType'] ?? null;
+
+        // Default result
+        $result = [
+            'enabled' => true,
+            'narrationStyle' => 'voiceover',
+            'characterCount' => 0,
+            'suggestedCount' => 0,
+            'hasDialogue' => false,
+            'hasMultipleSpeakers' => false,
+            'dialogueScenes' => [],
+            'voiceoverScenes' => [],
+            'detectionConfidence' => 'low',
+        ];
+
+        if (empty($scenes)) {
+            return $result;
+        }
+
+        // Analyze each scene for dialogue patterns
+        $dialoguePatterns = [
+            '/\b(said|says|replied|asked|exclaimed|whispered|shouted|muttered)\b/i',
+            '/["\'"][\w\s,!?.]+["\']/i', // Quoted speech
+            '/\b[A-Z][A-Za-z]*:\s+["\']?/i', // Character name: "dialogue"
+            '/--\s*[A-Z][a-z]+/i', // -- Character attribution
+        ];
+
+        $dialogueSceneCount = 0;
+        $voiceoverSceneCount = 0;
+        $detectedSpeakers = [];
+
+        foreach ($scenes as $idx => $scene) {
+            $narration = $scene['narration'] ?? '';
+            $hasDialogue = false;
+
+            // Check for dialogue patterns
+            foreach ($dialoguePatterns as $pattern) {
+                if (preg_match($pattern, $narration)) {
+                    $hasDialogue = true;
+                    break;
+                }
+            }
+
+            // Extract potential speaker names
+            if (preg_match_all('/\b([A-Z][a-z]+):\s/i', $narration, $matches)) {
+                foreach ($matches[1] as $speaker) {
+                    $detectedSpeakers[$speaker] = ($detectedSpeakers[$speaker] ?? 0) + 1;
+                }
+            }
+
+            if ($hasDialogue) {
+                $dialogueSceneCount++;
+                $result['dialogueScenes'][] = $idx;
+            } else {
+                $voiceoverSceneCount++;
+                $result['voiceoverScenes'][] = $idx;
+            }
+        }
+
+        $totalScenes = count($scenes);
+        $dialoguePercentage = $totalScenes > 0 ? ($dialogueSceneCount / $totalScenes) * 100 : 0;
+
+        // Determine narration style based on analysis
+        if ($dialoguePercentage > 70) {
+            $result['narrationStyle'] = 'dialogue';
+            $result['detectionConfidence'] = 'high';
+        } elseif ($dialoguePercentage > 30) {
+            $result['narrationStyle'] = 'narrator'; // Mix of narrator + dialogue
+            $result['detectionConfidence'] = 'medium';
+        } else {
+            $result['narrationStyle'] = 'voiceover';
+            $result['detectionConfidence'] = $dialoguePercentage > 10 ? 'medium' : 'high';
+        }
+
+        // Apply production type defaults if available
+        if ($productionType) {
+            $productionTypes = config('appvideowizard.production_types', []);
+            foreach ($productionTypes as $category) {
+                $subTypes = $category['subTypes'] ?? [];
+                if (isset($subTypes[$productionType])) {
+                    $subType = $subTypes[$productionType];
+                    // Only override if detection confidence is low
+                    if ($result['detectionConfidence'] === 'low' && !empty($subType['defaultNarration'])) {
+                        $result['narrationStyle'] = $subType['defaultNarration'];
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Calculate character count
+        $uniqueSpeakers = count($detectedSpeakers);
+        $result['characterCount'] = $uniqueSpeakers;
+        $result['suggestedCount'] = max(1, $uniqueSpeakers);
+        $result['hasDialogue'] = $dialogueSceneCount > 0;
+        $result['hasMultipleSpeakers'] = $uniqueSpeakers > 1;
+        $result['detectedSpeakers'] = array_keys($detectedSpeakers);
+
+        // Log detection results
+        Log::info('CharacterIntelligence: Auto-detection completed', [
+            'narrationStyle' => $result['narrationStyle'],
+            'dialoguePercentage' => round($dialoguePercentage, 1),
+            'uniqueSpeakers' => $uniqueSpeakers,
+            'confidence' => $result['detectionConfidence'],
+        ]);
+
+        return $result;
+    }
 }

@@ -214,6 +214,13 @@ class VideoWizard extends Component
     public string $contentDepth = 'detailed';
     public string $additionalInstructions = '';
 
+    // Narrative Structure Intelligence (Hollywood-level script generation)
+    public ?string $narrativePreset = null; // Platform-optimized storytelling formula
+    public ?string $storyArc = null; // Structure like three-act, hero's journey
+    public ?string $tensionCurve = null; // Pacing dynamics
+    public ?string $emotionalJourney = null; // The feeling arc for viewers
+    public bool $showNarrativeAdvanced = false; // Toggle for advanced options
+
     // Multi-Shot Mode state
     public array $multiShotMode = [
         'enabled' => false,
@@ -973,6 +980,10 @@ class VideoWizard extends Component
             'contentDepth' => $this->contentDepth,
             'targetDuration' => $this->targetDuration,
             'additionalInstructions' => $this->additionalInstructions,
+            'narrativePreset' => $this->narrativePreset,
+            'storyArc' => $this->storyArc,
+            'tensionCurve' => $this->tensionCurve,
+            'emotionalJourney' => $this->emotionalJourney,
             'teamId' => session('current_team_id', 0),
         ];
 
@@ -992,6 +1003,11 @@ class VideoWizard extends Component
                 'tone' => $this->scriptTone,
                 'contentDepth' => $this->contentDepth,
                 'additionalInstructions' => $this->additionalInstructions,
+                // Narrative Structure Intelligence
+                'narrativePreset' => $this->narrativePreset,
+                'storyArc' => $this->storyArc,
+                'tensionCurve' => $this->tensionCurve,
+                'emotionalJourney' => $this->emotionalJourney,
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -1017,6 +1033,9 @@ class VideoWizard extends Component
 
             // Sanitize generated script data to prevent type errors in views
             $this->sanitizeScriptData();
+
+            // Auto-detect Character Intelligence from generated script
+            $this->autoDetectCharacterIntelligence();
 
             // Recalculate voice status based on new script
             $this->recalculateVoiceStatus();
@@ -1082,6 +1101,53 @@ class VideoWizard extends Component
         } finally {
             $this->isLoading = false;
         }
+    }
+
+    /**
+     * Apply narrative preset defaults.
+     * When a preset is selected, auto-set story arc, tension curve, and emotional journey.
+     */
+    public function applyNarrativePreset(string $preset): void
+    {
+        $this->narrativePreset = $preset;
+
+        $presets = config('appvideowizard.narrative_presets', []);
+
+        if (!isset($presets[$preset])) {
+            return;
+        }
+
+        $presetConfig = $presets[$preset];
+
+        // Auto-set story arc if preset defines one
+        if (!empty($presetConfig['defaultArc'])) {
+            $this->storyArc = $presetConfig['defaultArc'];
+        }
+
+        // Auto-set tension curve if preset defines one
+        if (!empty($presetConfig['defaultTension'])) {
+            $this->tensionCurve = $presetConfig['defaultTension'];
+        }
+
+        // Auto-set emotional journey if preset defines one
+        if (!empty($presetConfig['defaultEmotion'])) {
+            $this->emotionalJourney = $presetConfig['defaultEmotion'];
+        }
+
+        // Show advanced options when preset is selected
+        $this->showNarrativeAdvanced = true;
+    }
+
+    /**
+     * Clear narrative structure selections.
+     */
+    public function clearNarrativeSettings(): void
+    {
+        $this->narrativePreset = null;
+        $this->storyArc = null;
+        $this->tensionCurve = null;
+        $this->emotionalJourney = null;
+        $this->showNarrativeAdvanced = false;
     }
 
     /**
@@ -1607,6 +1673,52 @@ class VideoWizard extends Component
             'scenesWithVoiceover' => $scenesWithVoiceover,
             'pendingVoices' => $pendingVoices,
         ];
+    }
+
+    /**
+     * Auto-detect Character Intelligence from generated script.
+     * Analyzes the script to automatically set narration style, character count, etc.
+     */
+    protected function autoDetectCharacterIntelligence(): void
+    {
+        try {
+            $characterService = app(CharacterExtractionService::class);
+
+            $detection = $characterService->autoDetectCharacterIntelligence(
+                $this->script,
+                ['productionType' => $this->productionSubtype ?? $this->productionType]
+            );
+
+            // Update Character Intelligence with detected values
+            $this->characterIntelligence['narrationStyle'] = $detection['narrationStyle'];
+            $this->characterIntelligence['characterCount'] = $detection['characterCount'];
+            $this->characterIntelligence['suggestedCount'] = $detection['suggestedCount'];
+
+            // Store detection metadata for UI display
+            $this->characterIntelligence['autoDetected'] = true;
+            $this->characterIntelligence['detectionConfidence'] = $detection['detectionConfidence'];
+            $this->characterIntelligence['hasDialogue'] = $detection['hasDialogue'];
+            $this->characterIntelligence['detectedSpeakers'] = $detection['detectedSpeakers'] ?? [];
+
+            Log::info('VideoWizard: Character Intelligence auto-detected', [
+                'project_id' => $this->projectId,
+                'narrationStyle' => $detection['narrationStyle'],
+                'characterCount' => $detection['characterCount'],
+                'confidence' => $detection['detectionConfidence'],
+            ]);
+
+            // Dispatch event for UI notification
+            $this->dispatch('vw-debug', [
+                'action' => 'character-intelligence-detected',
+                'message' => "Auto-detected: {$detection['narrationStyle']} style ({$detection['detectionConfidence']} confidence)",
+                'data' => $detection,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Character Intelligence auto-detection failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
