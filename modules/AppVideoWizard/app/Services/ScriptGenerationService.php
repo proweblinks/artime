@@ -1276,19 +1276,31 @@ JSON;
             'scriptType' => gettype($script),
         ]);
 
-        // If initial parse failed, try more aggressive repair
+        // If initial parse failed, try multiple repair strategies
         if ($jsonError !== JSON_ERROR_NONE) {
-            \Log::warning('VideoWizard: Initial JSON parse failed, trying repair', [
+            \Log::warning('VideoWizard: Initial JSON parse failed, trying repair strategies', [
                 'error' => $jsonErrorMsg,
             ]);
 
-            // Try rebuilding JSON from extracted fields
-            $script = $this->rebuildScriptFromResponse($originalResponse);
+            // Strategy 1: Try aggressive JSON repair
+            $script = $this->tryAggressiveJsonRepair($json);
+
+            // Strategy 2: Try rebuilding from extracted fields
+            if ($script === null) {
+                \Log::info('VideoWizard: Aggressive repair failed, trying field extraction');
+                $script = $this->rebuildScriptFromResponse($originalResponse);
+            }
+
+            // Strategy 3: Try extracting from raw response with different approach
+            if ($script === null) {
+                \Log::info('VideoWizard: Field extraction failed, trying raw response parsing');
+                $script = $this->tryRawResponseParsing($originalResponse);
+            }
 
             if ($script !== null) {
                 \Log::info('VideoWizard: JSON rebuilt successfully from response');
             } else {
-                \Log::error('VideoWizard: JSON parse error - could not repair', [
+                \Log::error('VideoWizard: JSON parse error - all repair strategies failed', [
                     'error' => $jsonErrorMsg,
                     'json' => substr($json, 0, 500),
                     'original' => substr($originalResponse, 0, 500),
@@ -1388,8 +1400,23 @@ JSON;
         // — = \xe2\x80\x94, – = \xe2\x80\x93
         $json = str_replace(["\xe2\x80\x94", "\xe2\x80\x93"], '-', $json);
 
+        // Replace ellipsis with three dots
+        $json = str_replace("\xe2\x80\xa6", '...', $json);
+
         // Remove trailing commas before } or ]
         $json = preg_replace('/,(\s*[}\]])/', '$1', $json);
+
+        // Fix missing commas between array elements (common AI mistake)
+        // Pattern: }\s*{ should be },{ when inside array
+        $json = preg_replace('/\}\s+\{/', '},{', $json);
+
+        // Fix double commas
+        $json = preg_replace('/,\s*,/', ',', $json);
+
+        // Remove any markdown formatting that might have leaked through
+        $json = preg_replace('/\*\*([^*]+)\*\*/', '$1', $json); // Bold
+        $json = preg_replace('/\*([^*]+)\*/', '$1', $json);     // Italic
+        $json = preg_replace('/_([^_]+)_/', '$1', $json);       // Underscore italic
 
         // Fix common issues with unescaped characters inside strings
         // This is a multi-pass approach
@@ -1684,6 +1711,296 @@ JSON;
         }
 
         return $scenes;
+    }
+
+    /**
+     * Try aggressive JSON repair strategies.
+     * Returns parsed script array or null if all attempts fail.
+     */
+    protected function tryAggressiveJsonRepair(string $json): ?array
+    {
+        // Strategy 1: Remove all control characters and retry
+        $repaired = preg_replace('/[\x00-\x1F\x7F]/', ' ', $json);
+        $repaired = preg_replace('/\s+/', ' ', $repaired);
+        $result = json_decode($repaired, true);
+        if ($result !== null && isset($result['scenes']) && is_array($result['scenes']) && !empty($result['scenes'])) {
+            \Log::info('VideoWizard: Aggressive repair succeeded with strategy 1 (control chars)');
+            return $result;
+        }
+
+        // Strategy 2: Fix incomplete/truncated JSON
+        $result = $this->fixTruncatedJson($json);
+        if ($result !== null && isset($result['scenes']) && is_array($result['scenes']) && !empty($result['scenes'])) {
+            \Log::info('VideoWizard: Aggressive repair succeeded with strategy 2 (truncated)');
+            return $result;
+        }
+
+        // Strategy 3: Try to parse individual scene objects
+        $result = $this->parseSceneByScene($json);
+        if ($result !== null && isset($result['scenes']) && is_array($result['scenes']) && !empty($result['scenes'])) {
+            \Log::info('VideoWizard: Aggressive repair succeeded with strategy 3 (scene-by-scene)');
+            return $result;
+        }
+
+        // Strategy 4: Strip problematic unicode and retry
+        $repaired = preg_replace('/[^\x20-\x7E\x0A\x0D]/', '', $json);
+        $result = json_decode($repaired, true);
+        if ($result !== null && isset($result['scenes']) && is_array($result['scenes']) && !empty($result['scenes'])) {
+            \Log::info('VideoWizard: Aggressive repair succeeded with strategy 4 (unicode strip)');
+            return $result;
+        }
+
+        // Strategy 5: Fix unbalanced braces
+        $result = $this->fixUnbalancedBraces($json);
+        if ($result !== null && isset($result['scenes']) && is_array($result['scenes']) && !empty($result['scenes'])) {
+            \Log::info('VideoWizard: Aggressive repair succeeded with strategy 5 (unbalanced braces)');
+            return $result;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fix truncated JSON by closing open brackets/braces.
+     */
+    protected function fixTruncatedJson(string $json): ?array
+    {
+        // Count open braces and brackets
+        $braceCount = 0;
+        $bracketCount = 0;
+        $inString = false;
+        $escape = false;
+
+        for ($i = 0; $i < strlen($json); $i++) {
+            $char = $json[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\' && $inString) {
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"' && !$escape) {
+                $inString = !$inString;
+                continue;
+            }
+
+            if (!$inString) {
+                if ($char === '{') $braceCount++;
+                elseif ($char === '}') $braceCount--;
+                elseif ($char === '[') $bracketCount++;
+                elseif ($char === ']') $bracketCount--;
+            }
+        }
+
+        // If we're inside a string, close it
+        if ($inString) {
+            $json .= '"';
+        }
+
+        // Close any open brackets and braces
+        while ($bracketCount > 0) {
+            $json .= ']';
+            $bracketCount--;
+        }
+        while ($braceCount > 0) {
+            $json .= '}';
+            $braceCount--;
+        }
+
+        // Try to parse
+        $result = json_decode($json, true);
+        if ($result !== null) {
+            return $result;
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse JSON by extracting and parsing each scene object individually.
+     */
+    protected function parseSceneByScene(string $json): ?array
+    {
+        // Extract title, hook, cta first
+        $title = 'Generated Script';
+        $hook = '';
+        $cta = '';
+
+        if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $json, $m)) {
+            $title = $this->unescapeJsonString($m[1]);
+        }
+        if (preg_match('/"hook"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $json, $m)) {
+            $hook = $this->unescapeJsonString($m[1]);
+        }
+        if (preg_match('/"cta"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $json, $m)) {
+            $cta = $this->unescapeJsonString($m[1]);
+        }
+
+        // Find scenes array start
+        if (!preg_match('/"scenes"\s*:\s*\[/s', $json, $match, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+
+        $scenesStart = $match[0][1] + strlen($match[0][0]);
+        $scenes = [];
+        $sceneIndex = 0;
+
+        // Try to find each scene by looking for scene-like patterns
+        $pattern = '/\{\s*"(?:id|title|narration)"[^}]*?"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s';
+        if (preg_match_all($pattern, $json, $matches, PREG_OFFSET_CAPTURE, $scenesStart)) {
+            foreach ($matches[0] as $index => $sceneMatch) {
+                $sceneText = $sceneMatch[0];
+                // Try to extend to include visualDescription if present
+                $pos = $sceneMatch[1];
+                $endPos = $pos + strlen($sceneText);
+
+                // Look for closing brace of this scene
+                $rest = substr($json, $endPos, 500);
+                if (preg_match('/^[^}]*"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $rest, $vm)) {
+                    $sceneText .= $vm[0];
+                }
+
+                // Extract narration
+                $narration = '';
+                if (preg_match('/"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneText, $nm)) {
+                    $narration = $this->unescapeJsonString($nm[1]);
+                }
+
+                // Extract visualDescription
+                $visual = $narration;
+                if (preg_match('/"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneText, $vm)) {
+                    $visual = $this->unescapeJsonString($vm[1]);
+                }
+
+                // Extract duration
+                $duration = 15;
+                if (preg_match('/"duration"\s*:\s*(\d+)/s', $sceneText, $dm)) {
+                    $duration = (int)$dm[1];
+                }
+
+                if (!empty($narration)) {
+                    $scenes[] = [
+                        'id' => 'scene-' . ($sceneIndex + 1),
+                        'title' => 'Scene ' . ($sceneIndex + 1),
+                        'narration' => $narration,
+                        'visualDescription' => $visual,
+                        'duration' => max(5, min(60, $duration)),
+                    ];
+                    $sceneIndex++;
+                }
+            }
+        }
+
+        if (empty($scenes)) {
+            return null;
+        }
+
+        return [
+            'title' => $title,
+            'hook' => $hook,
+            'scenes' => $scenes,
+            'cta' => $cta,
+        ];
+    }
+
+    /**
+     * Fix unbalanced braces by finding the largest valid JSON object.
+     */
+    protected function fixUnbalancedBraces(string $json): ?array
+    {
+        // Start from the beginning and find the largest parseable object
+        $firstBrace = strpos($json, '{');
+        if ($firstBrace === false) {
+            return null;
+        }
+
+        // Try progressively shorter substrings until we find valid JSON
+        for ($end = strlen($json); $end > $firstBrace + 10; $end--) {
+            $candidate = substr($json, $firstBrace, $end - $firstBrace);
+
+            // Quick check: does it end with }?
+            if (substr(rtrim($candidate), -1) !== '}') {
+                // Try to close it
+                $candidate = rtrim($candidate, ', \t\n\r');
+                $candidate .= ']}';
+            }
+
+            $result = @json_decode($candidate, true);
+            if ($result !== null && isset($result['scenes'])) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Try parsing raw response with alternative approach.
+     * This is a last resort when all JSON repair attempts fail.
+     */
+    protected function tryRawResponseParsing(string $response): ?array
+    {
+        $scenes = [];
+
+        // Try to extract any text that looks like scene content
+        // Pattern 1: Look for numbered scenes
+        if (preg_match_all('/(?:scene\s*(?:\d+|#\d+)|^\d+\.|^\*\*scene)/im', $response, $markers, PREG_OFFSET_CAPTURE)) {
+            $positions = array_column($markers[0], 1);
+            $positions[] = strlen($response);
+
+            for ($i = 0; $i < count($positions) - 1; $i++) {
+                $sceneText = substr($response, $positions[$i], $positions[$i + 1] - $positions[$i]);
+
+                // Try to extract narration/dialogue text
+                $narration = '';
+                if (preg_match('/"narration"\s*:\s*"([^"]+)"/s', $sceneText, $m)) {
+                    $narration = $m[1];
+                } elseif (preg_match('/(?:narration|dialogue|text|script):\s*["\']?([^"\'\n]+)["\']?/i', $sceneText, $m)) {
+                    $narration = $m[1];
+                } elseif (preg_match('/:\s*["\']([^"\']{20,})["\']/', $sceneText, $m)) {
+                    $narration = $m[1];
+                }
+
+                if (!empty($narration)) {
+                    $scenes[] = [
+                        'id' => 'scene-' . ($i + 1),
+                        'title' => 'Scene ' . ($i + 1),
+                        'narration' => trim($narration),
+                        'visualDescription' => trim($narration),
+                        'duration' => 15,
+                    ];
+                }
+            }
+        }
+
+        // If no scenes found, try regex extraction as final fallback
+        if (empty($scenes)) {
+            $scenes = $this->extractScenesWithRegex($response);
+        }
+
+        if (empty($scenes)) {
+            return null;
+        }
+
+        // Extract title if possible
+        $title = 'Generated Script';
+        if (preg_match('/"title"\s*:\s*"([^"]+)"/s', $response, $m)) {
+            $title = $m[1];
+        } elseif (preg_match('/^#\s+(.+)$/m', $response, $m)) {
+            $title = $m[1];
+        }
+
+        return [
+            'title' => $title,
+            'hook' => '',
+            'scenes' => $scenes,
+            'cta' => '',
+        ];
     }
 
     /**
