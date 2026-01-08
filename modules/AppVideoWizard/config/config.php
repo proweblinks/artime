@@ -984,6 +984,528 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cinematic Shot Language
+    |--------------------------------------------------------------------------
+    | Professional cinematography vocabulary for AI image generation
+    */
+
+    // Shot Types - Camera framing
+    'shot_types' => [
+        'extreme-wide' => [
+            'id' => 'extreme-wide',
+            'name' => 'Extreme Wide Shot',
+            'abbrev' => 'EWS',
+            'description' => 'Establishes location, subject appears small in vast environment',
+            'bestFor' => ['establishing', 'landscape', 'epic'],
+            'promptHint' => 'extreme wide shot, vast landscape, tiny subject in frame',
+        ],
+        'wide' => [
+            'id' => 'wide',
+            'name' => 'Wide Shot',
+            'abbrev' => 'WS',
+            'description' => 'Full body visible with environment context',
+            'bestFor' => ['action', 'group', 'movement'],
+            'promptHint' => 'wide shot, full body visible, environmental context',
+        ],
+        'medium-wide' => [
+            'id' => 'medium-wide',
+            'name' => 'Medium Wide Shot',
+            'abbrev' => 'MWS',
+            'description' => 'Knees up, balances subject and environment',
+            'bestFor' => ['conversation', 'walking', 'product'],
+            'promptHint' => 'medium wide shot, knees up framing',
+        ],
+        'medium' => [
+            'id' => 'medium',
+            'name' => 'Medium Shot',
+            'abbrev' => 'MS',
+            'description' => 'Waist up, standard conversational framing',
+            'bestFor' => ['dialogue', 'interview', 'presentation'],
+            'promptHint' => 'medium shot, waist up, conversational framing',
+        ],
+        'medium-close' => [
+            'id' => 'medium-close',
+            'name' => 'Medium Close-Up',
+            'abbrev' => 'MCU',
+            'description' => 'Chest up, intimate but not intrusive',
+            'bestFor' => ['emotion', 'reaction', 'testimonial'],
+            'promptHint' => 'medium close-up, chest up, intimate framing',
+        ],
+        'close-up' => [
+            'id' => 'close-up',
+            'name' => 'Close-Up',
+            'abbrev' => 'CU',
+            'description' => 'Face fills frame, captures emotion',
+            'bestFor' => ['emotion', 'detail', 'impact'],
+            'promptHint' => 'close-up shot, face filling frame, emotional detail',
+        ],
+        'extreme-close' => [
+            'id' => 'extreme-close',
+            'name' => 'Extreme Close-Up',
+            'abbrev' => 'ECU',
+            'description' => 'Single feature (eyes, hands), intense detail',
+            'bestFor' => ['tension', 'detail', 'reveal'],
+            'promptHint' => 'extreme close-up, single feature detail, macro view',
+        ],
+        'over-shoulder' => [
+            'id' => 'over-shoulder',
+            'name' => 'Over-the-Shoulder',
+            'abbrev' => 'OTS',
+            'description' => 'Subject framed over another person\'s shoulder',
+            'bestFor' => ['conversation', 'perspective', 'connection'],
+            'promptHint' => 'over-the-shoulder shot, conversational perspective',
+        ],
+        'pov' => [
+            'id' => 'pov',
+            'name' => 'Point of View',
+            'abbrev' => 'POV',
+            'description' => 'Camera becomes the character\'s eyes',
+            'bestFor' => ['immersion', 'horror', 'action'],
+            'promptHint' => 'point of view shot, first-person perspective',
+        ],
+        'aerial' => [
+            'id' => 'aerial',
+            'name' => 'Aerial/Drone Shot',
+            'abbrev' => 'AERIAL',
+            'description' => 'High angle bird\'s eye view',
+            'bestFor' => ['establishing', 'scale', 'travel'],
+            'promptHint' => 'aerial drone shot, bird\'s eye view, from above',
+        ],
+    ],
+
+    // Camera Movements
+    'camera_movements' => [
+        'static' => [
+            'id' => 'static',
+            'name' => 'Static',
+            'description' => 'Camera remains fixed',
+            'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.0],
+            'promptHint' => 'static camera, locked off',
+        ],
+        'push-in' => [
+            'id' => 'push-in',
+            'name' => 'Push In / Dolly In',
+            'description' => 'Camera moves toward subject, builds intensity',
+            'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.2, 'endY' => 0.45],
+            'promptHint' => 'dolly in, camera pushing forward',
+        ],
+        'pull-out' => [
+            'id' => 'pull-out',
+            'name' => 'Pull Out / Dolly Out',
+            'description' => 'Camera moves away, reveals context',
+            'kenBurns' => ['startScale' => 1.2, 'endScale' => 1.0],
+            'promptHint' => 'dolly out, camera pulling back, revealing',
+        ],
+        'pan-left' => [
+            'id' => 'pan-left',
+            'name' => 'Pan Left',
+            'description' => 'Camera rotates left to follow action',
+            'kenBurns' => ['startX' => 0.6, 'endX' => 0.4],
+            'promptHint' => 'panning left, horizontal movement',
+        ],
+        'pan-right' => [
+            'id' => 'pan-right',
+            'name' => 'Pan Right',
+            'description' => 'Camera rotates right to follow action',
+            'kenBurns' => ['startX' => 0.4, 'endX' => 0.6],
+            'promptHint' => 'panning right, horizontal movement',
+        ],
+        'tilt-up' => [
+            'id' => 'tilt-up',
+            'name' => 'Tilt Up',
+            'description' => 'Camera tilts upward, reveals height',
+            'kenBurns' => ['startY' => 0.6, 'endY' => 0.4],
+            'promptHint' => 'tilting up, vertical reveal',
+        ],
+        'tilt-down' => [
+            'id' => 'tilt-down',
+            'name' => 'Tilt Down',
+            'description' => 'Camera tilts downward',
+            'kenBurns' => ['startY' => 0.4, 'endY' => 0.6],
+            'promptHint' => 'tilting down, descending view',
+        ],
+        'tracking' => [
+            'id' => 'tracking',
+            'name' => 'Tracking Shot',
+            'description' => 'Camera follows alongside subject',
+            'kenBurns' => ['startX' => 0.3, 'endX' => 0.7, 'startScale' => 1.05, 'endScale' => 1.05],
+            'promptHint' => 'tracking shot, following movement',
+        ],
+        'zoom-in' => [
+            'id' => 'zoom-in',
+            'name' => 'Zoom In',
+            'description' => 'Lens zooms toward subject',
+            'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.3],
+            'promptHint' => 'zoom in, focal length change',
+        ],
+        'zoom-out' => [
+            'id' => 'zoom-out',
+            'name' => 'Zoom Out',
+            'description' => 'Lens zooms away from subject',
+            'kenBurns' => ['startScale' => 1.3, 'endScale' => 1.0],
+            'promptHint' => 'zoom out, revealing wider view',
+        ],
+    ],
+
+    // Lighting Styles
+    'lighting_styles' => [
+        'natural' => [
+            'id' => 'natural',
+            'name' => 'Natural Light',
+            'description' => 'Soft, realistic daylight',
+            'mood' => 'authentic',
+            'promptHint' => 'natural lighting, soft daylight, realistic',
+        ],
+        'golden-hour' => [
+            'id' => 'golden-hour',
+            'name' => 'Golden Hour',
+            'description' => 'Warm, magical sunrise/sunset light',
+            'mood' => 'romantic',
+            'promptHint' => 'golden hour lighting, warm sunset glow, magical light',
+        ],
+        'blue-hour' => [
+            'id' => 'blue-hour',
+            'name' => 'Blue Hour',
+            'description' => 'Cool twilight tones',
+            'mood' => 'melancholic',
+            'promptHint' => 'blue hour lighting, twilight, cool tones',
+        ],
+        'high-key' => [
+            'id' => 'high-key',
+            'name' => 'High Key',
+            'description' => 'Bright, minimal shadows, optimistic',
+            'mood' => 'uplifting',
+            'promptHint' => 'high key lighting, bright, minimal shadows',
+        ],
+        'low-key' => [
+            'id' => 'low-key',
+            'name' => 'Low Key',
+            'description' => 'Dark, dramatic shadows, mysterious',
+            'mood' => 'dramatic',
+            'promptHint' => 'low key lighting, dramatic shadows, chiaroscuro',
+        ],
+        'rembrandt' => [
+            'id' => 'rembrandt',
+            'name' => 'Rembrandt',
+            'description' => 'Classic portrait lighting with triangle under eye',
+            'mood' => 'artistic',
+            'promptHint' => 'Rembrandt lighting, classic portrait, triangle shadow under eye',
+        ],
+        'silhouette' => [
+            'id' => 'silhouette',
+            'name' => 'Silhouette',
+            'description' => 'Backlit subject appears as dark outline',
+            'mood' => 'mysterious',
+            'promptHint' => 'silhouette, backlit, dark outline against bright background',
+        ],
+        'neon' => [
+            'id' => 'neon',
+            'name' => 'Neon/Cyberpunk',
+            'description' => 'Colorful artificial lighting',
+            'mood' => 'futuristic',
+            'promptHint' => 'neon lighting, cyberpunk colors, vibrant artificial light',
+        ],
+        'studio' => [
+            'id' => 'studio',
+            'name' => 'Studio Lighting',
+            'description' => 'Professional controlled lighting',
+            'mood' => 'polished',
+            'promptHint' => 'professional studio lighting, controlled, polished',
+        ],
+        'candlelight' => [
+            'id' => 'candlelight',
+            'name' => 'Candlelight/Firelight',
+            'description' => 'Warm flickering light source',
+            'mood' => 'intimate',
+            'promptHint' => 'candlelight, warm flickering glow, intimate atmosphere',
+        ],
+    ],
+
+    // Color Grading Styles
+    'color_grades' => [
+        'neutral' => [
+            'id' => 'neutral',
+            'name' => 'Neutral/Natural',
+            'description' => 'True-to-life colors',
+            'promptHint' => 'natural colors, balanced, true to life',
+        ],
+        'warm' => [
+            'id' => 'warm',
+            'name' => 'Warm Tones',
+            'description' => 'Orange/yellow color cast, cozy feel',
+            'promptHint' => 'warm color grading, orange and yellow tones, cozy',
+        ],
+        'cool' => [
+            'id' => 'cool',
+            'name' => 'Cool Tones',
+            'description' => 'Blue/teal color cast, professional feel',
+            'promptHint' => 'cool color grading, blue and teal tones, professional',
+        ],
+        'teal-orange' => [
+            'id' => 'teal-orange',
+            'name' => 'Teal & Orange',
+            'description' => 'Hollywood blockbuster look',
+            'promptHint' => 'teal and orange color grading, cinematic Hollywood look',
+        ],
+        'desaturated' => [
+            'id' => 'desaturated',
+            'name' => 'Desaturated',
+            'description' => 'Muted colors, serious tone',
+            'promptHint' => 'desaturated colors, muted, serious tone',
+        ],
+        'vintage' => [
+            'id' => 'vintage',
+            'name' => 'Vintage/Retro',
+            'description' => 'Faded colors, nostalgic feel',
+            'promptHint' => 'vintage color grading, faded, nostalgic, retro film look',
+        ],
+        'high-contrast' => [
+            'id' => 'high-contrast',
+            'name' => 'High Contrast',
+            'description' => 'Bold blacks and whites',
+            'promptHint' => 'high contrast, bold blacks, bright whites, dramatic',
+        ],
+        'pastel' => [
+            'id' => 'pastel',
+            'name' => 'Pastel',
+            'description' => 'Soft, dreamy colors',
+            'promptHint' => 'pastel colors, soft, dreamy, ethereal',
+        ],
+        'monochrome' => [
+            'id' => 'monochrome',
+            'name' => 'Black & White',
+            'description' => 'Classic monochrome',
+            'promptHint' => 'black and white, monochrome, classic film',
+        ],
+        'vibrant' => [
+            'id' => 'vibrant',
+            'name' => 'Vibrant/Saturated',
+            'description' => 'Bold, punchy colors',
+            'promptHint' => 'vibrant colors, highly saturated, bold and punchy',
+        ],
+    ],
+
+    // Composition Rules
+    'compositions' => [
+        'rule-of-thirds' => [
+            'id' => 'rule-of-thirds',
+            'name' => 'Rule of Thirds',
+            'description' => 'Subject on intersection points',
+            'promptHint' => 'rule of thirds composition, subject off-center',
+        ],
+        'centered' => [
+            'id' => 'centered',
+            'name' => 'Centered/Symmetrical',
+            'description' => 'Subject in center, balanced',
+            'promptHint' => 'centered composition, symmetrical, balanced framing',
+        ],
+        'leading-lines' => [
+            'id' => 'leading-lines',
+            'name' => 'Leading Lines',
+            'description' => 'Lines draw eye to subject',
+            'promptHint' => 'leading lines composition, lines guiding to subject',
+        ],
+        'frame-within-frame' => [
+            'id' => 'frame-within-frame',
+            'name' => 'Frame Within Frame',
+            'description' => 'Subject framed by environmental elements',
+            'promptHint' => 'frame within frame, natural framing elements',
+        ],
+        'negative-space' => [
+            'id' => 'negative-space',
+            'name' => 'Negative Space',
+            'description' => 'Empty space emphasizes subject',
+            'promptHint' => 'negative space composition, minimalist, isolated subject',
+        ],
+        'diagonal' => [
+            'id' => 'diagonal',
+            'name' => 'Diagonal',
+            'description' => 'Dynamic diagonal lines create energy',
+            'promptHint' => 'diagonal composition, dynamic angles, energetic',
+        ],
+        'golden-ratio' => [
+            'id' => 'golden-ratio',
+            'name' => 'Golden Ratio',
+            'description' => 'Mathematical spiral composition',
+            'promptHint' => 'golden ratio composition, fibonacci spiral',
+        ],
+        'depth-layering' => [
+            'id' => 'depth-layering',
+            'name' => 'Depth Layering',
+            'description' => 'Foreground, midground, background layers',
+            'promptHint' => 'depth layering, foreground midground background, dimensional',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scene Beat System
+    |--------------------------------------------------------------------------
+    | Micro-structure within scenes for better pacing
+    */
+
+    'scene_beats' => [
+        'setup' => [
+            'id' => 'setup',
+            'name' => 'Setup Beat',
+            'description' => 'Establish context, introduce elements',
+            'percentage' => 25,
+            'purpose' => 'Orient the viewer, set expectations',
+        ],
+        'development' => [
+            'id' => 'development',
+            'name' => 'Development Beat',
+            'description' => 'Build tension, develop content',
+            'percentage' => 50,
+            'purpose' => 'Deliver main content, build engagement',
+        ],
+        'payoff' => [
+            'id' => 'payoff',
+            'name' => 'Payoff Beat',
+            'description' => 'Deliver value, create impact',
+            'percentage' => 25,
+            'purpose' => 'Reward attention, memorable moment',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retention Hooks
+    |--------------------------------------------------------------------------
+    | Engagement elements to maintain viewer attention
+    */
+
+    'retention_hooks' => [
+        'question' => [
+            'id' => 'question',
+            'name' => 'Rhetorical Question',
+            'templates' => [
+                'But here\'s what most people don\'t realize...',
+                'Have you ever wondered why...?',
+                'What if I told you that...?',
+                'Want to know the secret?',
+                'Can you guess what happened next?',
+            ],
+            'insertAfter' => 30, // seconds
+        ],
+        'tease' => [
+            'id' => 'tease',
+            'name' => 'Content Tease',
+            'templates' => [
+                'But wait, it gets even better...',
+                'Stay with me because...',
+                'The best part is coming up...',
+                'You won\'t believe what\'s next...',
+                'Here\'s where it gets interesting...',
+            ],
+            'insertAfter' => 45,
+        ],
+        'pattern-break' => [
+            'id' => 'pattern-break',
+            'name' => 'Pattern Break',
+            'templates' => [
+                'Now, here\'s the twist...',
+                'Let me stop right there...',
+                'But plot twist...',
+                'Here\'s the thing though...',
+                'Okay, real talk...',
+            ],
+            'insertAfter' => 60,
+        ],
+        'social-proof' => [
+            'id' => 'social-proof',
+            'name' => 'Social Proof',
+            'templates' => [
+                'Thousands of people have already...',
+                'The experts agree that...',
+                'Studies have shown...',
+                'Top performers know that...',
+                'The data is clear...',
+            ],
+            'insertAfter' => 90,
+        ],
+        'urgency' => [
+            'id' => 'urgency',
+            'name' => 'Urgency Hook',
+            'templates' => [
+                'This is something you need to know right now...',
+                'Don\'t miss this crucial point...',
+                'Pay close attention to this...',
+                'This changes everything...',
+                'Here\'s the game-changer...',
+            ],
+            'insertAfter' => 120,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Professional Transitions
+    |--------------------------------------------------------------------------
+    | Context-aware scene transitions
+    */
+
+    'transitions' => [
+        'cut' => [
+            'id' => 'cut',
+            'name' => 'Cut',
+            'description' => 'Instant transition, standard',
+            'bestFor' => ['action', 'dialogue', 'fast-paced'],
+            'duration' => 0,
+        ],
+        'fade' => [
+            'id' => 'fade',
+            'name' => 'Fade',
+            'description' => 'Gradual fade through black',
+            'bestFor' => ['emotional', 'ending', 'time-passage'],
+            'duration' => 500,
+        ],
+        'dissolve' => [
+            'id' => 'dissolve',
+            'name' => 'Dissolve',
+            'description' => 'One image blends into next',
+            'bestFor' => ['dreamy', 'memory', 'gentle'],
+            'duration' => 800,
+        ],
+        'wipe' => [
+            'id' => 'wipe',
+            'name' => 'Wipe',
+            'description' => 'One scene pushes out another',
+            'bestFor' => ['energetic', 'reveal', 'change'],
+            'duration' => 400,
+        ],
+        'zoom' => [
+            'id' => 'zoom',
+            'name' => 'Zoom Transition',
+            'description' => 'Zoom into/out of next scene',
+            'bestFor' => ['social-media', 'dynamic', 'travel'],
+            'duration' => 300,
+        ],
+        'slide' => [
+            'id' => 'slide',
+            'name' => 'Slide',
+            'description' => 'Scenes slide horizontally',
+            'bestFor' => ['comparison', 'before-after', 'list'],
+            'duration' => 400,
+        ],
+        'morph' => [
+            'id' => 'morph',
+            'name' => 'Morph',
+            'description' => 'Shape morphs between scenes',
+            'bestFor' => ['transformation', 'progress', 'journey'],
+            'duration' => 600,
+        ],
+        'flash' => [
+            'id' => 'flash',
+            'name' => 'Flash/Glitch',
+            'description' => 'Quick flash or glitch effect',
+            'bestFor' => ['impact', 'surprise', 'modern'],
+            'duration' => 200,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Credit Costs
     |--------------------------------------------------------------------------
     | Credit costs for various operations

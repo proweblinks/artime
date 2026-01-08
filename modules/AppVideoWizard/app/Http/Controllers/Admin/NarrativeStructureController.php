@@ -13,11 +13,21 @@ class NarrativeStructureController extends Controller
      */
     public function index()
     {
-        // Load all narrative structure configs
+        // Load all narrative structure configs (Tier 1)
         $storyArcs = config('appvideowizard.story_arcs', []);
         $narrativePresets = config('appvideowizard.narrative_presets', []);
         $tensionCurves = config('appvideowizard.tension_curves', []);
         $emotionalJourneys = config('appvideowizard.emotional_journeys', []);
+
+        // Load cinematography configs (Tier 2)
+        $shotTypes = config('appvideowizard.shot_types', []);
+        $cameraMovements = config('appvideowizard.camera_movements', []);
+        $lightingStyles = config('appvideowizard.lighting_styles', []);
+        $colorGrades = config('appvideowizard.color_grades', []);
+        $compositions = config('appvideowizard.compositions', []);
+        $retentionHooks = config('appvideowizard.retention_hooks', []);
+        $sceneBeats = config('appvideowizard.scene_beats', []);
+        $transitions = config('appvideowizard.transitions', []);
 
         // Get enabled/disabled status from settings
         $settings = $this->getSettings();
@@ -30,6 +40,12 @@ class NarrativeStructureController extends Controller
             'total_journeys' => count($emotionalJourneys),
             'enabled_arcs' => count(array_filter($storyArcs, fn($k) => !in_array($k, $settings['disabled_arcs'] ?? []), ARRAY_FILTER_USE_KEY)),
             'enabled_presets' => count(array_filter($narrativePresets, fn($k) => !in_array($k, $settings['disabled_presets'] ?? []), ARRAY_FILTER_USE_KEY)),
+            // Tier 2 stats
+            'total_shot_types' => count($shotTypes),
+            'total_lighting_styles' => count($lightingStyles),
+            'total_color_grades' => count($colorGrades),
+            'total_compositions' => count($compositions),
+            'total_retention_hooks' => count($retentionHooks),
         ];
 
         return view('appvideowizard::admin.narrative-structures.index', compact(
@@ -38,7 +54,16 @@ class NarrativeStructureController extends Controller
             'tensionCurves',
             'emotionalJourneys',
             'settings',
-            'stats'
+            'stats',
+            // Tier 2 data
+            'shotTypes',
+            'cameraMovements',
+            'lightingStyles',
+            'colorGrades',
+            'compositions',
+            'retentionHooks',
+            'sceneBeats',
+            'transitions'
         ));
     }
 
@@ -130,7 +155,7 @@ class NarrativeStructureController extends Controller
     public function toggle(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:arc,preset,curve,journey',
+            'type' => 'required|in:arc,preset,curve,journey,shot_type,lighting,color_grade,composition,retention_hook,transition',
             'key' => 'required|string|max:100',
         ]);
 
@@ -169,6 +194,7 @@ class NarrativeStructureController extends Controller
         return Cache::remember('vw_narrative_settings', 3600, function () {
             $stored = get_option('vw_narrative_settings', '{}');
             return json_decode($stored, true) ?: [
+                // Tier 1 - Narrative Structure
                 'default_preset' => null,
                 'default_arc' => null,
                 'default_curve' => null,
@@ -178,6 +204,16 @@ class NarrativeStructureController extends Controller
                 'disabled_curves' => [],
                 'disabled_journeys' => [],
                 'show_advanced_by_default' => false,
+                // Tier 2 - Cinematography
+                'disabled_shot_types' => [],
+                'disabled_lightings' => [],
+                'disabled_color_grades' => [],
+                'disabled_compositions' => [],
+                'disabled_retention_hooks' => [],
+                'disabled_transitions' => [],
+                'default_lighting' => null,
+                'default_color_grade' => null,
+                'default_composition' => null,
             ];
         });
     }
