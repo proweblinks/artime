@@ -257,6 +257,92 @@ class VideoWizard extends Component
     public int $editingLocationIndex = 0;
     public bool $isGeneratingLocationRef = false;
 
+    // Storyboard Pagination (Performance optimization for 45+ scenes)
+    public int $storyboardPage = 1;
+    public int $storyboardPerPage = 12;
+
+    // Save debouncing
+    protected int $saveDebounceMs = 500;
+    protected ?string $lastSaveHash = null;
+
+    /**
+     * Get paginated scenes for storyboard display.
+     * Returns only scenes for current page to optimize rendering.
+     */
+    public function getPaginatedScenesProperty(): array
+    {
+        $allScenes = $this->script['scenes'] ?? [];
+        $totalScenes = count($allScenes);
+
+        if ($totalScenes <= $this->storyboardPerPage) {
+            // No pagination needed for small scene counts
+            return [
+                'scenes' => $allScenes,
+                'indices' => range(0, max(0, $totalScenes - 1)),
+                'totalPages' => 1,
+                'currentPage' => 1,
+                'totalScenes' => $totalScenes,
+                'showingFrom' => 1,
+                'showingTo' => $totalScenes,
+                'hasPrevious' => false,
+                'hasNext' => false,
+            ];
+        }
+
+        $totalPages = (int) ceil($totalScenes / $this->storyboardPerPage);
+        $currentPage = max(1, min($this->storyboardPage, $totalPages));
+        $offset = ($currentPage - 1) * $this->storyboardPerPage;
+
+        $paginatedScenes = array_slice($allScenes, $offset, $this->storyboardPerPage, true);
+        $indices = array_keys($paginatedScenes);
+
+        return [
+            'scenes' => array_values($paginatedScenes),
+            'indices' => $indices,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
+            'totalScenes' => $totalScenes,
+            'showingFrom' => $offset + 1,
+            'showingTo' => min($offset + $this->storyboardPerPage, $totalScenes),
+            'hasPrevious' => $currentPage > 1,
+            'hasNext' => $currentPage < $totalPages,
+        ];
+    }
+
+    /**
+     * Navigate to storyboard page.
+     */
+    public function goToStoryboardPage(int $page): void
+    {
+        $totalPages = (int) ceil(count($this->script['scenes'] ?? []) / $this->storyboardPerPage);
+        $this->storyboardPage = max(1, min($page, $totalPages));
+    }
+
+    /**
+     * Navigate to next storyboard page.
+     */
+    public function nextStoryboardPage(): void
+    {
+        $this->goToStoryboardPage($this->storyboardPage + 1);
+    }
+
+    /**
+     * Navigate to previous storyboard page.
+     */
+    public function previousStoryboardPage(): void
+    {
+        $this->goToStoryboardPage($this->storyboardPage - 1);
+    }
+
+    /**
+     * Jump to the page containing a specific scene.
+     */
+    public function goToScenePage(int $sceneIndex): void
+    {
+        $page = (int) floor($sceneIndex / $this->storyboardPerPage) + 1;
+        $this->goToStoryboardPage($page);
+    }
+
     /**
      * Mount the component.
      * Note: We accept mixed $project to avoid Livewire's implicit model binding
@@ -430,13 +516,50 @@ class VideoWizard extends Component
         if (!empty($this->script['scenes'])) {
             $this->recalculateVoiceStatus();
         }
+
+        // Initialize save hash to prevent redundant save after loading
+        $this->lastSaveHash = $this->computeSaveHash();
     }
 
     /**
-     * Save current state to database.
+     * Compute a hash of the current saveable state.
+     * Used to detect changes and avoid redundant saves.
+     */
+    protected function computeSaveHash(): string
+    {
+        $data = [
+            'name' => $this->projectName,
+            'current_step' => $this->currentStep,
+            'platform' => $this->platform,
+            'aspect_ratio' => $this->aspectRatio,
+            'target_duration' => $this->targetDuration,
+            'format' => $this->format,
+            'production_type' => $this->productionType,
+            'production_subtype' => $this->productionSubtype,
+            'concept' => $this->concept,
+            'script' => $this->script,
+            'storyboard' => $this->storyboard,
+            'animation' => $this->animation,
+            'assembly' => $this->assembly,
+            'sceneMemory' => $this->sceneMemory,
+            'multiShotMode' => $this->multiShotMode,
+        ];
+
+        return md5(json_encode($data));
+    }
+
+    /**
+     * Save project with change detection to avoid redundant database writes.
+     * Uses hash comparison to skip saves when nothing has changed.
      */
     public function saveProject(): void
     {
+        // Skip save if nothing has changed (except for new projects)
+        $currentHash = $this->computeSaveHash();
+        if ($this->projectId && $this->lastSaveHash === $currentHash) {
+            return; // No changes to save
+        }
+
         $this->isSaving = true;
         $isNewProject = !$this->projectId;
 
@@ -476,6 +599,9 @@ class VideoWizard extends Component
                 $this->projectId = $project->id;
             }
 
+            // Update hash after successful save
+            $this->lastSaveHash = $currentHash;
+
             $this->dispatch('project-saved', projectId: $this->projectId);
 
             // Update browser URL with project ID for new projects
@@ -487,6 +613,16 @@ class VideoWizard extends Component
         } finally {
             $this->isSaving = false;
         }
+    }
+
+    /**
+     * Force save project even if no changes detected.
+     * Use this when you need to ensure the save happens.
+     */
+    public function forceSaveProject(): void
+    {
+        $this->lastSaveHash = null;
+        $this->saveProject();
     }
 
     /**
