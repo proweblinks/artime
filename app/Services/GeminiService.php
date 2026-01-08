@@ -296,12 +296,14 @@ class GeminiService
         // --- 2. Use provided options or select a random fallback ---
         $style = $options['style'] ?? $defaultStyles[array_rand($defaultStyles)];
         $tone  = $options['tone']  ?? $defaultTones[array_rand($defaultTones)];
-        
+
         // An optional negative prompt to guide the model away from unwanted elements
         $negativePrompt = $options['negativePrompt'] ?? 'ugly, deformed, blurry, low resolution, watermark, text, signature, words, letters, numbers, logo, screenshot, cartoon, out of frame';
 
         // --- 3. Configuration (Using more explicit checks) ---
-        $generationConfig = [];
+        $generationConfig = [
+            'responseModalities' => ['image', 'text'], // Request image output
+        ];
 
         // NOTE: aspectRatio is NOT supported in generationConfig for Gemini image generation models
         // The gemini-2.0-flash-exp-image-generation model generates at a fixed resolution
@@ -355,32 +357,308 @@ class GeminiService
         ];
 
         try {
+            // Log the request for debugging
+            Log::info("Gemini Image Generation Request", [
+                'model' => $model,
+                'promptLength' => strlen($imagePrompt),
+                'aspectRatio' => $requestedAspectRatio,
+                'style' => substr($style, 0, 50),
+            ]);
+
             // Assume $this->sendGenerateContentRequest handles the model and config correctly
             $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
 
-            // --- 6. Parsing the Response (Cleaner loop and error handling) ---
+            // --- 6. Detailed Response Logging for Debugging ---
+            Log::info("Gemini Image Generation Response", [
+                'model' => $model,
+                'hasBody' => !empty($body),
+                'bodyKeys' => is_array($body) ? array_keys($body) : 'not_array',
+                'candidatesCount' => count($body['candidates'] ?? []),
+                'promptFeedback' => $body['promptFeedback'] ?? null,
+            ]);
+
+            // Check for content filtering / safety blocks FIRST
+            if (isset($body['promptFeedback']['blockReason'])) {
+                $blockReason = $body['promptFeedback']['blockReason'];
+                $safetyRatings = $body['promptFeedback']['safetyRatings'] ?? [];
+
+                Log::warning("Gemini Image Generation Blocked", [
+                    'model' => $model,
+                    'blockReason' => $blockReason,
+                    'safetyRatings' => $safetyRatings,
+                    'prompt' => substr($prompt, 0, 200),
+                ]);
+
+                throw new \Exception("Image generation blocked: {$blockReason}. The prompt may contain content that violates safety guidelines.");
+            }
+
+            // --- 7. Parsing the Response (Cleaner loop and error handling) ---
             $images = [];
-            foreach ($body['candidates'] ?? [] as $candidate) {
-                $part = $candidate['content']['parts'][0] ?? null; // Assume the image data is the first part
-                
-                if (!empty($part['inlineData']['data'])) {
-                    $images[] = [
-                        'b64_json' => $part['inlineData']['data'],
-                        'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
-                    ];
+            foreach ($body['candidates'] ?? [] as $candidateIndex => $candidate) {
+                // Log each candidate for debugging
+                Log::debug("Gemini Candidate {$candidateIndex}", [
+                    'finishReason' => $candidate['finishReason'] ?? 'not_set',
+                    'contentParts' => count($candidate['content']['parts'] ?? []),
+                    'safetyRatings' => $candidate['safetyRatings'] ?? [],
+                ]);
+
+                // Check for candidate-level blocks
+                if (isset($candidate['finishReason']) && in_array($candidate['finishReason'], ['SAFETY', 'BLOCKED', 'RECITATION'])) {
+                    Log::warning("Gemini candidate blocked", [
+                        'index' => $candidateIndex,
+                        'finishReason' => $candidate['finishReason'],
+                        'safetyRatings' => $candidate['safetyRatings'] ?? [],
+                    ]);
+                    continue;
+                }
+
+                // Look for image data in all parts (not just the first one)
+                foreach ($candidate['content']['parts'] ?? [] as $partIndex => $part) {
+                    if (!empty($part['inlineData']['data'])) {
+                        $images[] = [
+                            'b64_json' => $part['inlineData']['data'],
+                            'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
+                        ];
+                        Log::info("Found image in candidate {$candidateIndex}, part {$partIndex}", [
+                            'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
+                            'dataLength' => strlen($part['inlineData']['data']),
+                        ]);
+                    } elseif (!empty($part['text'])) {
+                        // Sometimes the model returns text instead of image
+                        Log::debug("Candidate {$candidateIndex}, part {$partIndex} contains text", [
+                            'textPreview' => substr($part['text'], 0, 100),
+                        ]);
+                    }
                 }
             }
 
             if (empty($images)) {
-                // Check for potential error messages in the response if image data is missing
-                $errorMessage = $body['candidates'][0]['finishReason'] ?? 'Unknown reason.';
-                throw new \Exception("Model {$model} did not return image data. Finish reason: {$errorMessage}");
+                // Build detailed error message for debugging
+                $errorDetails = [
+                    'model' => $model,
+                    'candidates' => [],
+                    'promptFeedback' => $body['promptFeedback'] ?? null,
+                ];
+
+                foreach ($body['candidates'] ?? [] as $idx => $candidate) {
+                    $errorDetails['candidates'][$idx] = [
+                        'finishReason' => $candidate['finishReason'] ?? 'not_set',
+                        'partsCount' => count($candidate['content']['parts'] ?? []),
+                        'partTypes' => array_map(function($p) {
+                            if (isset($p['inlineData'])) return 'inlineData';
+                            if (isset($p['text'])) return 'text';
+                            return 'unknown';
+                        }, $candidate['content']['parts'] ?? []),
+                        'safetyRatings' => $candidate['safetyRatings'] ?? [],
+                    ];
+                }
+
+                Log::error("Gemini Image Generation: No image data returned", $errorDetails);
+
+                // Build user-friendly error message
+                $finishReason = $body['candidates'][0]['finishReason'] ?? null;
+                $errorMessage = match($finishReason) {
+                    'SAFETY' => 'Content was blocked due to safety guidelines. Try modifying your prompt.',
+                    'RECITATION' => 'Content was blocked due to recitation policy.',
+                    'MAX_TOKENS' => 'Generation exceeded maximum token limit.',
+                    'STOP' => 'Generation completed but no image was produced. The model may have returned text instead.',
+                    null => 'No response candidates returned. Check API key and model availability.',
+                    default => "Generation ended with reason: {$finishReason}",
+                };
+
+                throw new \Exception("Image generation failed: {$errorMessage}");
             }
+
+            Log::info("Gemini Image Generation Success", [
+                'model' => $model,
+                'imagesGenerated' => count($images),
+            ]);
 
             return $this->successResponse($model, $images);
 
         } catch (\Throwable $e) {
             return $this->errorResponse($model, $e, 'image');
+        }
+    }
+
+    /**
+     * Generate an image based on an existing image (image-to-image).
+     * Used for upscaling, style transfer, and variations.
+     */
+    public function generateImageFromImage(string $base64Image, string $prompt, array $options = []): array
+    {
+        $model = $options['model'] ?? $this->getModel('image');
+
+        try {
+            Log::info("Gemini Image-to-Image Request", [
+                'model' => $model,
+                'promptLength' => strlen($prompt),
+                'imageDataLength' => strlen($base64Image),
+            ]);
+
+            // Build payload with both image and text
+            $payload = [
+                "contents" => [
+                    [
+                        "parts" => [
+                            [
+                                "inlineData" => [
+                                    "mimeType" => $options['mimeType'] ?? "image/png",
+                                    "data" => $base64Image
+                                ]
+                            ],
+                            ["text" => $prompt]
+                        ]
+                    ]
+                ]
+            ];
+
+            $generationConfig = [
+                'responseModalities' => ['image', 'text'],
+            ];
+
+            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
+
+            // Log response for debugging
+            Log::info("Gemini Image-to-Image Response", [
+                'model' => $model,
+                'candidatesCount' => count($body['candidates'] ?? []),
+                'promptFeedback' => $body['promptFeedback'] ?? null,
+            ]);
+
+            // Check for blocks
+            if (isset($body['promptFeedback']['blockReason'])) {
+                throw new \Exception("Image-to-image blocked: " . $body['promptFeedback']['blockReason']);
+            }
+
+            // Extract image from response
+            foreach ($body['candidates'] ?? [] as $candidate) {
+                foreach ($candidate['content']['parts'] ?? [] as $part) {
+                    if (!empty($part['inlineData']['data'])) {
+                        return [
+                            'success' => true,
+                            'imageData' => $part['inlineData']['data'],
+                            'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
+                        ];
+                    }
+                }
+            }
+
+            // No image returned
+            $finishReason = $body['candidates'][0]['finishReason'] ?? 'unknown';
+            throw new \Exception("Image-to-image generation failed. Finish reason: {$finishReason}");
+
+        } catch (\Throwable $e) {
+            Log::error("Gemini Image-to-Image Error", [
+                'model' => $model,
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Edit an image using a mask (inpainting).
+     * The mask indicates areas to be edited (white = edit, black = keep).
+     */
+    public function editImageWithMask(string $base64Image, string $base64Mask, string $prompt, array $options = []): array
+    {
+        $model = $options['model'] ?? $this->getModel('image');
+
+        try {
+            Log::info("Gemini Image Edit with Mask Request", [
+                'model' => $model,
+                'promptLength' => strlen($prompt),
+                'imageDataLength' => strlen($base64Image),
+                'maskDataLength' => strlen($base64Mask),
+            ]);
+
+            // Build comprehensive edit prompt with mask context
+            $editPrompt = <<<EOT
+You are editing an existing image. A mask is provided where WHITE areas should be edited/replaced and BLACK areas should remain unchanged.
+
+Edit instructions: {$prompt}
+
+Important:
+- ONLY modify the white masked areas
+- Keep the black/unmasked areas exactly as they are
+- Maintain consistent lighting, style, and perspective with the original
+- The edit should blend seamlessly with the surrounding unedited areas
+EOT;
+
+            // Build payload with image, mask, and instructions
+            $payload = [
+                "contents" => [
+                    [
+                        "parts" => [
+                            [
+                                "inlineData" => [
+                                    "mimeType" => $options['imageMimeType'] ?? "image/png",
+                                    "data" => $base64Image
+                                ]
+                            ],
+                            [
+                                "inlineData" => [
+                                    "mimeType" => "image/png",
+                                    "data" => $base64Mask
+                                ]
+                            ],
+                            ["text" => $editPrompt]
+                        ]
+                    ]
+                ]
+            ];
+
+            $generationConfig = [
+                'responseModalities' => ['image', 'text'],
+            ];
+
+            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
+
+            // Log response
+            Log::info("Gemini Image Edit Response", [
+                'model' => $model,
+                'candidatesCount' => count($body['candidates'] ?? []),
+                'promptFeedback' => $body['promptFeedback'] ?? null,
+            ]);
+
+            // Check for blocks
+            if (isset($body['promptFeedback']['blockReason'])) {
+                throw new \Exception("Image edit blocked: " . $body['promptFeedback']['blockReason']);
+            }
+
+            // Extract edited image from response
+            foreach ($body['candidates'] ?? [] as $candidate) {
+                foreach ($candidate['content']['parts'] ?? [] as $part) {
+                    if (!empty($part['inlineData']['data'])) {
+                        return [
+                            'success' => true,
+                            'imageData' => $part['inlineData']['data'],
+                            'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
+                        ];
+                    }
+                }
+            }
+
+            // If no image returned, fall back to image-to-image without mask
+            Log::warning("Mask editing not supported, falling back to image-to-image", [
+                'model' => $model,
+            ]);
+
+            return $this->generateImageFromImage($base64Image, $prompt, $options);
+
+        } catch (\Throwable $e) {
+            Log::error("Gemini Image Edit Error", [
+                'model' => $model,
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
         }
     }
     

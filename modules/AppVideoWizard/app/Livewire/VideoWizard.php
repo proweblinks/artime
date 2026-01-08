@@ -137,6 +137,8 @@ class VideoWizard extends Component
     // UI state
     public bool $isLoading = false;
     public bool $isSaving = false;
+    public bool $isTransitioning = false;  // Track step transitions for loading overlay
+    public ?string $transitionMessage = null;  // Message to show during transition
     public ?string $error = null;
 
     // Stock Media Browser state
@@ -220,6 +222,7 @@ class VideoWizard extends Component
     public ?string $tensionCurve = null; // Pacing dynamics
     public ?string $emotionalJourney = null; // The feeling arc for viewers
     public bool $showNarrativeAdvanced = false; // Toggle for advanced options
+    public ?string $contentFormatOverride = null; // Manual override: 'short' or 'feature' (null = auto from duration)
 
     // Multi-Shot Mode state
     public array $multiShotMode = [
@@ -255,6 +258,92 @@ class VideoWizard extends Component
     public bool $showLocationBibleModal = false;
     public int $editingLocationIndex = 0;
     public bool $isGeneratingLocationRef = false;
+
+    // Storyboard Pagination (Performance optimization for 45+ scenes)
+    public int $storyboardPage = 1;
+    public int $storyboardPerPage = 12;
+
+    // Save debouncing
+    protected int $saveDebounceMs = 500;
+    protected ?string $lastSaveHash = null;
+
+    /**
+     * Get paginated scenes for storyboard display.
+     * Returns only scenes for current page to optimize rendering.
+     */
+    public function getPaginatedScenesProperty(): array
+    {
+        $allScenes = $this->script['scenes'] ?? [];
+        $totalScenes = count($allScenes);
+
+        if ($totalScenes <= $this->storyboardPerPage) {
+            // No pagination needed for small scene counts
+            return [
+                'scenes' => $allScenes,
+                'indices' => range(0, max(0, $totalScenes - 1)),
+                'totalPages' => 1,
+                'currentPage' => 1,
+                'totalScenes' => $totalScenes,
+                'showingFrom' => 1,
+                'showingTo' => $totalScenes,
+                'hasPrevious' => false,
+                'hasNext' => false,
+            ];
+        }
+
+        $totalPages = (int) ceil($totalScenes / $this->storyboardPerPage);
+        $currentPage = max(1, min($this->storyboardPage, $totalPages));
+        $offset = ($currentPage - 1) * $this->storyboardPerPage;
+
+        $paginatedScenes = array_slice($allScenes, $offset, $this->storyboardPerPage, true);
+        $indices = array_keys($paginatedScenes);
+
+        return [
+            'scenes' => array_values($paginatedScenes),
+            'indices' => $indices,
+            'totalPages' => $totalPages,
+            'currentPage' => $currentPage,
+            'totalScenes' => $totalScenes,
+            'showingFrom' => $offset + 1,
+            'showingTo' => min($offset + $this->storyboardPerPage, $totalScenes),
+            'hasPrevious' => $currentPage > 1,
+            'hasNext' => $currentPage < $totalPages,
+        ];
+    }
+
+    /**
+     * Navigate to storyboard page.
+     */
+    public function goToStoryboardPage(int $page): void
+    {
+        $totalPages = (int) ceil(count($this->script['scenes'] ?? []) / $this->storyboardPerPage);
+        $this->storyboardPage = max(1, min($page, $totalPages));
+    }
+
+    /**
+     * Navigate to next storyboard page.
+     */
+    public function nextStoryboardPage(): void
+    {
+        $this->goToStoryboardPage($this->storyboardPage + 1);
+    }
+
+    /**
+     * Navigate to previous storyboard page.
+     */
+    public function previousStoryboardPage(): void
+    {
+        $this->goToStoryboardPage($this->storyboardPage - 1);
+    }
+
+    /**
+     * Jump to the page containing a specific scene.
+     */
+    public function goToScenePage(int $sceneIndex): void
+    {
+        $page = (int) floor($sceneIndex / $this->storyboardPerPage) + 1;
+        $this->goToStoryboardPage($page);
+    }
 
     /**
      * Mount the component.
@@ -429,13 +518,50 @@ class VideoWizard extends Component
         if (!empty($this->script['scenes'])) {
             $this->recalculateVoiceStatus();
         }
+
+        // Initialize save hash to prevent redundant save after loading
+        $this->lastSaveHash = $this->computeSaveHash();
     }
 
     /**
-     * Save current state to database.
+     * Compute a hash of the current saveable state.
+     * Used to detect changes and avoid redundant saves.
+     */
+    protected function computeSaveHash(): string
+    {
+        $data = [
+            'name' => $this->projectName,
+            'current_step' => $this->currentStep,
+            'platform' => $this->platform,
+            'aspect_ratio' => $this->aspectRatio,
+            'target_duration' => $this->targetDuration,
+            'format' => $this->format,
+            'production_type' => $this->productionType,
+            'production_subtype' => $this->productionSubtype,
+            'concept' => $this->concept,
+            'script' => $this->script,
+            'storyboard' => $this->storyboard,
+            'animation' => $this->animation,
+            'assembly' => $this->assembly,
+            'sceneMemory' => $this->sceneMemory,
+            'multiShotMode' => $this->multiShotMode,
+        ];
+
+        return md5(json_encode($data));
+    }
+
+    /**
+     * Save project with change detection to avoid redundant database writes.
+     * Uses hash comparison to skip saves when nothing has changed.
      */
     public function saveProject(): void
     {
+        // Skip save if nothing has changed (except for new projects)
+        $currentHash = $this->computeSaveHash();
+        if ($this->projectId && $this->lastSaveHash === $currentHash) {
+            return; // No changes to save
+        }
+
         $this->isSaving = true;
         $isNewProject = !$this->projectId;
 
@@ -475,6 +601,9 @@ class VideoWizard extends Component
                 $this->projectId = $project->id;
             }
 
+            // Update hash after successful save
+            $this->lastSaveHash = $currentHash;
+
             $this->dispatch('project-saved', projectId: $this->projectId);
 
             // Update browser URL with project ID for new projects
@@ -486,6 +615,16 @@ class VideoWizard extends Component
         } finally {
             $this->isSaving = false;
         }
+    }
+
+    /**
+     * Force save project even if no changes detected.
+     * Use this when you need to ensure the save happens.
+     */
+    public function forceSaveProject(): void
+    {
+        $this->lastSaveHash = null;
+        $this->saveProject();
     }
 
     /**
@@ -504,14 +643,40 @@ class VideoWizard extends Component
             $this->maxReachedStep = max($this->maxReachedStep, $step);
 
             // Step Transition Hook: Auto-populate Scene Memory when entering Storyboard (step 4)
+            // Use deferred async call to prevent blocking the UI
             if ($step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
-                $this->autoPopulateSceneMemory();
+                $this->isTransitioning = true;
+                $this->transitionMessage = __('Analyzing script for characters and locations...');
+
+                // Dispatch event to trigger async population after view renders
+                $this->dispatch('step-changed', step: $step, needsPopulation: true);
             }
 
             // Only save if user is authenticated
             if (auth()->check()) {
                 $this->saveProject();
             }
+        }
+    }
+
+    /**
+     * Handle deferred scene memory population after step transition.
+     * This is called async after the view renders to prevent blocking.
+     */
+    #[On('populate-scene-memory')]
+    public function handleDeferredSceneMemoryPopulation(): void
+    {
+        if (!$this->isTransitioning) {
+            return;
+        }
+
+        try {
+            $this->autoPopulateSceneMemory();
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Scene memory population failed', ['error' => $e->getMessage()]);
+        } finally {
+            $this->isTransitioning = false;
+            $this->transitionMessage = null;
         }
     }
 
@@ -542,12 +707,60 @@ class VideoWizard extends Component
         if (isset($platforms[$platformId])) {
             $platform = $platforms[$platformId];
             $this->aspectRatio = $platform['defaultFormat'];
-            $this->targetDuration = min(
-                $platform['maxDuration'],
-                max($platform['minDuration'], $this->targetDuration)
-            );
+
+            // Get the max duration - but respect production type's suggested range if it's higher
+            $maxDuration = $platform['maxDuration'];
+            $minDuration = $platform['minDuration'];
+
+            // If production type is set and allows longer videos, use that range instead
+            $productionDuration = $this->getProductionTypeDurationRange();
+            if ($productionDuration) {
+                // Use the higher of platform max or production type max (for movies/films)
+                $maxDuration = max($maxDuration, $productionDuration['max']);
+                $minDuration = $productionDuration['min'];
+            }
+
+            // Only adjust duration if it's outside the valid range
+            if ($this->targetDuration < $minDuration) {
+                $this->targetDuration = $minDuration;
+            } elseif ($this->targetDuration > $maxDuration) {
+                $this->targetDuration = $maxDuration;
+            }
         }
         // Note: Don't auto-save on selection - will save on step navigation
+    }
+
+    /**
+     * Get the suggested duration range for the selected production type.
+     */
+    public function getProductionTypeDurationRange(): ?array
+    {
+        if (empty($this->productionType)) {
+            return null;
+        }
+
+        $productionTypes = config('appvideowizard.production_types', []);
+        $type = $productionTypes[$this->productionType] ?? null;
+
+        if (!$type) {
+            return null;
+        }
+
+        // Check if subtype has a specific duration range
+        if ($this->productionSubtype && isset($type['subTypes'][$this->productionSubtype]['suggestedDuration'])) {
+            return $type['subTypes'][$this->productionSubtype]['suggestedDuration'];
+        }
+
+        // Look for duration in any subtype as a fallback
+        if (isset($type['subTypes']) && is_array($type['subTypes'])) {
+            foreach ($type['subTypes'] as $subtype) {
+                if (isset($subtype['suggestedDuration'])) {
+                    return $subtype['suggestedDuration'];
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -582,61 +795,134 @@ class VideoWizard extends Component
     }
 
     /**
+     * Determine if current duration is feature-length (20+ minutes).
+     */
+    public function isFeatureLength(): bool
+    {
+        return $this->targetDuration >= 1200; // 20 minutes in seconds
+    }
+
+    /**
+     * Get the content format category based on duration or manual override.
+     */
+    public function getContentFormat(): string
+    {
+        // Manual override takes precedence
+        if ($this->contentFormatOverride !== null) {
+            return $this->contentFormatOverride;
+        }
+        return $this->isFeatureLength() ? 'feature' : 'short';
+    }
+
+    /**
+     * Toggle between short and feature format manually.
+     */
+    public function toggleContentFormat(): void
+    {
+        $currentFormat = $this->getContentFormat();
+        $this->contentFormatOverride = ($currentFormat === 'short') ? 'feature' : 'short';
+
+        // Clear current preset when format changes so user selects appropriate one
+        $this->narrativePreset = null;
+
+        // Auto-apply the default preset for the new format
+        $mapping = $this->getPresetMappingForProduction();
+        if (!empty($mapping['default'])) {
+            $this->applyNarrativePreset($mapping['default']);
+        }
+    }
+
+    /**
+     * Set content format explicitly.
+     */
+    public function setContentFormat(string $format): void
+    {
+        if (in_array($format, ['short', 'feature'])) {
+            $this->contentFormatOverride = $format;
+
+            // Clear current preset and apply new default
+            $this->narrativePreset = null;
+            $mapping = $this->getPresetMappingForProduction();
+            if (!empty($mapping['default'])) {
+                $this->applyNarrativePreset($mapping['default']);
+            }
+        }
+    }
+
+    /**
      * Get the preset mapping for current production type/subtype.
-     * Returns recommended, compatible, and hidden presets.
+     * Returns recommended, compatible presets based on content format (short/feature).
      */
     public function getPresetMappingForProduction(): array
     {
         $mappings = config('appvideowizard.production_preset_mapping', []);
+        $format = $this->getContentFormat();
+
+        $emptyMapping = [
+            'default' => null,
+            'recommended' => [],
+            'compatible' => [],
+        ];
 
         if (empty($this->productionType) || !isset($mappings[$this->productionType])) {
-            return [
-                'default' => null,
-                'recommended' => [],
-                'compatible' => [],
-                'hidden' => [],
-            ];
+            return $emptyMapping;
         }
 
         $typeMapping = $mappings[$this->productionType];
 
         // First check for specific subtype mapping, then fall back to _default
+        $subtypeMapping = null;
         if (!empty($this->productionSubtype) && isset($typeMapping[$this->productionSubtype])) {
-            return $typeMapping[$this->productionSubtype];
+            $subtypeMapping = $typeMapping[$this->productionSubtype];
+        } else {
+            $subtypeMapping = $typeMapping['_default'] ?? null;
         }
 
-        return $typeMapping['_default'] ?? [
-            'default' => null,
-            'recommended' => [],
-            'compatible' => [],
-            'hidden' => [],
-        ];
+        if (!$subtypeMapping) {
+            return $emptyMapping;
+        }
+
+        // Get the format-specific mapping (short or feature)
+        $formatMapping = $subtypeMapping[$format] ?? null;
+
+        // If no mapping for this format, try the other format as fallback
+        if (!$formatMapping) {
+            $fallbackFormat = $format === 'feature' ? 'short' : 'feature';
+            $formatMapping = $subtypeMapping[$fallbackFormat] ?? null;
+        }
+
+        return $formatMapping ?? $emptyMapping;
     }
 
     /**
      * Get narrative presets organized by recommendation level.
      * Used by the view to display presets with proper hierarchy.
+     * Filters presets by content format (short/feature) based on duration.
      */
     public function getOrganizedNarrativePresets(): array
     {
         $allPresets = config('appvideowizard.narrative_presets', []);
         $mapping = $this->getPresetMappingForProduction();
+        $format = $this->getContentFormat();
 
         $recommended = [];
         $compatible = [];
         $other = [];
 
         foreach ($allPresets as $key => $preset) {
-            // Skip hidden presets
-            if (in_array($key, $mapping['hidden'] ?? [])) {
-                continue;
-            }
+            $presetCategory = $preset['category'] ?? 'short';
 
-            if (in_array($key, $mapping['recommended'] ?? [])) {
+            // Filter by content format - only show presets matching current format
+            // unless they're in recommended/compatible lists
+            $inRecommended = in_array($key, $mapping['recommended'] ?? []);
+            $inCompatible = in_array($key, $mapping['compatible'] ?? []);
+
+            if ($inRecommended) {
                 $recommended[$key] = $preset;
-            } elseif (in_array($key, $mapping['compatible'] ?? [])) {
+            } elseif ($inCompatible) {
                 $compatible[$key] = $preset;
-            } else {
+            } elseif ($presetCategory === $format) {
+                // Only show other presets if they match the current format
                 $other[$key] = $preset;
             }
         }
@@ -646,6 +932,7 @@ class VideoWizard extends Component
             'compatible' => $compatible,
             'other' => $other,
             'defaultPreset' => $mapping['default'] ?? null,
+            'contentFormat' => $format,
         ];
     }
 
@@ -1065,21 +1352,16 @@ class VideoWizard extends Component
         try {
             Log::info('VideoWizard: Starting script generation', $inputData);
 
-            // CRITICAL: Always save the project before loading from DB
-            // This ensures the current targetDuration and other settings are persisted
-            // before the ScriptGenerationService uses $project->target_duration
-            $this->saveProject();
+            // Always save project first to ensure database has latest settings (duration, etc.)
+            $this->forceSaveProject();
 
             $project = WizardProject::findOrFail($this->projectId);
 
-            // Log the actual values being used to help debug scene count issues
-            Log::info('VideoWizard: Project loaded for script generation', [
-                'project_id' => $project->id,
+            // Log the actual duration that will be used
+            Log::info('VideoWizard: Script generation using duration', [
                 'component_targetDuration' => $this->targetDuration,
                 'project_target_duration' => $project->target_duration,
-                'match' => $this->targetDuration === $project->target_duration,
             ]);
-
             $scriptService = app(ScriptGenerationService::class);
 
             $generatedScript = $scriptService->generateScript($project, [
@@ -1189,7 +1471,7 @@ class VideoWizard extends Component
 
     /**
      * Apply narrative preset defaults.
-     * When a preset is selected, auto-set story arc, tension curve, and emotional journey.
+     * When a preset is selected, auto-set story structure, tension curve, and emotional journey.
      */
     public function applyNarrativePreset(string $preset): void
     {
@@ -1203,8 +1485,11 @@ class VideoWizard extends Component
 
         $presetConfig = $presets[$preset];
 
-        // Auto-set story arc if preset defines one
-        if (!empty($presetConfig['defaultArc'])) {
+        // Auto-set story arc/structure if preset defines one
+        // Support both 'defaultStructure' (new) and 'defaultArc' (legacy)
+        if (!empty($presetConfig['defaultStructure'])) {
+            $this->storyArc = $presetConfig['defaultStructure'];
+        } elseif (!empty($presetConfig['defaultArc'])) {
             $this->storyArc = $presetConfig['defaultArc'];
         }
 
@@ -3929,6 +4214,114 @@ class VideoWizard extends Component
     }
 
     /**
+     * Get comprehensive debug snapshot of all wizard state.
+     * Used for troubleshooting issues by capturing every setting and selection.
+     */
+    public function getDebugSnapshot(): array
+    {
+        return [
+            '_meta' => [
+                'version' => '2.0',
+                'generated_at' => now()->toIso8601String(),
+                'php_version' => phpversion(),
+                'laravel_version' => app()->version(),
+                'user_id' => auth()->id(),
+                'team_id' => session('current_team_id'),
+            ],
+            'wizard_state' => [
+                'project_id' => $this->projectId,
+                'project_name' => $this->projectName,
+                'current_step' => $this->currentStep,
+                'max_reached_step' => $this->maxReachedStep,
+                'is_loading' => $this->isLoading,
+                'is_saving' => $this->isSaving,
+                'error' => $this->error,
+            ],
+            'platform_settings' => [
+                'platform' => $this->platform,
+                'aspect_ratio' => $this->aspectRatio,
+                'target_duration' => $this->targetDuration,
+                'format' => $this->format,
+                'production_type' => $this->productionType,
+                'production_subtype' => $this->productionSubtype,
+                'content_format_override' => $this->contentFormatOverride ?? null,
+            ],
+            'script_settings' => [
+                'script_tone' => $this->scriptTone,
+                'content_depth' => $this->contentDepth,
+                'additional_instructions' => $this->additionalInstructions,
+                'narrative_preset' => $this->narrativePreset,
+                'story_arc' => $this->storyArc,
+                'tension_curve' => $this->tensionCurve,
+                'emotional_journey' => $this->emotionalJourney,
+            ],
+            'concept' => $this->concept,
+            'script' => [
+                'title' => $this->script['title'] ?? null,
+                'hook' => $this->script['hook'] ?? null,
+                'cta' => $this->script['cta'] ?? null,
+                'scene_count' => count($this->script['scenes'] ?? []),
+                'total_duration' => collect($this->script['scenes'] ?? [])->sum('duration'),
+                'scenes_summary' => collect($this->script['scenes'] ?? [])->map(fn($s, $i) => [
+                    'index' => $i,
+                    'id' => $s['id'] ?? null,
+                    'duration' => $s['duration'] ?? null,
+                    'has_narration' => !empty($s['narration']),
+                    'has_visual' => !empty($s['visualDescription']),
+                ])->toArray(),
+            ],
+            'storyboard' => [
+                'visual_style' => $this->storyboard['visualStyle'] ?? null,
+                'image_model' => $this->storyboard['imageModel'] ?? null,
+                'style_bible_enabled' => $this->storyboard['styleBible']['enabled'] ?? false,
+                'prompt_chain_status' => $this->storyboard['promptChain']['status'] ?? null,
+            ],
+            'scene_memory' => [
+                'style_bible_enabled' => $this->sceneMemory['styleBible']['enabled'] ?? false,
+                'character_bible_enabled' => $this->sceneMemory['characterBible']['enabled'] ?? false,
+                'character_count' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+                'location_bible_enabled' => $this->sceneMemory['locationBible']['enabled'] ?? false,
+                'location_count' => count($this->sceneMemory['locationBible']['locations'] ?? []),
+            ],
+            'pending_jobs' => array_keys($this->pendingJobs ?? []),
+            'config_snapshot' => [
+                'platform_config' => config('appvideowizard.platforms.' . $this->platform) ?? null,
+                'production_type_config' => $this->productionType
+                    ? config('appvideowizard.production_types.' . $this->productionType)
+                    : null,
+            ],
+        ];
+    }
+
+    /**
+     * Export debug snapshot as downloadable JSON file.
+     */
+    public function exportDebugSnapshot(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $snapshot = $this->getDebugSnapshot();
+        $filename = 'wizard-debug-' . ($this->projectId ?? 'new') . '-' . now()->format('Y-m-d-His') . '.json';
+
+        return response()->streamDownload(function () use ($snapshot) {
+            echo json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, [
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
+    /**
+     * Dispatch debug snapshot to browser console (for development).
+     */
+    public function logDebugSnapshot(): void
+    {
+        $snapshot = $this->getDebugSnapshot();
+        $this->dispatch('vw-debug', [
+            'action' => 'debug-snapshot',
+            'message' => 'Full wizard state snapshot',
+            'data' => $snapshot,
+        ]);
+    }
+
+    /**
      * Import a project from JSON file.
      */
     public function importProject($file): void
@@ -4147,16 +4540,19 @@ class VideoWizard extends Component
 
         // 1. Auto-populate Style Bible based on production type (if not already set)
         if (!$hasExistingStyle) {
+            $this->transitionMessage = __('Setting up visual style...');
             $this->autoPopulateStyleBible();
         }
 
         // 2. Auto-detect characters from script (if none exist)
         if (!$hasExistingCharacters) {
+            $this->transitionMessage = __('Detecting characters from script...');
             $this->autoDetectCharactersFromScript();
         }
 
         // 3. Auto-detect locations from script (if none exist)
         if (!$hasExistingLocations) {
+            $this->transitionMessage = __('Identifying locations...');
             $this->autoDetectLocationsFromScript();
         }
 

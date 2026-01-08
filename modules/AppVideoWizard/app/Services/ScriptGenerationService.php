@@ -129,9 +129,25 @@ class ScriptGenerationService
         \Log::info('VideoWizard: Parsing response', [
             'responseLength' => strlen($response),
             'responsePreview' => substr($response, 0, 300),
+            'expectedSceneCount' => $params['sceneCount'],
         ]);
 
-        $parsedScript = $this->parseScriptResponse($response, $duration);
+        $parsedScript = $this->parseScriptResponse($response, $duration, $params['sceneCount']);
+
+        // Validate scene count and interpolate if needed
+        $actualSceneCount = count($parsedScript['scenes'] ?? []);
+        $expectedSceneCount = $params['sceneCount'];
+
+        if ($actualSceneCount < $expectedSceneCount) {
+            \Log::warning('VideoWizard: Scene count below expected, interpolating', [
+                'expected' => $expectedSceneCount,
+                'actual' => $actualSceneCount,
+                'deficit' => $expectedSceneCount - $actualSceneCount,
+            ]);
+
+            // Interpolate additional scenes if we're significantly below target
+            $parsedScript = $this->interpolateScenes($parsedScript, $expectedSceneCount, $duration);
+        }
 
         // Log successful generation
         $this->logGeneration('script_generation', $promptParams, $parsedScript, 'success', null, null, $durationMs, $project->id);
@@ -200,7 +216,6 @@ class ScriptGenerationService
         // Words per scene
         $wordsPerScene = (int) ceil($targetWords / $sceneCount);
 
-        // Detailed logging to help debug scene count issues
         \Log::info('VideoWizard: calculateScriptParameters', [
             'input_duration' => $duration,
             'input_contentDepth' => $contentDepth,
@@ -209,7 +224,7 @@ class ScriptGenerationService
             'calculated_avgSceneDuration' => $avgSceneDuration,
             'calculated_sceneCount' => $sceneCount,
             'calculated_wordsPerScene' => $wordsPerScene,
-            'formula' => "sceneCount = max(3, ceil({$duration} / {$avgSceneDuration})) = {$sceneCount}",
+            'duration_formula' => "max(3, ceil({$duration} / {$avgSceneDuration})) = max(3, " . ceil($duration / $avgSceneDuration) . ") = {$sceneCount}",
         ]);
 
         return [
@@ -766,10 +781,12 @@ PROMPT;
 }
 JSON;
 
-        $prompt .= "\n\n=== CRITICAL REQUIREMENTS ===\n";
-        $prompt .= "- Generate EXACTLY {$sceneCount} scenes\n";
+        $prompt .= "\n\n=== CRITICAL REQUIREMENTS - MUST FOLLOW ===\n";
+        $prompt .= "⚠️ MANDATORY: You MUST generate EXACTLY {$sceneCount} scenes - not more, not less\n";
+        $prompt .= "⚠️ The scenes array MUST contain exactly {$sceneCount} scene objects\n";
         $prompt .= "- Each scene narration MUST be approximately {$wordsPerScene} words\n";
         $prompt .= "- Total narration should equal approximately {$targetWords} words\n";
+        $prompt .= "- Video duration is {$duration} seconds, so {$sceneCount} scenes at ~{$avgSceneDuration}s each\n";
 
         if ($curveConfig) {
             $prompt .= "- Match scene intensity to the {$curveConfig['name']} tension curve\n";
@@ -1239,7 +1256,7 @@ JSON;
     /**
      * Parse the AI response into a structured script.
      */
-    protected function parseScriptResponse(string $response, int $targetDuration = 60): array
+    protected function parseScriptResponse(string $response, int $targetDuration = 60, int $expectedSceneCount = 0): array
     {
         $originalResponse = $response;
 
@@ -1385,7 +1402,7 @@ JSON;
 
     /**
      * Attempt to rebuild script from response when JSON parsing fails.
-     * Uses regex to extract key fields and rebuild a valid structure.
+     * Uses more robust approach to extract scenes from malformed JSON.
      */
     protected function rebuildScriptFromResponse(string $response): ?array
     {
@@ -1393,65 +1410,56 @@ JSON;
 
         // Try to extract title
         $title = 'Generated Script';
-        if (preg_match('/"title"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $title = $m[1];
+        if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $title = $this->unescapeJsonString($m[1]);
         }
 
         // Try to extract hook
         $hook = '';
-        if (preg_match('/"hook"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $hook = $m[1];
+        if (preg_match('/"hook"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $hook = $this->unescapeJsonString($m[1]);
         }
 
         // Try to extract CTA
         $cta = '';
-        if (preg_match('/"cta"\s*:\s*"([^"]+)"/', $response, $m)) {
-            $cta = $m[1];
+        if (preg_match('/"cta"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $m)) {
+            $cta = $this->unescapeJsonString($m[1]);
         }
 
-        // Try to extract scenes using multiple approaches
-        // Approach 1: Find scene objects
-        if (preg_match_all('/"id"\s*:\s*"(scene-\d+)"[^}]*"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $index => $match) {
-                $scenes[] = [
-                    'id' => $match[1],
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $match[2],
-                    'visualDescription' => $match[3],
-                    'duration' => 15,
-                ];
-            }
+        // Try multiple approaches and use the one that finds the most scenes
+        $scenesByBraces = [];
+        $scenesByRegex = [];
+
+        // Approach 1: Find scenes array and extract by balanced braces
+        if (preg_match('/"scenes"\s*:\s*\[/s', $response, $match, PREG_OFFSET_CAPTURE)) {
+            $arrayStart = $match[0][1] + strlen($match[0][0]);
+            $scenesByBraces = $this->extractScenesFromArray($response, $arrayStart);
         }
 
-        // Approach 2: Try different field order
-        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"[^}]*"visualDescription"\s*:\s*"([^"]+)"/s', $response, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $index => $match) {
-                $scenes[] = [
-                    'id' => 'scene-' . ($index + 1),
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $match[1],
-                    'visualDescription' => $match[2],
-                    'duration' => 15,
-                ];
-            }
-        }
+        // Approach 2: Always try regex as well (don't skip even if braces found some)
+        $scenesByRegex = $this->extractScenesWithRegex($response);
 
-        // Approach 3: Just find narration fields
-        if (empty($scenes) && preg_match_all('/"narration"\s*:\s*"([^"]+)"/', $response, $matches)) {
-            foreach ($matches[1] as $index => $narration) {
-                $scenes[] = [
-                    'id' => 'scene-' . ($index + 1),
-                    'title' => 'Scene ' . ($index + 1),
-                    'narration' => $narration,
-                    'visualDescription' => $narration,
-                    'duration' => 15,
-                ];
-            }
-        }
+        // Use whichever approach found more scenes
+        $scenes = count($scenesByRegex) > count($scenesByBraces) ? $scenesByRegex : $scenesByBraces;
+
+        \Log::info('VideoWizard: rebuildScriptFromResponse scene extraction', [
+            'byBraces' => count($scenesByBraces),
+            'byRegex' => count($scenesByRegex),
+            'using' => count($scenesByRegex) > count($scenesByBraces) ? 'regex' : 'braces',
+            'finalCount' => count($scenes),
+        ]);
 
         if (empty($scenes)) {
+            \Log::warning('VideoWizard: rebuildScriptFromResponse found no scenes', [
+                'responseLength' => strlen($response),
+                'responsePreview' => substr($response, 0, 500),
+            ]);
             return null;
         }
+
+        \Log::info('VideoWizard: rebuildScriptFromResponse recovered scenes', [
+            'sceneCount' => count($scenes),
+        ]);
 
         return [
             'title' => $title,
@@ -1459,6 +1467,233 @@ JSON;
             'scenes' => $scenes,
             'cta' => $cta,
         ];
+    }
+
+    /**
+     * Extract scenes from the scenes array by finding balanced braces.
+     * Also handles malformed JSON where scene objects lack opening braces.
+     */
+    protected function extractScenesFromArray(string $response, int $startPos): array
+    {
+        $scenes = [];
+        $len = strlen($response);
+        $pos = $startPos;
+        $sceneIndex = 0;
+
+        while ($pos < $len) {
+            // Skip whitespace and commas
+            while ($pos < $len && (ctype_space($response[$pos]) || $response[$pos] === ',')) {
+                $pos++;
+            }
+
+            // Check for end of array
+            if ($pos >= $len || $response[$pos] === ']') {
+                break;
+            }
+
+            // Case 1: Proper scene object with opening brace
+            if ($response[$pos] === '{') {
+                $sceneStart = $pos;
+                $braceCount = 1;
+                $pos++;
+
+                // Find matching closing brace
+                $inString = false;
+                $escape = false;
+                while ($pos < $len && $braceCount > 0) {
+                    $char = $response[$pos];
+
+                    if ($escape) {
+                        $escape = false;
+                    } elseif ($char === '\\' && $inString) {
+                        $escape = true;
+                    } elseif ($char === '"' && !$escape) {
+                        $inString = !$inString;
+                    } elseif (!$inString) {
+                        if ($char === '{') $braceCount++;
+                        elseif ($char === '}') $braceCount--;
+                    }
+                    $pos++;
+                }
+
+                if ($braceCount === 0) {
+                    $sceneJson = substr($response, $sceneStart, $pos - $sceneStart);
+                    $scene = $this->parseSceneObject($sceneJson, $sceneIndex);
+                    if ($scene) {
+                        $scenes[] = $scene;
+                        $sceneIndex++;
+                    }
+                }
+            }
+            // Case 2: Malformed - scene starts with "id" or "narration" without opening brace
+            elseif ($response[$pos] === '"') {
+                // Look ahead to see if this looks like a scene field
+                $ahead = substr($response, $pos, 20);
+                if (preg_match('/^"(id|narration|title|visualDescription)"/', $ahead)) {
+                    // Find the end of this malformed scene object
+                    // It ends at the next scene-id pattern or end of array
+                    $sceneStart = $pos;
+                    $nextScenePos = $this->findNextSceneStart($response, $pos + 1);
+                    $sceneEnd = $nextScenePos !== false ? $nextScenePos : strpos($response, ']', $pos);
+
+                    if ($sceneEnd !== false) {
+                        $sceneContent = substr($response, $sceneStart, $sceneEnd - $sceneStart);
+                        // Wrap in braces to make valid JSON
+                        $sceneJson = '{' . rtrim(trim($sceneContent), ',') . '}';
+                        $scene = $this->parseSceneObject($sceneJson, $sceneIndex);
+                        if ($scene) {
+                            $scenes[] = $scene;
+                            $sceneIndex++;
+                        }
+                        $pos = $sceneEnd;
+                    } else {
+                        $pos++;
+                    }
+                } else {
+                    $pos++;
+                }
+            } else {
+                // Unexpected character, move forward
+                $pos++;
+            }
+        }
+
+        return $scenes;
+    }
+
+    /**
+     * Find the start position of the next scene in the response.
+     */
+    protected function findNextSceneStart(string $response, int $startPos): int|false
+    {
+        // Look for patterns that indicate a new scene
+        $patterns = [
+            '/"id"\s*:\s*"scene-\d+"/i',
+            '/,\s*\{\s*"id"/i',
+            '/,\s*"id"\s*:\s*"scene-/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $response, $match, PREG_OFFSET_CAPTURE, $startPos)) {
+                return $match[0][1];
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Parse a single scene object JSON string.
+     */
+    protected function parseSceneObject(string $sceneJson, int $index): ?array
+    {
+        // First try standard JSON decode
+        $scene = json_decode($sceneJson, true);
+        if ($scene !== null && isset($scene['narration'])) {
+            $scene['id'] = $scene['id'] ?? 'scene-' . ($index + 1);
+            return $scene;
+        }
+
+        // If that fails, extract fields with regex
+        $scene = [
+            'id' => 'scene-' . ($index + 1),
+            'title' => 'Scene ' . ($index + 1),
+            'narration' => '',
+            'visualDescription' => '',
+            'duration' => 15,
+        ];
+
+        // Extract narration
+        if (preg_match('/"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['narration'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract visualDescription
+        if (preg_match('/"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['visualDescription'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract title
+        if (preg_match('/"title"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['title'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract id
+        if (preg_match('/"id"\s*:\s*"(scene-\d+)"/s', $sceneJson, $m)) {
+            $scene['id'] = $m[1];
+        }
+
+        // Extract duration
+        if (preg_match('/"duration"\s*:\s*(\d+)/s', $sceneJson, $m)) {
+            $scene['duration'] = (int)$m[1];
+        }
+
+        // Extract mood
+        if (preg_match('/"mood"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['mood'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Extract transition
+        if (preg_match('/"transition"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $sceneJson, $m)) {
+            $scene['transition'] = $this->unescapeJsonString($m[1]);
+        }
+
+        // Only return if we have meaningful content
+        if (!empty($scene['narration']) || !empty($scene['visualDescription'])) {
+            return $scene;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fallback: Extract scenes using regex patterns.
+     */
+    protected function extractScenesWithRegex(string $response): array
+    {
+        $scenes = [];
+
+        // Pattern to match scene-like structures - find all "narration" fields
+        if (preg_match_all('/"narration"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $response, $narrationMatches, PREG_OFFSET_CAPTURE)) {
+            foreach ($narrationMatches[1] as $index => $match) {
+                $narration = $this->unescapeJsonString($match[0]);
+                $position = $match[1];
+
+                // Look for visualDescription near this narration (within 500 chars)
+                $searchRange = substr($response, max(0, $position - 200), 700);
+                $visualDescription = $narration; // Default to narration
+
+                if (preg_match('/"visualDescription"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $searchRange, $vm)) {
+                    $visualDescription = $this->unescapeJsonString($vm[1]);
+                }
+
+                // Look for duration near this narration
+                $duration = 15;
+                if (preg_match('/"duration"\s*:\s*(\d+)/s', $searchRange, $dm)) {
+                    $duration = (int)$dm[1];
+                }
+
+                $scenes[] = [
+                    'id' => 'scene-' . ($index + 1),
+                    'title' => 'Scene ' . ($index + 1),
+                    'narration' => $narration,
+                    'visualDescription' => $visualDescription,
+                    'duration' => $duration,
+                ];
+            }
+        }
+
+        return $scenes;
+    }
+
+    /**
+     * Unescape a JSON string value.
+     */
+    protected function unescapeJsonString(string $str): string
+    {
+        // Handle common escape sequences
+        $str = str_replace(['\\n', '\\r', '\\t', '\\"', '\\\\'], ["\n", "\r", "\t", '"', '\\'], $str);
+        return $str;
     }
 
     /**
@@ -1681,6 +1916,172 @@ JSON;
         ];
 
         return $effects[array_rand($effects)];
+    }
+
+    /**
+     * Interpolate scenes to reach target scene count.
+     * When AI returns fewer scenes than expected, this method adds scenes
+     * by splitting longer scenes or creating transitional scenes.
+     */
+    protected function interpolateScenes(array $script, int $targetSceneCount, int $targetDuration): array
+    {
+        $scenes = $script['scenes'] ?? [];
+        $currentCount = count($scenes);
+
+        if ($currentCount >= $targetSceneCount || $currentCount === 0) {
+            return $script;
+        }
+
+        $scenesToAdd = $targetSceneCount - $currentCount;
+        $avgSceneDuration = (int) ceil($targetDuration / $targetSceneCount);
+
+        \Log::info('VideoWizard: Interpolating scenes', [
+            'currentCount' => $currentCount,
+            'targetCount' => $targetSceneCount,
+            'scenesToAdd' => $scenesToAdd,
+            'avgDuration' => $avgSceneDuration,
+        ]);
+
+        // Strategy: Split the longest scenes to create more
+        // Sort scenes by duration (descending) to find candidates for splitting
+        $scenesWithIndex = [];
+        foreach ($scenes as $index => $scene) {
+            $scenesWithIndex[] = [
+                'index' => $index,
+                'scene' => $scene,
+                'duration' => $scene['duration'] ?? $avgSceneDuration,
+            ];
+        }
+
+        // Sort by duration descending
+        usort($scenesWithIndex, fn($a, $b) => $b['duration'] <=> $a['duration']);
+
+        // Split scenes that are longer than average
+        $newScenes = [];
+        $splitCount = 0;
+
+        foreach ($scenes as $index => $scene) {
+            $sceneDuration = $scene['duration'] ?? $avgSceneDuration;
+
+            // Check if this scene should be split (longer than 1.5x average and we still need more scenes)
+            if ($splitCount < $scenesToAdd && $sceneDuration > $avgSceneDuration * 1.5) {
+                // Split this scene into two
+                $halfDuration = (int) ceil($sceneDuration / 2);
+                $narration = $scene['narration'] ?? '';
+                $words = explode(' ', $narration);
+                $midPoint = (int) ceil(count($words) / 2);
+
+                // First half
+                $scene1 = $scene;
+                $scene1['id'] = 'scene-' . (count($newScenes) + 1);
+                $scene1['narration'] = implode(' ', array_slice($words, 0, $midPoint));
+                $scene1['duration'] = $halfDuration;
+                $scene1['kenBurns'] = $this->generateKenBurnsEffect();
+                $newScenes[] = $scene1;
+
+                // Second half - create as continuation
+                $scene2 = $scene;
+                $scene2['id'] = 'scene-' . (count($newScenes) + 1);
+                $scene2['title'] = ($scene['title'] ?? 'Scene') . ' (continued)';
+                $scene2['narration'] = implode(' ', array_slice($words, $midPoint));
+                $scene2['duration'] = $sceneDuration - $halfDuration;
+                $scene2['kenBurns'] = $this->generateKenBurnsEffect();
+                $newScenes[] = $scene2;
+
+                $splitCount++;
+
+                \Log::debug('VideoWizard: Split scene', [
+                    'originalIndex' => $index,
+                    'originalDuration' => $sceneDuration,
+                    'newDurations' => [$halfDuration, $sceneDuration - $halfDuration],
+                ]);
+            } else {
+                // Keep scene as-is but update ID
+                $scene['id'] = 'scene-' . (count($newScenes) + 1);
+                $newScenes[] = $scene;
+            }
+        }
+
+        // If we still need more scenes after splitting, add transition scenes
+        while (count($newScenes) < $targetSceneCount) {
+            $insertIndex = count($newScenes);
+            $prevScene = $newScenes[$insertIndex - 1] ?? null;
+
+            $transitionScene = [
+                'id' => 'scene-' . ($insertIndex + 1),
+                'title' => 'Transition',
+                'narration' => $this->generateTransitionNarration($prevScene),
+                'visualDescription' => $this->generateTransitionVisual($prevScene),
+                'duration' => $avgSceneDuration,
+                'mood' => $prevScene['mood'] ?? 'contemplative',
+                'transition' => 'dissolve',
+                'kenBurns' => $this->generateKenBurnsEffect(),
+            ];
+
+            $newScenes[] = $transitionScene;
+
+            \Log::debug('VideoWizard: Added transition scene', [
+                'index' => $insertIndex,
+            ]);
+        }
+
+        // Re-index all scenes
+        foreach ($newScenes as $index => &$scene) {
+            $scene['id'] = 'scene-' . ($index + 1);
+        }
+
+        $script['scenes'] = $newScenes;
+
+        \Log::info('VideoWizard: Interpolation complete', [
+            'finalSceneCount' => count($newScenes),
+            'targetCount' => $targetSceneCount,
+        ]);
+
+        return $script;
+    }
+
+    /**
+     * Generate transition narration based on previous scene.
+     */
+    protected function generateTransitionNarration(?array $prevScene): string
+    {
+        if (!$prevScene) {
+            return 'Let us explore this further...';
+        }
+
+        $transitions = [
+            'But there is more to this story...',
+            'And the journey continues...',
+            'This brings us to an important point...',
+            'Now, let us consider another aspect...',
+            'Taking a moment to reflect on this...',
+            'The significance of this cannot be understated...',
+            'Building on what we have learned...',
+            'This naturally leads us to...',
+        ];
+
+        return $transitions[array_rand($transitions)];
+    }
+
+    /**
+     * Generate transition visual description based on previous scene.
+     */
+    protected function generateTransitionVisual(?array $prevScene): string
+    {
+        if (!$prevScene) {
+            return 'Wide establishing shot, cinematic atmosphere, soft lighting';
+        }
+
+        $baseVisual = $prevScene['visualDescription'] ?? '';
+
+        $transitions = [
+            'Soft focus transition, dreamy atmosphere, ' . substr($baseVisual, 0, 50),
+            'Wide angle perspective, establishing context, cinematic lighting',
+            'Medium shot with gentle camera movement, contemplative mood',
+            'Atmospheric wide shot, soft bokeh in background, warm tones',
+        ];
+
+        return $transitions[array_rand($transitions)];
     }
 
     /**

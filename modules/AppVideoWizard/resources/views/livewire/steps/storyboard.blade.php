@@ -1092,6 +1092,10 @@
             </div>
 
             {{-- Progress Stats & Bulk Actions - INSIDE the card --}}
+            @php
+                $paginatedData = $this->paginatedScenes;
+                $showPagination = $paginatedData['totalPages'] > 1;
+            @endphp
             <div class="vw-progress-bar">
                 <div class="vw-progress-stat">
                     <span class="vw-progress-stat-icon">🖼️</span>
@@ -1099,9 +1103,14 @@
                 </div>
                 <div class="vw-progress-stat">
                     <span class="vw-progress-stat-icon">🎬</span>
-                    <span class="vw-progress-stat-value">{{ count($script['scenes']) }}</span>
+                    <span class="vw-progress-stat-value">{{ $paginatedData['totalScenes'] }}</span>
                     <span class="vw-progress-stat-label">{{ __('scenes') }}</span>
                 </div>
+                @if($showPagination)
+                    <div class="vw-progress-stat" style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">
+                        {{ __('Showing') }} {{ $paginatedData['showingFrom'] }}-{{ $paginatedData['showingTo'] }}
+                    </div>
+                @endif
                 <div class="vw-bulk-actions">
                     <button class="vw-generate-all-btn"
                             wire:click="generateAllImages"
@@ -1121,9 +1130,64 @@
                 </div>
             </div>
 
-            {{-- Storyboard Grid --}}
+            {{-- Pagination Controls (Top) --}}
+            @if($showPagination)
+                <div class="vw-pagination-controls" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem;">
+                    <button type="button"
+                            wire:click="previousStoryboardPage"
+                            @disabled(!$paginatedData['hasPrevious'])
+                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasPrevious'] ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)' }}; background: {{ $paginatedData['hasPrevious'] ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)' }}; color: {{ $paginatedData['hasPrevious'] ? 'white' : 'rgba(255,255,255,0.3)' }}; cursor: {{ $paginatedData['hasPrevious'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
+                        ← {{ __('Previous') }}
+                    </button>
+
+                    <div style="display: flex; gap: 0.25rem;">
+                        @for($p = 1; $p <= min($paginatedData['totalPages'], 7); $p++)
+                            @php
+                                // Show first, last, current, and adjacent pages
+                                $showPage = $p <= 2 ||
+                                           $p > $paginatedData['totalPages'] - 2 ||
+                                           abs($p - $paginatedData['currentPage']) <= 1;
+                                $showEllipsis = !$showPage && (
+                                    ($p == 3 && $paginatedData['currentPage'] > 4) ||
+                                    ($p == $paginatedData['totalPages'] - 2 && $paginatedData['currentPage'] < $paginatedData['totalPages'] - 3)
+                                );
+                            @endphp
+                            @if($showPage)
+                                <button type="button"
+                                        wire:click="goToStoryboardPage({{ $p }})"
+                                        style="width: 32px; height: 32px; border-radius: 0.35rem; border: 1px solid {{ $p === $paginatedData['currentPage'] ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $p === $paginatedData['currentPage'] ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.75rem; font-weight: {{ $p === $paginatedData['currentPage'] ? '700' : '500' }};">
+                                    {{ $p }}
+                                </button>
+                            @elseif($showEllipsis)
+                                <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.4);">…</span>
+                            @endif
+                        @endfor
+                    </div>
+
+                    <button type="button"
+                            wire:click="nextStoryboardPage"
+                            @disabled(!$paginatedData['hasNext'])
+                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasNext'] ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)' }}; background: {{ $paginatedData['hasNext'] ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)' }}; color: {{ $paginatedData['hasNext'] ? 'white' : 'rgba(255,255,255,0.3)' }}; cursor: {{ $paginatedData['hasNext'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
+                        {{ __('Next') }} →
+                    </button>
+
+                    {{-- Jump to page dropdown --}}
+                    <select wire:model.live="storyboardPage"
+                            style="padding: 0.4rem 0.5rem; border-radius: 0.35rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: white; font-size: 0.7rem; cursor: pointer;">
+                        @for($p = 1; $p <= $paginatedData['totalPages']; $p++)
+                            <option value="{{ $p }}">{{ __('Page') }} {{ $p }}</option>
+                        @endfor
+                    </select>
+                </div>
+            @endif
+
+            {{-- Storyboard Grid - Using Paginated Scenes --}}
             <div class="vw-storyboard-grid">
-            @foreach($script['scenes'] as $index => $scene)
+            @foreach($paginatedData['scenes'] as $localIndex => $scene)
+                @php
+                    // Get the actual index in the full scenes array
+                    $index = $paginatedData['indices'][$localIndex] ?? $localIndex;
+                @endphp
                 @php
                     $storyboardScene = $storyboard['scenes'][$index] ?? null;
                     $imageUrl = $storyboardScene['imageUrl'] ?? null;
@@ -1404,11 +1468,35 @@
     document.addEventListener('livewire:init', () => {
         let pollInterval = null;
         let pendingJobs = 0;
+        let isPageVisible = !document.hidden;
+        let pollBackoff = 3000; // Start with 3 seconds
+        const MAX_POLL_INTERVAL = 10000; // Max 10 seconds between polls
+        const MIN_POLL_INTERVAL = 2000; // Min 2 seconds
+        let consecutiveEmptyPolls = 0;
+
+        // Visibility API - pause polling when tab is not visible
+        document.addEventListener('visibilitychange', () => {
+            isPageVisible = !document.hidden;
+            if (isPageVisible && pendingJobs > 0) {
+                // Resume polling immediately when tab becomes visible
+                pollBackoff = MIN_POLL_INTERVAL;
+                consecutiveEmptyPolls = 0;
+                stopPolling();
+                startPolling();
+                console.log('Tab visible, resuming polling');
+            } else if (!isPageVisible) {
+                // Pause polling when tab is hidden (saves resources)
+                console.log('Tab hidden, pausing polling');
+                stopPolling();
+            }
+        });
 
         // Listen for image generation started
         Livewire.on('image-generation-started', (data) => {
             if (data.async) {
                 pendingJobs++;
+                pollBackoff = MIN_POLL_INTERVAL; // Reset to fast polling
+                consecutiveEmptyPolls = 0;
                 startPolling();
             }
         });
@@ -1418,21 +1506,48 @@
             pendingJobs = data.count || 0;
             if (pendingJobs > 0) {
                 console.log('Resuming polling for', pendingJobs, 'pending jobs');
+                pollBackoff = MIN_POLL_INTERVAL;
+                consecutiveEmptyPolls = 0;
                 startPolling();
             }
         });
 
         // Listen for poll status updates
         Livewire.on('poll-status', (data) => {
-            pendingJobs = data.pendingJobs || 0;
+            const newPendingJobs = data.pendingJobs || 0;
+            const completedJobs = data.completedJobs || 0;
+
+            // If jobs completed, reset backoff for faster updates
+            if (completedJobs > 0) {
+                pollBackoff = MIN_POLL_INTERVAL;
+                consecutiveEmptyPolls = 0;
+            } else {
+                // No jobs completed this poll - increase backoff
+                consecutiveEmptyPolls++;
+                if (consecutiveEmptyPolls > 3) {
+                    pollBackoff = Math.min(pollBackoff * 1.5, MAX_POLL_INTERVAL);
+                }
+            }
+
+            pendingJobs = newPendingJobs;
             if (pendingJobs === 0) {
                 stopPolling();
+            } else {
+                // Restart with new interval
+                stopPolling();
+                startPolling();
             }
         });
 
         // Listen for image ready events
         Livewire.on('image-ready', (data) => {
             console.log('Image ready for scene:', data.sceneIndex);
+            // Navigate to the page containing the completed scene
+            const sceneIndex = data.sceneIndex;
+            if (typeof sceneIndex === 'number') {
+                // Let the component know to jump to this scene's page
+                Livewire.dispatch('scene-completed', { sceneIndex });
+            }
         });
 
         // Listen for image errors
@@ -1441,26 +1556,32 @@
         });
 
         function startPolling() {
-            if (pollInterval) return;
+            if (pollInterval || !isPageVisible) return;
+
             pollInterval = setInterval(() => {
-                if (pendingJobs > 0) {
+                if (pendingJobs > 0 && isPageVisible) {
                     Livewire.dispatch('poll-image-jobs');
-                } else {
+                } else if (pendingJobs === 0) {
                     stopPolling();
                 }
-            }, 3000);
+            }, pollBackoff);
+
+            console.log('Polling started with interval:', pollBackoff + 'ms');
         }
 
         function stopPolling() {
             if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+                console.log('Polling stopped');
             }
         }
 
-        // Check for pending jobs on page load
+        // Check for pending jobs on page load (delayed to let Livewire hydrate)
         setTimeout(() => {
-            Livewire.dispatch('check-pending-jobs');
+            if (isPageVisible) {
+                Livewire.dispatch('check-pending-jobs');
+            }
         }, 1000);
     });
 </script>

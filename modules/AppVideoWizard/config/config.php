@@ -256,7 +256,7 @@ return [
                     'description' => 'High-octane, physical, thrilling',
                     'characteristics' => ['dynamic', 'fast-paced', 'exciting'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 120, 'max' => 600],
+                    'suggestedDuration' => ['min' => 120, 'max' => 7200], // 2min - 2hr
                 ],
                 'drama' => [
                     'id' => 'drama',
@@ -265,43 +265,43 @@ return [
                     'description' => 'Character-driven, emotional storytelling',
                     'characteristics' => ['emotional', 'character-focused', 'narrative'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 120, 'max' => 600],
+                    'suggestedDuration' => ['min' => 120, 'max' => 10800], // 2min - 3hr
                 ],
                 'thriller' => [
                     'id' => 'thriller',
                     'name' => 'Thriller/Suspense',
-                    'icon' => '🔮',
+                    'icon' => '🔍',
                     'description' => 'Tension, mystery, psychological depth',
                     'characteristics' => ['suspenseful', 'mysterious', 'engaging'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 120, 'max' => 600],
+                    'suggestedDuration' => ['min' => 120, 'max' => 7200], // 2min - 2hr
                 ],
                 'horror' => [
                     'id' => 'horror',
                     'name' => 'Horror',
-                    'icon' => '👻',
+                    'icon' => '💀',
                     'description' => 'Fear, dread, supernatural terror',
                     'characteristics' => ['scary', 'atmospheric', 'suspense'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 90, 'max' => 600],
+                    'suggestedDuration' => ['min' => 90, 'max' => 7200], // 90s - 2hr
                 ],
-                'scifi' => [
-                    'id' => 'scifi',
+                'sci-fi' => [
+                    'id' => 'sci-fi',
                     'name' => 'Sci-Fi',
                     'icon' => '🚀',
                     'description' => 'Futuristic, speculative, technological',
                     'characteristics' => ['speculative', 'technology', 'wonder'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 120, 'max' => 600],
+                    'suggestedDuration' => ['min' => 120, 'max' => 7200],
                 ],
                 'comedy' => [
                     'id' => 'comedy',
                     'name' => 'Comedy',
-                    'icon' => '😄',
+                    'icon' => '😂',
                     'description' => 'Humor, wit, comedic timing',
                     'characteristics' => ['funny', 'timing', 'character-comedy'],
                     'defaultNarration' => 'dialogue',
-                    'suggestedDuration' => ['min' => 90, 'max' => 600],
+                    'suggestedDuration' => ['min' => 90, 'max' => 7200], // 90s - 2hr
                 ],
             ],
         ],
@@ -599,12 +599,17 @@ return [
     |--------------------------------------------------------------------------
     | Narrative Structure Intelligence
     |--------------------------------------------------------------------------
-    | Story arcs, presets, tension curves, and emotional journeys for
-    | Hollywood production level script generation
+    | Universal story structures, content formats, presets, tension curves,
+    | and emotional journeys for professional-level script generation.
+    |
+    | ORGANIZATION:
+    | - narrative_structures: Universal story frameworks (three-act, hero's journey, etc.)
+    | - content_formats: Platform/domain-specific formats (YouTube, TikTok, documentary, etc.)
+    | - narrative_presets: Ready-to-use combinations organized by duration (short/feature)
     */
 
-    // Story Arc Structures - How the narrative unfolds
-    'story_arcs' => [
+    // Universal Narrative Structures - Timeless story frameworks
+    'narrative_structures' => [
         'three-act' => [
             'id' => 'three-act',
             'name' => 'Three-Act Structure',
@@ -612,6 +617,7 @@ return [
             'description' => 'Classic Hollywood: Setup → Confrontation → Resolution',
             'structure' => ['setup' => 25, 'confrontation' => 50, 'resolution' => 25],
             'beats' => ['hook', 'inciting_incident', 'rising_action', 'midpoint', 'crisis', 'climax', 'resolution'],
+            'bestFor' => ['drama', 'action', 'comedy', 'horror'],
         ],
         'five-act' => [
             'id' => 'five-act',
@@ -620,14 +626,16 @@ return [
             'description' => 'Shakespearean: Exposition → Rising → Climax → Falling → Resolution',
             'structure' => ['exposition' => 15, 'rising' => 25, 'climax' => 20, 'falling' => 25, 'resolution' => 15],
             'beats' => ['exposition', 'rising_action', 'climax', 'falling_action', 'denouement'],
+            'bestFor' => ['drama', 'epic', 'series'],
         ],
-        'heros-journey' => [
-            'id' => 'heros-journey',
+        'hero-journey' => [
+            'id' => 'hero-journey',
             'name' => "Hero's Journey",
             'icon' => '⚔️',
             'description' => "Campbell's monomyth: Ordinary World → Adventure → Transformation → Return",
             'structure' => ['departure' => 25, 'initiation' => 50, 'return' => 25],
             'beats' => ['ordinary_world', 'call_to_adventure', 'threshold', 'trials', 'ordeal', 'reward', 'return'],
+            'bestFor' => ['action', 'adventure', 'fantasy', 'sci-fi', 'inspirational'],
         ],
         'story-circle' => [
             'id' => 'story-circle',
@@ -636,6 +644,7 @@ return [
             'description' => "Dan Harmon's 8-step: You → Need → Go → Search → Find → Take → Return → Change",
             'structure' => ['comfort' => 12, 'desire' => 12, 'unfamiliar' => 13, 'adapt' => 13, 'find' => 12, 'take' => 13, 'return' => 12, 'change' => 13],
             'beats' => ['comfort_zone', 'desire', 'unfamiliar_situation', 'adapt', 'get_what_wanted', 'pay_price', 'return', 'change'],
+            'bestFor' => ['comedy', 'drama', 'series'],
         ],
         'freytags-pyramid' => [
             'id' => 'freytags-pyramid',
@@ -644,6 +653,7 @@ return [
             'description' => 'Dramatic arc: Exposition → Rise → Climax → Fall → Catastrophe',
             'structure' => ['exposition' => 15, 'rising' => 30, 'climax' => 10, 'falling' => 30, 'catastrophe' => 15],
             'beats' => ['exposition', 'rising_action', 'climax', 'falling_action', 'catastrophe'],
+            'bestFor' => ['thriller', 'tragedy', 'drama'],
         ],
         'kishotenketsu' => [
             'id' => 'kishotenketsu',
@@ -652,7 +662,12 @@ return [
             'description' => 'East Asian 4-part: Introduction → Development → Twist → Conclusion',
             'structure' => ['ki' => 25, 'sho' => 25, 'ten' => 25, 'ketsu' => 25],
             'beats' => ['introduction', 'development', 'twist', 'conclusion'],
+            'bestFor' => ['drama', 'mystery', 'slice-of-life'],
         ],
+    ],
+
+    // Content Formats - Platform/domain-specific storytelling approaches
+    'content_formats' => [
         'youtube-retention' => [
             'id' => 'youtube-retention',
             'name' => 'YouTube Retention',
@@ -660,22 +675,28 @@ return [
             'description' => 'Optimized for watch time: Hook → Promise → Deliver → Reward loops',
             'structure' => ['hook' => 5, 'promise' => 10, 'deliver' => 70, 'cta' => 15],
             'beats' => ['hook', 'tease', 'value_1', 'pattern_break', 'value_2', 'pattern_break', 'value_3', 'cta'],
+            'platform' => 'youtube',
+            'durationRange' => ['min' => 60, 'max' => 1200], // 1-20 min
         ],
         'tiktok-viral' => [
             'id' => 'tiktok-viral',
-            'name' => 'TikTok Viral',
+            'name' => 'TikTok/Reels Viral',
             'icon' => '⚡',
             'description' => 'Stop scroll immediately → Build to payoff at 80% → Loop-worthy ending',
             'structure' => ['hook' => 10, 'build' => 70, 'payoff' => 15, 'loop' => 5],
             'beats' => ['scroll_stop', 'promise', 'buildup', 'payoff', 'loop_point'],
+            'platform' => 'tiktok',
+            'durationRange' => ['min' => 15, 'max' => 180], // 15s-3min
         ],
         'problem-solution' => [
             'id' => 'problem-solution',
             'name' => 'Problem-Solution',
             'icon' => '💡',
-            'description' => 'Educational: Problem → Agitate → Solution → Result',
+            'description' => 'Educational/Commercial: Problem → Agitate → Solution → Result',
             'structure' => ['problem' => 25, 'agitate' => 25, 'solution' => 35, 'result' => 15],
             'beats' => ['problem_intro', 'pain_points', 'solution_reveal', 'how_it_works', 'results'],
+            'platform' => 'any',
+            'durationRange' => ['min' => 30, 'max' => 600],
         ],
         'before-after-bridge' => [
             'id' => 'before-after-bridge',
@@ -684,14 +705,8 @@ return [
             'description' => 'Transformation: Current state → Dream state → How to get there',
             'structure' => ['before' => 30, 'after' => 30, 'bridge' => 40],
             'beats' => ['current_pain', 'dream_outcome', 'solution_path', 'action_steps'],
-        ],
-        'inverted-pyramid' => [
-            'id' => 'inverted-pyramid',
-            'name' => 'Inverted Pyramid',
-            'icon' => '📰',
-            'description' => 'News style: Most important first → Supporting details → Background',
-            'structure' => ['lead' => 20, 'body' => 50, 'tail' => 30],
-            'beats' => ['key_fact', 'important_details', 'supporting_info', 'background'],
+            'platform' => 'any',
+            'durationRange' => ['min' => 30, 'max' => 300],
         ],
         'documentary' => [
             'id' => 'documentary',
@@ -700,117 +715,282 @@ return [
             'description' => 'Evidence-based: Setup → Investigation → Discovery → Reflection',
             'structure' => ['setup' => 15, 'investigation' => 40, 'discovery' => 30, 'reflection' => 15],
             'beats' => ['opening_hook', 'context', 'evidence', 'interviews', 'revelation', 'conclusion'],
+            'platform' => 'any',
+            'durationRange' => ['min' => 300, 'max' => 7200], // 5min-2hr
+        ],
+        'inverted-pyramid' => [
+            'id' => 'inverted-pyramid',
+            'name' => 'Inverted Pyramid',
+            'icon' => '📰',
+            'description' => 'News style: Most important first → Supporting details → Background',
+            'structure' => ['lead' => 20, 'body' => 50, 'tail' => 30],
+            'beats' => ['key_fact', 'important_details', 'supporting_info', 'background'],
+            'platform' => 'any',
+            'durationRange' => ['min' => 60, 'max' => 600],
         ],
     ],
 
-    // Narrative Presets - Platform-optimized storytelling formulas
+    // Legacy alias for backward compatibility
+    'story_arcs' => [], // Will be populated dynamically - see service provider
+
+    // Narrative Presets - Ready-to-use storytelling configurations
+    // Organized by content duration: short-form (under 15 min) and feature (20+ min)
     'narrative_presets' => [
-        'youtube-standard' => [
-            'id' => 'youtube-standard',
-            'name' => 'YouTube Standard',
-            'icon' => '📺',
-            'description' => 'Hook in 5s, pattern breaks every 45-60s, strong CTA ending',
-            'defaultArc' => 'youtube-retention',
-            'defaultTension' => 'waves',
-            'hookTiming' => 5,
-            'patternBreakInterval' => 45,
-            'ctaPosition' => 90,
-            'tips' => 'Use open loops, tease upcoming content, deliver value consistently',
-        ],
+        // ============================================
+        // SHORT-FORM PRESETS (Under 15 minutes)
+        // ============================================
         'tiktok-viral' => [
             'id' => 'tiktok-viral',
-            'name' => 'TikTok Viral',
+            'name' => 'TikTok/Reels',
             'icon' => '⚡',
+            'category' => 'short',
             'description' => 'Stop the scroll immediately, build to payoff at 80%, loop-worthy ending',
-            'defaultArc' => 'tiktok-viral',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => 'tiktok-viral',
             'defaultTension' => 'steady-build',
+            'defaultEmotion' => 'awe',
             'hookTiming' => 0,
             'payoffPosition' => 80,
             'loopFriendly' => true,
+            'durationRange' => ['min' => 15, 'max' => 180],
             'tips' => 'First frame must hook, use trending sounds, create share-worthy moment',
         ],
-        'cinematic-short' => [
-            'id' => 'cinematic-short',
-            'name' => 'Cinematic Short',
+        'youtube-standard' => [
+            'id' => 'youtube-standard',
+            'name' => 'YouTube',
+            'icon' => '📺',
+            'category' => 'short',
+            'description' => 'Hook in 5s, pattern breaks every 45-60s, strong CTA ending',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => 'youtube-retention',
+            'defaultTension' => 'waves',
+            'defaultEmotion' => 'awe',
+            'hookTiming' => 5,
+            'patternBreakInterval' => 45,
+            'ctaPosition' => 90,
+            'durationRange' => ['min' => 60, 'max' => 900],
+            'tips' => 'Use open loops, tease upcoming content, deliver value consistently',
+        ],
+        'short-cinematic' => [
+            'id' => 'short-cinematic',
+            'name' => 'Short Film',
             'icon' => '🎬',
-            'description' => 'Character development focus, slow-burn tension, emotional resolution',
-            'defaultArc' => 'three-act',
+            'category' => 'short',
+            'description' => 'Character development focus, visual storytelling, emotional resolution',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => null,
             'defaultTension' => 'slow-burn',
             'defaultEmotion' => 'triumph',
             'pacing' => 'deliberate',
+            'durationRange' => ['min' => 120, 'max' => 900],
             'tips' => 'Focus on visual storytelling, let moments breathe, build emotional investment',
         ],
-        'documentary-feature' => [
-            'id' => 'documentary-feature',
-            'name' => 'Documentary',
-            'icon' => '📽️',
-            'description' => 'Evidence-based reveals, interview integration, reflective ending',
-            'defaultArc' => 'documentary',
-            'defaultTension' => 'escalating-steps',
-            'defaultEmotion' => 'educational',
-            'tips' => 'Build credibility with facts, use expert voices, leave viewer thinking',
+        'short-thriller' => [
+            'id' => 'short-thriller',
+            'name' => 'Short Thriller',
+            'icon' => '😰',
+            'category' => 'short',
+            'description' => 'Twist at 75%, ratcheting tension, revelation climax',
+            'defaultStructure' => 'freytags-pyramid',
+            'defaultFormat' => null,
+            'defaultTension' => 'rollercoaster',
+            'defaultEmotion' => 'thriller',
+            'twistPosition' => 75,
+            'durationRange' => ['min' => 120, 'max' => 900],
+            'tips' => 'Plant clues early, misdirect attention, satisfying twist reveal',
         ],
-        'series-episode' => [
-            'id' => 'series-episode',
-            'name' => 'Series Episode',
-            'icon' => '📺',
-            'description' => 'Cliffhanger ending, serial elements, double-peak tension',
-            'defaultArc' => 'five-act',
-            'defaultTension' => 'double-peak',
-            'cliffhangerEnding' => true,
-            'tips' => 'Reference previous episodes, set up future plots, end on hook',
+        'short-horror' => [
+            'id' => 'short-horror',
+            'name' => 'Short Horror',
+            'icon' => '👻',
+            'category' => 'short',
+            'description' => 'Scares every 45s, flat-with-spikes tension, ambiguous ending',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'flat-with-spikes',
+            'defaultEmotion' => 'horror',
+            'scareInterval' => 45,
+            'durationRange' => ['min' => 90, 'max' => 900],
+            'tips' => 'Build dread, use silence effectively, leave questions unanswered',
         ],
         'commercial-spot' => [
             'id' => 'commercial-spot',
             'name' => 'Commercial/Ad',
             'icon' => '📢',
+            'category' => 'short',
             'description' => 'Brand reveal at 80%, problem-solution arc, strong CTA',
-            'defaultArc' => 'problem-solution',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => 'problem-solution',
             'defaultTension' => 'steady-build',
+            'defaultEmotion' => 'triumph',
             'brandRevealPosition' => 80,
+            'durationRange' => ['min' => 15, 'max' => 120],
             'tips' => 'Lead with emotion, delay brand reveal, clear single CTA',
         ],
-        'thriller-short' => [
-            'id' => 'thriller-short',
-            'name' => 'Thriller',
-            'icon' => '😰',
-            'description' => 'Twist at 75%, ratcheting tension, revelation climax',
-            'defaultArc' => 'freytags-pyramid',
-            'defaultTension' => 'rollercoaster',
-            'defaultEmotion' => 'thriller',
-            'twistPosition' => 75,
-            'tips' => 'Plant clues early, misdirect attention, satisfying twist reveal',
-        ],
-        'horror-short' => [
-            'id' => 'horror-short',
-            'name' => 'Horror',
-            'icon' => '👻',
-            'description' => 'Scares every 45s, flat-with-spikes tension, ambiguous ending',
-            'defaultArc' => 'three-act',
-            'defaultTension' => 'flat-with-spikes',
-            'defaultEmotion' => 'horror',
-            'scareInterval' => 45,
-            'tips' => 'Build dread, use silence effectively, leave questions unanswered',
+        'explainer' => [
+            'id' => 'explainer',
+            'name' => 'Explainer',
+            'icon' => '📚',
+            'category' => 'short',
+            'description' => 'Clear structure, visual aids, knowledge retention focus',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => 'problem-solution',
+            'defaultTension' => 'escalating-steps',
+            'defaultEmotion' => 'educational',
+            'durationRange' => ['min' => 60, 'max' => 600],
+            'tips' => 'Chunk information, use analogies, summarize key points',
         ],
         'inspirational' => [
             'id' => 'inspirational',
             'name' => 'Inspirational',
             'icon' => '🌟',
+            'category' => 'short',
             'description' => 'Transformation arc, escalating emotional peaks, uplifting ending',
-            'defaultArc' => 'heros-journey',
+            'defaultStructure' => 'hero-journey',
+            'defaultFormat' => null,
             'defaultTension' => 'steady-build',
             'defaultEmotion' => 'triumph',
+            'durationRange' => ['min' => 60, 'max' => 600],
             'tips' => 'Start with struggle, show growth moments, end on high note',
         ],
-        'educational-explainer' => [
-            'id' => 'educational-explainer',
-            'name' => 'Explainer',
-            'icon' => '📚',
-            'description' => 'Clear structure, visual aids, knowledge retention focus',
-            'defaultArc' => 'problem-solution',
+
+        // ============================================
+        // FEATURE-LENGTH PRESETS (20+ minutes)
+        // ============================================
+        'feature-action' => [
+            'id' => 'feature-action',
+            'name' => 'Action Feature',
+            'icon' => '💥',
+            'category' => 'feature',
+            'description' => 'Multiple set pieces, escalating stakes, spectacular climax',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'rollercoaster',
+            'defaultEmotion' => 'triumph',
+            'pacing' => 'dynamic',
+            'setpieces' => ['opening_action', 'midpoint_action', 'climax_action'],
+            'durationRange' => ['min' => 1200, 'max' => 7200],
+            'tips' => 'Balance action with character moments, escalate stakes with each set piece, ensure clear geography in action scenes',
+        ],
+        'feature-drama' => [
+            'id' => 'feature-drama',
+            'name' => 'Drama Feature',
+            'icon' => '🎭',
+            'category' => 'feature',
+            'description' => 'Deep character arcs, subplots, thematic resonance, emotional catharsis',
+            'defaultStructure' => 'five-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'slow-burn',
+            'defaultEmotion' => 'redemption',
+            'pacing' => 'deliberate',
+            'characterArcs' => true,
+            'subplots' => true,
+            'durationRange' => ['min' => 1200, 'max' => 10800],
+            'tips' => 'Let scenes breathe, develop relationships gradually, earn emotional payoffs through setup',
+        ],
+        'feature-thriller' => [
+            'id' => 'feature-thriller',
+            'name' => 'Thriller Feature',
+            'icon' => '🔍',
+            'category' => 'feature',
+            'description' => 'Multiple red herrings, escalating paranoia, shocking revelation',
+            'defaultStructure' => 'freytags-pyramid',
+            'defaultFormat' => null,
+            'defaultTension' => 'rollercoaster',
+            'defaultEmotion' => 'thriller',
+            'pacing' => 'tense',
+            'twistPoints' => [25, 50, 75, 90],
+            'durationRange' => ['min' => 1200, 'max' => 7200],
+            'tips' => 'Plant clues throughout, misdirect with red herrings, make the audience doubt themselves',
+        ],
+        'feature-horror' => [
+            'id' => 'feature-horror',
+            'name' => 'Horror Feature',
+            'icon' => '💀',
+            'category' => 'feature',
+            'description' => 'Building dread, multiple scare sequences, terrifying climax',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'flat-with-spikes',
+            'defaultEmotion' => 'horror',
+            'pacing' => 'atmospheric',
+            'scareSequences' => ['introduction', 'escalation', 'climax'],
+            'durationRange' => ['min' => 1200, 'max' => 7200],
+            'tips' => 'Build atmosphere before scares, use silence effectively, make the audience care before threatening characters',
+        ],
+        'feature-sci-fi' => [
+            'id' => 'feature-sci-fi',
+            'name' => 'Sci-Fi Feature',
+            'icon' => '🚀',
+            'category' => 'feature',
+            'description' => 'World-building, conceptual exploration, wonder and discovery',
+            'defaultStructure' => 'hero-journey',
+            'defaultFormat' => null,
+            'defaultTension' => 'slow-burn',
+            'defaultEmotion' => 'awe',
+            'pacing' => 'epic',
+            'worldBuilding' => true,
+            'durationRange' => ['min' => 1200, 'max' => 10800],
+            'tips' => 'Ground sci-fi concepts in relatable emotions, reveal world rules gradually, balance spectacle with story',
+        ],
+        'feature-comedy' => [
+            'id' => 'feature-comedy',
+            'name' => 'Comedy Feature',
+            'icon' => '😂',
+            'category' => 'feature',
+            'description' => 'Multiple comedic sequences, character growth, satisfying resolution',
+            'defaultStructure' => 'story-circle',
+            'defaultFormat' => null,
+            'defaultTension' => 'waves',
+            'defaultEmotion' => 'comedy',
+            'pacing' => 'rhythmic',
+            'comedyBeats' => ['setup', 'complication', 'escalation', 'low_point', 'triumph'],
+            'durationRange' => ['min' => 1200, 'max' => 7200],
+            'tips' => 'Establish comedic rules early, escalate absurdity logically, balance laughs with heart',
+        ],
+        'documentary-feature' => [
+            'id' => 'documentary-feature',
+            'name' => 'Documentary',
+            'icon' => '📽️',
+            'category' => 'feature',
+            'description' => 'Evidence-based narrative, multiple perspectives, reflective conclusion',
+            'defaultStructure' => 'three-act',
+            'defaultFormat' => 'documentary',
             'defaultTension' => 'escalating-steps',
             'defaultEmotion' => 'educational',
-            'tips' => 'Chunk information, use analogies, summarize key points',
+            'pacing' => 'investigative',
+            'durationRange' => ['min' => 1200, 'max' => 10800],
+            'tips' => 'Build credibility with facts, use expert voices, balance information with emotion',
+        ],
+        'series-episode' => [
+            'id' => 'series-episode',
+            'name' => 'Series Episode',
+            'icon' => '📺',
+            'category' => 'feature',
+            'description' => 'Episode arc within series arc, cliffhanger ending, character continuity',
+            'defaultStructure' => 'five-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'double-peak',
+            'defaultEmotion' => 'mystery',
+            'cliffhangerEnding' => true,
+            'serialElements' => true,
+            'durationRange' => ['min' => 1200, 'max' => 3600],
+            'tips' => 'Balance standalone story with series arc, end on hook, reward returning viewers',
+        ],
+        'epic-narrative' => [
+            'id' => 'epic-narrative',
+            'name' => 'Epic/Saga',
+            'icon' => '👑',
+            'category' => 'feature',
+            'description' => 'Multiple storylines, extended runtime, grand scope and ambition',
+            'defaultStructure' => 'five-act',
+            'defaultFormat' => null,
+            'defaultTension' => 'double-peak',
+            'defaultEmotion' => 'triumph',
+            'pacing' => 'epic',
+            'multipleStorylines' => true,
+            'durationRange' => ['min' => 5400, 'max' => 14400], // 90min - 4hr
+            'tips' => 'Weave storylines thematically, use parallel editing, ensure each thread has clear arc',
         ],
     ],
 
@@ -822,207 +1002,330 @@ return [
     | This enables cascading selection: Step 1 choices influence Step 3 options.
     |
     | Structure:
-    | - 'default' => The preset auto-selected when this production type is chosen
-    | - 'recommended' => Array of presets shown as primary options
-    | - 'compatible' => Array of presets that work but aren't primary
-    | - 'hidden' => Array of presets that don't make sense for this type
+    | - 'short' => Presets for short-form content (under 20 min)
+    | - 'feature' => Presets for feature-length content (20+ min)
+    | Each contains: default, recommended, compatible arrays
+    |
+    | The VideoWizard determines which category to use based on targetDuration.
     */
     'production_preset_mapping' => [
-        // === SOCIAL CONTENT ===
+        // === SOCIAL CONTENT (Short-form only) ===
         'social' => [
             '_default' => [
-                'default' => 'tiktok-viral',
-                'recommended' => ['tiktok-viral', 'youtube-standard'],
-                'compatible' => ['inspirational', 'educational-explainer'],
-                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'tiktok-viral',
+                    'recommended' => ['tiktok-viral', 'youtube-standard'],
+                    'compatible' => ['inspirational', 'explainer'],
+                ],
+                'feature' => null, // Social content is always short-form
             ],
             'viral' => [
-                'default' => 'tiktok-viral',
-                'recommended' => ['tiktok-viral'],
-                'compatible' => ['youtube-standard'],
-                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'tiktok-viral',
+                    'recommended' => ['tiktok-viral'],
+                    'compatible' => ['youtube-standard'],
+                ],
+                'feature' => null,
             ],
             'educational-short' => [
-                'default' => 'educational-explainer',
-                'recommended' => ['educational-explainer', 'youtube-standard'],
-                'compatible' => ['tiktok-viral'],
-                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'explainer',
+                    'recommended' => ['explainer', 'youtube-standard'],
+                    'compatible' => ['tiktok-viral'],
+                ],
+                'feature' => null,
             ],
             'story-short' => [
-                'default' => 'tiktok-viral',
-                'recommended' => ['tiktok-viral', 'inspirational'],
-                'compatible' => ['youtube-standard'],
-                'hidden' => ['documentary-feature', 'series-episode'],
+                'short' => [
+                    'default' => 'tiktok-viral',
+                    'recommended' => ['tiktok-viral', 'inspirational'],
+                    'compatible' => ['youtube-standard', 'short-cinematic'],
+                ],
+                'feature' => null,
             ],
             'product' => [
-                'default' => 'commercial-spot',
-                'recommended' => ['commercial-spot', 'tiktok-viral'],
-                'compatible' => ['youtube-standard'],
-                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'commercial-spot',
+                    'recommended' => ['commercial-spot', 'tiktok-viral'],
+                    'compatible' => ['youtube-standard'],
+                ],
+                'feature' => null,
             ],
             'lifestyle' => [
-                'default' => 'youtube-standard',
-                'recommended' => ['youtube-standard', 'tiktok-viral', 'inspirational'],
-                'compatible' => [],
-                'hidden' => ['documentary-feature', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'youtube-standard',
+                    'recommended' => ['youtube-standard', 'tiktok-viral', 'inspirational'],
+                    'compatible' => [],
+                ],
+                'feature' => null,
             ],
             'meme-comedy' => [
-                'default' => 'tiktok-viral',
-                'recommended' => ['tiktok-viral'],
-                'compatible' => ['youtube-standard'],
-                'hidden' => ['cinematic-short', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'inspirational'],
+                'short' => [
+                    'default' => 'tiktok-viral',
+                    'recommended' => ['tiktok-viral'],
+                    'compatible' => ['youtube-standard'],
+                ],
+                'feature' => null,
             ],
         ],
 
-        // === MOVIE/FILM ===
+        // === MOVIE/FILM (Both short and feature) ===
         'movie' => [
             '_default' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short', 'inspirational'],
-                'compatible' => ['thriller-short', 'horror-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'inspirational'],
+                    'compatible' => ['short-thriller', 'short-horror'],
+                ],
+                'feature' => [
+                    'default' => 'feature-drama',
+                    'recommended' => ['feature-drama', 'feature-action'],
+                    'compatible' => ['epic-narrative', 'feature-thriller'],
+                ],
             ],
             'action' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short'],
-                'compatible' => ['thriller-short', 'inspirational'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'horror-short'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'short-thriller'],
+                    'compatible' => ['inspirational'],
+                ],
+                'feature' => [
+                    'default' => 'feature-action',
+                    'recommended' => ['feature-action'],
+                    'compatible' => ['feature-thriller', 'epic-narrative'],
+                ],
             ],
             'drama' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short', 'inspirational'],
-                'compatible' => ['documentary-feature'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'inspirational'],
+                    'compatible' => [],
+                ],
+                'feature' => [
+                    'default' => 'feature-drama',
+                    'recommended' => ['feature-drama'],
+                    'compatible' => ['epic-narrative', 'documentary-feature'],
+                ],
             ],
             'thriller' => [
-                'default' => 'thriller-short',
-                'recommended' => ['thriller-short', 'cinematic-short'],
-                'compatible' => [],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'inspirational', 'horror-short'],
+                'short' => [
+                    'default' => 'short-thriller',
+                    'recommended' => ['short-thriller', 'short-cinematic'],
+                    'compatible' => [],
+                ],
+                'feature' => [
+                    'default' => 'feature-thriller',
+                    'recommended' => ['feature-thriller'],
+                    'compatible' => ['feature-drama', 'feature-horror'],
+                ],
             ],
             'horror' => [
-                'default' => 'horror-short',
-                'recommended' => ['horror-short'],
-                'compatible' => ['thriller-short', 'cinematic-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'inspirational'],
+                'short' => [
+                    'default' => 'short-horror',
+                    'recommended' => ['short-horror', 'short-thriller'],
+                    'compatible' => [],
+                ],
+                'feature' => [
+                    'default' => 'feature-horror',
+                    'recommended' => ['feature-horror'],
+                    'compatible' => ['feature-thriller'],
+                ],
             ],
-            'scifi' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short'],
-                'compatible' => ['thriller-short', 'inspirational'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'horror-short'],
+            'sci-fi' => [
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'short-thriller'],
+                    'compatible' => ['inspirational'],
+                ],
+                'feature' => [
+                    'default' => 'feature-sci-fi',
+                    'recommended' => ['feature-sci-fi'],
+                    'compatible' => ['feature-action', 'feature-thriller', 'epic-narrative'],
+                ],
             ],
             'comedy' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short'],
-                'compatible' => ['inspirational'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic'],
+                    'compatible' => ['inspirational'],
+                ],
+                'feature' => [
+                    'default' => 'feature-comedy',
+                    'recommended' => ['feature-comedy'],
+                    'compatible' => ['feature-drama'],
+                ],
             ],
         ],
 
-        // === SERIES/EPISODES ===
+        // === SERIES/EPISODES (Feature-length) ===
         'series' => [
             '_default' => [
-                'default' => 'series-episode',
-                'recommended' => ['series-episode'],
-                'compatible' => ['cinematic-short', 'thriller-short', 'horror-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic'],
+                    'compatible' => ['short-thriller', 'short-horror'],
+                ],
+                'feature' => [
+                    'default' => 'series-episode',
+                    'recommended' => ['series-episode'],
+                    'compatible' => ['feature-drama', 'feature-thriller'],
+                ],
             ],
             'episode' => [
-                'default' => 'series-episode',
-                'recommended' => ['series-episode'],
-                'compatible' => ['cinematic-short', 'thriller-short', 'horror-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer'],
+                'short' => null, // Episodes are typically feature-length
+                'feature' => [
+                    'default' => 'series-episode',
+                    'recommended' => ['series-episode'],
+                    'compatible' => ['feature-drama', 'feature-thriller', 'feature-comedy'],
+                ],
             ],
             'mini-series' => [
-                'default' => 'series-episode',
-                'recommended' => ['series-episode'],
-                'compatible' => ['cinematic-short', 'documentary-feature'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'commercial-spot', 'educational-explainer'],
+                'short' => null,
+                'feature' => [
+                    'default' => 'series-episode',
+                    'recommended' => ['series-episode', 'epic-narrative'],
+                    'compatible' => ['feature-drama', 'documentary-feature'],
+                ],
             ],
         ],
 
-        // === EDUCATIONAL ===
+        // === EDUCATIONAL (Both short and feature) ===
         'educational' => [
             '_default' => [
-                'default' => 'educational-explainer',
-                'recommended' => ['educational-explainer', 'documentary-feature'],
-                'compatible' => ['youtube-standard', 'inspirational'],
-                'hidden' => ['tiktok-viral', 'commercial-spot', 'thriller-short', 'horror-short', 'cinematic-short'],
+                'short' => [
+                    'default' => 'explainer',
+                    'recommended' => ['explainer', 'youtube-standard'],
+                    'compatible' => ['inspirational'],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => [],
+                ],
             ],
             'tutorial' => [
-                'default' => 'educational-explainer',
-                'recommended' => ['educational-explainer'],
-                'compatible' => ['youtube-standard'],
-                'hidden' => ['tiktok-viral', 'documentary-feature', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short', 'series-episode'],
+                'short' => [
+                    'default' => 'explainer',
+                    'recommended' => ['explainer'],
+                    'compatible' => ['youtube-standard'],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => [],
+                ],
             ],
             'explainer' => [
-                'default' => 'educational-explainer',
-                'recommended' => ['educational-explainer'],
-                'compatible' => ['youtube-standard', 'documentary-feature'],
-                'hidden' => ['tiktok-viral', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short', 'series-episode'],
+                'short' => [
+                    'default' => 'explainer',
+                    'recommended' => ['explainer'],
+                    'compatible' => ['youtube-standard'],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => [],
+                ],
             ],
             'documentary' => [
-                'default' => 'documentary-feature',
-                'recommended' => ['documentary-feature'],
-                'compatible' => ['educational-explainer', 'inspirational'],
-                'hidden' => ['tiktok-viral', 'youtube-standard', 'commercial-spot', 'cinematic-short', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'explainer',
+                    'recommended' => ['explainer', 'inspirational'],
+                    'compatible' => [],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => ['epic-narrative'],
+                ],
             ],
         ],
 
-        // === MUSIC VIDEO ===
+        // === MUSIC VIDEO (Mostly short-form) ===
         'music' => [
             '_default' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short', 'inspirational'],
-                'compatible' => ['tiktok-viral'],
-                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'inspirational'],
+                    'compatible' => ['tiktok-viral'],
+                ],
+                'feature' => [
+                    'default' => 'feature-drama',
+                    'recommended' => ['feature-drama'],
+                    'compatible' => ['documentary-feature'],
+                ],
             ],
             'narrative' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short', 'inspirational'],
-                'compatible' => ['thriller-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic', 'inspirational'],
+                    'compatible' => ['short-thriller'],
+                ],
+                'feature' => [
+                    'default' => 'feature-drama',
+                    'recommended' => ['feature-drama'],
+                    'compatible' => ['feature-thriller'],
+                ],
             ],
             'performance' => [
-                'default' => 'cinematic-short',
-                'recommended' => ['cinematic-short'],
-                'compatible' => ['tiktok-viral', 'inspirational'],
-                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'short-cinematic',
+                    'recommended' => ['short-cinematic'],
+                    'compatible' => ['tiktok-viral', 'inspirational'],
+                ],
+                'feature' => null, // Performance videos are typically short
             ],
             'lyric' => [
-                'default' => 'inspirational',
-                'recommended' => ['inspirational', 'cinematic-short'],
-                'compatible' => ['tiktok-viral'],
-                'hidden' => ['youtube-standard', 'documentary-feature', 'commercial-spot', 'educational-explainer', 'series-episode', 'thriller-short', 'horror-short'],
+                'short' => [
+                    'default' => 'inspirational',
+                    'recommended' => ['inspirational', 'short-cinematic'],
+                    'compatible' => ['tiktok-viral'],
+                ],
+                'feature' => null, // Lyric videos are typically short
             ],
         ],
 
-        // === COMMERCIAL/PROMO ===
+        // === COMMERCIAL/PROMO (Short-form only) ===
         'commercial' => [
             '_default' => [
-                'default' => 'commercial-spot',
-                'recommended' => ['commercial-spot'],
-                'compatible' => ['inspirational', 'tiktok-viral'],
-                'hidden' => ['documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short'],
+                'short' => [
+                    'default' => 'commercial-spot',
+                    'recommended' => ['commercial-spot'],
+                    'compatible' => ['inspirational', 'tiktok-viral'],
+                ],
+                'feature' => null, // Commercials are always short-form
             ],
             'product-ad' => [
-                'default' => 'commercial-spot',
-                'recommended' => ['commercial-spot'],
-                'compatible' => ['tiktok-viral'],
-                'hidden' => ['youtube-standard', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short', 'inspirational'],
+                'short' => [
+                    'default' => 'commercial-spot',
+                    'recommended' => ['commercial-spot'],
+                    'compatible' => ['tiktok-viral'],
+                ],
+                'feature' => null,
             ],
             'brand' => [
-                'default' => 'commercial-spot',
-                'recommended' => ['commercial-spot', 'inspirational'],
-                'compatible' => ['cinematic-short'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'documentary-feature', 'series-episode', 'thriller-short', 'horror-short', 'educational-explainer'],
+                'short' => [
+                    'default' => 'commercial-spot',
+                    'recommended' => ['commercial-spot', 'inspirational'],
+                    'compatible' => ['short-cinematic'],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => ['feature-drama'],
+                ],
             ],
             'testimonial' => [
-                'default' => 'commercial-spot',
-                'recommended' => ['commercial-spot', 'documentary-feature'],
-                'compatible' => ['inspirational'],
-                'hidden' => ['youtube-standard', 'tiktok-viral', 'series-episode', 'thriller-short', 'horror-short', 'cinematic-short', 'educational-explainer'],
+                'short' => [
+                    'default' => 'commercial-spot',
+                    'recommended' => ['commercial-spot'],
+                    'compatible' => ['inspirational'],
+                ],
+                'feature' => [
+                    'default' => 'documentary-feature',
+                    'recommended' => ['documentary-feature'],
+                    'compatible' => [],
+                ],
             ],
         ],
     ],
