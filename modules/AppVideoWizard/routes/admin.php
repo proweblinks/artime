@@ -6,6 +6,8 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\PromptController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\ProductionTypeController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenerationLogController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\CinematographyController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\GenrePresetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,7 +15,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
 |--------------------------------------------------------------------------
 |
 | Admin panel routes for managing Video Wizard settings, prompts,
-| production types, and viewing generation logs.
+| production types, cinematography settings, and viewing generation logs.
 |
 */
 
@@ -102,6 +104,79 @@ Route::middleware(['web', 'auth'])->group(function () {
                 ->name('admin.video-wizard.logs.export');
             Route::get('/{log}', [GenerationLogController::class, 'show'])
                 ->name('admin.video-wizard.logs.show');
+        });
+
+        // =============================================
+        // PROFESSIONAL CINEMATOGRAPHY SYSTEM
+        // =============================================
+        Route::prefix('cinematography')->group(function () {
+            // Dashboard
+            Route::get('/', [CinematographyController::class, 'index'])
+                ->name('admin.video-wizard.cinematography.index');
+
+            // Genre Presets (full CRUD)
+            Route::prefix('genre-presets')->group(function () {
+                Route::get('/', [GenrePresetController::class, 'index'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.index');
+                Route::get('/create', [GenrePresetController::class, 'create'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.create');
+                Route::post('/', [GenrePresetController::class, 'store'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.store');
+                Route::get('/{genrePreset}/edit', [GenrePresetController::class, 'edit'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.edit');
+                Route::put('/{genrePreset}', [GenrePresetController::class, 'update'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.update');
+                Route::delete('/{genrePreset}', [GenrePresetController::class, 'destroy'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.destroy');
+                Route::post('/{genrePreset}/toggle', [GenrePresetController::class, 'toggle'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.toggle');
+                Route::post('/{genrePreset}/clone', [GenrePresetController::class, 'clone'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.clone');
+                Route::post('/reorder', [GenrePresetController::class, 'reorder'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.reorder');
+                Route::get('/export', [GenrePresetController::class, 'export'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.export');
+                Route::post('/import', [GenrePresetController::class, 'import'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.import');
+                Route::get('/{genrePreset}/preview', [GenrePresetController::class, 'preview'])
+                    ->name('admin.video-wizard.cinematography.genre-presets.preview');
+            });
+
+            // Shot Types (50+ types)
+            Route::get('/shot-types', [CinematographyController::class, 'shotTypes'])
+                ->name('admin.video-wizard.cinematography.shot-types');
+            Route::get('/shot-types/{shotType}/edit', [CinematographyController::class, 'editShotType'])
+                ->name('admin.video-wizard.cinematography.shot-types.edit');
+            Route::put('/shot-types/{shotType}', [CinematographyController::class, 'updateShotType'])
+                ->name('admin.video-wizard.cinematography.shot-types.update');
+            Route::post('/shot-types/{shotType}/toggle', [CinematographyController::class, 'toggleShotType'])
+                ->name('admin.video-wizard.cinematography.shot-types.toggle');
+
+            // Emotional Beats (Three-Act Structure)
+            Route::get('/emotional-beats', [CinematographyController::class, 'emotionalBeats'])
+                ->name('admin.video-wizard.cinematography.emotional-beats');
+            Route::post('/emotional-beats/{emotionalBeat}/toggle', [CinematographyController::class, 'toggleEmotionalBeat'])
+                ->name('admin.video-wizard.cinematography.emotional-beats.toggle');
+
+            // Story Structures (Hero's Journey, etc.)
+            Route::get('/story-structures', [CinematographyController::class, 'storyStructures'])
+                ->name('admin.video-wizard.cinematography.story-structures');
+            Route::post('/story-structures/{storyStructure}/toggle', [CinematographyController::class, 'toggleStoryStructure'])
+                ->name('admin.video-wizard.cinematography.story-structures.toggle');
+            Route::post('/story-structures/{storyStructure}/set-default', [CinematographyController::class, 'setDefaultStructure'])
+                ->name('admin.video-wizard.cinematography.story-structures.set-default');
+
+            // Camera Specs (Lenses, Film Stocks)
+            Route::get('/camera-specs', [CinematographyController::class, 'cameraSpecs'])
+                ->name('admin.video-wizard.cinematography.camera-specs');
+            Route::post('/camera-specs/{cameraSpec}/toggle', [CinematographyController::class, 'toggleCameraSpec'])
+                ->name('admin.video-wizard.cinematography.camera-specs.toggle');
+
+            // Bulk Operations
+            Route::post('/clear-caches', [CinematographyController::class, 'clearCaches'])
+                ->name('admin.video-wizard.cinematography.clear-caches');
+            Route::get('/export-all', [CinematographyController::class, 'exportAll'])
+                ->name('admin.video-wizard.cinematography.export-all');
         });
 
         // Settings (credit costs, AI models, etc.)
