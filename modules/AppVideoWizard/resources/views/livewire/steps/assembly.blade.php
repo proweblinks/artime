@@ -1,10 +1,8 @@
 {{-- Step 6: Assembly Studio - Full-Screen Professional Editor --}}
 
-{{-- Load Video Preview Engine and Controller Scripts --}}
-@push('scripts')
+{{-- Load Video Preview Engine and Controller Scripts INLINE to ensure they're available before Alpine --}}
 <script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
 <script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
-@endpush
 
 @php
     $assemblyStats = $this->getAssemblyStats();
@@ -15,7 +13,37 @@
 <div
     class="vw-assembly-fullscreen"
     x-data="{
-        ...previewController(@js($this->getPreviewInitData())),
+        ...(typeof previewController === 'function' ? previewController(@js($this->getPreviewInitData())) : {
+            // Fallback properties if previewController isn't loaded yet
+            engine: null,
+            isReady: false,
+            isLoading: false,
+            isPlaying: false,
+            currentTime: 0,
+            totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+            loadProgress: 0,
+            currentSceneIndex: 0,
+            totalScenes: {{ count($script['scenes'] ?? []) }},
+            canvasWidth: 1280,
+            canvasHeight: 720,
+            aspectRatio: '{{ $aspectRatio ?? '16:9' }}',
+            captionsEnabled: {{ ($assembly['captions']['enabled'] ?? true) ? 'true' : 'false' }},
+            musicEnabled: {{ ($assembly['music']['enabled'] ?? false) ? 'true' : 'false' }},
+            init() { console.warn('previewController not loaded, using fallback'); },
+            formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return '0:00';
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return mins + ':' + secs.toString().padStart(2, '0');
+            },
+            togglePlay() {},
+            play() {},
+            pause() {},
+            seek(time) {},
+            seekStart() {},
+            seekEnd() {},
+            loadPreview() { console.warn('previewController not loaded'); }
+        }),
         activeTab: 'scenes',
         musicEnabled: @js($assembly['music']['enabled'] ?? false),
         captionsEnabled: @js($assembly['captions']['enabled'] ?? true),

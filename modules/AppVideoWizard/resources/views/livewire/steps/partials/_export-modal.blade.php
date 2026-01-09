@@ -22,6 +22,9 @@
     <div
         class="vw-export-modal-full"
         x-data="{
+            // Duration (synced from parent or computed)
+            totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+
             // Export state
             exporting: @js($isExporting),
             exportComplete: @js($exportComplete),
