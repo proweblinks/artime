@@ -1,8 +1,8 @@
-{{-- Load Video Preview Engine and Controller Scripts globally for Assembly step --}}
-<script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
-<script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
-
 <div class="video-wizard min-h-screen" x-data="{ showPreview: false }">
+    {{-- Load Video Preview Engine and Controller Scripts globally for Assembly step --}}
+    <script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
+    <script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
+
     {{-- Embedded CSS for Stepper (ensures styles aren't overridden) --}}
     <style>
         .vw-stepper {
