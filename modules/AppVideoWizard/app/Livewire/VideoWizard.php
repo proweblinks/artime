@@ -64,6 +64,132 @@ class VideoWizard extends Component
         ],
     ];
 
+    /**
+     * Professional Genre Presets - Camera Language & Style Bible
+     * Based on Hollywood cinematography standards from the original wizard.
+     * Each genre has specific camera movements, color grades, and lighting setups.
+     */
+    public const GENRE_PRESETS = [
+        // Documentary genres
+        'documentary-narrative' => [
+            'camera' => 'smooth tracking, wide establishing shots, intimate close-ups',
+            'colorGrade' => 'natural tones, slight desaturation, documentary realism',
+            'lighting' => 'natural light, available light, practical sources',
+            'atmosphere' => 'authentic environments, real textures, genuine moments',
+            'style' => 'documentary realism, authentic, observational',
+        ],
+        'documentary-interview' => [
+            'camera' => 'static interviews, dramatic zooms, handheld urgency',
+            'colorGrade' => 'neutral, clean whites, professional',
+            'lighting' => '3-point interview lighting, soft key, subtle fill',
+            'atmosphere' => 'professional, clean backgrounds, focus on subject',
+            'style' => 'interview style, professional, clear',
+        ],
+        'documentary-observational' => [
+            'camera' => 'observational, intimate close-ups, environmental wide shots',
+            'colorGrade' => 'natural, slightly warm, authentic',
+            'lighting' => 'available light only, natural sources',
+            'atmosphere' => 'fly-on-the-wall, unobtrusive, authentic',
+            'style' => 'observational documentary, candid, real',
+        ],
+
+        // Cinematic genres
+        'cinematic-thriller' => [
+            'camera' => 'slow dolly, low angles, stabilized gimbal, anamorphic lens feel',
+            'colorGrade' => 'desaturated teal shadows, amber highlights, crushed blacks',
+            'lighting' => 'harsh single-source, dramatic rim lights, deep shadows',
+            'atmosphere' => 'smoke, rain reflections, wet surfaces, urban grit',
+            'style' => 'ultra-cinematic photoreal, noir thriller, high contrast',
+        ],
+        'cinematic-action' => [
+            'camera' => 'fast dolly, dutch angles, tracking shots, crash zooms',
+            'colorGrade' => 'high contrast, orange and teal, saturated',
+            'lighting' => 'dramatic backlighting, lens flares, explosions',
+            'atmosphere' => 'dust, debris, fire, motion blur',
+            'style' => 'blockbuster action, high energy, dynamic composition',
+        ],
+        'cinematic-drama' => [
+            'camera' => 'elegant slow movements, meaningful compositions, long takes',
+            'colorGrade' => 'rich but restrained, natural skin tones, dramatic contrast',
+            'lighting' => 'motivated lighting, golden hour, intimate practicals',
+            'atmosphere' => 'subtle, realistic environments, emotional resonance',
+            'style' => 'prestige drama, Oscar-worthy cinematography, emotional depth',
+        ],
+
+        // Horror genres
+        'horror-psychological' => [
+            'camera' => 'dutch angles, slow creeping push-ins, unstable handheld',
+            'colorGrade' => 'desaturated, sickly greens, deep blacks, red accents',
+            'lighting' => 'low-key, single source, harsh shadows, flickering',
+            'atmosphere' => 'fog, dust motes, decayed textures, uncanny valley',
+            'style' => 'psychological horror, unsettling, dreamlike quality',
+        ],
+        'horror-supernatural' => [
+            'camera' => 'slow reveals, creeping dolly, ominous wide shots',
+            'colorGrade' => 'cold blues, deep shadows, occasional warm accents',
+            'lighting' => 'moonlight, candlelight, unnatural light sources',
+            'atmosphere' => 'mist, ancient architecture, supernatural elements',
+            'style' => 'supernatural horror, otherworldly, gothic atmosphere',
+        ],
+
+        // Tech & Education
+        'tech-explainer' => [
+            'camera' => 'smooth dolly, symmetrical framing, focus pulls',
+            'colorGrade' => 'cool blues, clean whites, accent neon highlights',
+            'lighting' => 'high-key soft lighting, no harsh shadows',
+            'atmosphere' => 'clean gradient backgrounds, subtle particle effects',
+            'style' => 'clean modern, minimal, high-tech aesthetic',
+        ],
+        'educational-general' => [
+            'camera' => 'steady, clear framing, emphasis on content',
+            'colorGrade' => 'vibrant but professional, clear contrast',
+            'lighting' => 'bright, even lighting, no distracting shadows',
+            'atmosphere' => 'clean, organized, professional',
+            'style' => 'educational, clear visuals, engaging graphics',
+        ],
+
+        // Lifestyle & Inspirational
+        'lifestyle-wellness' => [
+            'camera' => 'slow gentle movements, intimate framing, breathing room',
+            'colorGrade' => 'soft pastels, warm earth tones, gentle highlights',
+            'lighting' => 'soft natural light, golden hour, diffused',
+            'atmosphere' => 'peaceful, nature elements, organic textures',
+            'style' => 'wellness aesthetic, natural beauty, calming visuals',
+        ],
+        'inspirational-epic' => [
+            'camera' => 'rising crane shots, slow push-ins, sweeping wide angles',
+            'colorGrade' => 'rich, dramatic, warm tones, cinematic depth',
+            'lighting' => 'dramatic rim lighting, god rays, golden hour',
+            'atmosphere' => 'grand vistas, epic scale, awe-inspiring',
+            'style' => 'epic inspirational, sweeping, emotionally resonant',
+        ],
+
+        // Commercial genres
+        'commercial-comedy' => [
+            'camera' => 'quick cuts, reaction shots, comedic timing',
+            'colorGrade' => 'bright, saturated, punchy colors',
+            'lighting' => 'high-key, even, flattering',
+            'atmosphere' => 'energetic, fun, approachable',
+            'style' => 'comedy commercial, punchy, entertaining',
+        ],
+        'commercial-product' => [
+            'camera' => 'dynamic angles, quick cuts, energetic pacing',
+            'colorGrade' => 'high contrast, brand-appropriate, vibrant',
+            'lighting' => 'product lighting, clean, dramatic accents',
+            'atmosphere' => 'aspirational, modern, polished',
+            'style' => 'product showcase, dynamic, modern',
+        ],
+
+        // Default/Standard
+        'standard' => [
+            'camera' => 'balanced movements, professional framing, smooth transitions',
+            'colorGrade' => 'natural, balanced, professional',
+            'lighting' => 'motivated, natural-looking, balanced',
+            'atmosphere' => 'clean, professional, versatile',
+            'style' => 'professional standard, versatile, clean',
+        ],
+    ];
+
     // Step 2: Concept
     public array $concept = [
         'rawInput' => '',
@@ -7094,7 +7220,8 @@ class VideoWizard extends Component
             $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
             for ($i = 0; $i < $shotCount; $i++) {
-                $shotType = $this->getShotTypeForIndex($i, $shotCount);
+                // Pass scene for narrative-based shot selection
+                $shotType = $this->getShotTypeForIndex($i, $shotCount, $scene);
                 $cameraMovement = $this->getCameraMovementForShot($shotType['type'], $i);
 
                 // Build comprehensive shot structure matching original wizard schema
@@ -7108,6 +7235,8 @@ class VideoWizard extends Component
                     'type' => $shotType['type'],
                     'shotType' => $shotType['type'],
                     'description' => $shotType['description'],
+                    'purpose' => $shotType['purpose'] ?? 'narrative',
+                    'lens' => $shotType['lens'] ?? 'standard 50mm',
 
                     // Prompts for generation
                     'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
@@ -7173,6 +7302,7 @@ class VideoWizard extends Component
             $storyboardScene = $this->storyboard['scenes'][$sceneIndex] ?? null;
             if ($storyboardScene && !empty($storyboardScene['imageUrl'])) {
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $storyboardScene['imageUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageStatus'] = 'ready';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['status'] = 'ready';
             }
 
@@ -7187,84 +7317,463 @@ class VideoWizard extends Component
     }
 
     /**
-     * Get shot type configuration based on index and total count.
+     * Get shot type configuration based on index, total count, and narrative context.
+     * Uses professional Hollywood shot sequencing patterns.
      */
-    protected function getShotTypeForIndex(int $index, int $total): array
+    protected function getShotTypeForIndex(int $index, int $total, ?array $scene = null): array
     {
+        // Professional shot type definitions with cinematic descriptions
         $shotTypes = [
-            ['type' => 'establishing', 'description' => 'Wide establishing shot showing the environment'],
-            ['type' => 'medium', 'description' => 'Medium shot focusing on the main subject'],
-            ['type' => 'close-up', 'description' => 'Close-up shot emphasizing details'],
-            ['type' => 'reaction', 'description' => 'Reaction shot or cutaway'],
-            ['type' => 'detail', 'description' => 'Detail shot of important elements'],
-            ['type' => 'wide', 'description' => 'Wide shot showing full context'],
+            'establishing' => [
+                'type' => 'establishing',
+                'description' => 'Wide establishing shot showing full environment',
+                'purpose' => 'context',
+                'lens' => 'wide-angle 24mm',
+            ],
+            'wide' => [
+                'type' => 'wide',
+                'description' => 'Wide shot revealing full scene context',
+                'purpose' => 'scope',
+                'lens' => 'ultra-wide 16mm',
+            ],
+            'medium' => [
+                'type' => 'medium',
+                'description' => 'Medium shot focusing on main subject',
+                'purpose' => 'narrative',
+                'lens' => 'standard 50mm',
+            ],
+            'medium-close' => [
+                'type' => 'medium-close',
+                'description' => 'Medium close-up for dialogue and connection',
+                'purpose' => 'intimacy',
+                'lens' => '85mm portrait',
+            ],
+            'close-up' => [
+                'type' => 'close-up',
+                'description' => 'Close-up emphasizing emotion and detail',
+                'purpose' => 'emotion',
+                'lens' => 'telephoto 85mm, shallow depth of field',
+            ],
+            'extreme-close-up' => [
+                'type' => 'extreme-close-up',
+                'description' => 'Extreme close-up on critical detail',
+                'purpose' => 'emphasis',
+                'lens' => 'macro lens, extreme detail',
+            ],
+            'reaction' => [
+                'type' => 'reaction',
+                'description' => 'Reaction shot capturing emotional response',
+                'purpose' => 'response',
+                'lens' => '50mm standard',
+            ],
+            'detail' => [
+                'type' => 'detail',
+                'description' => 'Detail shot highlighting specific elements',
+                'purpose' => 'focus',
+                'lens' => 'macro or telephoto',
+            ],
+            'over-shoulder' => [
+                'type' => 'over-shoulder',
+                'description' => 'Over-the-shoulder shot for dialogue',
+                'purpose' => 'conversation',
+                'lens' => '35mm cinematic',
+            ],
+            'pov' => [
+                'type' => 'pov',
+                'description' => 'Point-of-view shot from character perspective',
+                'purpose' => 'immersion',
+                'lens' => 'wide 28mm',
+            ],
         ];
 
-        return $shotTypes[$index % count($shotTypes)];
+        // Get scene emotional beat if available
+        $emotionalBeat = $scene['emotionalBeat'] ?? $scene['mood'] ?? null;
+        $hasDialogue = !empty($scene['dialogue']) || !empty($scene['narration']);
+        $pacing = $this->content['pacing'] ?? 'balanced';
+
+        // PROFESSIONAL SHOT SEQUENCING PATTERNS
+        // Based on Hollywood cinematography principles
+
+        // First shot: Always establish context
+        if ($index === 0) {
+            return $shotTypes['establishing'];
+        }
+
+        // Last shot: Close with resolution (wide for scope, or close-up for emotion)
+        if ($index === $total - 1) {
+            // Emotional endings get close-ups, others get wide shots
+            if (in_array($emotionalBeat, ['climax', 'revelation', 'emotional', 'intimate'])) {
+                return $shotTypes['close-up'];
+            }
+            return $shotTypes['wide'];
+        }
+
+        // For 2-shot scenes: establishing → close-up
+        if ($total === 2) {
+            return $shotTypes['close-up'];
+        }
+
+        // For 3-shot scenes: establishing → medium → close-up/wide
+        if ($total === 3) {
+            return $index === 1 ? $shotTypes['medium'] : $shotTypes['close-up'];
+        }
+
+        // For 4+ shots: Use narrative-driven selection
+        $position = $index / ($total - 1); // 0.0 to 1.0 position in sequence
+
+        // Select based on emotional beat and position
+        if ($emotionalBeat) {
+            return $this->getShotForEmotionalBeat($emotionalBeat, $position, $shotTypes, $hasDialogue);
+        }
+
+        // Default professional sequence for 4+ shots
+        // Pattern: establishing → medium → close-up → reaction/detail → medium → wide
+        $defaultSequence = match(true) {
+            $position < 0.25 => $shotTypes['medium'],           // Early: medium shots
+            $position < 0.5 => $shotTypes['close-up'],          // Building: close-ups
+            $position < 0.75 => $hasDialogue ? $shotTypes['reaction'] : $shotTypes['detail'],
+            default => $shotTypes['medium'],                     // Late: return to medium
+        };
+
+        return $defaultSequence;
+    }
+
+    /**
+     * Get shot type based on emotional beat of the scene.
+     * Professional cinematographers match shots to emotional beats.
+     */
+    protected function getShotForEmotionalBeat(string $beat, float $position, array $shotTypes, bool $hasDialogue): array
+    {
+        return match($beat) {
+            // Tension scenes: tight shots, build pressure
+            'tension', 'suspense', 'tense' => match(true) {
+                $position < 0.33 => $shotTypes['medium'],
+                $position < 0.66 => $shotTypes['close-up'],
+                default => $shotTypes['extreme-close-up'],
+            },
+
+            // Action scenes: dynamic variety
+            'action', 'energetic', 'dynamic' => match(true) {
+                $position < 0.25 => $shotTypes['wide'],
+                $position < 0.5 => $shotTypes['medium'],
+                $position < 0.75 => $shotTypes['close-up'],
+                default => $shotTypes['wide'],
+            },
+
+            // Emotional/dramatic scenes: focus on faces
+            'emotional', 'dramatic', 'intimate' => match(true) {
+                $position < 0.33 => $shotTypes['medium-close'],
+                $position < 0.66 => $shotTypes['close-up'],
+                default => $shotTypes['reaction'],
+            },
+
+            // Dialogue scenes: over-shoulder and reactions
+            'dialogue', 'conversation' => match(true) {
+                $position < 0.33 => $hasDialogue ? $shotTypes['over-shoulder'] : $shotTypes['medium'],
+                $position < 0.66 => $shotTypes['medium-close'],
+                default => $shotTypes['reaction'],
+            },
+
+            // Reveal/discovery scenes: build to detail
+            'reveal', 'discovery', 'mystery' => match(true) {
+                $position < 0.5 => $shotTypes['medium'],
+                $position < 0.75 => $shotTypes['close-up'],
+                default => $shotTypes['detail'],
+            },
+
+            // Climax scenes: escalating intensity
+            'climax', 'peak' => match(true) {
+                $position < 0.33 => $shotTypes['wide'],
+                $position < 0.66 => $shotTypes['close-up'],
+                default => $shotTypes['extreme-close-up'],
+            },
+
+            // Contemplative/peaceful scenes: breathing room
+            'contemplative', 'peaceful', 'calm' => match(true) {
+                $position < 0.5 => $shotTypes['wide'],
+                default => $shotTypes['medium'],
+            },
+
+            // Default fallback
+            default => $shotTypes['medium'],
+        };
     }
 
     /**
      * Build prompt for a specific shot.
+     * Creates professional AI image prompts following Sora 2 / Runway best practices:
+     * - Optimal length: 50-100 words (2-4 sentences)
+     * - Include: subject, environment, camera specs, lighting, style
+     * - Be specific, avoid vague terms like "beautiful"
      */
     protected function buildShotPrompt(string $baseDescription, array $shotType, int $index): string
     {
-        $prompt = $baseDescription;
-        $prompt .= ", " . $shotType['type'] . " shot";
-        $prompt .= ", " . $shotType['description'];
+        $parts = [];
 
-        // Add style from Style Bible if enabled
-        if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
-            $prompt .= ", " . $this->sceneMemory['styleBible']['style'];
+        // 1. Subject and environment (from base description)
+        $parts[] = $baseDescription;
+
+        // 2. Shot framing with purpose
+        $purpose = $shotType['purpose'] ?? 'narrative';
+        $parts[] = "{$shotType['type']} shot for {$purpose}";
+
+        // 3. Lens specification (critical for AI video quality)
+        if (!empty($shotType['lens'])) {
+            $parts[] = $shotType['lens'];
         }
 
-        // Add technical specs
+        // 4. Genre-specific styling
+        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
+        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+
+        // Add genre color grade
+        if (!empty($genrePreset['colorGrade'])) {
+            $parts[] = $genrePreset['colorGrade'];
+        }
+
+        // Add genre lighting (first element only to keep prompt concise)
+        if (!empty($genrePreset['lighting'])) {
+            $lightingElements = explode(',', $genrePreset['lighting']);
+            $parts[] = trim($lightingElements[0]);
+        }
+
+        // 5. Style from Style Bible if enabled (override genre if set)
+        if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
+            $parts[] = $this->sceneMemory['styleBible']['style'];
+        } elseif (!empty($genrePreset['style'])) {
+            $parts[] = $genrePreset['style'];
+        }
+
+        // 6. Technical quality specs
         if ($this->storyboard['technicalSpecs']['enabled']) {
-            $prompt .= ", " . $this->storyboard['technicalSpecs']['positive'];
+            $parts[] = $this->storyboard['technicalSpecs']['positive'];
+        }
+
+        // Join with proper punctuation for optimal AI processing
+        $prompt = implode('. ', $parts);
+
+        // Ensure prompt stays under ~100 words for optimal AI processing
+        $words = str_word_count($prompt);
+        if ($words > 120) {
+            // Trim to core elements if too long
+            $prompt = implode('. ', array_slice($parts, 0, 5));
         }
 
         return $prompt;
     }
 
     /**
-     * Get camera movement for a shot based on its type.
+     * Get camera movement for a shot based on type and genre.
+     * Uses genre-specific camera language from GENRE_PRESETS.
      */
     protected function getCameraMovementForShot(string $shotType, int $index): string
     {
-        $movements = [
+        // Get genre-specific camera movements
+        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
+        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+
+        // Genre-specific movements for each shot type
+        $genreMovements = $this->parseGenreCameraLanguage($genrePreset['camera'] ?? '');
+
+        // Default movements per shot type
+        $defaultMovements = [
             'establishing' => 'slow pan',
-            'medium' => 'static',
-            'close-up' => 'push in',
-            'reaction' => 'quick cut',
-            'detail' => 'slow zoom',
             'wide' => 'drift',
+            'medium' => 'subtle movement',
+            'medium-close' => 'gentle push in',
+            'close-up' => 'slow push in',
+            'extreme-close-up' => 'static with subtle breathing',
+            'reaction' => 'quick responsive cut',
+            'detail' => 'slow zoom',
+            'over-shoulder' => 'slight drift',
+            'pov' => 'handheld subtle movement',
         ];
 
-        return $movements[$shotType] ?? 'static';
+        // First check if genre has a specific movement for this shot type
+        if (!empty($genreMovements[$shotType])) {
+            return $genreMovements[$shotType];
+        }
+
+        // Otherwise use genre's primary camera style combined with shot defaults
+        $primaryGenreMovement = $this->getPrimaryGenreMovement($genrePreset['camera'] ?? '');
+        if ($primaryGenreMovement && in_array($shotType, ['establishing', 'wide', 'medium'])) {
+            return $primaryGenreMovement;
+        }
+
+        return $defaultMovements[$shotType] ?? 'static';
     }
 
     /**
-     * Get motion description for video generation based on shot type.
+     * Parse genre camera language into shot-type movements.
+     */
+    protected function parseGenreCameraLanguage(string $cameraLanguage): array
+    {
+        $movements = [];
+        $language = strtolower($cameraLanguage);
+
+        // Map camera language keywords to shot types
+        if (str_contains($language, 'slow dolly') || str_contains($language, 'smooth dolly')) {
+            $movements['establishing'] = 'slow dolly forward';
+            $movements['medium'] = 'subtle dolly';
+        }
+        if (str_contains($language, 'dutch angle')) {
+            $movements['close-up'] = 'dutch angle, slight tilt';
+            $movements['reaction'] = 'dutch angle cut';
+        }
+        if (str_contains($language, 'tracking')) {
+            $movements['wide'] = 'tracking shot';
+            $movements['medium'] = 'gentle tracking';
+        }
+        if (str_contains($language, 'handheld')) {
+            $movements['close-up'] = 'handheld intimacy';
+            $movements['reaction'] = 'handheld responsive';
+        }
+        if (str_contains($language, 'crane') || str_contains($language, 'rising')) {
+            $movements['establishing'] = 'rising crane shot';
+            $movements['wide'] = 'crane descent';
+        }
+        if (str_contains($language, 'push-in') || str_contains($language, 'push in')) {
+            $movements['close-up'] = 'slow push in';
+            $movements['medium-close'] = 'creeping push in';
+        }
+        if (str_contains($language, 'static')) {
+            $movements['medium'] = 'static, stable frame';
+        }
+        if (str_contains($language, 'quick cut')) {
+            $movements['reaction'] = 'quick cut';
+            $movements['detail'] = 'quick insert cut';
+        }
+
+        return $movements;
+    }
+
+    /**
+     * Get primary camera movement from genre language.
+     */
+    protected function getPrimaryGenreMovement(string $cameraLanguage): ?string
+    {
+        $language = strtolower($cameraLanguage);
+
+        // Extract the first/primary movement mentioned
+        $movements = [
+            'slow dolly' => 'slow dolly',
+            'smooth tracking' => 'smooth tracking',
+            'dutch angle' => 'dutch angle',
+            'handheld' => 'handheld',
+            'crane shot' => 'crane movement',
+            'static' => 'static',
+            'elegant slow' => 'elegant slow movement',
+            'observational' => 'observational',
+        ];
+
+        foreach ($movements as $keyword => $movement) {
+            if (str_contains($language, $keyword)) {
+                return $movement;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get motion description for video generation based on shot type and genre.
+     * Creates professional AI video prompts following Sora 2 / Runway best practices.
      */
     protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription): string
     {
+        // Get genre preset for additional context
+        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
+        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+
+        // Professional motion descriptions per shot type
         $baseDescriptions = [
             'establishing' => 'Slow pan across the scene, establishing the environment and atmosphere',
+            'wide' => 'Expansive view with subtle camera drift revealing the full scene context',
             'medium' => 'Subtle movement focusing on the main subject with gentle camera motion',
-            'close-up' => 'Slight push in emphasizing details and expressions',
+            'medium-close' => 'Gentle push in for intimacy, maintaining connection with subject',
+            'close-up' => 'Slight push in emphasizing details and expressions, shallow depth of field',
+            'extreme-close-up' => 'Near-static with subtle breathing movement, extreme detail focus',
             'reaction' => 'Quick responsive movement capturing emotional response',
             'detail' => 'Slow zoom highlighting specific important elements',
-            'wide' => 'Expansive view with subtle camera drift revealing the full scene',
+            'over-shoulder' => 'Subtle lateral drift maintaining dialogue perspective',
+            'pov' => 'Handheld movement from character perspective, immersive',
         ];
 
         $base = $baseDescriptions[$shotType] ?? 'Natural subtle movement maintaining visual interest';
 
-        // Add context from visual description if available
-        if (strlen($visualDescription) > 20) {
-            $contextSnippet = substr($visualDescription, 0, 100);
-            return "{$base}. Context: {$contextSnippet}";
+        // Build professional prompt following best practices
+        $parts = [];
+
+        // 1. Base movement description
+        $parts[] = $base;
+
+        // 2. Camera movement specification
+        if (!empty($cameraMovement) && $cameraMovement !== 'static') {
+            $parts[] = "Camera: {$cameraMovement}";
         }
 
-        return $base;
+        // 3. Genre atmosphere
+        if (!empty($genrePreset['atmosphere'])) {
+            $parts[] = $genrePreset['atmosphere'];
+        }
+
+        // 4. Genre lighting feel
+        if (!empty($genrePreset['lighting'])) {
+            $lightingHint = explode(',', $genrePreset['lighting'])[0]; // First lighting element
+            $parts[] = trim($lightingHint);
+        }
+
+        // 5. Visual context snippet (keep under 100 chars for optimal AI processing)
+        if (strlen($visualDescription) > 20) {
+            $contextSnippet = substr($visualDescription, 0, 80);
+            $parts[] = $contextSnippet;
+        }
+
+        return implode('. ', $parts);
+    }
+
+    /**
+     * Get current genre preset configuration.
+     */
+    public function getGenrePreset(): array
+    {
+        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
+        return self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+    }
+
+    /**
+     * Set content genre and apply preset.
+     */
+    public function setGenre(string $genre): void
+    {
+        if (isset(self::GENRE_PRESETS[$genre])) {
+            $this->content['genre'] = $genre;
+
+            // Auto-apply style bible from genre preset
+            $preset = self::GENRE_PRESETS[$genre];
+            if (!empty($preset['style'])) {
+                $this->sceneMemory['styleBible']['style'] = $preset['style'];
+            }
+
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Get available genres for UI display.
+     */
+    public function getAvailableGenres(): array
+    {
+        $genres = [];
+        foreach (array_keys(self::GENRE_PRESETS) as $key) {
+            $genres[$key] = [
+                'id' => $key,
+                'name' => ucwords(str_replace('-', ' ', $key)),
+                'camera' => self::GENRE_PRESETS[$key]['camera'] ?? '',
+                'style' => self::GENRE_PRESETS[$key]['style'] ?? '',
+            ];
+        }
+        return $genres;
     }
 
     /**
