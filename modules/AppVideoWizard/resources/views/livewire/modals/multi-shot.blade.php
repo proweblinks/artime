@@ -217,7 +217,8 @@
 
                                     {{-- Audio Type Badge --}}
                                     @php
-                                        $hasDialogue = !empty($shot['dialogue']) && count($shot['dialogue']) > 0;
+                                        // dialogue can be a string or array, so just check if not empty
+                                        $hasDialogue = !empty($shot['dialogue']);
                                         $audioType = $hasDialogue ? 'dialogue' : 'music';
                                         $audioConfig = [
                                             'dialogue' => ['icon' => '💬', 'label' => __('Dialogue'), 'bg' => 'rgba(251, 191, 36, 0.9)'],
