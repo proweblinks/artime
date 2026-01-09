@@ -105,11 +105,14 @@ class ImageGenerationService
         // Get character reference for face consistency (if available)
         $characterReference = $this->getCharacterReferenceForScene($sceneMemory, $sceneIndex);
 
+        // Get location reference for environment consistency (if available)
+        $locationReference = $this->getLocationReferenceForScene($sceneMemory, $sceneIndex);
+
         // Route to appropriate provider
         if ($modelConfig['provider'] === 'runpod') {
             return $this->generateWithHiDream($project, $scene, $prompt, $resolution, $options);
         } else {
-            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference);
+            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference, $locationReference);
         }
     }
 
@@ -169,6 +172,68 @@ class ImageGenerationService
         }
 
         Log::debug('[getCharacterReferenceForScene] No character with base64 portrait found');
+        return null;
+    }
+
+    /**
+     * Get location reference image for a scene from Location Bible.
+     * This enables location/environment visual consistency across scene images.
+     *
+     * @param array|null $sceneMemory The scene memory containing Location Bible
+     * @param int|null $sceneIndex The scene index to get location for
+     * @return array|null Location reference data {base64, mimeType, locationName, locationDescription} or null
+     */
+    protected function getLocationReferenceForScene(?array $sceneMemory, ?int $sceneIndex): ?array
+    {
+        if (!$sceneMemory) {
+            return null;
+        }
+
+        $locationBible = $sceneMemory['locationBible'] ?? null;
+        if (!$locationBible || !($locationBible['enabled'] ?? false)) {
+            Log::debug('[getLocationReferenceForScene] Location Bible disabled');
+            return null;
+        }
+
+        $locations = $locationBible['locations'] ?? [];
+        if (empty($locations)) {
+            return null;
+        }
+
+        // Get location applicable to this scene
+        $sceneLocation = $this->getLocationForScene($locations, $sceneIndex);
+
+        if (!$sceneLocation) {
+            Log::debug('[getLocationReferenceForScene] No location assigned to scene', [
+                'sceneIndex' => $sceneIndex,
+            ]);
+            return null;
+        }
+
+        // Check if location has a ready reference image (base64)
+        $hasBase64 = !empty($sceneLocation['referenceImageBase64']);
+        $isReady = ($sceneLocation['referenceImageStatus'] ?? '') === 'ready';
+
+        if ($hasBase64 && $isReady) {
+            Log::info('[getLocationReferenceForScene] Using location reference', [
+                'locationName' => $sceneLocation['name'] ?? 'Unknown',
+                'base64Length' => strlen($sceneLocation['referenceImageBase64']),
+                'mimeType' => $sceneLocation['referenceImageMimeType'] ?? 'image/png',
+            ]);
+
+            return [
+                'base64' => $sceneLocation['referenceImageBase64'],
+                'mimeType' => $sceneLocation['referenceImageMimeType'] ?? 'image/png',
+                'locationName' => $sceneLocation['name'] ?? 'Location',
+                'locationDescription' => $sceneLocation['description'] ?? '',
+                'type' => $sceneLocation['type'] ?? 'exterior',
+                'timeOfDay' => $sceneLocation['timeOfDay'] ?? 'day',
+                'weather' => $sceneLocation['weather'] ?? 'clear',
+                'atmosphere' => $sceneLocation['atmosphere'] ?? '',
+            ];
+        }
+
+        Log::debug('[getLocationReferenceForScene] No location with base64 reference found');
         return null;
     }
 
@@ -489,6 +554,7 @@ class ImageGenerationService
      * @param array $modelConfig Model configuration
      * @param array $options Additional options
      * @param array|null $characterReference Character reference for face consistency {base64, mimeType, characterName}
+     * @param array|null $locationReference Location reference for environment consistency {base64, mimeType, locationName}
      */
     protected function generateWithGemini(
         WizardProject $project,
@@ -498,7 +564,8 @@ class ImageGenerationService
         string $modelId,
         array $modelConfig,
         array $options = [],
-        ?array $characterReference = null
+        ?array $characterReference = null,
+        ?array $locationReference = null
     ): array {
         // Map aspect ratio for Gemini
         $aspectRatioMap = [
@@ -511,15 +578,34 @@ class ImageGenerationService
 
         $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
 
+        // Priority: Character reference (face consistency) > Location reference (environment consistency)
         // If we have a character reference, use image-to-image generation for face consistency
         if ($characterReference && !empty($characterReference['base64'])) {
             Log::info('[generateWithGemini] Using character reference for face consistency', [
                 'characterName' => $characterReference['characterName'] ?? 'Unknown',
                 'mimeType' => $characterReference['mimeType'] ?? 'image/png',
+                'hasLocationReference' => !empty($locationReference),
             ]);
 
             // Build special prompt for face/character consistency
-            // This follows the pattern from the original video-creation-wizard.html
+            // Include location details in the prompt if available
+            $locationContext = '';
+            if ($locationReference) {
+                $locationContext = "\n\nLOCATION CONTEXT: The scene takes place in \"{$locationReference['locationName']}\"";
+                if (!empty($locationReference['locationDescription'])) {
+                    $locationContext .= " - {$locationReference['locationDescription']}";
+                }
+                if (!empty($locationReference['timeOfDay']) && $locationReference['timeOfDay'] !== 'day') {
+                    $locationContext .= ". Time: {$locationReference['timeOfDay']}";
+                }
+                if (!empty($locationReference['weather']) && $locationReference['weather'] !== 'clear') {
+                    $locationContext .= ". Weather: {$locationReference['weather']}";
+                }
+                if (!empty($locationReference['atmosphere'])) {
+                    $locationContext .= ". Atmosphere: {$locationReference['atmosphere']}";
+                }
+            }
+
             $faceConsistencyPrompt = <<<EOT
 Using the provided image as a character/face reference to maintain consistency, generate a new image.
 
@@ -527,7 +613,7 @@ CHARACTER REFERENCE: The provided image shows the EXACT appearance of "{$charact
 - Facial features (eyes, nose, mouth, face shape)
 - Skin tone and complexion
 - Hair color, style, and texture
-- Overall body type and proportions
+- Overall body type and proportions{$locationContext}
 
 SCENE TO GENERATE:
 {$prompt}
@@ -574,6 +660,7 @@ EOT;
                         'prompt' => $prompt,
                         'model' => $modelId,
                         'characterReference' => $characterReference['characterName'] ?? 'Unknown',
+                        'locationReference' => $locationReference['locationName'] ?? null,
                         'faceConsistency' => true,
                     ],
                 ]);
@@ -586,13 +673,94 @@ EOT;
                     'assetId' => $asset->id,
                     'faceConsistency' => true,
                     'characterUsed' => $characterReference['characterName'] ?? 'Unknown',
+                    'locationUsed' => $locationReference['locationName'] ?? null,
                 ];
             }
 
             throw new \Exception('No image data in character reference response');
         }
 
-        // Standard generation without character reference
+        // If we have a location reference but no character, use location for environment consistency
+        if ($locationReference && !empty($locationReference['base64'])) {
+            Log::info('[generateWithGemini] Using location reference for environment consistency', [
+                'locationName' => $locationReference['locationName'] ?? 'Unknown',
+                'mimeType' => $locationReference['mimeType'] ?? 'image/png',
+            ]);
+
+            // Build special prompt for location/environment consistency
+            $locationConsistencyPrompt = <<<EOT
+Using the provided image as an environment/location reference to maintain visual consistency, generate a new image.
+
+LOCATION REFERENCE: The provided image shows the EXACT environment "{$locationReference['locationName']}" that MUST be used as the setting. Maintain the same:
+- Architecture and structural elements
+- Color palette and lighting atmosphere
+- Environmental details and textures
+- Overall mood and visual style
+
+SCENE TO GENERATE:
+{$prompt}
+
+CRITICAL: The environment in the generated image MUST match the SAME LOCATION as in the reference image. This is essential for visual consistency across the video.
+EOT;
+
+            $result = $this->geminiService->generateImageFromImage(
+                $locationReference['base64'],
+                $locationConsistencyPrompt,
+                [
+                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'mimeType' => $locationReference['mimeType'] ?? 'image/png',
+                ]
+            );
+
+            // Handle image-to-image response format
+            if (!empty($result['error']) || (!$result['success'] ?? false)) {
+                throw new \Exception($result['error'] ?? 'Image generation with location reference failed');
+            }
+
+            if (!empty($result['imageData'])) {
+                // Store the base64 image
+                $storedPath = $this->storeBase64Image(
+                    $result['imageData'],
+                    $result['mimeType'] ?? 'image/png',
+                    $project,
+                    $scene['id']
+                );
+                $imageUrl = $this->getPublicUrl($storedPath);
+
+                // Create asset record
+                $asset = WizardAsset::create([
+                    'project_id' => $project->id,
+                    'user_id' => $project->user_id,
+                    'type' => WizardAsset::TYPE_IMAGE,
+                    'name' => $scene['id'],
+                    'path' => $storedPath,
+                    'url' => $imageUrl,
+                    'mime_type' => $result['mimeType'] ?? 'image/png',
+                    'scene_index' => $options['sceneIndex'] ?? null,
+                    'scene_id' => $scene['id'],
+                    'metadata' => [
+                        'prompt' => $prompt,
+                        'model' => $modelId,
+                        'locationReference' => $locationReference['locationName'] ?? 'Unknown',
+                        'locationConsistency' => true,
+                    ],
+                ]);
+
+                return [
+                    'success' => true,
+                    'imageUrl' => $imageUrl,
+                    'prompt' => $prompt,
+                    'model' => $modelId,
+                    'assetId' => $asset->id,
+                    'locationConsistency' => true,
+                    'locationUsed' => $locationReference['locationName'] ?? 'Unknown',
+                ];
+            }
+
+            throw new \Exception('No image data in location reference response');
+        }
+
+        // Standard generation without character or location reference
         $result = $this->geminiService->generateImage($prompt, [
             'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
             'aspectRatio' => $aspectRatio,
