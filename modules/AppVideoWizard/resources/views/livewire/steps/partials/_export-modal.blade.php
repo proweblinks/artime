@@ -187,15 +187,42 @@
                 return q ? `${q.width}×${q.height}` : '1920×1080';
             },
 
+            // Polling interval reference
+            pollInterval: null,
+            statusMessage: '',
+
             startExport() {
                 this.exporting = true;
                 this.progress = 0;
                 this.currentScene = 0;
+                this.statusMessage = 'Starting export...';
                 $wire.startVideoExport();
+
+                // Start polling for status updates (Phase 7)
+                this.startPolling();
+            },
+
+            startPolling() {
+                // Poll every 3 seconds for status updates
+                this.pollInterval = setInterval(() => {
+                    if (!this.exporting || this.exportComplete) {
+                        this.stopPolling();
+                        return;
+                    }
+                    $wire.pollExportStatus();
+                }, 3000);
+            },
+
+            stopPolling() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
             },
 
             cancelExport() {
                 if (confirm('Are you sure you want to cancel the export?')) {
+                    this.stopPolling();
                     this.exporting = false;
                     $wire.cancelVideoExport();
                 }
@@ -222,17 +249,30 @@
             Livewire.on('export-progress', (data) => {
                 progress = data.progress || 0;
                 currentScene = data.currentScene || 0;
+                statusMessage = data.message || 'Processing...';
                 if (data.complete) {
                     exportComplete = true;
                     exporting = false;
                     finalVideoUrl = data.videoUrl || null;
+                    stopPolling();
                 }
+            });
+
+            // Listen for export started
+            Livewire.on('export-started', (data) => {
+                console.log('Export started:', data.jobId);
             });
 
             // Listen for export error
             Livewire.on('export-error', (data) => {
                 exporting = false;
+                stopPolling();
                 alert('Export failed: ' + (data.message || 'Unknown error'));
+            });
+
+            // Cleanup on component destroy
+            $cleanup(() => {
+                stopPolling();
             });
         "
         @click.stop
@@ -479,7 +519,7 @@
             <div class="vw-progress-header">
                 <div class="vw-progress-spinner"></div>
                 <h4>{{ __('Rendering your video...') }}</h4>
-                <p class="vw-progress-subtitle">{{ __('This may take a few minutes depending on video length and quality settings.') }}</p>
+                <p class="vw-progress-subtitle" x-text="statusMessage || '{{ __('This may take a few minutes depending on video length and quality settings.') }}'"></p>
             </div>
 
             {{-- Overall Progress --}}

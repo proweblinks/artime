@@ -69,6 +69,28 @@ return [
             'url' => env('CONTABO_CUSTOM_URL'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Google Cloud Storage / Firebase Storage
+        |--------------------------------------------------------------------------
+        |
+        | Used for video exports and cloud storage.
+        | BUCKET_NAME format: ytseo-6d1b0.firebasestorage.app (Firebase Storage)
+        | Uses Google Application Default Credentials or service account JSON.
+        |
+        | Install: composer require spatie/laravel-google-cloud-storage
+        |
+        */
+        'gcs' => [
+            'driver' => 'gcs',
+            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
+            'key_file' => env('GOOGLE_CLOUD_KEY_FILE'),
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET', 'ytseo-6d1b0.firebasestorage.app'),
+            'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
+            'storage_api_uri' => env('GOOGLE_CLOUD_STORAGE_API_URI', 'https://storage.googleapis.com'),
+            'visibility' => 'public',
+        ],
+
     ],
 
     /*

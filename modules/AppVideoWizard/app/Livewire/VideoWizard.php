@@ -9660,7 +9660,7 @@ class VideoWizard extends Component
     }
 
     /**
-     * Start video export - Phase 6.
+     * Start video export - Phase 6 + Phase 7.
      */
     public function startVideoExport(): void
     {
@@ -9673,25 +9673,146 @@ class VideoWizard extends Component
             return;
         }
 
+        // Generate unique job ID
+        $jobId = \Illuminate\Support\Str::uuid()->toString();
+
         // Set assembly status to rendering
         $this->assembly['assemblyStatus'] = 'rendering';
         $this->assembly['renderProgress'] = 0;
+        $this->assembly['exportJobId'] = $jobId;
         $this->saveProject();
 
         // Get export settings
         $exportSettings = $this->assembly['export'] ?? $this->getDefaultExportSettings();
 
-        // Dispatch job or start render process
-        // This would typically queue a job for background processing
-        // For now, we'll simulate progress updates
+        // Build export manifest
+        $manifest = $this->buildExportManifest();
+
+        // Determine if we should use Cloud Run (based on config)
+        $useCloudRun = !empty(config('services.video_processor.url'))
+            && config('services.video_processor.parallel_scenes');
+
+        // Dispatch the export job
+        \Modules\AppVideoWizard\Jobs\VideoExportJob::dispatch(
+            $this->project->id,
+            $jobId,
+            $manifest,
+            $exportSettings,
+            auth()->id(),
+            $useCloudRun
+        );
 
         $this->dispatch('export-started', [
+            'jobId' => $jobId,
             'settings' => $exportSettings,
             'totalScenes' => count($this->script['scenes'] ?? []),
         ]);
+    }
 
-        // In a real implementation, you would dispatch a job:
-        // ExportVideoJob::dispatch($this->project->id, $exportSettings);
+    /**
+     * Build export manifest from current project data - Phase 7.
+     */
+    protected function buildExportManifest(): array
+    {
+        $scenes = [];
+        $scriptScenes = $this->script['scenes'] ?? [];
+        $storyboardScenes = $this->storyboard['scenes'] ?? [];
+
+        foreach ($scriptScenes as $index => $scriptScene) {
+            $storyboardScene = $storyboardScenes[$index] ?? [];
+
+            $scenes[] = [
+                'index' => $index,
+                'narration' => $scriptScene['narration'] ?? '',
+                'imageUrl' => $storyboardScene['imageUrl'] ?? $storyboardScene['finalImageUrl'] ?? null,
+                'voiceoverUrl' => $storyboardScene['voiceoverUrl'] ?? null,
+                'duration' => $storyboardScene['duration'] ?? $scriptScene['duration'] ?? 5,
+                'voiceoverOffset' => $storyboardScene['voiceoverOffset'] ?? 0,
+                'transition' => $storyboardScene['transition'] ?? $this->assembly['defaultTransition'] ?? 'fade',
+                'kenBurns' => [
+                    'startScale' => $storyboardScene['kenBurns']['startScale'] ?? 1.0,
+                    'endScale' => $storyboardScene['kenBurns']['endScale'] ?? 1.2,
+                    'startX' => $storyboardScene['kenBurns']['startX'] ?? 0.5,
+                    'startY' => $storyboardScene['kenBurns']['startY'] ?? 0.5,
+                    'endX' => $storyboardScene['kenBurns']['endX'] ?? 0.5,
+                    'endY' => $storyboardScene['kenBurns']['endY'] ?? 0.5,
+                ],
+            ];
+        }
+
+        return [
+            'scenes' => $scenes,
+            'output' => $this->assembly['export'] ?? $this->getDefaultExportSettings(),
+            'music' => [
+                'enabled' => $this->assembly['music']['enabled'] ?? false,
+                'url' => $this->assembly['music']['url'] ?? null,
+                'volume' => ($this->assembly['music']['volume'] ?? 30) / 100,
+            ],
+            'captions' => [
+                'enabled' => $this->assembly['captions']['enabled'] ?? true,
+                'style' => $this->assembly['captions']['style'] ?? 'karaoke',
+                'position' => $this->assembly['captions']['position'] ?? 'bottom',
+                'size' => $this->assembly['captions']['size'] ?? 1.0,
+                'fontFamily' => $this->assembly['captions']['fontFamily'] ?? 'Arial',
+                'fillColor' => $this->assembly['captions']['fillColor'] ?? '#FFFFFF',
+            ],
+            'aspectRatio' => $this->aspectRatio ?? '16:9',
+        ];
+    }
+
+    /**
+     * Get export status - Phase 7.
+     * Called via polling from frontend.
+     */
+    public function getExportStatus(): array
+    {
+        $jobId = $this->assembly['exportJobId'] ?? null;
+
+        if (!$jobId) {
+            return [
+                'status' => $this->assembly['assemblyStatus'] ?? 'pending',
+                'progress' => $this->assembly['renderProgress'] ?? 0,
+                'message' => 'No export in progress',
+            ];
+        }
+
+        // Get status from cache
+        $status = \Illuminate\Support\Facades\Cache::get("video_export_status_{$jobId}");
+
+        if ($status) {
+            // If completed, update local state
+            if ($status['status'] === 'completed' && !empty($status['outputUrl'])) {
+                $this->assembly['assemblyStatus'] = 'complete';
+                $this->assembly['renderProgress'] = 100;
+                $this->assembly['finalVideoUrl'] = $status['outputUrl'];
+                $this->assembly['exported'] = true;
+                $this->saveProject();
+            }
+
+            return $status;
+        }
+
+        return [
+            'status' => $this->assembly['assemblyStatus'] ?? 'pending',
+            'progress' => $this->assembly['renderProgress'] ?? 0,
+            'message' => 'Processing...',
+        ];
+    }
+
+    /**
+     * Poll export status and dispatch event - Phase 7.
+     */
+    public function pollExportStatus(): void
+    {
+        $status = $this->getExportStatus();
+
+        $this->dispatch('export-progress', [
+            'progress' => $status['progress'] ?? 0,
+            'currentScene' => $status['currentScene'] ?? 0,
+            'complete' => ($status['status'] ?? '') === 'completed',
+            'videoUrl' => $status['outputUrl'] ?? null,
+            'message' => $status['message'] ?? 'Processing...',
+        ]);
     }
 
     /**

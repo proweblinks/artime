@@ -35,4 +35,34 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Video Processor Service (Cloud Run)
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the Cloud Run video processor service.
+    | Handles FFmpeg processing, Ken Burns effects, and video rendering.
+    |
+    */
+    'video_processor' => [
+        'url' => env('VIDEO_PROCESSOR_URL', 'https://video-processor-xxxxx.us-central1.run.app'),
+        'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET', 'ytseo-6d1b0.firebasestorage.app'),
+        'temp_dir' => env('VIDEO_PROCESSOR_TEMP_DIR', '/tmp/video-processing'),
+        'timeout' => env('VIDEO_PROCESSOR_TIMEOUT', 900), // 15 minutes
+        'parallel_scenes' => env('VIDEO_PROCESSOR_PARALLEL', false),
+        'ffmpeg_path' => env('FFMPEG_PATH', 'ffmpeg'),
+        'ffprobe_path' => env('FFPROBE_PATH', 'ffprobe'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Google Cloud Platform
+    |--------------------------------------------------------------------------
+    */
+    'google_cloud' => [
+        'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
+        'key_file' => env('GOOGLE_CLOUD_KEY_FILE'),
+        'region' => env('GOOGLE_CLOUD_REGION', 'us-central1'),
+    ],
+
 ];
