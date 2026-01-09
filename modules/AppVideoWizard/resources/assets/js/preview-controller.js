@@ -112,6 +112,14 @@ window.previewController = function(initialData = {}) {
                 }
             });
 
+            // Listen for voice preset changes (Phase 4)
+            Livewire.on('voice-preset-applied', (data) => {
+                if (this.engine && this.isReady) {
+                    // Voice presets affect audio processing, refresh if needed
+                    console.log('Voice preset applied:', data.preset);
+                }
+            });
+
             // Listen for seek events from timeline
             window.addEventListener('seek-preview', (e) => {
                 if (e.detail && typeof e.detail.time !== 'undefined') {

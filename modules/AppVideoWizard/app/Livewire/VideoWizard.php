@@ -9391,6 +9391,52 @@ class VideoWizard extends Component
     }
 
     /**
+     * Apply a voice processing preset.
+     */
+    public function applyVoicePreset(string $presetId): void
+    {
+        $presets = [
+            'natural' => [
+                'voicePreset' => 'natural',
+                'normalize' => true,
+                'noiseReduction' => false,
+                'voiceEnhance' => false,
+                'voiceVolume' => 100,
+            ],
+            'broadcast' => [
+                'voicePreset' => 'broadcast',
+                'normalize' => true,
+                'noiseReduction' => true,
+                'voiceEnhance' => true,
+                'voiceVolume' => 100,
+            ],
+            'warm' => [
+                'voicePreset' => 'warm',
+                'normalize' => true,
+                'noiseReduction' => false,
+                'voiceEnhance' => true,
+                'voiceVolume' => 95,
+            ],
+        ];
+
+        if (!isset($presets[$presetId])) {
+            return;
+        }
+
+        $preset = $presets[$presetId];
+
+        // Apply all preset values to audioMix settings
+        foreach ($preset as $key => $value) {
+            $this->assembly['audioMix'][$key] = $value;
+        }
+
+        $this->saveProject();
+
+        // Dispatch event for audio refresh
+        $this->dispatch('voice-preset-applied', ['preset' => $presetId]);
+    }
+
+    /**
      * Get assembly statistics for display.
      */
     public function getAssemblyStats(): array
