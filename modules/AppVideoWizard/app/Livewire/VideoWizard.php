@@ -4123,6 +4123,9 @@ class VideoWizard extends Component
             'appliedScenes' => [],
             'traits' => [],
             'referenceImage' => null,
+            'referenceImageBase64' => null,      // Base64 data for API calls (face consistency)
+            'referenceImageMimeType' => null,    // MIME type (e.g., 'image/png')
+            'referenceImageStatus' => 'none',    // 'none' | 'generating' | 'ready' | 'error'
         ];
         $this->saveProject();
     }
@@ -4255,6 +4258,9 @@ class VideoWizard extends Component
             'scenes' => [],
             'stateChanges' => [],
             'referenceImage' => null,
+            'referenceImageBase64' => null,      // Base64 data for API calls (location consistency)
+            'referenceImageMimeType' => null,    // MIME type (e.g., 'image/png')
+            'referenceImageStatus' => 'none',    // 'none' | 'generating' | 'ready' | 'error'
         ];
         $this->saveProject();
     }
@@ -6735,6 +6741,9 @@ class VideoWizard extends Component
     public function removeCharacterPortrait(int $index): void
     {
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = null;
+        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = null;
+        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = null;
+        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'none';
         $this->saveProject();
     }
 
@@ -6761,9 +6770,16 @@ class VideoWizard extends Component
             // Get the public URL
             $url = \Storage::disk('public')->url($path);
 
+            // Read file as base64 for API calls (character face consistency)
+            $base64Data = base64_encode(file_get_contents($this->characterImageUpload->getRealPath()));
+            $mimeType = $this->characterImageUpload->getMimeType() ?? 'image/png';
+
             // Update character with the uploaded image
             $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $url;
             $this->sceneMemory['characterBible']['characters'][$index]['referenceImageSource'] = 'upload';
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
 
             // Clear the upload
             $this->characterImageUpload = null;
@@ -6775,6 +6791,7 @@ class VideoWizard extends Component
                 'type' => 'character_image_upload',
                 'characterIndex' => $index,
                 'filename' => $filename,
+                'hasBase64' => true,
             ]);
 
         } catch (\Exception $e) {
@@ -6812,6 +6829,9 @@ class VideoWizard extends Component
         $this->isLoading = true;
         $this->error = null;
 
+        // Mark as generating
+        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'generating';
+
         try {
             $imageService = app(ImageGenerationService::class);
 
@@ -6841,13 +6861,42 @@ class VideoWizard extends Component
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
-                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $result['imageUrl'];
+                        $imageUrl = $result['imageUrl'];
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $imageUrl;
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageSource'] = 'ai';
+
+                        // Fetch image as base64 for face consistency in scene generation
+                        try {
+                            $imageContent = file_get_contents($imageUrl);
+                            if ($imageContent !== false) {
+                                $base64Data = base64_encode($imageContent);
+                                // Detect MIME type from image content
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
+                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
+                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
+
+                                Log::info('Character portrait generated with base64', [
+                                    'characterIndex' => $index,
+                                    'base64Length' => strlen($base64Data),
+                                    'mimeType' => $mimeType,
+                                ]);
+                            }
+                        } catch (\Exception $fetchError) {
+                            Log::warning('Could not fetch image as base64', ['error' => $fetchError->getMessage()]);
+                            // Still mark as ready even if base64 fetch failed
+                            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
+                        }
+
                         $this->saveProject();
                     }
                 }
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate portrait: ') . $e->getMessage();
+            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'error';
         } finally {
             $this->isLoading = false;
         }
@@ -7152,6 +7201,9 @@ class VideoWizard extends Component
     {
         if (isset($this->sceneMemory['locationBible']['locations'][$index])) {
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = null;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = null;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = null;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'none';
             $this->saveProject();
         }
     }
@@ -7179,9 +7231,16 @@ class VideoWizard extends Component
             // Get the public URL
             $url = \Storage::disk('public')->url($path);
 
+            // Read file as base64 for API calls (location visual consistency)
+            $base64Data = base64_encode(file_get_contents($this->locationImageUpload->getRealPath()));
+            $mimeType = $this->locationImageUpload->getMimeType() ?? 'image/png';
+
             // Update location with the uploaded image
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $url;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageSource'] = 'upload';
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = $base64Data;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = $mimeType;
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
 
             // Clear the upload
             $this->locationImageUpload = null;
@@ -7193,6 +7252,7 @@ class VideoWizard extends Component
                 'type' => 'location_image_upload',
                 'locationIndex' => $index,
                 'filename' => $filename,
+                'hasBase64' => true,
             ]);
 
         } catch (\Exception $e) {
@@ -7211,6 +7271,9 @@ class VideoWizard extends Component
 
         $this->isLoading = true;
         $this->error = null;
+
+        // Mark as generating
+        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'generating';
 
         try {
             $imageService = app(ImageGenerationService::class);
@@ -7252,13 +7315,42 @@ class VideoWizard extends Component
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
-                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $result['imageUrl'];
+                        $imageUrl = $result['imageUrl'];
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $imageUrl;
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageSource'] = 'ai';
+
+                        // Fetch image as base64 for location consistency in scene generation
+                        try {
+                            $imageContent = file_get_contents($imageUrl);
+                            if ($imageContent !== false) {
+                                $base64Data = base64_encode($imageContent);
+                                // Detect MIME type from image content
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = $base64Data;
+                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = $mimeType;
+                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
+
+                                Log::info('Location reference generated with base64', [
+                                    'locationIndex' => $index,
+                                    'base64Length' => strlen($base64Data),
+                                    'mimeType' => $mimeType,
+                                ]);
+                            }
+                        } catch (\Exception $fetchError) {
+                            Log::warning('Could not fetch location image as base64', ['error' => $fetchError->getMessage()]);
+                            // Still mark as ready even if base64 fetch failed
+                            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
+                        }
+
                         $this->saveProject();
                     }
                 }
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate location reference: ') . $e->getMessage();
+            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'error';
         } finally {
             $this->isLoading = false;
         }

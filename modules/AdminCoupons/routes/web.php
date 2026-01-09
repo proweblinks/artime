@@ -16,17 +16,14 @@ use Illuminate\Support\Facades\DB;
 */
 
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::group(["prefix" => "admin"], function () {
-        Route::resource('coupons', AdminCouponsController::class)->names('admin.coupons');
-        Route::group(["prefix" => "coupons"], function () {
-            Route::resource('/', AdminCouponsController::class)->names('admin.coupons');
-            Route::post('list', [AdminCouponsController::class, 'list'])->name('admin.coupons.list');
-            Route::get('create', [AdminCouponsController::class, 'update'])->name('admin.coupons.create');
-            Route::get('edit/{any}', [AdminCouponsController::class, 'update'])->name('admin.coupons.edit');
-            Route::post('save', [AdminCouponsController::class, 'save'])->name('admin.coupons.save');
-            Route::post('status/{any}', [AdminCouponsController::class, 'status'])->name('admin.coupons.status');
-            Route::post('destroy', [AdminCouponsController::class, 'destroy'])->name('admin.coupons.destroy');
-        });
+    Route::group(["prefix" => "admin/coupons"], function () {
+        Route::resource('/', AdminCouponsController::class)->only(['index'])->names('admin.coupons');
+        Route::post('list', [AdminCouponsController::class, 'list'])->name('admin.coupons.list');
+        Route::get('create', [AdminCouponsController::class, 'update'])->name('admin.coupons.create');
+        Route::get('edit/{any}', [AdminCouponsController::class, 'update'])->name('admin.coupons.edit');
+        Route::post('save', [AdminCouponsController::class, 'save'])->name('admin.coupons.save');
+        Route::post('status/{any}', [AdminCouponsController::class, 'status'])->name('admin.coupons.status');
+        Route::post('destroy', [AdminCouponsController::class, 'destroy'])->name('admin.coupons.destroy');
     });
 });
 

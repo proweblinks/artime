@@ -5,7 +5,7 @@ use Modules\AdminBlogs\Http\Controllers\AdminBlogsController;
 
 Route::middleware(['web', 'auth'])->group(function () {
     Route::group(["prefix" => "admin/blogs"], function () {
-        Route::resource('', AdminBlogsController::class)->names('admin.blogs');
+        Route::resource('', AdminBlogsController::class)->only(['index'])->names('admin.blogs');
         Route::post('list', [AdminBlogsController::class, 'list'])->name('admin.blogs.list');
         Route::get('update', [AdminBlogsController::class, 'update'])->name('admin.blogs.update');
         Route::get('edit/{id}', [AdminBlogsController::class, 'update'])->name('admin.blogs.edit');
