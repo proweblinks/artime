@@ -297,6 +297,66 @@
         color: rgba(255, 255, 255, 0.35);
     }
 
+    /* Scene Grid Footer with Stats */
+    .vw-scene-grid-footer {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: rgba(10, 10, 20, 0.98);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-footer-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .vw-footer-stat-icon {
+        font-size: 0.8rem;
+    }
+
+    .vw-footer-stat-text {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 500;
+    }
+
+    /* View Mode Toggle Buttons */
+    .vw-view-modes {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .vw-view-mode-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        transition: all 0.2s;
+    }
+
+    .vw-view-mode-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .vw-view-mode-btn.active {
+        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa;
+    }
+
     /* Scrollable Scene List */
     .vw-scene-list {
         flex: 1;
@@ -424,6 +484,11 @@
         font-size: 0.6rem;
         color: rgba(255, 255, 255, 0.4);
         margin-bottom: 0.35rem;
+    }
+
+    .vw-scene-progress-text {
+        font-size: 0.65rem;
+        font-weight: 500;
     }
 
     .vw-scene-status {
@@ -1505,10 +1570,17 @@
                         <div class="vw-scene-grid-title">
                             <span>{{ __('SCENES') }}</span>
                         </div>
-                        <div class="vw-scene-grid-tools">
-                            <button type="button" class="vw-tool-btn" title="{{ __('Keyboard shortcuts') }}">⌨️</button>
-                            <button type="button" class="vw-tool-btn" title="{{ __('Cinema mode') }}">🎬</button>
-                            <button type="button" class="vw-tool-btn" title="{{ __('Queue manager') }}">📋</button>
+                        {{-- View Mode Toggle Buttons --}}
+                        <div class="vw-view-modes">
+                            <button type="button" class="vw-view-mode-btn active" title="{{ __('Card view') }}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                            </button>
+                            <button type="button" class="vw-view-mode-btn" title="{{ __('List view') }}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="3" rx="1"/><rect x="3" y="10" width="18" height="3" rx="1"/><rect x="3" y="16" width="18" height="3" rx="1"/></svg>
+                            </button>
+                            <button type="button" class="vw-view-mode-btn" title="{{ __('Compact view') }}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="10" y="3" width="5" height="5" rx="1"/><rect x="17" y="3" width="4" height="5" rx="1"/><rect x="3" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="17" y="10" width="4" height="5" rx="1"/><rect x="3" y="17" width="5" height="4" rx="1"/><rect x="10" y="17" width="5" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/></svg>
+                            </button>
                         </div>
                     </div>
 
@@ -1586,40 +1658,25 @@
                                 <div class="vw-scene-number">{{ $index + 1 }}</div>
                             </div>
 
-                            {{-- Scene Info --}}
+                            {{-- Scene Info (matching original wizard layout) --}}
                             <div class="vw-scene-info">
-                                <div class="vw-scene-name">{{ Str::limit($scene['title'] ?? __('Scene') . ' ' . ($index + 1), 18) }}</div>
-                                <div class="vw-scene-duration">{{ $scene['duration'] ?? 8 }}s</div>
-                                <div class="vw-scene-status">
-                                    {{-- Voiceover Status --}}
-                                    @if($isMusicOnlyScene)
-                                        <span class="vw-status-badge music-only" title="{{ __('Music Only') }}">♫</span>
-                                    @elseif($isVoiceGenerating)
-                                        <span class="vw-status-badge generating" title="{{ __('Generating voiceover...') }}">⏳</span>
-                                    @elseif($hasVoiceError)
-                                        <span class="vw-status-badge error" title="{{ __('Voiceover error') }}">⚠️</span>
-                                    @elseif($hasVoiceover)
-                                        <span class="vw-status-badge voice-ready" title="{{ __('Voiceover ready') }}">🎙️</span>
-                                    @else
-                                        <span class="vw-status-badge voice-pending" title="{{ __('No voiceover') }}">🎙️</span>
-                                    @endif
-
-                                    {{-- Video Status --}}
-                                    @if($isAnimGenerating)
-                                        <span class="vw-status-badge generating" title="{{ __('Generating video...') }}">⏳</span>
-                                    @elseif($hasAnimError)
-                                        <span class="vw-status-badge error" title="{{ __('Video error') }}">⚠️</span>
-                                    @elseif($hasAnimation)
-                                        <span class="vw-status-badge video-ready" title="{{ __('Video ready') }}">🎬</span>
-                                    @elseif($isStockVideo)
-                                        <span class="vw-status-badge video-ready" title="{{ __('Stock video') }}">📹</span>
-                                    @elseif($hasImage)
-                                        <span class="vw-status-badge video-pending" title="{{ __('Ready to animate') }}">🎬</span>
-                                    @endif
-                                </div>
+                                <div class="vw-scene-name">{{ __('Scene') }} {{ $index + 1 }}</div>
+                                <div class="vw-scene-progress-text" style="color: {{ $progress === 100 ? '#10b981' : ($progress > 0 ? '#fbbf24' : 'rgba(255,255,255,0.4)') }};">{{ $progress }}% {{ __('complete') }}</div>
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                {{-- Scene List Footer with Stats --}}
+                <div class="vw-scene-grid-footer">
+                    <div class="vw-footer-stat">
+                        <span class="vw-footer-stat-icon">🎙️</span>
+                        <span class="vw-footer-stat-text">{{ $voiceoversReady }}/{{ $totalScenes }} {{ __('voiceovers') }}</span>
+                    </div>
+                    <div class="vw-footer-stat">
+                        <span class="vw-footer-stat-icon">🎬</span>
+                        <span class="vw-footer-stat-text">{{ $animatedScenes }}/{{ $totalScenes }} {{ __('animations') }}</span>
+                    </div>
                 </div>
             </div>
 
