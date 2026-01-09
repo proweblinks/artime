@@ -14,6 +14,7 @@ use Modules\AppVideoWizard\Services\VoiceoverService;
 use Modules\AppVideoWizard\Services\StockMediaService;
 use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
+use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -7522,9 +7523,8 @@ class VideoWizard extends Component
             $parts[] = $shotType['lens'];
         }
 
-        // 4. Genre-specific styling
-        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
-        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+        // 4. Genre-specific styling (uses database-backed CinematographyService)
+        $genrePreset = $this->getGenrePreset();
 
         // Add genre color grade
         if (!empty($genrePreset['colorGrade'])) {
@@ -7564,13 +7564,12 @@ class VideoWizard extends Component
 
     /**
      * Get camera movement for a shot based on type and genre.
-     * Uses genre-specific camera language from GENRE_PRESETS.
+     * Uses genre-specific camera language from database-backed CinematographyService.
      */
     protected function getCameraMovementForShot(string $shotType, int $index): string
     {
-        // Get genre-specific camera movements
-        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
-        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+        // Get genre-specific camera movements (uses database-backed service)
+        $genrePreset = $this->getGenrePreset();
 
         // Genre-specific movements for each shot type
         $genreMovements = $this->parseGenreCameraLanguage($genrePreset['camera'] ?? '');
@@ -7681,9 +7680,8 @@ class VideoWizard extends Component
      */
     protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription): string
     {
-        // Get genre preset for additional context
-        $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
-        $genrePreset = self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+        // Get genre preset for additional context (uses database-backed service)
+        $genrePreset = $this->getGenrePreset();
 
         // Professional motion descriptions per shot type
         $baseDescriptions = [
@@ -7734,23 +7732,44 @@ class VideoWizard extends Component
 
     /**
      * Get current genre preset configuration.
+     * Uses CinematographyService for database-backed presets with fallback to constants.
      */
     public function getGenrePreset(): array
     {
         $genre = $this->content['genre'] ?? $this->content['productionMode'] ?? 'standard';
-        return self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+
+        // Try database-backed service first
+        try {
+            $service = app(CinematographyService::class);
+            return $service->getGenrePreset($genre);
+        } catch (\Exception $e) {
+            // Fallback to constants
+            return self::GENRE_PRESETS[$genre] ?? self::GENRE_PRESETS['standard'];
+        }
     }
 
     /**
      * Set content genre and apply preset.
+     * Uses CinematographyService for database-backed presets with fallback to constants.
      */
     public function setGenre(string $genre): void
     {
-        if (isset(self::GENRE_PRESETS[$genre])) {
+        // Get preset from service or constants
+        $preset = null;
+        try {
+            $service = app(CinematographyService::class);
+            $preset = $service->getGenrePreset($genre);
+        } catch (\Exception $e) {
+            // Fallback to constants
+            if (isset(self::GENRE_PRESETS[$genre])) {
+                $preset = self::GENRE_PRESETS[$genre];
+            }
+        }
+
+        if ($preset) {
             $this->content['genre'] = $genre;
 
             // Auto-apply style bible from genre preset
-            $preset = self::GENRE_PRESETS[$genre];
             if (!empty($preset['style'])) {
                 $this->sceneMemory['styleBible']['style'] = $preset['style'];
             }
@@ -7761,19 +7780,41 @@ class VideoWizard extends Component
 
     /**
      * Get available genres for UI display.
+     * Uses CinematographyService for database-backed presets with fallback to constants.
      */
     public function getAvailableGenres(): array
     {
-        $genres = [];
-        foreach (array_keys(self::GENRE_PRESETS) as $key) {
-            $genres[$key] = [
-                'id' => $key,
-                'name' => ucwords(str_replace('-', ' ', $key)),
-                'camera' => self::GENRE_PRESETS[$key]['camera'] ?? '',
-                'style' => self::GENRE_PRESETS[$key]['style'] ?? '',
-            ];
+        // Try database-backed service first
+        try {
+            $service = app(CinematographyService::class);
+            $presets = $service->getAllGenrePresets();
+
+            // Convert to expected format
+            $genres = [];
+            foreach ($presets as $preset) {
+                $key = $preset['slug'] ?? $preset['id'];
+                $genres[$key] = [
+                    'id' => $key,
+                    'name' => $preset['name'] ?? ucwords(str_replace('-', ' ', $key)),
+                    'camera' => $preset['camera'] ?? '',
+                    'style' => $preset['style'] ?? '',
+                    'category' => $preset['category'] ?? 'standard',
+                ];
+            }
+            return $genres;
+        } catch (\Exception $e) {
+            // Fallback to constants
+            $genres = [];
+            foreach (array_keys(self::GENRE_PRESETS) as $key) {
+                $genres[$key] = [
+                    'id' => $key,
+                    'name' => ucwords(str_replace('-', ' ', $key)),
+                    'camera' => self::GENRE_PRESETS[$key]['camera'] ?? '',
+                    'style' => self::GENRE_PRESETS[$key]['style'] ?? '',
+                ];
+            }
+            return $genres;
         }
-        return $genres;
     }
 
     /**
