@@ -9293,6 +9293,91 @@ class VideoWizard extends Component
     }
 
     /**
+     * Get scenes data formatted for VideoPreviewEngine.
+     *
+     * Returns an array of scene objects with all data needed for
+     * canvas-based preview rendering including images, videos,
+     * voiceovers, captions, and transition settings.
+     */
+    public function getPreviewScenes(): array
+    {
+        $scenes = [];
+        $scriptScenes = $this->script['scenes'] ?? [];
+        $storyboardScenes = $this->storyboard['scenes'] ?? [];
+        $animationScenes = $this->animation['scenes'] ?? [];
+
+        foreach ($scriptScenes as $index => $scene) {
+            $sceneId = $scene['id'] ?? "scene-{$index}";
+
+            // Find corresponding storyboard and animation data
+            $storyboard = collect($storyboardScenes)->firstWhere('sceneId', $sceneId);
+            $animation = collect($animationScenes)->firstWhere('sceneId', $sceneId);
+
+            // Calculate duration - prefer visualDuration if set, else scene duration
+            $duration = $scene['visualDuration'] ?? $scene['duration'] ?? 8;
+
+            // Get transition for this scene
+            $transition = $this->assembly['transitions'][$sceneId] ?? [
+                'type' => $this->assembly['defaultTransition'] ?? 'fade',
+                'duration' => 0.5
+            ];
+
+            // Ken Burns effect parameters (randomized for natural movement)
+            $kenBurns = [
+                'startScale' => 1.0,
+                'endScale' => 1.05 + (rand(0, 10) / 100), // 1.05-1.15
+                'startX' => 0.5,
+                'startY' => 0.5,
+                'endX' => 0.5 + (rand(-8, 8) / 100), // 0.42-0.58
+                'endY' => 0.5 + (rand(-8, 8) / 100), // 0.42-0.58
+            ];
+
+            // Build caption object from narration
+            $caption = null;
+            if (!empty($scene['narration'])) {
+                $caption = [
+                    'text' => $scene['narration'],
+                    'wordTimings' => $animation['wordTimings'] ?? null,
+                ];
+            }
+
+            $scenes[] = [
+                'id' => $sceneId,
+                'index' => $index,
+                'duration' => $duration,
+                'visualDuration' => $duration,
+                'imageUrl' => $storyboard['imageUrl'] ?? null,
+                'videoUrl' => $animation['videoUrl'] ?? null,
+                'voiceoverUrl' => $animation['voiceoverUrl'] ?? null,
+                'voiceoverDuration' => $animation['voiceoverDuration'] ?? null,
+                'voiceoverOffset' => $animation['voiceoverOffset'] ?? 0,
+                'caption' => $caption,
+                'transition' => $transition,
+                'kenBurns' => $kenBurns,
+            ];
+        }
+
+        return $scenes;
+    }
+
+    /**
+     * Get preview initialization data for Alpine.js controller.
+     */
+    public function getPreviewInitData(): array
+    {
+        return [
+            'aspectRatio' => $this->aspectRatio,
+            'captionsEnabled' => $this->assembly['captions']['enabled'] ?? true,
+            'captionStyle' => $this->assembly['captions']['style'] ?? 'karaoke',
+            'captionPosition' => $this->assembly['captions']['position'] ?? 'bottom',
+            'captionSize' => $this->assembly['captions']['size'] ?? 1.0,
+            'musicEnabled' => $this->assembly['music']['enabled'] ?? false,
+            'musicVolume' => $this->assembly['music']['volume'] ?? 30,
+            'musicUrl' => $this->assembly['music']['url'] ?? null,
+        ];
+    }
+
+    /**
      * Format duration in seconds to MM:SS.
      */
     protected function formatDuration(int $seconds): string

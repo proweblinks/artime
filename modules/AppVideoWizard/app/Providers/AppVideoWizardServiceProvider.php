@@ -28,6 +28,7 @@ class AppVideoWizardServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();
+        $this->registerAssets();
         $this->registerLivewireComponents();
         $this->registerAdminMenu();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
@@ -239,6 +240,20 @@ class AppVideoWizardServiceProvider extends ServiceProvider
 
         $componentNamespace = $this->module_namespace($this->name, $this->app_path(config('modules.paths.generator.component-class.path')));
         Blade::componentNamespace($componentNamespace, $this->nameLower);
+    }
+
+    /**
+     * Register and publish assets.
+     */
+    public function registerAssets(): void
+    {
+        $assetsPath = module_path($this->name, 'resources/assets');
+        $publicPath = public_path('modules/'.$this->nameLower);
+
+        // Publish JS and CSS assets
+        $this->publishes([
+            $assetsPath.'/js' => $publicPath.'/js',
+        ], ['assets', $this->nameLower.'-assets']);
     }
 
     /**

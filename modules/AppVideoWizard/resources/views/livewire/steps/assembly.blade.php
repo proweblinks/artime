@@ -1,4 +1,11 @@
 {{-- Step 6: Assembly --}}
+
+{{-- Load Video Preview Engine and Controller Scripts --}}
+@push('scripts')
+<script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
+<script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
+@endpush
+
 <style>
     .vw-assembly-step {
         width: 100%;
@@ -433,7 +440,11 @@
     }
 </style>
 
-<div class="vw-assembly-step">
+<div
+    class="vw-assembly-step"
+    x-data="previewController(@js($this->getPreviewInitData()))"
+    x-init="init()"
+>
     {{-- Main Card --}}
     <div class="vw-assembly-card">
         {{-- Header --}}
@@ -447,19 +458,9 @@
 
         {{-- Grid Layout --}}
         <div class="vw-assembly-grid">
-            {{-- Preview Section --}}
+            {{-- Preview Section with VideoPreviewEngine --}}
             <div class="vw-preview-section">
-                <div class="vw-preview-video">
-                    <div class="vw-preview-placeholder">
-                        <span class="vw-preview-placeholder-icon">🎬</span>
-                        <span class="vw-preview-placeholder-text">{{ __('Preview will appear here') }}</span>
-                    </div>
-                </div>
-                <div class="vw-preview-controls">
-                    <button type="button" class="vw-play-btn" id="play-btn">▶</button>
-                    <input type="range" class="vw-timeline-slider" id="timeline-slider" min="0" max="100" value="0">
-                    <span class="vw-time-display" id="time-display">0:00 / {{ floor($targetDuration / 60) }}:{{ str_pad($targetDuration % 60, 2, '0', STR_PAD_LEFT) }}</span>
-                </div>
+                @include('appvideowizard::livewire.steps.partials._preview-canvas')
             </div>
 
             {{-- Settings Section --}}
@@ -503,7 +504,10 @@
                             <span>{{ __('Captions') }}</span>
                         </div>
                         <label class="vw-toggle">
-                            <input type="checkbox" wire:model.live="assembly.captions.enabled" {{ ($assembly['captions']['enabled'] ?? true) ? 'checked' : '' }}>
+                            <input type="checkbox"
+                                   wire:model.live="assembly.captions.enabled"
+                                   x-on:change="updateCaptionSetting('enabled', $event.target.checked)"
+                                   {{ ($assembly['captions']['enabled'] ?? true) ? 'checked' : '' }}>
                             <span class="vw-toggle-slider"></span>
                         </label>
                     </div>
@@ -512,21 +516,26 @@
                         <div class="vw-subsetting-grid">
                             <div class="vw-subsetting">
                                 <span class="vw-subsetting-label">{{ __('Style') }}</span>
-                                <select class="vw-select" wire:model.live="assembly.captions.style">
+                                <select class="vw-select"
+                                        wire:model.live="assembly.captions.style"
+                                        x-on:change="updateCaptionSetting('style', $event.target.value)">
                                     @foreach($captionStyles ?? [] as $styleId => $style)
                                         <option value="{{ $styleId }}">{{ $style['name'] }}</option>
                                     @endforeach
                                     @if(empty($captionStyles))
-                                        <option value="karaoke">🎤 Karaoke</option>
-                                        <option value="standard">📝 Standard</option>
-                                        <option value="typewriter">⌨️ Typewriter</option>
-                                        <option value="bold">💪 Bold</option>
+                                        <option value="karaoke">Karaoke</option>
+                                        <option value="beasty">Bold</option>
+                                        <option value="hormozi">Box</option>
+                                        <option value="ali">Glow</option>
+                                        <option value="minimal">Minimal</option>
                                     @endif
                                 </select>
                             </div>
                             <div class="vw-subsetting">
                                 <span class="vw-subsetting-label">{{ __('Position') }}</span>
-                                <select class="vw-select" wire:model.live="assembly.captions.position">
+                                <select class="vw-select"
+                                        wire:model.live="assembly.captions.position"
+                                        x-on:change="updateCaptionSetting('position', $event.target.value)">
                                     <option value="top">{{ __('Top') }}</option>
                                     <option value="middle">{{ __('Middle') }}</option>
                                     <option value="bottom">{{ __('Bottom') }}</option>
@@ -541,6 +550,7 @@
                             </div>
                             <input type="range"
                                    wire:model.live="assembly.captions.size"
+                                   x-on:input="updateCaptionSetting('size', parseFloat($event.target.value))"
                                    min="0.5" max="2" step="0.1"
                                    class="vw-range-slider">
                         </div>
@@ -561,7 +571,10 @@
                             <span>{{ __('Background Music') }}</span>
                         </div>
                         <label class="vw-toggle">
-                            <input type="checkbox" wire:model.live="assembly.music.enabled" {{ ($assembly['music']['enabled'] ?? false) ? 'checked' : '' }}>
+                            <input type="checkbox"
+                                   wire:model.live="assembly.music.enabled"
+                                   x-on:change="updateMusicSetting('enabled', $event.target.checked)"
+                                   {{ ($assembly['music']['enabled'] ?? false) ? 'checked' : '' }}>
                             <span class="vw-toggle-slider"></span>
                         </label>
                     </div>
@@ -574,6 +587,7 @@
                             </div>
                             <input type="range"
                                    wire:model.live="assembly.music.volume"
+                                   x-on:input="updateMusicSetting('volume', parseInt($event.target.value))"
                                    min="0" max="100" step="5"
                                    class="vw-range-slider">
                         </div>
