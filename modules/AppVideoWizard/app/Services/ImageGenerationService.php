@@ -102,12 +102,74 @@ class ImageGenerationService
             throw new \Exception($quota['message']);
         }
 
+        // Get character reference for face consistency (if available)
+        $characterReference = $this->getCharacterReferenceForScene($sceneMemory, $sceneIndex);
+
         // Route to appropriate provider
         if ($modelConfig['provider'] === 'runpod') {
             return $this->generateWithHiDream($project, $scene, $prompt, $resolution, $options);
         } else {
-            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options);
+            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference);
         }
+    }
+
+    /**
+     * Get character reference image for a scene from Character Bible.
+     * This enables face/identity consistency across scene images.
+     *
+     * @param array|null $sceneMemory The scene memory containing Character Bible
+     * @param int|null $sceneIndex The scene index to get characters for
+     * @return array|null Character reference data {base64, mimeType, characterName} or null
+     */
+    protected function getCharacterReferenceForScene(?array $sceneMemory, ?int $sceneIndex): ?array
+    {
+        if (!$sceneMemory) {
+            return null;
+        }
+
+        $characterBible = $sceneMemory['characterBible'] ?? null;
+        if (!$characterBible || !($characterBible['enabled'] ?? false)) {
+            Log::debug('[getCharacterReferenceForScene] Character Bible disabled');
+            return null;
+        }
+
+        $characters = $characterBible['characters'] ?? [];
+        if (empty($characters)) {
+            return null;
+        }
+
+        // Get characters applicable to this scene
+        $sceneCharacters = $this->getCharactersForScene($characters, $sceneIndex);
+
+        Log::debug('[getCharacterReferenceForScene] Scene characters', [
+            'sceneIndex' => $sceneIndex,
+            'totalCharacters' => count($characters),
+            'sceneCharacters' => count($sceneCharacters),
+        ]);
+
+        // Find the first character with a ready reference image (base64)
+        foreach ($sceneCharacters as $character) {
+            $hasBase64 = !empty($character['referenceImageBase64']);
+            $isReady = ($character['referenceImageStatus'] ?? '') === 'ready';
+
+            if ($hasBase64 && $isReady) {
+                Log::info('[getCharacterReferenceForScene] Using character reference', [
+                    'characterName' => $character['name'] ?? 'Unknown',
+                    'base64Length' => strlen($character['referenceImageBase64']),
+                    'mimeType' => $character['referenceImageMimeType'] ?? 'image/png',
+                ]);
+
+                return [
+                    'base64' => $character['referenceImageBase64'],
+                    'mimeType' => $character['referenceImageMimeType'] ?? 'image/png',
+                    'characterName' => $character['name'] ?? 'Character',
+                    'characterDescription' => $character['description'] ?? '',
+                ];
+            }
+        }
+
+        Log::debug('[getCharacterReferenceForScene] No character with base64 portrait found');
+        return null;
     }
 
     /**
@@ -418,6 +480,15 @@ class ImageGenerationService
 
     /**
      * Generate image using Gemini (NanoBanana).
+     *
+     * @param WizardProject $project The project
+     * @param array $scene The scene data
+     * @param string $prompt The image prompt
+     * @param array $resolution Image resolution
+     * @param string $modelId Model ID
+     * @param array $modelConfig Model configuration
+     * @param array $options Additional options
+     * @param array|null $characterReference Character reference for face consistency {base64, mimeType, characterName}
      */
     protected function generateWithGemini(
         WizardProject $project,
@@ -426,7 +497,8 @@ class ImageGenerationService
         array $resolution,
         string $modelId,
         array $modelConfig,
-        array $options = []
+        array $options = [],
+        ?array $characterReference = null
     ): array {
         // Map aspect ratio for Gemini
         $aspectRatioMap = [
@@ -439,7 +511,88 @@ class ImageGenerationService
 
         $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
 
-        // Generate using Gemini service
+        // If we have a character reference, use image-to-image generation for face consistency
+        if ($characterReference && !empty($characterReference['base64'])) {
+            Log::info('[generateWithGemini] Using character reference for face consistency', [
+                'characterName' => $characterReference['characterName'] ?? 'Unknown',
+                'mimeType' => $characterReference['mimeType'] ?? 'image/png',
+            ]);
+
+            // Build special prompt for face/character consistency
+            // This follows the pattern from the original video-creation-wizard.html
+            $faceConsistencyPrompt = <<<EOT
+Using the provided image as a character/face reference to maintain consistency, generate a new image.
+
+CHARACTER REFERENCE: The provided image shows the EXACT appearance of "{$characterReference['characterName']}" that MUST be preserved in the generated image. Maintain the same:
+- Facial features (eyes, nose, mouth, face shape)
+- Skin tone and complexion
+- Hair color, style, and texture
+- Overall body type and proportions
+
+SCENE TO GENERATE:
+{$prompt}
+
+CRITICAL: The character in the generated image MUST look like the SAME PERSON as in the reference image. This is essential for visual consistency across the video.
+EOT;
+
+            $result = $this->geminiService->generateImageFromImage(
+                $characterReference['base64'],
+                $faceConsistencyPrompt,
+                [
+                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'mimeType' => $characterReference['mimeType'] ?? 'image/png',
+                ]
+            );
+
+            // Handle image-to-image response format
+            if (!empty($result['error']) || (!$result['success'] ?? false)) {
+                throw new \Exception($result['error'] ?? 'Image generation with character reference failed');
+            }
+
+            if (!empty($result['imageData'])) {
+                // Store the base64 image
+                $storedPath = $this->storeBase64Image(
+                    $result['imageData'],
+                    $result['mimeType'] ?? 'image/png',
+                    $project,
+                    $scene['id']
+                );
+                $imageUrl = $this->getPublicUrl($storedPath);
+
+                // Create asset record
+                $asset = WizardAsset::create([
+                    'project_id' => $project->id,
+                    'user_id' => $project->user_id,
+                    'type' => WizardAsset::TYPE_IMAGE,
+                    'name' => $scene['id'],
+                    'path' => $storedPath,
+                    'url' => $imageUrl,
+                    'mime_type' => $result['mimeType'] ?? 'image/png',
+                    'scene_index' => $options['sceneIndex'] ?? null,
+                    'scene_id' => $scene['id'],
+                    'metadata' => [
+                        'prompt' => $prompt,
+                        'model' => $modelId,
+                        'characterReference' => $characterReference['characterName'] ?? 'Unknown',
+                        'faceConsistency' => true,
+                    ],
+                ]);
+
+                return [
+                    'success' => true,
+                    'imageUrl' => $imageUrl,
+                    'prompt' => $prompt,
+                    'model' => $modelId,
+                    'assetId' => $asset->id,
+                    'faceConsistency' => true,
+                    'characterUsed' => $characterReference['characterName'] ?? 'Unknown',
+                ];
+            }
+
+            throw new \Exception('No image data in character reference response');
+        }
+
+        // Standard generation without character reference
         $result = $this->geminiService->generateImage($prompt, [
             'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
             'aspectRatio' => $aspectRatio,
