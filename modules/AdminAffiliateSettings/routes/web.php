@@ -15,7 +15,7 @@ use Modules\AdminAffiliateSettings\Http\Controllers\AdminAffiliateSettingsContro
 */
 
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::group(["prefix" => "admin/affiliate-setings"], function () {
-        Route::resource('/', AdminAffiliateSettingsController::class)->only(['index'])->names('admin.affiliate');
+    Route::group(["prefix" => "admin/affiliate-settings"], function () {
+        Route::resource('/', AdminAffiliateSettingsController::class)->only(['index'])->names('admin.affiliate-settings');
     });
 });
