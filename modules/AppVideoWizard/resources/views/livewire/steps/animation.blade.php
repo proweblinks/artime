@@ -11,10 +11,29 @@
         right: 0;
         bottom: 0;
         background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
-        z-index: 100;
+        z-index: 9999;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+    }
+
+    /* Ensure full-screen coverage - hide main app sidebar */
+    body.vw-animation-fullscreen {
+        overflow: hidden !important;
+    }
+
+    body.vw-animation-fullscreen .sidebar,
+    body.vw-animation-fullscreen .main-sidebar,
+    body.vw-animation-fullscreen [class*="sidebar"]:not(.vw-scene-grid-panel),
+    body.vw-animation-fullscreen aside:not(.vw-animation-studio aside),
+    body.vw-animation-fullscreen nav:not(.vw-animation-studio nav) {
+        display: none !important;
+    }
+
+    body.vw-animation-fullscreen .main-content,
+    body.vw-animation-fullscreen [class*="content"]:not(.vw-studio-content) {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
     }
 
     /* Top Header Bar */
@@ -1452,6 +1471,29 @@
         color: rgba(255,255,255,0.4);
     }
 </style>
+
+{{-- Script to ensure full-screen coverage --}}
+<script>
+    // Add body class when Animation Studio is active
+    document.body.classList.add('vw-animation-fullscreen');
+
+    // Hide any sidebar elements
+    document.querySelectorAll('[class*="sidebar"], nav.sidebar, .main-sidebar, aside').forEach(function(el) {
+        if (!el.closest('.vw-animation-studio')) {
+            el.style.display = 'none';
+        }
+    });
+
+    // Cleanup on page unload/navigation
+    Livewire.hook('element.removed', (el, component) => {
+        if (el.classList && el.classList.contains('vw-animation-studio')) {
+            document.body.classList.remove('vw-animation-fullscreen');
+            document.querySelectorAll('[class*="sidebar"], nav.sidebar, .main-sidebar, aside').forEach(function(el) {
+                el.style.display = '';
+            });
+        }
+    });
+</script>
 
 @if(empty($script['scenes']))
     <div class="vw-studio-alert">
