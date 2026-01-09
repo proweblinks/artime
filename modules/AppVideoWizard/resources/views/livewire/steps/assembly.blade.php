@@ -590,14 +590,115 @@
             </div>
         </div>
 
-        {{-- Ready Banner --}}
-        <div class="vw-ready-banner">
-            <span class="vw-ready-icon">✅</span>
-            <div class="vw-ready-text">
-                <div class="vw-ready-title">{{ __('Ready to Export') }}</div>
-                <div class="vw-ready-subtitle">{{ __('Your video is configured and ready for final export') }}</div>
+        {{-- Shot-Based Assembly Status (Hollywood Multi-Shot Mode) --}}
+        @php
+            $assemblyStats = $this->getAssemblyStats();
+            $isMultiShot = $assemblyStats['mode'] === 'multi-shot';
+        @endphp
+        @if($isMultiShot || ($multiShotMode['enabled'] ?? false))
+            <div class="vw-setting-card" style="margin-top: 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));">
+                <div class="vw-setting-header">
+                    <div class="vw-setting-title">
+                        <span class="vw-setting-title-icon">🎬</span>
+                        <span>{{ __('Hollywood Multi-Shot Assembly') }}</span>
+                    </div>
+                    <span style="font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; background: rgba(139, 92, 246, 0.3); color: #a78bfa;">
+                        {{ $assemblyStats['mode'] === 'multi-shot' ? __('Active') : __('Standard') }}
+                    </span>
+                </div>
+
+                {{-- Assembly Progress --}}
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem;">
+                    <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #a78bfa;">{{ $assemblyStats['sceneCount'] }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase;">{{ __('Scenes') }}</div>
+                    </div>
+                    <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #06b6d4;">{{ $assemblyStats['videoCount'] }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase;">{{ __('Clips') }}</div>
+                    </div>
+                    <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">{{ $assemblyStats['formattedDuration'] }}</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase;">{{ __('Duration') }}</div>
+                    </div>
+                    <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                        <div style="font-size: 1.5rem; font-weight: 700; {{ $assemblyStats['isReady'] ? 'color: #10b981;' : 'color: #f59e0b;' }}">{{ $assemblyStats['progress'] }}%</div>
+                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase;">{{ __('Ready') }}</div>
+                    </div>
+                </div>
+
+                {{-- Video Progress Bar --}}
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">{{ __('Video Collection Progress') }}</span>
+                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">
+                            @if($assemblyStats['pendingShots'] > 0)
+                                {{ $assemblyStats['pendingShots'] }} {{ __('pending') }}
+                            @else
+                                {{ __('All ready') }}
+                            @endif
+                        </span>
+                    </div>
+                    <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ $assemblyStats['progress'] }}%; background: linear-gradient(90deg, #8b5cf6, #06b6d4); border-radius: 4px; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                {{-- Scene Clips Breakdown --}}
+                @if(!empty($assembly['sceneClips']))
+                    <div style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 0.5rem;">{{ __('Clips by Scene') }}</div>
+                        @foreach($assembly['sceneClips'] as $sceneIndex => $sceneData)
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.7rem; color: #a78bfa; min-width: 60px;">{{ __('Scene') }} {{ $sceneIndex + 1 }}</span>
+                                <div style="flex: 1; display: flex; gap: 0.25rem;">
+                                    @foreach($sceneData['clips'] as $clip)
+                                        <div style="width: 24px; height: 24px; border-radius: 4px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: white;" title="{{ $clip['type'] ?? 'shot' }}">
+                                            ✓
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ $sceneData['clipCount'] }} {{ __('clips') }} • {{ $sceneData['totalDuration'] }}s</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Prepare for Export Button --}}
+                @if(!$assemblyStats['isReady'] && $assemblyStats['pendingShots'] > 0)
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚠️</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.85rem; color: #f59e0b; font-weight: 600;">{{ __('Videos Not Complete') }}</div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ $assemblyStats['pendingShots'] }} {{ __('shots still need video generation') }}</div>
+                        </div>
+                        <button type="button" wire:click="$dispatch('switchToStep', { step: 5 })" style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; font-size: 0.75rem; cursor: pointer;">
+                            {{ __('Back to Animation') }}
+                        </button>
+                    </div>
+                @endif
             </div>
-            <button type="button" class="vw-continue-btn" wire:click="nextStep">
+        @endif
+
+        {{-- Ready Banner --}}
+        @php
+            $canExport = !$isMultiShot || $assemblyStats['isReady'];
+        @endphp
+        <div class="vw-ready-banner" style="{{ !$canExport ? 'background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);' : '' }}">
+            <span class="vw-ready-icon">{{ $canExport ? '✅' : '⏳' }}</span>
+            <div class="vw-ready-text">
+                <div class="vw-ready-title" style="{{ !$canExport ? 'color: #f59e0b;' : '' }}">
+                    {{ $canExport ? __('Ready to Export') : __('Preparing Assembly') }}
+                </div>
+                <div class="vw-ready-subtitle">
+                    @if($canExport)
+                        {{ __('Your video is configured and ready for final export') }}
+                    @else
+                        {{ __('Complete video generation for all shots before export') }}
+                    @endif
+                </div>
+            </div>
+            <button type="button" class="vw-continue-btn" wire:click="nextStep" {{ !$canExport ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : '' }}>
                 {{ __('Continue') }} →
             </button>
         </div>

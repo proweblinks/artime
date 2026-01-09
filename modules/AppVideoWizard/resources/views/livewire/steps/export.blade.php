@@ -379,6 +379,10 @@
         </div>
 
         {{-- Summary Stats --}}
+        @php
+            $exportStats = $this->getAssemblyStats();
+            $isMultiShotExport = $exportStats['mode'] === 'multi-shot';
+        @endphp
         <div class="vw-summary-grid">
             <div class="vw-summary-stat">
                 <div class="vw-summary-stat-icon">📺</div>
@@ -389,7 +393,13 @@
             </div>
             <div class="vw-summary-stat">
                 <div class="vw-summary-stat-icon">⏱️</div>
-                <div class="vw-summary-stat-value">{{ floor($targetDuration / 60) }}:{{ str_pad($targetDuration % 60, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="vw-summary-stat-value">
+                    @if($isMultiShotExport && $exportStats['totalDuration'] > 0)
+                        {{ $exportStats['formattedDuration'] }}
+                    @else
+                        {{ floor($targetDuration / 60) }}:{{ str_pad($targetDuration % 60, 2, '0', STR_PAD_LEFT) }}
+                    @endif
+                </div>
                 <div class="vw-summary-stat-label">{{ __('Duration') }}</div>
             </div>
             <div class="vw-summary-stat">
@@ -397,12 +407,44 @@
                 <div class="vw-summary-stat-value">{{ count($script['scenes'] ?? []) }}</div>
                 <div class="vw-summary-stat-label">{{ __('Scenes') }}</div>
             </div>
-            <div class="vw-summary-stat">
-                <div class="vw-summary-stat-icon">📐</div>
-                <div class="vw-summary-stat-value">{{ $aspectRatio }}</div>
-                <div class="vw-summary-stat-label">{{ __('Aspect Ratio') }}</div>
-            </div>
+            @if($isMultiShotExport)
+                <div class="vw-summary-stat" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3);">
+                    <div class="vw-summary-stat-icon">🎥</div>
+                    <div class="vw-summary-stat-value" style="color: #a78bfa;">{{ $exportStats['videoCount'] }}</div>
+                    <div class="vw-summary-stat-label">{{ __('Clips') }}</div>
+                </div>
+            @else
+                <div class="vw-summary-stat">
+                    <div class="vw-summary-stat-icon">📐</div>
+                    <div class="vw-summary-stat-value">{{ $aspectRatio }}</div>
+                    <div class="vw-summary-stat-label">{{ __('Aspect Ratio') }}</div>
+                </div>
+            @endif
         </div>
+
+        {{-- Hollywood Multi-Shot Mode Badge --}}
+        @if($isMultiShotExport)
+            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                <span style="font-size: 1.25rem;">🎬</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.85rem; color: white; font-weight: 600;">{{ __('Hollywood Multi-Shot Mode') }}</div>
+                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">
+                        {{ $exportStats['sceneCount'] }} {{ __('scenes') }} •
+                        {{ $exportStats['videoCount'] }} {{ __('shot clips') }} •
+                        {{ $aspectRatio }}
+                    </div>
+                </div>
+                @if($exportStats['isReady'])
+                    <span style="font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; background: rgba(16, 185, 129, 0.3); color: #10b981;">
+                        {{ __('Ready') }}
+                    </span>
+                @else
+                    <span style="font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; background: rgba(245, 158, 11, 0.3); color: #f59e0b;">
+                        {{ $exportStats['progress'] }}% {{ __('Complete') }}
+                    </span>
+                @endif
+            </div>
+        @endif
 
         {{-- Export Settings --}}
         <div class="vw-export-settings" x-show="!exporting && !exportedUrl">
