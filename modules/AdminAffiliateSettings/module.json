@@ -10,7 +10,7 @@
     "files": [],
     "permission": true,
     "menu": {
-        "uri": "admin/affiliate-setings",
+        "uri": "admin/affiliate-settings",
         "role": "admin",
         "platform": 1,
         "section": "top",
@@ -22,7 +22,7 @@
         "icon": "fa-light fa-gear",
         "sub_menu": [
             {
-                "uri": "admin/affiliate-setings",
+                "uri": "admin/affiliate-settings",
                 "name": "Affiliate",
                 "position": 400000,
                 "icon": "fa-light fa-bell",

@@ -35,18 +35,20 @@ class CharacterExtractionService
         $genre = $options['genre'] ?? $options['productionType'] ?? 'General';
         $productionMode = $options['productionMode'] ?? 'standard';
         $styleBible = $options['styleBible'] ?? null;
+        $visualMode = $options['visualMode'] ?? null; // Master visual mode enforcement
 
         try {
             // Build scene content for analysis
             $sceneContent = $this->buildSceneContent($scenes);
 
-            // Build the AI prompt
+            // Build the AI prompt with visual mode enforcement
             $prompt = $this->buildExtractionPrompt(
                 $sceneContent,
                 $script['title'] ?? 'Untitled',
                 $genre,
                 $productionMode,
-                $styleBible
+                $styleBible,
+                $visualMode
             );
 
             $startTime = microtime(true);
@@ -133,12 +135,33 @@ class CharacterExtractionService
         string $title,
         string $genre,
         string $productionMode,
-        ?array $styleBible
+        ?array $styleBible,
+        ?array $visualMode = null
     ): string {
+        // Build visual mode enforcement (HIGHEST PRIORITY)
+        $visualModeEnforcement = '';
+        if ($visualMode) {
+            $enforcement = $visualMode['enforcement'] ?? '';
+            $keywords = $visualMode['keywords'] ?? '';
+            $forbidden = $visualMode['forbidden'] ?? '';
+
+            $visualModeEnforcement = <<<VISUAL
+
+=== MASTER VISUAL STYLE - MANDATORY COMPLIANCE ===
+{$enforcement}
+
+REQUIRED VISUAL STYLE: {$keywords}
+VISUAL;
+            if (!empty($forbidden)) {
+                $visualModeEnforcement .= "\nFORBIDDEN STYLES (never use these): {$forbidden}";
+            }
+            $visualModeEnforcement .= "\n=== END MASTER VISUAL STYLE ===\n";
+        }
+
         $systemPrompt = <<<SYSTEM
 You are an expert at analyzing video scripts and identifying characters for visual consistency.
 Your task is to extract all characters that appear in the script and create detailed visual descriptions for AI image generation.
-
+{$visualModeEnforcement}
 CRITICAL RULES:
 1. Focus on characters that APPEAR VISUALLY in the video (not just mentioned in narration)
 2. Create SPECIFIC, CONSISTENT descriptions that can be used across all scenes
@@ -147,11 +170,25 @@ CRITICAL RULES:
 5. Consider the genre and style to match character descriptions appropriately
 6. If the script is abstract/conceptual with no human characters, return empty array
 7. Maximum 5 characters (focus on main/recurring characters)
+8. **STYLE CONSISTENCY IS PARAMOUNT** - ALL character descriptions must match the Master Visual Style above
+9. If visual mode is "cinematic-realistic", ALL characters must be described as real people (photorealistic, live-action actors)
+
+STYLE-APPROPRIATE CHARACTER GENERATION:
+For CINEMATIC-REALISTIC visual mode:
+- Describe characters as real people, like casting for a film
+- Use realistic physical descriptions (natural skin textures, realistic features)
+- Reference film/TV quality: "Like a Netflix drama lead", "Film-quality appearance"
+- Even if script mentions fantasy/anime elements, describe as real actors playing roles
+
+For STYLIZED-ANIMATION visual mode:
+- Characters can have stylized, animated features
+- Use animation references: "Pixar-style", "anime-inspired", "Disney-like"
+- Can describe exaggerated features appropriate for animation
 
 GENRE CONSIDERATIONS:
 - Corporate/Business: Professional attire, polished appearance
 - Action/Adventure: Practical clothing, battle-ready look
-- Fantasy: Period-appropriate or magical attire
+- Fantasy: Period-appropriate attire (but REALISTIC HUMAN if cinematic-realistic mode)
 - Sci-Fi: Futuristic clothing, tech accessories
 - Documentary: Natural, authentic appearance
 - Lifestyle: Contemporary casual or stylish clothing
@@ -172,6 +209,9 @@ SYSTEM;
             }
             if (!empty($styleBible['atmosphere'])) {
                 $styleBibleContext .= "Atmosphere: {$styleBible['atmosphere']}\n";
+            }
+            if (!empty($styleBible['camera'])) {
+                $styleBibleContext .= "Camera Language: {$styleBible['camera']}\n";
             }
         }
 

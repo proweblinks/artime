@@ -58,10 +58,126 @@ class VideoWizard extends Component
         'pacing' => 'balanced',         // 'fast' | 'balanced' | 'contemplative'
         'productionMode' => 'standard', // 'standard' | 'documentary' | 'thriller' | 'cinematic'
         'genre' => null,                // Genre for style consistency
+        // MASTER VISUAL MODE - Enforced across ALL AI generation (locations, characters, images)
+        // This is the TOP-LEVEL style authority - prevents style conflicts
+        'visualMode' => 'cinematic-realistic', // 'cinematic-realistic' | 'stylized-animation' | 'mixed-hybrid'
+        // AI Model Tier for script generation (cost vs quality)
+        'aiModelTier' => 'economy',     // 'economy' | 'standard' | 'premium'
+        // Content generation language
+        'language' => 'en',             // ISO 639-1 language code
         'videoModel' => [
             'model' => 'hailuo-2.3',
             'duration' => '10s',        // Clip duration: '5s' | '6s' | '10s'
             'resolution' => '768p',
+        ],
+    ];
+
+    /**
+     * AI Model Tiers - Cost vs Quality options
+     * Users can choose based on their budget and quality needs.
+     */
+    public const AI_MODEL_TIERS = [
+        'economy' => [
+            'label' => 'Economy',
+            'description' => 'Best value, great quality',
+            'icon' => '💰',
+            'provider' => 'grok',
+            'model' => 'grok-4-fast',
+            'pricing' => '$0.20 / $0.50 per 1M tokens',
+            'badge' => 'BEST VALUE',
+            'badgeColor' => 'green',
+        ],
+        'standard' => [
+            'label' => 'Standard',
+            'description' => 'Balanced performance',
+            'icon' => '⚡',
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+            'pricing' => '$0.15 / $0.60 per 1M tokens',
+            'badge' => 'POPULAR',
+            'badgeColor' => 'blue',
+        ],
+        'premium' => [
+            'label' => 'Premium',
+            'description' => 'Maximum quality',
+            'icon' => '👑',
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+            'pricing' => '$2.50 / $10 per 1M tokens',
+            'badge' => 'BEST QUALITY',
+            'badgeColor' => 'purple',
+        ],
+    ];
+
+    /**
+     * Supported languages for content generation
+     * Country codes are ISO 3166-1 alpha-2 for flag images
+     */
+    public const SUPPORTED_LANGUAGES = [
+        // Major Global Languages
+        'en' => ['name' => 'English', 'native' => 'English', 'country' => 'us'],
+        'es' => ['name' => 'Spanish', 'native' => 'Español', 'country' => 'es'],
+        'fr' => ['name' => 'French', 'native' => 'Français', 'country' => 'fr'],
+        'de' => ['name' => 'German', 'native' => 'Deutsch', 'country' => 'de'],
+        'it' => ['name' => 'Italian', 'native' => 'Italiano', 'country' => 'it'],
+        'pt' => ['name' => 'Portuguese', 'native' => 'Português', 'country' => 'pt'],
+        'pt-br' => ['name' => 'Portuguese (Brazil)', 'native' => 'Português (Brasil)', 'country' => 'br'],
+        'ru' => ['name' => 'Russian', 'native' => 'Русский', 'country' => 'ru'],
+        'zh' => ['name' => 'Chinese', 'native' => '中文', 'country' => 'cn'],
+        'ja' => ['name' => 'Japanese', 'native' => '日本語', 'country' => 'jp'],
+        'ko' => ['name' => 'Korean', 'native' => '한국어', 'country' => 'kr'],
+        'ar' => ['name' => 'Arabic', 'native' => 'العربية', 'country' => 'sa'],
+        'hi' => ['name' => 'Hindi', 'native' => 'हिन्दी', 'country' => 'in'],
+        // European Languages
+        'nl' => ['name' => 'Dutch', 'native' => 'Nederlands', 'country' => 'nl'],
+        'pl' => ['name' => 'Polish', 'native' => 'Polski', 'country' => 'pl'],
+        'uk' => ['name' => 'Ukrainian', 'native' => 'Українська', 'country' => 'ua'],
+        'el' => ['name' => 'Greek', 'native' => 'Ελληνικά', 'country' => 'gr'],
+        'cs' => ['name' => 'Czech', 'native' => 'Čeština', 'country' => 'cz'],
+        'ro' => ['name' => 'Romanian', 'native' => 'Română', 'country' => 'ro'],
+        'hu' => ['name' => 'Hungarian', 'native' => 'Magyar', 'country' => 'hu'],
+        'sv' => ['name' => 'Swedish', 'native' => 'Svenska', 'country' => 'se'],
+        'da' => ['name' => 'Danish', 'native' => 'Dansk', 'country' => 'dk'],
+        'no' => ['name' => 'Norwegian', 'native' => 'Norsk', 'country' => 'no'],
+        'fi' => ['name' => 'Finnish', 'native' => 'Suomi', 'country' => 'fi'],
+        // Middle East & Asia
+        'he' => ['name' => 'Hebrew', 'native' => 'עברית', 'country' => 'il'],
+        'tr' => ['name' => 'Turkish', 'native' => 'Türkçe', 'country' => 'tr'],
+        'fa' => ['name' => 'Persian', 'native' => 'فارسی', 'country' => 'ir'],
+        'th' => ['name' => 'Thai', 'native' => 'ไทย', 'country' => 'th'],
+        'vi' => ['name' => 'Vietnamese', 'native' => 'Tiếng Việt', 'country' => 'vn'],
+        'id' => ['name' => 'Indonesian', 'native' => 'Bahasa Indonesia', 'country' => 'id'],
+        'ms' => ['name' => 'Malay', 'native' => 'Bahasa Melayu', 'country' => 'my'],
+        'tl' => ['name' => 'Filipino', 'native' => 'Tagalog', 'country' => 'ph'],
+        'bn' => ['name' => 'Bengali', 'native' => 'বাংলা', 'country' => 'bd'],
+        'ta' => ['name' => 'Tamil', 'native' => 'தமிழ்', 'country' => 'in'],
+    ];
+
+    /**
+     * Visual Mode definitions - Master style authority
+     * This determines whether ALL generated content is realistic or stylized.
+     */
+    public const VISUAL_MODES = [
+        'cinematic-realistic' => [
+            'label' => 'Cinematic Realistic',
+            'description' => 'Photorealistic, live-action, Hollywood film quality',
+            'enforcement' => 'REALISTIC ONLY. All visuals must be photorealistic, live-action quality. NO cartoon, anime, fantasy art styles, or stylized rendering. Think: Netflix film, HBO series, theatrical release.',
+            'keywords' => 'photorealistic, live-action, cinematic, film grain, natural lighting, real-world textures, DSLR quality, 8K, professional cinematography',
+            'forbidden' => 'cartoon, anime, illustrated, stylized, fantasy art, 3D render, CGI look, digital painting, concept art',
+        ],
+        'stylized-animation' => [
+            'label' => 'Stylized Animation',
+            'description' => '2D/3D animation, cartoon, anime, illustrated styles',
+            'enforcement' => 'STYLIZED/ANIMATED ONLY. All visuals should be animated, illustrated, or stylized. Think: Pixar, Disney, anime, motion graphics.',
+            'keywords' => '3D animation, 2D animation, cartoon, anime style, illustrated, digital art, stylized, motion graphics',
+            'forbidden' => 'photorealistic, live-action, real footage, documentary',
+        ],
+        'mixed-hybrid' => [
+            'label' => 'Mixed / Hybrid',
+            'description' => 'Combination of realistic and stylized elements',
+            'enforcement' => 'Mixed style allowed. Can combine realistic and stylized elements as appropriate for each scene.',
+            'keywords' => 'flexible style, mixed media, creative interpretation',
+            'forbidden' => '',
         ],
     ];
 
@@ -6010,6 +6126,7 @@ class VideoWizard extends Component
                 'productionType' => $this->productionType,
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
+                'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
             ]);
 
             if ($result['success'] && !empty($result['characters'])) {
@@ -6246,6 +6363,7 @@ class VideoWizard extends Component
                 'productionType' => $this->productionType,
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
+                'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
             ]);
 
             if ($result['success'] && !empty($result['locations'])) {
@@ -7751,6 +7869,7 @@ class VideoWizard extends Component
     /**
      * Set content genre and apply preset.
      * Uses CinematographyService for database-backed presets with fallback to constants.
+     * FIXED: Now applies ALL preset fields, not just 'style'.
      */
     public function setGenre(string $genre): void
     {
@@ -7769,12 +7888,97 @@ class VideoWizard extends Component
         if ($preset) {
             $this->content['genre'] = $genre;
 
-            // Auto-apply style bible from genre preset
+            // Apply ALL preset fields to Style Bible (not just 'style')
+            // This ensures camera language, color grade, atmosphere are all consistent
             if (!empty($preset['style'])) {
                 $this->sceneMemory['styleBible']['style'] = $preset['style'];
             }
+            if (!empty($preset['camera'])) {
+                $this->sceneMemory['styleBible']['camera'] = $preset['camera'];
+            }
+            if (!empty($preset['colorGrade'])) {
+                $this->sceneMemory['styleBible']['colorGrade'] = $preset['colorGrade'];
+            }
+            if (!empty($preset['atmosphere'])) {
+                $this->sceneMemory['styleBible']['atmosphere'] = $preset['atmosphere'];
+            }
+            if (!empty($preset['lighting'])) {
+                $this->sceneMemory['styleBible']['lighting'] = $preset['lighting'];
+            }
+
+            // Mark Style Bible as enabled since we have a preset
+            $this->sceneMemory['styleBible']['enabled'] = true;
 
             $this->saveProject();
+        }
+    }
+
+    /**
+     * Set the master visual mode.
+     * This is the TOP-LEVEL style authority that overrides everything.
+     */
+    public function setVisualMode(string $mode): void
+    {
+        if (isset(self::VISUAL_MODES[$mode])) {
+            $this->content['visualMode'] = $mode;
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Get current visual mode with full definition.
+     */
+    public function getVisualMode(): array
+    {
+        $mode = $this->content['visualMode'] ?? 'cinematic-realistic';
+        return self::VISUAL_MODES[$mode] ?? self::VISUAL_MODES['cinematic-realistic'];
+    }
+
+    /**
+     * Get visual mode enforcement text for AI prompts.
+     * This MUST be included in all AI generation prompts.
+     */
+    public function getVisualModeEnforcement(): string
+    {
+        $mode = $this->getVisualMode();
+        $enforcement = $mode['enforcement'] ?? '';
+        $keywords = $mode['keywords'] ?? '';
+        $forbidden = $mode['forbidden'] ?? '';
+
+        $text = "=== MASTER VISUAL STYLE (MANDATORY) ===\n";
+        $text .= $enforcement . "\n";
+        $text .= "Required visual keywords: {$keywords}\n";
+        if (!empty($forbidden)) {
+            $text .= "FORBIDDEN styles (never use): {$forbidden}\n";
+        }
+
+        return $text;
+    }
+
+    /**
+     * Auto-detect visual mode from production type and subtype.
+     * Called when production type is set.
+     */
+    public function autoDetectVisualMode(): void
+    {
+        $productionType = $this->productionType ?? '';
+        $productionSubtype = $this->productionSubtype ?? '';
+
+        // Animation types always get stylized mode
+        if ($productionType === 'animation' ||
+            str_contains(strtolower($productionSubtype), 'anime') ||
+            str_contains(strtolower($productionSubtype), 'cartoon') ||
+            str_contains(strtolower($productionSubtype), '3d') ||
+            str_contains(strtolower($productionSubtype), '2d')) {
+            $this->content['visualMode'] = 'stylized-animation';
+        }
+        // Live-action types get cinematic-realistic
+        elseif (in_array($productionType, ['entertainment', 'documentary', 'commercial', 'corporate', 'testimonial', 'product'])) {
+            $this->content['visualMode'] = 'cinematic-realistic';
+        }
+        // Default to cinematic-realistic for safety
+        else {
+            $this->content['visualMode'] = 'cinematic-realistic';
         }
     }
 

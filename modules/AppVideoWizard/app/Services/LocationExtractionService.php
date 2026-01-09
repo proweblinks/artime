@@ -15,7 +15,7 @@ class LocationExtractionService
      * Extract locations from a video script using AI analysis.
      *
      * @param array $script The script data with scenes
-     * @param array $options Additional options (genre, productionType, styleBible)
+     * @param array $options Additional options (genre, productionType, styleBible, visualMode)
      * @return array Result with locations array and metadata
      */
     public function extractLocations(array $script, array $options = []): array
@@ -34,18 +34,20 @@ class LocationExtractionService
         $genre = $options['genre'] ?? $options['productionType'] ?? 'General';
         $productionMode = $options['productionMode'] ?? 'standard';
         $styleBible = $options['styleBible'] ?? null;
+        $visualMode = $options['visualMode'] ?? null; // Master visual mode enforcement
 
         try {
             // Build scene content for analysis
             $sceneContent = $this->buildSceneContent($scenes);
 
-            // Build the AI prompt
+            // Build the AI prompt with visual mode enforcement
             $prompt = $this->buildExtractionPrompt(
                 $sceneContent,
                 $script['title'] ?? 'Untitled',
                 $genre,
                 $productionMode,
-                $styleBible
+                $styleBible,
+                $visualMode
             );
 
             $startTime = microtime(true);
@@ -132,12 +134,33 @@ class LocationExtractionService
         string $title,
         string $genre,
         string $productionMode,
-        ?array $styleBible
+        ?array $styleBible,
+        ?array $visualMode = null
     ): string {
+        // Build visual mode enforcement (HIGHEST PRIORITY)
+        $visualModeEnforcement = '';
+        if ($visualMode) {
+            $enforcement = $visualMode['enforcement'] ?? '';
+            $keywords = $visualMode['keywords'] ?? '';
+            $forbidden = $visualMode['forbidden'] ?? '';
+
+            $visualModeEnforcement = <<<VISUAL
+
+=== MASTER VISUAL STYLE - MANDATORY COMPLIANCE ===
+{$enforcement}
+
+REQUIRED VISUAL STYLE: {$keywords}
+VISUAL;
+            if (!empty($forbidden)) {
+                $visualModeEnforcement .= "\nFORBIDDEN STYLES (never use these): {$forbidden}";
+            }
+            $visualModeEnforcement .= "\n=== END MASTER VISUAL STYLE ===\n";
+        }
+
         $systemPrompt = <<<SYSTEM
 You are an expert at analyzing video scripts and identifying locations for visual consistency.
 Your task is to extract all unique locations that appear in the script and create detailed visual descriptions for AI image generation.
-
+{$visualModeEnforcement}
 CRITICAL RULES:
 1. Identify DISTINCT LOCATIONS that appear visually in the video
 2. Merge similar locations (e.g., "office" and "corporate office" are the same location)
@@ -145,7 +168,8 @@ CRITICAL RULES:
 4. Include: setting type (interior/exterior), time of day, weather, atmosphere, architectural details, colors, textures
 5. Track which scenes each location appears in
 6. Maximum 8 locations (focus on primary/recurring locations)
-7. Consider the genre for appropriate location styling
+7. **STYLE CONSISTENCY IS PARAMOUNT** - ALL locations must match the Master Visual Style above
+8. If the visual mode is "cinematic-realistic", ALL locations must be real-world, photorealistic settings - NO fantasy, cartoon, or stylized imagery
 
 LOCATION ANALYSIS:
 - Look for explicit location mentions in narration
@@ -153,14 +177,18 @@ LOCATION ANALYSIS:
 - Group scenes that share the same location
 - Note any time-of-day or weather variations
 
-GENRE CONSIDERATIONS:
-- Corporate/Business: Modern offices, meeting rooms, professional spaces
-- Action/Adventure: Dynamic environments, rooftops, warehouses, streets
-- Fantasy: Magical realms, castles, forests, mystical spaces
-- Sci-Fi: Futuristic cities, space stations, laboratories, tech environments
-- Documentary: Real-world locations, authentic settings
-- Horror: Dark spaces, abandoned buildings, eerie environments
-- Romance: Intimate settings, beautiful vistas, cozy interiors
+STYLE-APPROPRIATE LOCATION GENERATION:
+For CINEMATIC-REALISTIC visual mode:
+- All locations must be real-world, physically plausible environments
+- Use film photography references (ARRI, RED, Panavision quality)
+- Describe practical lighting, real textures, architectural authenticity
+- Even if script mentions fantasy elements, interpret as "movie set" or "practical effects" or "real-world inspired location"
+- Example: "Mystical forest" → "Pacific Northwest old-growth forest at dusk, fog rolling through ancient redwoods, practical lighting through canopy"
+
+For STYLIZED-ANIMATION visual mode:
+- Locations can be stylized, illustrated, animated
+- Use animation studio references (Pixar, Disney, anime)
+- Describe stylized colors, exaggerated features, artistic interpretation
 
 Return valid JSON only, no markdown formatting or code blocks.
 SYSTEM;
@@ -176,6 +204,9 @@ SYSTEM;
             }
             if (!empty($styleBible['atmosphere'])) {
                 $styleBibleContext .= "Atmosphere: {$styleBible['atmosphere']}\n";
+            }
+            if (!empty($styleBible['camera'])) {
+                $styleBibleContext .= "Camera Language: {$styleBible['camera']}\n";
             }
         }
 

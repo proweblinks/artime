@@ -13,6 +13,7 @@ class AIService
     protected $claudeService;
     protected $falService;
     protected $miniMaxService;
+    protected $grokService;
 
     public function __construct(
         OpenAIService   $openAIService,
@@ -20,7 +21,8 @@ class AIService
         GeminiService   $geminiService,
         ClaudeService   $claudeService,
         FalService      $falService,
-        MiniMaxService  $miniMaxService
+        MiniMaxService  $miniMaxService,
+        GrokService     $grokService
     ) {
         $this->openAIService   = $openAIService;
         $this->deepSeekService = $deepSeekService;
@@ -28,6 +30,7 @@ class AIService
         $this->claudeService   = $claudeService;
         $this->falService      = $falService;
         $this->miniMaxService  = $miniMaxService;
+        $this->grokService     = $grokService;
     }
 
     /**
@@ -89,6 +92,7 @@ class AIService
             'claude'   => $this->claudeService,
             'fal'      => $this->falService,
             'minimax'  => $this->miniMaxService,
+            'grok'     => $this->grokService,
             default    => throw new \Exception("Platform {$platform} not supported"),
         };
     }
@@ -147,6 +151,7 @@ class AIService
         return [
             "openai"   => __("OpenAI"),
             "deepseek" => __("DeepSeek"),
+            "grok"     => __("Grok (xAI)"),
             "gemini"   => __("Gemini"),
             "claude"   => __("Claude"),
             "fal"      => __("FAL AI"),

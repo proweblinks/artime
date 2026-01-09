@@ -15,7 +15,8 @@ class AdminAIConfigurationController extends Controller
         $providers = [
             'openai'   => 'OpenAI',
             'gemini'   => 'Gemini AI',
-            'deepseek' => 'Deepseek AI',
+            'deepseek' => 'DeepSeek AI',
+            'grok'     => 'Grok (xAI)',
             'claude'   => 'Claude AI',
             'fal'      => 'FAL AI',
             'minimax'  => 'MiniMax AI',
