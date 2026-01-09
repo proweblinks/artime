@@ -743,6 +743,86 @@
     .vw-dismiss-btn:hover {
         background: rgba(255, 255, 255, 0.12) !important;
     }
+
+    /* Visual Mode Selector - Master Style Authority */
+    .vw-visual-mode-section {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        border-radius: 0.75rem !important;
+        padding: 1rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .vw-visual-mode-header {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    .vw-visual-mode-title {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        color: #c4b5fd !important;
+    }
+
+    .vw-visual-mode-badge {
+        background: rgba(139, 92, 246, 0.3) !important;
+        color: #c4b5fd !important;
+        padding: 0.2rem 0.5rem !important;
+        border-radius: 0.25rem !important;
+        font-size: 0.65rem !important;
+        font-weight: 500 !important;
+        text-transform: uppercase !important;
+    }
+
+    .vw-visual-mode-options {
+        display: flex !important;
+        gap: 0.75rem !important;
+        flex-wrap: wrap !important;
+    }
+
+    .vw-visual-mode-option {
+        flex: 1 !important;
+        min-width: 140px !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 2px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.5rem !important;
+        padding: 0.75rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+    }
+
+    .vw-visual-mode-option:hover {
+        border-color: rgba(139, 92, 246, 0.4) !important;
+        background: rgba(139, 92, 246, 0.1) !important;
+    }
+
+    .vw-visual-mode-option.active {
+        border-color: #8b5cf6 !important;
+        background: rgba(139, 92, 246, 0.2) !important;
+    }
+
+    .vw-visual-mode-option.active .vw-mode-label {
+        color: #c4b5fd !important;
+    }
+
+    .vw-mode-icon {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    .vw-mode-label {
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .vw-mode-desc {
+        font-size: 0.7rem !important;
+        color: rgba(255, 255, 255, 0.5) !important;
+        margin-top: 0.25rem !important;
+    }
 </style>
 
 <div class="vw-concept-step">
@@ -793,6 +873,34 @@
                 <div class="vw-context-duration">{{ $durationText }}</div>
             </div>
         @endif
+
+        {{-- Visual Mode Selector - MASTER STYLE AUTHORITY --}}
+        <div class="vw-visual-mode-section">
+            <div class="vw-visual-mode-header">
+                <span class="vw-visual-mode-title">🎨 {{ __('Visual Style') }}</span>
+                <span class="vw-visual-mode-badge">{{ __('GLOBAL') }}</span>
+            </div>
+            <div class="vw-visual-mode-options">
+                <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? 'cinematic-realistic') === 'cinematic-realistic' ? 'active' : '' }}"
+                     wire:click="setVisualMode('cinematic-realistic')">
+                    <div class="vw-mode-icon">🎬</div>
+                    <div class="vw-mode-label">{{ __('Cinematic Realistic') }}</div>
+                    <div class="vw-mode-desc">{{ __('Live-action, photorealistic, Hollywood quality') }}</div>
+                </div>
+                <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? '') === 'stylized-animation' ? 'active' : '' }}"
+                     wire:click="setVisualMode('stylized-animation')">
+                    <div class="vw-mode-icon">✨</div>
+                    <div class="vw-mode-label">{{ __('Stylized Animation') }}</div>
+                    <div class="vw-mode-desc">{{ __('2D/3D animation, cartoon, anime') }}</div>
+                </div>
+                <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? '') === 'mixed-hybrid' ? 'active' : '' }}"
+                     wire:click="setVisualMode('mixed-hybrid')">
+                    <div class="vw-mode-icon">🎭</div>
+                    <div class="vw-mode-label">{{ __('Mixed / Hybrid') }}</div>
+                    <div class="vw-mode-desc">{{ __('Combination of styles') }}</div>
+                </div>
+            </div>
+        </div>
 
         {{-- Main Input --}}
         <div class="vw-field-group">
