@@ -12,6 +12,15 @@
         stroke: '{{ $assembly['captions']['strokeColor'] ?? '#000000' }}',
         highlight: '{{ $assembly['captions']['highlightColor'] ?? '#FBBF24' }}',
         background: '{{ $assembly['captions']['backgroundColor'] ?? 'transparent' }}'
+    },
+
+    // Local copy of parent state (synced via Livewire events)
+    captionsEnabled: {{ ($assembly['captions']['enabled'] ?? true) ? 'true' : 'false' }},
+
+    // Dispatch to parent's updateCaptionSetting method via event
+    updateCaptionSetting(key, value) {
+        // Dispatch Livewire event for server-side update
+        Livewire.dispatch('caption-setting-updated', { key: key, value: value });
     }
 }">
     {{-- Enable Toggle --}}
