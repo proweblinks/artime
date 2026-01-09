@@ -9554,6 +9554,210 @@ class VideoWizard extends Component
         }
     }
 
+    // =========================================================================
+    // PHASE 6: EXPORT METHODS
+    // =========================================================================
+
+    /**
+     * Update export setting - Phase 6.
+     */
+    public function updateExportSetting(string $key, mixed $value): void
+    {
+        if (!isset($this->assembly['export'])) {
+            $this->assembly['export'] = $this->getDefaultExportSettings();
+        }
+
+        $this->assembly['export'][$key] = $value;
+
+        // If platform changed, apply platform preset
+        if ($key === 'platform' && $value !== 'custom') {
+            $preset = $this->getExportPlatformPreset($value);
+            if ($preset) {
+                $this->assembly['export']['quality'] = $preset['quality'] ?? '1080p';
+                $this->assembly['export']['fps'] = $preset['fps'] ?? 30;
+                $this->assembly['export']['bitrate'] = $preset['bitrate'] ?? 'auto';
+            }
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Get default export settings - Phase 6.
+     */
+    public function getDefaultExportSettings(): array
+    {
+        return [
+            'platform' => 'youtube',
+            'quality' => '1080p',
+            'format' => 'mp4',
+            'codec' => 'h264',
+            'fps' => 30,
+            'bitrate' => 'auto',
+            'audioCodec' => 'aac',
+            'audioBitrate' => 192,
+        ];
+    }
+
+    /**
+     * Get platform preset for export - Phase 6.
+     */
+    public function getExportPlatformPreset(string $platform): ?array
+    {
+        $presets = [
+            'youtube' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '12000',
+                'aspectRatio' => '16:9',
+                'maxDuration' => 43200,
+            ],
+            'tiktok' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '6000',
+                'aspectRatio' => '9:16',
+                'maxDuration' => 600,
+            ],
+            'instagram_reels' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '8000',
+                'aspectRatio' => '9:16',
+                'maxDuration' => 90,
+            ],
+            'instagram_feed' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '8000',
+                'aspectRatio' => '1:1',
+                'maxDuration' => 60,
+            ],
+            'twitter' => [
+                'quality' => '720p',
+                'fps' => 30,
+                'bitrate' => '5000',
+                'aspectRatio' => '16:9',
+                'maxDuration' => 140,
+            ],
+            'facebook' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '8000',
+                'aspectRatio' => '16:9',
+                'maxDuration' => 14400,
+            ],
+            'linkedin' => [
+                'quality' => '1080p',
+                'fps' => 30,
+                'bitrate' => '8000',
+                'aspectRatio' => '16:9',
+                'maxDuration' => 600,
+            ],
+        ];
+
+        return $presets[$platform] ?? null;
+    }
+
+    /**
+     * Start video export - Phase 6.
+     */
+    public function startVideoExport(): void
+    {
+        // Validate export readiness
+        $readiness = $this->getAssemblyReadiness();
+        if (!$readiness['isReady']) {
+            $this->dispatch('export-error', [
+                'message' => 'Video is not ready for export. Some scenes are still pending.',
+            ]);
+            return;
+        }
+
+        // Set assembly status to rendering
+        $this->assembly['assemblyStatus'] = 'rendering';
+        $this->assembly['renderProgress'] = 0;
+        $this->saveProject();
+
+        // Get export settings
+        $exportSettings = $this->assembly['export'] ?? $this->getDefaultExportSettings();
+
+        // Dispatch job or start render process
+        // This would typically queue a job for background processing
+        // For now, we'll simulate progress updates
+
+        $this->dispatch('export-started', [
+            'settings' => $exportSettings,
+            'totalScenes' => count($this->script['scenes'] ?? []),
+        ]);
+
+        // In a real implementation, you would dispatch a job:
+        // ExportVideoJob::dispatch($this->project->id, $exportSettings);
+    }
+
+    /**
+     * Cancel video export - Phase 6.
+     */
+    public function cancelVideoExport(): void
+    {
+        $this->assembly['assemblyStatus'] = 'ready';
+        $this->assembly['renderProgress'] = 0;
+        $this->saveProject();
+
+        $this->dispatch('export-cancelled');
+    }
+
+    /**
+     * Update export progress (called from job) - Phase 6.
+     */
+    public function updateExportProgress(int $progress, int $currentScene = 0): void
+    {
+        $this->assembly['renderProgress'] = $progress;
+        $this->saveProject();
+
+        $this->dispatch('export-progress', [
+            'progress' => $progress,
+            'currentScene' => $currentScene,
+            'complete' => $progress >= 100,
+            'videoUrl' => $progress >= 100 ? $this->assembly['finalVideoUrl'] : null,
+        ]);
+    }
+
+    /**
+     * Complete export (called from job) - Phase 6.
+     */
+    public function completeExport(string $videoUrl): void
+    {
+        $this->assembly['assemblyStatus'] = 'complete';
+        $this->assembly['renderProgress'] = 100;
+        $this->assembly['finalVideoUrl'] = $videoUrl;
+        $this->assembly['exported'] = true;
+        $this->assembly['exportedAt'] = now()->toIso8601String();
+        $this->saveProject();
+
+        $this->dispatch('export-progress', [
+            'progress' => 100,
+            'currentScene' => count($this->script['scenes'] ?? []),
+            'complete' => true,
+            'videoUrl' => $videoUrl,
+        ]);
+    }
+
+    /**
+     * Get total video duration in seconds.
+     */
+    public function getTotalDuration(): float
+    {
+        $total = 0;
+        foreach ($this->storyboard['scenes'] ?? [] as $scene) {
+            $total += $scene['duration'] ?? 5;
+        }
+        return $total;
+    }
+
+    // =========================================================================
+    // END PHASE 6: EXPORT METHODS
+    // =========================================================================
+
     /**
      * Get assembly statistics for display.
      */

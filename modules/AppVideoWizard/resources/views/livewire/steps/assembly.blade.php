@@ -171,67 +171,8 @@
         @include('appvideowizard::livewire.steps.partials._timeline')
     </div>
 
-    {{-- Export Modal Backdrop --}}
-    <div
-        x-show="showExportModal"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="vw-modal-backdrop"
-        @click.self="showExportModal = false"
-        x-cloak
-    >
-        <div class="vw-export-modal" @click.stop>
-            <div class="vw-modal-header">
-                <h3>🚀 {{ __('Export Video') }}</h3>
-                <button type="button" @click="showExportModal = false" class="vw-modal-close">×</button>
-            </div>
-            <div class="vw-modal-body">
-                @if($canExport)
-                    <p class="vw-modal-text">{{ __('Your video is ready for final rendering. Click Continue to proceed to export settings.') }}</p>
-                    <div class="vw-export-summary">
-                        <div class="vw-summary-item">
-                            <span class="vw-summary-icon">📹</span>
-                            <span>{{ count($script['scenes'] ?? []) }} {{ __('scenes') }}</span>
-                        </div>
-                        <div class="vw-summary-item">
-                            <span class="vw-summary-icon">⏱️</span>
-                            <span x-text="formatTime(totalDuration)">0:00</span>
-                        </div>
-                        <div class="vw-summary-item">
-                            <span class="vw-summary-icon">📐</span>
-                            <span>{{ $aspectRatio }}</span>
-                        </div>
-                    </div>
-                @else
-                    <div class="vw-export-warning">
-                        <span class="vw-warning-icon">⚠️</span>
-                        <div>
-                            <p class="vw-warning-title">{{ __('Videos Not Complete') }}</p>
-                            <p class="vw-warning-text">{{ $assemblyStats['pendingShots'] }} {{ __('shots still need video generation. Go back to Animation step to complete them.') }}</p>
-                        </div>
-                    </div>
-                @endif
-            </div>
-            <div class="vw-modal-footer">
-                <button type="button" @click="showExportModal = false" class="vw-modal-btn secondary">
-                    {{ __('Cancel') }}
-                </button>
-                @if($canExport)
-                    <button type="button" wire:click="nextStep" class="vw-modal-btn primary">
-                        {{ __('Continue to Export') }} →
-                    </button>
-                @else
-                    <button type="button" wire:click="previousStep" class="vw-modal-btn warning">
-                        ← {{ __('Back to Animation') }}
-                    </button>
-                @endif
-            </div>
-        </div>
-    </div>
+    {{-- Export Modal - Phase 6 --}}
+    @include('appvideowizard::livewire.steps.partials._export-modal')
 </div>
 
 <style>
