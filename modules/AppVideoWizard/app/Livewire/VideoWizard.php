@@ -480,6 +480,9 @@ class VideoWizard extends Component
             'visualDNA' => '',
             'referenceImage' => '',
             'referenceImageSource' => '',
+            'referenceImageBase64' => null,      // Base64 data for API calls (style consistency)
+            'referenceImageMimeType' => null,    // MIME type (e.g., 'image/png')
+            'referenceImageStatus' => 'none',    // 'none' | 'generating' | 'ready' | 'error'
         ],
         'characterBible' => [
             'enabled' => false,
@@ -6929,14 +6932,26 @@ class VideoWizard extends Component
             // Get the public URL
             $url = \Storage::disk('public')->url($path);
 
+            // Read file as base64 for API calls (style consistency)
+            $base64Data = base64_encode(file_get_contents($this->styleImageUpload->getRealPath()));
+            $mimeType = $this->styleImageUpload->getMimeType() ?? 'image/png';
+
             // Update Style Bible with the uploaded image
             $this->sceneMemory['styleBible']['referenceImage'] = $url;
             $this->sceneMemory['styleBible']['referenceImageSource'] = 'upload';
+            $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
+            $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
+            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
 
             // Clear the upload
             $this->styleImageUpload = null;
 
             $this->saveProject();
+
+            Log::info('Style Bible reference uploaded with base64', [
+                'base64Length' => strlen($base64Data),
+                'mimeType' => $mimeType,
+            ]);
         } catch (\Exception $e) {
             $this->error = __('Failed to upload style reference: ') . $e->getMessage();
         }
@@ -6975,6 +6990,9 @@ class VideoWizard extends Component
         $this->isGeneratingStyleRef = true;
         $this->error = null;
 
+        // Mark as generating
+        $this->sceneMemory['styleBible']['referenceImageStatus'] = 'generating';
+
         try {
             $imageService = app(ImageGenerationService::class);
 
@@ -6994,14 +7012,41 @@ class VideoWizard extends Component
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
-                        $this->sceneMemory['styleBible']['referenceImage'] = $result['imageUrl'];
+                        $imageUrl = $result['imageUrl'];
+                        $this->sceneMemory['styleBible']['referenceImage'] = $imageUrl;
                         $this->sceneMemory['styleBible']['referenceImageSource'] = 'ai';
+
+                        // Fetch image as base64 for style consistency in scene generation
+                        try {
+                            $imageContent = file_get_contents($imageUrl);
+                            if ($imageContent !== false) {
+                                $base64Data = base64_encode($imageContent);
+                                // Detect MIME type from image content
+                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                                $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
+                                $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
+                                $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
+
+                                Log::info('Style Bible reference generated with base64', [
+                                    'base64Length' => strlen($base64Data),
+                                    'mimeType' => $mimeType,
+                                ]);
+                            }
+                        } catch (\Exception $fetchError) {
+                            Log::warning('Could not fetch style reference as base64', ['error' => $fetchError->getMessage()]);
+                            // Still mark as ready even if base64 fetch failed
+                            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
+                        }
+
                         $this->saveProject();
                     }
                 }
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate style reference: ') . $e->getMessage();
+            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'error';
         } finally {
             $this->isGeneratingStyleRef = false;
         }
@@ -7014,6 +7059,9 @@ class VideoWizard extends Component
     {
         $this->sceneMemory['styleBible']['referenceImage'] = '';
         $this->sceneMemory['styleBible']['referenceImageSource'] = '';
+        $this->sceneMemory['styleBible']['referenceImageBase64'] = null;
+        $this->sceneMemory['styleBible']['referenceImageMimeType'] = null;
+        $this->sceneMemory['styleBible']['referenceImageStatus'] = 'none';
         $this->saveProject();
     }
 

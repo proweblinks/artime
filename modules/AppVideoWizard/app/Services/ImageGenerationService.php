@@ -108,11 +108,15 @@ class ImageGenerationService
         // Get location reference for environment consistency (if available)
         $locationReference = $this->getLocationReferenceForScene($sceneMemory, $sceneIndex);
 
+        // Get style reference for visual style consistency (if available)
+        // Style Bible reference is global (applies to all scenes)
+        $styleReference = $this->getStyleReference($sceneMemory);
+
         // Route to appropriate provider
         if ($modelConfig['provider'] === 'runpod') {
             return $this->generateWithHiDream($project, $scene, $prompt, $resolution, $options);
         } else {
-            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference, $locationReference);
+            return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference, $locationReference, $styleReference);
         }
     }
 
@@ -234,6 +238,64 @@ class ImageGenerationService
         }
 
         Log::debug('[getLocationReferenceForScene] No location with base64 reference found');
+        return null;
+    }
+
+    /**
+     * Get style reference image from Style Bible.
+     * This enables visual style consistency (colors, lighting, mood) across all scene images.
+     * Style Bible is global - applies to ALL scenes.
+     *
+     * @param array|null $sceneMemory The scene memory containing Style Bible
+     * @return array|null Style reference data {base64, mimeType, styleDescription} or null
+     */
+    protected function getStyleReference(?array $sceneMemory): ?array
+    {
+        if (!$sceneMemory) {
+            return null;
+        }
+
+        $styleBible = $sceneMemory['styleBible'] ?? null;
+        if (!$styleBible || !($styleBible['enabled'] ?? false)) {
+            Log::debug('[getStyleReference] Style Bible disabled');
+            return null;
+        }
+
+        // Check if style bible has a ready reference image (base64)
+        $hasBase64 = !empty($styleBible['referenceImageBase64']);
+        $isReady = ($styleBible['referenceImageStatus'] ?? '') === 'ready';
+
+        if ($hasBase64 && $isReady) {
+            // Build style description from Style Bible fields
+            $styleDescription = [];
+            if (!empty($styleBible['style'])) {
+                $styleDescription[] = $styleBible['style'];
+            }
+            if (!empty($styleBible['colorGrade'])) {
+                $styleDescription[] = $styleBible['colorGrade'];
+            }
+            if (!empty($styleBible['atmosphere'])) {
+                $styleDescription[] = $styleBible['atmosphere'];
+            }
+            if (!empty($styleBible['camera'])) {
+                $styleDescription[] = $styleBible['camera'];
+            }
+
+            Log::info('[getStyleReference] Using style reference', [
+                'base64Length' => strlen($styleBible['referenceImageBase64']),
+                'mimeType' => $styleBible['referenceImageMimeType'] ?? 'image/png',
+                'hasStyleDescription' => !empty($styleDescription),
+            ]);
+
+            return [
+                'base64' => $styleBible['referenceImageBase64'],
+                'mimeType' => $styleBible['referenceImageMimeType'] ?? 'image/png',
+                'styleDescription' => implode(', ', $styleDescription),
+                'visualDNA' => $styleBible['visualDNA'] ?? '',
+            ];
+        }
+
+        Log::debug('[getStyleReference] No style with base64 reference found');
         return null;
     }
 
@@ -555,6 +617,7 @@ class ImageGenerationService
      * @param array $options Additional options
      * @param array|null $characterReference Character reference for face consistency {base64, mimeType, characterName}
      * @param array|null $locationReference Location reference for environment consistency {base64, mimeType, locationName}
+     * @param array|null $styleReference Style reference for visual style consistency {base64, mimeType, styleDescription}
      */
     protected function generateWithGemini(
         WizardProject $project,
@@ -565,7 +628,8 @@ class ImageGenerationService
         array $modelConfig,
         array $options = [],
         ?array $characterReference = null,
-        ?array $locationReference = null
+        ?array $locationReference = null,
+        ?array $styleReference = null
     ): array {
         // Map aspect ratio for Gemini
         $aspectRatioMap = [
@@ -760,7 +824,98 @@ EOT;
             throw new \Exception('No image data in location reference response');
         }
 
-        // Standard generation without character or location reference
+        // If we have a style reference but no character or location, use style for visual consistency
+        if ($styleReference && !empty($styleReference['base64'])) {
+            Log::info('[generateWithGemini] Using style reference for visual style consistency', [
+                'hasStyleDescription' => !empty($styleReference['styleDescription']),
+                'mimeType' => $styleReference['mimeType'] ?? 'image/png',
+            ]);
+
+            // Build special prompt for visual style consistency
+            $styleConsistencyPrompt = <<<EOT
+Using the provided image as a VISUAL STYLE REFERENCE to maintain consistent visual aesthetics, generate a new image.
+
+STYLE REFERENCE: The provided image defines the EXACT visual style that MUST be preserved:
+- Color palette and color grading
+- Lighting style and atmosphere
+- Overall mood and tone
+- Visual quality and cinematic look
+EOT;
+
+            if (!empty($styleReference['styleDescription'])) {
+                $styleConsistencyPrompt .= "\n\nSTYLE DETAILS: {$styleReference['styleDescription']}";
+            }
+
+            if (!empty($styleReference['visualDNA'])) {
+                $styleConsistencyPrompt .= "\n\nQUALITY: {$styleReference['visualDNA']}";
+            }
+
+            $styleConsistencyPrompt .= <<<EOT
+
+
+SCENE TO GENERATE:
+{$prompt}
+
+CRITICAL: The generated image MUST match the SAME VISUAL STYLE as in the reference image. This ensures visual consistency across the video.
+EOT;
+
+            $result = $this->geminiService->generateImageFromImage(
+                $styleReference['base64'],
+                $styleConsistencyPrompt,
+                [
+                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'mimeType' => $styleReference['mimeType'] ?? 'image/png',
+                ]
+            );
+
+            // Handle image-to-image response format
+            if (!empty($result['error']) || (!$result['success'] ?? false)) {
+                throw new \Exception($result['error'] ?? 'Image generation with style reference failed');
+            }
+
+            if (!empty($result['imageData'])) {
+                // Store the base64 image
+                $storedPath = $this->storeBase64Image(
+                    $result['imageData'],
+                    $result['mimeType'] ?? 'image/png',
+                    $project,
+                    $scene['id']
+                );
+                $imageUrl = $this->getPublicUrl($storedPath);
+
+                // Create asset record
+                $asset = WizardAsset::create([
+                    'project_id' => $project->id,
+                    'user_id' => $project->user_id,
+                    'type' => WizardAsset::TYPE_IMAGE,
+                    'name' => $scene['id'],
+                    'path' => $storedPath,
+                    'url' => $imageUrl,
+                    'mime_type' => $result['mimeType'] ?? 'image/png',
+                    'scene_index' => $options['sceneIndex'] ?? null,
+                    'scene_id' => $scene['id'],
+                    'metadata' => [
+                        'prompt' => $prompt,
+                        'model' => $modelId,
+                        'styleReference' => true,
+                        'styleConsistency' => true,
+                    ],
+                ]);
+
+                return [
+                    'success' => true,
+                    'imageUrl' => $imageUrl,
+                    'prompt' => $prompt,
+                    'model' => $modelId,
+                    'assetId' => $asset->id,
+                    'styleConsistency' => true,
+                ];
+            }
+
+            throw new \Exception('No image data in style reference response');
+        }
+
+        // Standard generation without character, location, or style reference
         $result = $this->geminiService->generateImage($prompt, [
             'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
             'aspectRatio' => $aspectRatio,
