@@ -10,11 +10,22 @@
         left: 0;
         right: 0;
         bottom: 0;
+        width: 100vw !important;
+        height: 100vh !important;
         background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
-        z-index: 9999;
+        z-index: 999999;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+    }
+
+    /* CRITICAL: Force hide ALL app sidebars and navigation when Animation Studio is active */
+    .sidebar,
+    .main-sidebar,
+    div.sidebar,
+    aside.sidebar,
+    .hide-scroll.sidebar {
+        z-index: 1 !important;
     }
 
     /* Ensure full-screen coverage - hide main app sidebar */
@@ -24,16 +35,26 @@
 
     body.vw-animation-fullscreen .sidebar,
     body.vw-animation-fullscreen .main-sidebar,
+    body.vw-animation-fullscreen div.sidebar,
+    body.vw-animation-fullscreen .sidebar.hide-scroll,
     body.vw-animation-fullscreen [class*="sidebar"]:not(.vw-scene-grid-panel),
     body.vw-animation-fullscreen aside:not(.vw-animation-studio aside),
     body.vw-animation-fullscreen nav:not(.vw-animation-studio nav) {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
     }
 
     body.vw-animation-fullscreen .main-content,
-    body.vw-animation-fullscreen [class*="content"]:not(.vw-studio-content) {
+    body.vw-animation-fullscreen .page-wrapper,
+    body.vw-animation-fullscreen [class*="content"]:not(.vw-studio-content):not(.vw-animation-studio *) {
         margin-left: 0 !important;
         padding-left: 0 !important;
+        width: 100% !important;
     }
 
     /* Top Header Bar */
@@ -1474,25 +1495,53 @@
 
 {{-- Script to ensure full-screen coverage --}}
 <script>
-    // Add body class when Animation Studio is active
-    document.body.classList.add('vw-animation-fullscreen');
+    (function() {
+        // Add body class when Animation Studio is active
+        document.body.classList.add('vw-animation-fullscreen');
 
-    // Hide any sidebar elements
-    document.querySelectorAll('[class*="sidebar"], nav.sidebar, .main-sidebar, aside').forEach(function(el) {
-        if (!el.closest('.vw-animation-studio')) {
-            el.style.display = 'none';
-        }
-    });
+        // Function to aggressively hide all sidebars
+        function hideAllSidebars() {
+            // Target the exact sidebar class used in the theme
+            var sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.style.cssText = 'display: none !important; visibility: hidden !important; width: 0 !important; max-width: 0 !important; opacity: 0 !important;';
+            }
 
-    // Cleanup on page unload/navigation
-    Livewire.hook('element.removed', (el, component) => {
-        if (el.classList && el.classList.contains('vw-animation-studio')) {
-            document.body.classList.remove('vw-animation-fullscreen');
-            document.querySelectorAll('[class*="sidebar"], nav.sidebar, .main-sidebar, aside').forEach(function(el) {
-                el.style.display = '';
+            // Also hide other sidebar variations
+            document.querySelectorAll('.sidebar, .main-sidebar, div.sidebar, aside.sidebar, .hide-scroll.sidebar, [class*="sidebar"]:not(.vw-scene-grid-panel)').forEach(function(el) {
+                if (!el.closest('.vw-animation-studio')) {
+                    el.style.cssText = 'display: none !important; visibility: hidden !important; width: 0 !important; max-width: 0 !important; opacity: 0 !important;';
+                }
+            });
+
+            // Remove left margin from main content
+            document.querySelectorAll('.main-content, .page-wrapper, .wrapper').forEach(function(el) {
+                el.style.cssText = 'margin-left: 0 !important; padding-left: 0 !important;';
             });
         }
-    });
+
+        // Run immediately
+        hideAllSidebars();
+
+        // Run again after a short delay to catch dynamically loaded content
+        setTimeout(hideAllSidebars, 100);
+        setTimeout(hideAllSidebars, 500);
+
+        // Cleanup on page unload/navigation
+        if (typeof Livewire !== 'undefined') {
+            Livewire.hook('element.removed', (el, component) => {
+                if (el.classList && el.classList.contains('vw-animation-studio')) {
+                    document.body.classList.remove('vw-animation-fullscreen');
+                    document.querySelectorAll('.sidebar, .main-sidebar, [class*="sidebar"], aside').forEach(function(el) {
+                        el.style.cssText = '';
+                    });
+                    document.querySelectorAll('.main-content, .page-wrapper, .wrapper').forEach(function(el) {
+                        el.style.cssText = '';
+                    });
+                }
+            });
+        }
+    })();
 </script>
 
 @if(empty($script['scenes']))
