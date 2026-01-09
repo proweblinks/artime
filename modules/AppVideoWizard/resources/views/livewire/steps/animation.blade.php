@@ -1561,16 +1561,21 @@
         $animatedCount = count(array_filter($animationScenes, fn($s) => !empty($s['videoUrl'])));
         $stockVideoCount = count(array_filter($storyboardScenes, fn($s) => ($s['source'] ?? '') === 'stock-video' && !empty($s['videoUrl'])));
 
-        // A scene is ready if it has visual AND (voiceover OR doesn't need narration)
+        // A scene is ready if it has a visual (image or video)
+        // Voiceovers and animations are OPTIONAL - user can proceed with just images
         $readyScenes = 0;
         foreach ($scriptScenes as $idx => $scriptScene) {
             $animScene = $animationScenes[$idx] ?? [];
             $sbScene = $storyboardScenes[$idx] ?? [];
-            $hasVoiceover = !empty($animScene['voiceoverUrl']);
-            $hasVisual = !empty($animScene['videoUrl']) || (($sbScene['source'] ?? '') === 'stock-video' && !empty($sbScene['videoUrl'])) || !empty($sbScene['imageUrl']);
-            $hasNarration = !empty($scriptScene['narration']) && trim($scriptScene['narration']) !== '';
-            $requiresVoiceover = ($scriptScene['hasNarration'] ?? true) !== false && $hasNarration;
-            if ($hasVisual && ($hasVoiceover || !$requiresVoiceover)) {
+
+            // Scene has visual if it has: animated video, stock video, or image
+            $hasVisual = !empty($animScene['videoUrl']) ||
+                        (($sbScene['source'] ?? '') === 'stock-video' && !empty($sbScene['videoUrl'])) ||
+                        !empty($sbScene['imageUrl']);
+
+            // Scene is ready as long as it has ANY visual content
+            // Voiceovers are optional - user can create video with just images + music
+            if ($hasVisual) {
                 $readyScenes++;
             }
         }

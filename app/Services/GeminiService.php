@@ -227,6 +227,58 @@ class GeminiService
     }
 
     /**
+     * Detect if a prompt is a "detailed prompt" from VideoWizard's ImageGenerationService.
+     *
+     * Detailed prompts contain photorealistic markers and should NOT be re-wrapped
+     * with additional style instructions that could conflict.
+     *
+     * @param string $prompt The image prompt
+     * @param array $options Generation options
+     * @return bool True if this is a detailed prompt that should be used directly
+     */
+    protected function isDetailedImagePrompt(string $prompt, array $options = []): bool
+    {
+        // If explicit "directMode" option is set, respect it
+        if (isset($options['directMode'])) {
+            return (bool) $options['directMode'];
+        }
+
+        // Check for VideoWizard's photorealistic prompt markers
+        $detailedMarkers = [
+            'photorealistic',
+            '8K UHD',
+            '8K',
+            'ARRI Alexa',
+            'Zeiss',
+            'hyperdetailed',
+            'award-winning photography',
+            'shot on',
+            'cinematic depth of field',
+            'HDR',
+            'masterful composition',
+        ];
+
+        $promptLower = strtolower($prompt);
+        foreach ($detailedMarkers as $marker) {
+            if (stripos($prompt, $marker) !== false) {
+                return true;
+            }
+        }
+
+        // If explicit photorealistic style is provided in options
+        if (isset($options['style']) && stripos($options['style'], 'photorealistic') !== false) {
+            return true;
+        }
+
+        // If prompt is very long (>300 chars), it's likely detailed
+        if (strlen($prompt) > 300) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Handles image generation for Imagen models (Vertex AI - :predict).
      */
     protected function generateWithImagen(string $model, string $prompt, array $options): array
@@ -268,81 +320,83 @@ class GeminiService
 
     /**
      * Handles image generation for Gemini Image models (:generateContent endpoint).
-     * FIX: Uses 'generationConfig' instead of 'config' in the payload.
+     *
+     * IMPORTANT: This function now detects "detailed prompts" (from VideoWizard's ImageGenerationService)
+     * and passes them DIRECTLY to the API without wrapping. This prevents double-wrapping that
+     * was causing poor image quality due to conflicting style instructions.
+     *
+     * Detection: If prompt contains "photorealistic" or "8K" or "ARRI" or explicit style is provided,
+     * the prompt is considered "detailed" and used directly.
      */
     protected function generateWithGeminiImage(string $model, string $prompt, array $options = []): array
     {
-        // --- 1. Define Expanded Styles & Tones for Better Results ---
-        $defaultStyles = [
-            'photorealistic, 8k professional photograph, cinematic lighting', // Enhanced realistic photography
-            'minimalist flat illustration, vector graphic style', // Modern flat illustration
-            'hyper-detailed 3D render, subsurface scattering', // Enhanced 3D render
-            'Japanese Ukiyo-e woodblock print style', // Unique artistic style
-            'cinematic digital painting, moody colors', // Enhanced digital art
-            'synthwave aesthetic, neon glow', // Modern concept art
-            'oil painting, impasto texture, dramatic brushstrokes', // Classical art
-        ];
+        // --- 1. Detect if this is a detailed prompt from VideoWizard ---
+        // VideoWizard's ImageGenerationService creates detailed prompts with specific markers
+        $isDetailedPrompt = $this->isDetailedImagePrompt($prompt, $options);
 
-        $defaultTones = [
-            'professional, high-quality, sharp focus',
-            'playful, cartoonish, vibrant colors',
-            'elegant, sophisticated, soft pastel palette',
-            'energetic, dynamic, motion blur effect',
-            'minimalistic, clean, ample negative space',
-            'dramatic, high contrast, chiaroscuro lighting',
-            'cozy, warm, shallow depth of field', // New tone
-        ];
-
-        // --- 2. Use provided options or select a random fallback ---
-        $style = $options['style'] ?? $defaultStyles[array_rand($defaultStyles)];
-        $tone  = $options['tone']  ?? $defaultTones[array_rand($defaultTones)];
-
-        // An optional negative prompt to guide the model away from unwanted elements
-        $negativePrompt = $options['negativePrompt'] ?? 'ugly, deformed, blurry, low resolution, watermark, text, signature, words, letters, numbers, logo, screenshot, cartoon, out of frame';
-
-        // --- 3. Configuration (Using more explicit checks) ---
+        // --- 2. Configuration ---
         $generationConfig = [
             'responseModalities' => ['image', 'text'], // Request image output
         ];
 
-        // NOTE: aspectRatio is NOT supported in generationConfig for Gemini image generation models
-        // The gemini-2.0-flash-exp-image-generation model generates at a fixed resolution
-        // Instead, we include aspect ratio guidance in the prompt itself below
+        // Aspect ratio guidance
         $requestedAspectRatio = $options['aspectRatio'] ?? '16:9';
-
-        // Handle number of images (sampleCount is also not supported in this model)
-        // Keeping code structure but commented out for future model support
-        // if (!empty($options['count']) && (int)$options['count'] > 1) {
-        //     $generationConfig['sampleCount'] = (int)$options['count'];
-        // }
-
-        // Add aspect ratio guidance to the prompt
         $aspectRatioGuidance = match($requestedAspectRatio) {
-            '9:16' => 'Generate in portrait/vertical orientation (9:16 aspect ratio, taller than wide).',
-            '1:1' => 'Generate in square format (1:1 aspect ratio, equal width and height).',
-            '4:5' => 'Generate in portrait format (4:5 aspect ratio, slightly taller than wide).',
-            '3:4' => 'Generate in portrait format (3:4 aspect ratio, portrait orientation).',
-            default => 'Generate in widescreen landscape format (16:9 aspect ratio, wider than tall).',
+            '9:16' => 'Portrait orientation (9:16 aspect ratio).',
+            '1:1' => 'Square format (1:1 aspect ratio).',
+            '4:5' => 'Portrait format (4:5 aspect ratio).',
+            '3:4' => 'Portrait format (3:4 aspect ratio).',
+            default => 'Widescreen landscape format (16:9 aspect ratio).',
         };
 
-        // Enhanced image prompt with aspect ratio guidance
-        $imagePrompt = <<<EOT
-    Generate a single, high-quality, aesthetically pleasing image based on the following content.
+        // --- 3. Build the final prompt based on type ---
+        if ($isDetailedPrompt) {
+            // DIRECT MODE: Use the detailed prompt directly with minimal wrapping
+            // This preserves the carefully crafted photorealistic prompts from VideoWizard
+            $imagePrompt = "{$prompt}\n\nImage Format: {$aspectRatioGuidance}\nCRITICAL: DO NOT include any text, words, letters, numbers, logos, or watermarks in the image.";
 
-    Content for Visual Representation: "{$prompt}"
+            Log::info("Gemini Image: Using DIRECT mode for detailed prompt", [
+                'model' => $model,
+                'promptLength' => strlen($prompt),
+                'aspectRatio' => $requestedAspectRatio,
+            ]);
+        } else {
+            // WRAPPED MODE: For simple prompts, add style guidance
+            $defaultStyles = [
+                'photorealistic, 8k professional photograph, cinematic lighting',
+                'hyper-detailed 3D render, subsurface scattering',
+                'cinematic digital painting, moody colors',
+            ];
 
-    Generation Parameters:
-    - Art Style and Quality: {$style}
-    - Vibe and Tone: {$tone}
-    - Image Format: {$aspectRatioGuidance}
-    - Focus: Use creative visual metaphors, abstract concepts, or a detailed scene to tell the story of the content.
-    - Negative Guidelines (AVOID): {$negativePrompt}
-    - Crucial Constraint: DO NOT include any text, words, letters, numbers, logos, or watermarks.
+            $defaultTones = [
+                'professional, high-quality, sharp focus',
+                'dramatic, high contrast, chiaroscuro lighting',
+                'cozy, warm, shallow depth of field',
+            ];
 
-    EOT;
+            $style = $options['style'] ?? $defaultStyles[array_rand($defaultStyles)];
+            $tone  = $options['tone']  ?? $defaultTones[array_rand($defaultTones)];
+            $negativePrompt = $options['negativePrompt'] ?? 'ugly, deformed, blurry, low resolution, watermark, text, signature, words, letters, numbers, logo, screenshot, out of frame';
 
+            $imagePrompt = <<<EOT
+Generate a single, high-quality image based on the following content.
 
-        // --- 5. API Payload Construction ---
+Content: "{$prompt}"
+
+Style: {$style}
+Tone: {$tone}
+Format: {$aspectRatioGuidance}
+AVOID: {$negativePrompt}
+CRITICAL: DO NOT include any text, words, letters, numbers, logos, or watermarks.
+EOT;
+
+            Log::info("Gemini Image: Using WRAPPED mode for simple prompt", [
+                'model' => $model,
+                'style' => substr($style, 0, 50),
+            ]);
+        }
+
+        // --- 4. API Payload Construction ---
         $payload = [
             "contents" => [
                 [
@@ -351,9 +405,6 @@ class GeminiService
                     ]
                 ]
             ],
-            // The API might expect generationConfig to be at the top level for image generation
-            // Depending on your API client wrapper, this might be needed here or handled by the wrapper.
-            // Assuming your `sendGenerateContentRequest` handles merging.
         ];
 
         try {
@@ -362,7 +413,7 @@ class GeminiService
                 'model' => $model,
                 'promptLength' => strlen($imagePrompt),
                 'aspectRatio' => $requestedAspectRatio,
-                'style' => substr($style, 0, 50),
+                'mode' => $isDetailedPrompt ? 'DIRECT' : 'WRAPPED',
             ]);
 
             // Assume $this->sendGenerateContentRequest handles the model and config correctly

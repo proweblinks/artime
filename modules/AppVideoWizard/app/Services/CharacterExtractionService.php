@@ -173,6 +173,13 @@ CRITICAL RULES:
 8. **STYLE CONSISTENCY IS PARAMOUNT** - ALL character descriptions must match the Master Visual Style above
 9. If visual mode is "cinematic-realistic", ALL characters must be described as real people (photorealistic, live-action actors)
 
+**CRITICAL - INDIVIDUAL CHARACTERS ONLY:**
+10. NEVER create group/collective character entries like "Warriors" or "Group of people"
+11. Each entry MUST be a SINGLE, INDIVIDUAL person with their own unique description
+12. If the script mentions "a group of warriors" or "diverse people", extract each INDIVIDUAL character separately
+13. Give each individual a distinct name (e.g., "Warrior 1 - Ayo", "Warrior 2 - Kenji") and unique visual description
+14. Each character entry represents ONE PERSON only - never multiple people in one entry
+
 STYLE-APPROPRIATE CHARACTER GENERATION:
 For CINEMATIC-REALISTIC visual mode:
 - Describe characters as real people, like casting for a film
@@ -229,8 +236,8 @@ Production Mode: {$productionMode}
 {
   "characters": [
     {
-      "name": "Character Name or Role (e.g., 'The Protagonist', 'Sarah', 'The CEO')",
-      "description": "Detailed physical description for AI image generation: age, gender, ethnicity, build, hair color and style, eye color, distinctive features, specific clothing and accessories. Be very specific and concrete.",
+      "name": "Individual Character Name (e.g., 'Ayo', 'Sarah Chen', 'The CEO')",
+      "description": "Detailed INDIVIDUAL physical description: age (specific like '32 years old'), gender, ethnicity, build, hair color and style, eye color, distinctive features, specific clothing. ONE PERSON ONLY.",
       "role": "Main/Supporting/Background",
       "appearsInScenes": [1, 2, 5],
       "traits": ["confident", "mysterious", "professional"]
@@ -239,6 +246,13 @@ Production Mode: {$productionMode}
   "hasHumanCharacters": true,
   "suggestedStyleNote": "Optional note about character style recommendations"
 }
+
+EXAMPLE - If script mentions "a group of diverse warriors":
+WRONG: {"name": "Warriors", "description": "A group of diverse warriors..."}
+CORRECT: Create SEPARATE entries for each individual:
+- {"name": "Ayo", "description": "28-year-old African female warrior, athletic build, short natural hair..."}
+- {"name": "Kenji", "description": "35-year-old Japanese male samurai, muscular, long black hair in topknot..."}
+- {"name": "Elena", "description": "24-year-old Eastern European female fighter, slim but strong, blonde braided hair..."}
 
 If there are no human characters or the video is purely abstract/conceptual/nature footage, return:
 {
