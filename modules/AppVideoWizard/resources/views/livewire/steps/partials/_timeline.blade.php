@@ -11,6 +11,29 @@
         totalDuration: {{ $this->getTotalDuration() ?? 0 }},
         frameRate: 30, // Default frame rate (can be 24, 25, 30, 60, etc.)
 
+        // ===== Reactive Scene Data (Phase A Fix) =====
+        // Pre-computed scene metadata for reactive JS access
+        scenesData: @js(collect($script['scenes'] ?? [])->map(function($scene, $index) use ($storyboard, $script) {
+            $start = 0;
+            for ($i = 0; $i < $index; $i++) {
+                $start += ($storyboard['scenes'][$i]['duration'] ?? $script['scenes'][$i]['duration'] ?? 5);
+            }
+            $duration = $storyboard['scenes'][$index]['duration'] ?? $script['scenes'][$index]['duration'] ?? 5;
+            return [
+                'index' => $index,
+                'start' => $start,
+                'duration' => $duration,
+                'end' => $start + $duration,
+                'thumbnail' => $storyboard['scenes'][$index]['image'] ?? null,
+                'narration' => $scene['narration'] ?? '',
+            ];
+        })->values()->toArray()),
+
+        // Helper to get scene count
+        get sceneCount() {
+            return this.scenesData.length;
+        },
+
         // Timeline state
         zoom: 1,
         zoomLevels: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4],
@@ -477,19 +500,11 @@
             // Add playhead position
             points.push({ time: this.currentTime, type: 'playhead', label: 'Playhead' });
 
-            // Add clip edges from all tracks
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                @php
-                    $sceneStart = 0;
-                    for ($i = 0; $i < $index; $i++) {
-                        $sceneStart += ($storyboard['scenes'][$i]['duration'] ?? 5);
-                    }
-                    $sceneDuration = $storyboard['scenes'][$index]['duration'] ?? 5;
-                    $sceneEnd = $sceneStart + $sceneDuration;
-                @endphp
-                points.push({ time: {{ $sceneStart }}, type: 'clip-start', index: {{ $index }} });
-                points.push({ time: {{ $sceneEnd }}, type: 'clip-end', index: {{ $index }} });
-            @endforeach
+            // Add clip edges from all tracks (using reactive scenesData)
+            this.scenesData.forEach(scene => {
+                points.push({ time: scene.start, type: 'clip-start', index: scene.index });
+                points.push({ time: scene.end, type: 'clip-end', index: scene.index });
+            });
 
             return points;
         },
@@ -697,18 +712,13 @@
             }
 
             // Calculate which clips would be affected by ripple
-            const affected = [];
             const clipIndex = this.dragTarget.index;
             const track = this.dragTarget.track;
 
-            // In ripple mode, all clips after the edited clip are affected
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                if ({{ $index }} > clipIndex) {
-                    affected.push({ track, index: {{ $index }} });
-                }
-            @endforeach
-
-            this.affectedClips = affected;
+            // In ripple mode, all clips after the edited clip are affected (using reactive scenesData)
+            this.affectedClips = this.scenesData
+                .filter(scene => scene.index > clipIndex)
+                .map(scene => ({ track, index: scene.index }));
         },
 
         // Toggle ripple edit mode
@@ -995,20 +1005,18 @@
         },
 
         selectAllClipsOnTrack(track) {
-            this.selectedClips = [];
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                this.selectedClips.push({ track, index: {{ $index }} });
-            @endforeach
+            // Using reactive scenesData for clip selection
+            this.selectedClips = this.scenesData.map(scene => ({ track, index: scene.index }));
             this.selectedTrack = track;
         },
 
         selectAllClips() {
-            this.selectedClips = [];
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                this.selectedClips.push({ track: 'video', index: {{ $index }} });
-                this.selectedClips.push({ track: 'voiceover', index: {{ $index }} });
-                this.selectedClips.push({ track: 'captions', index: {{ $index }} });
-            @endforeach
+            // Using reactive scenesData for clip selection across all tracks
+            this.selectedClips = this.scenesData.flatMap(scene => [
+                { track: 'video', index: scene.index },
+                { track: 'voiceover', index: scene.index },
+                { track: 'captions', index: scene.index }
+            ]);
         },
 
         deselectAll() {
@@ -1409,25 +1417,20 @@
         zoomToSelection() {
             if (this.selectedClips.length === 0) return;
 
-            // Find bounds of selection
+            // Find bounds of selection using reactive scenesData
             let minTime = Infinity;
             let maxTime = 0;
 
+            // Get selected scene indices
+            const selectedIndices = new Set(this.selectedClips.map(c => c.index));
+
             // Get time bounds from selected clips
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                @php
-                    $sceneStart = 0;
-                    for ($i = 0; $i < $index; $i++) {
-                        $sceneStart += ($storyboard['scenes'][$i]['duration'] ?? 5);
-                    }
-                    $sceneDuration = $storyboard['scenes'][$index]['duration'] ?? 5;
-                    $sceneEnd = $sceneStart + $sceneDuration;
-                @endphp
-                if (this.selectedClips.some(c => c.index === {{ $index }})) {
-                    minTime = Math.min(minTime, {{ $sceneStart }});
-                    maxTime = Math.max(maxTime, {{ $sceneEnd }});
+            this.scenesData.forEach(scene => {
+                if (selectedIndices.has(scene.index)) {
+                    minTime = Math.min(minTime, scene.start);
+                    maxTime = Math.max(maxTime, scene.end);
                 }
-            @endforeach
+            });
 
             if (minTime === Infinity || maxTime === 0) return;
 
@@ -1555,22 +1558,12 @@
         },
 
         get minimapClips() {
-            const clips = [];
-            @foreach($script['scenes'] ?? [] as $index => $scene)
-                @php
-                    $sceneStart = 0;
-                    for ($i = 0; $i < $index; $i++) {
-                        $sceneStart += ($storyboard['scenes'][$i]['duration'] ?? 5);
-                    }
-                    $sceneDuration = $storyboard['scenes'][$index]['duration'] ?? 5;
-                @endphp
-                clips.push({
-                    track: 'video',
-                    left: {{ $sceneStart }} * this.minimapScale * this.pixelsPerSecond,
-                    width: {{ $sceneDuration }} * this.minimapScale * this.pixelsPerSecond
-                });
-            @endforeach
-            return clips;
+            // Using reactive scenesData for minimap clip rendering
+            return this.scenesData.map(scene => ({
+                track: 'video',
+                left: scene.start * this.minimapScale * this.pixelsPerSecond,
+                width: scene.duration * this.minimapScale * this.pixelsPerSecond
+            }));
         },
 
         updateMinimapViewport() {
