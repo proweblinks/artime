@@ -120,6 +120,30 @@
     - $wire.call('timelineUndo') - Undo last timeline action
     - $wire.call('timelineRedo') - Redo last undone action
 
+    ========================================
+    SECURITY MEASURES (Phase C Hardening)
+    ========================================
+
+    XSS Prevention:
+    - All user content rendered via x-text (not x-html) for automatic escaping
+    - No innerHTML, insertAdjacentHTML, or document.write usage
+    - No eval() or new Function() dynamic code execution
+    - All Blade output uses {{ }} (escaped), no {!! !!} (unescaped)
+
+    Input Validation:
+    - Time values clamped to 0-totalDuration range
+    - Numeric inputs validated with isNaN checks
+    - Marker names limited to 100 characters
+    - Volume values clamped to 0-100 range
+
+    Prototype Pollution Prevention:
+    - updateMarker() uses allowlist for object keys
+    - Only 'time', 'name', 'color', 'notes', 'type' keys accepted
+
+    Error Handling:
+    - Livewire calls wrapped with .catch() for graceful degradation
+    - Invalid inputs silently corrected rather than throwing errors
+
 --}}
 
 <div
@@ -1849,12 +1873,26 @@
 
         // ===== Phase 6: Markers & Chapters =====
         addMarker(time = null, color = null, name = '') {
-            const markerTime = time !== null ? time : this.currentTime;
+            // Validate and clamp marker time to valid range
+            let markerTime = time !== null ? time : this.currentTime;
+            if (typeof markerTime !== 'number' || isNaN(markerTime)) {
+                markerTime = this.currentTime;
+            }
+            markerTime = Math.max(0, Math.min(this.totalDuration, markerTime));
+
+            // Validate and sanitize name
+            let markerName = name;
+            if (typeof markerName !== 'string' || !markerName.trim()) {
+                markerName = '{{ __("Marker") }} ' + (this.markers.length + 1);
+            } else {
+                markerName = markerName.substring(0, 100); // Limit length
+            }
+
             const marker = {
                 id: Date.now(),
                 time: markerTime,
                 color: color || this.markerColors[0].value,
-                name: name || '{{ __("Marker") }} ' + (this.markers.length + 1),
+                name: markerName,
                 notes: ''
             };
             this.markers.push(marker);
@@ -1886,8 +1924,32 @@
         updateMarker(markerId, updates) {
             const marker = this.markers.find(m => m.id === markerId);
             if (marker) {
-                Object.assign(marker, updates);
-                if (updates.time !== undefined) {
+                // Sanitize updates to prevent prototype pollution
+                const safeUpdates = {};
+                const allowedKeys = ['time', 'name', 'color', 'notes', 'type'];
+                for (const key of allowedKeys) {
+                    if (updates.hasOwnProperty(key)) {
+                        safeUpdates[key] = updates[key];
+                    }
+                }
+
+                // Validate time if provided in updates
+                if (safeUpdates.time !== undefined) {
+                    let newTime = safeUpdates.time;
+                    if (typeof newTime !== 'number' || isNaN(newTime)) {
+                        delete safeUpdates.time; // Remove invalid time update
+                    } else {
+                        safeUpdates.time = Math.max(0, Math.min(this.totalDuration, newTime));
+                    }
+                }
+
+                // Validate name to prevent XSS via object property
+                if (safeUpdates.name !== undefined && typeof safeUpdates.name === 'string') {
+                    safeUpdates.name = safeUpdates.name.substring(0, 100); // Limit length
+                }
+
+                Object.assign(marker, safeUpdates);
+                if (safeUpdates.time !== undefined) {
                     this.markers.sort((a, b) => a.time - b.time);
                 }
                 this.$dispatch('marker-updated', { marker });
