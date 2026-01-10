@@ -44,10 +44,289 @@
         showExportModal: false,
         keyboardShortcuts: true,
 
+        // Player UI State (Phase 1-4)
+        isFullscreen: false,
+        controlsVisible: true,
+        controlsTimeout: null,
+        cursorTimeout: null,
+        cursorHidden: false,
+        volume: 100,
+        isMuted: false,
+        lastMouseMove: 0,
+
+        // Phase 4: Flash icon animation state
+        showFlashIcon: false,
+        flashIconType: 'play', // 'play' or 'pause'
+        flashTimeout: null,
+
+        // Phase 5: Professional features
+        playbackSpeed: 1,
+        isPiPSupported: false,
+        isPiPActive: false,
+
         // Initialize
         init() {
             this.setAspectRatio(this.aspectRatio);
             this.setupLivewireListeners();
+            this.setupFullscreenListeners();
+            this.loadVolumePreference();
+            this.checkPiPSupport();
+            this.loadPlaybackSpeedPreference();
+        },
+
+        // Check Picture-in-Picture support
+        checkPiPSupport() {
+            this.isPiPSupported = 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
+        },
+
+        // Load playback speed preference
+        loadPlaybackSpeedPreference() {
+            try {
+                const savedSpeed = localStorage.getItem('vw-playback-speed');
+                if (savedSpeed !== null) {
+                    this.playbackSpeed = parseFloat(savedSpeed);
+                }
+            } catch (e) {
+                console.warn('[PreviewController] Could not load playback speed preference:', e);
+            }
+        },
+
+        // Save playback speed preference
+        savePlaybackSpeedPreference() {
+            try {
+                localStorage.setItem('vw-playback-speed', this.playbackSpeed.toString());
+            } catch (e) {
+                console.warn('[PreviewController] Could not save playback speed preference:', e);
+            }
+        },
+
+        // Set playback speed
+        setPlaybackSpeed(speed) {
+            this.playbackSpeed = speed;
+            if (this.engine && this.engine.setPlaybackRate) {
+                this.engine.setPlaybackRate(speed);
+            }
+            this.savePlaybackSpeedPreference();
+        },
+
+        // Get resolution label based on canvas dimensions
+        getResolutionLabel() {
+            const height = this.canvasHeight;
+            if (height >= 2160) return '4K';
+            if (height >= 1440) return '1440p';
+            if (height >= 1080) return '1080p';
+            if (height >= 720) return '720p';
+            if (height >= 480) return '480p';
+            return '360p';
+        },
+
+        // Toggle Picture-in-Picture mode
+        async togglePictureInPicture() {
+            if (!this.isPiPSupported) return;
+
+            try {
+                // For canvas-based preview, we need to create a video element
+                // that captures the canvas content
+                if (!this.pipVideo) {
+                    this.pipVideo = document.createElement('video');
+                    this.pipVideo.muted = true;
+                    this.pipVideo.playsInline = true;
+
+                    // Listen for PiP events
+                    this.pipVideo.addEventListener('enterpictureinpicture', () => {
+                        this.isPiPActive = true;
+                    });
+                    this.pipVideo.addEventListener('leavepictureinpicture', () => {
+                        this.isPiPActive = false;
+                        this.stopCanvasCapture();
+                    });
+                }
+
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else {
+                    // Start capturing canvas to video
+                    await this.startCanvasCapture();
+                    await this.pipVideo.requestPictureInPicture();
+                }
+            } catch (error) {
+                console.error('[PreviewController] PiP error:', error);
+                this.isPiPActive = false;
+            }
+        },
+
+        // Start capturing canvas to video for PiP
+        async startCanvasCapture() {
+            const canvas = this.$refs.previewCanvas;
+            if (!canvas) return;
+
+            try {
+                const stream = canvas.captureStream(30); // 30 FPS
+                this.pipVideo.srcObject = stream;
+                await this.pipVideo.play();
+            } catch (error) {
+                console.error('[PreviewController] Canvas capture error:', error);
+            }
+        },
+
+        // Stop canvas capture
+        stopCanvasCapture() {
+            if (this.pipVideo && this.pipVideo.srcObject) {
+                const tracks = this.pipVideo.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                this.pipVideo.srcObject = null;
+            }
+        },
+
+        // Load volume preference from localStorage
+        loadVolumePreference() {
+            try {
+                const savedVolume = localStorage.getItem('vw-player-volume');
+                const savedMuted = localStorage.getItem('vw-player-muted');
+                if (savedVolume !== null) {
+                    this.volume = parseInt(savedVolume, 10);
+                }
+                if (savedMuted !== null) {
+                    this.isMuted = savedMuted === 'true';
+                }
+            } catch (e) {
+                console.warn('[PreviewController] Could not load volume preference:', e);
+            }
+        },
+
+        // Save volume preference to localStorage
+        saveVolumePreference() {
+            try {
+                localStorage.setItem('vw-player-volume', this.volume.toString());
+                localStorage.setItem('vw-player-muted', this.isMuted.toString());
+            } catch (e) {
+                console.warn('[PreviewController] Could not save volume preference:', e);
+            }
+        },
+
+        // Fullscreen support
+        setupFullscreenListeners() {
+            document.addEventListener('fullscreenchange', () => {
+                this.isFullscreen = !!document.fullscreenElement;
+            });
+            document.addEventListener('webkitfullscreenchange', () => {
+                this.isFullscreen = !!document.webkitFullscreenElement;
+            });
+        },
+
+        toggleFullscreen() {
+            const container = this.$refs.previewContainer;
+            if (!container) return;
+
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        },
+
+        // Auto-hide controls with debounce and cursor hiding
+        showControls() {
+            const now = Date.now();
+            // Debounce: ignore calls within 50ms
+            if (now - this.lastMouseMove < 50) return;
+            this.lastMouseMove = now;
+
+            this.controlsVisible = true;
+            this.cursorHidden = false;
+
+            // Clear existing timeouts
+            if (this.controlsTimeout) {
+                clearTimeout(this.controlsTimeout);
+            }
+            if (this.cursorTimeout) {
+                clearTimeout(this.cursorTimeout);
+            }
+
+            // Auto-hide after 3 seconds if playing
+            if (this.isPlaying) {
+                this.controlsTimeout = setTimeout(() => {
+                    this.controlsVisible = false;
+                    // Hide cursor in fullscreen mode
+                    if (this.isFullscreen) {
+                        this.cursorTimeout = setTimeout(() => {
+                            this.cursorHidden = true;
+                        }, 500);
+                    }
+                }, 3000);
+            }
+        },
+
+        hideControlsDelayed() {
+            if (this.isPlaying) {
+                if (this.controlsTimeout) {
+                    clearTimeout(this.controlsTimeout);
+                }
+                this.controlsTimeout = setTimeout(() => {
+                    this.controlsVisible = false;
+                    if (this.isFullscreen) {
+                        this.cursorHidden = true;
+                    }
+                }, 1000);
+            }
+        },
+
+        // Flash play/pause animation (YouTube-style)
+        flashPlayPause() {
+            // Clear any existing flash timeout
+            if (this.flashTimeout) {
+                clearTimeout(this.flashTimeout);
+            }
+
+            // Determine what icon to flash based on NEXT state
+            this.flashIconType = this.isPlaying ? 'pause' : 'play';
+
+            // Show flash icon
+            this.showFlashIcon = true;
+
+            // Toggle playback
+            this.togglePlay();
+
+            // Hide flash icon after animation
+            this.flashTimeout = setTimeout(() => {
+                this.showFlashIcon = false;
+            }, 400);
+        },
+
+        // Volume controls with preference persistence
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.engine && this.engine.setVolume) {
+                this.engine.setVolume(this.isMuted ? 0 : this.volume / 100, this.musicVolume / 100);
+            }
+            this.saveVolumePreference();
+        },
+
+        setVolume(value) {
+            this.volume = parseInt(value);
+            this.isMuted = this.volume === 0;
+            if (this.engine && this.engine.setVolume) {
+                this.engine.setVolume(this.volume / 100, this.musicVolume / 100);
+            }
+            this.saveVolumePreference();
+        },
+
+        // Seek by clicking on progress bar
+        seekToPosition(event) {
+            if (!this.isReady || !this.totalDuration) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percentage = x / rect.width;
+            const time = percentage * this.totalDuration;
+            this.seek(Math.max(0, Math.min(time, this.totalDuration)));
         },
 
         setAspectRatio(ratio) {
@@ -202,12 +481,19 @@
             if (!this.engine || !this.isReady) return;
             this.engine.play();
             this.isPlaying = true;
+            // Auto-hide controls after 3 seconds
+            this.showControls();
         },
 
         pause() {
             if (!this.engine) return;
             this.engine.pause();
             this.isPlaying = false;
+            // Always show controls when paused
+            this.controlsVisible = true;
+            if (this.controlsTimeout) {
+                clearTimeout(this.controlsTimeout);
+            }
         },
 
         stop() {
@@ -281,12 +567,21 @@
             switch(e.key.toLowerCase()) {
                 case ' ':
                     e.preventDefault();
-                    this.togglePlay();
+                    this.flashPlayPause();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    this.toggleFullscreen();
                     break;
                 case 'escape':
-                    if (this.showExportModal) {
+                    if (this.isFullscreen) {
+                        // Fullscreen exit is handled by browser
+                    } else if (this.showExportModal) {
                         this.showExportModal = false;
                     }
+                    break;
+                case 'm':
+                    this.toggleMute();
                     break;
                 case '1': this.activeTab = 'scenes'; break;
                 case '2': this.activeTab = 'text'; break;
@@ -297,6 +592,41 @@
                     break;
                 case 'arrowright':
                     if (this.engine) this.seek(Math.min(this.totalDuration, this.currentTime + 5));
+                    break;
+                case 'arrowup':
+                    e.preventDefault();
+                    this.setVolume(Math.min(100, this.volume + 10));
+                    break;
+                case 'arrowdown':
+                    e.preventDefault();
+                    this.setVolume(Math.max(0, this.volume - 10));
+                    break;
+                case ',':
+                case '<':
+                    // Decrease playback speed
+                    e.preventDefault();
+                    const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+                    const currentIdx = speeds.indexOf(this.playbackSpeed);
+                    if (currentIdx > 0) {
+                        this.setPlaybackSpeed(speeds[currentIdx - 1]);
+                    }
+                    break;
+                case '.':
+                case '>':
+                    // Increase playback speed
+                    e.preventDefault();
+                    const speedsUp = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+                    const currentIdxUp = speedsUp.indexOf(this.playbackSpeed);
+                    if (currentIdxUp < speedsUp.length - 1) {
+                        this.setPlaybackSpeed(speedsUp[currentIdxUp + 1]);
+                    }
+                    break;
+                case 'p':
+                    // Toggle Picture-in-Picture
+                    if (this.isPiPSupported) {
+                        e.preventDefault();
+                        this.togglePictureInPicture();
+                    }
                     break;
             }
         }
@@ -399,10 +729,12 @@
                 <div class="vw-shortcuts-ref" x-show="keyboardShortcuts" x-collapse>
                     <div class="vw-shortcut"><kbd>Space</kbd> {{ __('Play/Pause') }}</div>
                     <div class="vw-shortcut"><kbd>←</kbd><kbd>→</kbd> {{ __('Seek 5s') }}</div>
-                    <div class="vw-shortcut"><kbd>1-4</kbd> {{ __('Switch tabs') }}</div>
-                    <div class="vw-shortcut"><kbd>Ctrl+Z</kbd> {{ __('Undo') }}</div>
-                    <div class="vw-shortcut"><kbd>Ctrl+Y</kbd> {{ __('Redo') }}</div>
-                    <div class="vw-shortcut"><kbd>Esc</kbd> {{ __('Close modal') }}</div>
+                    <div class="vw-shortcut"><kbd>↑</kbd><kbd>↓</kbd> {{ __('Volume') }}</div>
+                    <div class="vw-shortcut"><kbd>&lt;</kbd><kbd>&gt;</kbd> {{ __('Speed') }}</div>
+                    <div class="vw-shortcut"><kbd>M</kbd> {{ __('Mute') }}</div>
+                    <div class="vw-shortcut"><kbd>F</kbd> {{ __('Fullscreen') }}</div>
+                    <div class="vw-shortcut"><kbd>P</kbd> {{ __('PiP') }}</div>
+                    <div class="vw-shortcut"><kbd>Esc</kbd> {{ __('Exit/Close') }}</div>
                 </div>
             </div>
         </div>
