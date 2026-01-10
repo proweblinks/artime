@@ -1551,9 +1551,18 @@ EOT;
      *
      * IMPORTANT: Empty appliedScenes array means "applies to ALL scenes" (per UI design).
      * This matches the behavior shown in the Character Bible modal.
+     *
+     * @param array $characters List of characters from Character Bible
+     * @param int|null $sceneIndex Scene index (null for non-scene contexts like portrait generation)
+     * @return array Characters that apply to the given scene (or all if sceneIndex is null)
      */
-    protected function getCharactersForScene(array $characters, int $sceneIndex): array
+    protected function getCharactersForScene(array $characters, ?int $sceneIndex): array
     {
+        // If no scene context (e.g., generating character portrait), return all characters
+        if ($sceneIndex === null) {
+            return $characters;
+        }
+
         return array_filter($characters, function ($character) use ($sceneIndex) {
             $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
@@ -1571,9 +1580,18 @@ EOT;
      *
      * IMPORTANT: Empty scenes array means "applies to ALL scenes" (per UI design).
      * The Location Bible modal shows "Currently applies to ALL scenes" when no specific scenes are selected.
+     *
+     * @param array $locations List of locations from Location Bible
+     * @param int|null $sceneIndex Scene index (null for non-scene contexts)
+     * @return array|null Location that applies to the given scene
      */
-    protected function getLocationForScene(array $locations, int $sceneIndex): ?array
+    protected function getLocationForScene(array $locations, ?int $sceneIndex): ?array
     {
+        // If no scene context, return first location as default
+        if ($sceneIndex === null && !empty($locations)) {
+            return $locations[0];
+        }
+
         foreach ($locations as $location) {
             $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
 

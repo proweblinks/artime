@@ -362,7 +362,7 @@ class StructuredPromptBuilderService
     /**
      * Build detailed subject description from character bible.
      */
-    protected function buildSubjectDescription(?array $characterBible, int $sceneIndex, string $sceneDescription): array
+    protected function buildSubjectDescription(?array $characterBible, ?int $sceneIndex, string $sceneDescription): array
     {
         $subject = [
             'description' => '',
@@ -386,8 +386,11 @@ class StructuredPromptBuilderService
             // Support multiple field names for scene assignment (matching ImageGenerationService)
             $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
-            // Empty array means character applies to ALL scenes (per UI design)
-            if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
+            // Include character if:
+            // - sceneIndex is null (no scene context, e.g., portrait generation) - include all
+            // - Empty appliedScenes array means "applies to ALL scenes" (per UI design)
+            // - Character is specifically assigned to this scene
+            if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
                 $sceneCharacters[] = $character;
             }
         }
@@ -449,7 +452,7 @@ class StructuredPromptBuilderService
     /**
      * Build environment description from location bible.
      */
-    protected function buildEnvironmentDescription(?array $locationBible, int $sceneIndex, string $sceneDescription): array
+    protected function buildEnvironmentDescription(?array $locationBible, ?int $sceneIndex, string $sceneDescription): array
     {
         $environment = [
             'location' => '',
@@ -473,8 +476,11 @@ class StructuredPromptBuilderService
             // Support multiple field names for scene assignment (matching ImageGenerationService)
             $appliedScenes = $location['scenes'] ?? $location['appliedScenes'] ?? $location['appearsInScenes'] ?? [];
 
-            // Empty array means location applies to ALL scenes (per UI design)
-            if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
+            // Include location if:
+            // - sceneIndex is null (no scene context) - use first available
+            // - Empty appliedScenes array means "applies to ALL scenes" (per UI design)
+            // - Location is specifically assigned to this scene
+            if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
                 $sceneLocation = $location;
                 break;
             }
@@ -511,7 +517,7 @@ class StructuredPromptBuilderService
     /**
      * Build lighting description.
      */
-    protected function buildLightingDescription(?array $styleBible, ?array $locationBible, int $sceneIndex): array
+    protected function buildLightingDescription(?array $styleBible, ?array $locationBible, ?int $sceneIndex): array
     {
         $lighting = [
             'lighting' => '',
@@ -524,7 +530,10 @@ class StructuredPromptBuilderService
         if ($locationBible && ($locationBible['enabled'] ?? false)) {
             $locations = $locationBible['locations'] ?? [];
             foreach ($locations as $location) {
-                if (in_array($sceneIndex, $location['appliedScenes'] ?? [])) {
+                $appliedScenes = $location['scenes'] ?? $location['appliedScenes'] ?? $location['appearsInScenes'] ?? [];
+
+                // Match location if no scene context (use first), empty assignment (applies to all), or specific match
+                if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
                     $timeOfDay = $location['timeOfDay'] ?? 'day';
                     break;
                 }
