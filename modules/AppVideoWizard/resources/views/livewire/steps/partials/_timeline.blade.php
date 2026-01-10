@@ -81,6 +81,38 @@
         rippleMode: false,
         affectedClips: [],
 
+        // ===== Phase 3: Split/Cut Tool =====
+        currentTool: 'select', // 'select', 'split', 'trim'
+        splitCursorPosition: null,
+        showSplitCursor: false,
+
+        // ===== Phase 3: Multi-Selection =====
+        selectedClips: [], // Array of {track, index} objects
+        isMultiSelecting: false,
+        marqueeStart: null,
+        marqueeEnd: null,
+        showMarquee: false,
+        lastSelectedIndex: null,
+
+        // ===== Phase 3: Clipboard =====
+        clipboard: [],
+        clipboardOperation: null, // 'cut' or 'copy'
+
+        // ===== Phase 3: Context Menu =====
+        showContextMenu: false,
+        contextMenuX: 0,
+        contextMenuY: 0,
+        contextMenuTarget: null,
+
+        // ===== Phase 3: In/Out Points & JKL =====
+        inPoint: null,
+        outPoint: null,
+        jklSpeed: 0, // -4, -2, -1, 0, 1, 2, 4 for JKL playback
+        jklInterval: null,
+
+        // ===== Phase 3: Keyboard Shortcuts Modal =====
+        showShortcutsModal: false,
+
         // Format time helper
         formatTime(seconds) {
             if (!seconds || isNaN(seconds)) return '0:00';
@@ -470,17 +502,390 @@
             }
         },
 
-        // Selection
-        selectClip(track, clipIndex) {
+        // ===== Phase 3: Tool Management =====
+        setTool(tool) {
+            this.currentTool = tool;
+            this.showSplitCursor = tool === 'split';
+            if (tool !== 'split') {
+                this.splitCursorPosition = null;
+            }
+        },
+
+        // ===== Phase 3: Split Tool =====
+        updateSplitCursor(e) {
+            if (this.currentTool !== 'split') return;
+            const container = this.$refs.timelineScroll;
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left + container.scrollLeft;
+            this.splitCursorPosition = x;
+        },
+
+        splitAtPosition(time, track = null) {
+            if (time <= 0 || time >= this.totalDuration) return;
+
+            this.saveHistory();
+            this.$dispatch('split-clip', {
+                time: time,
+                track: track || this.selectedTrack || 'video',
+                ripple: this.rippleMode
+            });
+        },
+
+        splitAtPlayhead() {
+            if (this.currentTime > 0 && this.currentTime < this.totalDuration) {
+                this.splitAtPosition(this.currentTime);
+            }
+        },
+
+        splitSelectedClip() {
+            if (this.selectedClips.length > 0) {
+                // Split all selected clips at playhead
+                this.saveHistory();
+                this.selectedClips.forEach(clip => {
+                    this.$dispatch('split-clip', {
+                        time: this.currentTime,
+                        track: clip.track,
+                        index: clip.index,
+                        ripple: this.rippleMode
+                    });
+                });
+            } else if (this.selectedClip !== null) {
+                this.splitAtPlayhead();
+            }
+        },
+
+        // ===== Phase 3: Enhanced Selection =====
+        selectClip(track, clipIndex, event = null) {
+            const clip = { track, index: clipIndex };
+
+            if (event && (event.ctrlKey || event.metaKey)) {
+                // Ctrl/Cmd+click: toggle individual selection
+                const existingIndex = this.selectedClips.findIndex(
+                    c => c.track === track && c.index === clipIndex
+                );
+                if (existingIndex >= 0) {
+                    this.selectedClips.splice(existingIndex, 1);
+                } else {
+                    this.selectedClips.push(clip);
+                }
+            } else if (event && event.shiftKey && this.lastSelectedIndex !== null) {
+                // Shift+click: range selection on same track
+                if (this.selectedTrack === track) {
+                    const start = Math.min(this.lastSelectedIndex, clipIndex);
+                    const end = Math.max(this.lastSelectedIndex, clipIndex);
+                    this.selectedClips = [];
+                    for (let i = start; i <= end; i++) {
+                        this.selectedClips.push({ track, index: i });
+                    }
+                }
+            } else {
+                // Normal click: single selection
+                this.selectedClips = [clip];
+            }
+
             this.selectedTrack = track;
             this.selectedClip = clipIndex;
-            $dispatch('clip-selected', { track, clipIndex });
+            this.lastSelectedIndex = clipIndex;
+            this.$dispatch('clip-selected', { track, clipIndex, multi: this.selectedClips.length > 1 });
+        },
+
+        isClipSelected(track, index) {
+            return this.selectedClips.some(c => c.track === track && c.index === index);
+        },
+
+        selectAllClipsOnTrack(track) {
+            this.selectedClips = [];
+            @foreach($script['scenes'] ?? [] as $index => $scene)
+                this.selectedClips.push({ track, index: {{ $index }} });
+            @endforeach
+            this.selectedTrack = track;
+        },
+
+        selectAllClips() {
+            this.selectedClips = [];
+            @foreach($script['scenes'] ?? [] as $index => $scene)
+                this.selectedClips.push({ track: 'video', index: {{ $index }} });
+                this.selectedClips.push({ track: 'voiceover', index: {{ $index }} });
+                this.selectedClips.push({ track: 'captions', index: {{ $index }} });
+            @endforeach
         },
 
         deselectAll() {
             this.selectedTrack = null;
             this.selectedClip = null;
+            this.selectedClips = [];
+            this.lastSelectedIndex = null;
+            this.hideContextMenu();
         },
+
+        // ===== Phase 3: Marquee Selection =====
+        startMarquee(e) {
+            if (this.currentTool !== 'select') return;
+            if (e.target.closest('.vw-clip')) return;
+
+            const container = this.$refs.timelineScroll;
+            const rect = container.getBoundingClientRect();
+
+            this.isMultiSelecting = true;
+            this.showMarquee = true;
+            this.marqueeStart = {
+                x: e.clientX - rect.left + container.scrollLeft,
+                y: e.clientY - rect.top + container.scrollTop
+            };
+            this.marqueeEnd = { ...this.marqueeStart };
+
+            document.addEventListener('mousemove', this._boundUpdateMarquee = this.updateMarquee.bind(this));
+            document.addEventListener('mouseup', this._boundEndMarquee = this.endMarquee.bind(this));
+            e.preventDefault();
+        },
+
+        updateMarquee(e) {
+            if (!this.isMultiSelecting) return;
+
+            const container = this.$refs.timelineScroll;
+            const rect = container.getBoundingClientRect();
+
+            this.marqueeEnd = {
+                x: e.clientX - rect.left + container.scrollLeft,
+                y: e.clientY - rect.top + container.scrollTop
+            };
+
+            // Select clips within marquee
+            this.selectClipsInMarquee();
+        },
+
+        endMarquee() {
+            this.isMultiSelecting = false;
+            this.showMarquee = false;
+            document.removeEventListener('mousemove', this._boundUpdateMarquee);
+            document.removeEventListener('mouseup', this._boundEndMarquee);
+        },
+
+        selectClipsInMarquee() {
+            const left = Math.min(this.marqueeStart.x, this.marqueeEnd.x);
+            const right = Math.max(this.marqueeStart.x, this.marqueeEnd.x);
+            const top = Math.min(this.marqueeStart.y, this.marqueeEnd.y);
+            const bottom = Math.max(this.marqueeStart.y, this.marqueeEnd.y);
+
+            this.selectedClips = [];
+
+            // Check each clip for intersection with marquee
+            const clips = this.$refs.tracksContainer?.querySelectorAll('.vw-clip');
+            clips?.forEach(clipEl => {
+                const clipRect = clipEl.getBoundingClientRect();
+                const container = this.$refs.timelineScroll;
+                const containerRect = container.getBoundingClientRect();
+
+                const clipLeft = clipRect.left - containerRect.left + container.scrollLeft;
+                const clipRight = clipLeft + clipRect.width;
+                const clipTop = clipRect.top - containerRect.top + container.scrollTop;
+                const clipBottom = clipTop + clipRect.height;
+
+                // Check intersection
+                if (clipLeft < right && clipRight > left && clipTop < bottom && clipBottom > top) {
+                    const track = clipEl.closest('.vw-track')?.classList.contains('vw-track-video') ? 'video' :
+                                  clipEl.closest('.vw-track')?.classList.contains('vw-track-voiceover') ? 'voiceover' :
+                                  clipEl.closest('.vw-track')?.classList.contains('vw-track-music') ? 'music' : 'captions';
+                    const index = parseInt(clipEl.dataset.clipIndex || '0');
+                    this.selectedClips.push({ track, index });
+                }
+            });
+        },
+
+        get marqueeStyle() {
+            if (!this.marqueeStart || !this.marqueeEnd) return {};
+            return {
+                left: Math.min(this.marqueeStart.x, this.marqueeEnd.x) + 'px',
+                top: Math.min(this.marqueeStart.y, this.marqueeEnd.y) + 'px',
+                width: Math.abs(this.marqueeEnd.x - this.marqueeStart.x) + 'px',
+                height: Math.abs(this.marqueeEnd.y - this.marqueeStart.y) + 'px'
+            };
+        },
+
+        // ===== Phase 3: Clipboard Operations =====
+        copySelectedClips() {
+            if (this.selectedClips.length === 0) return;
+            this.clipboard = [...this.selectedClips];
+            this.clipboardOperation = 'copy';
+            this.showNotification('{{ __('Copied') }} ' + this.selectedClips.length + ' {{ __('clip(s)') }}');
+        },
+
+        cutSelectedClips() {
+            if (this.selectedClips.length === 0) return;
+            this.clipboard = [...this.selectedClips];
+            this.clipboardOperation = 'cut';
+            this.showNotification('{{ __('Cut') }} ' + this.selectedClips.length + ' {{ __('clip(s)') }}');
+        },
+
+        pasteClips() {
+            if (this.clipboard.length === 0) return;
+
+            this.saveHistory();
+            this.$dispatch('paste-clips', {
+                clips: this.clipboard,
+                operation: this.clipboardOperation,
+                targetTime: this.currentTime,
+                ripple: this.rippleMode
+            });
+
+            if (this.clipboardOperation === 'cut') {
+                this.clipboard = [];
+                this.clipboardOperation = null;
+            }
+        },
+
+        deleteSelectedClips() {
+            if (this.selectedClips.length === 0 && this.selectedClip === null) return;
+
+            this.saveHistory();
+            const toDelete = this.selectedClips.length > 0 ? this.selectedClips : [{ track: this.selectedTrack, index: this.selectedClip }];
+
+            this.$dispatch('delete-clips', {
+                clips: toDelete,
+                ripple: this.rippleMode
+            });
+
+            this.deselectAll();
+        },
+
+        showNotification(message) {
+            // Simple notification using custom event
+            this.$dispatch('show-notification', { message });
+        },
+
+        // ===== Phase 3: Context Menu =====
+        openContextMenu(e, track, index) {
+            e.preventDefault();
+            this.showContextMenu = true;
+            this.contextMenuX = e.clientX;
+            this.contextMenuY = e.clientY;
+            this.contextMenuTarget = { track, index };
+
+            // Select the clip if not already selected
+            if (!this.isClipSelected(track, index)) {
+                this.selectClip(track, index);
+            }
+
+            // Add click-away listener
+            setTimeout(() => {
+                document.addEventListener('click', this._boundHideContextMenu = this.hideContextMenu.bind(this), { once: true });
+            }, 10);
+        },
+
+        hideContextMenu() {
+            this.showContextMenu = false;
+            this.contextMenuTarget = null;
+        },
+
+        contextMenuAction(action) {
+            switch (action) {
+                case 'cut':
+                    this.cutSelectedClips();
+                    break;
+                case 'copy':
+                    this.copySelectedClips();
+                    break;
+                case 'paste':
+                    this.pasteClips();
+                    break;
+                case 'delete':
+                    this.deleteSelectedClips();
+                    break;
+                case 'split':
+                    this.splitAtPlayhead();
+                    break;
+                case 'duplicate':
+                    this.duplicateSelected();
+                    break;
+                case 'properties':
+                    // Show in inspector panel
+                    break;
+            }
+            this.hideContextMenu();
+        },
+
+        duplicateSelected() {
+            if (this.selectedClips.length === 0 && this.selectedClip === null) return;
+            this.saveHistory();
+            const toDuplicate = this.selectedClips.length > 0 ? this.selectedClips : [{ track: this.selectedTrack, index: this.selectedClip }];
+            this.$dispatch('duplicate-clips', { clips: toDuplicate });
+        },
+
+        // ===== Phase 3: In/Out Points =====
+        setInPoint() {
+            this.inPoint = this.currentTime;
+            this.showNotification('{{ __('In point set at') }} ' + this.formatTimeDetailed(this.currentTime));
+        },
+
+        setOutPoint() {
+            this.outPoint = this.currentTime;
+            this.showNotification('{{ __('Out point set at') }} ' + this.formatTimeDetailed(this.currentTime));
+        },
+
+        clearInOutPoints() {
+            this.inPoint = null;
+            this.outPoint = null;
+        },
+
+        goToInPoint() {
+            if (this.inPoint !== null) {
+                this.seek(this.inPoint);
+            }
+        },
+
+        goToOutPoint() {
+            if (this.outPoint !== null) {
+                this.seek(this.outPoint);
+            }
+        },
+
+        // ===== Phase 3: JKL Playback =====
+        jklControl(key) {
+            const speeds = [-4, -2, -1, 0, 1, 2, 4];
+
+            if (key === 'j') {
+                // Reverse/slower
+                const currentIdx = speeds.indexOf(this.jklSpeed);
+                if (currentIdx > 0) {
+                    this.jklSpeed = speeds[currentIdx - 1];
+                }
+            } else if (key === 'k') {
+                // Stop
+                this.jklSpeed = 0;
+                this.$dispatch('pause-preview');
+            } else if (key === 'l') {
+                // Forward/faster
+                const currentIdx = speeds.indexOf(this.jklSpeed);
+                if (currentIdx < speeds.length - 1) {
+                    this.jklSpeed = speeds[currentIdx + 1];
+                }
+            }
+
+            if (this.jklSpeed !== 0) {
+                this.$dispatch('jkl-playback', { speed: this.jklSpeed });
+            }
+        },
+
+        // ===== Phase 3: Frame Stepping =====
+        stepFrames(frames) {
+            // Assuming 30fps
+            const frameTime = 1/30;
+            const newTime = Math.max(0, Math.min(this.totalDuration, this.currentTime + (frames * frameTime)));
+            this.seek(newTime);
+        },
+
+        // ===== Phase 3: Navigation =====
+        goToStart() {
+            this.seek(0);
+        },
+
+        goToEnd() {
+            this.seek(this.totalDuration);
+        },
+
+        // Selection (legacy)
+        // selectClip function has been replaced above with enhanced version
 
         // History management
         saveHistory() {
@@ -597,19 +1002,143 @@
             }
         });
 
-        // Keyboard shortcuts
+        // ===== Phase 3: Comprehensive Keyboard Shortcuts =====
         window.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
-            if (e.key === '+' || e.key === '=') {
+            const key = e.key.toLowerCase();
+
+            // Zoom controls
+            if (key === '+' || key === '=') {
                 e.preventDefault();
                 zoomIn();
-            } else if (e.key === '-') {
+            } else if (key === '-') {
                 e.preventDefault();
                 zoomOut();
-            } else if (e.key === '0') {
+            } else if (key === '0' && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 zoomFit();
+            }
+
+            // Split/Cut tool
+            else if ((key === 's' || key === 'b') && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                if (currentTool === 'split') {
+                    setTool('select');
+                } else if (selectedClip !== null || selectedClips.length > 0) {
+                    splitAtPlayhead();
+                } else {
+                    setTool('split');
+                }
+            }
+
+            // Delete selected
+            else if (key === 'delete' || key === 'backspace') {
+                e.preventDefault();
+                deleteSelectedClips();
+            }
+
+            // Copy/Cut/Paste
+            else if (key === 'c' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                copySelectedClips();
+            } else if (key === 'x' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                cutSelectedClips();
+            } else if (key === 'v' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                pasteClips();
+            }
+
+            // Select all
+            else if (key === 'a' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                selectAllClips();
+            }
+
+            // Duplicate
+            else if (key === 'd' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                duplicateSelected();
+            }
+
+            // In/Out points
+            else if (key === 'i' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                setInPoint();
+            } else if (key === 'o' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                setOutPoint();
+            }
+
+            // JKL playback
+            else if (key === 'j') {
+                e.preventDefault();
+                jklControl('j');
+            } else if (key === 'k') {
+                e.preventDefault();
+                jklControl('k');
+            } else if (key === 'l' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                jklControl('l');
+            }
+
+            // Navigation
+            else if (key === 'home') {
+                e.preventDefault();
+                goToStart();
+            } else if (key === 'end') {
+                e.preventDefault();
+                goToEnd();
+            }
+
+            // Frame stepping
+            else if (key === 'arrowleft') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    stepFrames(-5); // 5 frames back
+                } else {
+                    stepFrames(-1); // 1 frame back
+                }
+            } else if (key === 'arrowright') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    stepFrames(5); // 5 frames forward
+                } else {
+                    stepFrames(1); // 1 frame forward
+                }
+            }
+
+            // Escape to deselect/cancel
+            else if (key === 'escape') {
+                e.preventDefault();
+                if (showContextMenu) {
+                    hideContextMenu();
+                } else if (showShortcutsModal) {
+                    showShortcutsModal = false;
+                } else if (currentTool !== 'select') {
+                    setTool('select');
+                } else {
+                    deselectAll();
+                }
+            }
+
+            // Keyboard shortcuts modal
+            else if (key === '?' || (key === '/' && e.shiftKey)) {
+                e.preventDefault();
+                showShortcutsModal = !showShortcutsModal;
+            }
+
+            // Toggle snap
+            else if (key === 'n' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                snapEnabled = !snapEnabled;
+            }
+
+            // Toggle ripple mode
+            else if (key === 'r' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                toggleRippleMode();
             }
         });
     "
@@ -723,17 +1252,106 @@
 
             <div class="vw-toolbar-divider"></div>
 
-            <button type="button" class="vw-tool-btn" title="{{ __('Split at Playhead') }} (S)">
+            {{-- Phase 3: Tool Selection --}}
+            <div class="vw-tool-group vw-tool-selector">
+                <button
+                    type="button"
+                    @click="setTool('select')"
+                    :class="{ 'is-active': currentTool === 'select' }"
+                    class="vw-tool-btn"
+                    title="{{ __('Selection Tool') }} (V)"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    @click="setTool('split')"
+                    :class="{ 'is-active': currentTool === 'split' }"
+                    class="vw-tool-btn"
+                    title="{{ __('Split Tool') }} (S)"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="2" x2="12" y2="22"/>
+                        <path d="M8 6l4-4 4 4M8 18l4 4 4-4"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="vw-toolbar-divider"></div>
+
+            {{-- Split at Playhead --}}
+            <button
+                type="button"
+                @click="splitAtPlayhead()"
+                :disabled="currentTime <= 0 || currentTime >= totalDuration"
+                class="vw-tool-btn"
+                title="{{ __('Split at Playhead') }} (S)"
+            >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="2" x2="12" y2="22"/>
-                    <path d="M8 6l4-4 4 4M8 18l4 4 4-4"/>
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <polyline points="8 9 12 5 16 9"/>
+                    <polyline points="8 15 12 19 16 15"/>
                 </svg>
             </button>
 
-            <button type="button" class="vw-tool-btn" title="{{ __('Delete Selected') }} (Del)">
+            {{-- Delete Selected --}}
+            <button
+                type="button"
+                @click="deleteSelectedClips()"
+                :disabled="selectedClips.length === 0 && selectedClip === null"
+                class="vw-tool-btn vw-tool-danger"
+                title="{{ __('Delete Selected') }} (Del)"
+            >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+            </button>
+
+            <div class="vw-toolbar-divider"></div>
+
+            {{-- Clipboard Actions --}}
+            <div class="vw-tool-group">
+                <button
+                    type="button"
+                    @click="copySelectedClips()"
+                    :disabled="selectedClips.length === 0"
+                    class="vw-tool-btn"
+                    title="{{ __('Copy') }} (Ctrl+C)"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    @click="pasteClips()"
+                    :disabled="clipboard.length === 0"
+                    class="vw-tool-btn"
+                    title="{{ __('Paste') }} (Ctrl+V)"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="vw-toolbar-divider"></div>
+
+            {{-- Keyboard Shortcuts Help --}}
+            <button
+                type="button"
+                @click="showShortcutsModal = true"
+                class="vw-tool-btn"
+                title="{{ __('Keyboard Shortcuts') }} (?)"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+                    <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M6 16h12"/>
                 </svg>
             </button>
         </div>
@@ -915,7 +1533,14 @@
             </div>
 
             {{-- Tracks Container --}}
-            <div class="vw-tracks-container" :style="{ width: timelineWidth + 'px' }">
+            <div class="vw-tracks-container"
+                 x-ref="tracksContainer"
+                 :style="{ width: timelineWidth + 'px' }"
+                 :class="{ 'vw-split-cursor': currentTool === 'split' }"
+                 @mousemove="updateSplitCursor($event)"
+                 @mousedown="if (currentTool === 'select' && !$event.target.closest('.vw-clip')) startMarquee($event)"
+                 @click="if (currentTool === 'split' && splitCursorPosition) splitAtPosition(pixelsToTime(splitCursorPosition))"
+            >
                 {{-- Video Track --}}
                 <div
                     class="vw-track vw-track-video"
@@ -934,20 +1559,23 @@
                         @endphp
                         <div
                             class="vw-clip vw-clip-video"
+                            data-clip-index="{{ $index }}"
                             :class="{
-                                'is-selected': selectedTrack === 'video' && selectedClip === {{ $index }},
+                                'is-selected': isClipSelected('video', {{ $index }}),
                                 'is-hovered': hoveredTrack === 'video' && hoveredClip === {{ $index }},
                                 'is-dragging': isDragging && dragTarget?.track === 'video' && dragTarget?.index === {{ $index }},
-                                'is-ripple-affected': rippleMode && affectedClips.some(c => c.track === 'video' && c.index === {{ $index }})
+                                'is-ripple-affected': rippleMode && affectedClips.some(c => c.track === 'video' && c.index === {{ $index }}),
+                                'is-cut': clipboardOperation === 'cut' && clipboard.some(c => c.track === 'video' && c.index === {{ $index }})
                             }"
                             :style="{
                                 left: timeToPixels({{ $sceneStart }}) + 'px',
                                 width: timeToPixels({{ $sceneDuration }}) + 'px'
                             }"
-                            @click.stop="selectClip('video', {{ $index }})"
+                            @click.stop="selectClip('video', {{ $index }}, $event)"
+                            @contextmenu.prevent="openContextMenu($event, 'video', {{ $index }})"
                             @mouseenter="hoveredTrack = 'video'; hoveredClip = {{ $index }}"
                             @mouseleave="hoveredTrack = null; hoveredClip = null"
-                            @mousedown.stop="if (!tracks.video.locked && $event.target.closest('.vw-trim-handle') === null) startDrag($event, 'move', { track: 'video', index: {{ $index }} }, {{ $sceneStart }}, {{ $sceneDuration }}, {{ $sceneStart }})"
+                            @mousedown.stop="if (!tracks.video.locked && $event.target.closest('.vw-trim-handle') === null && $event.button === 0) startDrag($event, 'move', { track: 'video', index: {{ $index }} }, {{ $sceneStart }}, {{ $sceneDuration }}, {{ $sceneStart }})"
                         >
                             {{-- Thumbnail Filmstrip --}}
                             <div class="vw-clip-filmstrip">
@@ -1014,15 +1642,18 @@
                         @endphp
                         <div
                             class="vw-clip vw-clip-audio"
+                            data-clip-index="{{ $index }}"
                             :class="{
-                                'is-selected': selectedTrack === 'voiceover' && selectedClip === {{ $index }},
-                                'is-hovered': hoveredTrack === 'voiceover' && hoveredClip === {{ $index }}
+                                'is-selected': isClipSelected('voiceover', {{ $index }}),
+                                'is-hovered': hoveredTrack === 'voiceover' && hoveredClip === {{ $index }},
+                                'is-cut': clipboardOperation === 'cut' && clipboard.some(c => c.track === 'voiceover' && c.index === {{ $index }})
                             }"
                             :style="{
                                 left: timeToPixels({{ $sceneStart }}) + 'px',
                                 width: timeToPixels({{ $voiceoverDuration }}) + 'px'
                             }"
-                            @click.stop="selectClip('voiceover', {{ $index }})"
+                            @click.stop="selectClip('voiceover', {{ $index }}, $event)"
+                            @contextmenu.prevent="openContextMenu($event, 'voiceover', {{ $index }})"
                             @mouseenter="hoveredTrack = 'voiceover'; hoveredClip = {{ $index }}"
                             @mouseleave="hoveredTrack = null; hoveredClip = null"
                         >
@@ -1114,15 +1745,18 @@
                             @endphp
                             <div
                                 class="vw-clip vw-clip-caption"
+                                data-clip-index="{{ $index }}"
                                 :class="{
-                                    'is-selected': selectedTrack === 'captions' && selectedClip === {{ $index }},
-                                    'is-hovered': hoveredTrack === 'captions' && hoveredClip === {{ $index }}
+                                    'is-selected': isClipSelected('captions', {{ $index }}),
+                                    'is-hovered': hoveredTrack === 'captions' && hoveredClip === {{ $index }},
+                                    'is-cut': clipboardOperation === 'cut' && clipboard.some(c => c.track === 'captions' && c.index === {{ $index }})
                                 }"
                                 :style="{
                                     left: timeToPixels({{ $sceneStart }}) + 'px',
                                     width: timeToPixels({{ $captionDuration }}) + 'px'
                                 }"
-                                @click.stop="selectClip('captions', {{ $index }})"
+                                @click.stop="selectClip('captions', {{ $index }}, $event)"
+                                @contextmenu.prevent="openContextMenu($event, 'captions', {{ $index }})"
                                 @mouseenter="hoveredTrack = 'captions'; hoveredClip = {{ $index }}"
                                 @mouseleave="hoveredTrack = null; hoveredClip = null"
                                 title="{{ $scene['narration'] ?? '' }}"
@@ -1261,12 +1895,198 @@
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                 </svg>
             </button>
-            <button type="button" class="vw-inspector-action vw-action-danger" title="{{ __('Delete') }}">
+            <button type="button" class="vw-inspector-action vw-action-danger" title="{{ __('Delete') }}" @click="deleteSelectedClips()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
             </button>
+        </div>
+    </div>
+
+    {{-- ===== Phase 3: Context Menu ===== --}}
+    <div
+        class="vw-context-menu"
+        x-show="showContextMenu"
+        x-cloak
+        x-transition:enter="transition ease-out duration-100"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-75"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+        @click.stop
+    >
+        <button type="button" class="vw-context-item" @click="contextMenuAction('cut')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+            </svg>
+            <span>{{ __('Cut') }}</span>
+            <kbd>Ctrl+X</kbd>
+        </button>
+        <button type="button" class="vw-context-item" @click="contextMenuAction('copy')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>{{ __('Copy') }}</span>
+            <kbd>Ctrl+C</kbd>
+        </button>
+        <button type="button" class="vw-context-item" @click="contextMenuAction('paste')" :disabled="clipboard.length === 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            </svg>
+            <span>{{ __('Paste') }}</span>
+            <kbd>Ctrl+V</kbd>
+        </button>
+        <div class="vw-context-divider"></div>
+        <button type="button" class="vw-context-item" @click="contextMenuAction('split')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <polyline points="8 9 12 5 16 9"/><polyline points="8 15 12 19 16 15"/>
+            </svg>
+            <span>{{ __('Split at Playhead') }}</span>
+            <kbd>S</kbd>
+        </button>
+        <button type="button" class="vw-context-item" @click="contextMenuAction('duplicate')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>{{ __('Duplicate') }}</span>
+            <kbd>Ctrl+D</kbd>
+        </button>
+        <div class="vw-context-divider"></div>
+        <button type="button" class="vw-context-item vw-context-danger" @click="contextMenuAction('delete')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            <span>{{ __('Delete') }}</span>
+            <kbd>Del</kbd>
+        </button>
+    </div>
+
+    {{-- ===== Phase 3: Split Cursor Line ===== --}}
+    <div
+        class="vw-split-cursor-line"
+        x-show="currentTool === 'split' && splitCursorPosition !== null"
+        x-cloak
+        :style="{ left: splitCursorPosition + 'px' }"
+    >
+        <div class="vw-split-cursor-head">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L8 6h3v5H8l4 4 4-4h-3V6h3l-4-4zM12 22l4-4h-3v-5h3l-4-4-4 4h3v5H8l4 4z"/>
+            </svg>
+        </div>
+    </div>
+
+    {{-- ===== Phase 3: Marquee Selection Box ===== --}}
+    <div
+        class="vw-marquee-box"
+        x-show="showMarquee"
+        x-cloak
+        :style="marqueeStyle"
+    ></div>
+
+    {{-- ===== Phase 3: In/Out Point Markers ===== --}}
+    <div
+        class="vw-in-point-marker"
+        x-show="inPoint !== null"
+        x-cloak
+        :style="{ left: timeToPixels(inPoint) + 'px' }"
+        title="{{ __('In Point') }}"
+    >
+        <span class="vw-point-label">I</span>
+    </div>
+    <div
+        class="vw-out-point-marker"
+        x-show="outPoint !== null"
+        x-cloak
+        :style="{ left: timeToPixels(outPoint) + 'px' }"
+        title="{{ __('Out Point') }}"
+    >
+        <span class="vw-point-label">O</span>
+    </div>
+
+    {{-- ===== Phase 3: Selection Count Badge ===== --}}
+    <div
+        class="vw-selection-badge"
+        x-show="selectedClips.length > 1"
+        x-cloak
+        x-transition
+    >
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+        <span x-text="selectedClips.length + ' {{ __('clips selected') }}'"></span>
+    </div>
+
+    {{-- ===== Phase 3: Keyboard Shortcuts Modal ===== --}}
+    <div
+        class="vw-shortcuts-modal-backdrop"
+        x-show="showShortcutsModal"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="showShortcutsModal = false"
+    >
+        <div class="vw-shortcuts-modal" @click.stop>
+            <div class="vw-shortcuts-header">
+                <h3>{{ __('Keyboard Shortcuts') }}</h3>
+                <button type="button" @click="showShortcutsModal = false" class="vw-shortcuts-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="vw-shortcuts-body">
+                <div class="vw-shortcuts-section">
+                    <h4>{{ __('Playback') }}</h4>
+                    <div class="vw-shortcut-row"><kbd>Space</kbd><span>{{ __('Play / Pause') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>J</kbd><span>{{ __('Reverse playback') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>K</kbd><span>{{ __('Stop playback') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>L</kbd><span>{{ __('Forward playback') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Home</kbd><span>{{ __('Go to start') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>End</kbd><span>{{ __('Go to end') }}</span></div>
+                </div>
+                <div class="vw-shortcuts-section">
+                    <h4>{{ __('Navigation') }}</h4>
+                    <div class="vw-shortcut-row"><kbd>&larr;</kbd><span>{{ __('Step back 1 frame') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>&rarr;</kbd><span>{{ __('Step forward 1 frame') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Shift + &larr;</kbd><span>{{ __('Step back 5 frames') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Shift + &rarr;</kbd><span>{{ __('Step forward 5 frames') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>I</kbd><span>{{ __('Set In point') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>O</kbd><span>{{ __('Set Out point') }}</span></div>
+                </div>
+                <div class="vw-shortcuts-section">
+                    <h4>{{ __('Editing') }}</h4>
+                    <div class="vw-shortcut-row"><kbd>S</kbd> / <kbd>B</kbd><span>{{ __('Split at playhead') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Delete</kbd><span>{{ __('Delete selected') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + C</kbd><span>{{ __('Copy') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + X</kbd><span>{{ __('Cut') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + V</kbd><span>{{ __('Paste') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + D</kbd><span>{{ __('Duplicate') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + A</kbd><span>{{ __('Select all') }}</span></div>
+                </div>
+                <div class="vw-shortcuts-section">
+                    <h4>{{ __('Tools & View') }}</h4>
+                    <div class="vw-shortcut-row"><kbd>N</kbd><span>{{ __('Toggle snap') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>R</kbd><span>{{ __('Toggle ripple mode') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>+</kbd> / <kbd>=</kbd><span>{{ __('Zoom in') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>-</kbd><span>{{ __('Zoom out') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>0</kbd><span>{{ __('Fit to view') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + Z</kbd><span>{{ __('Undo') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>Ctrl + Y</kbd><span>{{ __('Redo') }}</span></div>
+                    <div class="vw-shortcut-row"><kbd>?</kbd><span>{{ __('Show this help') }}</span></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -2766,5 +3586,429 @@
         rgba(0, 0, 0, 0.3) 4px,
         rgba(0, 0, 0, 0.3) 8px
     );
+}
+
+/* ==========================================================================
+   PHASE 3: TOOL SELECTOR
+   ========================================================================== */
+
+.vw-tool-selector {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0.5rem;
+    padding: 0.15rem;
+}
+
+.vw-tool-selector .vw-tool-btn.is-active {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #a78bfa;
+}
+
+.vw-tool-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #f87171 !important;
+}
+
+/* ==========================================================================
+   PHASE 3: CONTEXT MENU
+   ========================================================================== */
+
+.vw-context-menu {
+    position: fixed;
+    min-width: 200px;
+    background: rgba(20, 20, 35, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.6rem;
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 0.35rem;
+}
+
+.vw-context-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.35rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-context-item svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.vw-context-item span {
+    flex: 1;
+}
+
+.vw-context-item kbd {
+    padding: 0.15rem 0.4rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    font-family: 'SF Mono', Monaco, monospace;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.vw-context-item:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.vw-context-item:hover:not(:disabled) svg {
+    opacity: 1;
+}
+
+.vw-context-item:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.vw-context-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.vw-context-danger:hover:not(:disabled) svg {
+    color: #f87171;
+}
+
+.vw-context-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0.3rem 0;
+}
+
+/* ==========================================================================
+   PHASE 3: SPLIT CURSOR
+   ========================================================================== */
+
+.vw-tracks-container.vw-split-cursor {
+    cursor: crosshair;
+}
+
+.vw-split-cursor-line {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 80;
+}
+
+.vw-split-cursor-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+}
+
+.vw-split-cursor-head {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    color: #22c55e;
+}
+
+.vw-split-cursor-head svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.6));
+}
+
+/* ==========================================================================
+   PHASE 3: MARQUEE SELECTION
+   ========================================================================== */
+
+.vw-marquee-box {
+    position: absolute;
+    border: 1px dashed rgba(139, 92, 246, 0.8);
+    background: rgba(139, 92, 246, 0.15);
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* ==========================================================================
+   PHASE 3: IN/OUT POINT MARKERS
+   ========================================================================== */
+
+.vw-in-point-marker,
+.vw-out-point-marker {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 55;
+}
+
+.vw-in-point-marker::before,
+.vw-out-point-marker::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 100%;
+}
+
+.vw-in-point-marker::before {
+    background: #facc15;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+}
+
+.vw-out-point-marker::before {
+    background: #fb923c;
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.5);
+}
+
+.vw-point-label {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+}
+
+.vw-in-point-marker .vw-point-label {
+    background: #facc15;
+    color: #1f2937;
+}
+
+.vw-out-point-marker .vw-point-label {
+    background: #fb923c;
+}
+
+/* Region between in/out points */
+.vw-in-out-region {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(250, 204, 21, 0.1);
+    border-left: 2px solid #facc15;
+    border-right: 2px solid #fb923c;
+    pointer-events: none;
+    z-index: 40;
+}
+
+/* ==========================================================================
+   PHASE 3: SELECTION BADGE
+   ========================================================================== */
+
+.vw-selection-badge {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(139, 92, 246, 0.9);
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    z-index: 200;
+}
+
+.vw-selection-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ==========================================================================
+   PHASE 3: KEYBOARD SHORTCUTS MODAL
+   ========================================================================== */
+
+.vw-shortcuts-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.vw-shortcuts-modal {
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    background: rgba(20, 20, 35, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    overflow: hidden;
+}
+
+.vw-shortcuts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vw-shortcuts-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+}
+
+.vw-shortcuts-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-shortcuts-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.vw-shortcuts-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vw-shortcuts-body {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 1.25rem;
+    max-height: calc(80vh - 60px);
+    overflow-y: auto;
+}
+
+.vw-shortcuts-section h4 {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(139, 92, 246, 0.9);
+}
+
+.vw-shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vw-shortcut-row:last-child {
+    border-bottom: none;
+}
+
+.vw-shortcut-row kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.3rem;
+    font-size: 0.7rem;
+    font-family: 'SF Mono', Monaco, monospace;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: nowrap;
+}
+
+.vw-shortcut-row span {
+    flex: 1;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ==========================================================================
+   PHASE 3: CUT INDICATOR ON CLIPS
+   ========================================================================== */
+
+.vw-clip.is-cut {
+    opacity: 0.5;
+    filter: grayscale(0.3);
+}
+
+.vw-clip.is-cut::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 4px,
+        rgba(239, 68, 68, 0.15) 4px,
+        rgba(239, 68, 68, 0.15) 8px
+    );
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   PHASE 3: RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .vw-shortcuts-body {
+        grid-template-columns: 1fr;
+    }
+
+    .vw-toolbar-center {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .vw-tool-btn span {
+        display: none;
+    }
+
+    .vw-context-menu {
+        min-width: 180px;
+    }
 }
 </style>
