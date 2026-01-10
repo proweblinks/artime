@@ -21,6 +21,10 @@ class ImageGenerationService
 
     /**
      * Model configurations with token costs matching reference implementation.
+     *
+     * Models:
+     * - gemini-2.5-flash-image: Nano Banana - Fast, cost-effective, good quality
+     * - gemini-3-pro-image-preview: Nano Banana Pro - Best quality, supports up to 5 human refs
      */
     public const IMAGE_MODELS = [
         'hidream' => [
@@ -32,21 +36,25 @@ class ImageGenerationService
         ],
         'nanobanana-pro' => [
             'name' => 'NanoBanana Pro',
-            'description' => 'High quality, fast generation',
+            'description' => 'Best quality, superior face consistency (up to 5 reference faces)',
             'tokenCost' => 3,
             'provider' => 'gemini',
-            'model' => 'gemini-2.0-flash-exp-image-generation',
+            'model' => 'gemini-2.5-flash-preview-05-20', // Best available model with image generation
+            'resolution' => '2K', // 1K, 2K, 4K - Higher = better quality
             'quality' => 'hd',
             'async' => false,
+            'maxHumanRefs' => 5, // Supports up to 5 human reference images
         ],
         'nanobanana' => [
             'name' => 'NanoBanana',
-            'description' => 'Quick drafts, lower cost',
+            'description' => 'Quick drafts, good balance of speed and quality',
             'tokenCost' => 1,
             'provider' => 'gemini',
-            'model' => 'gemini-2.0-flash-exp-image-generation',
+            'model' => 'gemini-2.5-flash-preview-05-20', // Updated to 2.5 flash
+            'resolution' => '1K', // Lower res for drafts
             'quality' => 'basic',
             'async' => false,
+            'maxHumanRefs' => 3, // Recommended max for 2.5 flash
         ],
     ];
 
@@ -681,6 +689,9 @@ class ImageGenerationService
 
         $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
 
+        // Get resolution from model config (default 2K for better quality)
+        $resolution = $modelConfig['resolution'] ?? '2K';
+
         // Priority: Character reference (face consistency) > Location reference (environment consistency)
         // If we have a character reference, use image-to-image generation for face consistency
         if ($characterReference && !empty($characterReference['base64'])) {
@@ -688,48 +699,69 @@ class ImageGenerationService
                 'characterName' => $characterReference['characterName'] ?? 'Unknown',
                 'mimeType' => $characterReference['mimeType'] ?? 'image/png',
                 'hasLocationReference' => !empty($locationReference),
+                'aspectRatio' => $aspectRatio,
+                'resolution' => $resolution,
             ]);
 
-            // Build special prompt for face/character consistency
-            // Include location details in the prompt if available
+            // Build location context for the scene
             $locationContext = '';
             if ($locationReference) {
-                $locationContext = "\n\nLOCATION CONTEXT: The scene takes place in \"{$locationReference['locationName']}\"";
+                $locationContext = " in {$locationReference['locationName']}";
                 if (!empty($locationReference['locationDescription'])) {
-                    $locationContext .= " - {$locationReference['locationDescription']}";
-                }
-                if (!empty($locationReference['timeOfDay']) && $locationReference['timeOfDay'] !== 'day') {
-                    $locationContext .= ". Time: {$locationReference['timeOfDay']}";
-                }
-                if (!empty($locationReference['weather']) && $locationReference['weather'] !== 'clear') {
-                    $locationContext .= ". Weather: {$locationReference['weather']}";
-                }
-                if (!empty($locationReference['atmosphere'])) {
-                    $locationContext .= ". Atmosphere: {$locationReference['atmosphere']}";
+                    $locationContext .= " ({$locationReference['locationDescription']})";
                 }
             }
 
+            // Build time/weather context
+            $environmentContext = '';
+            if ($locationReference) {
+                $envParts = [];
+                if (!empty($locationReference['timeOfDay']) && $locationReference['timeOfDay'] !== 'day') {
+                    $envParts[] = "{$locationReference['timeOfDay']} lighting";
+                }
+                if (!empty($locationReference['weather']) && $locationReference['weather'] !== 'clear') {
+                    $envParts[] = "{$locationReference['weather']} weather";
+                }
+                if (!empty($locationReference['atmosphere'])) {
+                    $envParts[] = "{$locationReference['atmosphere']} atmosphere";
+                }
+                if (!empty($envParts)) {
+                    $environmentContext = "\nEnvironment: " . implode(', ', $envParts);
+                }
+            }
+
+            // IMPROVED PROMPT: Use "this exact person" phrasing per Google's recommendations
+            // This significantly improves face/identity consistency
+            $characterName = $characterReference['characterName'] ?? 'the person';
             $faceConsistencyPrompt = <<<EOT
-Using the provided image as a character/face reference to maintain consistency, generate a new image.
+Generate a photorealistic cinematic image of THIS EXACT PERSON from the reference image{$locationContext}.
 
-CHARACTER REFERENCE: The provided image shows the EXACT appearance of "{$characterReference['characterName']}" that MUST be preserved in the generated image. Maintain the same:
-- Facial features (eyes, nose, mouth, face shape)
-- Skin tone and complexion
-- Hair color, style, and texture
-- Overall body type and proportions{$locationContext}
-
-SCENE TO GENERATE:
+IDENTITY PRESERVATION (CRITICAL):
+- This is "{$characterName}" - maintain IDENTICAL facial features: same eyes, nose, mouth, face shape, jawline
+- Same skin tone, same complexion, same facial proportions
+- Same hair color, exact hair style and texture
+- Same body type and build
+{$environmentContext}
+SCENE DESCRIPTION:
 {$prompt}
 
-CRITICAL: The character in the generated image MUST look like the SAME PERSON as in the reference image. This is essential for visual consistency across the video.
+QUALITY REQUIREMENTS:
+- 8K photorealistic, cinematic film still quality
+- Natural skin texture with visible pores (no airbrushing)
+- Professional cinematography lighting
+- Sharp focus on face, cinematic depth of field
+
+OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) in the described scene.
 EOT;
 
             $result = $this->geminiService->generateImageFromImage(
                 $characterReference['base64'],
                 $faceConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
                     'mimeType' => $characterReference['mimeType'] ?? 'image/png',
+                    'aspectRatio' => $aspectRatio,
+                    'resolution' => $resolution,
                 ]
             );
 
@@ -788,30 +820,42 @@ EOT;
             Log::info('[generateWithGemini] Using location reference for environment consistency', [
                 'locationName' => $locationReference['locationName'] ?? 'Unknown',
                 'mimeType' => $locationReference['mimeType'] ?? 'image/png',
+                'aspectRatio' => $aspectRatio,
+                'resolution' => $resolution,
             ]);
 
-            // Build special prompt for location/environment consistency
+            // Build improved location consistency prompt
+            $locationName = $locationReference['locationName'] ?? 'this location';
             $locationConsistencyPrompt = <<<EOT
-Using the provided image as an environment/location reference to maintain visual consistency, generate a new image.
+Generate a photorealistic cinematic image set in THIS EXACT LOCATION from the reference image.
 
-LOCATION REFERENCE: The provided image shows the EXACT environment "{$locationReference['locationName']}" that MUST be used as the setting. Maintain the same:
-- Architecture and structural elements
-- Color palette and lighting atmosphere
-- Environmental details and textures
-- Overall mood and visual style
+LOCATION PRESERVATION (CRITICAL):
+- Use THIS EXACT SAME environment as shown in the reference: "{$locationName}"
+- Maintain identical architecture, structural elements, and spatial layout
+- Same color palette, lighting atmosphere, and visual mood
+- Same environmental textures and material qualities
+- Same depth and perspective feel
 
-SCENE TO GENERATE:
+SCENE DESCRIPTION:
 {$prompt}
 
-CRITICAL: The environment in the generated image MUST match the SAME LOCATION as in the reference image. This is essential for visual consistency across the video.
+QUALITY REQUIREMENTS:
+- 8K photorealistic, cinematic film still quality
+- Professional cinematography lighting matching the reference
+- Sharp environmental details, cinematic depth of field
+- Natural textures (no artificial smoothing)
+
+OUTPUT: Generate a single high-quality image in THIS EXACT SAME LOCATION (not a similar location, THE SAME location) showing the described scene.
 EOT;
 
             $result = $this->geminiService->generateImageFromImage(
                 $locationReference['base64'],
                 $locationConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
                     'mimeType' => $locationReference['mimeType'] ?? 'image/png',
+                    'aspectRatio' => $aspectRatio,
+                    'resolution' => $resolution,
                 ]
             );
 
@@ -868,17 +912,19 @@ EOT;
             Log::info('[generateWithGemini] Using style reference for visual style consistency', [
                 'hasStyleDescription' => !empty($styleReference['styleDescription']),
                 'mimeType' => $styleReference['mimeType'] ?? 'image/png',
+                'aspectRatio' => $aspectRatio,
+                'resolution' => $resolution,
             ]);
 
-            // Build special prompt for visual style consistency
+            // Build improved style consistency prompt
             $styleConsistencyPrompt = <<<EOT
-Using the provided image as a VISUAL STYLE REFERENCE to maintain consistent visual aesthetics, generate a new image.
+Generate a photorealistic cinematic image matching THIS EXACT VISUAL STYLE from the reference image.
 
-STYLE REFERENCE: The provided image defines the EXACT visual style that MUST be preserved:
-- Color palette and color grading
-- Lighting style and atmosphere
-- Overall mood and tone
-- Visual quality and cinematic look
+STYLE PRESERVATION (CRITICAL):
+- Match THIS EXACT color palette and color grading
+- Same lighting style, quality, and atmosphere
+- Same overall mood, tone, and cinematic feel
+- Same visual quality standards and film-like aesthetics
 EOT;
 
             if (!empty($styleReference['styleDescription'])) {
@@ -886,24 +932,31 @@ EOT;
             }
 
             if (!empty($styleReference['visualDNA'])) {
-                $styleConsistencyPrompt .= "\n\nQUALITY: {$styleReference['visualDNA']}";
+                $styleConsistencyPrompt .= "\n\nQUALITY DNA: {$styleReference['visualDNA']}";
             }
 
             $styleConsistencyPrompt .= <<<EOT
 
 
-SCENE TO GENERATE:
+SCENE DESCRIPTION:
 {$prompt}
 
-CRITICAL: The generated image MUST match the SAME VISUAL STYLE as in the reference image. This ensures visual consistency across the video.
+QUALITY REQUIREMENTS:
+- 8K photorealistic, cinematic film still quality
+- Natural textures and authentic lighting
+- Professional color grading matching the reference
+
+OUTPUT: Generate a single high-quality image in THIS EXACT SAME VISUAL STYLE showing the described scene.
 EOT;
 
             $result = $this->geminiService->generateImageFromImage(
                 $styleReference['base64'],
                 $styleConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
                     'mimeType' => $styleReference['mimeType'] ?? 'image/png',
+                    'aspectRatio' => $aspectRatio,
+                    'resolution' => $resolution,
                 ]
             );
 

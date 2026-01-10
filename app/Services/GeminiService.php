@@ -533,40 +533,86 @@ EOT;
     }
 
     /**
-     * Generate an image based on an existing image (image-to-image).
-     * Used for upscaling, style transfer, and variations.
+     * Generate an image based on reference image(s) for character/face consistency.
+     *
+     * Optimized for Gemini 2.5 Flash Image (Nano Banana) and Gemini 3 Pro Image.
+     * Supports native imageConfig for aspect ratio and resolution.
+     *
+     * @param string $base64Image Primary reference image (base64 encoded)
+     * @param string $prompt Generation prompt
+     * @param array $options Options including:
+     *   - model: Gemini model to use
+     *   - mimeType: Image MIME type (default: image/png)
+     *   - aspectRatio: Output aspect ratio (16:9, 9:16, 1:1, etc.)
+     *   - resolution: Output resolution (1K, 2K, 4K)
+     *   - additionalImages: Array of additional reference images [{base64, mimeType}]
      */
     public function generateImageFromImage(string $base64Image, string $prompt, array $options = []): array
     {
         $model = $options['model'] ?? $this->getModel('image');
 
         try {
-            Log::info("Gemini Image-to-Image Request", [
+            // Extract configuration options
+            $aspectRatio = $options['aspectRatio'] ?? '16:9';
+            $resolution = $options['resolution'] ?? '2K'; // Default to 2K for better quality
+            $additionalImages = $options['additionalImages'] ?? [];
+
+            Log::info("Gemini Image-to-Image Request (Enhanced)", [
                 'model' => $model,
                 'promptLength' => strlen($prompt),
                 'imageDataLength' => strlen($base64Image),
+                'aspectRatio' => $aspectRatio,
+                'resolution' => $resolution,
+                'additionalImagesCount' => count($additionalImages),
             ]);
 
-            // Build payload with both image and text
+            // Build parts array - reference images first, then prompt
+            $parts = [];
+
+            // Primary reference image
+            $parts[] = [
+                "inlineData" => [
+                    "mimeType" => $options['mimeType'] ?? "image/png",
+                    "data" => $base64Image
+                ]
+            ];
+
+            // Additional reference images (for multi-image consistency)
+            foreach ($additionalImages as $img) {
+                if (!empty($img['base64'])) {
+                    $parts[] = [
+                        "inlineData" => [
+                            "mimeType" => $img['mimeType'] ?? "image/png",
+                            "data" => $img['base64']
+                        ]
+                    ];
+                }
+            }
+
+            // Prompt comes after all images
+            $parts[] = ["text" => $prompt];
+
+            // Build payload
             $payload = [
                 "contents" => [
                     [
-                        "parts" => [
-                            [
-                                "inlineData" => [
-                                    "mimeType" => $options['mimeType'] ?? "image/png",
-                                    "data" => $base64Image
-                                ]
-                            ],
-                            ["text" => $prompt]
-                        ]
+                        "parts" => $parts
                     ]
                 ]
             ];
 
+            // Build generation config with native imageConfig
             $generationConfig = [
                 'responseModalities' => ['image', 'text'],
             ];
+
+            // Add imageConfig for Gemini 2.5+ models (native aspect ratio and resolution support)
+            if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
+                $generationConfig['imageConfig'] = [
+                    'aspectRatio' => $aspectRatio,
+                    'imageSize' => strtoupper($resolution), // Must be uppercase: 1K, 2K, 4K
+                ];
+            }
 
             $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
 
