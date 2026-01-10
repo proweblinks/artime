@@ -570,6 +570,12 @@ class VideoWizard extends Component
     public int $frameCaptureShotIndex = 0;
     public ?string $capturedFrame = null;
 
+    // Video Model Selector Popup state
+    public bool $showVideoModelSelector = false;
+    public int $videoModelSelectorSceneIndex = 0;
+    public int $videoModelSelectorShotIndex = 0;
+    public bool $preConfigureWaitingShots = false;
+
     // Upscale Modal state
     public bool $showUpscaleModal = false;
     public int $upscaleSceneIndex = 0;
@@ -4437,7 +4443,7 @@ class VideoWizard extends Component
     // =========================================================================
 
     /**
-     * Check status of pending RunPod jobs.
+     * Check status of pending jobs (images and videos).
      */
     public function pollPendingJobs(): void
     {
@@ -4446,38 +4452,96 @@ class VideoWizard extends Component
         }
 
         $imageService = app(ImageGenerationService::class);
+        $animationService = app(\Starter\AppVideoWizard\Services\AnimationService::class);
 
-        foreach ($this->pendingJobs as $sceneIndex => $job) {
+        foreach ($this->pendingJobs as $jobKey => $job) {
             try {
-                $result = $imageService->checkRunPodJobStatus($job['jobId']);
+                $jobType = $job['type'] ?? 'image';
 
-                if ($result['status'] === 'COMPLETED') {
-                    // Update storyboard scene with completed image
-                    if (isset($this->storyboard['scenes'][$sceneIndex])) {
-                        $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
-                        // Image URL should already be set
-                    }
-
-                    // Remove from pending
-                    unset($this->pendingJobs[$sceneIndex]);
-                    $this->saveProject();
-
-                } elseif ($result['status'] === 'FAILED') {
-                    // Mark as error
-                    if (isset($this->storyboard['scenes'][$sceneIndex])) {
-                        $this->storyboard['scenes'][$sceneIndex]['status'] = 'error';
-                        $this->storyboard['scenes'][$sceneIndex]['error'] = $result['error'] ?? 'Generation failed';
-                    }
-
-                    unset($this->pendingJobs[$sceneIndex]);
-                    $this->saveProject();
+                if ($jobType === 'shot_video') {
+                    // Handle video generation jobs
+                    $this->pollVideoJob($jobKey, $job, $animationService);
+                } else {
+                    // Handle image generation jobs (legacy)
+                    $this->pollImageJob($jobKey, $job, $imageService);
                 }
-                // If IN_QUEUE or IN_PROGRESS, keep polling
 
             } catch (\Exception $e) {
                 \Log::error("Failed to poll job status: " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Poll status of an image generation job.
+     */
+    protected function pollImageJob(string $jobKey, array $job, ImageGenerationService $imageService): void
+    {
+        $sceneIndex = is_numeric($jobKey) ? (int)$jobKey : null;
+        if ($sceneIndex === null || !isset($job['jobId'])) {
+            return;
+        }
+
+        $result = $imageService->checkRunPodJobStatus($job['jobId']);
+
+        if ($result['status'] === 'COMPLETED') {
+            // Update storyboard scene with completed image
+            if (isset($this->storyboard['scenes'][$sceneIndex])) {
+                $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
+            }
+            unset($this->pendingJobs[$jobKey]);
+            $this->saveProject();
+
+        } elseif ($result['status'] === 'FAILED') {
+            if (isset($this->storyboard['scenes'][$sceneIndex])) {
+                $this->storyboard['scenes'][$sceneIndex]['status'] = 'error';
+                $this->storyboard['scenes'][$sceneIndex]['error'] = $result['error'] ?? 'Generation failed';
+            }
+            unset($this->pendingJobs[$jobKey]);
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Poll status of a video generation job.
+     */
+    protected function pollVideoJob(string $jobKey, array $job, $animationService): void
+    {
+        $taskId = $job['taskId'] ?? null;
+        $provider = $job['provider'] ?? 'minimax';
+        $endpointId = $job['endpointId'] ?? null;
+        $sceneIndex = $job['sceneIndex'] ?? null;
+        $shotIndex = $job['shotIndex'] ?? null;
+
+        if (!$taskId || $sceneIndex === null || $shotIndex === null) {
+            return;
+        }
+
+        $result = $animationService->getTaskStatus($taskId, $provider, $endpointId);
+
+        if (!$result['success']) {
+            return;
+        }
+
+        $status = $result['status'];
+
+        if ($status === 'completed') {
+            // Video generation completed
+            if (isset($result['videoUrl'])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+            }
+            unset($this->pendingJobs[$jobKey]);
+            $this->saveProject();
+
+        } elseif (in_array($status, ['failed', 'cancelled', 'timeout', 'error'])) {
+            // Video generation failed
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Generation failed';
+            unset($this->pendingJobs[$jobKey]);
+            $this->saveProject();
+        }
+        // If queued or processing, keep polling
     }
 
     /**
@@ -8971,6 +9035,115 @@ EOT;
         $this->capturedFrame = null;
     }
 
+    // =========================================================================
+    // VIDEO MODEL SELECTOR
+    // =========================================================================
+
+    /**
+     * Open video model selector popup.
+     */
+    public function openVideoModelSelector(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        if (empty($shot['imageUrl'])) {
+            $this->error = __('Generate image first');
+            return;
+        }
+
+        $this->videoModelSelectorSceneIndex = $sceneIndex;
+        $this->videoModelSelectorShotIndex = $shotIndex;
+        $this->preConfigureWaitingShots = false;
+        $this->showVideoModelSelector = true;
+    }
+
+    /**
+     * Close video model selector popup.
+     */
+    public function closeVideoModelSelector(): void
+    {
+        $this->showVideoModelSelector = false;
+    }
+
+    /**
+     * Set video model for selected shot.
+     */
+    public function setVideoModel(string $model): void
+    {
+        $sceneIndex = $this->videoModelSelectorSceneIndex;
+        $shotIndex = $this->videoModelSelectorShotIndex;
+
+        $validModels = ['minimax', 'multitalk'];
+        if (!in_array($model, $validModels)) {
+            return;
+        }
+
+        // Check Multitalk availability
+        if ($model === 'multitalk') {
+            $multitalkEndpoint = get_option('runpod_multitalk_endpoint', '');
+            if (empty($multitalkEndpoint)) {
+                $this->error = __('Multitalk endpoint not configured');
+                return;
+            }
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = $model;
+
+        // Adjust duration based on model
+        $currentDuration = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] ?? 6;
+        $validDurations = $model === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
+
+        if (!in_array($currentDuration, $validDurations)) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $validDurations[0];
+        }
+    }
+
+    /**
+     * Set duration for video model selector.
+     */
+    public function setVideoModelDuration(int $duration): void
+    {
+        $sceneIndex = $this->videoModelSelectorSceneIndex;
+        $shotIndex = $this->videoModelSelectorShotIndex;
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $duration;
+    }
+
+    /**
+     * Confirm model selection and generate video.
+     */
+    public function confirmVideoModelAndGenerate(): void
+    {
+        $sceneIndex = $this->videoModelSelectorSceneIndex;
+        $shotIndex = $this->videoModelSelectorShotIndex;
+
+        // Pre-configure waiting shots if requested
+        if ($this->preConfigureWaitingShots) {
+            $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+            $currentShot = $shots[$shotIndex] ?? [];
+            $selectedModel = $currentShot['selectedVideoModel'] ?? 'minimax';
+            $selectedDuration = $currentShot['selectedDuration'] ?? 6;
+
+            foreach ($shots as $idx => $shot) {
+                if ($idx > $shotIndex && empty($shot['videoUrl']) && !empty($shot['imageUrl'])) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedVideoModel'] = $selectedModel;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedDuration'] = $selectedDuration;
+                }
+            }
+        }
+
+        // Close popup
+        $this->showVideoModelSelector = false;
+
+        // Generate video
+        $this->generateShotVideo($sceneIndex, $shotIndex);
+    }
+
     /**
      * Set captured frame from JavaScript.
      */
@@ -9348,6 +9521,7 @@ EOT;
         try {
             $animationService = app(\Starter\AppVideoWizard\Services\AnimationService::class);
             $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
+            $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -9355,11 +9529,18 @@ EOT;
                     // Build motion description for the shot
                     $motionPrompt = $this->buildShotMotionPrompt($shot);
 
+                    // Get audio URL for Multitalk lip-sync
+                    $audioUrl = null;
+                    if ($selectedModel === 'multitalk') {
+                        $audioUrl = $shot['audioUrl'] ?? $shot['voiceoverUrl'] ?? null;
+                    }
+
                     $result = $animationService->generateAnimation($project, [
                         'imageUrl' => $shot['imageUrl'],
                         'prompt' => $motionPrompt,
-                        'model' => $this->animation['model'] ?? 'minimax',
+                        'model' => $selectedModel,
                         'duration' => $duration,
+                        'audioUrl' => $audioUrl,
                     ]);
 
                     if ($result['success']) {
@@ -9373,9 +9554,12 @@ EOT;
                                 'type' => 'shot_video',
                                 'sceneIndex' => $sceneIndex,
                                 'shotIndex' => $shotIndex,
+                                'provider' => $result['provider'] ?? 'minimax',
+                                'endpointId' => $result['endpointId'] ?? null,
                             ];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = $result['provider'] ?? 'minimax';
                         }
                         $this->saveProject();
                     } else {
