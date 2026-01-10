@@ -44,13 +44,16 @@
         showExportModal: false,
         keyboardShortcuts: true,
 
-        // Player UI State (Phase 1)
+        // Player UI State (Phase 1 & 2)
         isFullscreen: false,
         controlsVisible: true,
         controlsTimeout: null,
+        cursorTimeout: null,
+        cursorHidden: false,
         volume: 100,
         isMuted: false,
         showPlayIcon: false,
+        lastMouseMove: 0,
 
         // Initialize
         init() {
@@ -88,23 +91,48 @@
             }
         },
 
-        // Auto-hide controls
+        // Auto-hide controls with debounce and cursor hiding
         showControls() {
+            const now = Date.now();
+            // Debounce: ignore calls within 50ms
+            if (now - this.lastMouseMove < 50) return;
+            this.lastMouseMove = now;
+
             this.controlsVisible = true;
+            this.cursorHidden = false;
+
+            // Clear existing timeouts
             if (this.controlsTimeout) {
                 clearTimeout(this.controlsTimeout);
             }
+            if (this.cursorTimeout) {
+                clearTimeout(this.cursorTimeout);
+            }
+
+            // Auto-hide after 3 seconds if playing
             if (this.isPlaying) {
                 this.controlsTimeout = setTimeout(() => {
                     this.controlsVisible = false;
+                    // Hide cursor in fullscreen mode
+                    if (this.isFullscreen) {
+                        this.cursorTimeout = setTimeout(() => {
+                            this.cursorHidden = true;
+                        }, 500);
+                    }
                 }, 3000);
             }
         },
 
         hideControlsDelayed() {
             if (this.isPlaying) {
+                if (this.controlsTimeout) {
+                    clearTimeout(this.controlsTimeout);
+                }
                 this.controlsTimeout = setTimeout(() => {
                     this.controlsVisible = false;
+                    if (this.isFullscreen) {
+                        this.cursorHidden = true;
+                    }
                 }, 1000);
             }
         },

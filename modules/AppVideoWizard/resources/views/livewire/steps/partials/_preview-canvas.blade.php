@@ -14,7 +14,32 @@
      @dblclick="toggleFullscreen()"
      @mousemove="showControls()"
      @mouseleave="hideControlsDelayed()"
-     :class="{ 'is-fullscreen': isFullscreen }">
+     @touchstart="showControls()"
+     @touchmove="showControls()"
+     :class="{ 'is-fullscreen': isFullscreen, 'cursor-hidden': cursorHidden }"
+     x-data="{
+         hoverTime: 0,
+         hoverPosition: 0,
+         showTimeTooltip: false,
+         updateHoverTime(event) {
+             const bar = event.currentTarget;
+             const rect = bar.getBoundingClientRect();
+             const x = event.clientX - rect.left;
+             this.hoverPosition = Math.max(0, Math.min(x, rect.width));
+             const percentage = x / rect.width;
+             this.hoverTime = percentage * totalDuration;
+             this.showTimeTooltip = true;
+         },
+         hideTimeTooltip() {
+             this.showTimeTooltip = false;
+         },
+         formatHoverTime(seconds) {
+             if (!seconds || isNaN(seconds)) return '0:00';
+             const m = Math.floor(seconds / 60);
+             const s = Math.floor(seconds % 60);
+             return m + ':' + s.toString().padStart(2, '0');
+         }
+     }">
 
     {{-- Canvas Frame --}}
     <div class="vw-canvas-frame" :class="{ 'is-loading': isLoading, 'is-ready': isReady, 'is-playing': isPlaying }">
@@ -76,12 +101,37 @@
     <div class="vw-controls-wrapper"
          :class="{ 'is-visible': controlsVisible || !isPlaying || isLoading, 'is-fullscreen': isFullscreen }">
 
-        {{-- Progress Bar --}}
+        {{-- Enhanced Progress Bar with Time Tooltip --}}
         <div class="vw-progress-container">
-            <div class="vw-progress-bar" @click="seekToPosition($event)">
+            <div class="vw-progress-bar"
+                 @click="seekToPosition($event)"
+                 @mousemove="updateHoverTime($event)"
+                 @mouseleave="hideTimeTooltip()"
+                 @touchmove.prevent="updateHoverTime($event.touches[0])">
+
+                {{-- Time Tooltip --}}
+                <div class="vw-time-tooltip"
+                     x-show="showTimeTooltip && totalDuration > 0"
+                     x-cloak
+                     :style="'left: ' + hoverPosition + 'px'"
+                     x-text="formatHoverTime(hoverTime)">
+                </div>
+
+                {{-- Hover Preview Line --}}
+                <div class="vw-hover-line"
+                     x-show="showTimeTooltip"
+                     :style="'left: ' + hoverPosition + 'px'">
+                </div>
+
+                {{-- Progress Track --}}
                 <div class="vw-progress-track">
+                    {{-- Buffered/Loaded segment (visual placeholder) --}}
+                    <div class="vw-progress-buffered" style="width: 100%;"></div>
+                    {{-- Played segment --}}
                     <div class="vw-progress-played" :style="'width: ' + (totalDuration > 0 ? (currentTime / totalDuration * 100) : 0) + '%'"></div>
                 </div>
+
+                {{-- Progress Thumb --}}
                 <div class="vw-progress-thumb" :style="'left: ' + (totalDuration > 0 ? (currentTime / totalDuration * 100) : 0) + '%'"></div>
             </div>
         </div>
@@ -186,6 +236,14 @@
     .vw-preview-container.is-fullscreen {
         padding: 0;
         background: #000;
+    }
+
+    .vw-preview-container.cursor-hidden {
+        cursor: none;
+    }
+
+    .vw-preview-container.cursor-hidden * {
+        cursor: none !important;
     }
 
     /* Canvas Frame - Modern bezel with glow effects */
@@ -497,10 +555,11 @@
 
     .vw-progress-bar {
         position: relative;
-        height: 20px;
+        height: 24px;
         cursor: pointer;
         display: flex;
         align-items: center;
+        padding: 8px 0;
     }
 
     .vw-progress-track {
@@ -508,13 +567,14 @@
         width: 100%;
         height: 4px;
         background: rgba(255, 255, 255, 0.15);
-        border-radius: 2px;
+        border-radius: 3px;
         overflow: hidden;
-        transition: height 0.2s ease;
+        transition: height 0.15s ease, box-shadow 0.15s ease;
     }
 
     .vw-progress-bar:hover .vw-progress-track {
-        height: 6px;
+        height: 8px;
+        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
     }
 
     .vw-progress-played {
@@ -541,6 +601,60 @@
 
     .vw-progress-bar:hover .vw-progress-thumb {
         transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Time Tooltip */
+    .vw-time-tooltip {
+        position: absolute;
+        bottom: 100%;
+        transform: translateX(-50%);
+        margin-bottom: 8px;
+        padding: 0.35rem 0.6rem;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(8px);
+        border-radius: 0.375rem;
+        font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: white;
+        white-space: nowrap;
+        pointer-events: none;
+        z-index: 10;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .vw-time-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: rgba(0, 0, 0, 0.9);
+    }
+
+    /* Hover Preview Line */
+    .vw-hover-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.5);
+        transform: translateX(-50%);
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* Buffered Segment */
+    .vw-progress-buffered {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 2px;
+        transition: width 0.3s ease;
     }
 
     /* Glassmorphism Controls Bar */
