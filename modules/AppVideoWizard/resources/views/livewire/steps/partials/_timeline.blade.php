@@ -1,6 +1,6 @@
 {{--
-    Professional Timeline Component - Phase 1 Redesign
-    Modern glassmorphism design with thumbnails, waveforms, and enhanced interactions
+    Professional Timeline Component - Phase 1 & 2 Redesign
+    Modern glassmorphism design with advanced interactions
 --}}
 
 <div
@@ -14,11 +14,6 @@
         zoom: 1,
         zoomLevels: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4],
         scrollLeft: 0,
-        isDragging: false,
-        dragType: null,
-        dragTarget: null,
-        dragStartX: 0,
-        dragStartValue: 0,
 
         // Playhead dragging
         isPlayheadDragging: false,
@@ -26,10 +21,10 @@
 
         // Track visibility and configuration
         tracks: {
-            video: { visible: true, height: 70, color: '#8b5cf6', label: 'Video', icon: 'film' },
-            voiceover: { visible: true, height: 50, color: '#06b6d4', label: 'Voiceover', icon: 'mic' },
-            music: { visible: true, height: 50, color: '#10b981', label: 'Music', icon: 'music' },
-            captions: { visible: true, height: 40, color: '#f59e0b', label: 'Captions', icon: 'text' }
+            video: { visible: true, height: 70, color: '#8b5cf6', label: 'Video', icon: 'film', locked: false, muted: false },
+            voiceover: { visible: true, height: 50, color: '#06b6d4', label: 'Voiceover', icon: 'mic', locked: false, muted: false },
+            music: { visible: true, height: 50, color: '#10b981', label: 'Music', icon: 'music', locked: false, muted: false },
+            captions: { visible: true, height: 40, color: '#f59e0b', label: 'Captions', icon: 'text', locked: false, muted: false }
         },
 
         // Selection
@@ -43,11 +38,48 @@
         historyIndex: -1,
         maxHistory: 50,
 
-        // Snapping
+        // ===== Phase 2: Snapping System =====
         snapEnabled: true,
         snapThreshold: 10,
+        snapThresholdOptions: [5, 10, 15, 20],
         showSnapIndicator: false,
         snapIndicatorPosition: 0,
+        activeSnapPoints: [],
+        lastSnapTime: 0,
+
+        // ===== Phase 2: Drag & Drop System =====
+        isDragging: false,
+        dragType: null, // 'move', 'trim-start', 'trim-end'
+        dragTarget: null,
+        dragStartX: 0,
+        dragStartY: 0,
+        dragStartValue: 0,
+        dragCurrentValue: 0,
+        dragDelta: 0,
+
+        // Ghost clip state
+        showGhostClip: false,
+        ghostClipLeft: 0,
+        ghostClipWidth: 0,
+        ghostClipTrack: null,
+        ghostClipOriginalLeft: 0,
+
+        // Drop zone state
+        dropZoneTrack: null,
+        dropZonePosition: null,
+        showInsertIndicator: false,
+        insertIndicatorPosition: 0,
+
+        // Trim preview state
+        showTrimPreview: false,
+        trimPreviewTime: 0,
+        trimPreviewType: null,
+        trimOriginalStart: 0,
+        trimOriginalDuration: 0,
+
+        // ===== Phase 2: Ripple Edit Mode =====
+        rippleMode: false,
+        affectedClips: [],
 
         // Format time helper
         formatTime(seconds) {
@@ -173,22 +205,116 @@
             document.removeEventListener('mouseup', this.endPlayheadDrag.bind(this));
         },
 
+        // ===== Enhanced Snap System =====
         getSnapPoints() {
-            // Return array of snap points (clip edges, markers, etc.)
-            const points = [0, this.totalDuration];
-            // Add clip edges - would be populated from actual clip data
+            const points = [];
+
+            // Add timeline boundaries
+            points.push({ time: 0, type: 'boundary', label: 'Start' });
+            points.push({ time: this.totalDuration, type: 'boundary', label: 'End' });
+
+            // Add playhead position
+            points.push({ time: this.currentTime, type: 'playhead', label: 'Playhead' });
+
+            // Add clip edges from all tracks
+            @foreach($script['scenes'] ?? [] as $index => $scene)
+                @php
+                    $sceneStart = 0;
+                    for ($i = 0; $i < $index; $i++) {
+                        $sceneStart += ($storyboard['scenes'][$i]['duration'] ?? 5);
+                    }
+                    $sceneDuration = $storyboard['scenes'][$index]['duration'] ?? 5;
+                    $sceneEnd = $sceneStart + $sceneDuration;
+                @endphp
+                points.push({ time: {{ $sceneStart }}, type: 'clip-start', index: {{ $index }} });
+                points.push({ time: {{ $sceneEnd }}, type: 'clip-end', index: {{ $index }} });
+            @endforeach
+
             return points;
         },
 
-        // Clip dragging
-        startDrag(e, type, target, startValue) {
+        findSnapPoint(time, excludeIndex = null) {
+            if (!this.snapEnabled) return null;
+
+            const points = this.getSnapPoints();
+            let closestSnap = null;
+            let minDistance = this.snapThreshold;
+
+            for (const point of points) {
+                // Skip self when moving/trimming
+                if (excludeIndex !== null && point.index === excludeIndex) continue;
+
+                const distance = Math.abs(this.timeToPixels(time) - this.timeToPixels(point.time));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestSnap = point;
+                }
+            }
+
+            return closestSnap;
+        },
+
+        showSnapFeedback(snapPoint) {
+            this.showSnapIndicator = true;
+            this.snapIndicatorPosition = this.timeToPixels(snapPoint.time);
+            this.activeSnapPoints = [snapPoint];
+            this.lastSnapTime = Date.now();
+
+            // Haptic-style pulse animation (trigger CSS animation)
+            const indicator = this.$refs.snapIndicator;
+            if (indicator) {
+                indicator.classList.remove('snap-pulse');
+                void indicator.offsetWidth; // Trigger reflow
+                indicator.classList.add('snap-pulse');
+            }
+        },
+
+        hideSnapFeedback() {
+            this.showSnapIndicator = false;
+            this.activeSnapPoints = [];
+        },
+
+        // ===== Enhanced Drag & Drop System =====
+        startDrag(e, type, target, startValue, clipWidth = 0, clipStart = 0) {
+            if (this.tracks[target.track]?.locked) return;
+
             this.isDragging = true;
             this.dragType = type;
             this.dragTarget = target;
             this.dragStartX = e.clientX;
+            this.dragStartY = e.clientY;
             this.dragStartValue = startValue;
-            document.addEventListener('mousemove', this.handleDrag.bind(this));
-            document.addEventListener('mouseup', this.endDrag.bind(this));
+            this.dragCurrentValue = startValue;
+            this.dragDelta = 0;
+
+            // Store original values for trim
+            if (type === 'trim-start' || type === 'trim-end') {
+                this.trimOriginalStart = clipStart;
+                this.trimOriginalDuration = clipWidth;
+                this.showTrimPreview = true;
+                this.trimPreviewType = type;
+                this.trimPreviewTime = type === 'trim-start' ? clipStart : clipStart + clipWidth;
+            }
+
+            // Setup ghost clip for move operations
+            if (type === 'move') {
+                this.showGhostClip = true;
+                this.ghostClipTrack = target.track;
+                this.ghostClipWidth = clipWidth;
+                this.ghostClipLeft = this.timeToPixels(clipStart);
+                this.ghostClipOriginalLeft = this.ghostClipLeft;
+            }
+
+            // Add document listeners
+            this._boundHandleDrag = this.handleDrag.bind(this);
+            this._boundEndDrag = this.endDrag.bind(this);
+            document.addEventListener('mousemove', this._boundHandleDrag);
+            document.addEventListener('mouseup', this._boundEndDrag);
+
+            // Prevent text selection during drag
+            e.preventDefault();
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = type === 'move' ? 'grabbing' : 'ew-resize';
         },
 
         handleDrag(e) {
@@ -196,37 +322,152 @@
 
             const deltaX = e.clientX - this.dragStartX;
             const deltaTime = this.pixelsToTime(deltaX);
+            this.dragDelta = deltaTime;
 
-            if (this.dragType === 'trim-start') {
-                this.handleTrimStart(deltaTime);
+            // Calculate new time based on drag type
+            let newTime;
+            if (this.dragType === 'move') {
+                newTime = this.dragStartValue + deltaTime;
+            } else if (this.dragType === 'trim-start') {
+                newTime = this.trimOriginalStart + deltaTime;
             } else if (this.dragType === 'trim-end') {
-                this.handleTrimEnd(deltaTime);
-            } else if (this.dragType === 'move') {
-                this.handleMove(deltaTime);
+                newTime = this.trimOriginalStart + this.trimOriginalDuration + deltaTime;
+            }
+
+            // Apply snapping
+            const snapPoint = this.findSnapPoint(newTime, this.dragTarget.index);
+            if (snapPoint) {
+                newTime = snapPoint.time;
+                this.showSnapFeedback(snapPoint);
+            } else {
+                this.hideSnapFeedback();
+            }
+
+            // Clamp to valid range
+            newTime = Math.max(0, Math.min(this.totalDuration, newTime));
+            this.dragCurrentValue = newTime;
+
+            // Update visual feedback
+            if (this.dragType === 'move') {
+                this.ghostClipLeft = this.timeToPixels(newTime);
+                this.updateDropZone(e);
+            } else if (this.dragType === 'trim-start' || this.dragType === 'trim-end') {
+                this.trimPreviewTime = newTime;
+                this.updateRipplePreview();
             }
         },
 
         endDrag() {
             if (this.isDragging) {
+                // Save to history before applying changes
                 this.saveHistory();
+
+                // Dispatch event with final values
+                if (this.dragType === 'move') {
+                    const finalTime = this.pixelsToTime(this.ghostClipLeft);
+                    this.$dispatch('clip-moved', {
+                        track: this.dragTarget.track,
+                        index: this.dragTarget.index,
+                        newStart: finalTime,
+                        ripple: this.rippleMode
+                    });
+                } else if (this.dragType === 'trim-start') {
+                    const trimDelta = this.dragCurrentValue - this.trimOriginalStart;
+                    this.$dispatch('clip-trimmed', {
+                        track: this.dragTarget.track,
+                        index: this.dragTarget.index,
+                        edge: 'start',
+                        delta: trimDelta,
+                        ripple: this.rippleMode
+                    });
+                } else if (this.dragType === 'trim-end') {
+                    const newDuration = this.dragCurrentValue - this.trimOriginalStart;
+                    this.$dispatch('clip-trimmed', {
+                        track: this.dragTarget.track,
+                        index: this.dragTarget.index,
+                        edge: 'end',
+                        newDuration: newDuration,
+                        ripple: this.rippleMode
+                    });
+                }
             }
+
+            // Reset all drag state
             this.isDragging = false;
             this.dragType = null;
             this.dragTarget = null;
-            document.removeEventListener('mousemove', this.handleDrag.bind(this));
-            document.removeEventListener('mouseup', this.endDrag.bind(this));
+            this.showGhostClip = false;
+            this.showTrimPreview = false;
+            this.hideSnapFeedback();
+            this.dropZoneTrack = null;
+            this.showInsertIndicator = false;
+            this.affectedClips = [];
+
+            // Restore document state
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', this._boundHandleDrag);
+            document.removeEventListener('mouseup', this._boundEndDrag);
         },
 
-        handleTrimStart(deltaTime) {
-            console.log('Trim start:', this.dragTarget, deltaTime);
+        updateDropZone(e) {
+            // Determine which track is being hovered
+            const container = this.$refs.tracksContainer;
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+
+            let currentY = 0;
+            for (const [trackId, track] of Object.entries(this.tracks)) {
+                if (!track.visible) continue;
+                if (y >= currentY && y < currentY + track.height) {
+                    this.dropZoneTrack = trackId;
+                    break;
+                }
+                currentY += track.height;
+            }
         },
 
-        handleTrimEnd(deltaTime) {
-            console.log('Trim end:', this.dragTarget, deltaTime);
+        updateRipplePreview() {
+            if (!this.rippleMode) {
+                this.affectedClips = [];
+                return;
+            }
+
+            // Calculate which clips would be affected by ripple
+            const affected = [];
+            const clipIndex = this.dragTarget.index;
+            const track = this.dragTarget.track;
+
+            // In ripple mode, all clips after the edited clip are affected
+            @foreach($script['scenes'] ?? [] as $index => $scene)
+                if ({{ $index }} > clipIndex) {
+                    affected.push({ track, index: {{ $index }} });
+                }
+            @endforeach
+
+            this.affectedClips = affected;
         },
 
-        handleMove(deltaTime) {
-            console.log('Move clip:', this.dragTarget, deltaTime);
+        // Toggle ripple edit mode
+        toggleRippleMode() {
+            this.rippleMode = !this.rippleMode;
+        },
+
+        // Toggle track lock
+        toggleTrackLock(trackId) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].locked = !this.tracks[trackId].locked;
+            }
+        },
+
+        // Toggle track mute
+        toggleTrackMute(trackId) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].muted = !this.tracks[trackId].muted;
+                this.$dispatch('track-muted', { track: trackId, muted: this.tracks[trackId].muted });
+            }
         },
 
         // Selection
@@ -426,17 +667,58 @@
 
             <div class="vw-toolbar-divider"></div>
 
+            {{-- Snap Control with Threshold --}}
+            <div class="vw-snap-control" x-data="{ showSnapMenu: false }" @click.away="showSnapMenu = false">
+                <button
+                    type="button"
+                    @click="snapEnabled = !snapEnabled"
+                    :class="{ 'is-active': snapEnabled }"
+                    class="vw-tool-btn vw-snap-btn"
+                    title="{{ __('Magnetic Snap') }}"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+                    </svg>
+                    <span>{{ __('Snap') }}</span>
+                </button>
+                <button
+                    type="button"
+                    @click="showSnapMenu = !showSnapMenu"
+                    class="vw-snap-dropdown-btn"
+                    :class="{ 'is-active': snapEnabled }"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                </button>
+                <div class="vw-snap-menu" x-show="showSnapMenu" x-cloak x-transition>
+                    <div class="vw-snap-menu-label">{{ __('Snap Threshold') }}</div>
+                    <template x-for="threshold in snapThresholdOptions" :key="threshold">
+                        <button
+                            type="button"
+                            class="vw-snap-option"
+                            :class="{ 'is-active': snapThreshold === threshold }"
+                            @click="snapThreshold = threshold; showSnapMenu = false"
+                        >
+                            <span x-text="threshold + 'px'"></span>
+                            <svg x-show="snapThreshold === threshold" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div class="vw-toolbar-divider"></div>
+
+            {{-- Ripple Edit Mode --}}
             <button
                 type="button"
-                @click="snapEnabled = !snapEnabled"
-                :class="{ 'is-active': snapEnabled }"
-                class="vw-tool-btn vw-snap-btn"
-                title="{{ __('Magnetic Snap') }}"
+                @click="toggleRippleMode()"
+                :class="{ 'is-active': rippleMode }"
+                class="vw-tool-btn vw-ripple-btn"
+                title="{{ __('Ripple Edit Mode') }} - Auto-shift clips"
             >
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 12h4l3-9 4 18 3-9h6"/>
                 </svg>
-                <span>{{ __('Snap') }}</span>
+                <span>{{ __('Ripple') }}</span>
             </button>
 
             <div class="vw-toolbar-divider"></div>
@@ -553,11 +835,33 @@
                         <span class="vw-header-label" x-text="track.label"></span>
                     </div>
                     <div class="vw-header-controls">
-                        <button type="button" class="vw-header-btn" title="{{ __('Mute') }}">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                        <button
+                            type="button"
+                            class="vw-header-btn"
+                            :class="{ 'is-active': track.muted }"
+                            @click.stop="toggleTrackMute(trackId)"
+                            :title="track.muted ? '{{ __('Unmute') }}' : '{{ __('Mute') }}'"
+                        >
+                            <template x-if="!track.muted">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                            </template>
+                            <template x-if="track.muted">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                            </template>
                         </button>
-                        <button type="button" class="vw-header-btn" title="{{ __('Lock') }}">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        <button
+                            type="button"
+                            class="vw-header-btn"
+                            :class="{ 'is-active': track.locked }"
+                            @click.stop="toggleTrackLock(trackId)"
+                            :title="track.locked ? '{{ __('Unlock') }}' : '{{ __('Lock') }}'"
+                        >
+                            <template x-if="!track.locked">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+                            </template>
+                            <template x-if="track.locked">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                            </template>
                         </button>
                     </div>
                 </div>
@@ -615,6 +919,7 @@
                 {{-- Video Track --}}
                 <div
                     class="vw-track vw-track-video"
+                    :class="{ 'is-locked': tracks.video.locked, 'is-muted': tracks.video.muted, 'is-drop-target': isDragging && dropZoneTrack === 'video' }"
                     x-show="tracks.video.visible"
                     :style="{ height: tracks.video.height + 'px' }"
                 >
@@ -631,7 +936,9 @@
                             class="vw-clip vw-clip-video"
                             :class="{
                                 'is-selected': selectedTrack === 'video' && selectedClip === {{ $index }},
-                                'is-hovered': hoveredTrack === 'video' && hoveredClip === {{ $index }}
+                                'is-hovered': hoveredTrack === 'video' && hoveredClip === {{ $index }},
+                                'is-dragging': isDragging && dragTarget?.track === 'video' && dragTarget?.index === {{ $index }},
+                                'is-ripple-affected': rippleMode && affectedClips.some(c => c.track === 'video' && c.index === {{ $index }})
                             }"
                             :style="{
                                 left: timeToPixels({{ $sceneStart }}) + 'px',
@@ -640,6 +947,7 @@
                             @click.stop="selectClip('video', {{ $index }})"
                             @mouseenter="hoveredTrack = 'video'; hoveredClip = {{ $index }}"
                             @mouseleave="hoveredTrack = null; hoveredClip = null"
+                            @mousedown.stop="if (!tracks.video.locked && $event.target.closest('.vw-trim-handle') === null) startDrag($event, 'move', { track: 'video', index: {{ $index }} }, {{ $sceneStart }}, {{ $sceneDuration }}, {{ $sceneStart }})"
                         >
                             {{-- Thumbnail Filmstrip --}}
                             <div class="vw-clip-filmstrip">
@@ -660,18 +968,31 @@
                                 <span class="vw-clip-duration">{{ number_format($sceneDuration, 1) }}s</span>
                             </div>
 
-                            {{-- Trim Handles --}}
+                            {{-- Lock Indicator --}}
+                            <div class="vw-clip-lock-overlay" x-show="tracks.video.locked" x-cloak>
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                            </div>
+
+                            {{-- Enhanced Trim Handles --}}
                             <div
                                 class="vw-trim-handle vw-trim-left"
-                                @mousedown.stop="startDrag($event, 'trim-start', { track: 'video', index: {{ $index }} }, {{ $sceneStart }})"
+                                @mousedown.stop="startDrag($event, 'trim-start', { track: 'video', index: {{ $index }} }, {{ $sceneStart }}, {{ $sceneDuration }}, {{ $sceneStart }})"
                             >
-                                <div class="vw-trim-grip"></div>
+                                <div class="vw-trim-grip">
+                                    <div class="vw-trim-line"></div>
+                                    <div class="vw-trim-line"></div>
+                                </div>
+                                <div class="vw-trim-hit-area"></div>
                             </div>
                             <div
                                 class="vw-trim-handle vw-trim-right"
-                                @mousedown.stop="startDrag($event, 'trim-end', { track: 'video', index: {{ $index }} }, {{ $sceneDuration }})"
+                                @mousedown.stop="startDrag($event, 'trim-end', { track: 'video', index: {{ $index }} }, {{ $sceneStart + $sceneDuration }}, {{ $sceneDuration }}, {{ $sceneStart }})"
                             >
-                                <div class="vw-trim-grip"></div>
+                                <div class="vw-trim-grip">
+                                    <div class="vw-trim-line"></div>
+                                    <div class="vw-trim-line"></div>
+                                </div>
+                                <div class="vw-trim-hit-area"></div>
                             </div>
                         </div>
                     @endforeach
@@ -824,13 +1145,72 @@
                     :style="{ left: timeToPixels(currentTime) + 'px' }"
                 ></div>
 
-                {{-- Snap Indicator --}}
+                {{-- Snap Indicator with Enhanced Visual --}}
                 <div
                     class="vw-snap-indicator"
+                    x-ref="snapIndicator"
                     x-show="showSnapIndicator"
                     x-cloak
                     :style="{ left: snapIndicatorPosition + 'px' }"
+                >
+                    <div class="vw-snap-line"></div>
+                    <div class="vw-snap-label" x-show="activeSnapPoints.length > 0">
+                        <span x-text="activeSnapPoints[0]?.type === 'playhead' ? '{{ __('Playhead') }}' : (activeSnapPoints[0]?.type === 'boundary' ? activeSnapPoints[0]?.label : '{{ __('Clip Edge') }}')"></span>
+                    </div>
+                </div>
+
+                {{-- Ghost Clip (shown during drag-to-move) --}}
+                <div
+                    class="vw-ghost-clip"
+                    x-show="showGhostClip"
+                    x-cloak
+                    :class="'vw-ghost-' + ghostClipTrack"
+                    :style="{
+                        left: ghostClipLeft + 'px',
+                        width: ghostClipWidth + 'px',
+                        top: ghostClipTrack === 'video' ? '4px' : (ghostClipTrack === 'voiceover' ? (tracks.video.height + 4) + 'px' : '4px'),
+                        height: tracks[ghostClipTrack]?.height ? (tracks[ghostClipTrack].height - 8) + 'px' : '62px'
+                    }"
+                >
+                    <div class="vw-ghost-content">
+                        <span class="vw-ghost-time" x-text="formatTimeDetailed(pixelsToTime(ghostClipLeft))"></span>
+                    </div>
+                </div>
+
+                {{-- Original Position Indicator (during move) --}}
+                <div
+                    class="vw-original-position"
+                    x-show="showGhostClip && ghostClipOriginalLeft !== ghostClipLeft"
+                    x-cloak
+                    :style="{ left: ghostClipOriginalLeft + 'px' }"
                 ></div>
+
+                {{-- Trim Preview Indicator --}}
+                <div
+                    class="vw-trim-preview"
+                    x-show="showTrimPreview"
+                    x-cloak
+                    :class="'vw-trim-preview-' + trimPreviewType"
+                    :style="{ left: timeToPixels(trimPreviewTime) + 'px' }"
+                >
+                    <div class="vw-trim-preview-line"></div>
+                    <div class="vw-trim-preview-tooltip">
+                        <span x-text="formatTimeDetailed(trimPreviewTime)"></span>
+                    </div>
+                </div>
+
+                {{-- Ripple Indicator Line --}}
+                <div
+                    class="vw-ripple-indicator"
+                    x-show="rippleMode && isDragging && affectedClips.length > 0"
+                    x-cloak
+                >
+                    <div class="vw-ripple-line"></div>
+                    <div class="vw-ripple-label">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 12h4l3-9 4 18 3-9h6"/></svg>
+                        <span x-text="affectedClips.length + ' {{ __('clips will shift') }}'"></span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1920,5 +2300,471 @@
         width: 180px;
         right: 8px;
     }
+}
+
+/* ==========================================================================
+   PHASE 2: SNAP CONTROL DROPDOWN
+   ========================================================================== */
+
+.vw-snap-control {
+    display: flex;
+    position: relative;
+}
+
+.vw-snap-dropdown-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: none;
+    border-radius: 0 0.4rem 0.4rem 0;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.vw-snap-dropdown-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.vw-snap-dropdown-btn:hover,
+.vw-snap-dropdown-btn.is-active {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+.vw-snap-btn {
+    border-radius: 0.4rem 0 0 0.4rem !important;
+}
+
+.vw-snap-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 140px;
+    background: rgba(20, 20, 35, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    padding: 0.35rem;
+    z-index: 100;
+}
+
+.vw-snap-menu-label {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vw-snap-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.35rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-snap-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.vw-snap-option.is-active {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+.vw-snap-option svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* ==========================================================================
+   PHASE 2: RIPPLE MODE BUTTON
+   ========================================================================== */
+
+.vw-ripple-btn {
+    width: auto !important;
+    padding: 0 0.6rem !important;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.vw-ripple-btn.is-active {
+    background: rgba(236, 72, 153, 0.2);
+    border-color: rgba(236, 72, 153, 0.4);
+    color: #f472b6;
+}
+
+/* ==========================================================================
+   PHASE 2: ENHANCED TRIM HANDLES
+   ========================================================================== */
+
+.vw-trim-handle {
+    position: absolute;
+    top: 0;
+    width: 16px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.vw-clip:hover .vw-trim-handle,
+.vw-clip.is-selected .vw-trim-handle {
+    opacity: 1;
+}
+
+.vw-trim-left {
+    left: -4px;
+}
+
+.vw-trim-right {
+    right: -4px;
+}
+
+.vw-trim-grip {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.9) 0%, rgba(139, 92, 246, 0.7) 100%);
+    border-radius: 2px;
+    transition: all 0.15s;
+}
+
+.vw-trim-left .vw-trim-grip {
+    left: 4px;
+    border-radius: 4px 0 0 4px;
+}
+
+.vw-trim-right .vw-trim-grip {
+    right: 4px;
+    border-radius: 0 4px 4px 0;
+}
+
+.vw-trim-line {
+    width: 2px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 1px;
+}
+
+.vw-trim-handle:hover .vw-trim-grip {
+    background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+}
+
+.vw-trim-handle:hover .vw-trim-line {
+    background: white;
+}
+
+/* Extended hit area for easier touch targeting */
+.vw-trim-hit-area {
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -8px;
+    right: -8px;
+}
+
+/* ==========================================================================
+   PHASE 2: GHOST CLIP
+   ========================================================================== */
+
+.vw-ghost-clip {
+    position: absolute;
+    border-radius: 0.4rem;
+    background: rgba(139, 92, 246, 0.3);
+    border: 2px dashed rgba(139, 92, 246, 0.8);
+    pointer-events: none;
+    z-index: 100;
+    animation: ghostPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes ghostPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.5; }
+}
+
+.vw-ghost-video { background: rgba(139, 92, 246, 0.3); border-color: rgba(139, 92, 246, 0.8); }
+.vw-ghost-voiceover { background: rgba(6, 182, 212, 0.3); border-color: rgba(6, 182, 212, 0.8); }
+.vw-ghost-music { background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.8); }
+.vw-ghost-captions { background: rgba(245, 158, 11, 0.3); border-color: rgba(245, 158, 11, 0.8); }
+
+.vw-ghost-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: white;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* Original position indicator */
+.vw-original-position {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    z-index: 95;
+}
+
+.vw-original-position::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+}
+
+/* ==========================================================================
+   PHASE 2: TRIM PREVIEW
+   ========================================================================== */
+
+.vw-trim-preview {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 90;
+}
+
+.vw-trim-preview-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+}
+
+.vw-trim-preview-trim-start .vw-trim-preview-line {
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+}
+
+.vw-trim-preview-trim-end .vw-trim-preview-line {
+    background: #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+}
+
+.vw-trim-preview-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 4px;
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: white;
+    font-family: 'SF Mono', Monaco, monospace;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   PHASE 2: SNAP INDICATOR ENHANCED
+   ========================================================================== */
+
+.vw-snap-indicator {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 85;
+}
+
+.vw-snap-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: #8b5cf6;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
+}
+
+.vw-snap-indicator.snap-pulse .vw-snap-line {
+    animation: snapLinePulse 0.3s ease-out;
+}
+
+@keyframes snapLinePulse {
+    0% { transform: scaleY(0.5); opacity: 0; box-shadow: 0 0 30px rgba(139, 92, 246, 1); }
+    50% { transform: scaleY(1.1); opacity: 1; }
+    100% { transform: scaleY(1); opacity: 1; box-shadow: 0 0 15px rgba(139, 92, 246, 0.8); }
+}
+
+.vw-snap-label {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.2rem 0.4rem;
+    background: #8b5cf6;
+    border-radius: 0.25rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.5);
+}
+
+/* ==========================================================================
+   PHASE 2: RIPPLE INDICATOR
+   ========================================================================== */
+
+.vw-ripple-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 200;
+}
+
+.vw-ripple-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    background: rgba(236, 72, 153, 0.9);
+    border-radius: 1rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: white;
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+    animation: rippleLabelPulse 1s ease-in-out infinite;
+}
+
+.vw-ripple-label svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes rippleLabelPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* ==========================================================================
+   PHASE 2: TRACK STATES
+   ========================================================================== */
+
+.vw-track.is-locked {
+    opacity: 0.6;
+}
+
+.vw-track.is-locked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.03) 10px,
+        rgba(255, 255, 255, 0.03) 20px
+    );
+    pointer-events: none;
+}
+
+.vw-track.is-muted {
+    filter: grayscale(0.5);
+}
+
+.vw-track.is-drop-target {
+    background-color: rgba(139, 92, 246, 0.1) !important;
+    box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+/* ==========================================================================
+   PHASE 2: CLIP STATES
+   ========================================================================== */
+
+.vw-clip.is-dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+}
+
+.vw-clip.is-ripple-affected {
+    box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.6);
+    animation: rippleAffectedPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes rippleAffectedPulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.6); }
+    50% { box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.3); }
+}
+
+.vw-clip-lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 0.4rem;
+    pointer-events: none;
+}
+
+.vw-clip-lock-overlay svg {
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ==========================================================================
+   PHASE 2: HEADER BUTTON STATES
+   ========================================================================== */
+
+.vw-header-btn.is-active {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Track header locked indicator */
+.vw-track-header[style*="locked"] .vw-header-color-bar {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--track-color),
+        var(--track-color) 4px,
+        rgba(0, 0, 0, 0.3) 4px,
+        rgba(0, 0, 0, 0.3) 8px
+    );
 }
 </style>
