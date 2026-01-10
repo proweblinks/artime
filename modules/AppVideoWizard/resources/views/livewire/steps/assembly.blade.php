@@ -44,10 +44,95 @@
         showExportModal: false,
         keyboardShortcuts: true,
 
+        // Player UI State (Phase 1)
+        isFullscreen: false,
+        controlsVisible: true,
+        controlsTimeout: null,
+        volume: 100,
+        isMuted: false,
+        showPlayIcon: false,
+
         // Initialize
         init() {
             this.setAspectRatio(this.aspectRatio);
             this.setupLivewireListeners();
+            this.setupFullscreenListeners();
+        },
+
+        // Fullscreen support
+        setupFullscreenListeners() {
+            document.addEventListener('fullscreenchange', () => {
+                this.isFullscreen = !!document.fullscreenElement;
+            });
+            document.addEventListener('webkitfullscreenchange', () => {
+                this.isFullscreen = !!document.webkitFullscreenElement;
+            });
+        },
+
+        toggleFullscreen() {
+            const container = this.$refs.previewContainer;
+            if (!container) return;
+
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        },
+
+        // Auto-hide controls
+        showControls() {
+            this.controlsVisible = true;
+            if (this.controlsTimeout) {
+                clearTimeout(this.controlsTimeout);
+            }
+            if (this.isPlaying) {
+                this.controlsTimeout = setTimeout(() => {
+                    this.controlsVisible = false;
+                }, 3000);
+            }
+        },
+
+        hideControlsDelayed() {
+            if (this.isPlaying) {
+                this.controlsTimeout = setTimeout(() => {
+                    this.controlsVisible = false;
+                }, 1000);
+            }
+        },
+
+        // Volume controls
+        toggleMute() {
+            this.isMuted = !this.isMuted;
+            if (this.engine && this.engine.setVolume) {
+                this.engine.setVolume(this.isMuted ? 0 : this.volume / 100, this.musicVolume / 100);
+            }
+        },
+
+        setVolume(value) {
+            this.volume = parseInt(value);
+            this.isMuted = this.volume === 0;
+            if (this.engine && this.engine.setVolume) {
+                this.engine.setVolume(this.volume / 100, this.musicVolume / 100);
+            }
+        },
+
+        // Seek by clicking on progress bar
+        seekToPosition(event) {
+            if (!this.isReady || !this.totalDuration) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percentage = x / rect.width;
+            const time = percentage * this.totalDuration;
+            this.seek(Math.max(0, Math.min(time, this.totalDuration)));
         },
 
         setAspectRatio(ratio) {
@@ -202,12 +287,19 @@
             if (!this.engine || !this.isReady) return;
             this.engine.play();
             this.isPlaying = true;
+            // Auto-hide controls after 3 seconds
+            this.showControls();
         },
 
         pause() {
             if (!this.engine) return;
             this.engine.pause();
             this.isPlaying = false;
+            // Always show controls when paused
+            this.controlsVisible = true;
+            if (this.controlsTimeout) {
+                clearTimeout(this.controlsTimeout);
+            }
         },
 
         stop() {
@@ -283,10 +375,19 @@
                     e.preventDefault();
                     this.togglePlay();
                     break;
+                case 'f':
+                    e.preventDefault();
+                    this.toggleFullscreen();
+                    break;
                 case 'escape':
-                    if (this.showExportModal) {
+                    if (this.isFullscreen) {
+                        // Fullscreen exit is handled by browser
+                    } else if (this.showExportModal) {
                         this.showExportModal = false;
                     }
+                    break;
+                case 'm':
+                    this.toggleMute();
                     break;
                 case '1': this.activeTab = 'scenes'; break;
                 case '2': this.activeTab = 'text'; break;
@@ -297,6 +398,14 @@
                     break;
                 case 'arrowright':
                     if (this.engine) this.seek(Math.min(this.totalDuration, this.currentTime + 5));
+                    break;
+                case 'arrowup':
+                    e.preventDefault();
+                    this.setVolume(Math.min(100, this.volume + 10));
+                    break;
+                case 'arrowdown':
+                    e.preventDefault();
+                    this.setVolume(Math.max(0, this.volume - 10));
                     break;
             }
         }

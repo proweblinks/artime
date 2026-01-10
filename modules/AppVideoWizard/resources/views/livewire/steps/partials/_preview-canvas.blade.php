@@ -1,396 +1,742 @@
 {{--
-    Video Preview Canvas Component
+    Video Preview Canvas Component - Modern Professional Design
     Integrates with VideoPreviewEngine for real-time canvas-based preview
 
-    Usage: @include('appvideowizard::livewire.steps.partials._preview-canvas')
-
-    Expects parent to have Alpine x-data with previewController
+    Features:
+    - Glassmorphism controls
+    - Auto-hiding controls on hover
+    - Full-screen support
+    - SVG icons
+    - Smooth micro-interactions
 --}}
 
-<div class="vw-preview-canvas-container">
-    {{-- Canvas Wrapper --}}
-    <div class="vw-canvas-wrapper" :class="{ 'loading': isLoading, 'ready': isReady }">
+<div class="vw-preview-container" x-ref="previewContainer"
+     @dblclick="toggleFullscreen()"
+     @mousemove="showControls()"
+     @mouseleave="hideControlsDelayed()"
+     :class="{ 'is-fullscreen': isFullscreen }">
+
+    {{-- Canvas Frame --}}
+    <div class="vw-canvas-frame" :class="{ 'is-loading': isLoading, 'is-ready': isReady, 'is-playing': isPlaying }">
         <canvas
             x-ref="previewCanvas"
             class="vw-preview-canvas"
         ></canvas>
 
         {{-- Load Preview Overlay (shown when not loaded) --}}
-        <div x-show="!isReady && !isLoading" x-cloak class="vw-preview-overlay">
-            <button @click="loadPreview()" class="vw-load-preview-btn" type="button">
-                <span class="vw-play-icon">&#9658;</span>
+        <div x-show="!isReady && !isLoading" x-cloak class="vw-initial-overlay">
+            <button @click="loadPreview()" class="vw-load-btn" type="button">
+                <svg class="vw-load-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/>
+                </svg>
                 <span>{{ __('Load Preview') }}</span>
             </button>
+            <p class="vw-load-hint">{{ __('Click to load and preview your video') }}</p>
         </div>
 
         {{-- Loading Overlay --}}
-        <div x-show="isLoading" x-cloak class="vw-preview-overlay loading">
-            <div class="vw-loading-spinner"></div>
-            <div class="vw-loading-progress">
-                <div class="vw-loading-bar" :style="'width: ' + loadProgress + '%'"></div>
+        <div x-show="isLoading" x-cloak class="vw-loading-overlay">
+            <div class="vw-loader">
+                <div class="vw-loader-ring"></div>
+                <div class="vw-loader-ring"></div>
+                <div class="vw-loader-ring"></div>
             </div>
-            <span class="vw-loading-text">{{ __('Loading') }} <span x-text="loadProgress"></span>%</span>
+            <div class="vw-loading-progress-bar">
+                <div class="vw-loading-progress-fill" :style="'width: ' + loadProgress + '%'"></div>
+            </div>
+            <span class="vw-loading-text">{{ __('Loading preview') }} <span x-text="loadProgress">0</span>%</span>
         </div>
 
-        {{-- Play/Pause Overlay (shown when ready but paused) --}}
+        {{-- Click-to-Play Overlay (appears briefly on pause) --}}
         <div
-            x-show="isReady && !isPlaying"
-            x-cloak
+            x-show="isReady"
             @click="togglePlay()"
-            class="vw-preview-overlay play-hover"
+            class="vw-play-overlay"
+            :class="{ 'is-visible': !isPlaying || showPlayIcon }"
+            x-cloak
         >
-            <div class="vw-play-button-large">
-                <span>&#9658;</span>
+            <div class="vw-center-play-btn" :class="{ 'is-paused': !isPlaying }">
+                <svg x-show="!isPlaying" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <svg x-show="isPlaying" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                </svg>
             </div>
         </div>
-    </div>
 
-    {{-- Transport Controls --}}
-    <div class="vw-transport-controls" :class="{ 'disabled': !isReady }">
-        {{-- Playback Buttons --}}
-        <div class="vw-transport-buttons">
-            <button @click="seekStart()" :disabled="!isReady" class="vw-transport-btn" type="button" title="{{ __('Go to start') }}">
-                <span>&#9198;</span>
-            </button>
-            <button @click="togglePlay()" :disabled="!isReady" class="vw-transport-btn play" type="button">
-                <span x-text="isPlaying ? '&#9208;' : '&#9658;'"></span>
-            </button>
-            <button @click="seekEnd()" :disabled="!isReady" class="vw-transport-btn" type="button" title="{{ __('Go to end') }}">
-                <span>&#9197;</span>
-            </button>
-        </div>
-
-        {{-- Timeline Slider --}}
-        <div class="vw-timeline-wrapper">
-            <input
-                type="range"
-                class="vw-timeline-input"
-                min="0"
-                :max="totalDuration"
-                step="0.1"
-                x-model="currentTime"
-                @input="seek(parseFloat($event.target.value))"
-                :disabled="!isReady"
-            >
-        </div>
-
-        {{-- Time Display --}}
-        <div class="vw-time-display">
-            <span x-text="formatTime(currentTime)">0:00</span>
-            <span class="vw-time-separator">/</span>
-            <span x-text="formatTime(totalDuration)">0:00</span>
+        {{-- Full-screen hint --}}
+        <div class="vw-fullscreen-hint" x-show="!isFullscreen && isReady" x-cloak>
+            {{ __('Double-click for fullscreen') }}
         </div>
     </div>
 
-    {{-- Scene Indicator --}}
-    <div x-show="isReady && totalScenes > 1" x-cloak class="vw-scene-indicator">
-        <span class="vw-scene-label">{{ __('Scene') }}</span>
-        <span class="vw-scene-current" x-text="currentSceneIndex + 1">1</span>
-        <span class="vw-scene-separator">/</span>
-        <span class="vw-scene-total" x-text="totalScenes">1</span>
+    {{-- Modern Floating Controls --}}
+    <div class="vw-controls-wrapper"
+         :class="{ 'is-visible': controlsVisible || !isPlaying || isLoading, 'is-fullscreen': isFullscreen }">
+
+        {{-- Progress Bar --}}
+        <div class="vw-progress-container">
+            <div class="vw-progress-bar" @click="seekToPosition($event)">
+                <div class="vw-progress-track">
+                    <div class="vw-progress-played" :style="'width: ' + (totalDuration > 0 ? (currentTime / totalDuration * 100) : 0) + '%'"></div>
+                </div>
+                <div class="vw-progress-thumb" :style="'left: ' + (totalDuration > 0 ? (currentTime / totalDuration * 100) : 0) + '%'"></div>
+            </div>
+        </div>
+
+        {{-- Controls Bar --}}
+        <div class="vw-controls-bar">
+            {{-- Left Controls --}}
+            <div class="vw-controls-left">
+                {{-- Play/Pause --}}
+                <button @click="togglePlay()" :disabled="!isReady" class="vw-ctrl-btn vw-play-pause-btn" type="button" :title="isPlaying ? '{{ __('Pause') }}' : '{{ __('Play') }}'">
+                    <svg x-show="!isPlaying" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <svg x-show="isPlaying" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                </button>
+
+                {{-- Skip Back --}}
+                <button @click="seek(Math.max(0, currentTime - 5))" :disabled="!isReady" class="vw-ctrl-btn" type="button" title="{{ __('Back 5s') }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                        <text x="12" y="14" font-size="6" fill="currentColor" text-anchor="middle" stroke="none">5</text>
+                    </svg>
+                </button>
+
+                {{-- Skip Forward --}}
+                <button @click="seek(Math.min(totalDuration, currentTime + 5))" :disabled="!isReady" class="vw-ctrl-btn" type="button" title="{{ __('Forward 5s') }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+                        <text x="12" y="14" font-size="6" fill="currentColor" text-anchor="middle" stroke="none">5</text>
+                    </svg>
+                </button>
+
+                {{-- Volume --}}
+                <div class="vw-volume-control">
+                    <button @click="toggleMute()" class="vw-ctrl-btn" type="button" title="{{ __('Volume') }}">
+                        <svg x-show="!isMuted && volume > 50" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                        <svg x-show="!isMuted && volume > 0 && volume <= 50" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>
+                        </svg>
+                        <svg x-show="isMuted || volume === 0" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                        </svg>
+                    </button>
+                    <div class="vw-volume-slider-wrapper">
+                        <input type="range" class="vw-volume-slider" min="0" max="100" x-model="volume" @input="setVolume($event.target.value)">
+                    </div>
+                </div>
+
+                {{-- Time Display --}}
+                <div class="vw-time-display">
+                    <span x-text="formatTime(currentTime)">0:00</span>
+                    <span class="vw-time-sep">/</span>
+                    <span x-text="formatTime(totalDuration)">0:00</span>
+                </div>
+            </div>
+
+            {{-- Right Controls --}}
+            <div class="vw-controls-right">
+                {{-- Scene Indicator --}}
+                <div x-show="totalScenes > 1" class="vw-scene-badge">
+                    <span>{{ __('Scene') }}</span>
+                    <span x-text="currentSceneIndex + 1">1</span>/<span x-text="totalScenes">1</span>
+                </div>
+
+                {{-- Fullscreen Toggle --}}
+                <button @click="toggleFullscreen()" class="vw-ctrl-btn" type="button" title="{{ __('Fullscreen') }} (F)">
+                    <svg x-show="!isFullscreen" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                    </svg>
+                    <svg x-show="isFullscreen" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-    .vw-preview-canvas-container {
+    /* =====================================================
+       MODERN VIDEO PREVIEW PLAYER - Phase 1 Design
+       Glassmorphism, enhanced visuals, micro-interactions
+       ===================================================== */
+
+    .vw-preview-container {
+        position: relative;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
         flex: 1;
         min-height: 0;
         padding: 1rem;
         justify-content: center;
         align-items: center;
+        gap: 0;
     }
 
-    .vw-canvas-wrapper {
+    .vw-preview-container.is-fullscreen {
+        padding: 0;
+        background: #000;
+    }
+
+    /* Canvas Frame - Modern bezel with glow effects */
+    .vw-canvas-frame {
         position: relative;
         width: 100%;
         max-width: 100%;
         aspect-ratio: 16/9;
-        background: #000;
-        border-radius: 0.75rem;
+        background: linear-gradient(145deg, #0a0a12 0%, #12121f 100%);
+        border-radius: 1rem;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.1);
-        max-height: calc(100% - 120px); /* Leave room for controls */
+        box-shadow:
+            0 4px 6px rgba(0, 0, 0, 0.3),
+            0 10px 40px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: box-shadow 0.4s ease, border-color 0.4s ease;
+        max-height: calc(100% - 80px);
     }
 
-    /* Ensure canvas fills wrapper properly */
-    .vw-canvas-wrapper canvas {
+    .is-fullscreen .vw-canvas-frame {
+        max-height: calc(100% - 100px);
+        border-radius: 0;
+        border: none;
+        max-width: none;
+    }
+
+    /* Active/Playing glow effect */
+    .vw-canvas-frame.is-ready {
+        border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .vw-canvas-frame.is-playing {
+        box-shadow:
+            0 4px 6px rgba(0, 0, 0, 0.3),
+            0 10px 40px rgba(0, 0, 0, 0.4),
+            0 0 60px rgba(139, 92, 246, 0.1),
+            0 0 100px rgba(6, 182, 212, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    /* Loading shimmer effect */
+    .vw-canvas-frame.is-loading {
+        background: linear-gradient(
+            90deg,
+            #0a0a12 0%,
+            #14141f 25%,
+            #1a1a2e 50%,
+            #14141f 75%,
+            #0a0a12 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Canvas element */
+    .vw-preview-canvas {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         object-fit: contain;
-    }
-
-    .vw-canvas-wrapper.loading {
-        background: linear-gradient(45deg, #0a0a0f 25%, #14141f 50%, #0a0a0f 75%);
-        background-size: 400% 400%;
-        animation: shimmer 2s ease infinite;
-    }
-
-    @keyframes shimmer {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    .vw-preview-canvas {
-        width: 100%;
-        height: 100%;
         display: block;
     }
 
-    .vw-preview-overlay {
+    /* ===== Initial Load Overlay ===== */
+    .vw-initial-overlay {
         position: absolute;
         inset: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(4px);
-        transition: opacity 0.3s ease;
+        background: radial-gradient(ellipse at center, rgba(15, 15, 30, 0.9) 0%, rgba(5, 5, 15, 0.95) 100%);
+        gap: 1rem;
     }
 
-    .vw-preview-overlay.play-hover {
-        background: rgba(0,0,0,0.2);
-        opacity: 0;
-        cursor: pointer;
-    }
-
-    .vw-preview-overlay.play-hover:hover {
-        opacity: 1;
-    }
-
-    .vw-load-preview-btn {
+    .vw-load-btn {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 1rem 2rem;
-        border-radius: 0.75rem;
+        gap: 0.875rem;
+        padding: 1rem 2.5rem;
+        border-radius: 3rem;
         border: none;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
         color: white;
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow:
+            0 4px 15px rgba(139, 92, 246, 0.4),
+            0 0 40px rgba(139, 92, 246, 0.2);
     }
 
-    .vw-load-preview-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    .vw-load-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow:
+            0 8px 25px rgba(139, 92, 246, 0.5),
+            0 0 60px rgba(139, 92, 246, 0.3);
     }
 
-    .vw-play-icon {
-        font-size: 1.25rem;
+    .vw-load-btn:active {
+        transform: translateY(-1px) scale(0.98);
     }
 
-    .vw-loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(139, 92, 246, 0.3);
-        border-top-color: #8b5cf6;
+    .vw-load-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .vw-load-hint {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin: 0;
+    }
+
+    /* ===== Loading Overlay ===== */
+    .vw-loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 10, 20, 0.9);
+        backdrop-filter: blur(8px);
+        gap: 1.25rem;
+    }
+
+    /* Triple ring loader */
+    .vw-loader {
+        position: relative;
+        width: 60px;
+        height: 60px;
+    }
+
+    .vw-loader-ring {
+        position: absolute;
+        inset: 0;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 1rem;
+        border: 3px solid transparent;
+        animation: loaderSpin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
     }
 
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    .vw-loader-ring:nth-child(1) {
+        border-top-color: #8b5cf6;
+        animation-delay: -0.45s;
     }
 
-    .vw-loading-progress {
+    .vw-loader-ring:nth-child(2) {
+        inset: 6px;
+        border-right-color: #06b6d4;
+        animation-delay: -0.3s;
+        animation-direction: reverse;
+    }
+
+    .vw-loader-ring:nth-child(3) {
+        inset: 12px;
+        border-bottom-color: #10b981;
+        animation-delay: -0.15s;
+    }
+
+    @keyframes loaderSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .vw-loading-progress-bar {
         width: 200px;
-        height: 6px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 3px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
         overflow: hidden;
-        margin-bottom: 0.5rem;
     }
 
-    .vw-loading-bar {
+    .vw-loading-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
-        border-radius: 3px;
+        background: linear-gradient(90deg, #8b5cf6, #06b6d4, #10b981);
+        background-size: 200% 100%;
+        border-radius: 2px;
         transition: width 0.3s ease;
+        animation: progressGlow 2s ease infinite;
+    }
+
+    @keyframes progressGlow {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
     }
 
     .vw-loading-text {
-        font-size: 0.85rem;
-        color: rgba(255,255,255,0.7);
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 500;
     }
 
-    .vw-play-button-large {
-        width: 80px;
-        height: 80px;
-        background: rgba(139, 92, 246, 0.9);
-        border-radius: 50%;
+    /* ===== Play Overlay ===== */
+    .vw-play-overlay {
+        position: absolute;
+        inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
-        color: white;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        transition: transform 0.2s ease;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
-    .vw-play-button-large span {
-        margin-left: 5px;
+    .vw-play-overlay.is-visible {
+        opacity: 1;
     }
 
-    .vw-preview-overlay.play-hover:hover .vw-play-button-large {
-        transform: scale(1.1);
+    .vw-play-overlay:hover {
+        opacity: 1;
     }
 
-    /* Transport Controls */
-    .vw-transport-controls {
+    .vw-center-play-btn {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(139, 92, 246, 0.9);
+        backdrop-filter: blur(10px);
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding: 0.75rem 1rem;
-        background: rgba(0,0,0,0.4);
-        border-radius: 0.75rem;
-        border: 1px solid rgba(255,255,255,0.1);
+        justify-content: center;
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            0 0 40px rgba(139, 92, 246, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
     }
 
-    .vw-transport-controls.disabled {
-        opacity: 0.5;
+    .vw-center-play-btn.is-paused {
+        opacity: 1;
+    }
+
+    .vw-play-overlay:hover .vw-center-play-btn {
+        transform: scale(1.1);
+        box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.5),
+            0 0 60px rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-center-play-btn svg {
+        width: 32px;
+        height: 32px;
+        color: white;
+        margin-left: 4px;
+    }
+
+    .vw-center-play-btn svg:last-child {
+        margin-left: 0;
+    }
+
+    /* Fullscreen hint */
+    .vw-fullscreen-hint {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.3);
+        background: rgba(0, 0, 0, 0.4);
+        padding: 0.35rem 0.75rem;
+        border-radius: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.3s;
         pointer-events: none;
     }
 
-    .vw-transport-buttons {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
+    .vw-canvas-frame:hover .vw-fullscreen-hint {
+        opacity: 1;
     }
 
-    .vw-transport-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 0.5rem;
-        border: 1px solid rgba(255,255,255,0.2);
+    /* ===== Controls Wrapper with Glassmorphism ===== */
+    .vw-controls-wrapper {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0 1rem 1rem;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+    }
+
+    .vw-controls-wrapper.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .is-fullscreen .vw-controls-wrapper {
+        padding: 0 2rem 2rem;
+    }
+
+    /* Progress Bar */
+    .vw-progress-container {
+        padding: 0.5rem 0;
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-progress-bar {
+        position: relative;
+        height: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+
+    .vw-progress-track {
+        position: relative;
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 2px;
+        overflow: hidden;
+        transition: height 0.2s ease;
+    }
+
+    .vw-progress-bar:hover .vw-progress-track {
+        height: 6px;
+    }
+
+    .vw-progress-played {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        border-radius: 2px;
+        transition: width 0.1s linear;
+    }
+
+    .vw-progress-thumb {
+        position: absolute;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        background: white;
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        transition: transform 0.2s ease;
+    }
+
+    .vw-progress-bar:hover .vw-progress-thumb {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Glassmorphism Controls Bar */
+    .vw-controls-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.625rem 1rem;
+        background: rgba(15, 15, 25, 0.75);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow:
+            0 4px 30px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .is-fullscreen .vw-controls-bar {
+        padding: 0.875rem 1.5rem;
+        border-radius: 1.25rem;
+    }
+
+    .vw-controls-left,
+    .vw-controls-right {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Control Buttons */
+    .vw-ctrl-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.625rem;
+        border: none;
         background: transparent;
-        color: white;
-        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.85);
         cursor: pointer;
         transition: all 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 0;
     }
 
-    .vw-transport-btn:hover:not(:disabled) {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(255,255,255,0.3);
+    .vw-ctrl-btn svg {
+        width: 20px;
+        height: 20px;
     }
 
-    .vw-transport-btn.play {
+    .vw-ctrl-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .vw-ctrl-btn:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+
+    .vw-ctrl-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    /* Play/Pause button highlight */
+    .vw-play-pause-btn {
         width: 44px;
         height: 44px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        border: none;
-        font-size: 1.1rem;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        border: 1px solid rgba(139, 92, 246, 0.3);
     }
 
-    .vw-transport-btn.play:hover:not(:disabled) {
-        box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+    .vw-play-pause-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.3));
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
     }
 
-    .vw-transport-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+    .vw-play-pause-btn svg {
+        width: 22px;
+        height: 22px;
     }
 
-    .vw-timeline-wrapper {
-        flex: 1;
+    /* Volume Control */
+    .vw-volume-control {
         display: flex;
         align-items: center;
+        gap: 0.25rem;
     }
 
-    .vw-timeline-input {
-        width: 100%;
-        height: 6px;
+    .vw-volume-slider-wrapper {
+        width: 0;
+        overflow: hidden;
+        transition: width 0.3s ease;
+    }
+
+    .vw-volume-control:hover .vw-volume-slider-wrapper {
+        width: 80px;
+    }
+
+    .vw-volume-slider {
+        width: 80px;
+        height: 4px;
         -webkit-appearance: none;
         appearance: none;
-        background: rgba(255,255,255,0.1);
-        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
         cursor: pointer;
     }
 
-    .vw-timeline-input::-webkit-slider-thumb {
+    .vw-volume-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: white;
         cursor: pointer;
-        border: 2px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .vw-timeline-input::-moz-range-thumb {
-        width: 14px;
-        height: 14px;
+    .vw-volume-slider::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: white;
         cursor: pointer;
-        border: 2px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        border: none;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .vw-timeline-input:disabled {
-        cursor: not-allowed;
-    }
-
+    /* Time Display */
     .vw-time-display {
-        font-family: 'SF Mono', Monaco, monospace;
-        font-size: 0.85rem;
-        color: rgba(255,255,255,0.8);
-        background: rgba(0,0,0,0.3);
-        padding: 0.35rem 0.75rem;
-        border-radius: 0.4rem;
+        font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        padding: 0 0.5rem;
         white-space: nowrap;
     }
 
-    .vw-time-separator {
-        color: rgba(255,255,255,0.4);
+    .vw-time-sep {
+        color: rgba(255, 255, 255, 0.3);
         margin: 0 0.25rem;
     }
 
-    /* Scene Indicator */
-    .vw-scene-indicator {
+    /* Scene Badge */
+    .vw-scene-badge {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.2);
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        width: fit-content;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.25);
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.8);
     }
 
-    .vw-scene-label {
-        color: rgba(255,255,255,0.5);
+    .vw-scene-badge span:first-child {
+        color: rgba(255, 255, 255, 0.5);
     }
 
-    .vw-scene-current {
-        color: #8b5cf6;
-        font-weight: 600;
-    }
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+        .vw-controls-bar {
+            padding: 0.5rem 0.75rem;
+        }
 
-    .vw-scene-separator {
-        color: rgba(255,255,255,0.3);
-    }
+        .vw-ctrl-btn {
+            width: 36px;
+            height: 36px;
+        }
 
-    .vw-scene-total {
-        color: rgba(255,255,255,0.6);
+        .vw-play-pause-btn {
+            width: 40px;
+            height: 40px;
+        }
+
+        .vw-time-display {
+            font-size: 0.75rem;
+        }
+
+        .vw-volume-control:hover .vw-volume-slider-wrapper {
+            width: 60px;
+        }
+
+        .vw-center-play-btn {
+            width: 64px;
+            height: 64px;
+        }
+
+        .vw-center-play-btn svg {
+            width: 26px;
+            height: 26px;
+        }
     }
 
     [x-cloak] {
