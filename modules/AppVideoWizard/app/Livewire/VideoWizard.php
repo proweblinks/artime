@@ -6827,9 +6827,24 @@ class VideoWizard extends Component
     public function generateCharacterPortrait(int $index): void
     {
         $character = $this->sceneMemory['characterBible']['characters'][$index] ?? null;
-        if (!$character) return;
+        if (!$character) {
+            $this->error = __('Character not found at index: ') . $index;
+            return;
+        }
 
-        $this->isLoading = true;
+        // Validate project exists
+        if (!$this->projectId) {
+            $this->error = __('No project loaded. Please save the project first.');
+            return;
+        }
+
+        $project = WizardProject::find($this->projectId);
+        if (!$project) {
+            $this->error = __('Project not found. Please refresh the page.');
+            return;
+        }
+
+        $this->isGeneratingPortrait = true;
         $this->error = null;
 
         // Mark as generating
@@ -6869,58 +6884,62 @@ class VideoWizard extends Component
             // Negative prompt for character portraits
             $negativePrompt = 'cartoon, anime, illustration, 3D render, CGI, plastic skin, airbrushed, waxy, mannequin, doll-like, uncanny valley, oversaturated, HDR, blurry, low quality, watermark, text, logo, multiple people, crowd';
 
-            if ($this->projectId) {
-                $project = WizardProject::find($this->projectId);
-                if ($project) {
-                    $result = $imageService->generateSceneImage($project, [
-                        'id' => $character['id'],
-                        'visualDescription' => $prompt,
-                    ], [
-                        'model' => 'nanobanana-pro',
-                        'sceneIndex' => null, // Portraits don't belong to any scene
-                        'negativePrompt' => $negativePrompt,
-                        'isCharacterPortrait' => true, // Flag for portrait mode
-                    ]);
+            // Generate the portrait
+            $result = $imageService->generateSceneImage($project, [
+                'id' => $character['id'],
+                'visualDescription' => $prompt,
+            ], [
+                'model' => 'nanobanana-pro',
+                'sceneIndex' => null, // Portraits don't belong to any scene
+                'negativePrompt' => $negativePrompt,
+                'isCharacterPortrait' => true, // Flag for portrait mode
+            ]);
 
-                    if ($result['success'] && isset($result['imageUrl'])) {
-                        $imageUrl = $result['imageUrl'];
-                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $imageUrl;
-                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageSource'] = 'ai';
+            if ($result['success'] && isset($result['imageUrl'])) {
+                $imageUrl = $result['imageUrl'];
+                $this->sceneMemory['characterBible']['characters'][$index]['referenceImage'] = $imageUrl;
+                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageSource'] = 'ai';
 
-                        // Fetch image as base64 for face consistency in scene generation
-                        try {
-                            $imageContent = file_get_contents($imageUrl);
-                            if ($imageContent !== false) {
-                                $base64Data = base64_encode($imageContent);
-                                // Detect MIME type from image content
-                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+                // Fetch image as base64 for face consistency in scene generation
+                try {
+                    $imageContent = file_get_contents($imageUrl);
+                    if ($imageContent !== false) {
+                        $base64Data = base64_encode($imageContent);
+                        // Detect MIME type from image content
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
 
-                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
-                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
-                                $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
 
-                                Log::info('Character portrait generated with base64', [
-                                    'characterIndex' => $index,
-                                    'base64Length' => strlen($base64Data),
-                                    'mimeType' => $mimeType,
-                                ]);
-                            }
-                        } catch (\Exception $fetchError) {
-                            Log::warning('Could not fetch image as base64', ['error' => $fetchError->getMessage()]);
-                            // Still mark as ready even if base64 fetch failed
-                            $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
-                        }
-
-                        $this->saveProject();
+                        Log::info('Character portrait generated with base64', [
+                            'characterIndex' => $index,
+                            'base64Length' => strlen($base64Data),
+                            'mimeType' => $mimeType,
+                        ]);
                     }
+                } catch (\Exception $fetchError) {
+                    Log::warning('Could not fetch image as base64', ['error' => $fetchError->getMessage()]);
+                    // Still mark as ready even if base64 fetch failed
+                    $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
                 }
+
+                $this->saveProject();
+            } else {
+                // Generation failed - extract error message
+                $errorMsg = $result['error'] ?? 'Image generation failed without specific error';
+                throw new \Exception($errorMsg);
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate portrait: ') . $e->getMessage();
             $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'error';
+            Log::error('Character portrait generation failed', [
+                'characterIndex' => $index,
+                'error' => $e->getMessage(),
+            ]);
         } finally {
-            $this->isLoading = false;
+            $this->isGeneratingPortrait = false;
         }
     }
 
@@ -7001,6 +7020,18 @@ class VideoWizard extends Component
             return;
         }
 
+        // Validate project exists
+        if (!$this->projectId) {
+            $this->error = __('No project loaded. Please save the project first.');
+            return;
+        }
+
+        $project = WizardProject::find($this->projectId);
+        if (!$project) {
+            $this->error = __('Project not found. Please refresh the page.');
+            return;
+        }
+
         $this->isGeneratingStyleRef = true;
         $this->error = null;
 
@@ -7013,49 +7044,49 @@ class VideoWizard extends Component
             // Build comprehensive style reference prompt using 6-element anchoring
             $prompt = $this->buildStyleReferencePrompt($styleBible);
 
-            if ($this->projectId) {
-                $project = WizardProject::find($this->projectId);
-                if ($project) {
-                    $result = $imageService->generateSceneImage($project, [
-                        'id' => 'style_ref_' . uniqid(),
-                        'visualDescription' => $prompt,
-                    ], [
-                        'model' => 'nanobanana-pro',
-                        'sceneIndex' => null, // Style references don't belong to any scene
-                    ]);
+            // Generate the style reference
+            $result = $imageService->generateSceneImage($project, [
+                'id' => 'style_ref_' . uniqid(),
+                'visualDescription' => $prompt,
+            ], [
+                'model' => 'nanobanana-pro',
+                'sceneIndex' => null, // Style references don't belong to any scene
+            ]);
 
-                    if ($result['success'] && isset($result['imageUrl'])) {
-                        $imageUrl = $result['imageUrl'];
-                        $this->sceneMemory['styleBible']['referenceImage'] = $imageUrl;
-                        $this->sceneMemory['styleBible']['referenceImageSource'] = 'ai';
+            if ($result['success'] && isset($result['imageUrl'])) {
+                $imageUrl = $result['imageUrl'];
+                $this->sceneMemory['styleBible']['referenceImage'] = $imageUrl;
+                $this->sceneMemory['styleBible']['referenceImageSource'] = 'ai';
 
-                        // Fetch image as base64 for style consistency in scene generation
-                        try {
-                            $imageContent = file_get_contents($imageUrl);
-                            if ($imageContent !== false) {
-                                $base64Data = base64_encode($imageContent);
-                                // Detect MIME type from image content
-                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+                // Fetch image as base64 for style consistency in scene generation
+                try {
+                    $imageContent = file_get_contents($imageUrl);
+                    if ($imageContent !== false) {
+                        $base64Data = base64_encode($imageContent);
+                        // Detect MIME type from image content
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
 
-                                $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
-                                $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
-                                $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
+                        $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
+                        $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
 
-                                Log::info('Style Bible reference generated with base64', [
-                                    'base64Length' => strlen($base64Data),
-                                    'mimeType' => $mimeType,
-                                ]);
-                            }
-                        } catch (\Exception $fetchError) {
-                            Log::warning('Could not fetch style reference as base64', ['error' => $fetchError->getMessage()]);
-                            // Still mark as ready even if base64 fetch failed
-                            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
-                        }
-
-                        $this->saveProject();
+                        Log::info('Style Bible reference generated with base64', [
+                            'base64Length' => strlen($base64Data),
+                            'mimeType' => $mimeType,
+                        ]);
                     }
+                } catch (\Exception $fetchError) {
+                    Log::warning('Could not fetch style reference as base64', ['error' => $fetchError->getMessage()]);
+                    // Still mark as ready even if base64 fetch failed
+                    $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
                 }
+
+                $this->saveProject();
+            } else {
+                // Generation failed - extract error message
+                $errorMsg = $result['error'] ?? 'Style reference generation failed without specific error';
+                throw new \Exception($errorMsg);
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate style reference: ') . $e->getMessage();
@@ -7619,9 +7650,24 @@ EOT;
     public function generateLocationReference(int $index): void
     {
         $location = $this->sceneMemory['locationBible']['locations'][$index] ?? null;
-        if (!$location) return;
+        if (!$location) {
+            $this->error = __('Location not found at index: ') . $index;
+            return;
+        }
 
-        $this->isLoading = true;
+        // Validate project exists
+        if (!$this->projectId) {
+            $this->error = __('No project loaded. Please save the project first.');
+            return;
+        }
+
+        $project = WizardProject::find($this->projectId);
+        if (!$project) {
+            $this->error = __('Project not found. Please refresh the page.');
+            return;
+        }
+
+        $this->isGeneratingLocationRef = true;
         $this->error = null;
 
         // Mark as generating
@@ -7706,58 +7752,62 @@ EOT;
             // Comprehensive negative prompt for empty environments
             $negativePrompt = 'person, people, human, man, woman, child, baby, figure, silhouette, shadow of person, face, body, hands, feet, crowd, pedestrian, character, actor, model, portrait, mannequin, statue of person, sculpture of human, anyone, somebody, individual, group of people, passerby, bystander, cartoon, anime, illustration, 3D render, CGI, video game, text, watermark, logo, signature, blurry, low quality, oversaturated';
 
-            if ($this->projectId) {
-                $project = WizardProject::find($this->projectId);
-                if ($project) {
-                    $result = $imageService->generateSceneImage($project, [
-                        'id' => $location['id'],
-                        'visualDescription' => $prompt,
-                    ], [
-                        'model' => 'nanobanana-pro',
-                        'sceneIndex' => null, // Location references don't belong to any scene
-                        'negativePrompt' => $negativePrompt,
-                        'isLocationReference' => true, // Flag for empty environment mode
-                    ]);
+            // Generate the location reference
+            $result = $imageService->generateSceneImage($project, [
+                'id' => $location['id'],
+                'visualDescription' => $prompt,
+            ], [
+                'model' => 'nanobanana-pro',
+                'sceneIndex' => null, // Location references don't belong to any scene
+                'negativePrompt' => $negativePrompt,
+                'isLocationReference' => true, // Flag for empty environment mode
+            ]);
 
-                    if ($result['success'] && isset($result['imageUrl'])) {
-                        $imageUrl = $result['imageUrl'];
-                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $imageUrl;
-                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageSource'] = 'ai';
+            if ($result['success'] && isset($result['imageUrl'])) {
+                $imageUrl = $result['imageUrl'];
+                $this->sceneMemory['locationBible']['locations'][$index]['referenceImage'] = $imageUrl;
+                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageSource'] = 'ai';
 
-                        // Fetch image as base64 for location consistency in scene generation
-                        try {
-                            $imageContent = file_get_contents($imageUrl);
-                            if ($imageContent !== false) {
-                                $base64Data = base64_encode($imageContent);
-                                // Detect MIME type from image content
-                                $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                                $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+                // Fetch image as base64 for location consistency in scene generation
+                try {
+                    $imageContent = file_get_contents($imageUrl);
+                    if ($imageContent !== false) {
+                        $base64Data = base64_encode($imageContent);
+                        // Detect MIME type from image content
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
 
-                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = $base64Data;
-                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = $mimeType;
-                                $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = $base64Data;
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
 
-                                Log::info('Location reference generated with base64', [
-                                    'locationIndex' => $index,
-                                    'base64Length' => strlen($base64Data),
-                                    'mimeType' => $mimeType,
-                                ]);
-                            }
-                        } catch (\Exception $fetchError) {
-                            Log::warning('Could not fetch location image as base64', ['error' => $fetchError->getMessage()]);
-                            // Still mark as ready even if base64 fetch failed
-                            $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
-                        }
-
-                        $this->saveProject();
+                        Log::info('Location reference generated with base64', [
+                            'locationIndex' => $index,
+                            'base64Length' => strlen($base64Data),
+                            'mimeType' => $mimeType,
+                        ]);
                     }
+                } catch (\Exception $fetchError) {
+                    Log::warning('Could not fetch location image as base64', ['error' => $fetchError->getMessage()]);
+                    // Still mark as ready even if base64 fetch failed
+                    $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
                 }
+
+                $this->saveProject();
+            } else {
+                // Generation failed - extract error message
+                $errorMsg = $result['error'] ?? 'Location reference generation failed without specific error';
+                throw new \Exception($errorMsg);
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to generate location reference: ') . $e->getMessage();
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'error';
+            Log::error('Location reference generation failed', [
+                'locationIndex' => $index,
+                'error' => $e->getMessage(),
+            ]);
         } finally {
-            $this->isLoading = false;
+            $this->isGeneratingLocationRef = false;
         }
     }
 

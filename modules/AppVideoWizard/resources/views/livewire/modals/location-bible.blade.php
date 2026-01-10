@@ -13,6 +13,15 @@
             <button type="button" wire:click="closeLocationBibleModal" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
+        {{-- Error Display --}}
+        @if($error)
+            <div style="padding: 0.75rem 1.25rem; background: rgba(239,68,68,0.15); border-bottom: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>⚠️</span>
+                <span>{{ $error }}</span>
+                <button type="button" wire:click="$set('error', null)" style="margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem;">&times;</button>
+            </div>
+        @endif
+
         {{-- Content --}}
         <div style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; gap: 1.25rem;">
             {{-- Locations List (Left Panel) --}}
