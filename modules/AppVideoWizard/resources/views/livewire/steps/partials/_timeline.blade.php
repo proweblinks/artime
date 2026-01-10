@@ -6,6 +6,10 @@
 <div
     class="vw-pro-timeline"
     x-data="{
+        // Synced from parent previewController
+        currentTime: 0,
+        totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+
         // Timeline state
         zoom: 1,
         zoomLevels: [0.5, 0.75, 1, 1.5, 2, 3],
@@ -37,13 +41,26 @@
         snapEnabled: true,
         snapThreshold: 10,
 
+        // Format time helper (local copy since we have isolated scope)
+        formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + secs.toString().padStart(2, '0');
+        },
+
+        // Seek helper - dispatches to parent
+        seek(time) {
+            window.dispatchEvent(new CustomEvent('seek-preview', { detail: { time: time } }));
+        },
+
         // Computed values
         get pixelsPerSecond() {
             return 50 * this.zoom;
         },
 
         get timelineWidth() {
-            return Math.max(this.totalDuration * this.pixelsPerSecond, 800);
+            return Math.max((this.totalDuration || 1) * this.pixelsPerSecond, 800);
         },
 
         get visibleTracks() {
@@ -223,6 +240,28 @@
             return marks;
         }
     }"
+    x-init="
+        // Listen for time updates from preview controller
+        window.addEventListener('preview-time-update', (e) => {
+            if (e.detail && typeof e.detail.time !== 'undefined') {
+                currentTime = e.detail.time;
+            }
+        });
+
+        // Listen for preview ready to get total duration
+        window.addEventListener('preview-ready', (e) => {
+            if (e.detail && typeof e.detail.duration !== 'undefined') {
+                totalDuration = e.detail.duration;
+            }
+        });
+
+        // Also listen as Alpine custom events
+        $el.addEventListener('preview-time-update', (e) => {
+            if (e.detail && typeof e.detail.time !== 'undefined') {
+                currentTime = e.detail.time;
+            }
+        });
+    "
     @click.away="deselectAll()"
     @keydown.ctrl.z.prevent="undo()"
     @keydown.ctrl.y.prevent="redo()"

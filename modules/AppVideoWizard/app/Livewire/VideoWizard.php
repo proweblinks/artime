@@ -9970,6 +9970,10 @@ class VideoWizard extends Component
 
     /**
      * Get preview initialization data for Alpine.js controller.
+     *
+     * Includes all data needed for preview including scenes array.
+     * This avoids needing to fetch scenes via $wire which has scope issues
+     * in nested Alpine components.
      */
     public function getPreviewInitData(): array
     {
@@ -9982,6 +9986,9 @@ class VideoWizard extends Component
             'musicEnabled' => $this->assembly['music']['enabled'] ?? false,
             'musicVolume' => $this->assembly['music']['volume'] ?? 30,
             'musicUrl' => $this->assembly['music']['url'] ?? null,
+            // Include scenes directly - avoids $wire scope issues in nested Alpine components
+            'scenes' => $this->getPreviewScenes(),
+            'totalDuration' => $this->getTotalDuration(),
         ];
     }
 

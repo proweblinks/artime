@@ -1,10 +1,5 @@
 {{-- Step 6: Assembly Studio - Full-Screen Professional Editor --}}
-
-{{-- Load Video Preview Engine and Controller Scripts --}}
-@push('scripts')
-<script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"></script>
-<script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
-@endpush
+{{-- Note: Video Preview Engine scripts are loaded in video-wizard.blade.php --}}
 
 @php
     $assemblyStats = $this->getAssemblyStats();
@@ -15,7 +10,45 @@
 <div
     class="vw-assembly-fullscreen"
     x-data="{
-        ...previewController(@js($this->getPreviewInitData())),
+        ...(typeof previewController === 'function' ? previewController(@js($this->getPreviewInitData())) : {
+            // Fallback properties if previewController isn't loaded yet
+            engine: null,
+            isReady: false,
+            isLoading: false,
+            isPlaying: false,
+            currentTime: 0,
+            totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+            loadProgress: 0,
+            currentSceneIndex: 0,
+            totalScenes: {{ count($script['scenes'] ?? []) }},
+            canvasWidth: 1280,
+            canvasHeight: 720,
+            aspectRatio: '{{ $aspectRatio ?? '16:9' }}',
+            captionsEnabled: {{ ($assembly['captions']['enabled'] ?? true) ? 'true' : 'false' }},
+            musicEnabled: {{ ($assembly['music']['enabled'] ?? false) ? 'true' : 'false' }},
+            scenes: @js($this->getPreviewScenes()),
+            init() {
+                console.warn('[Assembly] previewController not loaded, using fallback. Check if scripts are loaded.');
+            },
+            formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return '0:00';
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return mins + ':' + secs.toString().padStart(2, '0');
+            },
+            togglePlay() { console.warn('[Assembly] togglePlay called but no engine'); },
+            play() { console.warn('[Assembly] play called but no engine'); },
+            pause() { console.warn('[Assembly] pause called but no engine'); },
+            seek(time) { console.warn('[Assembly] seek called but no engine'); },
+            seekStart() { this.seek(0); },
+            seekEnd() { this.seek(this.totalDuration); },
+            jumpToScene(index) { this.currentSceneIndex = index; },
+            seekToScene(index) { this.currentSceneIndex = index; },
+            loadPreview() {
+                console.error('[Assembly] loadPreview failed - previewController not loaded. Ensure video-preview-engine.js and preview-controller.js are included.');
+                alert('Preview could not load. Please refresh the page and try again.');
+            }
+        }),
         activeTab: 'scenes',
         musicEnabled: @js($assembly['music']['enabled'] ?? false),
         captionsEnabled: @js($assembly['captions']['enabled'] ?? true),

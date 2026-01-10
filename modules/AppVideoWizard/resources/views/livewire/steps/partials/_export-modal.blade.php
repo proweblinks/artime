@@ -22,6 +22,9 @@
     <div
         class="vw-export-modal-full"
         x-data="{
+            // Duration (synced from parent or computed)
+            totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+
             // Export state
             exporting: @js($isExporting),
             exportComplete: @js($exportComplete),
@@ -269,12 +272,8 @@
                 stopPolling();
                 alert('Export failed: ' + (data.message || 'Unknown error'));
             });
-
-            // Cleanup on component destroy
-            $cleanup(() => {
-                stopPolling();
-            });
         "
+        x-on:destroy="stopPolling()"
         @click.stop
     >
         {{-- Modal Header --}}

@@ -1,20 +1,18 @@
 {{-- Project Manager Modal --}}
+@if($showProjectManager)
 <div x-data="{
         deleteConfirmId: null,
         deleteConfirmName: '',
         editingProjectId: null,
         editingProjectName: ''
      }"
-     x-show="$wire.showProjectManager"
-     x-cloak
      class="vw-modal-overlay"
      style="z-index: 1000;"
-     @keydown.escape.window="$wire.showProjectManager && $wire.closeProjectManager()">
+     @keydown.escape.window="$wire.closeProjectManager()">
 
     {{-- Modal Backdrop --}}
     <div class="vw-modal-backdrop"
          @click="$wire.closeProjectManager()"
-         x-show="$wire.showProjectManager"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -25,7 +23,6 @@
 
     {{-- Modal Content --}}
     <div class="vw-project-manager-modal"
-         x-show="$wire.showProjectManager"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 transform scale-95"
          x-transition:enter-end="opacity-100 transform scale-100"
@@ -420,6 +417,7 @@
         </div>
     </template>
 </div>
+@endif
 
 <style>
 /* Project Manager Modal Styles */

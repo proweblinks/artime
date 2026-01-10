@@ -14,6 +14,14 @@
     smartAudioEnabled: {{ ($assembly['audioMix']['smartAudio'] ?? true) ? 'true' : 'false' }},
     audioAnalyzing: false,
 
+    // Local copy of parent state (synced via Livewire)
+    musicEnabled: {{ ($assembly['music']['enabled'] ?? false) ? 'true' : 'false' }},
+
+    // Dispatch to parent's updateMusicSetting method via event
+    updateMusicSetting(key, value) {
+        Livewire.dispatch('music-setting-updated', { key: key, value: value });
+    },
+
     // Music library data
     musicTracks: [
         { id: 'upbeat-corporate-1', name: 'Corporate Uplift', artist: 'Studio AI', duration: '2:45', category: 'corporate', mood: 'upbeat', bpm: 120 },
