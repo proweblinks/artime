@@ -1,6 +1,125 @@
 {{--
     Professional Timeline Component - Phase 1 & 2 Redesign
     Modern glassmorphism design with advanced interactions
+
+    ========================================
+    EVENT CONTRACTS (Phase B Documentation)
+    ========================================
+
+    This component dispatches the following Alpine.js events.
+    Parent components should listen for these to handle timeline actions.
+
+    CLIP OPERATIONS:
+    ----------------
+    @event clip-moved
+    @param {string} track - Track ID ('video', 'voiceover', 'music', 'captions')
+    @param {number} index - Clip index within the track
+    @param {number} newTime - New start time in seconds
+    @param {boolean} ripple - Whether ripple mode was active
+
+    @event clip-trimmed
+    @param {string} track - Track ID
+    @param {number} index - Clip index
+    @param {number} startDelta - (trim-start) Change in start position
+    @param {number} newDuration - (trim-end) New clip duration in seconds
+
+    @event clip-selected
+    @param {string} track - Track ID
+    @param {number} clipIndex - Selected clip index
+    @param {boolean} multi - Whether multiple clips are selected
+
+    @event split-clip
+    @param {number} time - Split point in seconds
+    @param {string} track - Track to split on
+    @param {number} clipIndex - (optional) Specific clip to split
+
+    @event delete-clips
+    @param {Array<{track: string, index: number}>} clips - Clips to delete
+    @param {boolean} ripple - Whether to use ripple delete
+
+    @event duplicate-clips
+    @param {Array<{track: string, index: number}>} clips - Clips to duplicate
+
+    @event paste-clips
+    @param {Array} clips - Clipboard contents
+    @param {string} operation - 'copy' or 'cut'
+    @param {string} targetTrack - Destination track
+    @param {number} targetTime - Paste position in seconds
+
+    TRACK OPERATIONS:
+    -----------------
+    @event track-muted
+    @param {string} track - Track ID
+    @param {boolean} muted - New mute state
+
+    @event track-solo-changed
+    @param {string} track - Track ID
+    @param {boolean} solo - New solo state
+
+    @event track-volume-changed
+    @param {string} track - Track ID
+    @param {number} volume - Volume level (0.0 to 1.0)
+
+    PLAYBACK CONTROL:
+    -----------------
+    @event pause-preview
+    (no parameters) - Pause video preview
+
+    @event jkl-playback
+    @param {number} speed - Playback speed multiplier (-8 to 8, 0 = pause)
+
+    @event scrub-preview-start
+    (no parameters) - Audio scrubbing started
+
+    @event scrub-preview-update
+    @param {number} time - Current scrub position in seconds
+
+    @event scrub-preview-end
+    (no parameters) - Audio scrubbing ended
+
+    MARKERS:
+    --------
+    @event marker-added
+    @param {Object} marker - { id, time, label, color, type }
+
+    @event marker-deleted
+    @param {string} markerId - ID of deleted marker
+
+    @event marker-updated
+    @param {Object} marker - Updated marker object
+
+    TRANSITIONS:
+    ------------
+    @event transition-applied
+    @param {string} track - Track ID
+    @param {number} clipIndex - Clip index
+    @param {string} type - Transition type ('fade', 'dissolve', etc.)
+    @param {Object} config - Transition configuration
+
+    REGIONS & EXPORT:
+    -----------------
+    @event loop-region
+    @param {number} start - Loop start time in seconds
+    @param {number} end - Loop end time in seconds
+
+    @event export-region
+    @param {number} start - Export start time in seconds
+    @param {number} end - Export end time in seconds
+
+    UTILITY:
+    --------
+    @event show-notification
+    @param {string} message - Notification text
+    @param {string} type - (optional) 'error', 'success', 'warning', 'info'
+
+    @event waveform-generated
+    @param {Object} data - Waveform data from web worker
+
+    LIVEWIRE METHODS CALLED:
+    ------------------------
+    - $wire.call('timelineUndo') - Undo last timeline action
+    - $wire.call('timelineRedo') - Redo last undone action
+
 --}}
 
 <div
@@ -1309,15 +1428,31 @@
 
         undo() {
             if (this.historyIndex > 0) {
+                const previousIndex = this.historyIndex;
                 this.historyIndex--;
-                $wire.call('timelineUndo');
+                $wire.call('timelineUndo').catch(error => {
+                    console.error('Timeline undo failed:', error);
+                    this.historyIndex = previousIndex; // Revert on failure
+                    this.$dispatch('show-notification', {
+                        message: 'Undo failed. Please try again.',
+                        type: 'error'
+                    });
+                });
             }
         },
 
         redo() {
             if (this.historyIndex < this.history.length - 1) {
+                const previousIndex = this.historyIndex;
                 this.historyIndex++;
-                $wire.call('timelineRedo');
+                $wire.call('timelineRedo').catch(error => {
+                    console.error('Timeline redo failed:', error);
+                    this.historyIndex = previousIndex; // Revert on failure
+                    this.$dispatch('show-notification', {
+                        message: 'Redo failed. Please try again.',
+                        type: 'error'
+                    });
+                });
             }
         },
 
