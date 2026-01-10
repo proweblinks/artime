@@ -19,13 +19,98 @@
         isPlayheadDragging: false,
         playheadTooltipTime: 0,
 
-        // Track visibility and configuration
+        // ===== Phase 4: Enhanced Track Configuration =====
         tracks: {
-            video: { visible: true, height: 70, color: '#8b5cf6', label: 'Video', icon: 'film', locked: false, muted: false },
-            voiceover: { visible: true, height: 50, color: '#06b6d4', label: 'Voiceover', icon: 'mic', locked: false, muted: false },
-            music: { visible: true, height: 50, color: '#10b981', label: 'Music', icon: 'music', locked: false, muted: false },
-            captions: { visible: true, height: 40, color: '#f59e0b', label: 'Captions', icon: 'text', locked: false, muted: false }
+            video: {
+                id: 'video',
+                type: 'video',
+                visible: true,
+                height: 70,
+                defaultHeight: 70,
+                minHeight: 40,
+                maxHeight: 150,
+                color: '#8b5cf6',
+                label: '{{ __("Video") }}',
+                shortLabel: 'V1',
+                icon: 'film',
+                locked: false,
+                muted: false,
+                solo: false,
+                collapsed: false,
+                volume: 100,
+                order: 0
+            },
+            voiceover: {
+                id: 'voiceover',
+                type: 'audio',
+                visible: true,
+                height: 50,
+                defaultHeight: 50,
+                minHeight: 30,
+                maxHeight: 120,
+                color: '#06b6d4',
+                label: '{{ __("Voiceover") }}',
+                shortLabel: 'A1',
+                icon: 'mic',
+                locked: false,
+                muted: false,
+                solo: false,
+                collapsed: false,
+                volume: 100,
+                order: 1
+            },
+            music: {
+                id: 'music',
+                type: 'audio',
+                visible: true,
+                height: 50,
+                defaultHeight: 50,
+                minHeight: 30,
+                maxHeight: 120,
+                color: '#10b981',
+                label: '{{ __("Music") }}',
+                shortLabel: 'A2',
+                icon: 'music',
+                locked: false,
+                muted: false,
+                solo: false,
+                collapsed: false,
+                volume: 30,
+                order: 2
+            },
+            captions: {
+                id: 'captions',
+                type: 'text',
+                visible: true,
+                height: 40,
+                defaultHeight: 40,
+                minHeight: 25,
+                maxHeight: 80,
+                color: '#f59e0b',
+                label: '{{ __("Captions") }}',
+                shortLabel: 'T1',
+                icon: 'text',
+                locked: false,
+                muted: false,
+                solo: false,
+                collapsed: false,
+                volume: 100,
+                order: 3
+            }
         },
+
+        // ===== Phase 4: Track Management State =====
+        trackOrder: ['video', 'voiceover', 'music', 'captions'],
+        isResizingTrack: false,
+        resizeTrackId: null,
+        resizeStartY: 0,
+        resizeStartHeight: 0,
+        isDraggingTrack: false,
+        dragTrackId: null,
+        dragTrackStartY: 0,
+        dragTrackTargetIndex: null,
+        showTrackMenu: null,
+        expandedHeaders: true,
 
         // Selection
         selectedClip: null,
@@ -144,7 +229,9 @@
         },
 
         get visibleTracks() {
-            return Object.entries(this.tracks).filter(([k, v]) => v.visible);
+            return this.trackOrder
+                .filter(id => this.tracks[id]?.visible)
+                .map(id => [id, this.tracks[id]]);
         },
 
         // Methods
@@ -500,6 +587,177 @@
                 this.tracks[trackId].muted = !this.tracks[trackId].muted;
                 this.$dispatch('track-muted', { track: trackId, muted: this.tracks[trackId].muted });
             }
+        },
+
+        // ===== Phase 4: Enhanced Track Management =====
+        toggleTrackSolo(trackId) {
+            if (this.tracks[trackId]) {
+                const wasSolo = this.tracks[trackId].solo;
+                // Turn off solo on all tracks first
+                Object.keys(this.tracks).forEach(id => {
+                    this.tracks[id].solo = false;
+                });
+                // Toggle solo on selected track
+                if (!wasSolo) {
+                    this.tracks[trackId].solo = true;
+                }
+                this.$dispatch('track-solo-changed', { track: trackId, solo: this.tracks[trackId].solo });
+            }
+        },
+
+        toggleTrackCollapse(trackId) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].collapsed = !this.tracks[trackId].collapsed;
+                if (this.tracks[trackId].collapsed) {
+                    this.tracks[trackId].height = this.tracks[trackId].minHeight;
+                } else {
+                    this.tracks[trackId].height = this.tracks[trackId].defaultHeight;
+                }
+            }
+        },
+
+        toggleTrackVisibility(trackId) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].visible = !this.tracks[trackId].visible;
+            }
+        },
+
+        setTrackVolume(trackId, volume) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].volume = Math.max(0, Math.min(100, volume));
+                this.$dispatch('track-volume-changed', {
+                    track: trackId,
+                    volume: this.tracks[trackId].volume / 100
+                });
+            }
+        },
+
+        // Track height resizing
+        startTrackResize(e, trackId) {
+            this.isResizingTrack = true;
+            this.resizeTrackId = trackId;
+            this.resizeStartY = e.clientY;
+            this.resizeStartHeight = this.tracks[trackId].height;
+
+            this._boundHandleTrackResize = this.handleTrackResize.bind(this);
+            this._boundEndTrackResize = this.endTrackResize.bind(this);
+            document.addEventListener('mousemove', this._boundHandleTrackResize);
+            document.addEventListener('mouseup', this._boundEndTrackResize);
+            document.body.style.cursor = 'ns-resize';
+            e.preventDefault();
+        },
+
+        handleTrackResize(e) {
+            if (!this.isResizingTrack || !this.resizeTrackId) return;
+
+            const delta = e.clientY - this.resizeStartY;
+            const track = this.tracks[this.resizeTrackId];
+            const newHeight = Math.max(
+                track.minHeight,
+                Math.min(track.maxHeight, this.resizeStartHeight + delta)
+            );
+
+            this.tracks[this.resizeTrackId].height = newHeight;
+            this.tracks[this.resizeTrackId].collapsed = newHeight <= track.minHeight;
+        },
+
+        endTrackResize() {
+            this.isResizingTrack = false;
+            this.resizeTrackId = null;
+            document.removeEventListener('mousemove', this._boundHandleTrackResize);
+            document.removeEventListener('mouseup', this._boundEndTrackResize);
+            document.body.style.cursor = '';
+        },
+
+        resetTrackHeight(trackId) {
+            if (this.tracks[trackId]) {
+                this.tracks[trackId].height = this.tracks[trackId].defaultHeight;
+                this.tracks[trackId].collapsed = false;
+            }
+        },
+
+        // Track reordering
+        startTrackDrag(e, trackId) {
+            this.isDraggingTrack = true;
+            this.dragTrackId = trackId;
+            this.dragTrackStartY = e.clientY;
+            this.dragTrackTargetIndex = this.trackOrder.indexOf(trackId);
+
+            this._boundHandleTrackDrag = this.handleTrackDrag.bind(this);
+            this._boundEndTrackDrag = this.endTrackDrag.bind(this);
+            document.addEventListener('mousemove', this._boundHandleTrackDrag);
+            document.addEventListener('mouseup', this._boundEndTrackDrag);
+            document.body.style.cursor = 'grabbing';
+            e.preventDefault();
+        },
+
+        handleTrackDrag(e) {
+            if (!this.isDraggingTrack || !this.dragTrackId) return;
+
+            const delta = e.clientY - this.dragTrackStartY;
+            const currentIndex = this.trackOrder.indexOf(this.dragTrackId);
+            let newIndex = currentIndex;
+
+            // Calculate which track position we're over
+            let accumulatedHeight = 0;
+            for (let i = 0; i < this.trackOrder.length; i++) {
+                const track = this.tracks[this.trackOrder[i]];
+                if (!track.visible) continue;
+                accumulatedHeight += track.height;
+                if (delta > 0 && i > currentIndex && delta > accumulatedHeight / 2) {
+                    newIndex = i;
+                } else if (delta < 0 && i < currentIndex && Math.abs(delta) > accumulatedHeight / 2) {
+                    newIndex = i;
+                }
+            }
+
+            this.dragTrackTargetIndex = newIndex;
+        },
+
+        endTrackDrag() {
+            if (this.isDraggingTrack && this.dragTrackId && this.dragTrackTargetIndex !== null) {
+                const currentIndex = this.trackOrder.indexOf(this.dragTrackId);
+                if (currentIndex !== this.dragTrackTargetIndex) {
+                    // Reorder array
+                    const [removed] = this.trackOrder.splice(currentIndex, 1);
+                    this.trackOrder.splice(this.dragTrackTargetIndex, 0, removed);
+                    // Update order values
+                    this.trackOrder.forEach((id, idx) => {
+                        this.tracks[id].order = idx;
+                    });
+                }
+            }
+
+            this.isDraggingTrack = false;
+            this.dragTrackId = null;
+            this.dragTrackTargetIndex = null;
+            document.removeEventListener('mousemove', this._boundHandleTrackDrag);
+            document.removeEventListener('mouseup', this._boundEndTrackDrag);
+            document.body.style.cursor = '';
+        },
+
+        // Get tracks in display order
+        get orderedTracks() {
+            return this.trackOrder
+                .filter(id => this.tracks[id]?.visible)
+                .map(id => [id, this.tracks[id]]);
+        },
+
+        // Track menu
+        openTrackMenu(trackId) {
+            this.showTrackMenu = this.showTrackMenu === trackId ? null : trackId;
+        },
+
+        closeTrackMenu() {
+            this.showTrackMenu = null;
+        },
+
+        // Calculate total tracks height
+        get totalTracksHeight() {
+            return this.trackOrder.reduce((sum, id) => {
+                const track = this.tracks[id];
+                return sum + (track?.visible ? track.height : 0);
+            }, 0);
         },
 
         // ===== Phase 3: Tool Management =====
@@ -1422,66 +1680,155 @@
 
     {{-- Timeline Body --}}
     <div class="vw-timeline-body">
-        {{-- Track Headers --}}
-        <div class="vw-track-headers">
+        {{-- ===== Phase 4: Enhanced Track Headers ===== --}}
+        <div class="vw-track-headers" :class="{ 'vw-headers-expanded': expandedHeaders }">
+            {{-- Ruler Header --}}
             <div class="vw-ruler-header">
-                <svg viewBox="0 0 24 24" fill="currentColor" class="vw-clock-icon">
-                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
-                </svg>
+                <button
+                    type="button"
+                    class="vw-expand-headers-btn"
+                    @click="expandedHeaders = !expandedHeaders"
+                    :title="expandedHeaders ? '{{ __('Compact headers') }}' : '{{ __('Expand headers') }}'"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor" :class="{ 'is-rotated': !expandedHeaders }">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                </button>
             </div>
+
+            {{-- Track Headers (in order) --}}
             <template x-for="[trackId, track] in visibleTracks" :key="trackId">
                 <div
                     class="vw-track-header"
+                    :class="{
+                        'is-collapsed': track.collapsed,
+                        'is-muted': track.muted,
+                        'is-solo': track.solo,
+                        'is-locked': track.locked,
+                        'is-dragging': isDraggingTrack && dragTrackId === trackId
+                    }"
                     :style="{ height: track.height + 'px', '--track-color': track.color }"
+                    @click.away="closeTrackMenu()"
                 >
-                    <div class="vw-header-color-bar"></div>
-                    <div class="vw-header-content">
-                        <span class="vw-header-icon">
-                            <template x-if="trackId === 'video'">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
-                            </template>
-                            <template x-if="trackId === 'voiceover'">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-                            </template>
-                            <template x-if="trackId === 'music'">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                            </template>
-                            <template x-if="trackId === 'captions'">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
-                            </template>
-                        </span>
-                        <span class="vw-header-label" x-text="track.label"></span>
+                    {{-- Color bar / Drag handle --}}
+                    <div
+                        class="vw-header-color-bar"
+                        @mousedown.stop="startTrackDrag($event, trackId)"
+                        :title="'{{ __('Drag to reorder') }}'"
+                    >
+                        <div class="vw-drag-grip">
+                            <span></span><span></span><span></span>
+                        </div>
                     </div>
-                    <div class="vw-header-controls">
-                        <button
-                            type="button"
-                            class="vw-header-btn"
-                            :class="{ 'is-active': track.muted }"
-                            @click.stop="toggleTrackMute(trackId)"
-                            :title="track.muted ? '{{ __('Unmute') }}' : '{{ __('Mute') }}'"
-                        >
-                            <template x-if="!track.muted">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-                            </template>
-                            <template x-if="track.muted">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-                            </template>
-                        </button>
-                        <button
-                            type="button"
-                            class="vw-header-btn"
-                            :class="{ 'is-active': track.locked }"
-                            @click.stop="toggleTrackLock(trackId)"
-                            :title="track.locked ? '{{ __('Unlock') }}' : '{{ __('Lock') }}'"
-                        >
-                            <template x-if="!track.locked">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
-                            </template>
-                            <template x-if="track.locked">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                            </template>
-                        </button>
+
+                    {{-- Main Header Content --}}
+                    <div class="vw-header-main">
+                        {{-- Top Row: Icon, Label, Short Label --}}
+                        <div class="vw-header-top">
+                            <span class="vw-header-icon">
+                                <template x-if="trackId === 'video'">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+                                </template>
+                                <template x-if="trackId === 'voiceover'">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                                </template>
+                                <template x-if="trackId === 'music'">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                                </template>
+                                <template x-if="trackId === 'captions'">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+                                </template>
+                            </span>
+                            <span class="vw-header-label" x-text="expandedHeaders ? track.label : track.shortLabel"></span>
+                        </div>
+
+                        {{-- Control Buttons Row --}}
+                        <div class="vw-header-controls" x-show="!track.collapsed">
+                            {{-- Mute Button --}}
+                            <button
+                                type="button"
+                                class="vw-header-btn vw-btn-mute"
+                                :class="{ 'is-active': track.muted }"
+                                @click.stop="toggleTrackMute(trackId)"
+                                :title="track.muted ? '{{ __('Unmute') }}' : '{{ __('Mute') }}'"
+                            >
+                                <span class="vw-btn-label">M</span>
+                            </button>
+
+                            {{-- Solo Button --}}
+                            <button
+                                type="button"
+                                class="vw-header-btn vw-btn-solo"
+                                :class="{ 'is-active': track.solo }"
+                                @click.stop="toggleTrackSolo(trackId)"
+                                title="{{ __('Solo') }}"
+                            >
+                                <span class="vw-btn-label">S</span>
+                            </button>
+
+                            {{-- Lock Button --}}
+                            <button
+                                type="button"
+                                class="vw-header-btn vw-btn-lock"
+                                :class="{ 'is-active': track.locked }"
+                                @click.stop="toggleTrackLock(trackId)"
+                                :title="track.locked ? '{{ __('Unlock') }}' : '{{ __('Lock') }}'"
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <template x-if="!track.locked">
+                                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                                    </template>
+                                    <template x-if="track.locked">
+                                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                                    </template>
+                                </svg>
+                            </button>
+
+                            {{-- Visibility Button --}}
+                            <button
+                                type="button"
+                                class="vw-header-btn vw-btn-visibility"
+                                @click.stop="toggleTrackVisibility(trackId)"
+                                title="{{ __('Hide Track') }}"
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            </button>
+                        </div>
+
+                        {{-- Volume Slider (for audio tracks, when expanded) --}}
+                        <div class="vw-header-volume" x-show="expandedHeaders && !track.collapsed && (track.type === 'audio' || trackId === 'voiceover' || trackId === 'music')">
+                            <svg viewBox="0 0 24 24" fill="currentColor" class="vw-volume-icon"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
+                            <input
+                                type="range"
+                                class="vw-volume-slider"
+                                min="0"
+                                max="100"
+                                :value="track.volume"
+                                @input="setTrackVolume(trackId, parseInt($event.target.value))"
+                            >
+                            <span class="vw-volume-value" x-text="track.volume + '%'"></span>
+                        </div>
                     </div>
+
+                    {{-- Collapse/Expand Button --}}
+                    <button
+                        type="button"
+                        class="vw-header-collapse"
+                        @click.stop="toggleTrackCollapse(trackId)"
+                        :title="track.collapsed ? '{{ __('Expand') }}' : '{{ __('Collapse') }}'"
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor" :class="{ 'is-collapsed': track.collapsed }">
+                            <path d="M7 10l5 5 5-5z"/>
+                        </svg>
+                    </button>
+
+                    {{-- Resize Handle (between tracks) --}}
+                    <div
+                        class="vw-track-resize-handle"
+                        @mousedown.stop="startTrackResize($event, trackId)"
+                        @dblclick="resetTrackHeight(trackId)"
+                        title="{{ __('Drag to resize, double-click to reset') }}"
+                    ></div>
                 </div>
             </template>
         </div>
@@ -4009,6 +4356,407 @@
 
     .vw-context-menu {
         min-width: 180px;
+    }
+}
+
+/* ==========================================================================
+   PHASE 4: ENHANCED TRACK HEADERS
+   ========================================================================== */
+
+.vw-track-headers {
+    width: 140px;
+    min-width: 140px;
+    flex-shrink: 0;
+    transition: width 0.2s ease;
+}
+
+.vw-track-headers.vw-headers-expanded {
+    width: 180px;
+    min-width: 180px;
+}
+
+.vw-ruler-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vw-expand-headers-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 0.3rem;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-expand-headers-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.vw-expand-headers-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+}
+
+.vw-expand-headers-btn svg.is-rotated {
+    transform: rotate(45deg);
+}
+
+/* Track Header */
+.vw-track-header {
+    position: relative;
+    display: flex;
+    background: rgba(20, 20, 30, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.vw-track-header.is-collapsed {
+    background: rgba(15, 15, 25, 0.9);
+}
+
+.vw-track-header.is-muted {
+    opacity: 0.6;
+}
+
+.vw-track-header.is-solo {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.vw-track-header.is-locked {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.vw-track-header.is-dragging {
+    opacity: 0.8;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+/* Color Bar / Drag Handle */
+.vw-header-color-bar {
+    width: 6px;
+    min-width: 6px;
+    background: var(--track-color);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.15s;
+}
+
+.vw-header-color-bar:hover {
+    width: 10px;
+}
+
+.vw-header-color-bar:active {
+    cursor: grabbing;
+}
+
+.vw-drag-grip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.vw-header-color-bar:hover .vw-drag-grip {
+    opacity: 1;
+}
+
+.vw-drag-grip span {
+    width: 4px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 1px;
+}
+
+/* Header Main Content */
+.vw-header-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.4rem 0.5rem;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.vw-header-top {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
+}
+
+.vw-header-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--track-color);
+}
+
+.vw-header-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.vw-header-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Control Buttons Row */
+.vw-header-controls {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: auto;
+}
+
+.vw-header-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.25rem;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-header-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.vw-header-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+.vw-btn-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+}
+
+/* Mute Button Active */
+.vw-btn-mute.is-active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #f87171;
+}
+
+/* Solo Button Active */
+.vw-btn-solo.is-active {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #4ade80;
+}
+
+/* Lock Button Active */
+.vw-btn-lock.is-active {
+    background: rgba(251, 146, 60, 0.2);
+    border-color: rgba(251, 146, 60, 0.4);
+    color: #fb923c;
+}
+
+/* ==========================================================================
+   PHASE 4: VOLUME SLIDER
+   ========================================================================== */
+
+.vw-header-volume {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vw-volume-icon {
+    width: 12px;
+    height: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.vw-volume-slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.vw-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--track-color, #8b5cf6);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.vw-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.vw-volume-slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    background: var(--track-color, #8b5cf6);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.vw-volume-value {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.5);
+    min-width: 28px;
+    text-align: right;
+}
+
+/* ==========================================================================
+   PHASE 4: COLLAPSE BUTTON
+   ========================================================================== */
+
+.vw-header-collapse {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 0.2rem;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vw-header-collapse:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.vw-header-collapse svg {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.2s;
+}
+
+.vw-header-collapse svg.is-collapsed {
+    transform: rotate(-90deg);
+}
+
+/* ==========================================================================
+   PHASE 4: TRACK RESIZE HANDLE
+   ========================================================================== */
+
+.vw-track-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 6px;
+    cursor: ns-resize;
+    z-index: 10;
+    background: transparent;
+}
+
+.vw-track-resize-handle::after {
+    content: '';
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    background: transparent;
+    border-radius: 1px;
+    transition: background 0.15s;
+}
+
+.vw-track-resize-handle:hover::after {
+    background: var(--track-color, rgba(139, 92, 246, 0.5));
+}
+
+/* ==========================================================================
+   PHASE 4: TRACK STATES FOR TRACKS AREA
+   ========================================================================== */
+
+.vw-track {
+    transition: opacity 0.2s, filter 0.2s;
+}
+
+.vw-track.is-solo-others {
+    opacity: 0.3;
+    filter: grayscale(0.5);
+}
+
+/* Track drop indicator during reorder */
+.vw-track-drop-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* ==========================================================================
+   PHASE 4: RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .vw-track-headers {
+        width: 100px !important;
+        min-width: 100px !important;
+    }
+
+    .vw-track-headers.vw-headers-expanded {
+        width: 140px !important;
+        min-width: 140px !important;
+    }
+
+    .vw-header-volume {
+        display: none;
+    }
+
+    .vw-header-controls {
+        flex-wrap: wrap;
+    }
+
+    .vw-header-btn {
+        width: 18px;
+        height: 18px;
     }
 }
 </style>
