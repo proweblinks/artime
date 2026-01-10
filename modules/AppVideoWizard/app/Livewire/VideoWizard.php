@@ -4452,7 +4452,7 @@ class VideoWizard extends Component
         }
 
         $imageService = app(ImageGenerationService::class);
-        $animationService = app(\Starter\AppVideoWizard\Services\AnimationService::class);
+        $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
 
         foreach ($this->pendingJobs as $jobKey => $job) {
             try {
@@ -9519,7 +9519,7 @@ EOT;
         $this->error = null;
 
         try {
-            $animationService = app(\Starter\AppVideoWizard\Services\AnimationService::class);
+            $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
             $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
             $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
 

@@ -1,11 +1,11 @@
 <?php
 
-namespace Starter\AppVideoWizard\Services;
+namespace Modules\AppVideoWizard\Services;
 
 use App\Services\MiniMaxService;
 use App\Services\RunPodService;
 use Illuminate\Support\Facades\Log;
-use Starter\AppVideoWizard\Models\WizardProject;
+use Modules\AppVideoWizard\Models\WizardProject;
 
 /**
  * AnimationService - Bridge service for video animation generation.
