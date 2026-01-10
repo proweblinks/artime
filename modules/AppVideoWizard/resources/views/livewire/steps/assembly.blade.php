@@ -26,22 +26,28 @@
             aspectRatio: '{{ $aspectRatio ?? '16:9' }}',
             captionsEnabled: {{ ($assembly['captions']['enabled'] ?? true) ? 'true' : 'false' }},
             musicEnabled: {{ ($assembly['music']['enabled'] ?? false) ? 'true' : 'false' }},
-            init() { console.warn('previewController not loaded, using fallback'); },
+            scenes: @js($this->getPreviewScenes()),
+            init() {
+                console.warn('[Assembly] previewController not loaded, using fallback. Check if scripts are loaded.');
+            },
             formatTime(seconds) {
                 if (!seconds || isNaN(seconds)) return '0:00';
                 const mins = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return mins + ':' + secs.toString().padStart(2, '0');
             },
-            togglePlay() {},
-            play() {},
-            pause() {},
-            seek(time) {},
-            seekStart() {},
-            seekEnd() {},
+            togglePlay() { console.warn('[Assembly] togglePlay called but no engine'); },
+            play() { console.warn('[Assembly] play called but no engine'); },
+            pause() { console.warn('[Assembly] pause called but no engine'); },
+            seek(time) { console.warn('[Assembly] seek called but no engine'); },
+            seekStart() { this.seek(0); },
+            seekEnd() { this.seek(this.totalDuration); },
             jumpToScene(index) { this.currentSceneIndex = index; },
             seekToScene(index) { this.currentSceneIndex = index; },
-            loadPreview() { console.warn('previewController not loaded'); }
+            loadPreview() {
+                console.error('[Assembly] loadPreview failed - previewController not loaded. Ensure video-preview-engine.js and preview-controller.js are included.');
+                alert('Preview could not load. Please refresh the page and try again.');
+            }
         }),
         activeTab: 'scenes',
         musicEnabled: @js($assembly['music']['enabled'] ?? false),

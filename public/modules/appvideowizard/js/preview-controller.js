@@ -16,16 +16,16 @@ window.previewController = function(initialData = {}) {
         isLoading: false,
         isPlaying: false,
         currentTime: 0,
-        totalDuration: 0,
+        totalDuration: initialData.totalDuration || 0,
         loadProgress: 0,
         currentSceneIndex: 0,
-        totalScenes: 0,
+        totalScenes: (initialData.scenes || []).length,
 
         // Canvas dimensions based on aspect ratio
         canvasWidth: 1280,
         canvasHeight: 720,
 
-        // Settings from Livewire
+        // Settings from Livewire (passed via server-side rendering)
         aspectRatio: initialData.aspectRatio || '16:9',
         captionsEnabled: initialData.captionsEnabled !== false,
         captionStyle: initialData.captionStyle || 'karaoke',
@@ -34,6 +34,9 @@ window.previewController = function(initialData = {}) {
         musicEnabled: initialData.musicEnabled || false,
         musicVolume: initialData.musicVolume || 30,
         musicUrl: initialData.musicUrl || null,
+
+        // Scenes data - passed directly from server to avoid $wire scope issues
+        scenes: initialData.scenes || [],
 
         /**
          * Initialize the controller
@@ -87,6 +90,12 @@ window.previewController = function(initialData = {}) {
          * Setup Livewire event listeners
          */
         setupLivewireListeners() {
+            // Check if Livewire is available
+            if (typeof Livewire === 'undefined') {
+                console.warn('[PreviewController] Livewire not available, skipping Livewire listeners');
+                return;
+            }
+
             // Listen for caption setting changes
             Livewire.on('caption-setting-updated', (data) => {
                 this.updateCaptionSetting(data.key, data.value);
@@ -104,6 +113,13 @@ window.previewController = function(initialData = {}) {
                 }
             });
 
+            // Listen for scenes update (when server sends new scenes data)
+            Livewire.on('preview-scenes-updated', (data) => {
+                if (data && data.scenes) {
+                    this.updateScenes(data.scenes);
+                }
+            });
+
             // Listen for caption preset changes (Phase 3)
             Livewire.on('caption-preset-applied', (data) => {
                 if (this.engine && this.isReady) {
@@ -116,7 +132,7 @@ window.previewController = function(initialData = {}) {
             Livewire.on('voice-preset-applied', (data) => {
                 if (this.engine && this.isReady) {
                     // Voice presets affect audio processing, refresh if needed
-                    console.log('Voice preset applied:', data.preset);
+                    console.log('[PreviewController] Voice preset applied:', data.preset);
                 }
             });
 
@@ -135,6 +151,9 @@ window.previewController = function(initialData = {}) {
 
         /**
          * Load preview - initialize VideoPreviewEngine and load scenes
+         *
+         * Uses scenes data passed directly from server via initialData.
+         * This avoids $wire scope issues in nested Alpine components.
          */
         async loadPreview() {
             if (this.isLoading || this.isReady) return;
@@ -145,13 +164,22 @@ window.previewController = function(initialData = {}) {
             try {
                 const canvas = this.$refs.previewCanvas;
                 if (!canvas) {
-                    throw new Error('Canvas element not found');
+                    throw new Error('Canvas element not found. Make sure x-ref="previewCanvas" exists.');
                 }
 
                 // Check if VideoPreviewEngine is available
                 if (typeof VideoPreviewEngine === 'undefined') {
-                    throw new Error('VideoPreviewEngine not loaded');
+                    throw new Error('VideoPreviewEngine class not loaded. Check if video-preview-engine.js is included.');
                 }
+
+                // Use scenes from initialData (passed directly from server)
+                const scenes = this.scenes;
+
+                if (!scenes || scenes.length === 0) {
+                    throw new Error('No scenes available for preview. Complete the previous steps first.');
+                }
+
+                console.log('[PreviewController] Loading preview with', scenes.length, 'scenes');
 
                 // Initialize engine
                 this.engine = new VideoPreviewEngine(canvas, {
@@ -160,15 +188,15 @@ window.previewController = function(initialData = {}) {
                     onTimeUpdate: (time) => {
                         this.currentTime = time;
                         // Dispatch event for timeline sync
-                        this.$dispatch('preview-time-update', { time });
+                        window.dispatchEvent(new CustomEvent('preview-time-update', { detail: { time } }));
                     },
                     onSceneChange: (index) => {
                         this.currentSceneIndex = index;
-                        this.$dispatch('preview-scene-change', { index });
+                        window.dispatchEvent(new CustomEvent('preview-scene-change', { detail: { index } }));
                     },
                     onEnded: () => {
                         this.isPlaying = false;
-                        this.$dispatch('preview-ended');
+                        window.dispatchEvent(new CustomEvent('preview-ended'));
                     },
                     onLoadProgress: (progress) => {
                         this.loadProgress = Math.round(progress * 100);
@@ -178,19 +206,15 @@ window.previewController = function(initialData = {}) {
                         this.isReady = true;
                         this.totalDuration = this.engine.totalDuration;
                         this.totalScenes = this.engine.scenes.length;
-                        this.$dispatch('preview-ready', {
-                            duration: this.totalDuration,
-                            scenes: this.totalScenes
-                        });
+                        window.dispatchEvent(new CustomEvent('preview-ready', {
+                            detail: {
+                                duration: this.totalDuration,
+                                scenes: this.totalScenes
+                            }
+                        }));
+                        console.log('[PreviewController] Preview ready. Duration:', this.totalDuration, 'Scenes:', this.totalScenes);
                     }
                 });
-
-                // Get scenes from Livewire
-                const scenes = await this.$wire.getPreviewScenes();
-
-                if (!scenes || scenes.length === 0) {
-                    throw new Error('No scenes available for preview');
-                }
 
                 // Load scenes into engine
                 await this.engine.loadScenes(scenes);
@@ -204,25 +228,46 @@ window.previewController = function(initialData = {}) {
                 }
 
             } catch (error) {
-                console.error('Failed to load preview:', error);
+                console.error('[PreviewController] Failed to load preview:', error);
                 this.isLoading = false;
-                this.$dispatch('preview-error', { message: error.message });
+                window.dispatchEvent(new CustomEvent('preview-error', { detail: { message: error.message } }));
             }
         },
 
         /**
-         * Refresh scenes (reload from Livewire)
+         * Refresh scenes - reloads scenes into the engine
+         *
+         * Note: Since scenes are passed via server-side rendering,
+         * a full page/component refresh is needed to get updated scenes.
+         * This method reloads the current scenes into the engine.
          */
         async refreshScenes() {
             if (!this.engine || !this.isReady) return;
 
             try {
-                const scenes = await this.$wire.getPreviewScenes();
-                await this.engine.loadScenes(scenes);
-                this.totalScenes = this.engine.scenes.length;
-                this.totalDuration = this.engine.totalDuration;
+                // Reload the existing scenes (in case engine state was corrupted)
+                if (this.scenes && this.scenes.length > 0) {
+                    await this.engine.loadScenes(this.scenes);
+                    this.totalScenes = this.engine.scenes.length;
+                    this.totalDuration = this.engine.totalDuration;
+                    console.log('[PreviewController] Scenes refreshed');
+                }
             } catch (error) {
-                console.error('Failed to refresh scenes:', error);
+                console.error('[PreviewController] Failed to refresh scenes:', error);
+            }
+        },
+
+        /**
+         * Update scenes data (called when new scenes are available)
+         * This can be triggered by Livewire events
+         */
+        updateScenes(newScenes) {
+            this.scenes = newScenes || [];
+            this.totalScenes = this.scenes.length;
+
+            // If engine is ready, reload scenes
+            if (this.engine && this.isReady) {
+                this.refreshScenes();
             }
         },
 
