@@ -767,7 +767,7 @@ class ImageGenerationService
      * @param WizardProject $project The project
      * @param array $scene The scene data
      * @param string $prompt The image prompt
-     * @param array $resolution Image resolution
+     * @param array $resolutionArray Image resolution array with width/height for metadata
      * @param string $modelId Model ID
      * @param array $modelConfig Model configuration
      * @param array $options Additional options
@@ -779,7 +779,7 @@ class ImageGenerationService
         WizardProject $project,
         array $scene,
         string $prompt,
-        array $resolution,
+        array $resolutionArray,
         string $modelId,
         array $modelConfig,
         array $options = [],
@@ -798,8 +798,8 @@ class ImageGenerationService
 
         $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
 
-        // Get resolution from model config (default 2K for better quality)
-        $resolution = $modelConfig['resolution'] ?? '2K';
+        // Get model resolution string (1K, 2K, 4K) for API call
+        $modelResolution = $modelConfig['resolution'] ?? '2K';
 
         // Priority: Character reference (face consistency) > Location reference (environment consistency)
         // If we have a character reference, use image-to-image generation for face consistency
@@ -809,7 +809,7 @@ class ImageGenerationService
                 'mimeType' => $characterReference['mimeType'] ?? 'image/png',
                 'hasLocationReference' => !empty($locationReference),
                 'aspectRatio' => $aspectRatio,
-                'resolution' => $resolution,
+                'resolution' => $modelResolution,
             ]);
 
             // Build location context for the scene
@@ -870,7 +870,7 @@ EOT;
                     'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $characterReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
-                    'resolution' => $resolution,
+                    'resolution' => $modelResolution,
                 ]
             );
 
@@ -930,7 +930,7 @@ EOT;
                 'locationName' => $locationReference['locationName'] ?? 'Unknown',
                 'mimeType' => $locationReference['mimeType'] ?? 'image/png',
                 'aspectRatio' => $aspectRatio,
-                'resolution' => $resolution,
+                'resolution' => $modelResolution,
             ]);
 
             // Build location details for enhanced consistency
@@ -987,7 +987,7 @@ EOT;
                     'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $locationReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
-                    'resolution' => $resolution,
+                    'resolution' => $modelResolution,
                 ]
             );
 
@@ -1045,7 +1045,7 @@ EOT;
                 'hasStyleDescription' => !empty($styleReference['styleDescription']),
                 'mimeType' => $styleReference['mimeType'] ?? 'image/png',
                 'aspectRatio' => $aspectRatio,
-                'resolution' => $resolution,
+                'resolution' => $modelResolution,
             ]);
 
             // IMPROVED PROMPT: Use 6-element style preservation based on Gemini 2.5 Flash best practices
@@ -1124,7 +1124,7 @@ EOT;
                     'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $styleReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
-                    'resolution' => $resolution,
+                    'resolution' => $modelResolution,
                 ]
             );
 
@@ -1229,8 +1229,8 @@ EOT;
             'metadata' => [
                 'prompt' => $prompt,
                 'model' => $modelId,
-                'width' => $resolution['width'],
-                'height' => $resolution['height'],
+                'width' => $resolutionArray['width'],
+                'height' => $resolutionArray['height'],
                 'aspectRatio' => $project->aspect_ratio,
             ],
         ]);
