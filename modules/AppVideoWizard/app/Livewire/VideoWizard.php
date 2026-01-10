@@ -7330,6 +7330,9 @@ class VideoWizard extends Component
 
     /**
      * Generate location reference.
+     *
+     * Creates an EMPTY environment reference image for location consistency.
+     * Uses architectural photography techniques and explicit element preservation.
      */
     public function generateLocationReference(int $index): void
     {
@@ -7345,44 +7348,81 @@ class VideoWizard extends Component
         try {
             $imageService = app(ImageGenerationService::class);
 
-            // Build EMPTY ENVIRONMENT prompt - NO PEOPLE WHATSOEVER
-            // This is a location reference, characters will be composited in scene generation
-            $promptParts = [
-                // Strong opening emphasizing empty environment
-                'EMPTY ENVIRONMENT ONLY - Cinematic wide establishing shot of an uninhabited location',
-                'Architectural photography style with NO human presence',
+            // Extract location details
+            $locationType = $location['type'] ?? 'interior';
+            $timeOfDay = $location['timeOfDay'] ?? 'day';
+            $weather = $location['weather'] ?? 'clear';
+            $mood = $location['mood'] ?? 'neutral';
+            $description = $location['description'] ?? '';
 
-                // Location details
-                $location['description'],
-                ucfirst($location['type']) . ' environment',
-                ucfirst($location['timeOfDay']) . ' natural lighting',
-            ];
+            // Build time-of-day specific lighting
+            $lightingDesc = match($timeOfDay) {
+                'dawn' => 'soft golden dawn light streaming through, warm color temperature, gentle shadows',
+                'morning' => 'bright morning natural light, clean shadows, fresh atmosphere',
+                'noon' => 'high noon lighting with defined shadows, neutral color temperature',
+                'afternoon' => 'warm afternoon golden hour approaching, rich warm tones',
+                'dusk' => 'dramatic dusk lighting, orange and purple sky tones, long shadows',
+                'night' => 'night scene with practical lighting sources (lamps, neon, moonlight), deep shadows',
+                'golden_hour' => 'perfect golden hour, warm amber light, cinematic lens flares, long dramatic shadows',
+                'blue_hour' => 'blue hour twilight, cool blue tones mixing with warm artificial lights',
+                default => 'natural daylight with soft shadows',
+            };
 
-            if (!empty($location['weather']) && $location['weather'] !== 'clear') {
-                $promptParts[] = ucfirst($location['weather']) . ' weather atmosphere';
+            // Build weather atmosphere
+            $weatherDesc = match($weather) {
+                'rain' => 'rain falling, wet reflective surfaces, puddles on ground, misty atmosphere',
+                'snow' => 'snow falling or fresh snow on surfaces, cold blue tint, frosted textures',
+                'fog' => 'atmospheric fog, reduced visibility, mysterious depth layers',
+                'cloudy' => 'overcast sky, soft diffused lighting, no harsh shadows',
+                'stormy' => 'dramatic storm clouds, moody lighting, wind-blown elements',
+                default => '',
+            };
+
+            // Build structured architectural photography prompt
+            $prompt = <<<EOT
+EMPTY UNINHABITED ENVIRONMENT - Professional architectural photography reference shot.
+
+LOCATION: {$description}
+TYPE: {$locationType} environment
+
+ARCHITECTURAL ELEMENTS TO CAPTURE:
+1. Structural forms - walls, floors, ceilings, doorways, windows, columns
+2. Material textures - surface finishes clearly visible (wood grain, concrete, brick, glass, metal)
+3. Spatial depth - clear foreground, midground, background layering
+4. Architectural details - moldings, fixtures, ornaments, signage
+5. Environmental props - furniture, objects that define the space
+6. Color palette - dominant colors and accent tones of the location
+7. Atmosphere - {$mood} mood with appropriate visual weight
+
+LIGHTING: {$lightingDesc}
+EOT;
+
+            if (!empty($weatherDesc)) {
+                $prompt .= "\nWEATHER ATMOSPHERE: {$weatherDesc}";
             }
 
-            if (!empty($location['mood'])) {
-                $promptParts[] = ucfirst($location['mood']) . ' mood and atmosphere';
-            }
+            $prompt .= <<<EOT
 
-            // Photorealistic quality markers
-            $promptParts = array_merge($promptParts, [
-                'Ultra wide angle lens composition showing full environment',
-                '8K UHD, photorealistic, hyperdetailed environment',
-                'Shot on ARRI Alexa with Zeiss Master Prime wide lens',
-                'Professional architectural/landscape cinematography',
-                'Natural film grain, realistic textures, cinematic color grading',
-                'Deep depth of field showing environment details',
-            ]);
 
-            // CRITICAL: Explicit empty environment requirements
-            $promptParts[] = 'CRITICAL REQUIREMENT: This is an EMPTY location reference - absolutely NO people, NO humans, NO characters, NO figures, NO silhouettes, NO shadows of people, completely uninhabited space';
+CAMERA SPECIFICATIONS:
+- Shot on ARRI Alexa Mini LF with Zeiss Master Prime 21mm wide-angle lens
+- Wide establishing shot showing full environment context
+- Deep depth of field (f/8-f/11) for sharp environmental details throughout
+- Eye-level or slightly elevated camera position
+- Professional architectural photography composition
 
-            $prompt = implode('. ', $promptParts);
+QUALITY REQUIREMENTS:
+- 8K UHD photorealistic quality
+- Hyperdetailed textures on all surfaces
+- Natural film grain (subtle 35mm look)
+- Cinematic color grading matching {$timeOfDay} lighting
+- Authentic material rendering (no plastic/CGI look)
 
-            // Strong negative prompt for location references
-            $negativePrompt = 'person, people, human, man, woman, child, figure, silhouette, face, body, crowd, pedestrian, character, actor, model, portrait, hands, feet, anyone, somebody, individual, group, cartoon, anime, illustration, text, watermark, logo';
+CRITICAL: This is an EMPTY LOCATION REFERENCE - absolutely ZERO humans, NO people, NO figures, NO silhouettes, NO shadows of people, NO mannequins, completely uninhabited space. The environment must be pristine and ready for characters to be composited in later.
+EOT;
+
+            // Comprehensive negative prompt for empty environments
+            $negativePrompt = 'person, people, human, man, woman, child, baby, figure, silhouette, shadow of person, face, body, hands, feet, crowd, pedestrian, character, actor, model, portrait, mannequin, statue of person, sculpture of human, anyone, somebody, individual, group of people, passerby, bystander, cartoon, anime, illustration, 3D render, CGI, video game, text, watermark, logo, signature, blurry, low quality, oversaturated';
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
@@ -7393,7 +7433,7 @@ class VideoWizard extends Component
                     ], [
                         'model' => 'nanobanana-pro',
                         'sceneIndex' => null, // Location references don't belong to any scene
-                        'negativePrompt' => $negativePrompt, // Pass negative prompt for HiDream
+                        'negativePrompt' => $negativePrompt,
                         'isLocationReference' => true, // Flag for empty environment mode
                     ]);
 
