@@ -1,5 +1,5 @@
 {{-- Step 6: Assembly Studio - Full-Screen Professional Editor --}}
-{{-- Note: Video Preview Engine scripts are loaded in video-wizard.blade.php --}}
+{{-- Inline script ensures previewController is available before Alpine evaluates x-data --}}
 
 @php
     $assemblyStats = $this->getAssemblyStats();
@@ -7,48 +7,219 @@
     $canExport = !$isMultiShot || $assemblyStats['isReady'];
 @endphp
 
-<div
-    class="vw-assembly-fullscreen"
-    x-data="{
-        ...(typeof previewController === 'function' ? previewController(@js($this->getPreviewInitData())) : {
-            // Fallback properties if previewController isn't loaded yet
+{{-- Load VideoPreviewEngine first (if not already loaded) --}}
+<script>
+if (typeof VideoPreviewEngine === 'undefined') {
+    document.write('<script src="{{ asset('modules/appvideowizard/js/video-preview-engine.js') }}"><\/script>');
+}
+</script>
+
+{{-- Define previewController inline to guarantee availability before Alpine x-data --}}
+<script>
+if (typeof window.previewController !== 'function') {
+    window.previewController = function(initialData) {
+        initialData = initialData || {};
+        return {
             engine: null,
             isReady: false,
             isLoading: false,
             isPlaying: false,
             currentTime: 0,
-            totalDuration: {{ $this->getTotalDuration() ?? 0 }},
+            totalDuration: initialData.totalDuration || 0,
             loadProgress: 0,
             currentSceneIndex: 0,
-            totalScenes: {{ count($script['scenes'] ?? []) }},
+            totalScenes: (initialData.scenes || []).length,
             canvasWidth: 1280,
             canvasHeight: 720,
-            aspectRatio: '{{ $aspectRatio ?? '16:9' }}',
-            captionsEnabled: {{ ($assembly['captions']['enabled'] ?? true) ? 'true' : 'false' }},
-            musicEnabled: {{ ($assembly['music']['enabled'] ?? false) ? 'true' : 'false' }},
-            scenes: @js($this->getPreviewScenes()),
+            aspectRatio: initialData.aspectRatio || '16:9',
+            captionsEnabled: initialData.captionsEnabled !== false,
+            captionStyle: initialData.captionStyle || 'karaoke',
+            captionPosition: initialData.captionPosition || 'bottom',
+            captionSize: initialData.captionSize || 1.0,
+            musicEnabled: initialData.musicEnabled || false,
+            musicVolume: initialData.musicVolume || 30,
+            musicUrl: initialData.musicUrl || null,
+            scenes: initialData.scenes || [],
+
             init() {
-                console.warn('[Assembly] previewController not loaded, using fallback. Check if scripts are loaded.');
+                this.setAspectRatio(this.aspectRatio);
+                this.setupLivewireListeners();
+                if (this.$el) {
+                    this.$el.addEventListener('preview:load', () => this.loadPreview());
+                    this.$el.addEventListener('preview:play', () => this.play());
+                    this.$el.addEventListener('preview:pause', () => this.pause());
+                }
             },
-            formatTime(seconds) {
-                if (!seconds || isNaN(seconds)) return '0:00';
-                const mins = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-                return mins + ':' + secs.toString().padStart(2, '0');
+
+            setAspectRatio(ratio) {
+                var ratios = {
+                    '16:9': { width: 1280, height: 720 },
+                    '9:16': { width: 720, height: 1280 },
+                    '1:1': { width: 1080, height: 1080 },
+                    '4:5': { width: 1080, height: 1350 },
+                    '4:3': { width: 1280, height: 960 }
+                };
+                var dims = ratios[ratio] || ratios['16:9'];
+                this.canvasWidth = dims.width;
+                this.canvasHeight = dims.height;
+                this.aspectRatio = ratio;
+                if (this.engine) {
+                    this.engine.resize(dims.width, dims.height);
+                }
+                if (this.$refs && this.$refs.previewCanvas) {
+                    var wrapper = this.$refs.previewCanvas.parentElement;
+                    if (wrapper) {
+                        wrapper.style.aspectRatio = ratio.replace(':', '/');
+                    }
+                }
             },
-            togglePlay() { console.warn('[Assembly] togglePlay called but no engine'); },
-            play() { console.warn('[Assembly] play called but no engine'); },
-            pause() { console.warn('[Assembly] pause called but no engine'); },
-            seek(time) { console.warn('[Assembly] seek called but no engine'); },
+
+            setupLivewireListeners() {
+                if (typeof Livewire === 'undefined') return;
+                var self = this;
+                Livewire.on('caption-setting-updated', function(data) { self.updateCaptionSetting(data.key, data.value); });
+                Livewire.on('music-setting-updated', function(data) { self.updateMusicSetting(data.key, data.value); });
+                Livewire.on('preview-scenes-updated', function(data) { if (data && data.scenes) self.updateScenes(data.scenes); });
+                window.addEventListener('seek-preview', function(e) { if (e.detail && typeof e.detail.time !== 'undefined') self.seek(e.detail.time); });
+                window.addEventListener('toggle-preview-playback', function() { self.togglePlay(); });
+            },
+
+            async loadPreview() {
+                if (this.isLoading || this.isReady) return;
+                this.isLoading = true;
+                this.loadProgress = 0;
+                var self = this;
+
+                try {
+                    var canvas = this.$refs.previewCanvas;
+                    if (!canvas) throw new Error('Canvas element not found');
+                    if (typeof VideoPreviewEngine === 'undefined') throw new Error('VideoPreviewEngine not loaded');
+                    var scenes = this.scenes;
+                    if (!scenes || scenes.length === 0) throw new Error('No scenes available');
+
+                    console.log('[PreviewController] Loading preview with', scenes.length, 'scenes');
+
+                    this.engine = new VideoPreviewEngine(canvas, {
+                        width: this.canvasWidth,
+                        height: this.canvasHeight,
+                        onTimeUpdate: function(time) {
+                            self.currentTime = time;
+                            window.dispatchEvent(new CustomEvent('preview-time-update', { detail: { time: time } }));
+                        },
+                        onSceneChange: function(index) {
+                            self.currentSceneIndex = index;
+                            window.dispatchEvent(new CustomEvent('preview-scene-change', { detail: { index: index } }));
+                        },
+                        onEnded: function() {
+                            self.isPlaying = false;
+                            window.dispatchEvent(new CustomEvent('preview-ended'));
+                        },
+                        onLoadProgress: function(progress) {
+                            self.loadProgress = Math.round(progress * 100);
+                        },
+                        onReady: function() {
+                            self.isLoading = false;
+                            self.isReady = true;
+                            self.totalDuration = self.engine.totalDuration;
+                            self.totalScenes = self.engine.scenes.length;
+                            window.dispatchEvent(new CustomEvent('preview-ready', {
+                                detail: { duration: self.totalDuration, scenes: self.totalScenes }
+                            }));
+                            console.log('[PreviewController] Preview ready. Duration:', self.totalDuration);
+                        }
+                    });
+
+                    await this.engine.loadScenes(scenes);
+                    this.applyCaptionSettings();
+                    if (this.musicEnabled && this.musicUrl) {
+                        await this.applyMusicSettings();
+                    }
+                } catch (error) {
+                    console.error('[PreviewController] Failed to load preview:', error);
+                    this.isLoading = false;
+                    window.dispatchEvent(new CustomEvent('preview-error', { detail: { message: error.message } }));
+                    alert('Preview Error: ' + error.message);
+                }
+            },
+
+            updateScenes(newScenes) {
+                this.scenes = newScenes || [];
+                this.totalScenes = this.scenes.length;
+                if (this.engine && this.isReady) this.refreshScenes();
+            },
+
+            async refreshScenes() {
+                if (!this.engine || !this.isReady) return;
+                if (this.scenes && this.scenes.length > 0) {
+                    await this.engine.loadScenes(this.scenes);
+                    this.totalScenes = this.engine.scenes.length;
+                    this.totalDuration = this.engine.totalDuration;
+                }
+            },
+
+            applyCaptionSettings() {
+                if (!this.engine) return;
+                this.engine.captionsEnabled = this.captionsEnabled;
+                this.engine.captionStyle = this.captionStyle;
+                this.engine.captionPosition = this.captionPosition;
+                this.engine.captionSize = this.captionSize;
+                if (this.isReady && !this.isPlaying) this.engine._renderFrame();
+            },
+
+            updateCaptionSetting(key, value) {
+                if (!this.engine) return;
+                switch (key) {
+                    case 'enabled': this.captionsEnabled = value; this.engine.setCaptionsEnabled(value); break;
+                    case 'style': this.captionStyle = value; this.engine.setCaptionStyle(value); break;
+                    case 'position': this.captionPosition = value; this.engine.setCaptionPosition(value); break;
+                    case 'size': this.captionSize = value; this.engine.setCaptionSize(value); break;
+                    default: if (this.engine[('caption' + key.charAt(0).toUpperCase() + key.slice(1))] !== undefined) { this.engine['caption' + key.charAt(0).toUpperCase() + key.slice(1)] = value; this.engine._renderFrame(); }
+                }
+            },
+
+            async applyMusicSettings() {
+                if (!this.engine) return;
+                if (this.musicEnabled && this.musicUrl) {
+                    try { await this.engine.setBackgroundMusic(this.musicUrl, this.musicVolume / 100); }
+                    catch (e) { console.warn('Failed to load music:', e); }
+                } else {
+                    this.engine.stopBackgroundMusic();
+                }
+            },
+
+            updateMusicSetting(key, value) {
+                if (!this.engine) return;
+                switch (key) {
+                    case 'enabled': this.musicEnabled = value; if (!value) this.engine.stopBackgroundMusic(); else if (this.musicUrl) this.applyMusicSettings(); break;
+                    case 'volume': this.musicVolume = value; if (this.engine.musicElement) this.engine.musicElement.volume = value / 100; break;
+                    case 'url': this.musicUrl = value; if (this.musicEnabled && value) this.applyMusicSettings(); break;
+                }
+            },
+
+            togglePlay() { if (!this.engine || !this.isReady) return; if (this.isPlaying) this.pause(); else this.play(); },
+            play() { if (!this.engine || !this.isReady) return; this.engine.play(); this.isPlaying = true; },
+            pause() { if (!this.engine) return; this.engine.pause(); this.isPlaying = false; },
+            stop() { if (!this.engine) return; this.engine.stop(); this.isPlaying = false; this.currentTime = 0; },
+            seek(time) { if (!this.engine || !this.isReady) return; var t = Math.max(0, Math.min(time, this.totalDuration)); this.engine.seek(t); this.currentTime = t; },
             seekStart() { this.seek(0); },
             seekEnd() { this.seek(this.totalDuration); },
-            jumpToScene(index) { this.currentSceneIndex = index; },
-            seekToScene(index) { this.currentSceneIndex = index; },
-            loadPreview() {
-                console.error('[Assembly] loadPreview failed - previewController not loaded. Ensure video-preview-engine.js and preview-controller.js are included.');
-                alert('Preview could not load. Please refresh the page and try again.');
-            }
-        }),
+            jumpToScene(idx) { if (!this.engine || !this.isReady) return; this.engine.jumpToScene(idx); this.currentSceneIndex = idx; },
+            seekToScene(idx) { if (!this.engine || !this.isReady || idx < 0 || idx >= this.engine.scenes.length) return; var t = 0; for (var i = 0; i < idx; i++) t += this.engine.scenes[i].duration || 5; this.seek(t); this.currentSceneIndex = idx; },
+            formatTime(s) { if (!s || isNaN(s)) return '0:00'; var m = Math.floor(s / 60); var sec = Math.floor(s % 60); return m + ':' + sec.toString().padStart(2, '0'); },
+            formatTimecode(s) { if (!s || isNaN(s)) return '00:00:00'; var h = Math.floor(s / 3600); var m = Math.floor((s % 3600) / 60); var sec = Math.floor(s % 60); if (h > 0) return h + ':' + m.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0'); return m + ':' + sec.toString().padStart(2, '0'); },
+            getCurrentScene() { if (!this.engine || !this.engine.scenes[this.currentSceneIndex]) return null; return this.engine.scenes[this.currentSceneIndex]; },
+            setVolume(voice, music) { if (this.engine) this.engine.setVolume(voice || 1.0, music || 0.3); },
+            destroy() { if (this.engine) { this.engine.destroy(); this.engine = null; } this.isReady = false; this.isPlaying = false; this.currentTime = 0; this.totalDuration = 0; }
+        };
+    };
+    console.log('[Assembly] previewController defined inline');
+}
+</script>
+
+<div
+    class="vw-assembly-fullscreen"
+    x-data="{
+        ...previewController(@js($this->getPreviewInitData())),
         activeTab: 'scenes',
         musicEnabled: @js($assembly['music']['enabled'] ?? false),
         captionsEnabled: @js($assembly['captions']['enabled'] ?? true),
