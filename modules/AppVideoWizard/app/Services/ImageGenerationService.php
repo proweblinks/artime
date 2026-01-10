@@ -22,9 +22,11 @@ class ImageGenerationService
     /**
      * Model configurations with token costs matching reference implementation.
      *
-     * Models:
-     * - gemini-2.5-flash-image: Nano Banana - Fast, cost-effective, good quality
-     * - gemini-3-pro-image-preview: Nano Banana Pro - Best quality, supports up to 5 human refs
+     * Correct Model IDs (as of Jan 2026):
+     * - gemini-2.5-flash-image: Nano Banana - Fast, cost-effective, up to 1024px
+     * - gemini-3-pro-image-preview: Nano Banana Pro - Best quality, 4K, supports up to 5 human refs
+     *
+     * @see https://ai.google.dev/gemini-api/docs/image-generation
      */
     public const IMAGE_MODELS = [
         'hidream' => [
@@ -36,11 +38,11 @@ class ImageGenerationService
         ],
         'nanobanana-pro' => [
             'name' => 'NanoBanana Pro',
-            'description' => 'Best quality, superior face consistency (up to 5 reference faces)',
+            'description' => 'Best quality, superior face consistency (up to 5 reference faces), 4K output',
             'tokenCost' => 3,
             'provider' => 'gemini',
-            'model' => 'gemini-2.5-flash-preview-05-20', // Best available model with image generation
-            'resolution' => '2K', // 1K, 2K, 4K - Higher = better quality
+            'model' => 'gemini-3-pro-image-preview', // Gemini 3 Pro Image (Nano Banana Pro)
+            'resolution' => '4K', // Pro supports up to 4K
             'quality' => 'hd',
             'async' => false,
             'maxHumanRefs' => 5, // Supports up to 5 human reference images
@@ -50,11 +52,11 @@ class ImageGenerationService
             'description' => 'Quick drafts, good balance of speed and quality',
             'tokenCost' => 1,
             'provider' => 'gemini',
-            'model' => 'gemini-2.5-flash-preview-05-20', // Updated to 2.5 flash
-            'resolution' => '1K', // Lower res for drafts
+            'model' => 'gemini-2.5-flash-image', // Gemini 2.5 Flash Image (Nano Banana)
+            'resolution' => '1K', // Flash supports up to 1024px
             'quality' => 'basic',
             'async' => false,
-            'maxHumanRefs' => 3, // Recommended max for 2.5 flash
+            'maxHumanRefs' => 3, // Recommended max for flash
         ],
     ];
 
@@ -865,7 +867,7 @@ EOT;
                 $characterReference['base64'],
                 $faceConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $characterReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
                     'resolution' => $resolution,
@@ -982,7 +984,7 @@ EOT;
                 $locationReference['base64'],
                 $locationConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $locationReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
                     'resolution' => $resolution,
@@ -1119,7 +1121,7 @@ EOT;
                 $styleReference['base64'],
                 $styleConsistencyPrompt,
                 [
-                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-preview-05-20',
+                    'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
                     'mimeType' => $styleReference['mimeType'] ?? 'image/png',
                     'aspectRatio' => $aspectRatio,
                     'resolution' => $resolution,
@@ -1175,7 +1177,7 @@ EOT;
 
         // Standard generation without character, location, or style reference
         $result = $this->geminiService->generateImage($prompt, [
-            'model' => $modelConfig['model'] ?? 'gemini-2.0-flash-exp-image-generation',
+            'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
             'aspectRatio' => $aspectRatio,
             'count' => 1,
             'style' => $this->getStyleFromVisualStyle($project->storyboard['visualStyle'] ?? null),
@@ -2163,7 +2165,7 @@ EOT;
             $prompt = "Upscale this image to {$targetResolution} resolution while maintaining perfect quality, details, and sharpness. Enhance clarity and detail. Do not change the content, composition, or style - only improve resolution and quality.";
 
             $result = $this->geminiService->generateImageFromImage($base64Image, $prompt, [
-                'model' => 'gemini-2.0-flash-exp-image-generation',
+                'model' => 'gemini-2.5-flash-image',
                 'responseType' => 'image',
             ]);
 
@@ -2219,7 +2221,7 @@ EOT;
 
             // Use Gemini for inpainting/editing
             $result = $this->geminiService->editImageWithMask($base64Image, $cleanMaskData, $fullPrompt, [
-                'model' => 'gemini-2.0-flash-exp-image-generation',
+                'model' => 'gemini-2.5-flash-image',
             ]);
 
             if (!empty($result['imageData'])) {
@@ -2236,7 +2238,7 @@ EOT;
 
             // Fallback: If mask editing not supported, try image-to-image generation
             $fallbackResult = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
-                'model' => 'gemini-2.0-flash-exp-image-generation',
+                'model' => 'gemini-2.5-flash-image',
                 'responseType' => 'image',
             ]);
 
