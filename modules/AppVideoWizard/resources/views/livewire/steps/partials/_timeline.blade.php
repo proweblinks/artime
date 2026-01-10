@@ -175,6 +175,50 @@
     Motion Preferences:
     - @media (prefers-reduced-motion) disables animations
 
+    ========================================
+    TESTING INFRASTRUCTURE (Phase E)
+    ========================================
+
+    E2E Testing Support:
+    - data-testid attributes on key elements:
+      - timeline-editor: Main container
+      - timeline-toolbar: Central toolbar
+      - playhead: Timeline playhead/scrubber
+      - btn-undo, btn-redo: Undo/Redo buttons
+      - btn-delete, btn-copy, btn-paste: Clipboard actions
+      - btn-ripple: Ripple mode toggle
+      - btn-tool-select, btn-tool-split: Tool selection
+      - tool-selector: Tool radiogroup
+
+    JavaScript Testing API:
+    - window.__timelineTestAPI available in test environments
+    - Activated when: window.Cypress, window.__TESTING__, or [data-test-mode] present
+    - API methods:
+      - getState(): Returns current component state
+      - actions.seek(time): Seek to time
+      - actions.selectClip(track, index): Select clip
+      - actions.deleteSelected(): Delete selection
+      - actions.undo() / actions.redo(): History navigation
+      - actions.setTool(tool): Set active tool
+      - actions.addMarker(time, color, name): Add marker
+      - getElements(): Get DOM element references
+
+    Test Framework Compatibility:
+    - Cypress: Automatic detection via window.Cypress
+    - Playwright: Set window.__TESTING__ = true before navigation
+    - Laravel Dusk: Add data-test-mode attribute to body
+
+    Example Test (Cypress):
+    ```javascript
+    cy.window().then(win => {
+        const api = win.__timelineTestAPI;
+        const state = api.getState();
+        expect(state.currentTime).to.equal(0);
+        api.actions.seek(5);
+        expect(api.getState().currentTime).to.equal(5);
+    });
+    ```
+
 --}}
 
 <div
@@ -182,6 +226,7 @@
     role="application"
     aria-label="{{ __('Video Timeline Editor') }}"
     aria-describedby="timeline-instructions"
+    data-testid="timeline-editor"
     x-data="{
         // Synced from parent previewController
         currentTime: 0,
@@ -2869,11 +2914,64 @@
             }, { passive: true });
         }
 
+        // ===== Phase E: Testing Hooks =====
+        // Expose component state for E2E testing (only in test environments)
+        if (window.Cypress || window.__TESTING__ || document.querySelector('[data-test-mode]')) {
+            window.__timelineTestAPI = {
+                // State getters
+                getState: () => ({
+                    currentTime,
+                    totalDuration,
+                    zoom,
+                    selectedClips: [...selectedClips],
+                    selectedClip,
+                    selectedTrack,
+                    currentTool,
+                    rippleMode,
+                    snapEnabled,
+                    markers: [...markers],
+                    canUndo,
+                    canRedo,
+                    historyIndex,
+                    historyLength: history.length
+                }),
+
+                // Actions for testing
+                actions: {
+                    seek: (time) => seek(time),
+                    selectClip: (track, index) => selectClip(track, index),
+                    deleteSelected: () => deleteSelectedClips(),
+                    undo: () => undo(),
+                    redo: () => redo(),
+                    setTool: (tool) => setTool(tool),
+                    toggleRipple: () => toggleRippleMode(),
+                    toggleSnap: () => { snapEnabled = !snapEnabled; },
+                    addMarker: (time, color, name) => addMarker(time, color, name),
+                    splitAtPlayhead: () => splitAtPlayhead(),
+                    zoomIn: () => zoomIn(),
+                    zoomOut: () => zoomOut(),
+                    zoomFit: () => zoomFit()
+                },
+
+                // DOM queries
+                getElements: () => ({
+                    toolbar: document.querySelector('[data-testid=\"timeline-toolbar\"]'),
+                    playhead: document.querySelector('[data-testid=\"playhead\"]'),
+                    clips: document.querySelectorAll('.vw-clip'),
+                    markers: document.querySelectorAll('.vw-timeline-marker')
+                })
+            };
+        }
+
         // Cleanup on unmount
         window.addEventListener('beforeunload', () => {
             terminateWorkers();
             if (_resizeObserver) {
                 _resizeObserver.disconnect();
+            }
+            // Clean up test API
+            if (window.__timelineTestAPI) {
+                delete window.__timelineTestAPI;
             }
         });
     "
@@ -2903,7 +3001,7 @@
         </div>
 
         {{-- Center: Edit Tools --}}
-        <div class="vw-toolbar-section vw-toolbar-center">
+        <div class="vw-toolbar-section vw-toolbar-center" data-testid="timeline-toolbar">
             <div class="vw-tool-group">
                 <button
                     type="button"
@@ -2911,6 +3009,7 @@
                     :disabled="!canUndo"
                     class="vw-tool-btn"
                     title="{{ __('Undo') }} (Ctrl+Z)"
+                    data-testid="btn-undo"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 10h10a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H8M3 10l4-4M3 10l4 4"/>
@@ -2922,6 +3021,7 @@
                     :disabled="!canRedo"
                     class="vw-tool-btn"
                     title="{{ __('Redo') }} (Ctrl+Y)"
+                    data-testid="btn-redo"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10H11a5 5 0 0 0-5 5v0a5 5 0 0 0 5 5h5M21 10l-4-4M21 10l-4 4"/>
@@ -2982,6 +3082,7 @@
                 class="vw-tool-btn vw-ripple-btn"
                 title="{{ __('Ripple Edit Mode') }} - Auto-shift clips"
                 aria-label="{{ __('Toggle Ripple Edit Mode') }}"
+                data-testid="btn-ripple"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M2 12h4l3-9 4 18 3-9h6"/>
@@ -2992,7 +3093,7 @@
             <div class="vw-toolbar-divider"></div>
 
             {{-- Phase 3: Tool Selection --}}
-            <div class="vw-tool-group vw-tool-selector" role="radiogroup" aria-label="{{ __('Timeline Tools') }}">
+            <div class="vw-tool-group vw-tool-selector" role="radiogroup" aria-label="{{ __('Timeline Tools') }}" data-testid="tool-selector">
                 <button
                     type="button"
                     @click="setTool('select')"
@@ -3003,6 +3104,7 @@
                     aria-label="{{ __('Selection Tool') }}"
                     role="radio"
                     :aria-checked="currentTool === 'select'"
+                    data-testid="btn-tool-select"
                 >
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
@@ -3018,6 +3120,7 @@
                     aria-label="{{ __('Split Tool') }}"
                     role="radio"
                     :aria-checked="currentTool === 'split'"
+                    data-testid="btn-tool-split"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="2" x2="12" y2="22"/>
@@ -3050,6 +3153,7 @@
                 :disabled="selectedClips.length === 0 && selectedClip === null"
                 class="vw-tool-btn vw-tool-danger"
                 title="{{ __('Delete Selected') }} (Del)"
+                data-testid="btn-delete"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/>
@@ -3067,6 +3171,7 @@
                     :disabled="selectedClips.length === 0"
                     class="vw-tool-btn"
                     title="{{ __('Copy') }} (Ctrl+C)"
+                    data-testid="btn-copy"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -3079,6 +3184,7 @@
                     :disabled="clipboard.length === 0"
                     class="vw-tool-btn"
                     title="{{ __('Paste') }} (Ctrl+V)"
+                    data-testid="btn-paste"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
@@ -3528,6 +3634,7 @@
                     @keydown.right.prevent="seek(Math.min(totalDuration, currentTime + 1))"
                     @keydown.home.prevent="seek(0)"
                     @keydown.end.prevent="seek(totalDuration)"
+                    data-testid="playhead"
                 >
                     <div class="vw-playhead-handle">
                         <svg viewBox="0 0 12 16" fill="currentColor" aria-hidden="true">
