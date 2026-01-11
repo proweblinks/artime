@@ -38,35 +38,58 @@
 
          async captureCurrentFrame() {
              const video = this.$refs.captureVideo;
-             if (!video || !this.videoLoaded) return;
+             if (!video || !this.videoLoaded) {
+                 console.warn('[FrameCapture] Video not ready');
+                 return;
+             }
 
              video.pause();
              this.isCapturing = true;
+             this.corsBlocked = false;
 
              try {
+                 // Try client-side canvas capture
                  const canvas = document.createElement('canvas');
                  canvas.width = video.videoWidth || 1280;
                  canvas.height = video.videoHeight || 720;
                  const ctx = canvas.getContext('2d');
                  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                 // This will throw SecurityError if CORS blocked
                  const frameDataUrl = canvas.toDataURL('image/png');
+
+                 console.log('[FrameCapture] Client-side capture success');
                  this.capturedFrame = frameDataUrl;
-                 this.corsBlocked = false;
-                 $wire.setCapturedFrame(frameDataUrl);
-             } catch (error) {
-                 this.corsBlocked = true;
-                 try {
-                     const result = await $wire.captureFrameServerSide(video.currentTime);
-                     if (result?.success && result?.frameUrl) {
-                         this.capturedFrame = result.frameUrl;
-                         $wire.setCapturedFrame(result.frameUrl);
-                     }
-                 } catch (e) {
-                     alert('Frame capture failed');
-                 }
-             } finally {
+                 await $wire.setCapturedFrame(frameDataUrl);
                  this.isCapturing = false;
+                 return;
+             } catch (clientError) {
+                 console.warn('[FrameCapture] Client-side failed (CORS):', clientError.message);
+                 this.corsBlocked = true;
              }
+
+             // Fallback to server-side capture
+             try {
+                 console.log('[FrameCapture] Trying server-side capture at:', video.currentTime);
+                 const result = await $wire.captureFrameServerSide(video.currentTime);
+
+                 console.log('[FrameCapture] Server result:', result);
+
+                 if (result && result.success && result.frameUrl) {
+                     this.capturedFrame = result.frameUrl;
+                     await $wire.setCapturedFrame(result.frameUrl);
+                     console.log('[FrameCapture] Server-side capture success');
+                 } else {
+                     const errorMsg = result?.error || 'Server capture failed';
+                     console.error('[FrameCapture] Server error:', errorMsg);
+                     alert('Frame capture failed: ' + errorMsg);
+                 }
+             } catch (serverError) {
+                 console.error('[FrameCapture] Server-side exception:', serverError);
+                 alert('Frame capture failed. FFmpeg may not be available on the server.');
+             }
+
+             this.isCapturing = false;
          },
 
          captureLastFrame() {
