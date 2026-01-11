@@ -8,6 +8,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\GenerationLogController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CinematographyController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenrePresetController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -179,11 +180,35 @@ Route::middleware(['web', 'auth'])->group(function () {
                 ->name('admin.video-wizard.cinematography.export-all');
         });
 
-        // Settings (credit costs, AI models, etc.)
+        // Settings (credit costs, AI models, etc.) - Legacy static settings
         Route::get('/settings', [VideoWizardAdminController::class, 'settings'])
             ->name('admin.video-wizard.settings');
         Route::post('/settings', [VideoWizardAdminController::class, 'updateSettings'])
             ->name('admin.video-wizard.settings.update');
+
+        // =============================================
+        // DYNAMIC SETTINGS (Shot Intelligence, Animation, etc.)
+        // =============================================
+        Route::prefix('dynamic-settings')->group(function () {
+            Route::get('/', [SettingsController::class, 'index'])
+                ->name('admin.video-wizard.dynamic-settings.index');
+            Route::post('/', [SettingsController::class, 'update'])
+                ->name('admin.video-wizard.dynamic-settings.update');
+            Route::post('/reset-category/{category}', [SettingsController::class, 'resetCategory'])
+                ->name('admin.video-wizard.dynamic-settings.reset-category');
+            Route::post('/reset-all', [SettingsController::class, 'resetAll'])
+                ->name('admin.video-wizard.dynamic-settings.reset-all');
+            Route::post('/{setting}/toggle', [SettingsController::class, 'toggle'])
+                ->name('admin.video-wizard.dynamic-settings.toggle');
+            Route::post('/seed-defaults', [SettingsController::class, 'seedDefaults'])
+                ->name('admin.video-wizard.dynamic-settings.seed-defaults');
+
+            // API endpoints for AJAX
+            Route::get('/json', [SettingsController::class, 'getJson'])
+                ->name('admin.video-wizard.dynamic-settings.json');
+            Route::post('/{setting}/update-single', [SettingsController::class, 'updateSingle'])
+                ->name('admin.video-wizard.dynamic-settings.update-single');
+        });
 
         // Clear caches
         Route::post('/clear-cache', [VideoWizardAdminController::class, 'clearCache'])

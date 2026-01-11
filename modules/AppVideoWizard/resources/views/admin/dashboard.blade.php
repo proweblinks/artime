@@ -151,6 +151,73 @@
         </div>
     </div>
 
+    <!-- Second Row - More Features -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-purple bg-opacity-10 rounded-circle p-3 me-3" style="background-color: rgba(139, 92, 246, 0.1);">
+                            <i class="fa fa-brain text-purple fs-20" style="color: #8b5cf6;"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ __('Shot Intelligence') }}</h5>
+                            <small class="text-muted">{{ __('Dynamic Settings') }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        {{ __('Configure AI shot decomposition, animation models, durations, and scene processing settings.') }}
+                    </p>
+                    <a href="{{ route('admin.video-wizard.dynamic-settings.index') }}" class="btn btn-sm" style="background-color: #8b5cf6; color: white;">
+                        {{ __('Configure') }} <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="fa fa-video text-warning fs-20"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ __('Cinematography') }}</h5>
+                            <small class="text-muted">{{ __('Shot Types & Genres') }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        {{ __('Manage genre presets, 50+ shot types, emotional beats, and camera specifications.') }}
+                    </p>
+                    <a href="{{ route('admin.video-wizard.cinematography.index') }}" class="btn btn-warning btn-sm">
+                        {{ __('Manage') }} <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="fa fa-cog text-secondary fs-20"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ __('Settings') }}</h5>
+                            <small class="text-muted">{{ __('General Config') }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        {{ __('View credit costs, AI models configuration, voices, and transition settings.') }}
+                    </p>
+                    <a href="{{ route('admin.video-wizard.settings') }}" class="btn btn-secondary btn-sm">
+                        {{ __('View Settings') }} <i class="fa fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Logs -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">

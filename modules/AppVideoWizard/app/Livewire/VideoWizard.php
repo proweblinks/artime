@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
 use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
+use Modules\AppVideoWizard\Models\VwSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -522,10 +523,11 @@ class VideoWizard extends Component
     // Multi-Shot Mode state (Hollywood-style scene → shots architecture)
     // Each scene is decomposed into multiple shots (5-10s clips)
     // Structure matches original video-creation-wizard.html
+    // NOTE: defaultShotCount is now loaded dynamically from VwSetting in mount()
     public array $multiShotMode = [
         'enabled' => false,
-        'defaultShotCount' => 3,          // Default shots per scene (2-6)
-        'autoDecompose' => false,         // Auto-decompose scenes when enabled
+        'defaultShotCount' => 3,          // Default shots per scene (dynamic from VwSetting)
+        'autoDecompose' => false,         // Auto-decompose scenes when enabled (dynamic from VwSetting)
         'decomposedScenes' => [],         // { sceneId: { shots: [], consistencyAnchors: {}, status: 'pending'|'ready' } }
         'batchStatus' => null,            // Batch decomposition status
         'globalVisualProfile' => null,    // Global visual style for all shots
@@ -702,11 +704,141 @@ class VideoWizard extends Component
      */
     public function mount($project = null)
     {
+        // Load dynamic settings from database (VwSetting)
+        $this->loadDynamicSettings();
+
         // Handle both WizardProject instance and null
         if ($project instanceof WizardProject && $project->exists) {
             $this->loadProject($project);
             $this->recoverPendingJobs($project);
         }
+    }
+
+    /**
+     * Load dynamic settings from VwSetting model.
+     * This initializes all configurable values from the admin panel.
+     */
+    protected function loadDynamicSettings(): void
+    {
+        try {
+            // Shot Intelligence settings
+            $this->multiShotMode['defaultShotCount'] = (int) VwSetting::getValue('shot_default_count', 3);
+            $this->multiShotMode['autoDecompose'] = (bool) VwSetting::getValue('scene_auto_decompose', false);
+            $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
+
+            // Log that settings were loaded (helpful for debugging)
+            Log::debug('VideoWizard: Dynamic settings loaded', [
+                'defaultShotCount' => $this->multiShotMode['defaultShotCount'],
+                'autoDecompose' => $this->multiShotMode['autoDecompose'],
+            ]);
+        } catch (\Throwable $e) {
+            // If VwSetting table doesn't exist yet, use defaults
+            Log::warning('VideoWizard: Could not load dynamic settings, using defaults', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get a dynamic setting value with fallback.
+     * This is the main entry point for accessing VwSetting values.
+     *
+     * @param string $slug Setting slug
+     * @param mixed $default Default value if setting not found
+     * @return mixed
+     */
+    protected function getDynamicSetting(string $slug, mixed $default = null): mixed
+    {
+        try {
+            return VwSetting::getValue($slug, $default);
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+
+    /**
+     * Get shot count limits from dynamic settings.
+     *
+     * @return array ['min' => int, 'max' => int, 'default' => int]
+     */
+    protected function getShotCountLimits(): array
+    {
+        return [
+            'min' => (int) $this->getDynamicSetting('shot_min_per_scene', 1),
+            'max' => (int) $this->getDynamicSetting('shot_max_per_scene', 20),
+            'default' => (int) $this->getDynamicSetting('shot_default_count', 3),
+        ];
+    }
+
+    /**
+     * Get available durations for an animation model from dynamic settings.
+     *
+     * @param string $model 'minimax' or 'multitalk'
+     * @return array Array of available durations in seconds
+     */
+    protected function getAvailableDurations(string $model = 'minimax'): array
+    {
+        $settingSlug = $model === 'multitalk'
+            ? 'animation_multitalk_durations'
+            : 'animation_minimax_durations';
+
+        $defaults = $model === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
+
+        $durations = $this->getDynamicSetting($settingSlug, $defaults);
+
+        // Ensure we have an array of integers
+        if (is_string($durations)) {
+            $durations = json_decode($durations, true) ?? $defaults;
+        }
+
+        return array_map('intval', (array) $durations);
+    }
+
+    /**
+     * Get default duration for an animation model from dynamic settings.
+     *
+     * @param string $model 'minimax' or 'multitalk'
+     * @return int Default duration in seconds
+     */
+    protected function getDefaultDuration(string $model = 'minimax'): int
+    {
+        $settingSlug = $model === 'multitalk'
+            ? 'animation_multitalk_default_duration'
+            : 'animation_minimax_default_duration';
+
+        $default = $model === 'multitalk' ? 10 : 6;
+
+        return (int) $this->getDynamicSetting($settingSlug, $default);
+    }
+
+    /**
+     * Check if AI Shot Intelligence is enabled.
+     *
+     * @return bool
+     */
+    protected function isAiShotIntelligenceEnabled(): bool
+    {
+        return (bool) $this->getDynamicSetting('shot_intelligence_enabled', true);
+    }
+
+    /**
+     * Check if per-shot duration is enabled.
+     *
+     * @return bool
+     */
+    protected function isPerShotDurationEnabled(): bool
+    {
+        return (bool) $this->getDynamicSetting('duration_per_shot_enabled', true);
+    }
+
+    /**
+     * Check if frame chaining is enabled.
+     *
+     * @return bool
+     */
+    protected function isFrameChainingEnabled(): bool
+    {
+        return (bool) $this->getDynamicSetting('frame_chaining_enabled', true);
     }
 
     /**
@@ -1999,7 +2131,9 @@ class VideoWizard extends Component
      */
     public function setClipDuration(string $duration): void
     {
-        $validDurations = ['5s', '6s', '10s'];
+        // Get valid durations dynamically from settings
+        $validDurations = array_map(fn($d) => $d . 's', $this->getAvailableDurations('minimax'));
+
         if (in_array($duration, $validDurations)) {
             $this->content['videoModel']['duration'] = $duration;
             $this->script['timing']['clipDuration'] = $this->getClipDuration();
@@ -5542,10 +5676,16 @@ class VideoWizard extends Component
             ],
         ];
 
+        // Reset multiShotMode with dynamic defaults from settings
         $this->multiShotMode = [
             'enabled' => false,
-            'defaultShotCount' => 3,
+            'defaultShotCount' => (int) $this->getDynamicSetting('shot_default_count', 3),
+            'autoDecompose' => (bool) $this->getDynamicSetting('scene_auto_decompose', false),
+            'decomposedScenes' => [],
+            'batchStatus' => null,
+            'globalVisualProfile' => null,
         ];
+        $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
 
         $this->conceptVariations = [];
         $this->selectedConceptIndex = 0;
@@ -8220,7 +8360,9 @@ EOT;
      */
     public function setMultiShotCount(int $count): void
     {
-        $this->multiShotMode['defaultShotCount'] = max(2, min(6, $count));
+        // Use dynamic limits from VwSetting
+        $limits = $this->getShotCountLimits();
+        $this->multiShotMode['defaultShotCount'] = max($limits['min'], min($limits['max'], $count));
         $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
         $this->saveProject();
     }
@@ -8269,9 +8411,16 @@ EOT;
             $clipDuration = $this->getClipDuration(); // 5s, 6s, or 10s
             $sceneDuration = $scene['duration'] ?? ($this->script['timing']['sceneDuration'] ?? 35);
 
+            // Get dynamic shot count limits from VwSetting
+            $shotLimits = $this->getShotCountLimits();
+
             // Hollywood Math: Calculate shot count based on scene duration and clip duration
             // For a 35s scene with 10s clips = ~4 shots
-            $calculatedShotCount = max(2, min(6, (int) ceil($sceneDuration / $clipDuration)));
+            // Now uses dynamic min/max from admin settings instead of hardcoded 2-6
+            $calculatedShotCount = max(
+                $shotLimits['min'],
+                min($shotLimits['max'], (int) ceil($sceneDuration / $clipDuration))
+            );
 
             // Use calculated count or user-selected count (whichever is appropriate)
             $shotCount = $this->multiShotCount > 0 ? $this->multiShotCount : $calculatedShotCount;
@@ -9920,9 +10069,9 @@ PROMPT;
 
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = $model;
 
-        // Adjust duration based on model
+        // Adjust duration based on model - using dynamic durations from settings
         $currentDuration = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] ?? 6;
-        $validDurations = $model === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
+        $validDurations = $this->getAvailableDurations($model);
 
         if (!in_array($currentDuration, $validDurations)) {
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $validDurations[0];
@@ -10213,21 +10362,23 @@ PROMPT;
             return;
         }
 
-        // Validate duration (5s, 6s, or 10s for video models)
-        $validDurations = [5, 6, 10];
+        // Get valid durations dynamically based on selected model
+        $selectedModel = $decomposed['shots'][$shotIndex]['selectedVideoModel'] ?? 'minimax';
+        $validDurations = $this->getAvailableDurations($selectedModel);
+
         if (!in_array($duration, $validDurations)) {
-            $duration = 10; // Default to cinematic
+            $duration = $this->getDefaultDuration($selectedModel);
         }
 
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $duration;
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['duration'] = $duration;
 
-        // Update duration class
-        $durationClass = match($duration) {
-            5 => 'short',
-            6 => 'standard',
-            10 => 'cinematic',
-            default => 'standard',
+        // Update duration class dynamically
+        $durationClass = match(true) {
+            $duration <= 5 => 'short',
+            $duration <= 6 => 'standard',
+            $duration <= 10 => 'cinematic',
+            default => 'extended', // For Multitalk 15s, 20s
         };
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['durationClass'] = $durationClass;
 
