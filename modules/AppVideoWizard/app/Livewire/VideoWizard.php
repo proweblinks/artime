@@ -559,7 +559,7 @@ class VideoWizard extends Component
 
     public bool $showMultiShotModal = false;
     public int $multiShotSceneIndex = 0;
-    public int $multiShotCount = 3;
+    public int $multiShotCount = 0; // 0 = AI mode (default), >0 = manual shot count
 
     // Shot Preview Modal state
     public bool $showShotPreviewModal = false;
@@ -725,7 +725,8 @@ class VideoWizard extends Component
             // Shot Intelligence settings
             $this->multiShotMode['defaultShotCount'] = (int) VwSetting::getValue('shot_default_count', 3);
             $this->multiShotMode['autoDecompose'] = (bool) VwSetting::getValue('scene_auto_decompose', false);
-            $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
+            // Default to AI mode (0) instead of manual shot count
+            $this->multiShotCount = 0;
 
             // Log that settings were loaded (helpful for debugging)
             Log::debug('VideoWizard: Dynamic settings loaded', [
@@ -5686,7 +5687,7 @@ class VideoWizard extends Component
             'batchStatus' => null,
             'globalVisualProfile' => null,
         ];
-        $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
+        $this->multiShotCount = 0; // Default to AI mode
 
         $this->conceptVariations = [];
         $this->selectedConceptIndex = 0;
@@ -8374,7 +8375,8 @@ EOT;
     public function openMultiShotModal(int $sceneIndex): void
     {
         $this->multiShotSceneIndex = $sceneIndex;
-        $this->multiShotCount = $this->multiShotMode['defaultShotCount'];
+        // Default to AI mode (0) when opening modal
+        $this->multiShotCount = 0;
         $this->showMultiShotModal = true;
     }
 
@@ -8451,7 +8453,8 @@ EOT;
             }
 
             $this->saveProject();
-            $this->showMultiShotModal = false;
+            // Keep modal open to show the decomposed results
+            $this->showMultiShotModal = true;
 
         } catch (\Exception $e) {
             $this->error = __('Failed to decompose scene: ') . $e->getMessage();
