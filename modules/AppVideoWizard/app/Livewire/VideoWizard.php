@@ -4972,26 +4972,32 @@ class VideoWizard extends Component
         }
 
         // Check if state already exists for this scene - update it
+        // Support both new (sceneIndex) and old (scene) field names when reading
         $found = false;
         foreach ($this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] as $idx => $change) {
-            if (($change['scene'] ?? -1) === $sceneIndex) {
-                $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][$idx]['state'] = $state;
+            $changeSceneIdx = $change['sceneIndex'] ?? $change['scene'] ?? -1;
+            if ($changeSceneIdx === $sceneIndex) {
+                // Update using new field names
+                $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][$idx] = [
+                    'sceneIndex' => $sceneIndex,
+                    'stateDescription' => $state,
+                ];
                 $found = true;
                 break;
             }
         }
 
-        // Add new state change if not found
+        // Add new state change if not found (using new field names)
         if (!$found) {
             $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'][] = [
-                'scene' => $sceneIndex,
-                'state' => $state,
+                'sceneIndex' => $sceneIndex,
+                'stateDescription' => $state,
             ];
 
-            // Sort by scene index
+            // Sort by scene index (support both field names)
             usort(
                 $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'],
-                fn($a, $b) => ($a['scene'] ?? 0) <=> ($b['scene'] ?? 0)
+                fn($a, $b) => ($a['sceneIndex'] ?? $a['scene'] ?? 0) <=> ($b['sceneIndex'] ?? $b['scene'] ?? 0)
             );
         }
 
@@ -5064,10 +5070,10 @@ class VideoWizard extends Component
             return;
         }
 
-        // Apply first state to first scene, second state to last scene
+        // Apply first state to first scene, second state to last scene (using new field names)
         $this->sceneMemory['locationBible']['locations'][$locationIndex]['stateChanges'] = [
-            ['scene' => $firstScene, 'state' => $presets[$preset][0]['state']],
-            ['scene' => $lastScene, 'state' => $presets[$preset][1]['state']],
+            ['sceneIndex' => $firstScene, 'stateDescription' => $presets[$preset][0]['state']],
+            ['sceneIndex' => $lastScene, 'stateDescription' => $presets[$preset][1]['state']],
         ];
 
         $this->saveProject();
@@ -5084,11 +5090,12 @@ class VideoWizard extends Component
         }
 
         // Find the most recent state change at or before this scene
+        // Support both new (sceneIndex/stateDescription) and old (scene/state) field names
         $applicableState = null;
         foreach ($stateChanges as $change) {
-            $changeScene = $change['scene'] ?? -1;
+            $changeScene = $change['sceneIndex'] ?? $change['scene'] ?? -1;
             if ($changeScene <= $sceneIndex) {
-                $applicableState = $change['state'] ?? null;
+                $applicableState = $change['stateDescription'] ?? $change['state'] ?? null;
             } else {
                 break; // Since sorted, no need to continue
             }
@@ -7252,16 +7259,25 @@ class VideoWizard extends Component
                 return; // AI extraction successful, no need for fallback
             }
 
-            // If AI returned no locations but was successful, video might be abstract
+            // If AI returned no locations but was successful
             if ($result['success'] && empty($result['locations'])) {
-                Log::info('LocationExtraction: AI determined no distinct locations in video');
-                $this->dispatch('vw-debug', [
-                    'type' => 'location_extraction',
-                    'method' => 'ai',
-                    'count' => 0,
-                    'message' => 'No distinct locations detected',
-                ]);
-                return;
+                // Check if script has substantial content - if so, fall back to pattern matching
+                // because empty AI results for a content-rich script likely indicates a parsing issue
+                $hasSubstantialContent = count($this->script['scenes'] ?? []) >= 2;
+
+                if ($hasSubstantialContent) {
+                    Log::info('LocationExtraction: AI returned empty, falling back to patterns for content-rich script');
+                    // Fall through to pattern matching below
+                } else {
+                    Log::info('LocationExtraction: AI determined no distinct locations in video');
+                    $this->dispatch('vw-debug', [
+                        'type' => 'location_extraction',
+                        'method' => 'ai',
+                        'count' => 0,
+                        'message' => 'No distinct locations detected',
+                    ]);
+                    return;
+                }
             }
 
         } catch (\Exception $e) {
@@ -7351,8 +7367,12 @@ class VideoWizard extends Component
                     'type' => $data['type'],
                     'timeOfDay' => $data['timeOfDay'],
                     'weather' => $data['weather'],
+                    'atmosphere' => '',
+                    'mood' => '',
+                    'lightingStyle' => '',
                     'description' => $data['description'],
                     'scenes' => $data['scenes'],
+                    'stateChanges' => [],
                     'referenceImage' => null,
                     'autoDetected' => true,
                     'patternMatched' => true,

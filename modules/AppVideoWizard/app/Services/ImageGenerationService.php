@@ -2129,15 +2129,16 @@ EOT;
             return null;
         }
 
-        // Sort by scene index to ensure proper order
-        usort($stateChanges, fn($a, $b) => ($a['scene'] ?? 0) <=> ($b['scene'] ?? 0));
+        // Sort by scene index to ensure proper order (support both field names)
+        usort($stateChanges, fn($a, $b) => ($a['sceneIndex'] ?? $a['scene'] ?? 0) <=> ($b['sceneIndex'] ?? $b['scene'] ?? 0));
 
         // Find the most recent state change at or before this scene
+        // Support both new (sceneIndex/stateDescription) and old (scene/state) field names
         $applicableState = null;
         foreach ($stateChanges as $change) {
-            $changeScene = $change['scene'] ?? -1;
+            $changeScene = $change['sceneIndex'] ?? $change['scene'] ?? -1;
             if ($changeScene <= $sceneIndex) {
-                $applicableState = $change['state'] ?? null;
+                $applicableState = $change['stateDescription'] ?? $change['state'] ?? null;
             } else {
                 break; // Since sorted, no need to continue
             }
