@@ -2,36 +2,36 @@
 @if($showLocationBibleModal ?? false)
 <div class="vw-modal-overlay"
      wire:key="location-bible-modal-{{ $editLocationIndex ?? 'main' }}"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 0.5rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 1rem; width: 100%; max-width: 950px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
-        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 0.5rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
-                <h3 style="margin: 0; color: white; font-size: 1.1rem; font-weight: 600;">📍 {{ __('Location Bible') }}</h3>
-                <p style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Define locations for consistent environments across scenes') }}</p>
+                <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">📍 {{ __('Location Bible') }}</h3>
+                <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.7rem;">{{ __('Define locations for consistent environments across scenes') }}</p>
             </div>
-            <button type="button" wire:click="closeLocationBibleModal" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" wire:click="closeLocationBibleModal" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Error Display --}}
         @if($error)
-            <div style="padding: 0.75rem 1.25rem; background: rgba(239,68,68,0.15); border-bottom: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+            <div style="padding: 0.5rem 1rem; background: rgba(239,68,68,0.15); border-bottom: 1px solid rgba(239,68,68,0.3); color: #fca5a5; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                 <span>⚠️</span>
                 <span>{{ $error }}</span>
-                <button type="button" wire:click="$set('error', null)" style="margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem;">&times;</button>
+                <button type="button" wire:click="$set('error', null)" style="margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 0.9rem;">&times;</button>
             </div>
         @endif
 
         {{-- Content --}}
-        <div style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; gap: 1.25rem;">
+        <div style="flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; gap: 0.75rem;">
             {{-- Locations List (Left Panel) --}}
-            <div style="width: 220px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.1); padding: 1rem; overflow-y: auto;">
+            <div style="width: 200px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 0.75rem; overflow-y: auto;">
                 {{-- Add Location Button --}}
                 <button type="button"
                         wire:click="addLocation"
-                        style="width: 100%; padding: 0.6rem; background: rgba(245, 158, 11, 0.2); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 0.5rem; color: #f59e0b; font-size: 0.75rem; cursor: pointer; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                    <span style="font-size: 1.2rem;">+</span> {{ __('Add Location') }}
+                        style="width: 100%; padding: 0.4rem; background: rgba(245, 158, 11, 0.2); border: 1px dashed rgba(245, 158, 11, 0.5); border-radius: 0.375rem; color: #f59e0b; font-size: 0.7rem; cursor: pointer; margin-bottom: 0.35rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                    <span style="font-size: 1rem;">+</span> {{ __('Add Location') }}
                 </button>
 
                 {{-- Auto-detect Button --}}
@@ -40,7 +40,7 @@
                         wire:click="autoDetectLocations"
                         wire:loading.attr="disabled"
                         wire:target="autoDetectLocations"
-                        style="width: 100%; padding: 0.5rem; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; color: #a78bfa; font-size: 0.7rem; cursor: pointer; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                        style="width: 100%; padding: 0.35rem; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.375rem; color: #a78bfa; font-size: 0.6rem; cursor: pointer; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
                     <span wire:loading.remove wire:target="autoDetectLocations">🔍 {{ __('Auto-detect from Script') }}</span>
                     <span wire:loading wire:target="autoDetectLocations">{{ __('Detecting...') }}</span>
                 </button>
@@ -84,7 +84,7 @@
             </div>
 
             {{-- Location Editor (Right Panel) --}}
-            <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;">
                 @if(count($sceneMemory['locationBible']['locations'] ?? []) > 0)
                     @php
                         $editIndex = $editingLocationIndex ?? 0;
@@ -93,21 +93,21 @@
 
                     @if($currentLocation)
                         {{-- Top Section: Reference Image + Basic Info --}}
-                        <div style="display: flex; gap: 1rem;">
+                        <div style="display: flex; gap: 0.75rem;">
                             {{-- Reference Image Preview --}}
-                            <div style="width: 200px; flex-shrink: 0;">
-                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Reference Image') }}</label>
-                                <div style="width: 200px; height: 130px; background: rgba(0,0,0,0.3); border: 1px dashed rgba(139,92,246,0.3); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                            <div style="width: 170px; flex-shrink: 0;">
+                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.65rem; margin-bottom: 0.25rem;">{{ __('Reference Image') }}</label>
+                                <div style="width: 170px; height: 100px; background: rgba(0,0,0,0.3); border: 1px dashed rgba(139,92,246,0.3); border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
                                     @if(!empty($currentLocation['referenceImage']))
                                         <img src="{{ $currentLocation['referenceImage'] }}" style="width: 100%; height: 100%; object-fit: cover;">
                                         <button type="button"
                                                 wire:click="removeLocationReference({{ $editIndex }})"
-                                                style="position: absolute; top: 0.35rem; right: 0.35rem; width: 24px; height: 24px; background: rgba(239,68,68,0.9); border: none; border-radius: 50%; color: white; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                                                style="position: absolute; top: 0.25rem; right: 0.25rem; width: 20px; height: 20px; background: rgba(239,68,68,0.9); border: none; border-radius: 50%; color: white; font-size: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center;"
                                                 title="{{ __('Remove') }}">✕</button>
                                     @else
                                         <div style="text-align: center; color: rgba(255,255,255,0.4);">
-                                            <div style="font-size: 2rem; margin-bottom: 0.35rem;">🏞️</div>
-                                            <div style="font-size: 0.7rem;">{{ __('No reference') }}</div>
+                                            <div style="font-size: 1.5rem; margin-bottom: 0.2rem;">🏞️</div>
+                                            <div style="font-size: 0.6rem;">{{ __('No reference') }}</div>
                                         </div>
                                     @endif
                                 </div>
@@ -116,13 +116,13 @@
                                         wire:loading.attr="disabled"
                                         wire:target="generateLocationReference"
                                         {{ $isGeneratingLocationRef ? 'disabled' : '' }}
-                                        style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer; {{ $isGeneratingLocationRef ? 'opacity: 0.5;' : '' }}">
+                                        style="width: 100%; margin-top: 0.35rem; padding: 0.35rem; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 0.25rem; color: white; font-size: 0.65rem; cursor: pointer; {{ $isGeneratingLocationRef ? 'opacity: 0.5;' : '' }}">
                                     <span wire:loading.remove wire:target="generateLocationReference">🎨 {{ __('Generate Reference') }}</span>
                                     <span wire:loading wire:target="generateLocationReference">{{ __('Generating...') }}</span>
                                 </button>
 
                                 {{-- Upload Button & Input --}}
-                                <div x-data="{ uploading: false }" style="position: relative; margin-top: 0.35rem;">
+                                <div x-data="{ uploading: false }" style="position: relative; margin-top: 0.25rem;">
                                     <input type="file"
                                            wire:model="locationImageUpload"
                                            accept="image/*"
@@ -131,7 +131,7 @@
                                            x-on:livewire-upload-error="uploading = false"
                                            style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 1;">
                                     <button type="button"
-                                            style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: rgba(255,255,255,0.8); font-size: 0.75rem; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                            style="width: 100%; padding: 0.35rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.25rem; color: rgba(255,255,255,0.8); font-size: 0.65rem; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
                                         <template x-if="!uploading">
                                             <span>📤 {{ __('Upload Image') }}</span>
                                         </template>
@@ -143,7 +143,7 @@
 
                                 {{-- Source indicator --}}
                                 @if(!empty($currentLocation['referenceImage']) && !empty($currentLocation['referenceImageSource']))
-                                    <div style="text-align: center; margin-top: 0.25rem; font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                    <div style="text-align: center; margin-top: 0.15rem; font-size: 0.5rem; color: rgba(255,255,255,0.4);">
                                         {{ $currentLocation['referenceImageSource'] === 'upload' ? __('Uploaded') : __('AI Generated') }}
                                     </div>
                                 @endif
@@ -152,42 +152,42 @@
                             {{-- Basic Info --}}
                             <div style="flex: 1;">
                                 {{-- Location Name --}}
-                                <div style="margin-bottom: 0.6rem;">
-                                    <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 0.25rem;">{{ __('Location Name') }}</label>
+                                <div style="margin-bottom: 0.4rem;">
+                                    <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.15rem;">{{ __('Location Name') }}</label>
                                     <input type="text"
                                            wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.name"
                                            placeholder="{{ __('e.g., Downtown Office, Forest Clearing...') }}"
-                                           style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.4rem; color: white; font-size: 0.85rem;">
+                                           style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.3rem; color: white; font-size: 0.8rem;">
                                 </div>
 
                                 {{-- Quick Templates --}}
-                                <div style="margin-bottom: 0.6rem;">
-                                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 0.25rem;">{{ __('Quick Templates') }}</div>
-                                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                        <button type="button" wire:click="applyLocationTemplate('urban-night')" style="padding: 0.2rem 0.4rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🌃 {{ __('Urban Night') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('forest')" style="padding: 0.2rem 0.4rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🌲 {{ __('Forest') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('tech-lab')" style="padding: 0.2rem 0.4rem; background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🔬 {{ __('Tech Lab') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('desert')" style="padding: 0.2rem 0.4rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🏜️ {{ __('Desert') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('industrial')" style="padding: 0.2rem 0.4rem; background: rgba(107, 114, 128, 0.3); border: 1px solid rgba(107, 114, 128, 0.5); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🏭 {{ __('Industrial') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.2rem 0.4rem; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">🚀 {{ __('Space') }}</button>
+                                <div style="margin-bottom: 0.4rem;">
+                                    <div style="font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-bottom: 0.15rem;">{{ __('Quick Templates') }}</div>
+                                    <div style="display: flex; gap: 0.2rem; flex-wrap: wrap;">
+                                        <button type="button" wire:click="applyLocationTemplate('urban-night')" style="padding: 0.15rem 0.3rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🌃 {{ __('Urban Night') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('forest')" style="padding: 0.15rem 0.3rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🌲 {{ __('Forest') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('tech-lab')" style="padding: 0.15rem 0.3rem; background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🔬 {{ __('Tech Lab') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('desert')" style="padding: 0.15rem 0.3rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🏜️ {{ __('Desert') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('industrial')" style="padding: 0.15rem 0.3rem; background: rgba(107, 114, 128, 0.3); border: 1px solid rgba(107, 114, 128, 0.5); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🏭 {{ __('Industrial') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.15rem 0.3rem; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">🚀 {{ __('Space') }}</button>
                                     </div>
                                 </div>
 
                                 {{-- Type, Time, Weather --}}
-                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.6rem;">
+                                <div style="display: flex; gap: 0.35rem; margin-bottom: 0.4rem;">
                                     <div style="flex: 1;">
-                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Type') }}</label>
+                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Type') }}</label>
                                         <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.type"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="exterior">{{ __('Exterior') }}</option>
                                             <option value="interior">{{ __('Interior') }}</option>
                                             <option value="abstract">{{ __('Abstract') }}</option>
                                         </select>
                                     </div>
                                     <div style="flex: 1;">
-                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Time of Day') }}</label>
+                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Time of Day') }}</label>
                                         <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.timeOfDay"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="day">{{ __('Day') }}</option>
                                             <option value="night">{{ __('Night') }}</option>
                                             <option value="dawn">{{ __('Dawn') }}</option>
@@ -196,9 +196,9 @@
                                         </select>
                                     </div>
                                     <div style="flex: 1;">
-                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Weather') }}</label>
+                                        <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Weather') }}</label>
                                         <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.weather"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="clear">{{ __('Clear') }}</option>
                                             <option value="cloudy">{{ __('Cloudy') }}</option>
                                             <option value="rainy">{{ __('Rainy') }}</option>
@@ -210,10 +210,10 @@
                                 </div>
 
                                 {{-- Mood / Atmosphere --}}
-                                <div style="margin-bottom: 0.6rem;">
-                                    <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Mood / Atmosphere') }}</label>
+                                <div style="margin-bottom: 0.4rem;">
+                                    <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Mood / Atmosphere') }}</label>
                                     <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.mood"
-                                            style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                            style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                         <option value="neutral">{{ __('Neutral') }}</option>
                                         <option value="tense">{{ __('Tense / Dramatic') }}</option>
                                         <option value="peaceful">{{ __('Peaceful / Serene') }}</option>
@@ -225,33 +225,33 @@
                         </div>
 
                         {{-- Description --}}
-                        <div style="margin-bottom: 0.6rem;">
-                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Visual Description') }}</label>
+                        <div style="margin-bottom: 0.4rem;">
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Visual Description') }}</label>
                             <textarea wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.description"
                                       placeholder="{{ __('Describe the environment in detail: architecture, colors, textures, key elements...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.4rem; color: white; font-size: 0.8rem; min-height: 60px; resize: none;"></textarea>
+                                      style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.3rem; color: white; font-size: 0.7rem; min-height: 45px; resize: none;"></textarea>
                         </div>
 
                         {{-- Lighting Style --}}
-                        <div style="margin-bottom: 0.6rem;">
-                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-bottom: 0.2rem;">{{ __('Lighting Style (optional)') }}</label>
+                        <div style="margin-bottom: 0.4rem;">
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Lighting Style (optional)') }}</label>
                             <input type="text"
                                    wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.lightingStyle"
                                    placeholder="{{ __('e.g., Neon signs with wet surface reflections, dramatic rim lighting') }}"
-                                   style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                   style="width: 100%; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                         </div>
 
                         {{-- Scene Assignment --}}
-                        <div style="margin-bottom: 0.5rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                <label style="color: rgba(255,255,255,0.5); font-size: 0.65rem;">{{ __('Used in Scenes') }}</label>
+                        <div style="margin-bottom: 0.35rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.15rem;">
+                                <label style="color: rgba(255,255,255,0.5); font-size: 0.55rem;">{{ __('Used in Scenes') }}</label>
                                 <button type="button"
                                         wire:click="applyLocationToAllScenes({{ $editIndex }})"
-                                        style="padding: 0.15rem 0.3rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.2rem; color: white; font-size: 0.5rem; cursor: pointer;">
+                                        style="padding: 0.1rem 0.25rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.15rem; color: white; font-size: 0.45rem; cursor: pointer;">
                                     {{ __('Apply to All') }}
                                 </button>
                             </div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.2rem;">
                                 @foreach($script['scenes'] ?? [] as $sceneIdx => $scene)
                                     @php
                                         $assignedScenes = $currentLocation['scenes'] ?? [];
@@ -259,7 +259,7 @@
                                     @endphp
                                     <button type="button"
                                             wire:click="toggleLocationScene({{ $editIndex }}, {{ $sceneIdx }})"
-                                            style="padding: 0.2rem 0.4rem; background: {{ $isAssigned ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $isAssigned ? 'rgba(245, 158, 11, 0.5)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.25rem; color: white; font-size: 0.6rem; cursor: pointer;">
+                                            style="padding: 0.15rem 0.3rem; background: {{ $isAssigned ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $isAssigned ? 'rgba(245, 158, 11, 0.5)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.2rem; color: white; font-size: 0.55rem; cursor: pointer;">
                                         {{ $sceneIdx + 1 }}
                                     </button>
                                 @endforeach
@@ -267,11 +267,11 @@
                             @php
                                 $assignedScenesCount = count($currentLocation['scenes'] ?? []);
                             @endphp
-                            <div style="font-size: 0.5rem; color: rgba(255,255,255,0.4); margin-top: 0.2rem;">
+                            <div style="font-size: 0.45rem; color: rgba(255,255,255,0.4); margin-top: 0.15rem;">
                                 {{ $assignedScenesCount === 0 ? __('Currently applies to ALL scenes') : __('Applies to :count scene(s)', ['count' => $assignedScenesCount]) }}
                             </div>
                             @if(empty($script['scenes']))
-                                <div style="color: rgba(255,255,255,0.4); font-size: 0.65rem; padding: 0.5rem;">
+                                <div style="color: rgba(255,255,255,0.4); font-size: 0.55rem; padding: 0.35rem;">
                                     {{ __('No scenes available yet') }}
                                 </div>
                             @endif
@@ -282,17 +282,17 @@
                             $assignedScenes = $currentLocation['scenes'] ?? [];
                             $hasAssignedScenes = count($assignedScenes) >= 2;
                         @endphp
-                        <div x-data="{ stateOpen: true, newStateScene: '', newStateText: '' }" style="margin-top: 1rem;">
+                        <div x-data="{ stateOpen: false, newStateScene: '', newStateText: '' }" style="margin-top: 0.5rem;">
                             <button type="button"
                                     @click="stateOpen = !stateOpen"
-                                    style="display: flex; align-items: center; gap: 0.35rem; width: 100%; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 0.35rem;">
-                                <span style="color: rgba(255,255,255,0.6); font-size: 0.7rem; transition: transform 0.2s;" :style="stateOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
-                                <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">{{ __('State History') }}</span>
-                                <span style="color: rgba(255,255,255,0.4); font-size: 0.6rem; margin-left: 0.25rem;">({{ count($currentLocation['stateChanges'] ?? []) }})</span>
+                                    style="display: flex; align-items: center; gap: 0.25rem; width: 100%; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 0.25rem;">
+                                <span style="color: rgba(255,255,255,0.6); font-size: 0.6rem; transition: transform 0.2s;" :style="stateOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
+                                <span style="color: rgba(255,255,255,0.7); font-size: 0.65rem;">{{ __('State History') }}</span>
+                                <span style="color: rgba(255,255,255,0.4); font-size: 0.5rem; margin-left: 0.2rem;">({{ count($currentLocation['stateChanges'] ?? []) }})</span>
                             </button>
 
                             <div x-show="stateOpen" x-collapse>
-                                <p style="color: rgba(255,255,255,0.5); font-size: 0.65rem; margin: 0 0 0.5rem 0;">
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.55rem; margin: 0 0 0.35rem 0;">
                                     {{ __('Track how this location changes across scenes (e.g., pristine → damaged)') }}
                                 </p>
 
@@ -359,11 +359,11 @@
                         </div>
 
                         {{-- Delete Location Button --}}
-                        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
                             <button type="button"
                                     wire:click="removeLocation({{ $editIndex }})"
                                     wire:confirm="{{ __('Are you sure you want to delete this location?') }}"
-                                    style="padding: 0.5rem 1rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem; color: #ef4444; font-size: 0.8rem; cursor: pointer;">
+                                    style="padding: 0.3rem 0.6rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.3rem; color: #ef4444; font-size: 0.65rem; cursor: pointer;">
                                 🗑️ {{ __('Delete Location') }}
                             </button>
                         </div>
@@ -371,31 +371,31 @@
                 @else
                     {{-- Empty State --}}
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.4);">
-                        <span style="font-size: 4rem; margin-bottom: 1rem;">📍</span>
-                        <p style="font-size: 1rem; margin-bottom: 0.5rem;">{{ __('No locations defined') }}</p>
-                        <p style="font-size: 0.8rem;">{{ __('Add a location or auto-detect from your script') }}</p>
+                        <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">📍</span>
+                        <p style="font-size: 0.85rem; margin-bottom: 0.35rem;">{{ __('No locations defined') }}</p>
+                        <p style="font-size: 0.7rem;">{{ __('Add a location or auto-detect from your script') }}</p>
                     </div>
                 @endif
             </div>
         </div>
 
         {{-- Footer --}}
-        <div style="padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">
+        <div style="padding: 0.5rem 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">
                 @if($sceneMemory['locationBible']['enabled'] ?? false)
                     ✓ {{ __('Location Bible is active') }}
                 @else
                     ⚠ {{ __('Enable toggle to apply') }}
                 @endif
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.65rem; color: rgba(255,255,255,0.7);">
                     <input type="checkbox" wire:model.live="sceneMemory.locationBible.enabled" style="accent-color: #f59e0b;">
                     {{ __('Enable') }}
                 </label>
                 <button type="button"
                         wire:click="closeLocationBibleModal"
-                        style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer;">
+                        style="padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 0.35rem; color: white; font-weight: 600; cursor: pointer; font-size: 0.75rem;">
                     {{ __('Done') }}
                 </button>
             </div>

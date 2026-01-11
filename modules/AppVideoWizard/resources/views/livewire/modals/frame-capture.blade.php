@@ -140,10 +140,15 @@
             <div class="fc-frame-box">
                 <div class="fc-frame-label">CAPTURED FRAME</div>
                 <div class="fc-frame-preview" :class="capturedFrame ? 'has-image' : ''">
-                    <template x-if="capturedFrame">
+                    {{-- Loading Overlay --}}
+                    <div x-show="isCapturing" class="fc-loading-overlay">
+                        <div class="fc-spinner"></div>
+                        <span>Processing frame...</span>
+                    </div>
+                    <template x-if="capturedFrame && !isCapturing">
                         <img :src="capturedFrame" class="fc-frame-image">
                     </template>
-                    <template x-if="!capturedFrame">
+                    <template x-if="!capturedFrame && !isCapturing">
                         <span class="fc-frame-placeholder">Click "Capture Current Frame"</span>
                     </template>
                 </div>
@@ -171,13 +176,15 @@
             </div>
         </div>
 
-        {{-- CORS Warning --}}
-        <div x-show="corsBlocked" x-cloak class="fc-cors-warning">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        {{-- Server-side processing info (subtle, not a warning) --}}
+        <div x-show="corsBlocked && capturedFrame" x-cloak class="fc-server-info">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                <line x1="6" y1="18" x2="6.01" y2="18"/>
             </svg>
-            Using server-side capture (CORS restriction detected)
+            Frame processed via server
         </div>
 
         {{-- Action Buttons --}}
@@ -236,24 +243,28 @@
     align-items: center;
     justify-content: center;
     z-index: 1002;
-    padding: 1rem;
+    padding: 0.5rem;
 }
 
 .fc-modal {
     width: 100%;
-    max-width: 720px;
+    max-width: 700px;
+    max-height: 96vh;
     background: linear-gradient(180deg, #1e2a3a 0%, #0f172a 100%);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .fc-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
 }
 
 .fc-header-left {
@@ -297,22 +308,24 @@
 }
 
 .fc-video-container {
-    padding: 16px 20px;
+    padding: 12px 16px;
     background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .fc-video {
     width: 100%;
-    border-radius: 8px;
+    border-radius: 6px;
     background: #000;
-    max-height: 340px;
+    max-height: 280px;
 }
 
 .fc-frames-section {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    padding: 12px 16px;
+    flex-shrink: 0;
 }
 
 .fc-frame-box {
@@ -328,6 +341,7 @@
 }
 
 .fc-frame-preview {
+    position: relative;
     aspect-ratio: 16/9;
     border: 2px dashed rgba(255, 255, 255, 0.2);
     border-radius: 8px;
@@ -372,24 +386,53 @@
     letter-spacing: 0.5px;
 }
 
-.fc-cors-warning {
-    margin: 0 20px 12px;
-    padding: 10px 14px;
-    background: rgba(251, 191, 36, 0.1);
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    border-radius: 6px;
-    font-size: 13px;
-    color: #fbbf24;
+.fc-server-info {
+    margin: 0 16px 10px;
+    padding: 6px 10px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 4px;
+    font-size: 11px;
+    color: rgba(165, 180, 252, 0.8);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.fc-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    z-index: 10;
+}
+
+.fc-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ec4899;
+    border-radius: 50%;
+    animation: fc-spin 0.8s linear infinite;
+}
+
+@keyframes fc-spin {
+    to { transform: rotate(360deg); }
 }
 
 .fc-actions {
     display: flex;
-    gap: 12px;
-    padding: 16px 20px;
+    gap: 10px;
+    padding: 12px 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
 }
 
 .fc-btn {
@@ -397,10 +440,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 14px;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;

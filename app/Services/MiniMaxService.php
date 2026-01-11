@@ -190,21 +190,43 @@ class MiniMaxService
     // --- Video Generation ---
 
     /**
-     * Generates video using MiniMax video-01 model.
+     * Generates video using MiniMax video models.
+     *
+     * Supported models and durations:
+     * - video-01, I2V-01: 6s only (720P)
+     * - MiniMax-Hailuo-02: 6s or 10s (all resolutions)
+     * - MiniMax-Hailuo-2.3: 6s or 10s (768P), 6s only (1080P)
      */
     public function generateVideo(string $prompt, array $options = [], string $category = 'video'): array
     {
+        $duration = $options['duration'] ?? 6;
         $model = $options['model'] ?? $this->getModel($category);
+
+        // For 10s videos, use Hailuo-02 model which supports all durations
+        if ($duration == 10 && !str_contains($model, 'Hailuo')) {
+            $model = 'MiniMax-Hailuo-02';
+        }
 
         $payload = [
             'model' => $model,
             'prompt' => $prompt,
         ];
 
+        // Add duration parameter (supported by Hailuo models)
+        if ($duration && in_array($duration, [6, 10])) {
+            $payload['duration'] = $duration;
+        }
+
         // Optional: Image-to-video
         if (!empty($options['first_frame_image'])) {
             $payload['first_frame_image'] = $options['first_frame_image'];
         }
+
+        Log::info('MiniMax video generation request', [
+            'model' => $model,
+            'duration' => $duration,
+            'hasImage' => !empty($options['first_frame_image']),
+        ]);
 
         try {
             // Submit video generation task

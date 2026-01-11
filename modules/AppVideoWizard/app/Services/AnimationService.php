@@ -25,23 +25,15 @@ class AnimationService
     public const ANIMATION_MODELS = [
         'minimax' => [
             'name' => 'MiniMax',
-            'description' => 'High quality I2V, recommended for most scenes',
-            'durations' => [5, 6],
+            'description' => 'High quality I2V animation',
+            'durations' => [5, 6, 10],
             'defaultDuration' => 6,
-            'supportsLipSync' => false,
-            'provider' => 'minimax',
-        ],
-        'minimax-10s' => [
-            'name' => 'MiniMax (10s)',
-            'description' => 'Extended duration for longer scenes',
-            'durations' => [10],
-            'defaultDuration' => 10,
             'supportsLipSync' => false,
             'provider' => 'minimax',
         ],
         'multitalk' => [
             'name' => 'Multitalk',
-            'description' => 'Lip-sync animation for dialogue scenes',
+            'description' => 'Lip-sync for dialogue scenes',
             'durations' => [5, 10, 15, 20],
             'defaultDuration' => 5,
             'supportsLipSync' => true,
@@ -127,9 +119,11 @@ class AnimationService
         // (Laravel's DI container may cache an instance with old/empty API key)
         $miniMaxService = new MiniMaxService();
 
+        // Pass duration to MiniMax - it will automatically select the right model
+        // For 10s videos, MiniMaxService uses MiniMax-Hailuo-02 model
         $result = $miniMaxService->generateVideo($prompt, [
             'first_frame_image' => $imageUrl,
-            'model' => 'video-01',
+            'duration' => $duration,
         ]);
 
         if (!empty($result['error'])) {
