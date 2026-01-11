@@ -754,7 +754,7 @@ window.multiShotVideoPolling = function() {
                     </div>
                     <div style="margin-top: 0.5rem; padding-left: 1.75rem;">
                         <div style="display: flex; gap: 0.25rem; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
-                            <span style="background: rgba(59,130,246,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">5-6s</span>
+                            <span style="background: rgba(59,130,246,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">5-10s</span>
                             <span style="background: rgba(139,92,246,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">{{ __('Most scenes') }}</span>
                         </div>
                     </div>
