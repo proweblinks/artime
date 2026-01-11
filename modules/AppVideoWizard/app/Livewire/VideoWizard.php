@@ -7238,10 +7238,25 @@ class VideoWizard extends Component
 
                 // Add AI-extracted characters to Character Bible with scene expansion
                 foreach ($result['characters'] as $character) {
-                    // Check if already exists
-                    $exists = collect($this->sceneMemory['characterBible']['characters'])
-                        ->where('name', $character['name'])
-                        ->isNotEmpty();
+                    // Check if already exists (including synonymous names)
+                    $existingIndex = $this->findSynonymousCharacter($character['name']);
+                    $exists = $existingIndex !== null;
+
+                    // If synonymous character found, merge scenes instead of creating duplicate
+                    if ($exists && $existingIndex !== null) {
+                        $existingChar = &$this->sceneMemory['characterBible']['characters'][$existingIndex];
+                        $newScenes = $character['appearsInScenes'] ?? [];
+                        $existingChar['appliedScenes'] = array_unique(array_merge(
+                            $existingChar['appliedScenes'] ?? [],
+                            $newScenes
+                        ));
+                        sort($existingChar['appliedScenes']);
+                        Log::info('CharacterExtraction: Merged synonymous character', [
+                            'existing' => $existingChar['name'],
+                            'merged' => $character['name'],
+                        ]);
+                        continue;
+                    }
 
                     if (!$exists) {
                         $role = $character['role'] ?? 'Supporting';
@@ -7599,6 +7614,61 @@ class VideoWizard extends Component
 
         sort($expandedScenes);
         return $expandedScenes;
+    }
+
+    /**
+     * Find if a character with a synonymous name already exists.
+     * Handles cases like "Hero" and "Protagonist" referring to the same character.
+     *
+     * @param string $name The character name to check
+     * @return int|null The index of the existing character, or null if not found
+     */
+    protected function findSynonymousCharacter(string $name): ?int
+    {
+        $name = strtolower(trim($name));
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+
+        // Synonymous name groups - names in the same group refer to the same character
+        $synonymGroups = [
+            ['hero', 'protagonist', 'main character', 'the hero', 'our hero', 'central character'],
+            ['narrator', 'the narrator', 'storyteller', 'voice'],
+            ['villain', 'antagonist', 'the villain', 'the antagonist', 'bad guy'],
+            ['mentor', 'guide', 'teacher', 'wise one', 'master'],
+            ['sidekick', 'helper', 'companion', 'partner', 'ally'],
+            ['love interest', 'romantic interest', 'the love interest'],
+        ];
+
+        // Find which group the input name belongs to
+        $nameGroup = null;
+        foreach ($synonymGroups as $group) {
+            if (in_array($name, $group)) {
+                $nameGroup = $group;
+                break;
+            }
+        }
+
+        foreach ($characters as $index => $character) {
+            $existingName = strtolower(trim($character['name']));
+
+            // Exact match
+            if ($existingName === $name) {
+                return $index;
+            }
+
+            // Check if names are in the same synonym group
+            if ($nameGroup !== null && in_array($existingName, $nameGroup)) {
+                return $index;
+            }
+
+            // Check if existing character is in a group that contains our name
+            foreach ($synonymGroups as $group) {
+                if (in_array($existingName, $group) && in_array($name, $group)) {
+                    return $index;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

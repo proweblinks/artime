@@ -262,6 +262,12 @@ Extract ALL characters that appear visually in the script. PRIORITIZE finding ev
 5. DNA fields (hair, wardrobe, makeup, accessories) are OPTIONAL - include if you can infer from script, otherwise leave empty objects/arrays
 6. Focus on QUANTITY first - it's better to have basic descriptions for all characters than detailed DNA for few
 
+**CRITICAL - CHARACTER NAME CONSOLIDATION:**
+- "Hero", "Protagonist", "Main Character", "The Hero", "Our Hero" = SAME CHARACTER (pick the most specific name)
+- Do NOT create separate entries for synonymous names referring to the same person
+- If script uses "the protagonist" and "hero" interchangeably, create ONE character entry
+- Use the character's actual name if mentioned, otherwise use the most descriptive title
+
 === CINEMATIC INTELLIGENCE - SCENE ASSIGNMENT RULES ===
 **CRITICAL FOR NARRATIVE CONTINUITY:**
 7. **MAIN CHARACTERS** (protagonist, hero, central figure) should appear in MOST scenes (70%+)
