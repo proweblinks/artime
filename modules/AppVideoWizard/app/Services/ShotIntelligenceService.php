@@ -382,6 +382,8 @@ class ShotIntelligenceService
             'description' => $shotData['description'] ?? $shotTypeInfo['description'] ?? '',
             'lens' => $shotTypeInfo['defaultLens'] ?? 'standard 50mm',
             'aiRecommended' => true,
+            // Subject action for Hollywood-quality video prompts (critical for animation quality)
+            'subjectAction' => $shotData['subjectAction'] ?? $shotData['subject_action'] ?? null,
         ];
     }
 
@@ -678,6 +680,12 @@ Consider:
 3. Visual variety - mix shot types AND durations for professional look
 4. Story beats - establish (6-10s), develop (5-6s), climax (5s for impact)
 5. Scene mood - {{mood}} mood affects rhythm
+6. SUBJECT ACTION (CRITICAL for video animation):
+   - Each shot MUST describe what the subject/characters are DOING
+   - Use "the subject" or simple pronouns for image-to-video compatibility
+   - For chained shots (shot 2+), describe continuation or transition of action
+   - Include emotional state/expression for close-ups
+   - Examples: "The subject looks around in bewilderment", "The subjects orient themselves", "The subject\'s expression shifts to determination"
 
 Available shot types: {{available_shot_types}}
 
@@ -691,6 +699,7 @@ Return ONLY valid JSON (no markdown, no explanation):
       "duration": number (MUST vary: 5 for close-ups/action, 6 for medium/standard, 10 for establishing/dialogue, 15-20 for long dialogue),
       "purpose": "why this shot",
       "cameraMovement": "movement description",
+      "subjectAction": "REQUIRED: what the subject/characters are doing (e.g. \'The subject looks around with growing awareness\', \'The subjects react with surprise\')",
       "needsLipSync": boolean
     }
   ]

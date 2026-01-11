@@ -8523,6 +8523,15 @@ EOT;
             $autoSelectModel = (bool) $this->getDynamicSetting('animation_auto_select_model', true);
             $selectedVideoModel = $autoSelectModel && $needsLipSync ? 'multitalk' : 'minimax';
 
+            // Shot context for subject action generation (Hollywood-quality video prompts)
+            $shotContext = [
+                'index' => $i,
+                'purpose' => $shotType['purpose'] ?? 'narrative',
+                'isChained' => $i > 0,
+                'description' => $shotType['description'] ?? '',
+                'subjectAction' => $aiShot['subjectAction'] ?? null, // From AI if provided
+            ];
+
             $shots[] = [
                 // Identification
                 'id' => "shot-{$sceneId}-{$i}",
@@ -8538,7 +8547,7 @@ EOT;
 
                 // Prompts for generation
                 'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
-                'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription),
+                'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
                 'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
 
                 // Image state
@@ -8578,7 +8587,7 @@ EOT;
 
                 // Motion/Action description
                 'narrativeBeat' => [
-                    'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription),
+                    'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
                 ],
             ];
         }
@@ -8615,6 +8624,14 @@ EOT;
             $shotType = $this->getShotTypeForIndex($i, $shotCount, $scene);
             $cameraMovement = $this->getCameraMovementForShot($shotType['type'], $i);
 
+            // Shot context for subject action generation (Hollywood-quality video prompts)
+            $shotContext = [
+                'index' => $i,
+                'purpose' => $shotType['purpose'] ?? 'narrative',
+                'isChained' => $i > 0,
+                'description' => $shotType['description'] ?? '',
+            ];
+
             $shots[] = [
                 // Identification
                 'id' => "shot-{$sceneId}-{$i}",
@@ -8630,7 +8647,7 @@ EOT;
 
                 // Prompts for generation
                 'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
-                'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription),
+                'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
                 'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
 
                 // Image state
@@ -8668,7 +8685,7 @@ EOT;
 
                 // Motion/Action description
                 'narrativeBeat' => [
-                    'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription),
+                    'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
                 ],
             ];
         }
@@ -9048,72 +9065,363 @@ EOT;
 
     /**
      * Get motion description for video generation based on shot type and genre.
-     * Creates professional AI video prompts following Sora 2 / Runway best practices.
+     * Creates professional AI video prompts following Sora 2 / Runway / MiniMax best practices.
+     *
+     * Hollywood-quality prompts follow: Subject + Action + Camera + Environment + Style
+     * Key insight: Prompts must describe WHAT THE SUBJECT IS DOING, not just camera movement.
+     *
+     * @param string $shotType The type of shot (establishing, wide, medium, close-up, etc.)
+     * @param string $cameraMovement Camera movement description
+     * @param string $visualDescription Scene visual description
+     * @param array $shotContext Additional shot context (index, purpose, isChained, subjectAction)
      */
-    protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription): string
+    protected function getMotionDescriptionForShot(string $shotType, string $cameraMovement, string $visualDescription, array $shotContext = []): string
     {
         // Get genre preset for additional context (uses database-backed service)
         $genrePreset = $this->getGenrePreset();
 
-        // Professional motion descriptions per shot type
-        $baseDescriptions = [
-            'establishing' => 'Slow pan across the scene, establishing the environment and atmosphere',
-            'wide' => 'Expansive view with subtle camera drift revealing the full scene context',
-            'medium' => 'Subtle movement focusing on the main subject with gentle camera motion',
-            'medium-close' => 'Gentle push in for intimacy, maintaining connection with subject',
-            'close-up' => 'Slight push in emphasizing details and expressions, shallow depth of field',
-            'extreme-close-up' => 'Near-static with subtle breathing movement, extreme detail focus',
-            'reaction' => 'Quick responsive movement capturing emotional response',
-            'detail' => 'Slow zoom highlighting specific important elements',
-            'over-shoulder' => 'Subtle lateral drift maintaining dialogue perspective',
-            'pov' => 'Handheld movement from character perspective, immersive',
-        ];
-
-        $base = $baseDescriptions[$shotType] ?? 'Natural subtle movement maintaining visual interest';
-
-        // Build professional prompt following best practices
+        // Build professional prompt following Hollywood best practices
+        // Structure: Subject Action -> Camera Movement -> Environment/Atmosphere
         $parts = [];
 
-        // 1. Base movement description
-        $parts[] = $base;
-
-        // 2. Camera movement specification
-        if (!empty($cameraMovement) && $cameraMovement !== 'static') {
-            $parts[] = "Camera: {$cameraMovement}";
+        // 1. SUBJECT ACTION (CRITICAL - the missing layer for Hollywood-quality animation)
+        // For image-to-video, use "the subject" or simple pronouns per MiniMax/Runway guidance
+        $subjectAction = $this->generateSubjectAction($shotType, $visualDescription, $shotContext);
+        if (!empty($subjectAction)) {
+            $parts[] = $subjectAction;
         }
 
-        // 3. Genre atmosphere
+        // 2. Camera movement description (shot-type specific)
+        $cameraDescriptions = [
+            'establishing' => 'Slow pan across the scene, establishing the environment',
+            'wide' => 'Expansive view with subtle camera drift',
+            'medium' => 'Subtle camera movement maintaining focus on the subject',
+            'medium-close' => 'Gentle push in for intimacy',
+            'close-up' => 'Slight push in emphasizing details and expressions',
+            'extreme-close-up' => 'Near-static with subtle breathing movement',
+            'reaction' => 'Quick responsive movement',
+            'detail' => 'Slow zoom highlighting specific elements',
+            'over-shoulder' => 'Subtle lateral drift',
+            'pov' => 'Handheld movement from character perspective',
+        ];
+
+        $cameraDesc = $cameraDescriptions[$shotType] ?? 'Natural subtle movement';
+        $parts[] = "Camera: {$cameraDesc}";
+
+        // 3. Specific camera movement if provided and different from base
+        if (!empty($cameraMovement) && $cameraMovement !== 'static' && $cameraMovement !== $cameraDesc) {
+            $parts[] = $cameraMovement;
+        }
+
+        // 4. Genre atmosphere
         if (!empty($genrePreset['atmosphere'])) {
             $parts[] = $genrePreset['atmosphere'];
         }
 
-        // 4. Genre lighting feel
+        // 5. Genre lighting feel
         if (!empty($genrePreset['lighting'])) {
-            $lightingHint = explode(',', $genrePreset['lighting'])[0]; // First lighting element
+            $lightingHint = explode(',', $genrePreset['lighting'])[0];
             $parts[] = trim($lightingHint);
         }
 
-        // 5. Visual context from scene description
-        // Modern video AI models (MiniMax, Runway) handle longer prompts well
-        // Use word-boundary truncation to avoid cutting mid-word
+        // 6. Visual context from scene description (truncated for prompt efficiency)
         if (strlen($visualDescription) > 20) {
-            $maxLength = 250; // Generous limit for scene context
-            if (strlen($visualDescription) > $maxLength) {
-                // Find the last space before the limit to avoid cutting mid-word
-                $truncated = substr($visualDescription, 0, $maxLength);
-                $lastSpace = strrpos($truncated, ' ');
-                if ($lastSpace !== false && $lastSpace > $maxLength * 0.7) {
-                    $contextSnippet = substr($truncated, 0, $lastSpace);
-                } else {
-                    $contextSnippet = $truncated;
-                }
-            } else {
-                $contextSnippet = $visualDescription;
-            }
+            $maxLength = 200; // Slightly reduced since we now have subject action
+            $contextSnippet = $this->truncateAtWordBoundary($visualDescription, $maxLength);
             $parts[] = $contextSnippet;
         }
 
         return implode('. ', $parts);
+    }
+
+    /**
+     * Generate subject action description for video prompts.
+     *
+     * This is the CRITICAL missing layer for Hollywood-quality animation.
+     * AI video models need to know WHAT THE SUBJECT IS DOING, not just camera movement.
+     *
+     * Best practices from MiniMax/Runway/Veo:
+     * - Use "the subject" or simple pronouns for image-to-video
+     * - Describe specific actions with verbs (looking, turning, walking)
+     * - Include emotional state/expression for close-ups
+     * - For chained shots, describe continuation or transition of action
+     *
+     * @param string $shotType The type of shot
+     * @param string $visualDescription Scene visual description
+     * @param array $shotContext Additional context (index, purpose, isChained, subjectAction)
+     * @return string Subject action description
+     */
+    protected function generateSubjectAction(string $shotType, string $visualDescription, array $shotContext = []): string
+    {
+        // Check if explicit subject action was provided (from AI decomposition)
+        if (!empty($shotContext['subjectAction'])) {
+            return $shotContext['subjectAction'];
+        }
+
+        $shotIndex = $shotContext['index'] ?? 0;
+        $purpose = $shotContext['purpose'] ?? 'narrative';
+        $isChained = $shotContext['isChained'] ?? ($shotIndex > 0);
+        $description = $shotContext['description'] ?? '';
+
+        // Extract likely subject type from visual description
+        $subjectType = $this->inferSubjectType($visualDescription);
+
+        // Generate appropriate subject action based on shot type and context
+        // Using "the subject" for image-to-video per MiniMax/Runway best practices
+        $action = match($shotType) {
+            'establishing', 'extreme-wide' => $this->getEstablishingAction($subjectType, $visualDescription, $isChained),
+            'wide' => $this->getWideAction($subjectType, $visualDescription, $isChained),
+            'medium', 'medium-close', 'two-shot', 'over-shoulder' => $this->getMediumAction($subjectType, $visualDescription, $isChained, $purpose),
+            'close-up', 'extreme-close-up' => $this->getCloseUpAction($subjectType, $visualDescription, $isChained, $purpose),
+            'reaction' => $this->getReactionAction($subjectType, $visualDescription),
+            'detail', 'insert' => $this->getDetailAction($visualDescription),
+            'pov' => $this->getPovAction($visualDescription),
+            default => $this->getDefaultAction($subjectType, $visualDescription, $isChained),
+        };
+
+        return $action;
+    }
+
+    /**
+     * Infer the type of subject from visual description.
+     */
+    protected function inferSubjectType(string $visualDescription): string
+    {
+        $desc = strtolower($visualDescription);
+
+        // Character keywords
+        $characterKeywords = ['warrior', 'samurai', 'soldier', 'fighter', 'hero', 'man', 'woman',
+            'person', 'character', 'figure', 'protagonist', 'knight', 'wizard', 'mage',
+            'archer', 'assassin', 'ninja', 'pirate', 'cowboy', 'detective', 'agent',
+            'robot', 'android', 'alien', 'creature', 'monster', 'beast', 'dragon'];
+
+        $groupKeywords = ['warriors', 'soldiers', 'fighters', 'people', 'characters', 'group',
+            'team', 'army', 'crowd', 'travelers', 'companions'];
+
+        // Check for groups first
+        foreach ($groupKeywords as $keyword) {
+            if (str_contains($desc, $keyword)) {
+                return 'group';
+            }
+        }
+
+        // Check for individual characters
+        foreach ($characterKeywords as $keyword) {
+            if (str_contains($desc, $keyword)) {
+                return 'character';
+            }
+        }
+
+        // Check for objects/environments
+        if (preg_match('/\b(object|item|artifact|portal|vehicle|ship|building)\b/', $desc)) {
+            return 'object';
+        }
+
+        // Default to character for most narrative scenarios
+        return 'character';
+    }
+
+    /**
+     * Generate action for establishing/extreme-wide shots.
+     */
+    protected function getEstablishingAction(string $subjectType, string $visualDescription, bool $isChained): string
+    {
+        if ($subjectType === 'group') {
+            return $isChained
+                ? 'The subjects continue their activities within the environment, naturally orienting themselves'
+                : 'The subjects are positioned within the vast environment, gradually becoming aware of their surroundings';
+        }
+
+        if ($subjectType === 'object') {
+            return 'The environment reveals itself with subtle atmospheric movement';
+        }
+
+        return $isChained
+            ? 'The subject continues moving through the environment, their presence established in the wider context'
+            : 'The subject is positioned within the expansive environment, taking in their surroundings';
+    }
+
+    /**
+     * Generate action for wide shots.
+     */
+    protected function getWideAction(string $subjectType, string $visualDescription, bool $isChained): string
+    {
+        if ($subjectType === 'group') {
+            return $isChained
+                ? 'The subjects continue interacting, their body language revealing their state of mind'
+                : 'The subjects orient themselves within the scene, each reacting to the environment';
+        }
+
+        return $isChained
+            ? 'The subject continues their movement, their body language expressing their current emotional state'
+            : 'The subject surveys the scene, their posture and movement revealing awareness';
+    }
+
+    /**
+     * Generate action for medium shots.
+     */
+    protected function getMediumAction(string $subjectType, string $visualDescription, bool $isChained, string $purpose): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        if ($subjectType === 'group') {
+            if ($purpose === 'conversation' || $purpose === 'intimacy') {
+                return $isChained
+                    ? "The subjects continue their interaction, {$emotionalContext}"
+                    : "The subjects engage with each other, {$emotionalContext}";
+            }
+            return $isChained
+                ? "The subjects remain engaged, {$emotionalContext}"
+                : "The subjects react to the situation, {$emotionalContext}";
+        }
+
+        if ($purpose === 'reaction' || $purpose === 'response') {
+            return "The subject reacts with a subtle shift in expression, {$emotionalContext}";
+        }
+
+        return $isChained
+            ? "The subject continues their action, their expression and body language {$emotionalContext}"
+            : "The subject is engaged in the moment, {$emotionalContext}";
+    }
+
+    /**
+     * Generate action for close-up shots.
+     */
+    protected function getCloseUpAction(string $subjectType, string $visualDescription, bool $isChained, string $purpose): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        if ($purpose === 'emotion' || $purpose === 'emphasis') {
+            return $isChained
+                ? "The subject's expression shifts subtly, eyes revealing {$emotionalContext}"
+                : "The subject's face shows {$emotionalContext}, with subtle micro-expressions";
+        }
+
+        return $isChained
+            ? "The subject's expression evolves, {$emotionalContext}"
+            : "The subject displays {$emotionalContext} through subtle facial movements and eye direction";
+    }
+
+    /**
+     * Generate action for reaction shots.
+     */
+    protected function getReactionAction(string $subjectType, string $visualDescription): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+        return "The subject reacts with a visible change in expression, {$emotionalContext}";
+    }
+
+    /**
+     * Generate action for detail/insert shots.
+     */
+    protected function getDetailAction(string $visualDescription): string
+    {
+        // For detail shots, focus on the object/element rather than character
+        return 'The element comes into focus with subtle environmental movement';
+    }
+
+    /**
+     * Generate action for POV shots.
+     */
+    protected function getPovAction(string $visualDescription): string
+    {
+        return 'The view shifts naturally as if from the subject\'s perspective, with slight head movement';
+    }
+
+    /**
+     * Generate default action when shot type is unknown.
+     */
+    protected function getDefaultAction(string $subjectType, string $visualDescription, bool $isChained): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        return $isChained
+            ? "The subject continues naturally, {$emotionalContext}"
+            : "The subject is present in the scene, {$emotionalContext}";
+    }
+
+    /**
+     * Extract emotional context from visual description for subject action generation.
+     */
+    protected function extractEmotionalContext(string $visualDescription): string
+    {
+        $desc = strtolower($visualDescription);
+
+        // Emotional state keywords and their expressions
+        $emotionalMappings = [
+            // Confusion/Bewilderment
+            ['keywords' => ['bewildered', 'confused', 'disoriented', 'lost'], 'expression' => 'expressing bewilderment and uncertainty'],
+            ['keywords' => ['curious', 'intrigued', 'wondering'], 'expression' => 'showing curiosity and intrigue'],
+
+            // Fear/Tension
+            ['keywords' => ['fear', 'afraid', 'scared', 'terror'], 'expression' => 'eyes widening with fear'],
+            ['keywords' => ['tense', 'anxious', 'nervous', 'worried'], 'expression' => 'showing subtle tension and alertness'],
+            ['keywords' => ['suspicious', 'wary', 'cautious'], 'expression' => 'maintaining cautious awareness'],
+
+            // Determination/Strength
+            ['keywords' => ['determined', 'resolute', 'focused'], 'expression' => 'showing steely determination'],
+            ['keywords' => ['confident', 'brave', 'bold'], 'expression' => 'displaying confident resolve'],
+            ['keywords' => ['fierce', 'intense', 'aggressive'], 'expression' => 'with fierce intensity'],
+
+            // Wonder/Awe
+            ['keywords' => ['awe', 'amazed', 'wonder', 'astonished'], 'expression' => 'eyes filled with wonder'],
+            ['keywords' => ['surprised', 'shocked', 'startled'], 'expression' => 'registering surprise'],
+
+            // Calm/Thoughtful
+            ['keywords' => ['calm', 'serene', 'peaceful'], 'expression' => 'with calm composure'],
+            ['keywords' => ['thoughtful', 'pensive', 'contemplative'], 'expression' => 'in deep contemplation'],
+
+            // Sadness/Sorrow
+            ['keywords' => ['sad', 'sorrowful', 'grief', 'mourning'], 'expression' => 'with visible sorrow'],
+            ['keywords' => ['melancholy', 'wistful', 'longing'], 'expression' => 'showing quiet melancholy'],
+
+            // Joy/Happiness
+            ['keywords' => ['happy', 'joyful', 'excited'], 'expression' => 'with visible joy'],
+            ['keywords' => ['hopeful', 'optimistic'], 'expression' => 'with hopeful anticipation'],
+        ];
+
+        foreach ($emotionalMappings as $mapping) {
+            foreach ($mapping['keywords'] as $keyword) {
+                if (str_contains($desc, $keyword)) {
+                    return $mapping['expression'];
+                }
+            }
+        }
+
+        // Context-based defaults when no explicit emotion
+        if (str_contains($desc, 'portal') || str_contains($desc, 'appear') || str_contains($desc, 'materialize')) {
+            return 'taking in the unfamiliar surroundings with alert awareness';
+        }
+
+        if (str_contains($desc, 'battle') || str_contains($desc, 'fight') || str_contains($desc, 'combat')) {
+            return 'with focused battle readiness';
+        }
+
+        if (str_contains($desc, 'discover') || str_contains($desc, 'find') || str_contains($desc, 'reveal')) {
+            return 'processing the new discovery';
+        }
+
+        // Default neutral but engaged expression
+        return 'maintaining natural presence and subtle movement';
+    }
+
+    /**
+     * Truncate text at word boundary to avoid cutting mid-word.
+     */
+    protected function truncateAtWordBoundary(string $text, int $maxLength): string
+    {
+        if (strlen($text) <= $maxLength) {
+            return $text;
+        }
+
+        $truncated = substr($text, 0, $maxLength);
+        $lastSpace = strrpos($truncated, ' ');
+
+        if ($lastSpace !== false && $lastSpace > $maxLength * 0.7) {
+            return substr($truncated, 0, $lastSpace);
+        }
+
+        return $truncated;
     }
 
     /**
@@ -10590,8 +10898,17 @@ PROMPT;
 
         // Update video prompt to include new camera movement
         $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+
+        // Build shot context for Hollywood-quality subject action
+        $shotContext = [
+            'index' => $shotIndex,
+            'purpose' => $shot['purpose'] ?? 'narrative',
+            'isChained' => $shotIndex > 0,
+            'description' => $shot['description'] ?? '',
+        ];
+
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] =
-            $this->getMotionDescriptionForShot($shot['type'] ?? 'medium', $movement, $shot['imagePrompt'] ?? '');
+            $this->getMotionDescriptionForShot($shot['type'] ?? 'medium', $movement, $shot['imagePrompt'] ?? '', $shotContext);
 
         $this->saveProject();
     }
