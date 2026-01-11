@@ -7239,84 +7239,102 @@ class VideoWizard extends Component
                 // Add AI-extracted characters to Character Bible with scene expansion
                 foreach ($result['characters'] as $character) {
                     // Check if already exists (including synonymous names)
-                    $existingIndex = $this->findSynonymousCharacter($character['name']);
-                    $exists = $existingIndex !== null;
+                    // Wrap in try-catch to ensure character addition is not blocked by detection issues
+                    $existingIndex = null;
+                    $exists = false;
+                    try {
+                        $existingIndex = $this->findSynonymousCharacter($character['name']);
+                        $exists = $existingIndex !== null;
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Synonymous detection failed, adding as new', [
+                            'name' => $character['name'],
+                            'error' => $e->getMessage(),
+                        ]);
+                        $exists = false;
+                    }
 
                     // If synonymous character found, merge scenes instead of creating duplicate
                     if ($exists && $existingIndex !== null) {
-                        $existingChar = &$this->sceneMemory['characterBible']['characters'][$existingIndex];
-                        $newScenes = $character['appearsInScenes'] ?? [];
-                        $existingChar['appliedScenes'] = array_unique(array_merge(
-                            $existingChar['appliedScenes'] ?? [],
-                            $newScenes
-                        ));
-                        sort($existingChar['appliedScenes']);
-                        Log::info('CharacterExtraction: Merged synonymous character', [
-                            'existing' => $existingChar['name'],
-                            'merged' => $character['name'],
-                        ]);
-                        continue;
+                        try {
+                            $existingChar = &$this->sceneMemory['characterBible']['characters'][$existingIndex];
+                            $newScenes = $character['appearsInScenes'] ?? [];
+                            $existingChar['appliedScenes'] = array_unique(array_merge(
+                                $existingChar['appliedScenes'] ?? [],
+                                $newScenes
+                            ));
+                            sort($existingChar['appliedScenes']);
+                            Log::info('CharacterExtraction: Merged synonymous character', [
+                                'existing' => $existingChar['name'],
+                                'merged' => $character['name'],
+                            ]);
+                            continue;
+                        } catch (\Exception $e) {
+                            Log::warning('CharacterExtraction: Merge failed, adding as new', [
+                                'name' => $character['name'],
+                                'error' => $e->getMessage(),
+                            ]);
+                            $exists = false;
+                        }
                     }
 
-                    if (!$exists) {
-                        $role = $character['role'] ?? 'Supporting';
-                        $aiScenes = $character['appearsInScenes'] ?? [];
+                    // Add new character (always runs if not merged above)
+                    $role = $character['role'] ?? 'Supporting';
+                    $aiScenes = $character['appearsInScenes'] ?? [];
 
-                        // Apply cinematic scene expansion based on role (if narrative tracking enabled)
-                        $expandedScenes = $aiScenes;
-                        if ($useNarrativeTracking && $totalScenes > 0) {
-                            if ($role === 'Main') {
-                                $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $mainCharPercent));
-                                $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
-                            } elseif ($role === 'Supporting') {
-                                $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $supportingCharPercent));
-                                $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
-                            }
-                            // Background characters keep AI-determined scenes only
+                    // Apply cinematic scene expansion based on role (if narrative tracking enabled)
+                    $expandedScenes = $aiScenes;
+                    if ($useNarrativeTracking && $totalScenes > 0) {
+                        if ($role === 'Main') {
+                            $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $mainCharPercent));
+                            $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
+                        } elseif ($role === 'Supporting') {
+                            $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $supportingCharPercent));
+                            $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
                         }
+                        // Background characters keep AI-determined scenes only
+                    }
 
-                        $this->sceneMemory['characterBible']['characters'][] = [
-                            'id' => $character['id'] ?? uniqid('char_'),
-                            'name' => $character['name'],
-                            'description' => $character['description'] ?? '',
+                    $this->sceneMemory['characterBible']['characters'][] = [
+                        'id' => $character['id'] ?? uniqid('char_'),
+                        'name' => $character['name'],
+                        'description' => $character['description'] ?? '',
+                        'role' => $role,
+                        'appliedScenes' => $expandedScenes,
+                        'originalAiScenes' => $aiScenes, // Keep original for reference
+                        'traits' => $character['traits'] ?? [],
+                        'defaultExpression' => $character['defaultExpression'] ?? '',
+                        'referenceImage' => null,
+                        'autoDetected' => true,
+                        'aiGenerated' => true,
+                        // Character DNA fields - auto-extracted from script by AI
+                        'hair' => $character['hair'] ?? [
+                            'color' => '',
+                            'style' => '',
+                            'length' => '',
+                            'texture' => '',
+                        ],
+                        'wardrobe' => $character['wardrobe'] ?? [
+                            'outfit' => '',
+                            'colors' => '',
+                            'style' => '',
+                            'footwear' => '',
+                        ],
+                        'makeup' => $character['makeup'] ?? [
+                            'style' => '',
+                            'details' => '',
+                        ],
+                        'accessories' => $character['accessories'] ?? [],
+                    ];
+
+                    // Log scene expansion if it occurred
+                    if (count($expandedScenes) > count($aiScenes)) {
+                        Log::info('CharacterExtraction: Scene expansion applied', [
+                            'character' => $character['name'],
                             'role' => $role,
-                            'appliedScenes' => $expandedScenes,
-                            'originalAiScenes' => $aiScenes, // Keep original for reference
-                            'traits' => $character['traits'] ?? [],
-                            'defaultExpression' => $character['defaultExpression'] ?? '',
-                            'referenceImage' => null,
-                            'autoDetected' => true,
-                            'aiGenerated' => true,
-                            // Character DNA fields - auto-extracted from script by AI
-                            'hair' => $character['hair'] ?? [
-                                'color' => '',
-                                'style' => '',
-                                'length' => '',
-                                'texture' => '',
-                            ],
-                            'wardrobe' => $character['wardrobe'] ?? [
-                                'outfit' => '',
-                                'colors' => '',
-                                'style' => '',
-                                'footwear' => '',
-                            ],
-                            'makeup' => $character['makeup'] ?? [
-                                'style' => '',
-                                'details' => '',
-                            ],
-                            'accessories' => $character['accessories'] ?? [],
-                        ];
-
-                        // Log scene expansion if it occurred
-                        if (count($expandedScenes) > count($aiScenes)) {
-                            Log::info('CharacterExtraction: Scene expansion applied', [
-                                'character' => $character['name'],
-                                'role' => $role,
-                                'aiScenes' => count($aiScenes),
-                                'expandedScenes' => count($expandedScenes),
-                                'totalScenes' => $totalScenes,
-                            ]);
-                        }
+                            'aiScenes' => count($aiScenes),
+                            'expandedScenes' => count($expandedScenes),
+                            'totalScenes' => $totalScenes,
+                        ]);
                     }
                 }
 
@@ -7904,44 +7922,62 @@ class VideoWizard extends Component
                 // Add AI-extracted locations to Location Bible
                 foreach ($result['locations'] as $location) {
                     // Check if already exists (including synonymous names)
-                    $existingIndex = $this->findSynonymousLocation($location['name']);
-                    $exists = $existingIndex !== null;
+                    // Wrap in try-catch to ensure location addition is not blocked by detection issues
+                    $existingIndex = null;
+                    $exists = false;
+                    try {
+                        $existingIndex = $this->findSynonymousLocation($location['name']);
+                        $exists = $existingIndex !== null;
+                    } catch (\Exception $e) {
+                        Log::warning('LocationExtraction: Synonymous detection failed, adding as new', [
+                            'name' => $location['name'],
+                            'error' => $e->getMessage(),
+                        ]);
+                        $exists = false;
+                    }
 
                     // If synonymous location found, merge scenes instead of creating duplicate
                     if ($exists && $existingIndex !== null) {
-                        $existingLoc = &$this->sceneMemory['locationBible']['locations'][$existingIndex];
-                        $newScenes = $location['scenes'] ?? [];
-                        $existingLoc['scenes'] = array_unique(array_merge(
-                            $existingLoc['scenes'] ?? [],
-                            $newScenes
-                        ));
-                        sort($existingLoc['scenes']);
-                        Log::info('LocationExtraction: Merged synonymous location', [
-                            'existing' => $existingLoc['name'],
-                            'merged' => $location['name'],
-                        ]);
-                        continue;
+                        try {
+                            $existingLoc = &$this->sceneMemory['locationBible']['locations'][$existingIndex];
+                            $newScenes = $location['scenes'] ?? [];
+                            $existingLoc['scenes'] = array_unique(array_merge(
+                                $existingLoc['scenes'] ?? [],
+                                $newScenes
+                            ));
+                            sort($existingLoc['scenes']);
+                            Log::info('LocationExtraction: Merged synonymous location', [
+                                'existing' => $existingLoc['name'],
+                                'merged' => $location['name'],
+                            ]);
+                            continue;
+                        } catch (\Exception $e) {
+                            Log::warning('LocationExtraction: Merge failed, adding as new', [
+                                'name' => $location['name'],
+                                'error' => $e->getMessage(),
+                            ]);
+                            $exists = false;
+                        }
                     }
 
-                    if (!$exists) {
-                        $this->sceneMemory['locationBible']['locations'][] = [
-                            'id' => $location['id'] ?? uniqid('loc_'),
-                            'name' => $location['name'],
-                            'description' => $location['description'] ?? '',
-                            'type' => $location['type'] ?? 'exterior',
-                            'timeOfDay' => $location['timeOfDay'] ?? 'day',
-                            'weather' => $location['weather'] ?? 'clear',
-                            'atmosphere' => $location['atmosphere'] ?? '',
-                            // Location DNA fields - auto-extracted from script by AI
-                            'mood' => $location['mood'] ?? '',
-                            'lightingStyle' => $location['lightingStyle'] ?? '',
-                            'scenes' => $location['scenes'] ?? [],
-                            'stateChanges' => $location['stateChanges'] ?? [],
-                            'referenceImage' => null,
-                            'autoDetected' => true,
-                            'aiGenerated' => true,
-                        ];
-                    }
+                    // Add new location (always runs if not merged above)
+                    $this->sceneMemory['locationBible']['locations'][] = [
+                        'id' => $location['id'] ?? uniqid('loc_'),
+                        'name' => $location['name'],
+                        'description' => $location['description'] ?? '',
+                        'type' => $location['type'] ?? 'exterior',
+                        'timeOfDay' => $location['timeOfDay'] ?? 'day',
+                        'weather' => $location['weather'] ?? 'clear',
+                        'atmosphere' => $location['atmosphere'] ?? '',
+                        // Location DNA fields - auto-extracted from script by AI
+                        'mood' => $location['mood'] ?? '',
+                        'lightingStyle' => $location['lightingStyle'] ?? '',
+                        'scenes' => $location['scenes'] ?? [],
+                        'stateChanges' => $location['stateChanges'] ?? [],
+                        'referenceImage' => null,
+                        'autoDetected' => true,
+                        'aiGenerated' => true,
+                    ];
                 }
 
                 // Enable Location Bible if we detected any locations
