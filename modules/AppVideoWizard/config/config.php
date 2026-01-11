@@ -186,6 +186,21 @@ return [
             'name' => 'Social Content',
             'icon' => 'fa-solid fa-mobile',
             'description' => 'Short-form content for social platforms',
+            // Production Intelligence: Feature auto-activation flags
+            'features' => [
+                'multiShotMode' => 'manual',      // Short content doesn't need auto multi-shot
+                'characterBible' => 'manual',     // Optional for social content
+                'locationBible' => 'disabled',    // Rarely needed for social
+                'styleBible' => 'manual',         // Optional visual consistency
+            ],
+            // Minimal intelligence for short-form
+            'intelligence' => [
+                'mainCharScenePercent' => 100,    // Single scene = character in all
+                'supportingCharScenePercent' => 50,
+                'characterTracking' => 'literal', // Literal tracking for short content
+                'transitionScenes' => false,      // No complex transitions
+                'shotDecomposition' => false,     // Single shots typical
+            ],
             'subTypes' => [
                 'viral' => [
                     'id' => 'viral',
@@ -248,6 +263,21 @@ return [
             'name' => 'Movie/Film',
             'icon' => 'fa-solid fa-film',
             'description' => 'Cinematic narrative storytelling',
+            // Production Intelligence: Feature auto-activation flags
+            'features' => [
+                'multiShotMode' => 'auto',        // 'auto' | 'manual' | 'disabled'
+                'characterBible' => 'auto',       // 'auto' | 'manual' | 'disabled'
+                'locationBible' => 'auto',        // 'auto' | 'manual' | 'disabled'
+                'styleBible' => 'auto',           // 'auto' | 'manual' | 'disabled'
+            ],
+            // Cinematic intelligence rules
+            'intelligence' => [
+                'mainCharScenePercent' => 70,     // Main characters appear in 70%+ of scenes
+                'supportingCharScenePercent' => 40, // Supporting chars in 40%+ of scenes
+                'characterTracking' => 'narrative', // 'literal' | 'narrative' (narrative = expand based on story logic)
+                'transitionScenes' => true,       // Recognize and handle scene transitions
+                'shotDecomposition' => true,      // Enable multi-shot scene decomposition
+            ],
             'subTypes' => [
                 'action' => [
                     'id' => 'action',
@@ -310,6 +340,21 @@ return [
             'name' => 'Series/Episodes',
             'icon' => 'fa-solid fa-tv',
             'description' => 'Episodic storytelling with story arcs',
+            // Production Intelligence: Full features for episodic content
+            'features' => [
+                'multiShotMode' => 'auto',        // Episodic content benefits from multi-shot
+                'characterBible' => 'auto',       // Critical for character consistency across episodes
+                'locationBible' => 'auto',        // Location consistency across episodes
+                'styleBible' => 'auto',           // Visual style consistency
+            ],
+            // Full narrative intelligence for series
+            'intelligence' => [
+                'mainCharScenePercent' => 70,     // Main characters appear frequently
+                'supportingCharScenePercent' => 35, // Recurring characters
+                'characterTracking' => 'narrative', // Narrative-based tracking
+                'transitionScenes' => true,       // Episode transitions
+                'shotDecomposition' => true,      // Multi-shot scenes
+            ],
             'subTypes' => [
                 'episode' => [
                     'id' => 'episode',
@@ -336,6 +381,21 @@ return [
             'name' => 'Educational',
             'icon' => 'fa-solid fa-graduation-cap',
             'description' => 'Learning and informative content',
+            // Production Intelligence: Moderate features for educational content
+            'features' => [
+                'multiShotMode' => 'manual',      // Optional for tutorials
+                'characterBible' => 'manual',     // Often presenter-focused
+                'locationBible' => 'manual',      // Optional location tracking
+                'styleBible' => 'auto',           // Visual consistency important
+            ],
+            // Educational content intelligence
+            'intelligence' => [
+                'mainCharScenePercent' => 80,     // Presenter in most scenes
+                'supportingCharScenePercent' => 30,
+                'characterTracking' => 'literal', // Literal tracking
+                'transitionScenes' => true,       // Section transitions
+                'shotDecomposition' => false,     // Simpler shots
+            ],
             'subTypes' => [
                 'tutorial' => [
                     'id' => 'tutorial',
@@ -371,6 +431,21 @@ return [
             'name' => 'Music Video',
             'icon' => 'fa-solid fa-music',
             'description' => 'Visual accompaniment to music',
+            // Production Intelligence: Visual-focused features for music videos
+            'features' => [
+                'multiShotMode' => 'auto',        // Dynamic shot changes for music
+                'characterBible' => 'auto',       // Artist/performer consistency
+                'locationBible' => 'auto',        // Location variety and consistency
+                'styleBible' => 'auto',           // Critical for visual style
+            ],
+            // Music video intelligence
+            'intelligence' => [
+                'mainCharScenePercent' => 85,     // Artist appears in most scenes
+                'supportingCharScenePercent' => 40,
+                'characterTracking' => 'narrative', // Story-based for narrative MVs
+                'transitionScenes' => true,       // Beat-synced transitions
+                'shotDecomposition' => true,      // Multiple shots per scene
+            ],
             'subTypes' => [
                 'narrative' => [
                     'id' => 'narrative',
@@ -406,6 +481,21 @@ return [
             'name' => 'Commercial/Promo',
             'icon' => 'fa-solid fa-bullhorn',
             'description' => 'Promotional and advertising content',
+            // Production Intelligence: High-quality features for commercials
+            'features' => [
+                'multiShotMode' => 'auto',        // Professional shot variety
+                'characterBible' => 'auto',       // Talent consistency
+                'locationBible' => 'auto',        // Location/set consistency
+                'styleBible' => 'auto',           // Brand visual consistency
+            ],
+            // Commercial production intelligence
+            'intelligence' => [
+                'mainCharScenePercent' => 70,     // Spokesperson/talent presence
+                'supportingCharScenePercent' => 40,
+                'characterTracking' => 'narrative', // Story-driven commercials
+                'transitionScenes' => true,       // Professional transitions
+                'shotDecomposition' => true,      // Multiple angles
+            ],
             'subTypes' => [
                 'product-ad' => [
                     'id' => 'product-ad',

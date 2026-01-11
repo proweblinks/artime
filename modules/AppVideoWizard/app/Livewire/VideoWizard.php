@@ -18,6 +18,8 @@ use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
+use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
+use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -47,6 +49,14 @@ class VideoWizard extends Component
     public ?string $format = null;
     public ?string $productionType = null;
     public ?string $productionSubtype = null;
+
+    // Production Intelligence settings (auto-populated by ProductionIntelligenceService)
+    public array $productionIntelligence = [
+        'mainCharScenePercent' => 70,
+        'supportingCharScenePercent' => 40,
+        'characterTracking' => 'narrative',
+        'singlePersonPortrait' => true,
+    ];
 
     // Step 1: Production Configuration (matches original wizard)
     public array $production = [
@@ -1352,11 +1362,17 @@ class VideoWizard extends Component
     /**
      * Update production type and auto-apply recommended narrative preset.
      * This enables cascading selection where Step 1 choices influence Step 3 defaults.
+     * Also applies Production Intelligence auto-activation rules.
      */
     public function selectProductionType(string $type, ?string $subtype = null): void
     {
         $this->productionType = $type;
         $this->productionSubtype = $subtype;
+
+        // =====================================================================
+        // PRODUCTION INTELLIGENCE: Auto-activate features based on type
+        // =====================================================================
+        $this->applyProductionIntelligence($type, $subtype);
 
         // Get the recommended preset mapping and auto-apply default
         $mapping = $this->getPresetMappingForProduction();
@@ -1364,6 +1380,74 @@ class VideoWizard extends Component
             $this->applyNarrativePreset($mapping['default']);
         }
         // Note: Don't auto-save on selection - will save on step navigation
+    }
+
+    /**
+     * Apply Production Intelligence auto-activation rules.
+     * Enables features like Multi-Shot Mode, Character Bible, etc. based on production type.
+     */
+    protected function applyProductionIntelligence(string $productionType, ?string $subType = null): void
+    {
+        try {
+            $intelligenceService = app(Services\ProductionIntelligenceService::class);
+            $modifications = $intelligenceService->getStateModifications($productionType);
+
+            // Apply Multi-Shot Mode auto-activation
+            if (isset($modifications['multiShotMode']) && $modifications['multiShotMode']['enabled']) {
+                $this->multiShotMode['enabled'] = true;
+                Log::info('ProductionIntelligence: Multi-Shot Mode auto-enabled', [
+                    'productionType' => $productionType,
+                    'reason' => $modifications['multiShotMode']['reason'] ?? 'auto',
+                ]);
+            }
+
+            // Apply Character Bible auto-activation
+            if (isset($modifications['characterBible']) && $modifications['characterBible']['enabled']) {
+                $this->sceneMemory['characterBible']['enabled'] = true;
+                Log::info('ProductionIntelligence: Character Bible auto-enabled', [
+                    'productionType' => $productionType,
+                ]);
+            }
+
+            // Apply Location Bible auto-activation
+            if (isset($modifications['locationBible']) && $modifications['locationBible']['enabled']) {
+                $this->sceneMemory['locationBible']['enabled'] = true;
+                Log::info('ProductionIntelligence: Location Bible auto-enabled', [
+                    'productionType' => $productionType,
+                ]);
+            }
+
+            // Apply Style Bible auto-activation
+            if (isset($modifications['styleBible']) && $modifications['styleBible']['enabled']) {
+                $this->sceneMemory['styleBible']['enabled'] = true;
+                Log::info('ProductionIntelligence: Style Bible auto-enabled', [
+                    'productionType' => $productionType,
+                ]);
+            }
+
+            // Store intelligence settings for later use (character extraction, etc.)
+            if (isset($modifications['intelligence'])) {
+                $this->productionIntelligence = $modifications['intelligence'];
+            }
+
+            // Dispatch event for UI feedback
+            $this->dispatch('production-intelligence-applied', [
+                'productionType' => $productionType,
+                'features' => [
+                    'multiShotMode' => $this->multiShotMode['enabled'] ?? false,
+                    'characterBible' => $this->sceneMemory['characterBible']['enabled'] ?? false,
+                    'locationBible' => $this->sceneMemory['locationBible']['enabled'] ?? false,
+                    'styleBible' => $this->sceneMemory['styleBible']['enabled'] ?? false,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::warning('ProductionIntelligence: Failed to apply auto-activation', [
+                'productionType' => $productionType,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail silently - intelligence is optional enhancement
+        }
     }
 
     /**
@@ -7153,23 +7237,25 @@ class VideoWizard extends Component
         }
 
         // Expand scene assignments based on role (cinematic continuity logic)
-        // Main characters should appear in 70%+ of scenes
-        // Supporting characters should appear in 40%+ of scenes
+        // Use productionIntelligence settings for percentages (configurable via admin)
+        $mainCharPercent = ($this->productionIntelligence['mainCharScenePercent'] ?? 70) / 100;
+        $supportingCharPercent = ($this->productionIntelligence['supportingCharScenePercent'] ?? 40) / 100;
+
         foreach ($detectedCharacters as $name => &$data) {
             $role = $inferredRoles[$name] ?? 'Background';
             $currentScenes = $characterScenes[$name] ?? [];
 
             if ($role === 'Main' && $totalScenes > 0) {
-                // Expand Main character to 70% of scenes minimum
-                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * 0.70));
+                // Expand Main character to configured % of scenes minimum
+                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * $mainCharPercent));
                 $characterScenes[$name] = $this->expandSceneAssignments(
                     $currentScenes,
                     $totalScenes,
                     $targetSceneCount
                 );
             } elseif ($role === 'Supporting' && $totalScenes > 0) {
-                // Expand Supporting character to 40% of scenes minimum
-                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * 0.40));
+                // Expand Supporting character to configured % of scenes minimum
+                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * $supportingCharPercent));
                 $characterScenes[$name] = $this->expandSceneAssignments(
                     $currentScenes,
                     $totalScenes,
