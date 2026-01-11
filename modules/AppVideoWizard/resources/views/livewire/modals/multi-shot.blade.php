@@ -63,10 +63,18 @@ window.multiShotVideoPolling = function() {
             console.log('[MultiShot] 📡 Poll #' + this.pollCount);
 
             try {
-                Livewire.dispatch('poll-video-jobs');
-                console.log('[MultiShot] ✅ poll-video-jobs dispatched');
+                // Call Livewire method directly via $wire (more reliable than dispatch)
+                if (this.$wire) {
+                    this.$wire.pollVideoJobs().then(() => {
+                        console.log('[MultiShot] ✅ pollVideoJobs() called');
+                    }).catch((e) => {
+                        console.error('[MultiShot] ❌ pollVideoJobs() error:', e);
+                    });
+                } else {
+                    console.error('[MultiShot] ❌ $wire not available');
+                }
             } catch (e) {
-                console.error('[MultiShot] ❌ Dispatch failed:', e);
+                console.error('[MultiShot] ❌ Poll failed:', e);
             }
         },
 
