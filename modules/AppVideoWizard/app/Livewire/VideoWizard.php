@@ -2674,6 +2674,10 @@ class VideoWizard extends Component
             array_splice($this->storyboard['scenes'], $sceneIndex, 1);
         }
 
+        // FIX: Synchronize Bible scene indices when a scene is deleted
+        // This prevents stale references after scene deletion
+        $this->synchronizeBibleSceneIndices($sceneIndex, 'delete');
+
         $this->recalculateScriptTotals();
         $this->recalculateVoiceStatus();
         $this->saveProject();
@@ -2967,6 +2971,83 @@ class VideoWizard extends Component
             return max($min, min($max, (int)$value));
         }
         return $default;
+    }
+
+    /**
+     * Synchronize Bible scene indices when scenes are deleted or reordered.
+     * This prevents stale references in Location Bible and Character Bible.
+     *
+     * @param int $sceneIndex The scene index that was affected
+     * @param string $action The action performed: 'delete' or 'insert'
+     */
+    protected function synchronizeBibleSceneIndices(int $sceneIndex, string $action): void
+    {
+        // Update Location Bible scene indices
+        if (!empty($this->sceneMemory['locationBible']['locations'])) {
+            foreach ($this->sceneMemory['locationBible']['locations'] as &$location) {
+                if (empty($location['scenes'])) {
+                    continue; // Empty means "all scenes", no update needed
+                }
+
+                $updatedScenes = [];
+                foreach ($location['scenes'] as $idx) {
+                    if ($action === 'delete') {
+                        // Remove the deleted scene and shift higher indices down
+                        if ($idx < $sceneIndex) {
+                            $updatedScenes[] = $idx;
+                        } elseif ($idx > $sceneIndex) {
+                            $updatedScenes[] = $idx - 1;
+                        }
+                        // Skip $idx === $sceneIndex (deleted scene)
+                    } elseif ($action === 'insert') {
+                        // Shift indices at or after insertion point up
+                        if ($idx < $sceneIndex) {
+                            $updatedScenes[] = $idx;
+                        } else {
+                            $updatedScenes[] = $idx + 1;
+                        }
+                    }
+                }
+                $location['scenes'] = array_values($updatedScenes);
+            }
+            unset($location);
+        }
+
+        // Update Character Bible scene indices (uses 'appliedScenes')
+        if (!empty($this->sceneMemory['characterBible']['characters'])) {
+            foreach ($this->sceneMemory['characterBible']['characters'] as &$character) {
+                if (empty($character['appliedScenes'])) {
+                    continue; // Empty means "all scenes", no update needed
+                }
+
+                $updatedScenes = [];
+                foreach ($character['appliedScenes'] as $idx) {
+                    if ($action === 'delete') {
+                        // Remove the deleted scene and shift higher indices down
+                        if ($idx < $sceneIndex) {
+                            $updatedScenes[] = $idx;
+                        } elseif ($idx > $sceneIndex) {
+                            $updatedScenes[] = $idx - 1;
+                        }
+                        // Skip $idx === $sceneIndex (deleted scene)
+                    } elseif ($action === 'insert') {
+                        // Shift indices at or after insertion point up
+                        if ($idx < $sceneIndex) {
+                            $updatedScenes[] = $idx;
+                        } else {
+                            $updatedScenes[] = $idx + 1;
+                        }
+                    }
+                }
+                $character['appliedScenes'] = array_values($updatedScenes);
+            }
+            unset($character);
+        }
+
+        Log::info('VideoWizard: Bible scene indices synchronized', [
+            'action' => $action,
+            'sceneIndex' => $sceneIndex,
+        ]);
     }
 
     /**
@@ -7877,7 +7958,9 @@ EOT;
             return;
         }
 
-        $sceneCount = count($this->storyboard['scenes'] ?? []);
+        // FIX: Use script['scenes'] instead of storyboard['scenes']
+        // Script is the source of truth for scene count during project creation
+        $sceneCount = count($this->script['scenes'] ?? []);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
         $this->saveProject();
     }
