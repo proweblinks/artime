@@ -480,6 +480,13 @@ class VideoWizard extends Component
             'atmosphere' => '',
             'camera' => '',
             'visualDNA' => '',
+            'negativePrompt' => '',              // Things to avoid in generation
+            'lighting' => [                      // Structured lighting for consistency
+                'setup' => '',                   // e.g., "three-point lighting", "natural window light"
+                'intensity' => '',               // high-key, normal, low-key
+                'type' => '',                    // natural, studio, practical, mixed
+                'mood' => '',                    // dramatic, soft, hard, ambient
+            ],
             'referenceImage' => '',
             'referenceImageSource' => '',
             'referenceImageBase64' => null,      // Base64 data for API calls (style consistency)
@@ -5900,7 +5907,20 @@ class VideoWizard extends Component
                 'style' => '',
                 'colorGrade' => '',
                 'atmosphere' => '',
+                'camera' => '',
                 'visualDNA' => '',
+                'negativePrompt' => '',
+                'lighting' => [
+                    'setup' => '',
+                    'intensity' => '',
+                    'type' => '',
+                    'mood' => '',
+                ],
+                'referenceImage' => '',
+                'referenceImageSource' => '',
+                'referenceImageBase64' => null,
+                'referenceImageMimeType' => null,
+                'referenceImageStatus' => 'none',
             ],
             'characterBible' => [
                 'enabled' => false,

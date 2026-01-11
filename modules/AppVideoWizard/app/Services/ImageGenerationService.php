@@ -1495,6 +1495,15 @@ EOT;
             }
         }
 
+        // Build Style DNA for visual consistency
+        $styleDNABlock = $this->buildStyleDNAForPrompt($styleBible);
+
+        // Build Location DNA for environmental consistency (need sceneLocation from above)
+        $locationDNABlock = '';
+        if (isset($sceneLocation)) {
+            $locationDNABlock = $this->buildLocationDNAForPrompt($sceneLocation, $sceneIndex);
+        }
+
         // =========================================================================
         // LAYER 1: PHOTOGRAPHY FOUNDATION
         // =========================================================================
@@ -1573,6 +1582,16 @@ EOT;
         // Add style and color grade
         if ($styleDescription) {
             $promptParts[] = $styleDescription;
+        }
+
+        // Add Style DNA for visual consistency enforcement
+        if (!empty($styleDNABlock)) {
+            $promptParts[] = "\n\n" . $styleDNABlock;
+        }
+
+        // Add Location DNA for environmental consistency enforcement
+        if (!empty($locationDNABlock)) {
+            $promptParts[] = "\n\n" . $locationDNABlock;
         }
 
         // Add Character DNA for consistency enforcement (before quality anchors)
@@ -1893,6 +1912,130 @@ EOT;
         }
 
         return implode("\n\n", $parts);
+    }
+
+    /**
+     * Build Style DNA block for visual consistency.
+     * This ensures consistent visual style across all generated images.
+     */
+    protected function buildStyleDNAForPrompt(?array $styleBible): string
+    {
+        if (!$styleBible || !($styleBible['enabled'] ?? false)) {
+            return '';
+        }
+
+        $parts = [];
+
+        // Visual Style section
+        if (!empty($styleBible['style'])) {
+            $parts[] = "VISUAL STYLE: {$styleBible['style']}";
+        }
+
+        // Color Grading section
+        if (!empty($styleBible['colorGrade'])) {
+            $parts[] = "COLOR GRADE (maintain consistency): {$styleBible['colorGrade']}";
+        }
+
+        // Lighting section - structured if available
+        $lighting = $styleBible['lighting'] ?? [];
+        if (!empty(array_filter($lighting))) {
+            $lightingParts = [];
+            if (!empty($lighting['setup'])) $lightingParts[] = $lighting['setup'];
+            if (!empty($lighting['intensity'])) $lightingParts[] = $lighting['intensity'] . ' intensity';
+            if (!empty($lighting['type'])) $lightingParts[] = $lighting['type'] . ' lighting';
+            if (!empty($lighting['mood'])) $lightingParts[] = $lighting['mood'] . ' mood';
+            if (!empty($lightingParts)) {
+                $parts[] = "LIGHTING SETUP: " . implode(', ', $lightingParts);
+            }
+        }
+
+        // Atmosphere section
+        if (!empty($styleBible['atmosphere'])) {
+            $parts[] = "ATMOSPHERE: {$styleBible['atmosphere']}";
+        }
+
+        // Camera Language section
+        if (!empty($styleBible['camera'])) {
+            $parts[] = "CAMERA: {$styleBible['camera']}";
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "STYLE DNA - VISUAL CONSISTENCY:\n" . implode("\n", $parts);
+    }
+
+    /**
+     * Build Location DNA block for environmental consistency.
+     * This ensures consistent location appearance across shots.
+     */
+    protected function buildLocationDNAForPrompt(?array $sceneLocation, ?int $sceneIndex): string
+    {
+        if (!$sceneLocation) {
+            return '';
+        }
+
+        $name = $sceneLocation['name'] ?? 'Location';
+        $parts = [];
+
+        // Environment section
+        if (!empty($sceneLocation['description'])) {
+            $parts[] = "ENVIRONMENT: {$sceneLocation['description']}";
+        }
+
+        // Time and Weather - critical for visual consistency
+        $timeWeather = [];
+        if (!empty($sceneLocation['timeOfDay'])) {
+            $timeMap = [
+                'day' => 'Daytime',
+                'night' => 'Nighttime',
+                'dawn' => 'Dawn/early morning',
+                'dusk' => 'Dusk/twilight',
+                'golden_hour' => 'Golden hour',
+            ];
+            $timeWeather[] = $timeMap[$sceneLocation['timeOfDay']] ?? $sceneLocation['timeOfDay'];
+        }
+        if (!empty($sceneLocation['weather'])) {
+            $weatherMap = [
+                'clear' => 'clear sky',
+                'cloudy' => 'overcast/cloudy',
+                'rainy' => 'rainy conditions',
+                'foggy' => 'foggy/misty atmosphere',
+                'stormy' => 'stormy weather',
+                'snowy' => 'snowy conditions',
+            ];
+            $timeWeather[] = $weatherMap[$sceneLocation['weather']] ?? $sceneLocation['weather'];
+        }
+        if (!empty($timeWeather)) {
+            $parts[] = "TIME/WEATHER: " . implode(', ', $timeWeather);
+        }
+
+        // Atmosphere
+        if (!empty($sceneLocation['atmosphere'])) {
+            $parts[] = "ATMOSPHERE: {$sceneLocation['atmosphere']}";
+        }
+
+        // Mood
+        if (!empty($sceneLocation['mood'])) {
+            $parts[] = "MOOD: {$sceneLocation['mood']}";
+        }
+
+        // Scene state if available
+        if ($sceneIndex !== null && !empty($sceneLocation['stateChanges'])) {
+            foreach ($sceneLocation['stateChanges'] as $stateChange) {
+                if (($stateChange['sceneIndex'] ?? null) === $sceneIndex && !empty($stateChange['stateDescription'])) {
+                    $parts[] = "CURRENT STATE: {$stateChange['stateDescription']}";
+                    break;
+                }
+            }
+        }
+
+        if (count($parts) <= 1) {
+            return '';
+        }
+
+        return "LOCATION DNA - {$name} (MAINTAIN CONSISTENCY):\n" . implode("\n", $parts);
     }
 
     /**

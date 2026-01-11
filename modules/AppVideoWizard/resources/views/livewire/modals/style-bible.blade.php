@@ -149,6 +149,71 @@
                           placeholder="{{ __('e.g., high quality, detailed, professional, 8K resolution, sharp focus...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
+
+            {{-- Lighting Section (Collapsible) --}}
+            <div x-data="{ open: false }" style="margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.35rem; overflow: hidden;">
+                <button type="button" @click="open = !open" style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.05); border: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <span style="color: rgba(255,255,255,0.7); font-size: 0.65rem; font-weight: 500;">💡 {{ __('Lighting Setup') }}</span>
+                    <span x-text="open ? '−' : '+'" style="color: rgba(255,255,255,0.5); font-size: 0.8rem;"></span>
+                </button>
+                <div x-show="open" x-collapse style="padding: 0.5rem; background: rgba(0,0,0,0.2);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                        {{-- Setup --}}
+                        <div>
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Setup') }}</label>
+                            <input type="text" wire:model.live="sceneMemory.styleBible.lighting.setup"
+                                   placeholder="{{ __('e.g., three-point lighting') }}"
+                                   style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                        </div>
+                        {{-- Intensity --}}
+                        <div>
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Intensity') }}</label>
+                            <select wire:model.live="sceneMemory.styleBible.lighting.intensity"
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                <option value="">{{ __('Select...') }}</option>
+                                <option value="high-key">{{ __('High-key (bright)') }}</option>
+                                <option value="normal">{{ __('Normal') }}</option>
+                                <option value="low-key">{{ __('Low-key (dark)') }}</option>
+                            </select>
+                        </div>
+                        {{-- Type --}}
+                        <div>
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
+                            <select wire:model.live="sceneMemory.styleBible.lighting.type"
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                <option value="">{{ __('Select...') }}</option>
+                                <option value="natural">{{ __('Natural') }}</option>
+                                <option value="studio">{{ __('Studio') }}</option>
+                                <option value="practical">{{ __('Practical') }}</option>
+                                <option value="mixed">{{ __('Mixed') }}</option>
+                            </select>
+                        </div>
+                        {{-- Mood --}}
+                        <div>
+                            <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Mood') }}</label>
+                            <select wire:model.live="sceneMemory.styleBible.lighting.mood"
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                <option value="">{{ __('Select...') }}</option>
+                                <option value="dramatic">{{ __('Dramatic') }}</option>
+                                <option value="soft">{{ __('Soft') }}</option>
+                                <option value="hard">{{ __('Hard') }}</option>
+                                <option value="ambient">{{ __('Ambient') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Negative Prompt --}}
+            <div style="margin-bottom: 0.5rem;">
+                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Negative Prompt (Things to Avoid)') }}</label>
+                <textarea wire:model.live="sceneMemory.styleBible.negativePrompt"
+                          placeholder="{{ __('e.g., blurry, low quality, oversaturated, plastic skin, cartoon, anime...') }}"
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.35rem; color: #fca5a5; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
+                <p style="color: rgba(255,255,255,0.4); font-size: 0.5rem; margin: 0.2rem 0 0 0;">
+                    💡 {{ __('Comma-separated list of elements to exclude from generated images.') }}
+                </p>
+            </div>
         </div>
 
         {{-- Footer --}}
