@@ -247,14 +247,34 @@ class AnimationService
             'error' => $status['error'] ?? 'none',
         ]);
 
+        // FIX: MiniMax API returns lowercase status values, but we need to handle both cases
+        // Map both capitalized and lowercase versions for robustness
         $statusMap = [
+            // Capitalized (original expected format)
             'Queueing' => 'queued',
             'Processing' => 'processing',
             'Success' => 'completed',
             'Fail' => 'failed',
+            // Lowercase (actual MiniMax API format)
+            'queueing' => 'queued',
+            'processing' => 'processing',
+            'success' => 'completed',
+            'fail' => 'failed',
+            'failed' => 'failed',
+            // Additional possible values
+            'pending' => 'queued',
+            'running' => 'processing',
+            'completed' => 'completed',
+            'error' => 'failed',
         ];
 
-        $normalizedStatus = $statusMap[$status['status']] ?? $status['status'];
+        $rawStatus = $status['status'] ?? 'unknown';
+        $normalizedStatus = $statusMap[$rawStatus] ?? strtolower($rawStatus);
+
+        Log::info("AnimationService: Status normalized", [
+            'raw' => $rawStatus,
+            'normalized' => $normalizedStatus,
+        ]);
 
         $result = [
             'success' => true,

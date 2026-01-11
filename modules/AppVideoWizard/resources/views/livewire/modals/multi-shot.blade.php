@@ -8,10 +8,13 @@ window.multiShotVideoPolling = function() {
         pollingInterval: null,
         isPolling: false,
         pollCount: 0,
+        maxPolls: 120, // Stop after 10 minutes (120 * 5s)
         POLL_INTERVAL: 5000,
+        componentDestroyed: false,
 
         initPolling() {
             console.log('[MultiShot] 🚀 Alpine polling component initialized');
+            this.componentDestroyed = false;
 
             // Check initial state
             this.$nextTick(() => {
@@ -22,14 +25,22 @@ window.multiShotVideoPolling = function() {
             });
 
             // Listen for Livewire events
-            Livewire.on('video-generation-started', (data) => {
+            this.videoStartedListener = Livewire.on('video-generation-started', (data) => {
                 console.log('[MultiShot] 🎬 video-generation-started event received', data);
-                this.startPolling();
+                if (!this.componentDestroyed) {
+                    this.startPolling();
+                }
             });
 
-            Livewire.on('video-generation-complete', () => {
+            this.videoCompleteListener = Livewire.on('video-generation-complete', () => {
                 console.log('[MultiShot] ✅ video-generation-complete event received');
                 this.stopPolling();
+            });
+
+            // Listen for modal close event to stop polling
+            this.modalCloseListener = Livewire.on('multi-shot-modal-closing', () => {
+                console.log('[MultiShot] 🚪 Modal closing - stopping polling');
+                this.cleanup();
             });
 
             // Make available globally for debugging
@@ -40,7 +51,8 @@ window.multiShotVideoPolling = function() {
                 status: () => {
                     console.log('[MultiShot] 📊 Status:', {
                         isPolling: this.isPolling,
-                        pollCount: this.pollCount
+                        pollCount: this.pollCount,
+                        destroyed: this.componentDestroyed
                     });
                 },
                 check: () => this.checkForProcessingVideos()
@@ -59,6 +71,20 @@ window.multiShotVideoPolling = function() {
         },
 
         dispatchPoll() {
+            // Safety check: don't poll if component was destroyed
+            if (this.componentDestroyed) {
+                console.log('[MultiShot] ⚠️ Component destroyed, skipping poll');
+                this.stopPolling();
+                return;
+            }
+
+            // Safety check: stop after max polls to prevent infinite polling
+            if (this.pollCount >= this.maxPolls) {
+                console.log('[MultiShot] ⚠️ Max polls reached (' + this.maxPolls + '), stopping');
+                this.stopPolling();
+                return;
+            }
+
             this.pollCount++;
             console.log('[MultiShot] 📡 Poll #' + this.pollCount);
 
@@ -69,16 +95,24 @@ window.multiShotVideoPolling = function() {
                         console.log('[MultiShot] ✅ pollVideoJobs result:', result);
                         // Stop polling if no jobs
                         if (result && result.pendingJobs === 0) {
-                            console.log('[MultiShot] ⚠️ No pending jobs - pendingJobs array is empty!');
+                            console.log('[MultiShot] ⚠️ No pending jobs - stopping polling');
+                            this.stopPolling();
                         }
                     }).catch((e) => {
                         console.error('[MultiShot] ❌ pollVideoJobs() error:', e);
+                        // If we get a component not found error, stop polling
+                        if (e.message && e.message.includes('Could not find')) {
+                            console.log('[MultiShot] ⚠️ Component not found, stopping polling');
+                            this.stopPolling();
+                        }
                     });
                 } else {
-                    console.error('[MultiShot] ❌ $wire not available');
+                    console.error('[MultiShot] ❌ $wire not available - stopping polling');
+                    this.stopPolling();
                 }
             } catch (e) {
                 console.error('[MultiShot] ❌ Poll failed:', e);
+                this.stopPolling();
             }
         },
 
@@ -88,16 +122,29 @@ window.multiShotVideoPolling = function() {
                 return;
             }
 
+            if (this.componentDestroyed) {
+                console.log('[MultiShot] ⚠️ Component destroyed, cannot start polling');
+                return;
+            }
+
             this.isPolling = true;
             this.pollCount = 0;
             console.log('[MultiShot] ✅ Starting polling (every 5s)');
 
             // First poll after 1s
-            setTimeout(() => this.dispatchPoll(), 1000);
+            setTimeout(() => {
+                if (!this.componentDestroyed) {
+                    this.dispatchPoll();
+                }
+            }, 1000);
 
             // Then every 5 seconds
             this.pollingInterval = setInterval(() => {
-                this.dispatchPoll();
+                if (!this.componentDestroyed) {
+                    this.dispatchPoll();
+                } else {
+                    this.stopPolling();
+                }
             }, this.POLL_INTERVAL);
         },
 
@@ -110,9 +157,31 @@ window.multiShotVideoPolling = function() {
             console.log('[MultiShot] ⏹️ Polling stopped after ' + this.pollCount + ' polls');
         },
 
-        // Cleanup when component is destroyed
-        destroy() {
+        // Cleanup listeners and polling
+        cleanup() {
+            this.componentDestroyed = true;
             this.stopPolling();
+
+            // Remove event listeners to prevent memory leaks
+            if (this.videoStartedListener) {
+                this.videoStartedListener();
+                this.videoStartedListener = null;
+            }
+            if (this.videoCompleteListener) {
+                this.videoCompleteListener();
+                this.videoCompleteListener = null;
+            }
+            if (this.modalCloseListener) {
+                this.modalCloseListener();
+                this.modalCloseListener = null;
+            }
+
+            console.log('[MultiShot] 🧹 Cleanup complete');
+        },
+
+        // Called by Alpine when component is destroyed (x-on:destroy)
+        destroy() {
+            this.cleanup();
         }
     };
 };
@@ -120,8 +189,10 @@ window.multiShotVideoPolling = function() {
 
 @if($showMultiShotModal)
 <div class="vw-modal-overlay"
+     wire:key="multi-shot-modal-{{ $multiShotSceneIndex }}"
      x-data="multiShotVideoPolling()"
      x-init="initPolling()"
+     @destroy="cleanup()"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
     <div class="vw-modal"
          style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 1rem; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">

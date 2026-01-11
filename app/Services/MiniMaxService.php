@@ -245,6 +245,28 @@ class MiniMaxService
 
             $body = json_decode($response->getBody(), true);
 
+            // Log full response for debugging
+            \Log::info("MiniMaxService: Video task status raw response", [
+                'taskId' => $taskId,
+                'body_keys' => is_array($body) ? array_keys($body) : 'not_array',
+                'status' => $body['status'] ?? 'not_found',
+                'file_id' => $body['file_id'] ?? 'not_found',
+                'base_resp' => $body['base_resp'] ?? 'not_found',
+            ]);
+
+            // Check for API error first
+            if (isset($body['base_resp']['status_code']) && $body['base_resp']['status_code'] !== 0) {
+                \Log::warning("MiniMaxService: API returned error", [
+                    'status_code' => $body['base_resp']['status_code'],
+                    'status_msg' => $body['base_resp']['status_msg'] ?? 'unknown',
+                ]);
+                return [
+                    'status' => 'error',
+                    'file_id' => null,
+                    'error' => $body['base_resp']['status_msg'] ?? 'Unknown API error',
+                ];
+            }
+
             return [
                 'status' => $body['status'] ?? 'unknown',
                 'file_id' => $body['file_id'] ?? null,
@@ -252,6 +274,10 @@ class MiniMaxService
             ];
 
         } catch (\Throwable $e) {
+            \Log::error("MiniMaxService: getVideoTaskStatus exception", [
+                'taskId' => $taskId,
+                'error' => $e->getMessage(),
+            ]);
             return ['status' => 'error', 'error' => $e->getMessage()];
         }
     }
