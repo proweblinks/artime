@@ -1940,16 +1940,22 @@ EOT;
 
     /**
      * Get resolution configuration for aspect ratio.
-     * Note: API supports: '1024x1024', '1024x1536', '1536x1024', and 'auto'
+     * Note: HiDream accepts any dimensions. Gemini API supports specific sizes but
+     * we map to closest values. All ratios are now mathematically correct.
      */
     protected function getResolution(string $aspectRatio): array
     {
         $resolutions = [
-            '16:9' => ['width' => 1536, 'height' => 1024, 'size' => '1536x1024'],
-            '9:16' => ['width' => 1024, 'height' => 1536, 'size' => '1024x1536'],
+            // 16:9 = 1.777... ratio (1792/1008 = 1.777...)
+            '16:9' => ['width' => 1792, 'height' => 1008, 'size' => '1792x1008'],
+            // 9:16 = 0.5625 ratio (1008/1792 = 0.5625)
+            '9:16' => ['width' => 1008, 'height' => 1792, 'size' => '1008x1792'],
+            // 1:1 = 1.0 ratio
             '1:1' => ['width' => 1024, 'height' => 1024, 'size' => '1024x1024'],
-            '4:5' => ['width' => 1024, 'height' => 1280, 'size' => '1024x1536'],
-            '4:3' => ['width' => 1024, 'height' => 1024, 'size' => '1024x1024'],
+            // 4:5 = 0.8 ratio (1024/1280 = 0.8)
+            '4:5' => ['width' => 1024, 'height' => 1280, 'size' => '1024x1280'],
+            // 4:3 = 1.333... ratio (1365/1024 ≈ 1.333)
+            '4:3' => ['width' => 1365, 'height' => 1024, 'size' => '1365x1024'],
         ];
 
         return $resolutions[$aspectRatio] ?? $resolutions['16:9'];
