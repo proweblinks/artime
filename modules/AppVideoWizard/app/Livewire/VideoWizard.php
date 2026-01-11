@@ -9990,42 +9990,53 @@ PROMPT;
         }
 
         try {
-            $filename = "frame_capture_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+            // Check if capturedFrame is a URL (from server-side capture) or base64 data URL
+            $isServerCapturedUrl = !str_starts_with($this->capturedFrame, 'data:');
 
-            // Decode base64 and save
-            $frameData = preg_replace('/^data:image\/\w+;base64,/', '', $this->capturedFrame);
-            $frameData = base64_decode($frameData);
+            if ($isServerCapturedUrl) {
+                // Server-side capture: frame already saved, just use the URL directly
+                $imageUrl = $this->capturedFrame;
+            } else {
+                // Client-side capture: decode base64 and save
+                $filename = "frame_capture_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+                $frameData = preg_replace('/^data:image\/\w+;base64,/', '', $this->capturedFrame);
+                $frameData = base64_decode($frameData);
 
-            if ($this->projectId) {
-                $project = WizardProject::find($this->projectId);
-                if ($project) {
-                    $path = "wizard-projects/{$project->id}/frames/{$filename}";
-                    Storage::disk('public')->put($path, $frameData);
-
-                    // Generate URL (use /public/storage/ path for shared hosting)
-                    $imageUrl = url('/public/storage/' . $path);
-
-                    // Update next shot with transferred frame (Hollywood frame chain)
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageUrl'] = $imageUrl;
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['capturedFrameUrl'] = $imageUrl;
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageStatus'] = 'ready';
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['status'] = 'ready';
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['fromFrameCapture'] = true;
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['transferredFrom'] = $shotIndex;
-
-                    // Store the frame reference on the source shot too
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['lastFrameUrl'] = $imageUrl;
-
-                    $this->saveProject();
-                    $this->closeFrameCaptureModal();
-
-                    $this->dispatch('frame-transferred', [
-                        'sceneIndex' => $sceneIndex,
-                        'fromShot' => $shotIndex,
-                        'toShot' => $nextShotIndex,
-                    ]);
+                if ($this->projectId) {
+                    $project = WizardProject::find($this->projectId);
+                    if ($project) {
+                        $path = "wizard-projects/{$project->id}/frames/{$filename}";
+                        Storage::disk('public')->put($path, $frameData);
+                        $imageUrl = url('/public/storage/' . $path);
+                    } else {
+                        $this->error = __('Project not found');
+                        return;
+                    }
+                } else {
+                    $this->error = __('No project ID');
+                    return;
                 }
             }
+
+            // Update next shot with transferred frame (Hollywood frame chain)
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageUrl'] = $imageUrl;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['capturedFrameUrl'] = $imageUrl;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['imageStatus'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['status'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['fromFrameCapture'] = true;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$nextShotIndex]['transferredFrom'] = $shotIndex;
+
+            // Store the frame reference on the source shot too
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['lastFrameUrl'] = $imageUrl;
+
+            $this->saveProject();
+            $this->closeFrameCaptureModal();
+
+            $this->dispatch('frame-transferred', [
+                'sceneIndex' => $sceneIndex,
+                'fromShot' => $shotIndex,
+                'toShot' => $nextShotIndex,
+            ]);
         } catch (\Exception $e) {
             $this->error = __('Failed to transfer frame: ') . $e->getMessage();
         }
