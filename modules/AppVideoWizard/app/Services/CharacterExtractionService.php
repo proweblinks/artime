@@ -262,31 +262,6 @@ Extract ALL characters that appear visually in the script. PRIORITIZE finding ev
 5. DNA fields (hair, wardrobe, makeup, accessories) are OPTIONAL - include if you can infer from script, otherwise leave empty objects/arrays
 6. Focus on QUANTITY first - it's better to have basic descriptions for all characters than detailed DNA for few
 
-**CRITICAL - CHARACTER NAME CONSOLIDATION:**
-- "Hero", "Protagonist", "Main Character", "The Hero", "Our Hero" = SAME CHARACTER (pick the most specific name)
-- Do NOT create separate entries for synonymous names referring to the same person
-- If script uses "the protagonist" and "hero" interchangeably, create ONE character entry
-- Use the character's actual name if mentioned, otherwise use the most descriptive title
-
-=== CINEMATIC INTELLIGENCE - SCENE ASSIGNMENT RULES ===
-**CRITICAL FOR NARRATIVE CONTINUITY:**
-7. **MAIN CHARACTERS** (protagonist, hero, central figure) should appear in MOST scenes (70%+)
-   - Even if not explicitly mentioned, Main characters are IMPLIED to be present in scenes relevant to their story
-   - If a script has 10 scenes, a Main character should appear in at least 7
-   - Include opening and closing scenes for Main characters
-8. **SUPPORTING CHARACTERS** (mentor, sidekick, love interest, ally) should appear in MULTIPLE scenes (40%+)
-   - Track their narrative arc - they appear when relevant to the story
-   - If a script has 10 scenes, a Supporting character should appear in at least 4
-9. **BACKGROUND CHARACTERS** (extras, one-scene characters) appear only where explicitly shown
-10. **NARRATIVE CONTINUITY**: Think like a film director:
-    - Main characters don't disappear for long stretches
-    - If Scene 1 introduces the hero and Scene 5 shows them, they likely appear in Scenes 2-4 too
-    - Emotional scenes, climax scenes, and resolution scenes typically include Main characters
-11. **ROLE ASSIGNMENT**: Carefully determine each character's role:
-    - Main: The story revolves around them, they drive the plot
-    - Supporting: They help/hinder the Main character, have their own arc
-    - Background: One-time appearances, no significant story impact
-
 === QUICK REFERENCE ===
 - name: Individual name (give distinct names like "Warrior 1 - Ayo", "The Hacker", "Young Woman")
 - description: Core identity - age, gender, ethnicity, build, distinctive features (REQUIRED)

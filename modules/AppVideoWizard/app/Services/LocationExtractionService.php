@@ -249,20 +249,6 @@ Extract ALL distinct locations that appear in the script. PRIORITIZE finding eve
 4. DNA fields (mood, lightingStyle, stateChanges) are OPTIONAL - include if inferable
 5. Focus on QUANTITY first - basic descriptions for all locations is better than detailed DNA for few
 
-**CRITICAL - LOCATION NAME CONSOLIDATION:**
-- "Office", "Corporate Office", "The Office", "Main Office" = SAME LOCATION
-- "Rooftop", "Building Rooftop", "City Rooftop" = SAME LOCATION
-- "Street", "City Street", "Urban Street" = SAME LOCATION
-- Do NOT create separate entries for variations of the same place
-- Use the most descriptive specific name (e.g., "Corporate Boardroom" not just "Office")
-- Merge all scene appearances under ONE location entry
-
-**CRITICAL - SCENE ASSIGNMENT:**
-- Every scene MUST have at least one location assigned
-- If a scene's location is unclear, assign it to the most logical existing location
-- Count your scenes: if script has 8 scenes, locations should collectively cover scenes 1-8
-- No scene should be left without a location assignment
-
 === QUICK REFERENCE ===
 - name: Distinctive location name (e.g., "Corporate Boardroom", "Forest Clearing", "Space Station Bridge")
 - description: Visual details for AI image generation (REQUIRED)
