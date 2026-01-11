@@ -53,6 +53,7 @@ class VwSetting extends Model
     const CATEGORY_API = 'api';
     const CATEGORY_CREDITS = 'credits';
     const CATEGORY_AI_PROVIDERS = 'ai_providers';
+    const CATEGORY_PRODUCTION_INTELLIGENCE = 'production_intelligence';
 
     /**
      * Mapping of VwSetting slugs to legacy get_option keys for backward compatibility.
@@ -323,6 +324,7 @@ class VwSetting extends Model
     public static function getCategoryLabels(): array
     {
         return [
+            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'Production Intelligence',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
             self::CATEGORY_ANIMATION => 'Animation Models',
             self::CATEGORY_DURATION => 'Duration Settings',
@@ -341,6 +343,7 @@ class VwSetting extends Model
     public static function getCategoryIcons(): array
     {
         return [
+            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'fa-solid fa-wand-magic-sparkles',
             self::CATEGORY_SHOT_INTELLIGENCE => 'fa-solid fa-brain',
             self::CATEGORY_ANIMATION => 'fa-solid fa-film',
             self::CATEGORY_DURATION => 'fa-solid fa-clock',
@@ -359,6 +362,7 @@ class VwSetting extends Model
     public static function getOrderedCategories(): array
     {
         return [
+            self::CATEGORY_PRODUCTION_INTELLIGENCE,
             self::CATEGORY_SHOT_INTELLIGENCE,
             self::CATEGORY_ANIMATION,
             self::CATEGORY_DURATION,

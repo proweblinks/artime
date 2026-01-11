@@ -820,6 +820,20 @@ Return ONLY valid JSON (no markdown, no explanation):
                 'is_system' => true,
                 'sort_order' => 8,
             ],
+            [
+                'slug' => 'production_type_overrides',
+                'name' => 'Per-Production-Type Overrides',
+                'category' => 'production_intelligence',
+                'description' => 'JSON object with custom settings per production type. Overrides global defaults.',
+                'value_type' => 'json',
+                'value' => '{}',
+                'default_value' => '{}',
+                'input_type' => 'textarea',
+                'input_help' => 'Example: {"movie":{"mainCharScenePercent":80},"commercial":{"mainCharScenePercent":60}}',
+                'icon' => 'fa-solid fa-sliders',
+                'is_system' => true,
+                'sort_order' => 9,
+            ],
         ];
 
         foreach ($settings as $setting) {
