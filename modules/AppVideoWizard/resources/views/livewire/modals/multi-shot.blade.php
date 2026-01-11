@@ -799,9 +799,9 @@ window.multiShotVideoPolling = function() {
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.4rem;">{{ __('Duration') }}</label>
                 @php
-                    // MiniMax video-01 only supports 5-6 second videos
-                    // Multitalk supports variable durations
-                    $availableDurations = $currentModel === 'multitalk' ? [5, 10, 15, 20] : [5, 6];
+                    // MiniMax supports 5s, 6s, 10s durations
+                    // Multitalk supports variable durations up to 20s
+                    $availableDurations = $currentModel === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
                 @endphp
                 <div style="display: flex; gap: 0.35rem;">
                     @foreach($availableDurations as $dur)
