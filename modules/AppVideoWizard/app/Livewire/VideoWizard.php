@@ -7044,7 +7044,16 @@ class VideoWizard extends Component
                     'count' => count($result['characters']),
                 ]);
 
-                // Add AI-extracted characters to Character Bible
+                // =====================================================================
+                // CINEMATIC INTELLIGENCE: Post-extraction scene expansion
+                // Even though AI is told to apply 70%/40% rules, we enforce it here too
+                // =====================================================================
+                $totalScenes = count($this->script['scenes'] ?? []);
+                $mainCharPercent = ($this->productionIntelligence['mainCharScenePercent'] ?? 70) / 100;
+                $supportingCharPercent = ($this->productionIntelligence['supportingCharScenePercent'] ?? 40) / 100;
+                $useNarrativeTracking = ($this->productionIntelligence['characterTracking'] ?? 'narrative') === 'narrative';
+
+                // Add AI-extracted characters to Character Bible with scene expansion
                 foreach ($result['characters'] as $character) {
                     // Check if already exists
                     $exists = collect($this->sceneMemory['characterBible']['characters'])
@@ -7052,12 +7061,29 @@ class VideoWizard extends Component
                         ->isNotEmpty();
 
                     if (!$exists) {
+                        $role = $character['role'] ?? 'Supporting';
+                        $aiScenes = $character['appearsInScenes'] ?? [];
+
+                        // Apply cinematic scene expansion based on role (if narrative tracking enabled)
+                        $expandedScenes = $aiScenes;
+                        if ($useNarrativeTracking && $totalScenes > 0) {
+                            if ($role === 'Main') {
+                                $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $mainCharPercent));
+                                $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
+                            } elseif ($role === 'Supporting') {
+                                $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $supportingCharPercent));
+                                $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
+                            }
+                            // Background characters keep AI-determined scenes only
+                        }
+
                         $this->sceneMemory['characterBible']['characters'][] = [
                             'id' => $character['id'] ?? uniqid('char_'),
                             'name' => $character['name'],
                             'description' => $character['description'] ?? '',
-                            'role' => $character['role'] ?? 'Supporting',
-                            'appliedScenes' => $character['appearsInScenes'] ?? [],
+                            'role' => $role,
+                            'appliedScenes' => $expandedScenes,
+                            'originalAiScenes' => $aiScenes, // Keep original for reference
                             'traits' => $character['traits'] ?? [],
                             'defaultExpression' => $character['defaultExpression'] ?? '',
                             'referenceImage' => null,
@@ -7082,6 +7108,17 @@ class VideoWizard extends Component
                             ],
                             'accessories' => $character['accessories'] ?? [],
                         ];
+
+                        // Log scene expansion if it occurred
+                        if (count($expandedScenes) > count($aiScenes)) {
+                            Log::info('CharacterExtraction: Scene expansion applied', [
+                                'character' => $character['name'],
+                                'role' => $role,
+                                'aiScenes' => count($aiScenes),
+                                'expandedScenes' => count($expandedScenes),
+                                'totalScenes' => $totalScenes,
+                            ]);
+                        }
                     }
                 }
 
