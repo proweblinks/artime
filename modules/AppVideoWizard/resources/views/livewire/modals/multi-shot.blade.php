@@ -627,9 +627,7 @@ window.multiShotVideoPolling = function() {
 
                                                     {{-- Progress Bar --}}
                                                     <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.4rem;">
-                                                        <div :style="'width: ' + progress + '%; transition: width 0.5s ease;'"
-                                                             style="height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; position: relative;">
-                                                            <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 1.5s infinite;"></div>
+                                                        <div :style="'width: ' + progress + '%; height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.5s ease;'">
                                                         </div>
                                                     </div>
 
