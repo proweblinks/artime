@@ -570,6 +570,12 @@ class VideoWizard extends Component
     public int $frameCaptureShotIndex = 0;
     public ?string $capturedFrame = null;
 
+    // Face Correction Panel state (inside Frame Capture modal)
+    public bool $showFaceCorrectionPanel = false;
+    public array $selectedFaceCorrectionCharacters = [];
+    public ?string $correctedFrameUrl = null;
+    public string $faceCorrectionStatus = 'idle'; // 'idle', 'processing', 'done', 'error'
+
     // Video Model Selector Popup state
     public bool $showVideoModelSelector = false;
     public int $videoModelSelectorSceneIndex = 0;
@@ -9192,6 +9198,331 @@ EOT;
     {
         $this->showFrameCaptureModal = false;
         $this->capturedFrame = null;
+        $this->closeFaceCorrectionPanel();
+    }
+
+    /**
+     * Capture frame server-side (fallback for CORS-blocked videos).
+     * Uses FFmpeg to extract a frame at the specified timestamp.
+     */
+    public function captureFrameServerSide(float $timestamp): array
+    {
+        $sceneIndex = $this->frameCaptureSceneIndex;
+        $shotIndex = $this->frameCaptureShotIndex;
+
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        $shot = $decomposed['shots'][$shotIndex] ?? null;
+
+        if (!$shot || empty($shot['videoUrl'])) {
+            return ['success' => false, 'error' => __('No video URL available')];
+        }
+
+        $videoUrl = $shot['videoUrl'];
+
+        try {
+            // Create temp directory if needed
+            $tempDir = storage_path('app/temp/frames');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            $filename = "frame_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+            $tempPath = $tempDir . '/' . $filename;
+
+            // Use FFmpeg to extract frame
+            // Format timestamp as HH:MM:SS.mmm
+            $hours = floor($timestamp / 3600);
+            $minutes = floor(($timestamp % 3600) / 60);
+            $seconds = $timestamp % 60;
+            $timeString = sprintf('%02d:%02d:%06.3f', $hours, $minutes, $seconds);
+
+            $ffmpegCmd = sprintf(
+                'ffmpeg -y -ss %s -i %s -vframes 1 -f image2 %s 2>&1',
+                escapeshellarg($timeString),
+                escapeshellarg($videoUrl),
+                escapeshellarg($tempPath)
+            );
+
+            Log::info('[FrameCapture] FFmpeg command', ['cmd' => $ffmpegCmd]);
+
+            $output = [];
+            $returnCode = 0;
+            exec($ffmpegCmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($tempPath)) {
+                Log::error('[FrameCapture] FFmpeg failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", $output)
+                ]);
+
+                // Try alternative: download video and extract locally
+                return $this->captureFrameViaDownload($videoUrl, $timestamp, $sceneIndex, $shotIndex);
+            }
+
+            // Move to public storage
+            $frameContent = file_get_contents($tempPath);
+            unlink($tempPath);
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $storagePath = "wizard-projects/{$project->id}/frames/{$filename}";
+                    Storage::disk('public')->put($storagePath, $frameContent);
+                    $frameUrl = Storage::disk('public')->url($storagePath);
+
+                    Log::info('[FrameCapture] Server-side capture successful', ['url' => $frameUrl]);
+
+                    return [
+                        'success' => true,
+                        'frameUrl' => $frameUrl
+                    ];
+                }
+            }
+
+            // Fallback: return as base64
+            $base64 = 'data:image/png;base64,' . base64_encode($frameContent);
+            return [
+                'success' => true,
+                'frameUrl' => $base64
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('[FrameCapture] Server-side capture error', [
+                'error' => $e->getMessage()
+            ]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Alternative frame capture via video download (for problematic URLs).
+     */
+    protected function captureFrameViaDownload(string $videoUrl, float $timestamp, int $sceneIndex, int $shotIndex): array
+    {
+        try {
+            $tempDir = storage_path('app/temp/frames');
+            $tempVideoPath = $tempDir . '/temp_video_' . time() . '.mp4';
+            $filename = "frame_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
+            $tempFramePath = $tempDir . '/' . $filename;
+
+            // Download video
+            $client = new \GuzzleHttp\Client(['timeout' => 60, 'verify' => false]);
+            $response = $client->get($videoUrl, ['sink' => $tempVideoPath]);
+
+            if (!file_exists($tempVideoPath)) {
+                throw new \Exception('Failed to download video');
+            }
+
+            // Extract frame
+            $hours = floor($timestamp / 3600);
+            $minutes = floor(($timestamp % 3600) / 60);
+            $seconds = $timestamp % 60;
+            $timeString = sprintf('%02d:%02d:%06.3f', $hours, $minutes, $seconds);
+
+            $ffmpegCmd = sprintf(
+                'ffmpeg -y -ss %s -i %s -vframes 1 -f image2 %s 2>&1',
+                escapeshellarg($timeString),
+                escapeshellarg($tempVideoPath),
+                escapeshellarg($tempFramePath)
+            );
+
+            exec($ffmpegCmd, $output, $returnCode);
+
+            // Cleanup temp video
+            if (file_exists($tempVideoPath)) {
+                unlink($tempVideoPath);
+            }
+
+            if ($returnCode !== 0 || !file_exists($tempFramePath)) {
+                throw new \Exception('FFmpeg frame extraction failed');
+            }
+
+            $frameContent = file_get_contents($tempFramePath);
+            unlink($tempFramePath);
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $storagePath = "wizard-projects/{$project->id}/frames/{$filename}";
+                    Storage::disk('public')->put($storagePath, $frameContent);
+                    $frameUrl = Storage::disk('public')->url($storagePath);
+
+                    return ['success' => true, 'frameUrl' => $frameUrl];
+                }
+            }
+
+            return [
+                'success' => true,
+                'frameUrl' => 'data:image/png;base64,' . base64_encode($frameContent)
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('[FrameCapture] Download capture failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // =========================================================================
+    // FACE CORRECTION PANEL
+    // =========================================================================
+
+    /**
+     * Open face correction panel.
+     */
+    public function openFaceCorrectionPanel(): void
+    {
+        if (!$this->capturedFrame) {
+            $this->error = __('Capture a frame first');
+            return;
+        }
+
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        $charsWithPortraits = collect($characters)
+            ->filter(fn($c) => !empty($c['referenceImage']) && ($c['referenceImageStatus'] ?? '') === 'ready')
+            ->keys()
+            ->all();
+
+        if (empty($charsWithPortraits)) {
+            $this->error = __('No character portraits available. Generate portraits in Character Bible first.');
+            return;
+        }
+
+        // Select all characters with portraits by default
+        $this->selectedFaceCorrectionCharacters = $charsWithPortraits;
+        $this->correctedFrameUrl = null;
+        $this->faceCorrectionStatus = 'idle';
+        $this->showFaceCorrectionPanel = true;
+    }
+
+    /**
+     * Close face correction panel.
+     */
+    public function closeFaceCorrectionPanel(): void
+    {
+        $this->showFaceCorrectionPanel = false;
+        $this->selectedFaceCorrectionCharacters = [];
+        $this->correctedFrameUrl = null;
+        $this->faceCorrectionStatus = 'idle';
+    }
+
+    /**
+     * Toggle character selection for face correction.
+     */
+    public function toggleFaceCorrectionCharacter(int $index): void
+    {
+        $key = array_search($index, $this->selectedFaceCorrectionCharacters);
+
+        if ($key !== false) {
+            unset($this->selectedFaceCorrectionCharacters[$key]);
+            $this->selectedFaceCorrectionCharacters = array_values($this->selectedFaceCorrectionCharacters);
+        } else {
+            $this->selectedFaceCorrectionCharacters[] = $index;
+        }
+    }
+
+    /**
+     * Apply face correction using AI.
+     * Uses NanoBananaPro or similar service with Character Bible references.
+     */
+    public function applyFaceCorrection(): void
+    {
+        if (!$this->capturedFrame) {
+            $this->error = __('No frame captured');
+            return;
+        }
+
+        if (empty($this->selectedFaceCorrectionCharacters)) {
+            $this->error = __('Select at least one character');
+            return;
+        }
+
+        $this->faceCorrectionStatus = 'processing';
+
+        try {
+            $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+            $selectedChars = [];
+
+            foreach ($this->selectedFaceCorrectionCharacters as $index) {
+                if (isset($characters[$index])) {
+                    $char = $characters[$index];
+                    if (!empty($char['referenceImage'])) {
+                        $selectedChars[] = [
+                            'name' => $char['name'] ?? 'Character',
+                            'description' => $char['description'] ?? '',
+                            'referenceImageUrl' => $char['referenceImage'],
+                            'referenceImageBase64' => $char['referenceImageBase64'] ?? null,
+                        ];
+                    }
+                }
+            }
+
+            if (empty($selectedChars)) {
+                throw new \Exception(__('No valid character references found'));
+            }
+
+            // Get the frame data
+            $frameBase64 = $this->capturedFrame;
+            if (str_starts_with($frameBase64, 'data:')) {
+                $frameBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $frameBase64);
+            } elseif (str_starts_with($frameBase64, 'http')) {
+                // Download the image and convert to base64
+                $imageContent = file_get_contents($frameBase64);
+                $frameBase64 = base64_encode($imageContent);
+            }
+
+            // Call face correction service
+            // TODO: Integrate with actual face correction API (NanoBananaPro or similar)
+            // For now, we'll use ImageGenerationService for face swap/correction
+
+            $imageService = app(ImageGenerationService::class);
+
+            // Build prompt for face correction
+            $prompt = "Fix and correct the character faces in this image to match the reference portraits. ";
+            $prompt .= "Characters: " . collect($selectedChars)->pluck('name')->join(', ') . ". ";
+            $prompt .= "Maintain the exact same pose, composition, lighting, and background. ";
+            $prompt .= "Only correct the facial features to match the reference images.";
+
+            // For now, store the original frame as corrected (placeholder)
+            // In production, this would call a face swap API
+            Log::info('[FaceCorrection] Would call face correction API', [
+                'characters' => count($selectedChars),
+                'prompt' => $prompt
+            ]);
+
+            // Placeholder: Use original frame until API is integrated
+            $this->correctedFrameUrl = $this->capturedFrame;
+            $this->faceCorrectionStatus = 'done';
+
+            $this->dispatch('notify', [
+                'type' => 'info',
+                'message' => __('Face correction preview ready. Integration with face swap API pending.')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('[FaceCorrection] Error', ['error' => $e->getMessage()]);
+            $this->error = __('Face correction failed: ') . $e->getMessage();
+            $this->faceCorrectionStatus = 'error';
+        }
+    }
+
+    /**
+     * Save the corrected frame (replaces captured frame).
+     */
+    public function saveCorrectedFrame(): void
+    {
+        if (!$this->correctedFrameUrl) {
+            $this->error = __('No corrected frame available');
+            return;
+        }
+
+        // Update captured frame with corrected version
+        $this->capturedFrame = $this->correctedFrameUrl;
+        $this->closeFaceCorrectionPanel();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => __('Corrected frame saved. You can now transfer it to the next shot.')
+        ]);
     }
 
     // =========================================================================
