@@ -889,16 +889,33 @@ class VideoWizard extends Component
                     }
                 }
 
-                // DEBUG: Log mismatch between generation state and actual scenes
+                // FIX: Sync generatedSceneCount with actual scene count to prevent mismatch
                 $generatedCount = $this->scriptGeneration['generatedSceneCount'] ?? 0;
                 $actualCount = count($this->script['scenes'] ?? []);
                 if ($generatedCount !== $actualCount) {
-                    Log::warning('VideoWizard: SCENE COUNT MISMATCH detected', [
+                    Log::warning('VideoWizard: SCENE COUNT MISMATCH detected - auto-correcting', [
                         'projectId' => $project->id,
                         'scriptGeneration.generatedSceneCount' => $generatedCount,
                         'actual script.scenes count' => $actualCount,
                         'scriptGeneration.status' => $this->scriptGeneration['status'] ?? 'unknown',
                     ]);
+
+                    // Correct the mismatch: trust actual scenes count over stored count
+                    $this->scriptGeneration['generatedSceneCount'] = $actualCount;
+
+                    // If generatedSceneCount was > 0 but actual scenes is 0, reset status
+                    if ($generatedCount > 0 && $actualCount === 0) {
+                        Log::warning('VideoWizard: Scenes were lost - resetting generation status to idle');
+                        $this->scriptGeneration['status'] = 'idle';
+                        $this->scriptGeneration['targetSceneCount'] = 0;
+                        $this->scriptGeneration['currentBatch'] = 0;
+                        $this->scriptGeneration['totalBatches'] = 0;
+                        $this->scriptGeneration['batches'] = [];
+                    }
+                    // If actual scenes exist but status is 'complete', keep as complete
+                    elseif ($actualCount > 0 && $this->scriptGeneration['status'] === 'complete') {
+                        $this->scriptGeneration['targetSceneCount'] = $actualCount;
+                    }
                 }
             }
 
@@ -2214,6 +2231,15 @@ class VideoWizard extends Component
                     $this->autoDetectCharacterIntelligence();
                     $this->dispatch('progressive-generation-complete');
                     $this->dispatch('script-generated');
+
+                    // FIX: Use force save on generation complete to ensure scenes are persisted
+                    $this->forceSaveProject();
+
+                    // Verify scenes were saved
+                    Log::info('VideoWizard: Generation complete - verifying save', [
+                        'scenesInMemory' => count($this->script['scenes']),
+                        'generatedSceneCount' => $this->scriptGeneration['generatedSceneCount'],
+                    ]);
                 } else {
                     $this->scriptGeneration['status'] = 'paused';
 
@@ -2224,14 +2250,15 @@ class VideoWizard extends Component
                         'totalGenerated' => $this->scriptGeneration['generatedSceneCount'],
                     ]);
 
+                    // FIX: Force save after each batch to prevent data loss
+                    $this->forceSaveProject();
+
                     // Auto-continue if enabled
                     if ($this->scriptGeneration['autoGenerate']) {
                         $this->generateNextBatch();
                         return;
                     }
                 }
-
-                $this->saveProject();
 
             } else {
                 $errorMessage = $result['error'] ?? __('Failed to generate batch');

@@ -1807,20 +1807,28 @@
         @endif
     </div>
 
-    {{-- DEBUG: Scene data diagnostics (remove after fixing) --}}
-    @if($scriptGeneration['status'] === 'complete')
-        <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; font-family: monospace; font-size: 0.8rem;">
-            <strong style="color: #f87171;">DEBUG - Scene Data Diagnostics:</strong><br>
-            <span style="color: rgba(255,255,255,0.8);">
-                scriptGeneration.generatedSceneCount: {{ $scriptGeneration['generatedSceneCount'] ?? 'N/A' }}<br>
-                script.scenes count: {{ count($script['scenes'] ?? []) }}<br>
-                script.scenes is_array: {{ is_array($script['scenes'] ?? null) ? 'true' : 'false' }}<br>
-                script.scenes empty check: {{ empty($script['scenes']) ? 'EMPTY' : 'HAS DATA' }}<br>
-                @if(!empty($script['scenes']))
-                    First scene ID: {{ $script['scenes'][0]['id'] ?? 'N/A' }}<br>
-                    First scene title: {{ $script['scenes'][0]['title'] ?? 'N/A' }}
-                @endif
-            </span>
+    {{-- Scene Recovery Notice: Show when generation was marked complete but scenes are missing --}}
+    @if($scriptGeneration['status'] === 'idle' && empty($script['scenes']))
+        {{-- Normal state: nothing generated yet, show nothing --}}
+    @elseif($scriptGeneration['status'] === 'complete' && empty($script['scenes']))
+        {{-- ERROR STATE: Generation was marked complete but scenes are missing --}}
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <div style="flex: 1;">
+                    <h4 style="color: #f87171; font-weight: 600; margin: 0 0 0.5rem 0; font-size: 1rem;">{{ __('Scene Data Recovery Issue') }}</h4>
+                    <p style="color: rgba(255,255,255,0.8); margin: 0 0 1rem 0; font-size: 0.9rem;">
+                        {{ __('The script generation was marked as complete, but the scene data appears to be missing. This can happen due to a synchronization issue.') }}
+                    </p>
+                    <p style="color: rgba(255,255,255,0.6); margin: 0 0 1rem 0; font-size: 0.85rem;">
+                        {{ __('Please try regenerating your script. Your concept and settings are preserved.') }}
+                    </p>
+                    <button wire:click="resetProgressiveGeneration"
+                            style="padding: 0.6rem 1.25rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; color: #fca5a5; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                        🔄 {{ __('Reset & Regenerate Script') }}
+                    </button>
+                </div>
+            </div>
         </div>
     @endif
 
