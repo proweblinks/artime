@@ -206,6 +206,7 @@ class ImageGenerationService
                     'characterName' => $character['name'] ?? 'Unknown',
                     'base64Length' => strlen($character['referenceImageBase64']),
                     'mimeType' => $character['referenceImageMimeType'] ?? 'image/png',
+                    'hasLookSystem' => !empty($character['hair']) || !empty($character['wardrobe']),
                 ]);
 
                 return [
@@ -213,6 +214,11 @@ class ImageGenerationService
                     'mimeType' => $character['referenceImageMimeType'] ?? 'image/png',
                     'characterName' => $character['name'] ?? 'Character',
                     'characterDescription' => $character['description'] ?? '',
+                    // Character Look System fields for Hollywood consistency
+                    'hair' => $character['hair'] ?? [],
+                    'wardrobe' => $character['wardrobe'] ?? [],
+                    'makeup' => $character['makeup'] ?? [],
+                    'accessories' => $character['accessories'] ?? [],
                 ];
             }
         }
@@ -841,15 +847,16 @@ class ImageGenerationService
 
             // IMPROVED PROMPT: Use "this exact person" phrasing per Google's recommendations
             // This significantly improves face/identity consistency
+            // Now includes Character Look System for Hollywood-level consistency
             $characterName = $characterReference['characterName'] ?? 'the person';
+
+            // Build Character DNA for complete look consistency
+            $characterDNA = $this->buildCharacterDNAForPrompt($characterReference);
+
             $faceConsistencyPrompt = <<<EOT
 Generate a photorealistic cinematic image of THIS EXACT PERSON from the reference image{$locationContext}.
 
-IDENTITY PRESERVATION (CRITICAL):
-- This is "{$characterName}" - maintain IDENTICAL facial features: same eyes, nose, mouth, face shape, jawline
-- Same skin tone, same complexion, same facial proportions
-- Same hair color, exact hair style and texture
-- Same body type and build
+{$characterDNA}
 {$environmentContext}
 SCENE DESCRIPTION:
 {$prompt}
@@ -860,7 +867,7 @@ QUALITY REQUIREMENTS:
 - Professional cinematography lighting
 - Sharp focus on face, cinematic depth of field
 
-OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) in the described scene.
+OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT appearance (same hair, same clothing, same accessories) in the described scene.
 EOT;
 
             $result = $this->geminiService->generateImageFromImage(
@@ -1787,6 +1794,82 @@ EOT;
         $anchors[] = "optimized for {$aspectRatio} aspect ratio";
 
         return implode(', ', array_unique($anchors));
+    }
+
+    /**
+     * Build Character DNA block for prompt injection.
+     * Creates a comprehensive, structured description that ensures Hollywood-level
+     * consistency for face, hair, wardrobe, makeup, and accessories.
+     *
+     * @param array $characterReference Character reference data from getCharacterReferenceForScene
+     * @return string Formatted Character DNA block for prompt
+     */
+    protected function buildCharacterDNAForPrompt(array $characterReference): string
+    {
+        $name = $characterReference['characterName'] ?? 'Character';
+        $parts = [];
+
+        // Identity/Face section (always include)
+        $identityParts = [
+            "This is \"{$name}\" - maintain IDENTICAL facial features: same eyes, nose, mouth, face shape, jawline",
+            "Same skin tone, same complexion, same facial proportions",
+            "Same body type and build",
+        ];
+
+        if (!empty($characterReference['characterDescription'])) {
+            $identityParts[] = "Identity: {$characterReference['characterDescription']}";
+        }
+
+        $parts[] = "IDENTITY PRESERVATION (CRITICAL):\n- " . implode("\n- ", $identityParts);
+
+        // Hair section - critical for visual consistency
+        $hair = $characterReference['hair'] ?? [];
+        $hairParts = array_filter([
+            !empty($hair['color']) ? "Color: {$hair['color']}" : '',
+            !empty($hair['style']) ? "Style: {$hair['style']}" : '',
+            !empty($hair['length']) ? "Length: {$hair['length']}" : '',
+            !empty($hair['texture']) ? "Texture: {$hair['texture']}" : '',
+        ]);
+        if (!empty($hairParts)) {
+            $parts[] = "HAIR (MUST MATCH EXACTLY - never different):\n- " . implode("\n- ", $hairParts);
+        }
+
+        // Wardrobe section - what the character wears
+        $wardrobe = $characterReference['wardrobe'] ?? [];
+        $wardrobeParts = [];
+        if (!empty($wardrobe['outfit'])) {
+            $wardrobeParts[] = "Outfit: {$wardrobe['outfit']}";
+        }
+        if (!empty($wardrobe['colors'])) {
+            $wardrobeParts[] = "Color palette: {$wardrobe['colors']}";
+        }
+        if (!empty($wardrobe['footwear'])) {
+            $wardrobeParts[] = "Footwear: {$wardrobe['footwear']}";
+        }
+        if (!empty($wardrobe['style'])) {
+            $wardrobeParts[] = "Style: {$wardrobe['style']}";
+        }
+        if (!empty($wardrobeParts)) {
+            $parts[] = "WARDROBE (MUST wear this exact outfit):\n- " . implode("\n- ", $wardrobeParts);
+        }
+
+        // Makeup section - the character's styling
+        $makeup = $characterReference['makeup'] ?? [];
+        $makeupParts = array_filter([
+            !empty($makeup['style']) ? "Style: {$makeup['style']}" : '',
+            !empty($makeup['details']) ? "Details: {$makeup['details']}" : '',
+        ]);
+        if (!empty($makeupParts)) {
+            $parts[] = "MAKEUP/STYLING (maintain consistent look):\n- " . implode("\n- ", $makeupParts);
+        }
+
+        // Accessories section - jewelry, glasses, watches, etc.
+        $accessories = $characterReference['accessories'] ?? [];
+        if (!empty($accessories)) {
+            $parts[] = "ACCESSORIES (these items MUST be visible):\n- " . implode("\n- ", $accessories);
+        }
+
+        return implode("\n\n", $parts);
     }
 
     /**

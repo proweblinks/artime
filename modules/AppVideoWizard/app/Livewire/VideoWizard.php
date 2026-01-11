@@ -4568,6 +4568,35 @@ class VideoWizard extends Component
             'referenceImageBase64' => null,      // Base64 data for API calls (face consistency)
             'referenceImageMimeType' => null,    // MIME type (e.g., 'image/png')
             'referenceImageStatus' => 'none',    // 'none' | 'generating' | 'ready' | 'error'
+
+            // ═══════════════════════════════════════════════════════════════════
+            // CHARACTER LOOK SYSTEM - Structured fields for Hollywood consistency
+            // ═══════════════════════════════════════════════════════════════════
+
+            // Hair details - critical for visual consistency
+            'hair' => [
+                'style' => '',      // e.g., "sleek bob with side part", "long flowing waves"
+                'color' => '',      // e.g., "jet black", "auburn red", "platinum blonde"
+                'length' => '',     // e.g., "chin-length", "shoulder-length", "waist-length"
+                'texture' => '',    // e.g., "straight glossy", "curly voluminous", "wavy"
+            ],
+
+            // Wardrobe/Costume - what the character wears
+            'wardrobe' => [
+                'outfit' => '',     // e.g., "fitted black tactical jacket over dark gray t-shirt"
+                'colors' => '',     // e.g., "black, charcoal gray, silver accents"
+                'style' => '',      // e.g., "tactical-tech", "corporate professional", "casual"
+                'footwear' => '',   // e.g., "black combat boots", "white sneakers"
+            ],
+
+            // Makeup/Styling - the character's look
+            'makeup' => [
+                'style' => '',      // e.g., "minimal natural", "glamorous", "none"
+                'details' => '',    // e.g., "subtle smoky eye, nude lip", "bold red lip"
+            ],
+
+            // Accessories - jewelry, glasses, watches, etc.
+            'accessories' => [],    // Array of strings: ["silver stud earrings", "tactical watch"]
         ];
         $this->saveProject();
     }
@@ -4654,6 +4683,209 @@ class VideoWizard extends Component
 
         $this->sceneMemory['characterBible']['characters'][$characterIndex]['traits'] = $currentTraits;
         $this->saveProject();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CHARACTER LOOK SYSTEM - Accessory & Look Preset Methods
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Add an accessory to a character.
+     */
+    public function addCharacterAccessory(int $characterIndex, string $accessory = ''): void
+    {
+        $accessory = trim($accessory);
+        if (empty($accessory)) {
+            return;
+        }
+
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex])) {
+            return;
+        }
+
+        // Initialize accessories array if not exists
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'])) {
+            $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'] = [];
+        }
+
+        // Avoid duplicates (case-insensitive)
+        $existingAccessories = array_map('strtolower', $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories']);
+        if (in_array(strtolower($accessory), $existingAccessories)) {
+            return;
+        }
+
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'][] = $accessory;
+        $this->saveProject();
+    }
+
+    /**
+     * Remove an accessory from a character.
+     */
+    public function removeCharacterAccessory(int $characterIndex, int $accessoryIndex): void
+    {
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'][$accessoryIndex])) {
+            return;
+        }
+
+        unset($this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'][$accessoryIndex]);
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'] = array_values(
+            $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories']
+        );
+        $this->saveProject();
+    }
+
+    /**
+     * Apply a complete look preset to a character (hair, wardrobe, makeup, accessories).
+     * These presets ensure Hollywood-level visual consistency.
+     */
+    public function applyCharacterLookPreset(int $characterIndex, string $preset): void
+    {
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex])) {
+            return;
+        }
+
+        $lookPresets = [
+            'corporate-female' => [
+                'hair' => ['style' => 'sleek professional blowout', 'color' => 'dark brown', 'length' => 'shoulder-length', 'texture' => 'straight polished'],
+                'wardrobe' => ['outfit' => 'tailored charcoal blazer over white silk blouse, fitted dark trousers', 'colors' => 'charcoal, white, navy accents', 'style' => 'corporate professional', 'footwear' => 'black pointed-toe heels'],
+                'makeup' => ['style' => 'polished professional', 'details' => 'neutral eyeshadow, defined brows, nude-pink lip, subtle contour'],
+                'accessories' => ['pearl stud earrings', 'silver wristwatch', 'thin gold necklace'],
+            ],
+            'corporate-male' => [
+                'hair' => ['style' => 'short tapered business cut', 'color' => 'dark brown', 'length' => 'short', 'texture' => 'neat styled'],
+                'wardrobe' => ['outfit' => 'navy blue tailored suit, white dress shirt, dark tie', 'colors' => 'navy, white, silver accents', 'style' => 'corporate professional', 'footwear' => 'polished black oxford shoes'],
+                'makeup' => ['style' => 'none', 'details' => 'clean groomed appearance'],
+                'accessories' => ['silver wristwatch', 'wedding band', 'subtle cufflinks'],
+            ],
+            'tech-female' => [
+                'hair' => ['style' => 'modern asymmetric bob', 'color' => 'black with subtle highlights', 'length' => 'chin-length', 'texture' => 'straight sleek'],
+                'wardrobe' => ['outfit' => 'fitted black jacket over dark tech t-shirt, slim dark jeans', 'colors' => 'black, charcoal, electric blue accents', 'style' => 'tech-casual', 'footwear' => 'white minimalist sneakers'],
+                'makeup' => ['style' => 'minimal modern', 'details' => 'subtle wing eyeliner, natural lip, dewy skin'],
+                'accessories' => ['smart watch with black band', 'small geometric earrings', 'thin-framed glasses'],
+            ],
+            'tech-male' => [
+                'hair' => ['style' => 'textured modern cut', 'color' => 'dark brown', 'length' => 'medium-short', 'texture' => 'slightly tousled'],
+                'wardrobe' => ['outfit' => 'gray zip-up hoodie over dark t-shirt, dark slim jeans', 'colors' => 'gray, black, subtle blue', 'style' => 'tech-casual', 'footwear' => 'clean white sneakers'],
+                'makeup' => ['style' => 'none', 'details' => 'natural groomed'],
+                'accessories' => ['smart watch', 'wireless earbuds case clipped to belt'],
+            ],
+            'action-hero-female' => [
+                'hair' => ['style' => 'practical ponytail or braided', 'color' => 'dark', 'length' => 'long pulled back', 'texture' => 'natural'],
+                'wardrobe' => ['outfit' => 'fitted tactical vest over dark compression top, cargo pants with utility belt', 'colors' => 'black, olive, tactical tan', 'style' => 'tactical combat', 'footwear' => 'black tactical boots'],
+                'makeup' => ['style' => 'minimal combat-ready', 'details' => 'smudge-proof subtle eye, natural lip, matte skin'],
+                'accessories' => ['tactical watch', 'dog tags', 'utility belt pouches'],
+            ],
+            'action-hero-male' => [
+                'hair' => ['style' => 'short military-style or rugged', 'color' => 'dark', 'length' => 'short', 'texture' => 'natural'],
+                'wardrobe' => ['outfit' => 'fitted tactical jacket, dark henley shirt, military cargo pants', 'colors' => 'black, olive drab, tactical gray', 'style' => 'tactical combat', 'footwear' => 'worn combat boots'],
+                'makeup' => ['style' => 'none', 'details' => 'weathered rugged appearance, possible stubble'],
+                'accessories' => ['tactical watch', 'dog tags', 'weapon holster'],
+            ],
+            'scientist-female' => [
+                'hair' => ['style' => 'practical bun or neat ponytail', 'color' => 'natural brown', 'length' => 'medium-long tied back', 'texture' => 'natural'],
+                'wardrobe' => ['outfit' => 'white lab coat over smart casual blouse, dark trousers', 'colors' => 'white, navy, muted tones', 'style' => 'academic professional', 'footwear' => 'sensible closed-toe flats'],
+                'makeup' => ['style' => 'natural minimal', 'details' => 'light natural makeup, clear lip balm'],
+                'accessories' => ['reading glasses', 'ID badge on lanyard', 'simple stud earrings'],
+            ],
+            'scientist-male' => [
+                'hair' => ['style' => 'neat professional cut', 'color' => 'graying at temples', 'length' => 'short', 'texture' => 'neat'],
+                'wardrobe' => ['outfit' => 'white lab coat over button-down shirt, khaki trousers', 'colors' => 'white, light blue, khaki', 'style' => 'academic professional', 'footwear' => 'brown leather shoes'],
+                'makeup' => ['style' => 'none', 'details' => 'clean professional appearance'],
+                'accessories' => ['wire-framed glasses', 'ID badge', 'pen in lab coat pocket'],
+            ],
+            'cyberpunk' => [
+                'hair' => ['style' => 'edgy undercut or neon-streaked', 'color' => 'black with neon highlights', 'length' => 'asymmetric', 'texture' => 'styled spiky or sleek'],
+                'wardrobe' => ['outfit' => 'leather jacket with LED accents, tech-wear bodysuit, tactical pants', 'colors' => 'black, neon cyan, magenta accents', 'style' => 'cyberpunk streetwear', 'footwear' => 'platform tech boots'],
+                'makeup' => ['style' => 'cyber-glam', 'details' => 'neon eyeliner, holographic highlights, dark lip'],
+                'accessories' => ['cyber-implant earpiece', 'LED wrist display', 'holographic jewelry'],
+            ],
+            'fantasy-warrior' => [
+                'hair' => ['style' => 'long braided warrior style', 'color' => 'natural or silver', 'length' => 'long', 'texture' => 'thick braided'],
+                'wardrobe' => ['outfit' => 'leather armor with metal pauldrons, worn tunic, belted', 'colors' => 'brown leather, silver metal, earth tones', 'style' => 'medieval warrior', 'footwear' => 'worn leather boots'],
+                'makeup' => ['style' => 'battle-worn', 'details' => 'natural weathered look, possible war paint'],
+                'accessories' => ['sword sheath on back', 'leather bracers', 'tribal pendant'],
+            ],
+        ];
+
+        if (!isset($lookPresets[$preset])) {
+            return;
+        }
+
+        $presetData = $lookPresets[$preset];
+
+        // Apply the preset to character
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['hair'] = $presetData['hair'];
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['wardrobe'] = $presetData['wardrobe'];
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['makeup'] = $presetData['makeup'];
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['accessories'] = $presetData['accessories'];
+
+        $this->saveProject();
+    }
+
+    /**
+     * Build Character DNA template for prompt injection.
+     * This creates a comprehensive, structured description that ensures
+     * Hollywood-level consistency across all scene generations.
+     */
+    public function buildCharacterDNA(array $character): string
+    {
+        $name = $character['name'] ?? 'Character';
+        $parts = [];
+
+        // Identity/Face section
+        if (!empty($character['description'])) {
+            $parts[] = "IDENTITY: {$character['description']}";
+        }
+
+        // Hair section
+        $hair = $character['hair'] ?? [];
+        $hairParts = array_filter([
+            $hair['color'] ?? '',
+            $hair['style'] ?? '',
+            $hair['length'] ?? '',
+            $hair['texture'] ?? '',
+        ]);
+        if (!empty($hairParts)) {
+            $parts[] = "HAIR: " . implode(', ', $hairParts) . ". MUST remain consistent - never different style/color/length.";
+        }
+
+        // Wardrobe section
+        $wardrobe = $character['wardrobe'] ?? [];
+        $wardrobeParts = [];
+        if (!empty($wardrobe['outfit'])) {
+            $wardrobeParts[] = $wardrobe['outfit'];
+        }
+        if (!empty($wardrobe['colors'])) {
+            $wardrobeParts[] = "Color palette: {$wardrobe['colors']}";
+        }
+        if (!empty($wardrobe['footwear'])) {
+            $wardrobeParts[] = "Footwear: {$wardrobe['footwear']}";
+        }
+        if (!empty($wardrobeParts)) {
+            $parts[] = "WARDROBE: " . implode('. ', $wardrobeParts) . ". MUST wear this exact outfit unless scene specifies otherwise.";
+        }
+
+        // Makeup section
+        $makeup = $character['makeup'] ?? [];
+        $makeupParts = array_filter([
+            $makeup['style'] ?? '',
+            $makeup['details'] ?? '',
+        ]);
+        if (!empty($makeupParts)) {
+            $parts[] = "MAKEUP/STYLING: " . implode(', ', $makeupParts) . ". Maintain consistent look.";
+        }
+
+        // Accessories section
+        $accessories = $character['accessories'] ?? [];
+        if (!empty($accessories)) {
+            $parts[] = "ACCESSORIES: " . implode(', ', $accessories) . ". These items should be visible and consistent.";
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "CHARACTER DNA - {$name} (MUST MATCH EXACTLY):\n" . implode("\n", $parts);
     }
 
     /**
