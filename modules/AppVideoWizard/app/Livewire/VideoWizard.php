@@ -19,6 +19,7 @@ use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
+use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -56,6 +57,19 @@ class VideoWizard extends Component
         'supportingCharScenePercent' => 40,
         'characterTracking' => 'narrative',
         'singlePersonPortrait' => true,
+    ];
+
+    // Cinematic Intelligence analysis results (populated by CinematicIntelligenceService)
+    public array $cinematicAnalysis = [
+        'enabled' => true,
+        'analyzed' => false,
+        'characterStates' => [],
+        'storyBeats' => [],
+        'sceneTypes' => [],
+        'relationships' => [],
+        'imageChain' => [],
+        'locationInferences' => [],
+        'consistencyScore' => null,
     ];
 
     // Step 1: Production Configuration (matches original wizard)
@@ -1447,6 +1461,175 @@ class VideoWizard extends Component
                 'error' => $e->getMessage(),
             ]);
             // Don't fail silently - intelligence is optional enhancement
+        }
+    }
+
+    /**
+     * Run Cinematic Intelligence analysis on the project.
+     * Analyzes character states, emotional arcs, story beats, and calculates consistency score.
+     * Should be called after characters have been detected and before image generation.
+     */
+    public function runCinematicAnalysis(): void
+    {
+        // Check if cinematic intelligence is enabled
+        if (!VwSetting::getValue('cinematic_intelligence_enabled', true)) {
+            Log::info('CinematicIntelligence: Disabled by settings');
+            return;
+        }
+
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+
+            // Check if service is enabled
+            if (!$cinematicService->isEnabled()) {
+                return;
+            }
+
+            $scenes = $this->script['scenes'] ?? [];
+            $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+            $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+            $styleBible = $this->sceneMemory['styleBible'] ?? [];
+
+            if (empty($scenes) || empty($characters)) {
+                Log::info('CinematicIntelligence: No scenes or characters to analyze');
+                return;
+            }
+
+            // Build character bible format expected by service
+            $characterBible = ['characters' => $characters];
+            $locationBible = ['locations' => $locations];
+            $genre = $this->content['genre'] ?? VwSetting::getValue('default_genre', 'drama');
+
+            // Run full analysis
+            $analysis = $cinematicService->analyzeProject(
+                $this->script,
+                $characterBible,
+                $locationBible,
+                $styleBible,
+                $genre
+            );
+
+            if ($analysis['success']) {
+                $this->cinematicAnalysis = [
+                    'enabled' => true,
+                    'analyzed' => true,
+                    'characterStates' => $analysis['characterStates'] ?? [],
+                    'storyBeats' => $analysis['storyBeats'] ?? [],
+                    'sceneTypes' => $analysis['sceneTypes'] ?? [],
+                    'relationships' => $analysis['relationships'] ?? [],
+                    'imageChain' => $analysis['imageChain'] ?? [],
+                    'locationInferences' => $analysis['locationInferences'] ?? [],
+                    'consistencyScore' => $analysis['consistencyScore'] ?? null,
+                ];
+
+                Log::info('CinematicIntelligence: Analysis complete', [
+                    'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                    'overallScore' => $analysis['consistencyScore']['overallScore'] ?? 0,
+                    'issueCount' => $analysis['consistencyScore']['issueCount'] ?? 0,
+                ]);
+
+                // Dispatch event for UI feedback
+                $this->dispatch('cinematic-analysis-complete', [
+                    'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                    'score' => $analysis['consistencyScore']['overallScore'] ?? 0,
+                    'issues' => $analysis['consistencyScore']['issueCount'] ?? 0,
+                ]);
+
+                // Check if score is below threshold and dispatch warning
+                $threshold = VwSetting::getValue('consistency_score_threshold', 0.70);
+                $overallScore = $analysis['consistencyScore']['overallScore'] ?? 1.0;
+                if ($overallScore < $threshold) {
+                    $this->dispatch('consistency-warning', [
+                        'score' => $overallScore,
+                        'threshold' => $threshold,
+                        'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                        'issues' => array_slice($analysis['consistencyScore']['allIssues'] ?? [], 0, 5),
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('CinematicIntelligence: Analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the workflow - cinematic intelligence is enhancement
+        }
+    }
+
+    /**
+     * Get cinematic analysis results.
+     */
+    public function getCinematicAnalysis(): array
+    {
+        return $this->cinematicAnalysis;
+    }
+
+    /**
+     * Get consistency score grade.
+     */
+    public function getConsistencyGrade(): ?string
+    {
+        return $this->cinematicAnalysis['consistencyScore']['grade'] ?? null;
+    }
+
+    /**
+     * Get story beat for a specific scene.
+     */
+    public function getSceneStoryBeat(int $sceneIndex): ?string
+    {
+        return $this->cinematicAnalysis['storyBeats'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get scene type classification for a specific scene.
+     */
+    public function getSceneType(int $sceneIndex): ?string
+    {
+        return $this->cinematicAnalysis['sceneTypes'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get character state for a specific character in a specific scene.
+     */
+    public function getCharacterStateForScene(string $charId, int $sceneIndex): ?array
+    {
+        return $this->cinematicAnalysis['characterStates'][$charId]['scenes'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get reference image chain for a character.
+     */
+    public function getCharacterImageChain(string $charId): ?array
+    {
+        return $this->cinematicAnalysis['imageChain'][$charId] ?? null;
+    }
+
+    /**
+     * Validate shot characters against shot type rules.
+     */
+    public function validateShotCharacters(string $shotType, array $characterIds): array
+    {
+        if (!VwSetting::getValue('shot_type_rules_enabled', true)) {
+            return [];
+        }
+
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+            return $cinematicService->validateShotCharacters($shotType, $characterIds);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get suggested shots for a scene type.
+     */
+    public function getSuggestedShotsForSceneType(string $sceneType): array
+    {
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+            return $cinematicService->getSuggestedShots($sceneType);
+        } catch (\Exception $e) {
+            return ['medium'];
         }
     }
 
@@ -7125,6 +7308,12 @@ class VideoWizard extends Component
                 // Enable Character Bible if we detected any characters
                 if (!empty($result['characters'])) {
                     $this->sceneMemory['characterBible']['enabled'] = true;
+
+                    // =====================================================================
+                    // CINEMATIC INTELLIGENCE: Run full analysis after character detection
+                    // This analyzes emotional arcs, story beats, relationships, and scoring
+                    // =====================================================================
+                    $this->runCinematicAnalysis();
                 }
 
                 // Dispatch event for debugging
@@ -7327,6 +7516,12 @@ class VideoWizard extends Component
         // Enable Character Bible if we detected any characters
         if (!empty($detectedCharacters)) {
             $this->sceneMemory['characterBible']['enabled'] = true;
+
+            // =====================================================================
+            // CINEMATIC INTELLIGENCE: Run full analysis after character detection
+            // This analyzes emotional arcs, story beats, relationships, and scoring
+            // =====================================================================
+            $this->runCinematicAnalysis();
         }
 
         // Dispatch event for debugging
