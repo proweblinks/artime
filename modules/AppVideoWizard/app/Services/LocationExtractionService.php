@@ -167,7 +167,7 @@ CRITICAL RULES:
 3. Create SPECIFIC, CONSISTENT descriptions for each location
 4. Include: setting type (interior/exterior), time of day, weather, atmosphere, architectural details, colors, textures
 5. Track which scenes each location appears in
-6. Maximum 8 locations (focus on primary/recurring locations)
+6. **EXTRACT ALL LOCATIONS** - Do NOT artificially limit. Include every distinct environment.
 7. **STYLE CONSISTENCY IS PARAMOUNT** - ALL locations must match the Master Visual Style above
 8. If the visual mode is "cinematic-realistic", ALL locations must be real-world, photorealistic settings - NO fantasy, cartoon, or stylized imagery
 
@@ -220,33 +220,46 @@ Production Mode: {$productionMode}
 
 {$sceneContent}
 {$styleBibleContext}
-=== REQUIRED OUTPUT FORMAT ===
+=== OUTPUT FORMAT ===
+Extract ALL distinct locations that appear in the script. PRIORITIZE finding every location.
+
 {
   "locations": [
     {
-      "name": "Location Name (e.g., 'Corporate Office', 'City Streets', 'The Forest')",
-      "description": "Detailed visual description for AI image generation: architectural style, materials, colors, textures, lighting, atmosphere, distinctive features. Be very specific and concrete.",
+      "name": "Location Name",
+      "description": "Detailed visual description: architecture, materials, colors, textures, key elements. Be specific.",
       "type": "interior/exterior/abstract",
       "timeOfDay": "day/night/dawn/dusk/golden-hour",
       "weather": "clear/cloudy/rainy/foggy/stormy/snowy",
       "atmosphere": "professional/mysterious/energetic/peaceful/tense/romantic",
+      "mood": "tense/hopeful/melancholy/energetic/intimate/ominous",
+      "lightingStyle": "e.g., soft daylight, harsh fluorescent, warm golden hour",
       "appearsInScenes": [1, 2, 5],
-      "stateChanges": [
-        {"scene": 1, "state": "pristine"},
-        {"scene": 5, "state": "damaged"}
-      ]
+      "stateChanges": []
     }
   ],
   "hasDistinctLocations": true,
-  "suggestedStyleNote": "Optional note about location style recommendations"
+  "suggestedStyleNote": "Optional style note"
 }
 
-If the video is purely abstract/conceptual with no distinct locations, return:
-{
-  "locations": [],
-  "hasDistinctLocations": false,
-  "suggestedStyleNote": "This script is abstract/conceptual without distinct physical locations."
-}
+=== CRITICAL RULES ===
+1. **EXTRACT ALL LOCATIONS** - Do NOT limit yourself. Every distinct environment should be a separate location.
+2. Each scene may have its own location - extract them all
+3. If the same location appears multiple times, list it once with all scene numbers
+4. DNA fields (mood, lightingStyle, stateChanges) are OPTIONAL - include if inferable
+5. Focus on QUANTITY first - basic descriptions for all locations is better than detailed DNA for few
+
+=== QUICK REFERENCE ===
+- name: Distinctive location name (e.g., "Corporate Boardroom", "Forest Clearing", "Space Station Bridge")
+- description: Visual details for AI image generation (REQUIRED)
+- type: interior/exterior/abstract
+- timeOfDay: day/night/dawn/dusk/golden-hour
+- weather: clear/cloudy/rainy/foggy/stormy/snowy
+- atmosphere: The general feel of the location
+- mood/lightingStyle: Optional DNA details
+- stateChanges: Optional - only if location visually changes across scenes
+
+Return valid JSON only. Extract EVERY distinct location.
 USER;
 
         return "{$systemPrompt}\n\n{$userPrompt}";
@@ -284,7 +297,7 @@ USER;
             ];
         }
 
-        // Normalize and validate locations
+        // Normalize and validate locations with full DNA extraction
         $locations = [];
         foreach ($result['locations'] ?? [] as $idx => $loc) {
             $locations[] = [
@@ -295,8 +308,11 @@ USER;
                 'timeOfDay' => $this->normalizeTimeOfDay($loc['timeOfDay'] ?? 'day'),
                 'weather' => $this->normalizeWeather($loc['weather'] ?? 'clear'),
                 'atmosphere' => $loc['atmosphere'] ?? '',
+                // Location DNA fields - auto-extracted from script by AI
+                'mood' => $loc['mood'] ?? '',
+                'lightingStyle' => $loc['lightingStyle'] ?? '',
                 'scenes' => $this->normalizeSceneIndices($loc['appearsInScenes'] ?? []),
-                'stateChanges' => $loc['stateChanges'] ?? [],
+                'stateChanges' => $this->normalizeStateChanges($loc['stateChanges'] ?? []),
                 'referenceImage' => null,
                 'autoDetected' => true,
                 'aiGenerated' => true,
@@ -390,5 +406,27 @@ USER;
             }
         }
         return array_unique($normalized);
+    }
+
+    /**
+     * Normalize state changes to use consistent field names.
+     * Supports both new format (sceneIndex/stateDescription) and legacy format (scene/state).
+     */
+    protected function normalizeStateChanges(array $stateChanges): array
+    {
+        $normalized = [];
+        foreach ($stateChanges as $change) {
+            // Support both field name formats
+            $sceneIndex = $change['sceneIndex'] ?? $change['scene'] ?? null;
+            $stateDescription = $change['stateDescription'] ?? $change['state'] ?? '';
+
+            if ($sceneIndex !== null) {
+                $normalized[] = [
+                    'sceneIndex' => (int) $sceneIndex,
+                    'stateDescription' => $stateDescription,
+                ];
+            }
+        }
+        return $normalized;
     }
 }

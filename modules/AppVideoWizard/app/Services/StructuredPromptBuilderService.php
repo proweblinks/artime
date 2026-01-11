@@ -349,6 +349,15 @@ class StructuredPromptBuilderService
         // Build scene summary
         $sceneSummary = $this->buildSceneSummary($sceneDescription, $subject, $environment);
 
+        // Build Character DNA for Hollywood-level consistency
+        $characterDNA = $this->buildCharacterDNA($characterBible, $sceneIndex);
+
+        // Build Style DNA for visual consistency
+        $styleDNA = $this->buildStyleDNA($styleBible);
+
+        // Build Location DNA for environmental consistency
+        $locationDNA = $this->buildLocationDNA($locationBible, $sceneIndex);
+
         return [
             'scene_summary' => $sceneSummary,
             'subject' => $subject,
@@ -356,6 +365,9 @@ class StructuredPromptBuilderService
             'lighting_and_atmosphere' => $lighting,
             'authenticity_markers' => $template['global_rules']['authenticity_markers'],
             'mood' => $styleBible['atmosphere'] ?? $lighting['mood'] ?? 'cinematic, dramatic',
+            'character_dna' => $characterDNA, // Array of DNA blocks for each character
+            'style_dna' => $styleDNA,         // Style DNA block for visual consistency
+            'location_dna' => $locationDNA,   // Location DNA block for environmental consistency
         ];
     }
 
@@ -738,7 +750,29 @@ class StructuredPromptBuilderService
             $parts[] = $techSpecs['focus'];
         }
 
-        return implode('. ', array_filter($parts));
+        // Combine base prompt
+        $basePrompt = implode('. ', array_filter($parts));
+
+        // Add Style DNA for visual consistency enforcement
+        $styleDNA = $creative['style_dna'] ?? '';
+        if (!empty($styleDNA)) {
+            $basePrompt .= "\n\n" . $styleDNA;
+        }
+
+        // Add Location DNA for environmental consistency enforcement
+        $locationDNA = $creative['location_dna'] ?? '';
+        if (!empty($locationDNA)) {
+            $basePrompt .= "\n\n" . $locationDNA;
+        }
+
+        // Add Character DNA blocks for consistency enforcement
+        $characterDNA = $creative['character_dna'] ?? [];
+        if (!empty($characterDNA)) {
+            $dnaSection = "\n\n" . implode("\n\n", $characterDNA);
+            $basePrompt .= $dnaSection;
+        }
+
+        return $basePrompt;
     }
 
     /**
@@ -827,5 +861,307 @@ class StructuredPromptBuilderService
             }
         }
         return '';
+    }
+
+    // =========================================================================
+    // CHARACTER DNA METHODS - Hollywood-level consistency
+    // =========================================================================
+
+    /**
+     * Build Character DNA blocks for all characters in a scene.
+     * This ensures Hollywood-level visual consistency across shots.
+     */
+    protected function buildCharacterDNA(?array $characterBible, ?int $sceneIndex): array
+    {
+        if (!$characterBible || !($characterBible['enabled'] ?? false)) {
+            return [];
+        }
+
+        $characters = $characterBible['characters'] ?? [];
+        $dnaBlocks = [];
+
+        foreach ($characters as $character) {
+            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+
+            // Include if: no scene context, applies to all scenes, or matches this scene
+            if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
+                $dna = $this->buildSingleCharacterDNA($character);
+                if (!empty($dna)) {
+                    $dnaBlocks[] = $dna;
+                }
+            }
+        }
+
+        return $dnaBlocks;
+    }
+
+    /**
+     * Build DNA template for a single character.
+     */
+    protected function buildSingleCharacterDNA(array $character): string
+    {
+        $name = $character['name'] ?? 'Character';
+        $parts = [];
+
+        // Identity/Face section
+        $identityParts = [];
+        if (!empty($character['description'])) {
+            $identityParts[] = $character['description'];
+        }
+        $identityParts[] = "Same skin tone, same complexion, same facial proportions";
+        $identityParts[] = "Same body type and build";
+        $parts[] = "IDENTITY: " . implode('. ', $identityParts);
+
+        // Hair section - critical for visual consistency
+        $hair = $character['hair'] ?? [];
+        if (!empty(array_filter($hair))) {
+            $hairParts = [];
+            if (!empty($hair['color'])) $hairParts[] = $hair['color'];
+            if (!empty($hair['length'])) $hairParts[] = $hair['length'];
+            if (!empty($hair['style'])) $hairParts[] = $hair['style'];
+            if (!empty($hair['texture'])) $hairParts[] = $hair['texture'] . ' texture';
+            if (!empty($hairParts)) {
+                $parts[] = "HAIR (EXACT MATCH): " . implode(', ', $hairParts);
+            }
+        }
+
+        // Wardrobe section
+        $wardrobe = $character['wardrobe'] ?? [];
+        if (!empty(array_filter($wardrobe))) {
+            $wardrobeParts = [];
+            if (!empty($wardrobe['outfit'])) $wardrobeParts[] = $wardrobe['outfit'];
+            if (!empty($wardrobe['colors'])) $wardrobeParts[] = "in " . $wardrobe['colors'];
+            if (!empty($wardrobe['style'])) $wardrobeParts[] = $wardrobe['style'] . ' style';
+            if (!empty($wardrobe['footwear'])) $wardrobeParts[] = $wardrobe['footwear'];
+            if (!empty($wardrobeParts)) {
+                $parts[] = "WARDROBE (EXACT MATCH): " . implode(', ', $wardrobeParts);
+            }
+        }
+
+        // Makeup section
+        $makeup = $character['makeup'] ?? [];
+        if (!empty(array_filter($makeup))) {
+            $makeupParts = [];
+            if (!empty($makeup['style'])) $makeupParts[] = $makeup['style'];
+            if (!empty($makeup['details'])) $makeupParts[] = $makeup['details'];
+            if (!empty($makeupParts)) {
+                $parts[] = "MAKEUP (EXACT MATCH): " . implode(', ', $makeupParts);
+            }
+        }
+
+        // Accessories section
+        $accessories = $character['accessories'] ?? [];
+        if (!empty($accessories)) {
+            $accessoryList = is_array($accessories) ? implode(', ', $accessories) : $accessories;
+            if (!empty(trim($accessoryList))) {
+                $parts[] = "ACCESSORIES (EXACT MATCH): " . $accessoryList;
+            }
+        }
+
+        // Traits section - personality and physical characteristics
+        $traits = $character['traits'] ?? [];
+        if (!empty($traits)) {
+            $traitList = is_array($traits) ? implode(', ', $traits) : $traits;
+            if (!empty(trim($traitList))) {
+                $parts[] = "TRAITS/CHARACTERISTICS: " . $traitList;
+            }
+        }
+
+        // Default expression if specified
+        if (!empty($character['defaultExpression'])) {
+            $parts[] = "DEFAULT EXPRESSION: " . $character['defaultExpression'];
+        }
+
+        if (count($parts) <= 1) {
+            return ''; // Only identity, no detailed DNA
+        }
+
+        return "CHARACTER DNA - {$name} (MUST MATCH EXACTLY):\n" . implode("\n", $parts);
+    }
+
+    // =========================================================================
+    // STYLE DNA METHODS - Visual consistency enforcement
+    // =========================================================================
+
+    /**
+     * Build Style DNA block for visual consistency enforcement.
+     * This ensures consistent visual style across all generated images.
+     */
+    protected function buildStyleDNA(?array $styleBible): string
+    {
+        if (!$styleBible || !($styleBible['enabled'] ?? false)) {
+            return '';
+        }
+
+        $parts = [];
+
+        // Visual Style section
+        if (!empty($styleBible['style'])) {
+            $parts[] = "VISUAL STYLE: " . $styleBible['style'];
+        }
+
+        // Color Grading section
+        if (!empty($styleBible['colorGrade'])) {
+            $parts[] = "COLOR GRADE (CONSISTENT): " . $styleBible['colorGrade'];
+        }
+
+        // Lighting section - structured if available
+        $lighting = $styleBible['lighting'] ?? [];
+        if (!empty(array_filter($lighting))) {
+            $lightingParts = [];
+            if (!empty($lighting['setup'])) $lightingParts[] = $lighting['setup'];
+            if (!empty($lighting['intensity'])) $lightingParts[] = $lighting['intensity'] . ' intensity';
+            if (!empty($lighting['type'])) $lightingParts[] = $lighting['type'] . ' lighting';
+            if (!empty($lighting['mood'])) $lightingParts[] = $lighting['mood'] . ' mood';
+            if (!empty($lightingParts)) {
+                $parts[] = "LIGHTING (CONSISTENT): " . implode(', ', $lightingParts);
+            }
+        }
+
+        // Atmosphere section
+        if (!empty($styleBible['atmosphere'])) {
+            $parts[] = "ATMOSPHERE: " . $styleBible['atmosphere'];
+        }
+
+        // Camera Language section
+        if (!empty($styleBible['camera'])) {
+            $parts[] = "CAMERA: " . $styleBible['camera'];
+        }
+
+        // Visual DNA (quality keywords)
+        if (!empty($styleBible['visualDNA'])) {
+            $parts[] = "QUALITY MARKERS: " . $styleBible['visualDNA'];
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "STYLE DNA - VISUAL CONSISTENCY ANCHOR:\n" . implode("\n", $parts);
+    }
+
+    // =========================================================================
+    // LOCATION DNA METHODS - Environmental consistency enforcement
+    // =========================================================================
+
+    /**
+     * Build Location DNA blocks for environmental consistency.
+     * This ensures consistent location appearance across shots.
+     */
+    protected function buildLocationDNA(?array $locationBible, ?int $sceneIndex): string
+    {
+        if (!$locationBible || !($locationBible['enabled'] ?? false)) {
+            return '';
+        }
+
+        $locations = $locationBible['locations'] ?? [];
+        if (empty($locations)) {
+            return '';
+        }
+
+        // Find location for this scene
+        $sceneLocation = null;
+        foreach ($locations as $location) {
+            $appliedScenes = $location['scenes'] ?? $location['appliedScenes'] ?? $location['appearsInScenes'] ?? [];
+
+            // Include if: no scene context, applies to all scenes, or matches this scene
+            if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
+                $sceneLocation = $location;
+                break;
+            }
+        }
+
+        if (!$sceneLocation) {
+            return '';
+        }
+
+        return $this->buildSingleLocationDNA($sceneLocation, $sceneIndex);
+    }
+
+    /**
+     * Build DNA template for a single location.
+     */
+    protected function buildSingleLocationDNA(array $location, ?int $sceneIndex): string
+    {
+        $name = $location['name'] ?? 'Location';
+        $parts = [];
+
+        // Environment section
+        if (!empty($location['description'])) {
+            $parts[] = "ENVIRONMENT: " . $location['description'];
+        }
+
+        // Type section
+        if (!empty($location['type'])) {
+            $typeMap = [
+                'interior' => 'Interior space',
+                'exterior' => 'Exterior/outdoor location',
+                'abstract' => 'Abstract/stylized environment',
+            ];
+            $parts[] = "TYPE: " . ($typeMap[$location['type']] ?? $location['type']);
+        }
+
+        // Time and Weather - critical for visual consistency
+        $timeWeather = [];
+        if (!empty($location['timeOfDay'])) {
+            $timeMap = [
+                'day' => 'Daytime',
+                'night' => 'Nighttime',
+                'dawn' => 'Dawn/early morning',
+                'dusk' => 'Dusk/twilight',
+                'golden_hour' => 'Golden hour',
+            ];
+            $timeWeather[] = $timeMap[$location['timeOfDay']] ?? $location['timeOfDay'];
+        }
+        if (!empty($location['weather'])) {
+            $weatherMap = [
+                'clear' => 'clear sky',
+                'cloudy' => 'overcast/cloudy',
+                'rainy' => 'rainy conditions',
+                'foggy' => 'foggy/misty atmosphere',
+                'stormy' => 'stormy weather',
+                'snowy' => 'snowy conditions',
+            ];
+            $timeWeather[] = $weatherMap[$location['weather']] ?? $location['weather'];
+        }
+        if (!empty($timeWeather)) {
+            $parts[] = "TIME/WEATHER (CONSISTENT): " . implode(', ', $timeWeather);
+        }
+
+        // Atmosphere
+        if (!empty($location['atmosphere'])) {
+            $parts[] = "ATMOSPHERE: " . $location['atmosphere'];
+        }
+
+        // Mood
+        if (!empty($location['mood'])) {
+            $parts[] = "MOOD: " . $location['mood'];
+        }
+
+        // Lighting style if specified
+        if (!empty($location['lightingStyle'])) {
+            $parts[] = "LIGHTING: " . $location['lightingStyle'];
+        }
+
+        // Scene state if available (support both old and new field names for backwards compatibility)
+        if ($sceneIndex !== null && !empty($location['stateChanges'])) {
+            foreach ($location['stateChanges'] as $stateChange) {
+                // Support both 'sceneIndex' (new) and 'scene' (old) field names
+                $changeSceneIndex = $stateChange['sceneIndex'] ?? $stateChange['scene'] ?? null;
+                // Support both 'stateDescription' (new) and 'state' (old) field names
+                $changeDescription = $stateChange['stateDescription'] ?? $stateChange['state'] ?? '';
+
+                if ($changeSceneIndex === $sceneIndex && !empty($changeDescription)) {
+                    $parts[] = "CURRENT STATE: " . $changeDescription;
+                    break;
+                }
+            }
+        }
+
+        if (count($parts) <= 1) {
+            return '';
+        }
+
+        return "LOCATION DNA - {$name} (MAINTAIN CONSISTENCY):\n" . implode("\n", $parts);
     }
 }

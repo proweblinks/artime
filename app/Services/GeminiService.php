@@ -407,6 +407,16 @@ EOT;
             ],
         ];
 
+        // Add imageConfig for Gemini 2.5+ models (native aspect ratio and resolution support)
+        // This is CRITICAL for aspect ratio enforcement - text guidance alone is ignored by Gemini
+        if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
+            $resolution = $options['resolution'] ?? '2K'; // Default to 2K for better quality
+            $generationConfig['imageConfig'] = [
+                'aspectRatio' => $requestedAspectRatio,
+                'imageSize' => strtoupper($resolution), // Must be uppercase: 1K, 2K, 4K
+            ];
+        }
+
         try {
             // Log the request for debugging
             Log::info("Gemini Image Generation Request", [
@@ -414,6 +424,7 @@ EOT;
                 'promptLength' => strlen($imagePrompt),
                 'aspectRatio' => $requestedAspectRatio,
                 'mode' => $isDetailedPrompt ? 'DIRECT' : 'WRAPPED',
+                'hasImageConfig' => isset($generationConfig['imageConfig']),
             ]);
 
             // Assume $this->sendGenerateContentRequest handles the model and config correctly
@@ -713,6 +724,18 @@ EOT;
                 'responseModalities' => ['image', 'text'],
             ];
 
+            // Add imageConfig for Gemini 2.5+ models if aspect ratio is provided
+            // For mask editing, we usually want to preserve the original aspect ratio,
+            // but allow explicit override if specified in options
+            if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
+                if (!empty($options['aspectRatio'])) {
+                    $generationConfig['imageConfig'] = [
+                        'aspectRatio' => $options['aspectRatio'],
+                        'imageSize' => strtoupper($options['resolution'] ?? '2K'),
+                    ];
+                }
+            }
+
             $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
 
             // Log response
@@ -720,6 +743,7 @@ EOT;
                 'model' => $model,
                 'candidatesCount' => count($body['candidates'] ?? []),
                 'promptFeedback' => $body['promptFeedback'] ?? null,
+                'hasImageConfig' => isset($generationConfig['imageConfig']),
             ]);
 
             // Check for blocks

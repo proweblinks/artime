@@ -169,7 +169,7 @@ CRITICAL RULES:
 4. Make descriptions CONCRETE, not vague (e.g., "short dark brown hair" not "dark hair")
 5. Consider the genre and style to match character descriptions appropriately
 6. If the script is abstract/conceptual with no human characters, return empty array
-7. Maximum 5 characters (focus on main/recurring characters)
+7. **EXTRACT ALL CHARACTERS** - Do NOT artificially limit. Include every character that appears visually.
 8. **STYLE CONSISTENCY IS PARAMOUNT** - ALL character descriptions must match the Master Visual Style above
 9. If visual mode is "cinematic-realistic", ALL characters must be described as real people (photorealistic, live-action actors)
 
@@ -232,34 +232,45 @@ Production Mode: {$productionMode}
 
 {$sceneContent}
 {$styleBibleContext}
-=== REQUIRED OUTPUT FORMAT ===
+=== OUTPUT FORMAT ===
+Extract ALL characters that appear visually in the script. PRIORITIZE finding every character.
+
 {
   "characters": [
     {
-      "name": "Individual Character Name (e.g., 'Ayo', 'Sarah Chen', 'The CEO')",
-      "description": "Detailed INDIVIDUAL physical description: age (specific like '32 years old'), gender, ethnicity, build, hair color and style, eye color, distinctive features, specific clothing. ONE PERSON ONLY.",
+      "name": "Character Name",
+      "description": "Detailed visual description: age, gender, ethnicity, build, face, hair, eyes, clothing. Be specific and concrete.",
       "role": "Main/Supporting/Background",
       "appearsInScenes": [1, 2, 5],
-      "traits": ["confident", "mysterious", "professional"]
+      "traits": ["confident", "mysterious"],
+      "defaultExpression": "confident and alert",
+      "hair": {"color": "jet black", "style": "sleek bob", "length": "chin-length", "texture": "straight"},
+      "wardrobe": {"outfit": "black tactical jacket, slim pants", "colors": "black, gray", "style": "tactical", "footwear": "combat boots"},
+      "makeup": {"style": "minimal", "details": "subtle smoky eye"},
+      "accessories": ["silver watch", "earrings"]
     }
   ],
   "hasHumanCharacters": true,
-  "suggestedStyleNote": "Optional note about character style recommendations"
+  "suggestedStyleNote": "Optional style note"
 }
 
-EXAMPLE - If script mentions "a group of diverse warriors":
-WRONG: {"name": "Warriors", "description": "A group of diverse warriors..."}
-CORRECT: Create SEPARATE entries for each individual:
-- {"name": "Ayo", "description": "28-year-old African female warrior, athletic build, short natural hair..."}
-- {"name": "Kenji", "description": "35-year-old Japanese male samurai, muscular, long black hair in topknot..."}
-- {"name": "Elena", "description": "24-year-old Eastern European female fighter, slim but strong, blonde braided hair..."}
+=== CRITICAL RULES ===
+1. **EXTRACT ALL CHARACTERS** - Do NOT limit yourself. If script mentions 10 characters, extract 10.
+2. Each character MUST be an INDIVIDUAL person (never groups like "Warriors" or "People")
+3. If script mentions "a group of heroes" - extract EACH hero as separate character
+4. Include both main and supporting characters
+5. DNA fields (hair, wardrobe, makeup, accessories) are OPTIONAL - include if you can infer from script, otherwise leave empty objects/arrays
+6. Focus on QUANTITY first - it's better to have basic descriptions for all characters than detailed DNA for few
 
-If there are no human characters or the video is purely abstract/conceptual/nature footage, return:
-{
-  "characters": [],
-  "hasHumanCharacters": false,
-  "suggestedStyleNote": "This script focuses on [type of content] without human characters."
-}
+=== QUICK REFERENCE ===
+- name: Individual name (give distinct names like "Warrior 1 - Ayo", "The Hacker", "Young Woman")
+- description: Core identity - age, gender, ethnicity, build, distinctive features (REQUIRED)
+- role: Main/Supporting/Background
+- appearsInScenes: Scene numbers where character appears (1-based)
+- traits: Personality traits visible in demeanor (optional)
+- hair/wardrobe/makeup/accessories: Optional DNA details if inferable from script
+
+Return valid JSON only. Extract EVERY character that appears visually.
 USER;
 
         return "{$systemPrompt}\n\n{$userPrompt}";
@@ -297,9 +308,21 @@ USER;
             ];
         }
 
-        // Normalize and validate characters
+        // Normalize and validate characters with full DNA extraction
         $characters = [];
         foreach ($result['characters'] ?? [] as $idx => $char) {
+            // Extract hair DNA (object with color, style, length, texture)
+            $hair = $this->normalizeHairDNA($char['hair'] ?? null);
+
+            // Extract wardrobe DNA (object with outfit, colors, style, footwear)
+            $wardrobe = $this->normalizeWardrobeDNA($char['wardrobe'] ?? null);
+
+            // Extract makeup DNA (object with style, details)
+            $makeup = $this->normalizeMakeupDNA($char['makeup'] ?? null);
+
+            // Extract accessories (array of strings)
+            $accessories = $this->normalizeAccessories($char['accessories'] ?? []);
+
             $characters[] = [
                 'id' => 'char_' . time() . '_' . $idx,
                 'name' => $char['name'] ?? 'Character ' . ($idx + 1),
@@ -307,9 +330,15 @@ USER;
                 'role' => $char['role'] ?? 'Supporting',
                 'appearsInScenes' => $this->normalizeSceneIndices($char['appearsInScenes'] ?? []),
                 'traits' => $char['traits'] ?? [],
+                'defaultExpression' => $char['defaultExpression'] ?? '',
                 'referenceImage' => null,
                 'autoDetected' => true,
                 'aiGenerated' => true,
+                // Character DNA fields - auto-extracted from script
+                'hair' => $hair,
+                'wardrobe' => $wardrobe,
+                'makeup' => $makeup,
+                'accessories' => $accessories,
             ];
         }
 
@@ -337,6 +366,96 @@ USER;
             }
         }
         return array_unique($normalized);
+    }
+
+    /**
+     * Normalize hair DNA from AI response.
+     * Expected structure: {color, style, length, texture}
+     */
+    protected function normalizeHairDNA($hair): array
+    {
+        if (empty($hair) || !is_array($hair)) {
+            return [
+                'color' => '',
+                'style' => '',
+                'length' => '',
+                'texture' => '',
+            ];
+        }
+
+        return [
+            'color' => $hair['color'] ?? '',
+            'style' => $hair['style'] ?? '',
+            'length' => $hair['length'] ?? '',
+            'texture' => $hair['texture'] ?? '',
+        ];
+    }
+
+    /**
+     * Normalize wardrobe DNA from AI response.
+     * Expected structure: {outfit, colors, style, footwear}
+     */
+    protected function normalizeWardrobeDNA($wardrobe): array
+    {
+        if (empty($wardrobe) || !is_array($wardrobe)) {
+            return [
+                'outfit' => '',
+                'colors' => '',
+                'style' => '',
+                'footwear' => '',
+            ];
+        }
+
+        return [
+            'outfit' => $wardrobe['outfit'] ?? '',
+            'colors' => $wardrobe['colors'] ?? '',
+            'style' => $wardrobe['style'] ?? '',
+            'footwear' => $wardrobe['footwear'] ?? '',
+        ];
+    }
+
+    /**
+     * Normalize makeup DNA from AI response.
+     * Expected structure: {style, details}
+     */
+    protected function normalizeMakeupDNA($makeup): array
+    {
+        if (empty($makeup) || !is_array($makeup)) {
+            return [
+                'style' => '',
+                'details' => '',
+            ];
+        }
+
+        return [
+            'style' => $makeup['style'] ?? '',
+            'details' => $makeup['details'] ?? '',
+        ];
+    }
+
+    /**
+     * Normalize accessories from AI response.
+     * Expected: array of strings
+     */
+    protected function normalizeAccessories($accessories): array
+    {
+        if (empty($accessories)) {
+            return [];
+        }
+
+        // If it's a string, split by comma
+        if (is_string($accessories)) {
+            return array_map('trim', explode(',', $accessories));
+        }
+
+        // If it's already an array, ensure all items are strings
+        if (is_array($accessories)) {
+            return array_values(array_filter(array_map(function ($item) {
+                return is_string($item) ? trim($item) : '';
+            }, $accessories)));
+        }
+
+        return [];
     }
 
     /**

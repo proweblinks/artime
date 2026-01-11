@@ -231,6 +231,148 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- ═══════════════════════════════════════════════════════════════════ --}}
+                            {{-- CHARACTER DNA - Consolidated Section (All collapsed by default) --}}
+                            {{-- ═══════════════════════════════════════════════════════════════════ --}}
+                            @php
+                                $hasDNA = !empty($currentChar['hair']['style'] ?? '') ||
+                                          !empty($currentChar['hair']['color'] ?? '') ||
+                                          !empty($currentChar['wardrobe']['outfit'] ?? '') ||
+                                          !empty($currentChar['makeup']['style'] ?? '') ||
+                                          !empty($currentChar['accessories'] ?? []);
+                            @endphp
+
+                            <div x-data="{ dnaOpen: false, presetsOpen: false }" style="margin-bottom: 0.4rem; padding: 0.35rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.35rem;">
+                                {{-- DNA Section Header --}}
+                                <button type="button"
+                                        @click="dnaOpen = !dnaOpen"
+                                        style="display: flex; align-items: center; gap: 0.25rem; width: 100%; background: none; border: none; padding: 0; cursor: pointer;">
+                                    <span style="color: #c4b5fd; font-size: 0.6rem; transition: transform 0.2s;" :style="dnaOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
+                                    <span style="color: #c4b5fd; font-size: 0.65rem; font-weight: 600;">🧬 {{ __('Character DNA') }}</span>
+                                    <span style="color: rgba(255,255,255,0.4); font-size: 0.5rem; margin-left: 0.2rem;">({{ __('Hair, Wardrobe, Makeup, Accessories') }})</span>
+                                    @if($hasDNA)
+                                        <span style="color: #10b981; font-size: 0.5rem; margin-left: auto;">✓ {{ __('defined') }}</span>
+                                    @endif
+                                </button>
+
+                                <div x-show="dnaOpen" x-collapse style="margin-top: 0.35rem;">
+                                    {{-- Quick Look Presets (Collapsible) --}}
+                                    <div style="margin-bottom: 0.35rem;">
+                                        <button type="button"
+                                                @click="presetsOpen = !presetsOpen"
+                                                style="display: flex; align-items: center; gap: 0.2rem; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 0.2rem;">
+                                            <span style="color: rgba(255,255,255,0.5); font-size: 0.5rem; transition: transform 0.2s;" :style="presetsOpen ? '' : 'transform: rotate(-90deg)'">▼</span>
+                                            <span style="color: rgba(255,255,255,0.6); font-size: 0.55rem;">✨ {{ __('Quick Presets') }}</span>
+                                        </button>
+                                        <div x-show="presetsOpen" x-collapse style="display: flex; flex-wrap: wrap; gap: 0.2rem;">
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'corporate-female')" style="padding: 0.15rem 0.3rem; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); border-radius: 0.2rem; color: #a5b4fc; font-size: 0.45rem; cursor: pointer;">👩‍💼 {{ __('Corp F') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'corporate-male')" style="padding: 0.15rem 0.3rem; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); border-radius: 0.2rem; color: #a5b4fc; font-size: 0.45rem; cursor: pointer;">👨‍💼 {{ __('Corp M') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'tech-female')" style="padding: 0.15rem 0.3rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); border-radius: 0.2rem; color: #67e8f9; font-size: 0.45rem; cursor: pointer;">👩‍💻 {{ __('Tech F') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'tech-male')" style="padding: 0.15rem 0.3rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.3); border-radius: 0.2rem; color: #67e8f9; font-size: 0.45rem; cursor: pointer;">👨‍💻 {{ __('Tech M') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'action-hero-female')" style="padding: 0.15rem 0.3rem; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.2rem; color: #fca5a5; font-size: 0.45rem; cursor: pointer;">🦸‍♀️ {{ __('Action F') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'action-hero-male')" style="padding: 0.15rem 0.3rem; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.2rem; color: #fca5a5; font-size: 0.45rem; cursor: pointer;">🦸‍♂️ {{ __('Action M') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'scientist-female')" style="padding: 0.15rem 0.3rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 0.2rem; color: #6ee7b7; font-size: 0.45rem; cursor: pointer;">👩‍🔬 {{ __('Sci F') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'scientist-male')" style="padding: 0.15rem 0.3rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 0.2rem; color: #6ee7b7; font-size: 0.45rem; cursor: pointer;">👨‍🔬 {{ __('Sci M') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'cyberpunk')" style="padding: 0.15rem 0.3rem; background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.3); border-radius: 0.2rem; color: #f9a8d4; font-size: 0.45rem; cursor: pointer;">🤖 {{ __('Cyber') }}</button>
+                                            <button type="button" wire:click="applyCharacterLookPreset({{ $editIndex }}, 'fantasy-warrior')" style="padding: 0.15rem 0.3rem; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3); border-radius: 0.2rem; color: #fcd34d; font-size: 0.45rem; cursor: pointer;">⚔️ {{ __('Fantasy') }}</button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Hair (inline compact) --}}
+                                    <div style="margin-bottom: 0.3rem; padding: 0.25rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.2rem;">
+                                            <span style="color: rgba(255,255,255,0.6); font-size: 0.55rem; min-width: 2rem;">💇 {{ __('Hair') }}</span>
+                                            @if(!empty($currentChar['hair']['style'] ?? '') || !empty($currentChar['hair']['color'] ?? ''))
+                                                <span style="color: #10b981; font-size: 0.45rem;">✓</span>
+                                            @endif
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.2rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.color"
+                                                   placeholder="{{ __('Color') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.style"
+                                                   placeholder="{{ __('Style') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.length"
+                                                   placeholder="{{ __('Length') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.texture"
+                                                   placeholder="{{ __('Texture') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                        </div>
+                                    </div>
+
+                                    {{-- Wardrobe (inline compact) --}}
+                                    <div style="margin-bottom: 0.3rem; padding: 0.25rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.2rem;">
+                                            <span style="color: rgba(255,255,255,0.6); font-size: 0.55rem; min-width: 2rem;">👔 {{ __('Wardrobe') }}</span>
+                                            @if(!empty($currentChar['wardrobe']['outfit'] ?? ''))
+                                                <span style="color: #10b981; font-size: 0.45rem;">✓</span>
+                                            @endif
+                                        </div>
+                                        <textarea wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.outfit"
+                                                  placeholder="{{ __('Outfit description (e.g., fitted black jacket, slim pants)') }}"
+                                                  style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem; min-height: 28px; resize: none; margin-bottom: 0.2rem;"></textarea>
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.colors"
+                                                   placeholder="{{ __('Colors') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.style"
+                                                   placeholder="{{ __('Style') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.footwear"
+                                                   placeholder="{{ __('Footwear') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                        </div>
+                                    </div>
+
+                                    {{-- Makeup & Accessories (side by side) --}}
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
+                                        {{-- Makeup --}}
+                                        <div style="padding: 0.25rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                            <div style="display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.2rem;">
+                                                <span style="color: rgba(255,255,255,0.6); font-size: 0.55rem;">💄 {{ __('Makeup') }}</span>
+                                                @if(!empty($currentChar['makeup']['style'] ?? ''))
+                                                    <span style="color: #10b981; font-size: 0.45rem;">✓</span>
+                                                @endif
+                                            </div>
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.style"
+                                                   placeholder="{{ __('Style (minimal, bold...)') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem; margin-bottom: 0.15rem;">
+                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.details"
+                                                   placeholder="{{ __('Details') }}"
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                        </div>
+
+                                        {{-- Accessories --}}
+                                        <div x-data="{ newAcc: '' }" style="padding: 0.25rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                            <div style="display: flex; align-items: center; gap: 0.2rem; margin-bottom: 0.2rem;">
+                                                <span style="color: rgba(255,255,255,0.6); font-size: 0.55rem;">💍 {{ __('Accessories') }}</span>
+                                                <span style="color: rgba(255,255,255,0.4); font-size: 0.45rem;">({{ count($currentChar['accessories'] ?? []) }})</span>
+                                            </div>
+                                            <div style="display: flex; flex-wrap: wrap; gap: 0.15rem; margin-bottom: 0.15rem; min-height: 18px;">
+                                                @foreach($currentChar['accessories'] ?? [] as $accIdx => $accessory)
+                                                    <span style="display: inline-flex; align-items: center; gap: 0.1rem; padding: 0.1rem 0.25rem; background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); border-radius: 0.5rem; color: #fcd34d; font-size: 0.45rem;">
+                                                        {{ $accessory }}
+                                                        <button type="button" wire:click="removeCharacterAccessory({{ $editIndex }}, {{ $accIdx }})" style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 0; line-height: 1; font-size: 0.5rem;">&times;</button>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                            <div style="display: flex; gap: 0.15rem;">
+                                                <input type="text" x-model="newAcc"
+                                                       @keydown.enter.prevent="if(newAcc.trim()) { $wire.addCharacterAccessory({{ $editIndex }}, newAcc.trim()); newAcc = ''; }"
+                                                       placeholder="{{ __('Add...') }}"
+                                                       style="flex: 1; padding: 0.15rem 0.25rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.5rem;">
+                                                <button type="button"
+                                                        @click="if(newAcc.trim()) { $wire.addCharacterAccessory({{ $editIndex }}, newAcc.trim()); newAcc = ''; }"
+                                                        style="padding: 0.15rem 0.25rem; background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); border-radius: 0.2rem; color: #fcd34d; font-size: 0.45rem; cursor: pointer;">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 

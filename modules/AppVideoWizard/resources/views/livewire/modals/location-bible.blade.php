@@ -299,12 +299,17 @@
                                 {{-- Current State Changes --}}
                                 <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.5rem;">
                                     @forelse($currentLocation['stateChanges'] ?? [] as $stateIdx => $stateChange)
+                                        @php
+                                            // Support both new (sceneIndex/stateDescription) and old (scene/state) field names
+                                            $stateSceneIdx = $stateChange['sceneIndex'] ?? $stateChange['scene'] ?? 0;
+                                            $stateDesc = $stateChange['stateDescription'] ?? $stateChange['state'] ?? '';
+                                        @endphp
                                         <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.35rem;">
                                             <span style="background: rgba(245,158,11,0.3); color: #fcd34d; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">
-                                                S{{ ($stateChange['scene'] ?? 0) + 1 }}
+                                                S{{ $stateSceneIdx + 1 }}
                                             </span>
                                             <span style="flex: 1; color: rgba(255,255,255,0.8); font-size: 0.7rem;">
-                                                {{ $stateChange['state'] ?? '' }}
+                                                {{ $stateDesc }}
                                             </span>
                                             <button type="button"
                                                     wire:click="removeLocationState({{ $editIndex }}, {{ $stateIdx }})"
