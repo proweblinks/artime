@@ -9432,8 +9432,8 @@ EOT;
                     $storagePath = "wizard-projects/{$project->id}/frames/{$filename}";
                     Storage::disk('public')->put($storagePath, $frameContent);
 
-                    // Generate clean URL (fix double slash issue)
-                    $frameUrl = asset('storage/' . $storagePath);
+                    // Generate URL (use /public/storage/ path for shared hosting)
+                    $frameUrl = url('/public/storage/' . $storagePath);
 
                     Log::info('[FrameCapture] Server-side capture successful', ['url' => $frameUrl]);
 
@@ -9538,8 +9538,8 @@ EOT;
                     $storagePath = "wizard-projects/{$project->id}/frames/{$filename}";
                     Storage::disk('public')->put($storagePath, $frameContent);
 
-                    // Generate clean URL (fix double slash issue)
-                    $frameUrl = asset('storage/' . $storagePath);
+                    // Generate URL (use /public/storage/ path for shared hosting)
+                    $frameUrl = url('/public/storage/' . $storagePath);
 
                     return ['success' => true, 'frameUrl' => $frameUrl];
                 }
