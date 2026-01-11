@@ -578,83 +578,52 @@ window.multiShotVideoPolling = function() {
                                                     <span style="font-size: 0.45rem; background: {{ $modelBg }}; padding: 0.1rem 0.2rem; border-radius: 0.15rem;">{{ __($modelLabel) }}</span>
                                                 </button>
                                             @elseif($isGeneratingVideo)
-                                                {{-- Enhanced Video Generation Progress --}}
+                                                {{-- Video Generation Progress - matches original wizard --}}
                                                 @php
                                                     $videoStatus = $shot['videoStatus'] ?? 'generating';
-                                                    $isQueued = $videoStatus === 'generating' || $videoStatus === 'queued';
-                                                    $isProcessing = $videoStatus === 'processing';
-                                                    $statusMessage = $isQueued ? __('Preparing...') : __('Rendering video...');
-                                                    $statusIcon = $isQueued ? '🎬' : '⏳';
+                                                    $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
+                                                    $modelLabel = $selectedModel === 'multitalk' ? 'Lip-Sync' : 'Standard';
                                                 @endphp
                                                 <div
                                                     x-data="{
-                                                        progress: {{ $isQueued ? 10 : 40 }},
-                                                        stage: {{ $isQueued ? 1 : 2 }},
-                                                        startTime: Date.now(),
+                                                        elapsedSeconds: 0,
+                                                        checkCount: 0,
                                                         init() {
-                                                            this.animateProgress();
+                                                            this.startTimer();
+                                                            // Listen for poll events to update check count
+                                                            this.$watch('$wire.pendingJobs', () => this.checkCount++);
                                                         },
-                                                        animateProgress() {
-                                                            const interval = setInterval(() => {
-                                                                const elapsed = (Date.now() - this.startTime) / 1000;
-                                                                // Simulate progress over ~60 seconds
-                                                                if (elapsed < 10) {
-                                                                    this.progress = Math.min(30, 10 + (elapsed * 2));
-                                                                    this.stage = 1;
-                                                                } else if (elapsed < 30) {
-                                                                    this.progress = Math.min(70, 30 + ((elapsed - 10) * 2));
-                                                                    this.stage = 2;
-                                                                } else if (elapsed < 50) {
-                                                                    this.progress = Math.min(90, 70 + ((elapsed - 30) * 1));
-                                                                    this.stage = 3;
-                                                                } else {
-                                                                    this.progress = 95;
-                                                                    this.stage = 3;
-                                                                }
+                                                        startTimer() {
+                                                            setInterval(() => {
+                                                                this.elapsedSeconds++;
                                                             }, 1000);
-                                                            // Store interval for cleanup
-                                                            this.$watch('$el', () => clearInterval(interval));
+                                                        },
+                                                        formatTime(seconds) {
+                                                            const mins = Math.floor(seconds / 60);
+                                                            const secs = seconds % 60;
+                                                            return mins + ':' + (secs < 10 ? '0' : '') + secs;
                                                         }
                                                     }"
-                                                    style="padding: 0.5rem; background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.4rem;">
-                                                    {{-- Progress Header --}}
-                                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
-                                                        <span style="font-size: 0.6rem; color: #67e8f9; font-weight: 600;">
-                                                            {{ $statusIcon }} {{ $statusMessage }}
-                                                        </span>
-                                                        <span x-text="Math.round(progress) + '%'" style="font-size: 0.55rem; color: rgba(255,255,255,0.7); font-weight: 500;"></span>
+                                                    style="text-align: center; padding: 0.5rem;">
+                                                    {{-- Rendering Status --}}
+                                                    <div style="font-size: 0.7rem; color: #67e8f9; font-weight: 600; margin-bottom: 0.3rem;">
+                                                        ⏳ {{ __('Rendering...') }} <span x-text="formatTime(elapsedSeconds)"></span>
+                                                    </div>
+
+                                                    {{-- Check count and expected time --}}
+                                                    <div style="font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-bottom: 0.4rem;">
+                                                        {{ __('Check') }} #<span x-text="Math.max(1, checkCount)"></span> • {{ __('Usually 1-3 min') }}
                                                     </div>
 
                                                     {{-- Progress Bar --}}
-                                                    <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.4rem;">
-                                                        <div :style="'width: ' + progress + '%; height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); border-radius: 3px; transition: width 0.5s ease;'">
-                                                        </div>
+                                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 0.4rem;">
+                                                        <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); animation: progress-indeterminate 1.5s infinite linear;"></div>
                                                     </div>
 
-                                                    {{-- Stage Indicators --}}
-                                                    <div style="display: flex; gap: 0.25rem; font-size: 0.5rem;">
-                                                        <div :class="stage >= 1 ? 'opacity-100' : 'opacity-40'" style="flex: 1; text-align: center; padding: 0.2rem; border-radius: 0.2rem; transition: opacity 0.3s;"
-                                                             :style="stage >= 1 ? 'background: rgba(16, 185, 129, 0.3); color: #10b981;' : 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5);'">
-                                                            <span x-show="stage > 1">✓</span>
-                                                            <span x-show="stage === 1">●</span>
-                                                            <span x-show="stage < 1">○</span>
-                                                            {{ __('Queue') }}
-                                                        </div>
-                                                        <div :class="stage >= 2 ? 'opacity-100' : 'opacity-40'" style="flex: 1; text-align: center; padding: 0.2rem; border-radius: 0.2rem; transition: opacity 0.3s;"
-                                                             :style="stage >= 2 ? 'background: rgba(6, 182, 212, 0.3); color: #06b6d4;' : 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5);'">
-                                                            <span x-show="stage > 2">✓</span>
-                                                            <span x-show="stage === 2">●</span>
-                                                            <span x-show="stage < 2">○</span>
-                                                            {{ __('Render') }}
-                                                        </div>
-                                                        <div :class="stage >= 3 ? 'opacity-100' : 'opacity-40'" style="flex: 1; text-align: center; padding: 0.2rem; border-radius: 0.2rem; transition: opacity 0.3s;"
-                                                             :style="stage >= 3 ? 'background: rgba(139, 92, 246, 0.3); color: #8b5cf6;' : 'background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5);'">
-                                                            <span x-show="stage > 3">✓</span>
-                                                            <span x-show="stage === 3">●</span>
-                                                            <span x-show="stage < 3">○</span>
-                                                            {{ __('Finish') }}
-                                                        </div>
-                                                    </div>
+                                                    {{-- Model Badge --}}
+                                                    <span style="display: inline-block; font-size: 0.55rem; background: rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-weight: 500;">
+                                                        🎬 {{ __($modelLabel) }}
+                                                    </span>
                                                 </div>
                                             @endif
 
@@ -864,6 +833,10 @@ window.multiShotVideoPolling = function() {
     50% { opacity: 0.5; }
 }
 @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes progress-indeterminate {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
 }
