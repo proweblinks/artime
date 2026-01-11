@@ -7126,7 +7126,61 @@ class VideoWizard extends Component
             }
         }
 
-        // Add detected characters to Character Bible
+        // =====================================================================
+        // CINEMATIC INTELLIGENCE: Role inference and scene expansion
+        // =====================================================================
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        // Infer roles based on scene frequency (character in most scenes = Main)
+        $sceneCountByChar = [];
+        foreach ($characterScenes as $name => $scenes) {
+            $sceneCountByChar[$name] = count($scenes);
+        }
+        arsort($sceneCountByChar); // Sort by scene count descending
+
+        $charIndex = 0;
+        $inferredRoles = [];
+        foreach ($sceneCountByChar as $name => $count) {
+            // First character with most scenes = Main, next 1-2 = Supporting, rest = Background
+            if ($charIndex === 0) {
+                $inferredRoles[$name] = 'Main';
+            } elseif ($charIndex <= 2) {
+                $inferredRoles[$name] = 'Supporting';
+            } else {
+                $inferredRoles[$name] = 'Background';
+            }
+            $charIndex++;
+        }
+
+        // Expand scene assignments based on role (cinematic continuity logic)
+        // Main characters should appear in 70%+ of scenes
+        // Supporting characters should appear in 40%+ of scenes
+        foreach ($detectedCharacters as $name => &$data) {
+            $role = $inferredRoles[$name] ?? 'Background';
+            $currentScenes = $characterScenes[$name] ?? [];
+
+            if ($role === 'Main' && $totalScenes > 0) {
+                // Expand Main character to 70% of scenes minimum
+                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * 0.70));
+                $characterScenes[$name] = $this->expandSceneAssignments(
+                    $currentScenes,
+                    $totalScenes,
+                    $targetSceneCount
+                );
+            } elseif ($role === 'Supporting' && $totalScenes > 0) {
+                // Expand Supporting character to 40% of scenes minimum
+                $targetSceneCount = max(count($currentScenes), (int) ceil($totalScenes * 0.40));
+                $characterScenes[$name] = $this->expandSceneAssignments(
+                    $currentScenes,
+                    $totalScenes,
+                    $targetSceneCount
+                );
+            }
+            // Background characters keep their literal scene assignments
+        }
+        unset($data);
+
+        // Add detected characters to Character Bible with inferred roles
         foreach ($detectedCharacters as $name => $data) {
             // Check if already exists
             $exists = collect($this->sceneMemory['characterBible']['characters'])
@@ -7138,6 +7192,7 @@ class VideoWizard extends Component
                     'id' => uniqid('char_'),
                     'name' => $data['name'],
                     'description' => $data['description'],
+                    'role' => $inferredRoles[$name] ?? 'Supporting',
                     'appliedScenes' => $characterScenes[$name] ?? [],
                     'referenceImage' => null,
                     'autoDetected' => true,
@@ -7156,7 +7211,76 @@ class VideoWizard extends Component
             'type' => 'character_extraction',
             'method' => 'pattern',
             'count' => count($detectedCharacters),
+            'roles' => $inferredRoles,
+            'totalScenes' => $totalScenes,
         ]);
+    }
+
+    /**
+     * Expand scene assignments for a character to reach target count.
+     * Uses intelligent expansion: fills gaps between existing scenes first,
+     * then extends to adjacent scenes.
+     */
+    protected function expandSceneAssignments(array $currentScenes, int $totalScenes, int $targetCount): array
+    {
+        if (count($currentScenes) >= $targetCount || $totalScenes <= 0) {
+            return $currentScenes;
+        }
+
+        $expandedScenes = $currentScenes;
+        $allSceneIndices = range(0, $totalScenes - 1);
+
+        // Priority 1: Fill gaps between existing scenes (narrative continuity)
+        sort($expandedScenes);
+        if (count($expandedScenes) >= 2) {
+            for ($i = 0; $i < count($expandedScenes) - 1 && count($expandedScenes) < $targetCount; $i++) {
+                $start = $expandedScenes[$i];
+                $end = $expandedScenes[$i + 1] ?? $start;
+                // Fill the gap between consecutive assigned scenes
+                for ($gap = $start + 1; $gap < $end && count($expandedScenes) < $targetCount; $gap++) {
+                    if (!in_array($gap, $expandedScenes)) {
+                        $expandedScenes[] = $gap;
+                    }
+                }
+                sort($expandedScenes);
+            }
+        }
+
+        // Priority 2: Extend to adjacent scenes (before first and after last)
+        while (count($expandedScenes) < $targetCount) {
+            $added = false;
+            $min = min($expandedScenes);
+            $max = max($expandedScenes);
+
+            // Try to add scene before the earliest
+            if ($min > 0 && !in_array($min - 1, $expandedScenes)) {
+                $expandedScenes[] = $min - 1;
+                $added = true;
+            }
+
+            // Try to add scene after the latest
+            if (count($expandedScenes) < $targetCount && $max < $totalScenes - 1 && !in_array($max + 1, $expandedScenes)) {
+                $expandedScenes[] = $max + 1;
+                $added = true;
+            }
+
+            // If we couldn't add any more, break to avoid infinite loop
+            if (!$added) {
+                break;
+            }
+
+            sort($expandedScenes);
+        }
+
+        // Priority 3: Fill any remaining slots with random unassigned scenes
+        $unassigned = array_diff($allSceneIndices, $expandedScenes);
+        while (count($expandedScenes) < $targetCount && !empty($unassigned)) {
+            $nextScene = array_shift($unassigned);
+            $expandedScenes[] = $nextScene;
+        }
+
+        sort($expandedScenes);
+        return $expandedScenes;
     }
 
     /**
@@ -7743,7 +7867,12 @@ class VideoWizard extends Component
             $imageService = app(ImageGenerationService::class);
 
             // Build PHOTOREALISTIC portrait prompt for character reference
+            // CRITICAL: Single-person enforcement at the START of prompt for maximum weight
             $promptParts = [
+                // SINGLE PERSON ENFORCEMENT (highest priority - at start of prompt)
+                'EXACTLY ONE PERSON in frame - single individual portrait only',
+                'Solo subject, no other people, no background figures, isolated character',
+
                 // Photorealistic quality markers
                 '8K UHD professional studio portrait photograph',
                 'Shot on Canon R5 with 85mm f/1.4 portrait lens',
@@ -7816,8 +7945,21 @@ class VideoWizard extends Component
             ]);
             $prompt = implode('. ', $promptParts);
 
-            // Negative prompt for character portraits
-            $negativePrompt = 'cartoon, anime, illustration, 3D render, CGI, plastic skin, airbrushed, waxy, mannequin, doll-like, uncanny valley, oversaturated, HDR, blurry, low quality, watermark, text, logo, multiple people, crowd';
+            // Negative prompt for character portraits - STRENGTHENED multi-person exclusion
+            $negativePrompt = implode(', ', [
+                // MULTI-PERSON EXCLUSION (highest priority)
+                'multiple people', 'two people', 'three people', 'group of people', 'crowd',
+                'couple', 'pair', 'duo', 'trio', 'friends', 'family', 'team', 'colleagues',
+                'background people', 'other figures', 'bystanders', 'passersby', 'audience',
+                'second person', 'additional person', 'extra people', 'people in background',
+
+                // Style exclusions
+                'cartoon', 'anime', 'illustration', '3D render', 'CGI',
+
+                // Quality issues
+                'plastic skin', 'airbrushed', 'waxy', 'mannequin', 'doll-like', 'uncanny valley',
+                'oversaturated', 'HDR', 'blurry', 'low quality', 'watermark', 'text', 'logo',
+            ]);
 
             // Generate the portrait
             $result = $imageService->generateSceneImage($project, [
