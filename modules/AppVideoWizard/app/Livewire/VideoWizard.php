@@ -9421,8 +9421,9 @@ EOT;
     }
 
     /**
-     * Apply face correction using AI.
-     * Uses NanoBananaPro or similar service with Character Bible references.
+     * Apply face correction using Gemini AI.
+     * Uses Gemini's image generation with Character Bible portraits as reference.
+     * Mirrors the original Firebase creationWizardFixCharacterFaces function.
      */
     public function applyFaceCorrection(): void
     {
@@ -9446,21 +9447,39 @@ EOT;
                 if (isset($characters[$index])) {
                     $char = $characters[$index];
                     if (!empty($char['referenceImage'])) {
-                        $selectedChars[] = [
-                            'name' => $char['name'] ?? 'Character',
-                            'description' => $char['description'] ?? '',
-                            'referenceImageUrl' => $char['referenceImage'],
-                            'referenceImageBase64' => $char['referenceImageBase64'] ?? null,
-                        ];
+                        // Get base64 for reference image
+                        $refBase64 = $char['referenceImageBase64'] ?? null;
+                        if (!$refBase64 && !empty($char['referenceImage'])) {
+                            // Download and convert to base64
+                            try {
+                                $imageContent = file_get_contents($char['referenceImage']);
+                                $refBase64 = base64_encode($imageContent);
+                            } catch (\Exception $e) {
+                                Log::warning('[FaceCorrection] Failed to load reference image', [
+                                    'character' => $char['name'] ?? 'Unknown',
+                                    'error' => $e->getMessage()
+                                ]);
+                                continue;
+                            }
+                        }
+
+                        if ($refBase64) {
+                            $selectedChars[] = [
+                                'name' => $char['name'] ?? 'Character',
+                                'description' => $char['description'] ?? '',
+                                'base64' => $refBase64,
+                                'mimeType' => $char['referenceImageMimeType'] ?? 'image/png',
+                            ];
+                        }
                     }
                 }
             }
 
             if (empty($selectedChars)) {
-                throw new \Exception(__('No valid character references found'));
+                throw new \Exception(__('No valid character references found. Ensure characters have portrait images.'));
             }
 
-            // Get the frame data
+            // Get the frame data as base64
             $frameBase64 = $this->capturedFrame;
             if (str_starts_with($frameBase64, 'data:')) {
                 $frameBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $frameBase64);
@@ -9470,32 +9489,134 @@ EOT;
                 $frameBase64 = base64_encode($imageContent);
             }
 
-            // Call face correction service
-            // TODO: Integrate with actual face correction API (NanoBananaPro or similar)
-            // For now, we'll use ImageGenerationService for face swap/correction
-
-            $imageService = app(ImageGenerationService::class);
-
-            // Build prompt for face correction
-            $prompt = "Fix and correct the character faces in this image to match the reference portraits. ";
-            $prompt .= "Characters: " . collect($selectedChars)->pluck('name')->join(', ') . ". ";
-            $prompt .= "Maintain the exact same pose, composition, lighting, and background. ";
-            $prompt .= "Only correct the facial features to match the reference images.";
-
-            // For now, store the original frame as corrected (placeholder)
-            // In production, this would call a face swap API
-            Log::info('[FaceCorrection] Would call face correction API', [
+            Log::info('[FaceCorrection] Starting face correction', [
                 'characters' => count($selectedChars),
-                'prompt' => $prompt
+                'characterNames' => collect($selectedChars)->pluck('name')->all(),
             ]);
 
-            // Placeholder: Use original frame until API is integrated
-            $this->correctedFrameUrl = $this->capturedFrame;
+            // Build the face correction prompt (matching original Firebase function)
+            $characterDescriptions = collect($selectedChars)->map(function($char, $idx) {
+                $charNum = $idx + 2; // +2 because image 1 is the scene
+                $desc = $char['description'] ? " ({$char['description']})" : '';
+                return "- Image {$charNum}: {$char['name']}{$desc}";
+            })->join("\n");
+
+            $aspectRatio = $this->aspectRatio ?? '16:9';
+
+            $faceFixPrompt = <<<PROMPT
+FACE CORRECTION TASK - LIGHTING CRITICAL:
+
+You have been given {$this->getCharacterCount($selectedChars)} images:
+- Image 1: The SCENE to preserve (composition, lighting, poses, background, clothing, everything EXCEPT faces)
+{$characterDescriptions}
+
+=== CRITICAL LIGHTING PRESERVATION ===
+BEFORE making ANY changes, ANALYZE Image 1's lighting:
+1. Color temperature (warm/cool/neutral)
+2. Light direction (front/side/back/above)
+3. Light intensity (bright/dim/dramatic shadows)
+4. Color grading (teal/orange, cool blues, warm ambers, etc.)
+5. Atmospheric effects (fog, haze, smoke, neon glow, volumetric light)
+6. Shadow depth and placement
+7. Rim lighting or backlight effects
+8. Any colored light sources (neon, fire, screens)
+
+The corrected faces MUST match ALL these lighting characteristics EXACTLY.
+The face should look like it was FILMED IN THAT SCENE, not pasted in from a studio.
+
+YOUR TASK:
+1. PRESERVE the EXACT scene from Image 1:
+   - Same composition, poses, camera angle, background, clothing, body positions
+   - Same color grading and color temperature
+   - Same atmospheric effects (fog, haze, smoke if present)
+   - Same lighting direction and shadow patterns
+   - Same overall mood and cinematic look
+
+2. REPLACE only the facial features with those from the character references:
+   - Eyes, nose, mouth, face shape, skin tone FROM the reference
+   - BUT the lighting ON the face must match Image 1's lighting EXACTLY
+   - Shadows should fall in the same direction as Image 1
+   - Skin should reflect the same color cast as Image 1
+   - If Image 1 has blue/cyan lighting, the face must have that blue/cyan tint
+   - If Image 1 has warm golden lighting, the face must have that warm glow
+
+CRITICAL DO NOT:
+- Do NOT flatten the lighting or make it look like studio lighting
+- Do NOT remove atmospheric effects (fog, haze, smoke, dust particles)
+- Do NOT change the color grading or color temperature
+- Do NOT create a "pasted on" look where the face doesn't match the environment
+- Do NOT make the face brighter or more evenly lit than the original
+
+CRITICAL DO:
+- Apply the SAME shadows to the new face that were on the original face
+- Match any rim light or backlight effects from the original
+- Preserve any color tints from environment lighting (neon, fire, etc.)
+- Keep the atmospheric density consistent
+- Maintain {$aspectRatio} aspect ratio
+
+Output a single corrected image where the face blends SEAMLESSLY with the scene's lighting.
+PROMPT;
+
+            // Prepare additional images (character references)
+            $additionalImages = collect($selectedChars)->map(function($char) {
+                return [
+                    'base64' => $char['base64'],
+                    'mimeType' => $char['mimeType'],
+                ];
+            })->all();
+
+            // Call Gemini Service for face correction
+            $geminiService = app(\App\Services\GeminiService::class);
+
+            $result = $geminiService->generateImageFromImage(
+                $frameBase64,
+                $faceFixPrompt,
+                [
+                    'model' => 'gemini-2.5-flash', // or 'gemini-2.5-pro' for higher quality
+                    'mimeType' => 'image/png',
+                    'aspectRatio' => $aspectRatio,
+                    'resolution' => '2K',
+                    'additionalImages' => $additionalImages,
+                ]
+            );
+
+            if (!$result['success']) {
+                throw new \Exception($result['error'] ?? __('Face correction generation failed'));
+            }
+
+            // Save the corrected image
+            $correctedBase64 = $result['imageData'];
+            $correctedMimeType = $result['mimeType'] ?? 'image/png';
+
+            // Save to storage
+            $filename = "face_correction_{$this->frameCaptureSceneIndex}_{$this->frameCaptureShotIndex}_" . time() . '.png';
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $storagePath = "wizard-projects/{$project->id}/face-corrections/{$filename}";
+                    Storage::disk('public')->put($storagePath, base64_decode($correctedBase64));
+                    $correctedUrl = Storage::disk('public')->url($storagePath);
+
+                    $this->correctedFrameUrl = $correctedUrl;
+                } else {
+                    // Fallback to data URL
+                    $this->correctedFrameUrl = "data:{$correctedMimeType};base64,{$correctedBase64}";
+                }
+            } else {
+                // No project, use data URL
+                $this->correctedFrameUrl = "data:{$correctedMimeType};base64,{$correctedBase64}";
+            }
+
             $this->faceCorrectionStatus = 'done';
 
+            Log::info('[FaceCorrection] Face correction complete', [
+                'characters' => collect($selectedChars)->pluck('name')->all(),
+            ]);
+
             $this->dispatch('notify', [
-                'type' => 'info',
-                'message' => __('Face correction preview ready. Integration with face swap API pending.')
+                'type' => 'success',
+                'message' => __('Face correction complete! Review the result and save if satisfied.')
             ]);
 
         } catch (\Exception $e) {
@@ -9503,6 +9624,15 @@ EOT;
             $this->error = __('Face correction failed: ') . $e->getMessage();
             $this->faceCorrectionStatus = 'error';
         }
+    }
+
+    /**
+     * Helper to get character count for prompt.
+     */
+    private function getCharacterCount(array $chars): string
+    {
+        $count = count($chars) + 1; // +1 for the scene image
+        return "{$count}";
     }
 
     /**
