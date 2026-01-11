@@ -9395,13 +9395,10 @@ EOT;
             $filename = "frame_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
             $tempPath = $tempDir . '/' . $filename;
 
-            // Use FFmpeg to extract frame
-            // Format timestamp as HH:MM:SS.mmm
-            $hours = floor($timestamp / 3600);
-            $minutes = floor(($timestamp % 3600) / 60);
-            $seconds = $timestamp % 60;
-            $timeString = sprintf('%02d:%02d:%06.3f', $hours, $minutes, $seconds);
+            // Format timestamp as seconds with milliseconds (simpler format for older FFmpeg)
+            $timeString = sprintf('%.3f', max(0, $timestamp));
 
+            // Use FFmpeg to extract frame - try direct URL first
             $ffmpegCmd = sprintf(
                 'ffmpeg -y -ss %s -i %s -vframes 1 -f image2 %s 2>&1',
                 escapeshellarg($timeString),
@@ -9409,16 +9406,16 @@ EOT;
                 escapeshellarg($tempPath)
             );
 
-            Log::info('[FrameCapture] FFmpeg command', ['cmd' => $ffmpegCmd]);
+            Log::info('[FrameCapture] FFmpeg command', ['cmd' => $ffmpegCmd, 'timestamp' => $timestamp]);
 
             $output = [];
             $returnCode = 0;
             exec($ffmpegCmd, $output, $returnCode);
 
             if ($returnCode !== 0 || !file_exists($tempPath)) {
-                Log::error('[FrameCapture] FFmpeg failed', [
+                Log::warning('[FrameCapture] FFmpeg direct URL failed, trying download method', [
                     'returnCode' => $returnCode,
-                    'output' => implode("\n", $output)
+                    'output' => implode("\n", array_slice($output, -10)) // Last 10 lines
                 ]);
 
                 // Try alternative: download video and extract locally
@@ -9467,23 +9464,44 @@ EOT;
     {
         try {
             $tempDir = storage_path('app/temp/frames');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
             $tempVideoPath = $tempDir . '/temp_video_' . time() . '.mp4';
             $filename = "frame_{$sceneIndex}_{$shotIndex}_" . time() . '.png';
             $tempFramePath = $tempDir . '/' . $filename;
 
-            // Download video
-            $client = new \GuzzleHttp\Client(['timeout' => 60, 'verify' => false]);
-            $response = $client->get($videoUrl, ['sink' => $tempVideoPath]);
+            Log::info('[FrameCapture] Downloading video for frame extraction', ['url' => $videoUrl]);
 
-            if (!file_exists($tempVideoPath)) {
-                throw new \Exception('Failed to download video');
+            // Download video using curl (more reliable for HTTPS)
+            $ch = curl_init($videoUrl);
+            $fp = fopen($tempVideoPath, 'wb');
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 120);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+            $success = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+            fclose($fp);
+
+            if (!$success || $httpCode !== 200 || !file_exists($tempVideoPath) || filesize($tempVideoPath) === 0) {
+                Log::error('[FrameCapture] Video download failed', [
+                    'httpCode' => $httpCode,
+                    'curlError' => $curlError,
+                    'fileExists' => file_exists($tempVideoPath),
+                    'fileSize' => file_exists($tempVideoPath) ? filesize($tempVideoPath) : 0
+                ]);
+                throw new \Exception('Failed to download video: ' . ($curlError ?: "HTTP $httpCode"));
             }
 
-            // Extract frame
-            $hours = floor($timestamp / 3600);
-            $minutes = floor(($timestamp % 3600) / 60);
-            $seconds = $timestamp % 60;
-            $timeString = sprintf('%02d:%02d:%06.3f', $hours, $minutes, $seconds);
+            Log::info('[FrameCapture] Video downloaded', ['size' => filesize($tempVideoPath)]);
+
+            // Extract frame using simple timestamp format
+            $timeString = sprintf('%.3f', max(0, $timestamp));
 
             $ffmpegCmd = sprintf(
                 'ffmpeg -y -ss %s -i %s -vframes 1 -f image2 %s 2>&1',
@@ -9491,6 +9509,8 @@ EOT;
                 escapeshellarg($tempVideoPath),
                 escapeshellarg($tempFramePath)
             );
+
+            Log::info('[FrameCapture] FFmpeg local extraction', ['cmd' => $ffmpegCmd]);
 
             exec($ffmpegCmd, $output, $returnCode);
 
@@ -9500,6 +9520,10 @@ EOT;
             }
 
             if ($returnCode !== 0 || !file_exists($tempFramePath)) {
+                Log::error('[FrameCapture] FFmpeg local extraction failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5))
+                ]);
                 throw new \Exception('FFmpeg frame extraction failed');
             }
 
