@@ -7419,6 +7419,67 @@ class VideoWizard extends Component
                     }
                 }
 
+                // =====================================================================
+                // CHARACTER ENRICHMENT: Fill in missing descriptions
+                // Some characters may have empty descriptions due to AI response limits
+                // =====================================================================
+                $enrichmentEnabled = VwSetting::getValue('character_enrichment_enabled', true);
+                if ($enrichmentEnabled && !empty($this->sceneMemory['characterBible']['characters'])) {
+                    try {
+                        $batchSize = VwSetting::getValue('character_enrichment_batch_size', 3);
+                        $minDescLength = VwSetting::getValue('character_enrichment_min_description_length', 30);
+
+                        $enrichedCharacters = $service->enrichIncompleteCharacters(
+                            $this->sceneMemory['characterBible']['characters'],
+                            $this->script,
+                            [
+                                'teamId' => session('current_team_id', 0),
+                                'visualMode' => $this->getVisualMode(),
+                                'batchSize' => $batchSize,
+                                'minDescriptionLength' => $minDescLength,
+                            ]
+                        );
+
+                        // Replace characters with enriched versions
+                        $this->sceneMemory['characterBible']['characters'] = $enrichedCharacters;
+
+                        Log::info('CharacterExtraction: Enrichment completed', [
+                            'totalCharacters' => count($enrichedCharacters),
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Enrichment failed, keeping original characters', [
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
+                // =====================================================================
+                // CHARACTER SORTING: Sort by importance (role, then scene count)
+                // =====================================================================
+                $sortEnabled = VwSetting::getValue('character_sort_enabled', true);
+                if ($sortEnabled && !empty($this->sceneMemory['characterBible']['characters'])) {
+                    try {
+                        $sortMethod = VwSetting::getValue('character_sort_method', 'role_then_scenes');
+
+                        $sortedCharacters = $service->sortCharactersByImportance(
+                            $this->sceneMemory['characterBible']['characters'],
+                            $sortMethod
+                        );
+
+                        // Replace characters with sorted order
+                        $this->sceneMemory['characterBible']['characters'] = $sortedCharacters;
+
+                        Log::info('CharacterExtraction: Characters sorted', [
+                            'method' => $sortMethod,
+                            'topCharacter' => $sortedCharacters[0]['name'] ?? 'N/A',
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Sorting failed, keeping original order', [
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
                 // Enable Character Bible if we detected any characters
                 if (!empty($result['characters'])) {
                     $this->sceneMemory['characterBible']['enabled'] = true;
