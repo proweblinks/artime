@@ -22,6 +22,7 @@ return new class extends Migration
             'credits',
             'ai_providers',
             'production_intelligence',
+            'cinematic_intelligence',
             'motion_intelligence'
         ) NOT NULL DEFAULT 'general'");
     }
@@ -43,7 +44,8 @@ return new class extends Migration
             'api',
             'credits',
             'ai_providers',
-            'production_intelligence'
+            'production_intelligence',
+            'cinematic_intelligence'
         ) NOT NULL DEFAULT 'general'");
     }
 };
