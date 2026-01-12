@@ -9,6 +9,7 @@ use Modules\AppVideoWizard\Models\VwShotType;
 use Modules\AppVideoWizard\Models\VwEmotionalBeat;
 use Modules\AppVideoWizard\Models\VwStoryStructure;
 use Modules\AppVideoWizard\Models\VwCameraSpec;
+use Modules\AppVideoWizard\Models\VwCameraMovement;
 
 class CinematographyController extends Controller
 {
@@ -42,6 +43,11 @@ class CinematographyController extends Controller
                 'active' => VwCameraSpec::where('is_active', true)->count(),
                 'lenses' => VwCameraSpec::where('category', 'lens')->count(),
                 'filmStocks' => VwCameraSpec::where('category', 'film_stock')->count(),
+            ],
+            'cameraMovements' => [
+                'total' => VwCameraMovement::count(),
+                'active' => VwCameraMovement::where('is_active', true)->count(),
+                'categories' => VwCameraMovement::select('category')->distinct()->count(),
             ],
         ];
 
@@ -365,6 +371,7 @@ class CinematographyController extends Controller
         VwEmotionalBeat::clearCache();
         VwStoryStructure::clearCache();
         VwCameraSpec::clearCache();
+        VwCameraMovement::clearCache();
 
         session()->flash('success', 'All cinematography caches cleared successfully.');
 
@@ -382,6 +389,7 @@ class CinematographyController extends Controller
             'emotionalBeats' => VwEmotionalBeat::all()->toArray(),
             'storyStructures' => VwStoryStructure::all()->toArray(),
             'cameraSpecs' => VwCameraSpec::all()->toArray(),
+            'cameraMovements' => VwCameraMovement::all()->toArray(),
             'exportedAt' => now()->toISOString(),
         ];
 
