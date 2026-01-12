@@ -144,10 +144,17 @@ class CinematographyController extends Controller
             ->orderBy('sort_order')
             ->pluck('name', 'slug');
 
+        // Get camera movements for Motion Intelligence section
+        $cameraMovements = VwCameraMovement::where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->pluck('name', 'slug');
+
         return view('appvideowizard::admin.cinematography.shot-types.edit', compact(
             'shotType',
             'categories',
-            'emotionalBeats'
+            'emotionalBeats',
+            'cameraMovements'
         ));
     }
 
@@ -169,6 +176,12 @@ class CinematographyController extends Controller
             'prompt_template' => ['nullable', 'string'],
             'motion_description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            // Motion Intelligence fields (Phase 2)
+            'primary_movement' => ['nullable', 'string', 'max:100'],
+            'movement_intensity' => ['nullable', 'in:static,subtle,moderate,dynamic,intense'],
+            'stackable_movements' => ['nullable', 'array'],
+            'typical_ending' => ['nullable', 'string', 'max:255'],
+            'video_prompt_template' => ['nullable', 'string'],
         ]);
 
         // Convert arrays to JSON
@@ -177,6 +190,9 @@ class CinematographyController extends Controller
         }
         if (isset($validated['best_for_genres'])) {
             $validated['best_for_genres'] = json_encode($validated['best_for_genres']);
+        }
+        if (isset($validated['stackable_movements'])) {
+            $validated['stackable_movements'] = json_encode($validated['stackable_movements']);
         }
 
         $shotType->update($validated);

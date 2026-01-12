@@ -26,12 +26,19 @@ class VwShotType extends Model
         'compatible_transitions',
         'is_active',
         'sort_order',
+        // Motion Intelligence fields (Phase 2)
+        'primary_movement',
+        'movement_intensity',
+        'stackable_movements',
+        'typical_ending',
+        'video_prompt_template',
     ];
 
     protected $casts = [
         'emotional_beats' => 'array',
         'best_for_genres' => 'array',
         'compatible_transitions' => 'array',
+        'stackable_movements' => 'array',
         'typical_duration_min' => 'integer',
         'typical_duration_max' => 'integer',
         'is_active' => 'boolean',
