@@ -7460,16 +7460,20 @@ class VideoWizard extends Component
         $detectedCharacters = [];
         $characterScenes = []; // Track which scenes each character appears in
 
-        // Common character indicators
+        // Common character indicators - expanded for better detection
         $characterPatterns = [
-            // Named roles
-            '/\b(the\s+)?(protagonist|hero|heroine|narrator|speaker|presenter|host|expert|customer|client|user|employee|manager|CEO|founder|leader|teacher|student|doctor|nurse|chef|artist)\b/i',
-            // Personal pronouns with context (he, she, they followed by verbs)
-            '/\b(he|she|they)\s+(is|are|was|were|walks?|runs?|speaks?|says?|looks?|stands?|sits?)\b/i',
-            // A/The person descriptions
-            '/\b(a|the)\s+(young|old|middle-aged|professional|business|confident|mysterious|elegant)\s+(man|woman|person|figure|individual)\b/i',
+            // Named roles (expanded list)
+            '/\b(the\s+)?(protagonist|hero|heroine|narrator|speaker|presenter|host|expert|customer|client|user|employee|manager|CEO|founder|leader|teacher|student|doctor|nurse|chef|artist|warrior|soldier|knight|wizard|mage|detective|scientist|explorer|adventurer|traveler|merchant|king|queen|prince|princess|lord|lady)\b/i',
+            // The subject/figure patterns (common in video prompts)
+            '/\b(the\s+)?(subject|main subject|central figure|main figure|focal point|central character)\b/i',
+            // A/The person descriptions (expanded adjectives)
+            '/\b(a|the)\s+(young|old|middle-aged|professional|business|confident|mysterious|elegant|beautiful|handsome|tall|short|muscular|slender|athletic|graceful|stern|gentle|wise|fierce|calm|determined|thoughtful|curious|brave|lonely|powerful|humble|ancient|modern|futuristic)\s+(man|woman|person|figure|individual|being|character|soul)\b/i',
+            // Generic person references
+            '/\b(a|the|this)\s+(man|woman|person|figure|individual|character)\b/i',
             // Proper names (capitalized words that could be names)
-            '/\b([A-Z][a-z]+)\s+(says?|speaks?|walks?|looks?|appears?|enters?|exits?|stands?)\b/',
+            '/\b([A-Z][a-z]+)\s+(says?|speaks?|walks?|looks?|appears?|enters?|exits?|stands?|sits?|watches?|gazes?|holds?|reaches?|turns?)\b/',
+            // Possessive character references
+            '/\b(his|her|their)\s+(face|eyes|hands?|expression|gaze|posture|silhouette)\b/i',
         ];
 
         foreach ($this->script['scenes'] as $sceneIndex => $scene) {
@@ -7616,6 +7620,12 @@ class VideoWizard extends Component
             // This analyzes emotional arcs, story beats, relationships, and scoring
             // =====================================================================
             $this->runCinematicAnalysis();
+        } else {
+            // =====================================================================
+            // FALLBACK: Create default character if script has human/person content
+            // This ensures Character Bible works even when patterns don't match
+            // =====================================================================
+            $this->createDefaultCharacterFromScript();
         }
 
         // Dispatch event for debugging
@@ -7626,6 +7636,105 @@ class VideoWizard extends Component
             'roles' => $inferredRoles,
             'totalScenes' => $totalScenes,
         ]);
+    }
+
+    /**
+     * Create a default character when pattern matching fails but script has human content.
+     * This ensures the Character Bible is populated for scripts that use abstract language.
+     */
+    protected function createDefaultCharacterFromScript(): void
+    {
+        // Check if script has content suggesting people/characters
+        $hasHumanContent = false;
+        $humanIndicators = [
+            'person', 'people', 'man', 'woman', 'figure', 'character', 'subject',
+            'face', 'hand', 'hands', 'body', 'standing', 'sitting', 'walking',
+            'looking', 'speaking', 'talking', 'smiling', 'watching', 'holding',
+            'wearing', 'dressed', 'portrait', 'close-up', 'medium shot',
+            'warrior', 'soldier', 'hero', 'king', 'queen', 'prince', 'princess',
+            'wizard', 'mage', 'knight', 'detective', 'scientist', 'explorer',
+        ];
+
+        $allText = '';
+        $scenesWithHumanContent = [];
+
+        foreach ($this->script['scenes'] ?? [] as $idx => $scene) {
+            $sceneText = ($scene['narration'] ?? '') . ' ' . ($scene['visualDescription'] ?? '') . ' ' . ($scene['visual'] ?? '');
+            $allText .= ' ' . $sceneText;
+
+            foreach ($humanIndicators as $indicator) {
+                if (stripos($sceneText, $indicator) !== false) {
+                    $hasHumanContent = true;
+                    if (!in_array($idx, $scenesWithHumanContent)) {
+                        $scenesWithHumanContent[] = $idx;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // If we found human content but no specific characters, create a default
+        if ($hasHumanContent && !empty($scenesWithHumanContent)) {
+            // Try to infer a description from the content
+            $description = $this->inferDefaultCharacterDescription($allText);
+
+            $this->sceneMemory['characterBible']['characters'][] = [
+                'id' => uniqid('char_'),
+                'name' => 'Main Character',
+                'description' => $description,
+                'role' => 'Main',
+                'appliedScenes' => $scenesWithHumanContent,
+                'referenceImage' => null,
+                'autoDetected' => true,
+                'patternMatched' => false,
+                'defaultGenerated' => true,
+                'hair' => ['color' => '', 'style' => '', 'length' => '', 'texture' => ''],
+                'wardrobe' => ['outfit' => '', 'colors' => '', 'style' => '', 'footwear' => ''],
+                'makeup' => ['style' => '', 'details' => ''],
+                'accessories' => [],
+            ];
+
+            $this->sceneMemory['characterBible']['enabled'] = true;
+
+            Log::info('CharacterExtraction: Created default character from human content', [
+                'scenesWithContent' => count($scenesWithHumanContent),
+                'totalScenes' => count($this->script['scenes'] ?? []),
+            ]);
+        }
+    }
+
+    /**
+     * Infer a basic character description from script content.
+     */
+    protected function inferDefaultCharacterDescription(string $text): string
+    {
+        $description = 'The main subject appearing throughout the video.';
+
+        // Look for common descriptive patterns
+        $descriptors = [];
+
+        // Gender indicators
+        if (preg_match('/\b(woman|female|she|her|lady|girl)\b/i', $text)) {
+            $descriptors[] = 'female';
+        } elseif (preg_match('/\b(man|male|he|his|guy|boy)\b/i', $text)) {
+            $descriptors[] = 'male';
+        }
+
+        // Age indicators
+        if (preg_match('/\b(young|youth|teenage|teen)\b/i', $text)) {
+            $descriptors[] = 'young';
+        } elseif (preg_match('/\b(elderly|old|senior|aged)\b/i', $text)) {
+            $descriptors[] = 'elderly';
+        } elseif (preg_match('/\b(middle-aged|mature)\b/i', $text)) {
+            $descriptors[] = 'middle-aged';
+        }
+
+        // Build description if we found descriptors
+        if (!empty($descriptors)) {
+            $description = 'A ' . implode(' ', $descriptors) . ' person appearing throughout the video.';
+        }
+
+        return $description;
     }
 
     /**
