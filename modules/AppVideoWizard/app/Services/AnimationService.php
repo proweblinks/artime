@@ -497,7 +497,8 @@ class AnimationService
             $userId = $project->user_id ?? 0;
             $projectId = $project->id;
             $timestamp = time();
-            $relativePath = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+            $filename = "scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+            $relativePath = "wizard-videos/{$userId}/{$projectId}/{$filename}";
             $publicPath = public_path($relativePath);
 
             // Ensure directory exists
@@ -509,8 +510,10 @@ class AnimationService
             // Store the video file directly in public folder
             file_put_contents($publicPath, $videoContent);
 
-            // Generate the public URL
-            $permanentUrl = rtrim(config('app.url'), '/') . '/' . $relativePath;
+            // Generate the public URL using video.php for cPanel compatibility
+            // video.php serves files from public/wizard-videos/ on cPanel where document root differs
+            $videoPath = "{$userId}/{$projectId}/{$filename}";
+            $permanentUrl = rtrim(config('app.url'), '/') . '/video.php?path=' . urlencode($videoPath);
 
             Log::info('AnimationService: Video stored permanently in public folder', [
                 'path' => $relativePath,
