@@ -493,39 +493,30 @@ class AnimationService
             }
 
             // Generate permanent storage path
+            // Store directly in public folder (not storage) for cPanel/nginx compatibility
             $userId = $project->user_id ?? 0;
             $projectId = $project->id;
             $timestamp = time();
-            $filename = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
-
-            // ALWAYS use public disk for wizard videos (stored on local server)
-            // Firebase Storage (GCS) doesn't allow public access without special rules
-            $disk = 'public';
-            $permanentUrl = null;
+            $relativePath = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+            $publicPath = public_path($relativePath);
 
             // Ensure directory exists
-            $directory = dirname($filename);
-            if (!Storage::disk($disk)->exists($directory)) {
-                Storage::disk($disk)->makeDirectory($directory);
+            $directory = dirname($publicPath);
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
             }
 
-            // Store the video file
-            Storage::disk($disk)->put($filename, $videoContent);
+            // Store the video file directly in public folder
+            file_put_contents($publicPath, $videoContent);
 
-            // Generate the public URL properly
-            // Storage::url() returns /storage/... which needs to be converted to full URL
-            $permanentUrl = Storage::disk($disk)->url($filename);
+            // Generate the public URL
+            $permanentUrl = rtrim(config('app.url'), '/') . '/' . $relativePath;
 
-            // Fix URL: remove leading slash to avoid double slashes when using url()
-            if (!str_starts_with($permanentUrl, 'http')) {
-                $permanentUrl = rtrim(config('app.url'), '/') . '/' . ltrim($permanentUrl, '/');
-            }
-
-            Log::info('AnimationService: Video stored permanently on local server', [
-                'disk' => $disk,
-                'path' => $filename,
+            Log::info('AnimationService: Video stored permanently in public folder', [
+                'path' => $relativePath,
+                'fullPath' => $publicPath,
                 'size' => $fileSize,
-                'permanentUrl' => substr($permanentUrl, 0, 100) . '...',
+                'permanentUrl' => $permanentUrl,
             ]);
 
             // Create WizardAsset record to track the video
@@ -534,7 +525,7 @@ class AnimationService
                 'user_id' => $userId,
                 'type' => WizardAsset::TYPE_VIDEO,
                 'name' => "Scene {$sceneIndex} Shot {$shotIndex} Video",
-                'path' => $filename,
+                'path' => $relativePath,
                 'url' => $permanentUrl,
                 'mime_type' => 'video/mp4',
                 'file_size' => $fileSize,
@@ -544,7 +535,7 @@ class AnimationService
                     'shot_index' => $shotIndex,
                     'original_url' => $temporaryUrl,
                     'stored_at' => now()->toIso8601String(),
-                    'storage_disk' => 'public',
+                    'storage_location' => 'public_folder',
                 ],
             ]);
 
@@ -552,7 +543,7 @@ class AnimationService
                 'success' => true,
                 'permanentUrl' => $permanentUrl,
                 'assetId' => $asset->id,
-                'path' => $filename,
+                'path' => $relativePath,
                 'fileSize' => $fileSize,
             ];
 
