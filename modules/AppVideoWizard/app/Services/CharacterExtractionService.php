@@ -160,47 +160,23 @@ VISUAL;
 
         $systemPrompt = <<<SYSTEM
 You are an expert at analyzing video scripts and identifying characters for visual consistency.
-Your task is to extract all characters that appear in the script and create detailed visual descriptions for AI image generation.
+Your task is to extract ALL characters that appear in the script and create detailed visual descriptions for AI image generation.
 {$visualModeEnforcement}
-CRITICAL RULES:
-1. Focus on characters that APPEAR VISUALLY in the video (not just mentioned in narration)
-2. Create SPECIFIC, CONSISTENT descriptions that can be used across all scenes
-3. Include: age, gender, ethnicity, build, hair, eyes, distinctive features, clothing
-4. Make descriptions CONCRETE, not vague (e.g., "short dark brown hair" not "dark hair")
-5. Consider the genre and style to match character descriptions appropriately
-6. If the script is abstract/conceptual with no human characters, return empty array
-7. **EXTRACT ALL CHARACTERS** - Do NOT artificially limit. Include every character that appears visually.
-8. **STYLE CONSISTENCY IS PARAMOUNT** - ALL character descriptions must match the Master Visual Style above
-9. If visual mode is "cinematic-realistic", ALL characters must be described as real people (photorealistic, live-action actors)
+CORE TASK:
+1. Read the script carefully and identify EVERY person who appears visually
+2. Create a DETAILED visual description for each character (age, gender, ethnicity, build, hair, eyes, clothing)
+3. Track which scenes each character appears in
 
-**CRITICAL - INDIVIDUAL CHARACTERS ONLY:**
-10. NEVER create group/collective character entries like "Warriors" or "Group of people"
-11. Each entry MUST be a SINGLE, INDIVIDUAL person with their own unique description
-12. If the script mentions "a group of warriors" or "diverse people", extract each INDIVIDUAL character separately
-13. Give each individual a distinct name (e.g., "Warrior 1 - Ayo", "Warrior 2 - Kenji") and unique visual description
-14. Each character entry represents ONE PERSON only - never multiple people in one entry
+CRITICAL REQUIREMENTS:
+- Extract ALL characters - do not limit or combine them
+- Every character MUST have a detailed description (never empty)
+- Each entry is ONE individual person (never groups)
+- Descriptions must be specific: "brown shoulder-length wavy hair" not just "brown hair"
+- If script mentions "a group of people", extract each individual separately with unique descriptions
 
-STYLE-APPROPRIATE CHARACTER GENERATION:
-For CINEMATIC-REALISTIC visual mode:
-- Describe characters as real people, like casting for a film
-- Use realistic physical descriptions (natural skin textures, realistic features)
-- Reference film/TV quality: "Like a Netflix drama lead", "Film-quality appearance"
-- Even if script mentions fantasy/anime elements, describe as real actors playing roles
-
-For STYLIZED-ANIMATION visual mode:
-- Characters can have stylized, animated features
-- Use animation references: "Pixar-style", "anime-inspired", "Disney-like"
-- Can describe exaggerated features appropriate for animation
-
-GENRE CONSIDERATIONS:
-- Corporate/Business: Professional attire, polished appearance
-- Action/Adventure: Practical clothing, battle-ready look
-- Fantasy: Period-appropriate attire (but REALISTIC HUMAN if cinematic-realistic mode)
-- Sci-Fi: Futuristic clothing, tech accessories
-- Documentary: Natural, authentic appearance
-- Lifestyle: Contemporary casual or stylish clothing
-- Educational: Professional but approachable appearance
-- Entertainment: Genre-appropriate styling
+STYLE MATCHING:
+For CINEMATIC-REALISTIC mode: Describe as real people, like casting for a film
+For STYLIZED-ANIMATION mode: Can include stylized/animated features
 
 Return valid JSON only, no markdown formatting or code blocks.
 SYSTEM;
@@ -239,15 +215,11 @@ Extract ALL characters that appear visually in the script. PRIORITIZE finding ev
   "characters": [
     {
       "name": "Character Name",
-      "description": "Detailed visual description: age, gender, ethnicity, build, face, hair, eyes, clothing. Be specific and concrete.",
+      "description": "Full visual description: age, gender, ethnicity, build, face shape, hair color and style, eye color, skin tone, distinctive features, typical clothing. Example: A confident woman in her early 30s with warm brown skin, long dark curly hair, and striking amber eyes. Athletic build, wearing a tailored navy blazer over a white silk blouse.",
       "role": "Main/Supporting/Background",
       "appearsInScenes": [1, 2, 5],
       "traits": ["confident", "mysterious"],
-      "defaultExpression": "confident and alert",
-      "hair": {"color": "jet black", "style": "sleek bob", "length": "chin-length", "texture": "straight"},
-      "wardrobe": {"outfit": "black tactical jacket, slim pants", "colors": "black, gray", "style": "tactical", "footwear": "combat boots"},
-      "makeup": {"style": "minimal", "details": "subtle smoky eye"},
-      "accessories": ["silver watch", "earrings"]
+      "defaultExpression": "confident and alert"
     }
   ],
   "hasHumanCharacters": true,
@@ -255,22 +227,19 @@ Extract ALL characters that appear visually in the script. PRIORITIZE finding ev
 }
 
 === CRITICAL RULES ===
-1. **EXTRACT ALL CHARACTERS** - Do NOT limit yourself. If script mentions 10 characters, extract 10.
-2. Each character MUST be an INDIVIDUAL person (never groups like "Warriors" or "People")
-3. If script mentions "a group of heroes" - extract EACH hero as separate character
-4. Include both main and supporting characters
-5. DNA fields (hair, wardrobe, makeup, accessories) are OPTIONAL - include if you can infer from script, otherwise leave empty objects/arrays
-6. Focus on QUANTITY first - it's better to have basic descriptions for all characters than detailed DNA for few
+1. **EXTRACT ALL CHARACTERS** - If the script shows 5 people, extract 5 separate characters
+2. Each character MUST have a DETAILED description field - this is REQUIRED, never leave it empty
+3. Each entry MUST be a SINGLE individual person (never groups)
+4. Description must include: age, gender, ethnicity/skin tone, build, hair, eyes, clothing
+5. If script mentions "a group" - extract EACH individual as their own character entry
 
-=== QUICK REFERENCE ===
-- name: Individual name (give distinct names like "Warrior 1 - Ayo", "The Hacker", "Young Woman")
-- description: Core identity - age, gender, ethnicity, build, distinctive features (REQUIRED)
-- role: Main/Supporting/Background
-- appearsInScenes: Scene numbers where character appears (1-based)
-- traits: Personality traits visible in demeanor (optional)
-- hair/wardrobe/makeup/accessories: Optional DNA details if inferable from script
+=== EXAMPLE DESCRIPTIONS ===
+Good: "A tall African American man in his late 40s with a shaved head, warm brown skin, and deep-set dark eyes. Broad-shouldered with an authoritative presence. Wears a charcoal business suit with a burgundy tie."
+Good: "A young East Asian woman, early 20s, with shoulder-length black hair and almond-shaped brown eyes. Petite build, casual style with an oversized denim jacket and vintage band t-shirt."
+Bad: "A mysterious figure" (too vague)
+Bad: "" (empty description is NOT allowed)
 
-Return valid JSON only. Extract EVERY character that appears visually.
+Return valid JSON only. Extract EVERY character with FULL descriptions.
 USER;
 
         return "{$systemPrompt}\n\n{$userPrompt}";
