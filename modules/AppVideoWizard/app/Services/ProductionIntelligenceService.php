@@ -90,15 +90,55 @@ class ProductionIntelligenceService
      */
     public function getIntelligenceRules(string $productionType): array
     {
-        // First try config.php
+        // Start with base rules from config.php or VwSettings
         $config = $this->getProductionTypesConfig();
+        $baseRules = [];
 
         if (isset($config[$productionType]['intelligence'])) {
-            return $config[$productionType]['intelligence'];
+            $baseRules = $config[$productionType]['intelligence'];
+        } else {
+            $baseRules = $this->getIntelligenceFromSettings($productionType);
         }
 
-        // Fall back to VwSettings
-        return $this->getIntelligenceFromSettings($productionType);
+        // Apply per-production-type overrides from VwSettings
+        $overrides = $this->getProductionTypeOverrides($productionType);
+        if (!empty($overrides)) {
+            $baseRules = array_merge($baseRules, $overrides);
+            Log::debug('ProductionIntelligence: Applied overrides', [
+                'productionType' => $productionType,
+                'overrides' => $overrides,
+            ]);
+        }
+
+        return $baseRules;
+    }
+
+    /**
+     * Get per-production-type overrides from VwSettings JSON.
+     */
+    protected function getProductionTypeOverrides(string $productionType): array
+    {
+        $overridesJson = VwSetting::getValue('production_type_overrides', '{}');
+
+        if (empty($overridesJson) || $overridesJson === '{}') {
+            return [];
+        }
+
+        try {
+            $allOverrides = json_decode($overridesJson, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('ProductionIntelligence: Invalid JSON in overrides', [
+                    'json' => $overridesJson,
+                ]);
+                return [];
+            }
+            return $allOverrides[$productionType] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('ProductionIntelligence: Failed to parse overrides', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
     }
 
     /**

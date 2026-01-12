@@ -4,7 +4,10 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Services\MiniMaxService;
 use App\Services\RunPodService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Modules\AppVideoWizard\Models\WizardAsset;
 use Modules\AppVideoWizard\Models\WizardProject;
 
 /**
@@ -421,5 +424,165 @@ class AnimationService
             'success' => false,
             'error' => $message,
         ];
+    }
+
+    /**
+     * Download video from temporary URL and store permanently.
+     *
+     * This prevents video URL expiration issues by downloading videos
+     * from provider's temporary signed URLs and storing them in our
+     * permanent storage (local or cloud).
+     *
+     * @param string $temporaryUrl The temporary signed URL from video provider
+     * @param WizardProject $project The project context
+     * @param int $sceneIndex Scene index for organization
+     * @param int $shotIndex Shot index for organization
+     * @param string $provider The video provider (minimax, multitalk)
+     * @return array Result with permanent URL or error
+     */
+    public function downloadAndStoreVideo(
+        string $temporaryUrl,
+        WizardProject $project,
+        int $sceneIndex,
+        int $shotIndex,
+        string $provider = 'minimax'
+    ): array {
+        try {
+            Log::info('AnimationService: Downloading video for permanent storage', [
+                'project_id' => $project->id,
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'provider' => $provider,
+                'tempUrl' => substr($temporaryUrl, 0, 100) . '...',
+            ]);
+
+            // Download the video with longer timeout for large files
+            $response = Http::timeout(120)->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (compatible; VideoWizard/1.0)',
+            ])->get($temporaryUrl);
+
+            if (!$response->successful()) {
+                Log::error('AnimationService: Failed to download video', [
+                    'status' => $response->status(),
+                    'project_id' => $project->id,
+                ]);
+                return [
+                    'success' => false,
+                    'error' => 'Failed to download video: HTTP ' . $response->status(),
+                    'fallbackUrl' => $temporaryUrl, // Return temp URL as fallback
+                ];
+            }
+
+            $videoContent = $response->body();
+            $fileSize = strlen($videoContent);
+
+            if ($fileSize < 1000) {
+                Log::error('AnimationService: Downloaded file too small, likely an error', [
+                    'size' => $fileSize,
+                    'content_preview' => substr($videoContent, 0, 200),
+                ]);
+                return [
+                    'success' => false,
+                    'error' => 'Downloaded file appears invalid (too small)',
+                    'fallbackUrl' => $temporaryUrl,
+                ];
+            }
+
+            // Generate permanent storage path
+            $userId = $project->user_id ?? 0;
+            $projectId = $project->id;
+            $timestamp = time();
+            $filename = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+
+            // Determine storage disk (prefer GCS if configured, else public)
+            $disk = 'public';
+            $permanentUrl = null;
+
+            if (config('filesystems.disks.gcs.bucket')) {
+                $disk = 'gcs';
+                Storage::disk($disk)->put($filename, $videoContent, 'public');
+                $bucket = config('filesystems.disks.gcs.bucket');
+                $permanentUrl = "https://storage.googleapis.com/{$bucket}/{$filename}";
+            } else {
+                Storage::disk($disk)->put($filename, $videoContent);
+                $permanentUrl = Storage::disk($disk)->url($filename);
+            }
+
+            Log::info('AnimationService: Video stored permanently', [
+                'disk' => $disk,
+                'path' => $filename,
+                'size' => $fileSize,
+                'permanentUrl' => substr($permanentUrl, 0, 100) . '...',
+            ]);
+
+            // Create WizardAsset record to track the video
+            $asset = WizardAsset::create([
+                'project_id' => $projectId,
+                'user_id' => $userId,
+                'type' => WizardAsset::TYPE_VIDEO,
+                'name' => "Scene {$sceneIndex} Shot {$shotIndex} Video",
+                'path' => $filename,
+                'url' => $permanentUrl,
+                'mime_type' => 'video/mp4',
+                'file_size' => $fileSize,
+                'scene_index' => $sceneIndex,
+                'metadata' => [
+                    'provider' => $provider,
+                    'shot_index' => $shotIndex,
+                    'original_url' => $temporaryUrl,
+                    'stored_at' => now()->toIso8601String(),
+                ],
+            ]);
+
+            return [
+                'success' => true,
+                'permanentUrl' => $permanentUrl,
+                'assetId' => $asset->id,
+                'path' => $filename,
+                'fileSize' => $fileSize,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('AnimationService: Exception storing video', [
+                'error' => $e->getMessage(),
+                'project_id' => $project->id,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'fallbackUrl' => $temporaryUrl, // Return temp URL as fallback
+            ];
+        }
+    }
+
+    /**
+     * Check if a video URL is a temporary signed URL that will expire.
+     *
+     * @param string $url The video URL to check
+     * @return bool True if URL appears to be temporary/signed
+     */
+    public function isTemporaryUrl(string $url): bool
+    {
+        // Common patterns for signed/temporary URLs
+        $temporaryPatterns = [
+            'aliyuncs.com',      // Alibaba Cloud OSS
+            'amazonaws.com',     // AWS S3 signed URLs
+            'blob.core.windows', // Azure Blob
+            'Expires=',          // URL contains expiration parameter
+            'X-Amz-Expires',     // AWS signature expiration
+            'se=',               // Azure SAS token expiration
+            'oss-cn-',           // Alibaba OSS region
+            'minimax',           // MiniMax API URLs
+            'runpod',            // RunPod URLs
+        ];
+
+        foreach ($temporaryPatterns as $pattern) {
+            if (stripos($url, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -19,6 +19,7 @@ use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
+use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -56,6 +57,19 @@ class VideoWizard extends Component
         'supportingCharScenePercent' => 40,
         'characterTracking' => 'narrative',
         'singlePersonPortrait' => true,
+    ];
+
+    // Cinematic Intelligence analysis results (populated by CinematicIntelligenceService)
+    public array $cinematicAnalysis = [
+        'enabled' => true,
+        'analyzed' => false,
+        'characterStates' => [],
+        'storyBeats' => [],
+        'sceneTypes' => [],
+        'relationships' => [],
+        'imageChain' => [],
+        'locationInferences' => [],
+        'consistencyScore' => null,
     ];
 
     // Step 1: Production Configuration (matches original wizard)
@@ -1447,6 +1461,175 @@ class VideoWizard extends Component
                 'error' => $e->getMessage(),
             ]);
             // Don't fail silently - intelligence is optional enhancement
+        }
+    }
+
+    /**
+     * Run Cinematic Intelligence analysis on the project.
+     * Analyzes character states, emotional arcs, story beats, and calculates consistency score.
+     * Should be called after characters have been detected and before image generation.
+     */
+    public function runCinematicAnalysis(): void
+    {
+        // Check if cinematic intelligence is enabled
+        if (!VwSetting::getValue('cinematic_intelligence_enabled', true)) {
+            Log::info('CinematicIntelligence: Disabled by settings');
+            return;
+        }
+
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+
+            // Check if service is enabled
+            if (!$cinematicService->isEnabled()) {
+                return;
+            }
+
+            $scenes = $this->script['scenes'] ?? [];
+            $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+            $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+            $styleBible = $this->sceneMemory['styleBible'] ?? [];
+
+            if (empty($scenes) || empty($characters)) {
+                Log::info('CinematicIntelligence: No scenes or characters to analyze');
+                return;
+            }
+
+            // Build character bible format expected by service
+            $characterBible = ['characters' => $characters];
+            $locationBible = ['locations' => $locations];
+            $genre = $this->content['genre'] ?? VwSetting::getValue('default_genre', 'drama');
+
+            // Run full analysis
+            $analysis = $cinematicService->analyzeProject(
+                $this->script,
+                $characterBible,
+                $locationBible,
+                $styleBible,
+                $genre
+            );
+
+            if ($analysis['success']) {
+                $this->cinematicAnalysis = [
+                    'enabled' => true,
+                    'analyzed' => true,
+                    'characterStates' => $analysis['characterStates'] ?? [],
+                    'storyBeats' => $analysis['storyBeats'] ?? [],
+                    'sceneTypes' => $analysis['sceneTypes'] ?? [],
+                    'relationships' => $analysis['relationships'] ?? [],
+                    'imageChain' => $analysis['imageChain'] ?? [],
+                    'locationInferences' => $analysis['locationInferences'] ?? [],
+                    'consistencyScore' => $analysis['consistencyScore'] ?? null,
+                ];
+
+                Log::info('CinematicIntelligence: Analysis complete', [
+                    'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                    'overallScore' => $analysis['consistencyScore']['overallScore'] ?? 0,
+                    'issueCount' => $analysis['consistencyScore']['issueCount'] ?? 0,
+                ]);
+
+                // Dispatch event for UI feedback
+                $this->dispatch('cinematic-analysis-complete', [
+                    'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                    'score' => $analysis['consistencyScore']['overallScore'] ?? 0,
+                    'issues' => $analysis['consistencyScore']['issueCount'] ?? 0,
+                ]);
+
+                // Check if score is below threshold and dispatch warning
+                $threshold = VwSetting::getValue('consistency_score_threshold', 0.70);
+                $overallScore = $analysis['consistencyScore']['overallScore'] ?? 1.0;
+                if ($overallScore < $threshold) {
+                    $this->dispatch('consistency-warning', [
+                        'score' => $overallScore,
+                        'threshold' => $threshold,
+                        'grade' => $analysis['consistencyScore']['grade'] ?? 'N/A',
+                        'issues' => array_slice($analysis['consistencyScore']['allIssues'] ?? [], 0, 5),
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('CinematicIntelligence: Analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the workflow - cinematic intelligence is enhancement
+        }
+    }
+
+    /**
+     * Get cinematic analysis results.
+     */
+    public function getCinematicAnalysis(): array
+    {
+        return $this->cinematicAnalysis;
+    }
+
+    /**
+     * Get consistency score grade.
+     */
+    public function getConsistencyGrade(): ?string
+    {
+        return $this->cinematicAnalysis['consistencyScore']['grade'] ?? null;
+    }
+
+    /**
+     * Get story beat for a specific scene.
+     */
+    public function getSceneStoryBeat(int $sceneIndex): ?string
+    {
+        return $this->cinematicAnalysis['storyBeats'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get scene type classification for a specific scene.
+     */
+    public function getSceneType(int $sceneIndex): ?string
+    {
+        return $this->cinematicAnalysis['sceneTypes'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get character state for a specific character in a specific scene.
+     */
+    public function getCharacterStateForScene(string $charId, int $sceneIndex): ?array
+    {
+        return $this->cinematicAnalysis['characterStates'][$charId]['scenes'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * Get reference image chain for a character.
+     */
+    public function getCharacterImageChain(string $charId): ?array
+    {
+        return $this->cinematicAnalysis['imageChain'][$charId] ?? null;
+    }
+
+    /**
+     * Validate shot characters against shot type rules.
+     */
+    public function validateShotCharacters(string $shotType, array $characterIds): array
+    {
+        if (!VwSetting::getValue('shot_type_rules_enabled', true)) {
+            return [];
+        }
+
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+            return $cinematicService->validateShotCharacters($shotType, $characterIds);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get suggested shots for a scene type.
+     */
+    public function getSuggestedShotsForSceneType(string $sceneType): array
+    {
+        try {
+            $cinematicService = app(CinematicIntelligenceService::class);
+            return $cinematicService->getSuggestedShots($sceneType);
+        } catch (\Exception $e) {
+            return ['medium'];
         }
     }
 
@@ -3946,14 +4129,50 @@ class VideoWizard extends Component
                 if ($status === 'completed') {
                     // Video generation completed
                     if (isset($result['videoUrl'])) {
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                        $temporaryUrl = $result['videoUrl'];
+                        $finalVideoUrl = $temporaryUrl; // Default to temporary URL
+
+                        // Download and store video permanently to prevent URL expiration
+                        if ($this->projectId && $animationService->isTemporaryUrl($temporaryUrl)) {
+                            try {
+                                $project = \Modules\AppVideoWizard\Models\WizardProject::find($this->projectId);
+                                if ($project) {
+                                    $storeResult = $animationService->downloadAndStoreVideo(
+                                        $temporaryUrl,
+                                        $project,
+                                        $sceneIndex,
+                                        $shotIndex,
+                                        $provider
+                                    );
+
+                                    if ($storeResult['success'] && !empty($storeResult['permanentUrl'])) {
+                                        $finalVideoUrl = $storeResult['permanentUrl'];
+                                        \Log::info('📡 ✅ Video stored permanently', [
+                                            'sceneIndex' => $sceneIndex,
+                                            'shotIndex' => $shotIndex,
+                                            'permanentUrl' => substr($finalVideoUrl, 0, 100) . '...',
+                                        ]);
+                                    } else {
+                                        \Log::warning('📡 Failed to store video permanently, using temporary URL', [
+                                            'error' => $storeResult['error'] ?? 'Unknown',
+                                        ]);
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                \Log::error('📡 Exception storing video, using temporary URL', [
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
                         $hasUpdates = true;
 
                         \Log::info('📡 ✅ Video READY!', [
                             'sceneIndex' => $sceneIndex,
                             'shotIndex' => $shotIndex,
-                            'videoUrl' => substr($result['videoUrl'], 0, 100) . '...',
+                            'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
                         ]);
                     } else {
                         \Log::warning('📡 Completed but no videoUrl', ['result' => $result]);
@@ -5297,7 +5516,32 @@ class VideoWizard extends Component
         if ($status === 'completed') {
             // Video generation completed
             if (isset($result['videoUrl'])) {
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                $temporaryUrl = $result['videoUrl'];
+                $finalVideoUrl = $temporaryUrl;
+
+                // Download and store video permanently to prevent URL expiration
+                if ($this->projectId && $animationService->isTemporaryUrl($temporaryUrl)) {
+                    try {
+                        $project = \Modules\AppVideoWizard\Models\WizardProject::find($this->projectId);
+                        if ($project) {
+                            $storeResult = $animationService->downloadAndStoreVideo(
+                                $temporaryUrl,
+                                $project,
+                                $sceneIndex,
+                                $shotIndex,
+                                $provider
+                            );
+
+                            if ($storeResult['success'] && !empty($storeResult['permanentUrl'])) {
+                                $finalVideoUrl = $storeResult['permanentUrl'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Exception storing video in pollVideoJob', ['error' => $e->getMessage()]);
+                    }
+                }
+
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
             }
             unset($this->pendingJobs[$jobKey]);
@@ -7044,50 +7288,126 @@ class VideoWizard extends Component
                     'count' => count($result['characters']),
                 ]);
 
-                // Add AI-extracted characters to Character Bible
-                foreach ($result['characters'] as $character) {
-                    // Check if already exists
-                    $exists = collect($this->sceneMemory['characterBible']['characters'])
-                        ->where('name', $character['name'])
-                        ->isNotEmpty();
+                // =====================================================================
+                // CINEMATIC INTELLIGENCE: Post-extraction scene expansion
+                // Even though AI is told to apply 70%/40% rules, we enforce it here too
+                // =====================================================================
+                $totalScenes = count($this->script['scenes'] ?? []);
+                $mainCharPercent = ($this->productionIntelligence['mainCharScenePercent'] ?? 70) / 100;
+                $supportingCharPercent = ($this->productionIntelligence['supportingCharScenePercent'] ?? 40) / 100;
+                $useNarrativeTracking = ($this->productionIntelligence['characterTracking'] ?? 'narrative') === 'narrative';
 
-                    if (!$exists) {
-                        $this->sceneMemory['characterBible']['characters'][] = [
-                            'id' => $character['id'] ?? uniqid('char_'),
+                // Add AI-extracted characters to Character Bible with scene expansion
+                foreach ($result['characters'] as $character) {
+                    // Check if already exists (including synonymous names)
+                    // Wrap in try-catch to ensure character addition is not blocked by detection issues
+                    $existingIndex = null;
+                    $exists = false;
+                    try {
+                        $existingIndex = $this->findSynonymousCharacter($character['name']);
+                        $exists = $existingIndex !== null;
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Synonymous detection failed, adding as new', [
                             'name' => $character['name'],
-                            'description' => $character['description'] ?? '',
-                            'role' => $character['role'] ?? 'Supporting',
-                            'appliedScenes' => $character['appearsInScenes'] ?? [],
-                            'traits' => $character['traits'] ?? [],
-                            'defaultExpression' => $character['defaultExpression'] ?? '',
-                            'referenceImage' => null,
-                            'autoDetected' => true,
-                            'aiGenerated' => true,
-                            // Character DNA fields - auto-extracted from script by AI
-                            'hair' => $character['hair'] ?? [
-                                'color' => '',
-                                'style' => '',
-                                'length' => '',
-                                'texture' => '',
-                            ],
-                            'wardrobe' => $character['wardrobe'] ?? [
-                                'outfit' => '',
-                                'colors' => '',
-                                'style' => '',
-                                'footwear' => '',
-                            ],
-                            'makeup' => $character['makeup'] ?? [
-                                'style' => '',
-                                'details' => '',
-                            ],
-                            'accessories' => $character['accessories'] ?? [],
-                        ];
+                            'error' => $e->getMessage(),
+                        ]);
+                        $exists = false;
+                    }
+
+                    // If synonymous character found, merge scenes instead of creating duplicate
+                    if ($exists && $existingIndex !== null) {
+                        try {
+                            $existingChar = &$this->sceneMemory['characterBible']['characters'][$existingIndex];
+                            $newScenes = $character['appearsInScenes'] ?? [];
+                            $existingChar['appliedScenes'] = array_unique(array_merge(
+                                $existingChar['appliedScenes'] ?? [],
+                                $newScenes
+                            ));
+                            sort($existingChar['appliedScenes']);
+                            Log::info('CharacterExtraction: Merged synonymous character', [
+                                'existing' => $existingChar['name'],
+                                'merged' => $character['name'],
+                            ]);
+                            continue;
+                        } catch (\Exception $e) {
+                            Log::warning('CharacterExtraction: Merge failed, adding as new', [
+                                'name' => $character['name'],
+                                'error' => $e->getMessage(),
+                            ]);
+                            $exists = false;
+                        }
+                    }
+
+                    // Add new character (always runs if not merged above)
+                    $role = $character['role'] ?? 'Supporting';
+                    $aiScenes = $character['appearsInScenes'] ?? [];
+
+                    // Apply cinematic scene expansion based on role (if narrative tracking enabled)
+                    $expandedScenes = $aiScenes;
+                    if ($useNarrativeTracking && $totalScenes > 0) {
+                        if ($role === 'Main') {
+                            $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $mainCharPercent));
+                            $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
+                        } elseif ($role === 'Supporting') {
+                            $targetSceneCount = max(count($aiScenes), (int) ceil($totalScenes * $supportingCharPercent));
+                            $expandedScenes = $this->expandSceneAssignments($aiScenes, $totalScenes, $targetSceneCount);
+                        }
+                        // Background characters keep AI-determined scenes only
+                    }
+
+                    $this->sceneMemory['characterBible']['characters'][] = [
+                        'id' => $character['id'] ?? uniqid('char_'),
+                        'name' => $character['name'],
+                        'description' => $character['description'] ?? '',
+                        'role' => $role,
+                        'appliedScenes' => $expandedScenes,
+                        'originalAiScenes' => $aiScenes, // Keep original for reference
+                        'traits' => $character['traits'] ?? [],
+                        'defaultExpression' => $character['defaultExpression'] ?? '',
+                        'referenceImage' => null,
+                        'autoDetected' => true,
+                        'aiGenerated' => true,
+                        // Character DNA fields - auto-extracted from script by AI
+                        'hair' => $character['hair'] ?? [
+                            'color' => '',
+                            'style' => '',
+                            'length' => '',
+                            'texture' => '',
+                        ],
+                        'wardrobe' => $character['wardrobe'] ?? [
+                            'outfit' => '',
+                            'colors' => '',
+                            'style' => '',
+                            'footwear' => '',
+                        ],
+                        'makeup' => $character['makeup'] ?? [
+                            'style' => '',
+                            'details' => '',
+                        ],
+                        'accessories' => $character['accessories'] ?? [],
+                    ];
+
+                    // Log scene expansion if it occurred
+                    if (count($expandedScenes) > count($aiScenes)) {
+                        Log::info('CharacterExtraction: Scene expansion applied', [
+                            'character' => $character['name'],
+                            'role' => $role,
+                            'aiScenes' => count($aiScenes),
+                            'expandedScenes' => count($expandedScenes),
+                            'totalScenes' => $totalScenes,
+                        ]);
                     }
                 }
 
                 // Enable Character Bible if we detected any characters
                 if (!empty($result['characters'])) {
                     $this->sceneMemory['characterBible']['enabled'] = true;
+
+                    // =====================================================================
+                    // CINEMATIC INTELLIGENCE: Run full analysis after character detection
+                    // This analyzes emotional arcs, story beats, relationships, and scoring
+                    // =====================================================================
+                    $this->runCinematicAnalysis();
                 }
 
                 // Dispatch event for debugging
@@ -7290,6 +7610,12 @@ class VideoWizard extends Component
         // Enable Character Bible if we detected any characters
         if (!empty($detectedCharacters)) {
             $this->sceneMemory['characterBible']['enabled'] = true;
+
+            // =====================================================================
+            // CINEMATIC INTELLIGENCE: Run full analysis after character detection
+            // This analyzes emotional arcs, story beats, relationships, and scoring
+            // =====================================================================
+            $this->runCinematicAnalysis();
         }
 
         // Dispatch event for debugging
@@ -7370,6 +7696,225 @@ class VideoWizard extends Component
     }
 
     /**
+     * Find if a character with a synonymous name already exists.
+     * Handles cases like "Hero" and "Protagonist" referring to the same character.
+     *
+     * @param string $name The character name to check
+     * @return int|null The index of the existing character, or null if not found
+     */
+    protected function findSynonymousCharacter(string $name): ?int
+    {
+        $name = strtolower(trim($name));
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+
+        // Synonymous name groups - names in the same group refer to the same character
+        $synonymGroups = [
+            ['hero', 'protagonist', 'main character', 'the hero', 'our hero', 'central character'],
+            ['narrator', 'the narrator', 'storyteller', 'voice'],
+            ['villain', 'antagonist', 'the villain', 'the antagonist', 'bad guy'],
+            ['mentor', 'guide', 'teacher', 'wise one', 'master'],
+            ['sidekick', 'helper', 'companion', 'partner', 'ally'],
+            ['love interest', 'romantic interest', 'the love interest'],
+        ];
+
+        // Find which group the input name belongs to
+        $nameGroup = null;
+        foreach ($synonymGroups as $group) {
+            if (in_array($name, $group)) {
+                $nameGroup = $group;
+                break;
+            }
+        }
+
+        foreach ($characters as $index => $character) {
+            $existingName = strtolower(trim($character['name']));
+
+            // Exact match
+            if ($existingName === $name) {
+                return $index;
+            }
+
+            // Check if names are in the same synonym group
+            if ($nameGroup !== null && in_array($existingName, $nameGroup)) {
+                return $index;
+            }
+
+            // Check if existing character is in a group that contains our name
+            foreach ($synonymGroups as $group) {
+                if (in_array($existingName, $group) && in_array($name, $group)) {
+                    return $index;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate and fill missing scene assignments for locations.
+     * Ensures every scene has at least one location assigned.
+     */
+    protected function validateLocationSceneAssignments(): void
+    {
+        $totalScenes = count($this->script['scenes'] ?? []);
+        if ($totalScenes === 0) {
+            return;
+        }
+
+        $locations = &$this->sceneMemory['locationBible']['locations'];
+        if (empty($locations)) {
+            return;
+        }
+
+        // Track which scenes are covered
+        $coveredScenes = [];
+        foreach ($locations as $location) {
+            foreach ($location['scenes'] ?? [] as $sceneIndex) {
+                $coveredScenes[$sceneIndex] = true;
+            }
+        }
+
+        // Find uncovered scenes
+        $uncoveredScenes = [];
+        for ($i = 0; $i < $totalScenes; $i++) {
+            if (!isset($coveredScenes[$i])) {
+                $uncoveredScenes[] = $i;
+            }
+        }
+
+        // If there are uncovered scenes, assign them to the most relevant location
+        if (!empty($uncoveredScenes)) {
+            Log::info('LocationExtraction: Found uncovered scenes', [
+                'uncovered' => $uncoveredScenes,
+                'total' => $totalScenes,
+            ]);
+
+            foreach ($uncoveredScenes as $sceneIndex) {
+                // Try to assign to an adjacent scene's location
+                $assignedLocation = null;
+
+                // Check previous scene
+                if ($sceneIndex > 0 && isset($coveredScenes[$sceneIndex - 1])) {
+                    foreach ($locations as $idx => &$loc) {
+                        if (in_array($sceneIndex - 1, $loc['scenes'] ?? [])) {
+                            $loc['scenes'][] = $sceneIndex;
+                            $assignedLocation = $loc['name'];
+                            break;
+                        }
+                    }
+                }
+
+                // If not assigned, check next scene
+                if (!$assignedLocation && $sceneIndex < $totalScenes - 1 && isset($coveredScenes[$sceneIndex + 1])) {
+                    foreach ($locations as $idx => &$loc) {
+                        if (in_array($sceneIndex + 1, $loc['scenes'] ?? [])) {
+                            $loc['scenes'][] = $sceneIndex;
+                            $assignedLocation = $loc['name'];
+                            break;
+                        }
+                    }
+                }
+
+                // If still not assigned, use the first location (General Location or primary)
+                if (!$assignedLocation && !empty($locations)) {
+                    // Look for a "General Location" first
+                    $generalIdx = null;
+                    foreach ($locations as $idx => $loc) {
+                        if (stripos($loc['name'], 'general') !== false) {
+                            $generalIdx = $idx;
+                            break;
+                        }
+                    }
+
+                    $targetIdx = $generalIdx ?? 0;
+                    $locations[$targetIdx]['scenes'][] = $sceneIndex;
+                    $assignedLocation = $locations[$targetIdx]['name'];
+                }
+
+                if ($assignedLocation) {
+                    Log::info('LocationExtraction: Auto-assigned uncovered scene', [
+                        'scene' => $sceneIndex + 1,
+                        'location' => $assignedLocation,
+                    ]);
+                }
+            }
+
+            // Sort all scene arrays
+            foreach ($locations as &$loc) {
+                if (!empty($loc['scenes'])) {
+                    $loc['scenes'] = array_unique($loc['scenes']);
+                    sort($loc['scenes']);
+                }
+            }
+        }
+    }
+
+    /**
+     * Find if a location with a synonymous name already exists.
+     * Handles cases like "Office", "Corporate Office", "The Office" referring to the same location.
+     *
+     * @param string $name The location name to check
+     * @return int|null The index of the existing location, or null if not found
+     */
+    protected function findSynonymousLocation(string $name): ?int
+    {
+        $name = strtolower(trim($name));
+        $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+
+        // Synonymous location groups - names in the same group refer to the same location
+        $synonymGroups = [
+            ['office', 'corporate office', 'the office', 'business office', 'main office', 'headquarters'],
+            ['rooftop', 'rooftop scene', 'building rooftop', 'city rooftop', 'the rooftop', 'roof'],
+            ['street', 'city street', 'main street', 'urban street', 'the street', 'streets'],
+            ['forest', 'the forest', 'woods', 'the woods', 'woodland', 'forest area'],
+            ['beach', 'the beach', 'seaside', 'shore', 'oceanfront', 'beachfront'],
+            ['home', 'house', 'residence', 'apartment', 'living room', 'the home'],
+            ['city', 'downtown', 'urban area', 'city center', 'cityscape', 'urban'],
+            ['space', 'outer space', 'space scene', 'spacecraft', 'space station'],
+            ['general location', 'unknown location', 'unspecified', 'various'],
+        ];
+
+        // Remove common prefixes for better matching
+        $cleanedName = preg_replace('/^(the|a|an)\s+/i', '', $name);
+
+        // Find which group the input name belongs to
+        $nameGroup = null;
+        foreach ($synonymGroups as $group) {
+            if (in_array($name, $group) || in_array($cleanedName, $group)) {
+                $nameGroup = $group;
+                break;
+            }
+        }
+
+        foreach ($locations as $index => $location) {
+            $existingName = strtolower(trim($location['name']));
+            $cleanedExisting = preg_replace('/^(the|a|an)\s+/i', '', $existingName);
+
+            // Exact match
+            if ($existingName === $name || $cleanedExisting === $cleanedName) {
+                return $index;
+            }
+
+            // Check if names are in the same synonym group
+            if ($nameGroup !== null) {
+                if (in_array($existingName, $nameGroup) || in_array($cleanedExisting, $nameGroup)) {
+                    return $index;
+                }
+            }
+
+            // Fuzzy match: one name contains the other (e.g., "Rooftop" matches "City Rooftop")
+            if (strlen($cleanedName) >= 4 && strlen($cleanedExisting) >= 4) {
+                if (strpos($cleanedExisting, $cleanedName) !== false ||
+                    strpos($cleanedName, $cleanedExisting) !== false) {
+                    return $index;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Normalize character name from pattern match.
      */
     protected function normalizeCharacterName(string $match): ?string
@@ -7437,35 +7982,71 @@ class VideoWizard extends Component
 
                 // Add AI-extracted locations to Location Bible
                 foreach ($result['locations'] as $location) {
-                    // Check if already exists
-                    $exists = collect($this->sceneMemory['locationBible']['locations'])
-                        ->filter(fn($loc) => strtolower($loc['name'] ?? '') === strtolower($location['name']))
-                        ->isNotEmpty();
-
-                    if (!$exists) {
-                        $this->sceneMemory['locationBible']['locations'][] = [
-                            'id' => $location['id'] ?? uniqid('loc_'),
+                    // Check if already exists (including synonymous names)
+                    // Wrap in try-catch to ensure location addition is not blocked by detection issues
+                    $existingIndex = null;
+                    $exists = false;
+                    try {
+                        $existingIndex = $this->findSynonymousLocation($location['name']);
+                        $exists = $existingIndex !== null;
+                    } catch (\Exception $e) {
+                        Log::warning('LocationExtraction: Synonymous detection failed, adding as new', [
                             'name' => $location['name'],
-                            'description' => $location['description'] ?? '',
-                            'type' => $location['type'] ?? 'exterior',
-                            'timeOfDay' => $location['timeOfDay'] ?? 'day',
-                            'weather' => $location['weather'] ?? 'clear',
-                            'atmosphere' => $location['atmosphere'] ?? '',
-                            // Location DNA fields - auto-extracted from script by AI
-                            'mood' => $location['mood'] ?? '',
-                            'lightingStyle' => $location['lightingStyle'] ?? '',
-                            'scenes' => $location['scenes'] ?? [],
-                            'stateChanges' => $location['stateChanges'] ?? [],
-                            'referenceImage' => null,
-                            'autoDetected' => true,
-                            'aiGenerated' => true,
-                        ];
+                            'error' => $e->getMessage(),
+                        ]);
+                        $exists = false;
                     }
+
+                    // If synonymous location found, merge scenes instead of creating duplicate
+                    if ($exists && $existingIndex !== null) {
+                        try {
+                            $existingLoc = &$this->sceneMemory['locationBible']['locations'][$existingIndex];
+                            $newScenes = $location['scenes'] ?? [];
+                            $existingLoc['scenes'] = array_unique(array_merge(
+                                $existingLoc['scenes'] ?? [],
+                                $newScenes
+                            ));
+                            sort($existingLoc['scenes']);
+                            Log::info('LocationExtraction: Merged synonymous location', [
+                                'existing' => $existingLoc['name'],
+                                'merged' => $location['name'],
+                            ]);
+                            continue;
+                        } catch (\Exception $e) {
+                            Log::warning('LocationExtraction: Merge failed, adding as new', [
+                                'name' => $location['name'],
+                                'error' => $e->getMessage(),
+                            ]);
+                            $exists = false;
+                        }
+                    }
+
+                    // Add new location (always runs if not merged above)
+                    $this->sceneMemory['locationBible']['locations'][] = [
+                        'id' => $location['id'] ?? uniqid('loc_'),
+                        'name' => $location['name'],
+                        'description' => $location['description'] ?? '',
+                        'type' => $location['type'] ?? 'exterior',
+                        'timeOfDay' => $location['timeOfDay'] ?? 'day',
+                        'weather' => $location['weather'] ?? 'clear',
+                        'atmosphere' => $location['atmosphere'] ?? '',
+                        // Location DNA fields - auto-extracted from script by AI
+                        'mood' => $location['mood'] ?? '',
+                        'lightingStyle' => $location['lightingStyle'] ?? '',
+                        'scenes' => $location['scenes'] ?? [],
+                        'stateChanges' => $location['stateChanges'] ?? [],
+                        'referenceImage' => null,
+                        'autoDetected' => true,
+                        'aiGenerated' => true,
+                    ];
                 }
 
                 // Enable Location Bible if we detected any locations
                 if (!empty($result['locations'])) {
                     $this->sceneMemory['locationBible']['enabled'] = true;
+
+                    // Validate and fill missing scene assignments
+                    $this->validateLocationSceneAssignments();
                 }
 
                 // Dispatch event for debugging
@@ -11682,9 +12263,31 @@ PROMPT;
 
                     if ($result['success']) {
                         if (isset($result['videoUrl'])) {
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                            $temporaryUrl = $result['videoUrl'];
+                            $finalVideoUrl = $temporaryUrl;
+
+                            // Download and store video permanently to prevent URL expiration
+                            if ($animationService->isTemporaryUrl($temporaryUrl)) {
+                                try {
+                                    $storeResult = $animationService->downloadAndStoreVideo(
+                                        $temporaryUrl,
+                                        $project,
+                                        $sceneIndex,
+                                        $shotIndex,
+                                        $selectedModel
+                                    );
+
+                                    if ($storeResult['success'] && !empty($storeResult['permanentUrl'])) {
+                                        $finalVideoUrl = $storeResult['permanentUrl'];
+                                    }
+                                } catch (\Exception $e) {
+                                    \Log::error('Exception storing video in generateShotVideo', ['error' => $e->getMessage()]);
+                                }
+                            }
+
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                            \Log::info('🎬 Video immediately ready', ['videoUrl' => substr($result['videoUrl'], 0, 80)]);
+                            \Log::info('🎬 Video immediately ready', ['videoUrl' => substr($finalVideoUrl, 0, 80)]);
                         } elseif (isset($result['taskId'])) {
                             // Async job - store for polling
                             $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";

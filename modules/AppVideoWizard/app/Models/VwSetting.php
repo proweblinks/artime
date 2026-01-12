@@ -54,6 +54,7 @@ class VwSetting extends Model
     const CATEGORY_CREDITS = 'credits';
     const CATEGORY_AI_PROVIDERS = 'ai_providers';
     const CATEGORY_PRODUCTION_INTELLIGENCE = 'production_intelligence';
+    const CATEGORY_CINEMATIC_INTELLIGENCE = 'cinematic_intelligence';
     const CATEGORY_MOTION_INTELLIGENCE = 'motion_intelligence';
 
     /**
@@ -325,6 +326,9 @@ class VwSetting extends Model
     public static function getCategoryLabels(): array
     {
         return [
+            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'Production Intelligence',
+            self::CATEGORY_CINEMATIC_INTELLIGENCE => 'Cinematic Intelligence',
+            self::CATEGORY_MOTION_INTELLIGENCE => 'Motion Intelligence',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
             self::CATEGORY_ANIMATION => 'Animation Models',
             self::CATEGORY_DURATION => 'Duration Settings',
@@ -334,8 +338,6 @@ class VwSetting extends Model
             self::CATEGORY_API => 'API Endpoints',
             self::CATEGORY_CREDITS => 'Credit Costs',
             self::CATEGORY_AI_PROVIDERS => 'AI Providers',
-            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'Production Intelligence',
-            self::CATEGORY_MOTION_INTELLIGENCE => 'Motion Intelligence',
         ];
     }
 
@@ -345,6 +347,9 @@ class VwSetting extends Model
     public static function getCategoryIcons(): array
     {
         return [
+            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'fa-solid fa-wand-magic-sparkles',
+            self::CATEGORY_CINEMATIC_INTELLIGENCE => 'fa-solid fa-clapperboard',
+            self::CATEGORY_MOTION_INTELLIGENCE => 'fa-solid fa-video',
             self::CATEGORY_SHOT_INTELLIGENCE => 'fa-solid fa-brain',
             self::CATEGORY_ANIMATION => 'fa-solid fa-film',
             self::CATEGORY_DURATION => 'fa-solid fa-clock',
@@ -354,8 +359,6 @@ class VwSetting extends Model
             self::CATEGORY_API => 'fa-solid fa-plug',
             self::CATEGORY_CREDITS => 'fa-solid fa-coins',
             self::CATEGORY_AI_PROVIDERS => 'fa-solid fa-robot',
-            self::CATEGORY_PRODUCTION_INTELLIGENCE => 'fa-solid fa-wand-magic-sparkles',
-            self::CATEGORY_MOTION_INTELLIGENCE => 'fa-solid fa-video',
         ];
     }
 
@@ -365,12 +368,13 @@ class VwSetting extends Model
     public static function getOrderedCategories(): array
     {
         return [
-            self::CATEGORY_SHOT_INTELLIGENCE,
+            self::CATEGORY_PRODUCTION_INTELLIGENCE,
+            self::CATEGORY_CINEMATIC_INTELLIGENCE,
             self::CATEGORY_MOTION_INTELLIGENCE,
+            self::CATEGORY_SHOT_INTELLIGENCE,
             self::CATEGORY_ANIMATION,
             self::CATEGORY_DURATION,
             self::CATEGORY_SCENE,
-            self::CATEGORY_PRODUCTION_INTELLIGENCE,
             self::CATEGORY_AI_PROVIDERS,
             self::CATEGORY_API,
             self::CATEGORY_CREDITS,
