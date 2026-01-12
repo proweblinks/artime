@@ -9977,7 +9977,7 @@ EOT;
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
         // Calculate total scenes for narrative positioning
-        $totalScenes = count($this->scenes ?? []);
+        $totalScenes = count($this->script['scenes'] ?? []);
 
         // Build context for AI analysis - CRITICAL: Pass all wizard configuration
         $context = [
