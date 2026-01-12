@@ -43,6 +43,7 @@ Route::get('/storage/{path}', function (string $path) {
 })->where('path', '.*')->name('storage.serve');
 
 // Serve wizard videos from public folder (for cPanel compatibility)
+// Using raw PHP streaming for maximum compatibility with nginx/cPanel
 Route::get('/wizard-videos/{path}', function (string $path) {
     $fullPath = public_path('wizard-videos/' . $path);
 
@@ -50,8 +51,16 @@ Route::get('/wizard-videos/{path}', function (string $path) {
         abort(404, 'Video not found');
     }
 
-    return response()->file($fullPath, [
+    $fileSize = filesize($fullPath);
+
+    // Use streaming response for better nginx compatibility
+    return response()->stream(function () use ($fullPath) {
+        $stream = fopen($fullPath, 'rb');
+        fpassthru($stream);
+        fclose($stream);
+    }, 200, [
         'Content-Type' => 'video/mp4',
+        'Content-Length' => $fileSize,
         'Content-Disposition' => 'inline',
         'Accept-Ranges' => 'bytes',
         'Cache-Control' => 'public, max-age=2592000',
