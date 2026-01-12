@@ -17,11 +17,16 @@ class VideoWizardDatabaseSeeder extends Seeder
             VwProductionTypeSeeder::class,
 
             // Professional Cinematography System seeders
-            VwGenrePresetSeeder::class,      // 15+ genre presets (thriller, drama, documentary, etc.)
+            VwGenrePresetSeeder::class,       // 15+ genre presets (thriller, drama, documentary, etc.)
             VwShotTypeSeeder::class,          // 50+ professional shot types (StudioBinder guide)
             VwEmotionalBeatSeeder::class,     // Emotional beats (Three-Act structure)
             VwStoryStructureSeeder::class,    // Story structures (Hero's Journey, Save the Cat, etc.)
             VwCameraSpecSeeder::class,        // Camera/lens specs (Sora 2 best practices)
+
+            // Motion Intelligence & Scene Detection (Phases 1-4)
+            VwCameraMovementSeeder::class,    // Phase 1: 25+ camera movements
+            VwSettingSeeder::class,           // Phase 1-4: All settings
+            VwCoveragePatternSeeder::class,   // Phase 4: 15+ coverage patterns
         ]);
     }
 }
