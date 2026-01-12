@@ -8598,12 +8598,35 @@ class VideoWizard extends Component
 
     /**
      * Auto-detect characters from script.
+     * Called when user clicks "Auto-detect from Script" button in Character Bible modal.
      */
     public function autoDetectCharacters(): void
     {
+        Log::info('CharacterExtraction: Manual auto-detect triggered', [
+            'hasScript' => !empty($this->script),
+            'sceneCount' => count($this->script['scenes'] ?? []),
+            'existingCharacters' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+        ]);
+
+        // Clear existing auto-detected characters to allow fresh detection
+        // Keep only manually added characters (those without auto-detection flags)
+        $manualCharacters = array_filter(
+            $this->sceneMemory['characterBible']['characters'] ?? [],
+            fn($char) => empty($char['autoDetected']) && empty($char['aiGenerated']) && empty($char['patternMatched']) && empty($char['defaultGenerated'])
+        );
+        $this->sceneMemory['characterBible']['characters'] = array_values($manualCharacters);
+
+        Log::info('CharacterExtraction: Cleared auto-detected characters', [
+            'keptManual' => count($manualCharacters),
+        ]);
+
         // Use AI-powered extraction (with pattern fallback)
         $this->autoDetectCharactersFromScript();
         $this->saveProject();
+
+        Log::info('CharacterExtraction: Manual auto-detect completed', [
+            'totalCharacters' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+        ]);
     }
 
     /**
