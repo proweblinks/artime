@@ -431,7 +431,11 @@ class AnimationService
      *
      * This prevents video URL expiration issues by downloading videos
      * from provider's temporary signed URLs and storing them in our
-     * permanent storage (local or cloud).
+     * permanent storage (local public disk by default).
+     *
+     * NOTE: Videos are stored on local server (public disk) by default.
+     * Firebase Storage (GCS) is NOT used for wizard videos because it
+     * requires special security rules for public access.
      *
      * @param string $temporaryUrl The temporary signed URL from video provider
      * @param WizardProject $project The project context
@@ -494,21 +498,29 @@ class AnimationService
             $timestamp = time();
             $filename = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
 
-            // Determine storage disk (prefer GCS if configured, else public)
+            // ALWAYS use public disk for wizard videos (stored on local server)
+            // Firebase Storage (GCS) doesn't allow public access without special rules
             $disk = 'public';
             $permanentUrl = null;
 
-            if (config('filesystems.disks.gcs.bucket')) {
-                $disk = 'gcs';
-                Storage::disk($disk)->put($filename, $videoContent, 'public');
-                $bucket = config('filesystems.disks.gcs.bucket');
-                $permanentUrl = "https://storage.googleapis.com/{$bucket}/{$filename}";
-            } else {
-                Storage::disk($disk)->put($filename, $videoContent);
-                $permanentUrl = Storage::disk($disk)->url($filename);
+            // Ensure directory exists
+            $directory = dirname($filename);
+            if (!Storage::disk($disk)->exists($directory)) {
+                Storage::disk($disk)->makeDirectory($directory);
             }
 
-            Log::info('AnimationService: Video stored permanently', [
+            // Store the video file
+            Storage::disk($disk)->put($filename, $videoContent);
+
+            // Generate the public URL
+            $permanentUrl = Storage::disk($disk)->url($filename);
+
+            // If URL doesn't start with http, make it absolute
+            if (!str_starts_with($permanentUrl, 'http')) {
+                $permanentUrl = url($permanentUrl);
+            }
+
+            Log::info('AnimationService: Video stored permanently on local server', [
                 'disk' => $disk,
                 'path' => $filename,
                 'size' => $fileSize,
@@ -531,6 +543,7 @@ class AnimationService
                     'shot_index' => $shotIndex,
                     'original_url' => $temporaryUrl,
                     'stored_at' => now()->toIso8601String(),
+                    'storage_disk' => 'public',
                 ],
             ]);
 
