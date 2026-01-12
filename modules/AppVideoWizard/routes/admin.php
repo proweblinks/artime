@@ -8,6 +8,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\GenerationLogController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CinematographyController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenrePresetController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\CameraMovementController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\SettingsController;
 
 /*
@@ -172,6 +173,36 @@ Route::middleware(['web', 'auth'])->group(function () {
                 ->name('admin.video-wizard.cinematography.camera-specs');
             Route::post('/camera-specs/{cameraSpec}/toggle', [CinematographyController::class, 'toggleCameraSpec'])
                 ->name('admin.video-wizard.cinematography.camera-specs.toggle');
+
+            // Camera Movements (Motion Intelligence)
+            Route::prefix('camera-movements')->group(function () {
+                Route::get('/', [CameraMovementController::class, 'index'])
+                    ->name('admin.video-wizard.cinematography.camera-movements');
+                Route::get('/create', [CameraMovementController::class, 'create'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.create');
+                Route::post('/', [CameraMovementController::class, 'store'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.store');
+                Route::get('/{cameraMovement}/edit', [CameraMovementController::class, 'edit'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.edit');
+                Route::put('/{cameraMovement}', [CameraMovementController::class, 'update'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.update');
+                Route::delete('/{cameraMovement}', [CameraMovementController::class, 'destroy'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.destroy');
+                Route::post('/{cameraMovement}/toggle', [CameraMovementController::class, 'toggle'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.toggle');
+                Route::post('/{cameraMovement}/test-prompt', [CameraMovementController::class, 'testPrompt'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.test-prompt');
+                Route::get('/{cameraMovement}/stackable', [CameraMovementController::class, 'getStackable'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.stackable');
+                Route::post('/reorder', [CameraMovementController::class, 'reorder'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.reorder');
+                Route::get('/export', [CameraMovementController::class, 'export'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.export');
+                Route::post('/import', [CameraMovementController::class, 'import'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.import');
+                Route::post('/seed-defaults', [CameraMovementController::class, 'seedDefaults'])
+                    ->name('admin.video-wizard.cinematography.camera-movements.seed-defaults');
+            });
 
             // Bulk Operations
             Route::post('/clear-caches', [CinematographyController::class, 'clearCaches'])

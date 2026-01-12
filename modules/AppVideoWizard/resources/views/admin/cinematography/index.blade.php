@@ -148,6 +148,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Camera Movements (Motion Intelligence) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="bg-danger bg-opacity-10 rounded-3 p-3">
+                            <i class="fa fa-arrows-alt fa-2x text-danger"></i>
+                        </div>
+                        <span class="badge bg-success">{{ $stats['cameraMovements']['active'] ?? 0 }} {{ __('active') }}</span>
+                    </div>
+                    <h5 class="card-title">{{ __('Camera Movements') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('Motion Intelligence: 25+ professional camera movements for AI video') }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">{{ $stats['cameraMovements']['total'] ?? 0 }} {{ __('total') }} &bull; {{ $stats['cameraMovements']['categories'] ?? 0 }} {{ __('categories') }}</span>
+                        <a href="{{ route('admin.video-wizard.cinematography.camera-movements') }}" class="btn btn-sm btn-danger">
+                            {{ __('Manage') }} <i class="fa fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Sample Preview -->
