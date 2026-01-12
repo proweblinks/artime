@@ -1,7 +1,8 @@
 <?php
 /**
- * Direct video serving script - bypasses Laravel routing
- * URL: /serve-video.php?path=1/112/scene_0_shot_0_1768230184.mp4
+ * Direct video serving script for cPanel
+ * Place this file in public_html (document root)
+ * URL: /video.php?path=1/112/scene_0_shot_0_1768230184.mp4
  */
 
 $path = $_GET['path'] ?? '';
@@ -14,21 +15,12 @@ if (empty($path)) {
 // Sanitize path to prevent directory traversal
 $path = str_replace(['..', "\0"], '', $path);
 
-// On cPanel, document root is public_html but Laravel's public folder is public_html/public
-// Try both locations for compatibility
-$fullPath = __DIR__ . '/wizard-videos/' . $path;
-if (!file_exists($fullPath)) {
-    // Fallback: check if we're inside public_html/public (cPanel setup)
-    $fullPath = dirname(__DIR__) . '/public/wizard-videos/' . $path;
-}
-if (!file_exists($fullPath)) {
-    // Another fallback: direct path from __DIR__
-    $fullPath = __DIR__ . '/../public/wizard-videos/' . $path;
-}
+// On cPanel, videos are stored in public_html/public/wizard-videos/
+$fullPath = __DIR__ . '/public/wizard-videos/' . $path;
 
 if (!file_exists($fullPath)) {
     http_response_code(404);
-    die('Video not found');
+    die('Video not found: ' . $path);
 }
 
 if (!is_file($fullPath)) {
