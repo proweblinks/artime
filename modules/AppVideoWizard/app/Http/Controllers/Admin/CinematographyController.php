@@ -10,6 +10,8 @@ use Modules\AppVideoWizard\Models\VwEmotionalBeat;
 use Modules\AppVideoWizard\Models\VwStoryStructure;
 use Modules\AppVideoWizard\Models\VwCameraSpec;
 use Modules\AppVideoWizard\Models\VwCameraMovement;
+use Modules\AppVideoWizard\Models\VwSetting;
+use Modules\AppVideoWizard\Services\ShotContinuityService;
 
 class CinematographyController extends Controller
 {
@@ -411,5 +413,42 @@ class CinematographyController extends Controller
 
         return response()->json($data)
             ->header('Content-Disposition', 'attachment; filename="cinematography-export-' . date('Y-m-d') . '.json"');
+    }
+
+    // =====================================
+    // SHOT CONTINUITY (Phase 3)
+    // =====================================
+
+    /**
+     * Display shot continuity rules and patterns.
+     */
+    public function continuity()
+    {
+        // Get continuity settings
+        $enabled = (bool) VwSetting::getValue('shot_continuity_enabled', true);
+        $minScore = (int) VwSetting::getValue('shot_continuity_min_score', 60);
+
+        // Get rules status
+        $rules = [
+            '30_degree' => (bool) VwSetting::getValue('shot_continuity_30_degree_rule', true),
+            'jump_cut' => (bool) VwSetting::getValue('shot_continuity_jump_cut_detection', true),
+            'movement_flow' => (bool) VwSetting::getValue('shot_continuity_movement_flow', true),
+            'coverage_patterns' => (bool) VwSetting::getValue('shot_continuity_coverage_patterns', true),
+            'auto_optimize' => (bool) VwSetting::getValue('shot_continuity_auto_optimize', false),
+        ];
+
+        // Get static data from service constants
+        $coveragePatterns = ShotContinuityService::COVERAGE_PATTERNS;
+        $shotCompatibility = ShotContinuityService::SHOT_COMPATIBILITY;
+        $movementContinuity = ShotContinuityService::MOVEMENT_CONTINUITY;
+
+        return view('appvideowizard::admin.cinematography.continuity.index', compact(
+            'enabled',
+            'minScore',
+            'rules',
+            'coveragePatterns',
+            'shotCompatibility',
+            'movementContinuity'
+        ));
     }
 }

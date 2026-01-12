@@ -204,6 +204,10 @@ Route::middleware(['web', 'auth'])->group(function () {
                     ->name('admin.video-wizard.cinematography.camera-movements.seed-defaults');
             });
 
+            // Shot Continuity (Phase 3)
+            Route::get('/continuity', [CinematographyController::class, 'continuity'])
+                ->name('admin.video-wizard.cinematography.continuity');
+
             // Bulk Operations
             Route::post('/clear-caches', [CinematographyController::class, 'clearCaches'])
                 ->name('admin.video-wizard.cinematography.clear-caches');

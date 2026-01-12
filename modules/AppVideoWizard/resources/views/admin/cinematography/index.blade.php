@@ -170,6 +170,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Shot Continuity (Phase 3) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                            <i class="fa fa-link fa-2x text-primary"></i>
+                        </div>
+                        <span class="badge bg-primary">{{ __('Phase 3') }}</span>
+                    </div>
+                    <h5 class="card-title">{{ __('Shot Continuity') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('30-degree rule, coverage patterns, and professional shot sequencing') }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">{{ __('Coverage patterns & rules') }}</span>
+                        <a href="{{ route('admin.video-wizard.cinematography.continuity') }}" class="btn btn-sm btn-primary">
+                            {{ __('View') }} <i class="fa fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Sample Preview -->

@@ -56,6 +56,7 @@ class VwSetting extends Model
     const CATEGORY_PRODUCTION_INTELLIGENCE = 'production_intelligence';
     const CATEGORY_CINEMATIC_INTELLIGENCE = 'cinematic_intelligence';
     const CATEGORY_MOTION_INTELLIGENCE = 'motion_intelligence';
+    const CATEGORY_SHOT_CONTINUITY = 'shot_continuity';
 
     /**
      * Mapping of VwSetting slugs to legacy get_option keys for backward compatibility.
@@ -329,6 +330,7 @@ class VwSetting extends Model
             self::CATEGORY_PRODUCTION_INTELLIGENCE => 'Production Intelligence',
             self::CATEGORY_CINEMATIC_INTELLIGENCE => 'Cinematic Intelligence',
             self::CATEGORY_MOTION_INTELLIGENCE => 'Motion Intelligence',
+            self::CATEGORY_SHOT_CONTINUITY => 'Shot Continuity',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
             self::CATEGORY_ANIMATION => 'Animation Models',
             self::CATEGORY_DURATION => 'Duration Settings',
@@ -350,6 +352,7 @@ class VwSetting extends Model
             self::CATEGORY_PRODUCTION_INTELLIGENCE => 'fa-solid fa-wand-magic-sparkles',
             self::CATEGORY_CINEMATIC_INTELLIGENCE => 'fa-solid fa-clapperboard',
             self::CATEGORY_MOTION_INTELLIGENCE => 'fa-solid fa-video',
+            self::CATEGORY_SHOT_CONTINUITY => 'fa-solid fa-link',
             self::CATEGORY_SHOT_INTELLIGENCE => 'fa-solid fa-brain',
             self::CATEGORY_ANIMATION => 'fa-solid fa-film',
             self::CATEGORY_DURATION => 'fa-solid fa-clock',
@@ -371,6 +374,7 @@ class VwSetting extends Model
             self::CATEGORY_PRODUCTION_INTELLIGENCE,
             self::CATEGORY_CINEMATIC_INTELLIGENCE,
             self::CATEGORY_MOTION_INTELLIGENCE,
+            self::CATEGORY_SHOT_CONTINUITY,
             self::CATEGORY_SHOT_INTELLIGENCE,
             self::CATEGORY_ANIMATION,
             self::CATEGORY_DURATION,

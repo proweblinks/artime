@@ -5,6 +5,7 @@ namespace Modules\AppVideoWizard\Services;
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\VwShotType;
+use Modules\AppVideoWizard\Services\ShotContinuityService;
 
 /**
  * ShotIntelligenceService - AI-driven shot decomposition for scenes.
@@ -27,9 +28,23 @@ class ShotIntelligenceService
      */
     protected $aiService;
 
-    public function __construct()
+    /**
+     * Shot continuity service for sequence validation.
+     */
+    protected ?ShotContinuityService $continuityService = null;
+
+    public function __construct(?ShotContinuityService $continuityService = null)
     {
         $this->shotTypes = VwShotType::getAllActive();
+        $this->continuityService = $continuityService;
+    }
+
+    /**
+     * Set the continuity service (for dependency injection).
+     */
+    public function setContinuityService(ShotContinuityService $service): void
+    {
+        $this->continuityService = $service;
     }
 
     /**
@@ -63,10 +78,14 @@ class ShotIntelligenceService
             // Parse and validate AI response
             $analysis = $this->parseAIResponse($aiResponse['response'], $scene, $minShots, $maxShots);
 
+            // Add continuity analysis if service is available
+            $analysis = $this->addContinuityAnalysis($analysis, $context);
+
             Log::info('ShotIntelligenceService: Scene analyzed successfully', [
                 'scene_id' => $scene['id'] ?? 'unknown',
                 'shot_count' => $analysis['shotCount'],
                 'total_duration' => $analysis['totalDuration'],
+                'continuity_score' => $analysis['continuity']['score'] ?? null,
             ]);
 
             return $analysis;
@@ -712,5 +731,191 @@ Return ONLY valid JSON (no markdown, no explanation):
     public static function isEnabled(): bool
     {
         return (bool) VwSetting::getValue('shot_intelligence_enabled', true);
+    }
+
+    // =====================================
+    // CONTINUITY INTEGRATION (Phase 3)
+    // =====================================
+
+    /**
+     * Add continuity analysis to shot breakdown.
+     *
+     * @param array $analysis The parsed shot analysis
+     * @param array $context Scene context
+     * @return array Analysis with continuity data added
+     */
+    protected function addContinuityAnalysis(array $analysis, array $context): array
+    {
+        // Check if continuity service is available and enabled
+        if (!$this->continuityService || !$this->continuityService->isContinuityEnabled()) {
+            $analysis['continuity'] = [
+                'enabled' => false,
+                'score' => null,
+                'issues' => [],
+                'suggestions' => [],
+            ];
+            return $analysis;
+        }
+
+        // Analyze shot sequence for continuity
+        $shots = $analysis['shots'] ?? [];
+        $continuityResult = $this->continuityService->analyzeSequence($shots);
+
+        // Add continuity data to analysis
+        $analysis['continuity'] = $continuityResult;
+
+        // If auto-optimize is enabled and score is low, try to optimize
+        if ($this->continuityService->isAutoOptimizationEnabled() &&
+            $continuityResult['score'] < 70 &&
+            count($shots) > 1) {
+
+            $sceneType = $context['sceneType'] ?? VwSetting::getValue('shot_continuity_default_scene_type', 'dialogue');
+            $optimized = $this->continuityService->optimizeSequence($shots, $sceneType);
+
+            if ($optimized['improvement'] > 10) {
+                $analysis['shots'] = $optimized['optimized'];
+                $analysis['shotCount'] = count($optimized['optimized']);
+                $analysis['continuity']['optimized'] = true;
+                $analysis['continuity']['optimization'] = [
+                    'originalScore' => $optimized['originalScore'],
+                    'newScore' => $optimized['optimizedScore'],
+                    'changes' => $optimized['changes'],
+                ];
+
+                // Recalculate total duration
+                $totalDuration = 0;
+                foreach ($analysis['shots'] as $shot) {
+                    $totalDuration += $shot['duration'] ?? 6;
+                }
+                $analysis['totalDuration'] = $totalDuration;
+
+                Log::info('ShotIntelligenceService: Auto-optimized shot sequence', [
+                    'original_score' => $optimized['originalScore'],
+                    'new_score' => $optimized['optimizedScore'],
+                    'changes_count' => count($optimized['changes']),
+                ]);
+            }
+        }
+
+        return $analysis;
+    }
+
+    /**
+     * Get coverage pattern suggestions for a scene.
+     *
+     * @param array $scene Scene data
+     * @param array $context Additional context
+     * @return array Coverage pattern with suggested shots
+     */
+    public function getCoveragePattern(array $scene, array $context = []): array
+    {
+        if (!$this->continuityService) {
+            return [
+                'enabled' => false,
+                'pattern' => [],
+                'sceneType' => 'unknown',
+            ];
+        }
+
+        // Detect scene type
+        $sceneType = $this->detectSceneType($scene, $context);
+
+        // Get coverage pattern
+        $pattern = $this->continuityService->getCoveragePattern($sceneType);
+
+        return [
+            'enabled' => true,
+            'sceneType' => $sceneType,
+            'pattern' => $pattern,
+        ];
+    }
+
+    /**
+     * Detect scene type from content.
+     *
+     * @param array $scene Scene data
+     * @param array $context Additional context
+     * @return string Detected scene type
+     */
+    protected function detectSceneType(array $scene, array $context): string
+    {
+        // Use explicitly provided scene type if available
+        if (!empty($context['sceneType'])) {
+            return $context['sceneType'];
+        }
+
+        $narration = strtolower($scene['narration'] ?? '');
+        $visual = strtolower($scene['visualDescription'] ?? $scene['visual'] ?? '');
+        $combined = $narration . ' ' . $visual;
+
+        // Detect dialogue scenes
+        $dialogueIndicators = ['says', 'asks', 'replies', 'speaks', 'tells', 'conversation', 'dialogue'];
+        foreach ($dialogueIndicators as $indicator) {
+            if (strpos($combined, $indicator) !== false) {
+                return 'dialogue';
+            }
+        }
+
+        // Detect action scenes
+        $actionIndicators = ['fight', 'chase', 'run', 'explod', 'crash', 'battle', 'attack', 'escape'];
+        foreach ($actionIndicators as $indicator) {
+            if (strpos($combined, $indicator) !== false) {
+                return 'action';
+            }
+        }
+
+        // Detect emotional scenes
+        $emotionalIndicators = ['cry', 'tears', 'embrace', 'grief', 'joy', 'heartbreak', 'emotional'];
+        foreach ($emotionalIndicators as $indicator) {
+            if (strpos($combined, $indicator) !== false) {
+                return 'emotional';
+            }
+        }
+
+        // Detect establishing/montage
+        $establishingIndicators = ['establishing', 'overview', 'landscape', 'cityscape', 'exterior'];
+        foreach ($establishingIndicators as $indicator) {
+            if (strpos($combined, $indicator) !== false) {
+                return 'establishing';
+            }
+        }
+
+        // Default to dialogue (most common)
+        return VwSetting::getValue('shot_continuity_default_scene_type', 'dialogue');
+    }
+
+    /**
+     * Validate a user-modified shot sequence.
+     *
+     * @param array $shots Modified shot sequence
+     * @return array Validation results
+     */
+    public function validateShotSequence(array $shots): array
+    {
+        if (!$this->continuityService || !$this->continuityService->isContinuityEnabled()) {
+            return [
+                'valid' => true,
+                'enabled' => false,
+            ];
+        }
+
+        return $this->continuityService->validateSequence($shots);
+    }
+
+    /**
+     * Get next shot suggestions based on current shot.
+     *
+     * @param array $currentShot Current shot data
+     * @param string $sceneType Type of scene
+     * @param array $usedShots Previously used shot types
+     * @return array Suggested next shots
+     */
+    public function suggestNextShot(array $currentShot, string $sceneType = 'dialogue', array $usedShots = []): array
+    {
+        if (!$this->continuityService) {
+            return [];
+        }
+
+        return $this->continuityService->suggestNextShot($currentShot, $sceneType, $usedShots);
     }
 }
