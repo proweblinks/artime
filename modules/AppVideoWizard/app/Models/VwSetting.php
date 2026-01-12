@@ -58,6 +58,7 @@ class VwSetting extends Model
     const CATEGORY_MOTION_INTELLIGENCE = 'motion_intelligence';
     const CATEGORY_SHOT_CONTINUITY = 'shot_continuity';
     const CATEGORY_SCENE_DETECTION = 'scene_detection';
+    const CATEGORY_SHOT_PROGRESSION = 'shot_progression';
 
     /**
      * Mapping of VwSetting slugs to legacy get_option keys for backward compatibility.
@@ -333,6 +334,7 @@ class VwSetting extends Model
             self::CATEGORY_MOTION_INTELLIGENCE => 'Motion Intelligence',
             self::CATEGORY_SHOT_CONTINUITY => 'Shot Continuity',
             self::CATEGORY_SCENE_DETECTION => 'Scene Detection',
+            self::CATEGORY_SHOT_PROGRESSION => 'Shot Progression',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
             self::CATEGORY_ANIMATION => 'Animation Models',
             self::CATEGORY_DURATION => 'Duration Settings',
@@ -356,6 +358,7 @@ class VwSetting extends Model
             self::CATEGORY_MOTION_INTELLIGENCE => 'fa-solid fa-video',
             self::CATEGORY_SHOT_CONTINUITY => 'fa-solid fa-link',
             self::CATEGORY_SCENE_DETECTION => 'fa-solid fa-magnifying-glass-chart',
+            self::CATEGORY_SHOT_PROGRESSION => 'fa-solid fa-diagram-project',
             self::CATEGORY_SHOT_INTELLIGENCE => 'fa-solid fa-brain',
             self::CATEGORY_ANIMATION => 'fa-solid fa-film',
             self::CATEGORY_DURATION => 'fa-solid fa-clock',
@@ -379,6 +382,7 @@ class VwSetting extends Model
             self::CATEGORY_MOTION_INTELLIGENCE,
             self::CATEGORY_SHOT_CONTINUITY,
             self::CATEGORY_SCENE_DETECTION,
+            self::CATEGORY_SHOT_PROGRESSION,
             self::CATEGORY_SHOT_INTELLIGENCE,
             self::CATEGORY_ANIMATION,
             self::CATEGORY_DURATION,

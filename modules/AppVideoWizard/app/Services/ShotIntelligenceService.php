@@ -9,6 +9,7 @@ use Modules\AppVideoWizard\Services\ShotContinuityService;
 use Modules\AppVideoWizard\Services\SceneTypeDetectorService;
 use Modules\AppVideoWizard\Services\CameraMovementService;
 use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
+use Modules\AppVideoWizard\Services\ShotProgressionService;
 
 /**
  * ShotIntelligenceService - AI-driven shot decomposition for scenes.
@@ -18,6 +19,7 @@ use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
  * - Phase 2: VideoPromptBuilderService (Higgsfield formula prompts)
  * - Phase 3: ShotContinuityService (30-degree rule, coverage patterns)
  * - Phase 4: SceneTypeDetectorService (automatic scene classification)
+ * - Phase 6: ShotProgressionService (narrative progression, story beats, action continuity)
  *
  * Analyzes scene content (narration, visual description, mood) and determines:
  * - Optimal number of shots based on pacing and content
@@ -25,6 +27,7 @@ use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
  * - Shot type sequence for professional cinematography
  * - Camera movements for each shot
  * - Which shots need lip-sync (Multitalk) vs standard animation (MiniMax)
+ * - Story beats and energy progression per shot (Phase 6)
  */
 class ShotIntelligenceService
 {
@@ -58,17 +61,24 @@ class ShotIntelligenceService
      */
     protected ?VideoPromptBuilderService $videoPromptBuilder = null;
 
+    /**
+     * Phase 6: Shot progression service for narrative development.
+     */
+    protected ?ShotProgressionService $progressionService = null;
+
     public function __construct(
         ?ShotContinuityService $continuityService = null,
         ?SceneTypeDetectorService $sceneTypeDetector = null,
         ?CameraMovementService $cameraMovementService = null,
-        ?VideoPromptBuilderService $videoPromptBuilder = null
+        ?VideoPromptBuilderService $videoPromptBuilder = null,
+        ?ShotProgressionService $progressionService = null
     ) {
         $this->shotTypes = VwShotType::getAllActive();
         $this->continuityService = $continuityService;
         $this->sceneTypeDetector = $sceneTypeDetector;
         $this->cameraMovementService = $cameraMovementService;
         $this->videoPromptBuilder = $videoPromptBuilder;
+        $this->progressionService = $progressionService;
     }
 
     /**
@@ -104,6 +114,14 @@ class ShotIntelligenceService
     }
 
     /**
+     * Set the shot progression service (for dependency injection).
+     */
+    public function setProgressionService(ShotProgressionService $service): void
+    {
+        $this->progressionService = $service;
+    }
+
+    /**
      * Analyze a scene and determine optimal shot breakdown.
      *
      * PHASE 5 INTEGRATION: This method now integrates all phases:
@@ -111,9 +129,10 @@ class ShotIntelligenceService
      * - Phase 1: Add camera movements to each shot
      * - Phase 2: Generate video prompts for each shot
      * - Phase 3: Validate and optimize continuity
+     * - Phase 6: Add progression analysis (story beats, energy, action continuity)
      *
      * @param array $scene Scene data with narration, visualDescription, duration, etc.
-     * @param array $context Additional context (genre, pacing, characters, etc.)
+     * @param array $context Additional context (genre, pacing, characters, tensionCurve, emotionalJourney, etc.)
      * @return array Shot breakdown with shots array and metadata
      */
     public function analyzeScene(array $scene, array $context = []): array
@@ -157,6 +176,9 @@ class ShotIntelligenceService
             // PHASE 3: Add continuity analysis
             $analysis = $this->addContinuityAnalysis($analysis, $context);
 
+            // PHASE 6: Add progression analysis (story beats, energy levels, action continuity)
+            $analysis = $this->addProgressionAnalysis($analysis, $scene, $context);
+
             // Add scene type detection results
             if ($sceneTypeDetection) {
                 $analysis['sceneTypeDetection'] = $sceneTypeDetection;
@@ -168,6 +190,7 @@ class ShotIntelligenceService
                 'total_duration' => $analysis['totalDuration'],
                 'scene_type' => $context['sceneType'] ?? 'unknown',
                 'continuity_score' => $analysis['continuity']['score'] ?? null,
+                'progression_score' => $analysis['progression']['overallScore'] ?? null,
             ]);
 
             return $analysis;
@@ -1113,5 +1136,199 @@ Return ONLY valid JSON (no markdown, no explanation):
         }
 
         return $this->continuityService->suggestNextShot($currentShot, $sceneType, $usedShots);
+    }
+
+    // =====================================
+    // PROGRESSION INTEGRATION (Phase 6)
+    // =====================================
+
+    /**
+     * Add progression analysis to shot breakdown.
+     * Phase 6: Analyzes narrative progression, story beats, and action continuity.
+     *
+     * @param array $analysis The parsed shot analysis
+     * @param array $scene Scene data
+     * @param array $context Additional context (tensionCurve, emotionalJourney, sceneIndex, totalScenes)
+     * @return array Analysis with progression data added
+     */
+    protected function addProgressionAnalysis(array $analysis, array $scene, array $context): array
+    {
+        // Check if progression service is available and enabled
+        if (!$this->progressionService || !$this->progressionService->isEnabled()) {
+            $analysis['progression'] = [
+                'enabled' => false,
+                'overallScore' => null,
+                'shots' => [],
+                'issues' => [],
+            ];
+            return $analysis;
+        }
+
+        try {
+            // Build progression context from scene and wizard context
+            $progressionContext = [
+                'tensionCurve' => $context['tensionCurve'] ?? 'balanced',
+                'emotionalJourney' => $context['emotionalJourney'] ?? 'hopeful-path',
+                'sceneIndex' => $context['sceneIndex'] ?? 0,
+                'totalScenes' => $context['totalScenes'] ?? 1,
+                'sceneType' => $context['sceneType'] ?? 'dialogue',
+                'genre' => $context['genre'] ?? 'drama',
+                'pacing' => $context['pacing'] ?? 'balanced',
+            ];
+
+            // Analyze progression for all shots
+            $progressionResult = $this->progressionService->analyzeProgression(
+                $analysis['shots'] ?? [],
+                $progressionContext
+            );
+
+            // Update shots with progression data (story beats, energy, mood)
+            if (!empty($progressionResult['shots'])) {
+                foreach ($progressionResult['shots'] as $index => $progressionData) {
+                    if (isset($analysis['shots'][$index])) {
+                        // Merge progression data into shot
+                        $analysis['shots'][$index]['progression'] = $progressionData;
+
+                        // If prompt enhancement is enabled, update the video prompt
+                        if ($this->progressionService->isPromptEnhancementEnabled() &&
+                            !empty($progressionData['promptEnhancement'])) {
+                            $existingPrompt = $analysis['shots'][$index]['videoPrompt'] ?? '';
+                            $analysis['shots'][$index]['videoPrompt'] = $this->enhancePromptWithProgression(
+                                $existingPrompt,
+                                $progressionData['promptEnhancement']
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Add overall progression analysis to result
+            $analysis['progression'] = [
+                'enabled' => true,
+                'overallScore' => $progressionResult['overallScore'] ?? 0,
+                'issues' => $progressionResult['issues'] ?? [],
+                'suggestions' => $progressionResult['suggestions'] ?? [],
+                'energyCurve' => $progressionResult['energyCurve'] ?? [],
+                'moodArc' => $progressionResult['moodArc'] ?? [],
+            ];
+
+            // Log progression analysis results
+            if (!empty($progressionResult['issues'])) {
+                Log::info('ShotIntelligenceService: Progression issues detected', [
+                    'issue_count' => count($progressionResult['issues']),
+                    'overall_score' => $progressionResult['overallScore'] ?? 0,
+                ]);
+            }
+
+        } catch (\Throwable $e) {
+            Log::warning('ShotIntelligenceService: Progression analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $analysis['progression'] = [
+                'enabled' => true,
+                'error' => $e->getMessage(),
+                'overallScore' => null,
+                'shots' => [],
+                'issues' => [],
+            ];
+        }
+
+        return $analysis;
+    }
+
+    /**
+     * Enhance a video prompt with progression context.
+     *
+     * @param string $existingPrompt The existing video prompt
+     * @param string $progressionEnhancement The progression enhancement text
+     * @return string Enhanced prompt
+     */
+    protected function enhancePromptWithProgression(string $existingPrompt, string $progressionEnhancement): string
+    {
+        if (empty($existingPrompt)) {
+            return $progressionEnhancement;
+        }
+
+        if (empty($progressionEnhancement)) {
+            return $existingPrompt;
+        }
+
+        // Append progression context to the prompt
+        // Format: "Original prompt. [Progression context]"
+        return trim($existingPrompt) . ' ' . trim($progressionEnhancement);
+    }
+
+    /**
+     * Get progression analysis for an existing shot sequence.
+     * Useful for re-analyzing shots after user modifications.
+     *
+     * @param array $shots Shot sequence
+     * @param array $context Progression context
+     * @return array Progression analysis results
+     */
+    public function getProgressionAnalysis(array $shots, array $context = []): array
+    {
+        if (!$this->progressionService || !$this->progressionService->isEnabled()) {
+            return [
+                'enabled' => false,
+                'overallScore' => null,
+                'shots' => [],
+                'issues' => [],
+            ];
+        }
+
+        return $this->progressionService->analyzeProgression($shots, $context);
+    }
+
+    /**
+     * Validate action progression between shots.
+     * Returns issues if consecutive shots have identical/similar actions.
+     *
+     * @param array $shots Shot sequence with subjectAction data
+     * @return array Validation results with issues
+     */
+    public function validateActionProgression(array $shots): array
+    {
+        if (!$this->progressionService) {
+            return [
+                'valid' => true,
+                'enabled' => false,
+                'issues' => [],
+            ];
+        }
+
+        $issues = [];
+        $previousAction = null;
+
+        foreach ($shots as $index => $shot) {
+            $currentAction = $shot['subjectAction'] ?? $shot['action'] ?? '';
+
+            if ($index > 0 && !empty($currentAction) && !empty($previousAction)) {
+                $validation = $this->progressionService->validateActionStrings(
+                    $currentAction,
+                    $previousAction
+                );
+
+                if (!$validation['valid']) {
+                    $issues[] = [
+                        'shotIndex' => $index,
+                        'type' => 'action_continuity',
+                        'severity' => $validation['similarity'] > 95 ? 'high' : 'medium',
+                        'message' => $validation['message'] ?? 'Consecutive shots have similar actions',
+                        'similarity' => $validation['similarity'],
+                        'suggestion' => $validation['suggestion'] ?? 'Add unique action progression',
+                    ];
+                }
+            }
+
+            $previousAction = $currentAction;
+        }
+
+        return [
+            'valid' => empty($issues),
+            'enabled' => true,
+            'issues' => $issues,
+        ];
     }
 }
