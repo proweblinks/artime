@@ -9,6 +9,22 @@ use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
 |--------------------------------------------------------------------------
 */
 
+// Public route to serve wizard videos (no auth required)
+// This is needed because cPanel/nginx routes everything through PHP
+Route::get('/wizard-videos/{userId}/{projectId}/{filename}', function ($userId, $projectId, $filename) {
+    $path = public_path("wizard-videos/{$userId}/{$projectId}/{$filename}");
+
+    if (!file_exists($path)) {
+        abort(404, 'Video not found');
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'video/mp4',
+        'Content-Disposition' => 'inline',
+        'Accept-Ranges' => 'bytes',
+    ]);
+})->where('filename', '.*\.mp4$')->name('wizard-video.serve');
+
 Route::middleware(['web', 'auth'])->group(function () {
     Route::group(["prefix" => "app"], function () {
         Route::group(["prefix" => "video-wizard"], function () {

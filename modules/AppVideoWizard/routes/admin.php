@@ -9,6 +9,7 @@ use Modules\AppVideoWizard\Http\Controllers\Admin\NarrativeStructureController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CinematographyController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\GenrePresetController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\CameraMovementController;
+use Modules\AppVideoWizard\Http\Controllers\Admin\CoveragePatternController;
 use Modules\AppVideoWizard\Http\Controllers\Admin\SettingsController;
 
 /*
@@ -207,6 +208,30 @@ Route::middleware(['web', 'auth'])->group(function () {
             // Shot Continuity (Phase 3)
             Route::get('/continuity', [CinematographyController::class, 'continuity'])
                 ->name('admin.video-wizard.cinematography.continuity');
+
+            // Coverage Patterns (Phase 4: Scene Type Detection)
+            Route::prefix('coverage-patterns')->group(function () {
+                Route::get('/', [CoveragePatternController::class, 'index'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.index');
+                Route::get('/create', [CoveragePatternController::class, 'create'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.create');
+                Route::post('/', [CoveragePatternController::class, 'store'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.store');
+                Route::get('/{coveragePattern}/edit', [CoveragePatternController::class, 'edit'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.edit');
+                Route::put('/{coveragePattern}', [CoveragePatternController::class, 'update'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.update');
+                Route::delete('/{coveragePattern}', [CoveragePatternController::class, 'destroy'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.destroy');
+                Route::post('/{coveragePattern}/toggle', [CoveragePatternController::class, 'toggle'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.toggle');
+                Route::get('/export', [CoveragePatternController::class, 'export'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.export');
+                Route::post('/seed-defaults', [CoveragePatternController::class, 'seedDefaults'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.seed-defaults');
+                Route::post('/test-detection', [CoveragePatternController::class, 'testDetection'])
+                    ->name('admin.video-wizard.cinematography.coverage-patterns.test-detection');
+            });
 
             // Bulk Operations
             Route::post('/clear-caches', [CinematographyController::class, 'clearCaches'])

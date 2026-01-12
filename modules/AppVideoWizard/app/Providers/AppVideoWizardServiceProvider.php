@@ -157,6 +157,58 @@ class AppVideoWizardServiceProvider extends ServiceProvider
             "type"      => "boolean",
             "raw"       => 0,
         ]);
+
+        // Phase 1-5: Register intelligence services
+        $this->registerIntelligenceServices();
+    }
+
+    /**
+     * Register Phase 1-5 intelligence services for dependency injection.
+     */
+    protected function registerIntelligenceServices(): void
+    {
+        // Phase 1: Camera Movement Service
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\CameraMovementService::class,
+            fn () => new \Modules\AppVideoWizard\Services\CameraMovementService()
+        );
+
+        // Phase 2: Video Prompt Builder Service
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\VideoPromptBuilderService::class,
+            fn () => new \Modules\AppVideoWizard\Services\VideoPromptBuilderService()
+        );
+
+        // Phase 3: Shot Continuity Service (depends on Phase 1)
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\ShotContinuityService::class,
+            fn ($app) => new \Modules\AppVideoWizard\Services\ShotContinuityService(
+                $app->make(\Modules\AppVideoWizard\Services\CameraMovementService::class)
+            )
+        );
+
+        // Phase 4: Scene Type Detector Service
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\SceneTypeDetectorService::class,
+            fn () => new \Modules\AppVideoWizard\Services\SceneTypeDetectorService()
+        );
+
+        // Shot Intelligence Service (depends on Phases 1-4)
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\ShotIntelligenceService::class,
+            fn ($app) => new \Modules\AppVideoWizard\Services\ShotIntelligenceService(
+                $app->make(\Modules\AppVideoWizard\Services\ShotContinuityService::class),
+                $app->make(\Modules\AppVideoWizard\Services\SceneTypeDetectorService::class),
+                $app->make(\Modules\AppVideoWizard\Services\CameraMovementService::class),
+                $app->make(\Modules\AppVideoWizard\Services\VideoPromptBuilderService::class)
+            )
+        );
+
+        // Phase 5: Enhanced Prompt Service (unified facade)
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\EnhancedPromptService::class,
+            fn () => new \Modules\AppVideoWizard\Services\EnhancedPromptService()
+        );
     }
 
     /**

@@ -431,7 +431,11 @@ class AnimationService
      *
      * This prevents video URL expiration issues by downloading videos
      * from provider's temporary signed URLs and storing them in our
-     * permanent storage (local or cloud).
+     * permanent storage (local public disk by default).
+     *
+     * NOTE: Videos are stored on local server (public disk) by default.
+     * Firebase Storage (GCS) is NOT used for wizard videos because it
+     * requires special security rules for public access.
      *
      * @param string $temporaryUrl The temporary signed URL from video provider
      * @param WizardProject $project The project context
@@ -489,30 +493,33 @@ class AnimationService
             }
 
             // Generate permanent storage path
+            // Store directly in public folder (not storage) for cPanel/nginx compatibility
             $userId = $project->user_id ?? 0;
             $projectId = $project->id;
             $timestamp = time();
-            $filename = "wizard-videos/{$userId}/{$projectId}/scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+            $filename = "scene_{$sceneIndex}_shot_{$shotIndex}_{$timestamp}.mp4";
+            $relativePath = "wizard-videos/{$userId}/{$projectId}/{$filename}";
+            $publicPath = public_path($relativePath);
 
-            // Determine storage disk (prefer GCS if configured, else public)
-            $disk = 'public';
-            $permanentUrl = null;
-
-            if (config('filesystems.disks.gcs.bucket')) {
-                $disk = 'gcs';
-                Storage::disk($disk)->put($filename, $videoContent, 'public');
-                $bucket = config('filesystems.disks.gcs.bucket');
-                $permanentUrl = "https://storage.googleapis.com/{$bucket}/{$filename}";
-            } else {
-                Storage::disk($disk)->put($filename, $videoContent);
-                $permanentUrl = Storage::disk($disk)->url($filename);
+            // Ensure directory exists
+            $directory = dirname($publicPath);
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
             }
 
-            Log::info('AnimationService: Video stored permanently', [
-                'disk' => $disk,
-                'path' => $filename,
+            // Store the video file directly in public folder
+            file_put_contents($publicPath, $videoContent);
+
+            // Generate the public URL using video.php for cPanel compatibility
+            // video.php serves files from public/wizard-videos/ on cPanel where document root differs
+            $videoPath = "{$userId}/{$projectId}/{$filename}";
+            $permanentUrl = rtrim(config('app.url'), '/') . '/video.php?path=' . urlencode($videoPath);
+
+            Log::info('AnimationService: Video stored permanently in public folder', [
+                'path' => $relativePath,
+                'fullPath' => $publicPath,
                 'size' => $fileSize,
-                'permanentUrl' => substr($permanentUrl, 0, 100) . '...',
+                'permanentUrl' => $permanentUrl,
             ]);
 
             // Create WizardAsset record to track the video
@@ -521,7 +528,7 @@ class AnimationService
                 'user_id' => $userId,
                 'type' => WizardAsset::TYPE_VIDEO,
                 'name' => "Scene {$sceneIndex} Shot {$shotIndex} Video",
-                'path' => $filename,
+                'path' => $relativePath,
                 'url' => $permanentUrl,
                 'mime_type' => 'video/mp4',
                 'file_size' => $fileSize,
@@ -531,6 +538,7 @@ class AnimationService
                     'shot_index' => $shotIndex,
                     'original_url' => $temporaryUrl,
                     'stored_at' => now()->toIso8601String(),
+                    'storage_location' => 'public_folder',
                 ],
             ]);
 
@@ -538,7 +546,7 @@ class AnimationService
                 'success' => true,
                 'permanentUrl' => $permanentUrl,
                 'assetId' => $asset->id,
-                'path' => $filename,
+                'path' => $relativePath,
                 'fileSize' => $fileSize,
             ];
 

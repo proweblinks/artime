@@ -192,6 +192,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Coverage Patterns (Phase 4) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-3 p-3">
+                            <i class="fa fa-magnifying-glass-chart fa-2x text-info"></i>
+                        </div>
+                        <span class="badge bg-info">{{ __('Phase 4') }}</span>
+                    </div>
+                    <h5 class="card-title">{{ __('Coverage Patterns') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('Scene type detection and auto-classification for professional coverage') }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">{{ __('15+ scene patterns') }}</span>
+                        <a href="{{ route('admin.video-wizard.cinematography.coverage-patterns.index') }}" class="btn btn-sm btn-info">
+                            {{ __('Manage') }} <i class="fa fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Sample Preview -->

@@ -5,6 +5,7 @@ namespace Modules\AppVideoWizard\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\VwCameraMovement;
+use Modules\AppVideoWizard\Models\VwCoveragePattern;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\VwShotType;
 
@@ -431,6 +432,28 @@ class ShotContinuityService
      */
     public function getCoveragePattern(string $sceneType): array
     {
+        // Try to get from database first (Phase 4 patterns)
+        $dbPatterns = VwCoveragePattern::getBySceneType($sceneType);
+        if (!empty($dbPatterns)) {
+            // Use highest priority pattern
+            $dbPattern = $dbPatterns[0];
+            $sequence = $dbPattern['shot_sequence'] ?? [];
+
+            $result = [];
+            foreach ($sequence as $order => $shotType) {
+                $shotInfo = VwShotType::getBySlug($shotType);
+                $result[] = [
+                    'type' => $shotType,
+                    'order' => $order + 1,
+                    'name' => $shotInfo['name'] ?? ucwords(str_replace('-', ' ', $shotType)),
+                    'description' => $shotInfo['description'] ?? '',
+                ];
+            }
+
+            return $result;
+        }
+
+        // Fallback to static patterns
         $pattern = self::COVERAGE_PATTERNS[$sceneType] ?? self::COVERAGE_PATTERNS['dialogue'];
 
         // Sort by order
@@ -448,6 +471,39 @@ class ShotContinuityService
         }
 
         return $result;
+    }
+
+    /**
+     * Get coverage pattern with full metadata from database.
+     *
+     * @param string $sceneType Scene type
+     * @return array|null Pattern data with recommendations
+     */
+    public function getCoveragePatternWithMetadata(string $sceneType): ?array
+    {
+        $dbPatterns = VwCoveragePattern::getBySceneType($sceneType);
+        if (empty($dbPatterns)) {
+            return null;
+        }
+
+        $pattern = $dbPatterns[0];
+
+        return [
+            'slug' => $pattern['slug'],
+            'name' => $pattern['name'],
+            'sceneType' => $pattern['scene_type'],
+            'description' => $pattern['description'] ?? '',
+            'shotSequence' => $pattern['shot_sequence'],
+            'recommendations' => [
+                'pacing' => $pattern['recommended_pacing'],
+                'minShots' => $pattern['min_shots'],
+                'maxShots' => $pattern['max_shots'],
+                'typicalDuration' => $pattern['typical_shot_duration'],
+                'movementIntensity' => $pattern['default_movement_intensity'],
+                'preferredMovements' => $pattern['preferred_movements'] ?? [],
+            ],
+            'transitionRules' => $pattern['transition_rules'] ?? [],
+        ];
     }
 
     /**

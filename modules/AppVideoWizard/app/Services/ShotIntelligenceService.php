@@ -6,14 +6,24 @@ use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\VwShotType;
 use Modules\AppVideoWizard\Services\ShotContinuityService;
+use Modules\AppVideoWizard\Services\SceneTypeDetectorService;
+use Modules\AppVideoWizard\Services\CameraMovementService;
+use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
 
 /**
  * ShotIntelligenceService - AI-driven shot decomposition for scenes.
+ *
+ * PHASE 5 INTEGRATION: Connects all intelligence systems:
+ * - Phase 1: CameraMovementService (motion intelligence)
+ * - Phase 2: VideoPromptBuilderService (Higgsfield formula prompts)
+ * - Phase 3: ShotContinuityService (30-degree rule, coverage patterns)
+ * - Phase 4: SceneTypeDetectorService (automatic scene classification)
  *
  * Analyzes scene content (narration, visual description, mood) and determines:
  * - Optimal number of shots based on pacing and content
  * - Per-shot duration based on action/dialogue density
  * - Shot type sequence for professional cinematography
+ * - Camera movements for each shot
  * - Which shots need lip-sync (Multitalk) vs standard animation (MiniMax)
  */
 class ShotIntelligenceService
@@ -29,14 +39,36 @@ class ShotIntelligenceService
     protected $aiService;
 
     /**
-     * Shot continuity service for sequence validation.
+     * Phase 3: Shot continuity service for sequence validation.
      */
     protected ?ShotContinuityService $continuityService = null;
 
-    public function __construct(?ShotContinuityService $continuityService = null)
-    {
+    /**
+     * Phase 4: Scene type detector for auto-classification.
+     */
+    protected ?SceneTypeDetectorService $sceneTypeDetector = null;
+
+    /**
+     * Phase 1: Camera movement service for motion intelligence.
+     */
+    protected ?CameraMovementService $cameraMovementService = null;
+
+    /**
+     * Phase 2: Video prompt builder for Higgsfield formula.
+     */
+    protected ?VideoPromptBuilderService $videoPromptBuilder = null;
+
+    public function __construct(
+        ?ShotContinuityService $continuityService = null,
+        ?SceneTypeDetectorService $sceneTypeDetector = null,
+        ?CameraMovementService $cameraMovementService = null,
+        ?VideoPromptBuilderService $videoPromptBuilder = null
+    ) {
         $this->shotTypes = VwShotType::getAllActive();
         $this->continuityService = $continuityService;
+        $this->sceneTypeDetector = $sceneTypeDetector;
+        $this->cameraMovementService = $cameraMovementService;
+        $this->videoPromptBuilder = $videoPromptBuilder;
     }
 
     /**
@@ -48,7 +80,37 @@ class ShotIntelligenceService
     }
 
     /**
+     * Set the scene type detector (for dependency injection).
+     */
+    public function setSceneTypeDetector(SceneTypeDetectorService $detector): void
+    {
+        $this->sceneTypeDetector = $detector;
+    }
+
+    /**
+     * Set the camera movement service (for dependency injection).
+     */
+    public function setCameraMovementService(CameraMovementService $service): void
+    {
+        $this->cameraMovementService = $service;
+    }
+
+    /**
+     * Set the video prompt builder (for dependency injection).
+     */
+    public function setVideoPromptBuilder(VideoPromptBuilderService $builder): void
+    {
+        $this->videoPromptBuilder = $builder;
+    }
+
+    /**
      * Analyze a scene and determine optimal shot breakdown.
+     *
+     * PHASE 5 INTEGRATION: This method now integrates all phases:
+     * - Phase 4: Auto-detect scene type first
+     * - Phase 1: Add camera movements to each shot
+     * - Phase 2: Generate video prompts for each shot
+     * - Phase 3: Validate and optimize continuity
      *
      * @param array $scene Scene data with narration, visualDescription, duration, etc.
      * @param array $context Additional context (genre, pacing, characters, etc.)
@@ -57,6 +119,14 @@ class ShotIntelligenceService
     public function analyzeScene(array $scene, array $context = []): array
     {
         try {
+            // PHASE 4: Auto-detect scene type if detector is available
+            $sceneTypeDetection = $this->detectSceneTypeIfEnabled($scene, $context);
+            if ($sceneTypeDetection) {
+                $context['sceneType'] = $sceneTypeDetection['sceneType'];
+                $context['coveragePattern'] = $sceneTypeDetection['patternSlug'] ?? null;
+                $context['sceneTypeConfidence'] = $sceneTypeDetection['confidence'] ?? 0;
+            }
+
             // Get settings
             $minShots = (int) VwSetting::getValue('shot_min_per_scene', 1);
             $maxShots = (int) VwSetting::getValue('shot_max_per_scene', 20);
@@ -78,13 +148,25 @@ class ShotIntelligenceService
             // Parse and validate AI response
             $analysis = $this->parseAIResponse($aiResponse['response'], $scene, $minShots, $maxShots);
 
-            // Add continuity analysis if service is available
+            // PHASE 1: Add camera movements to each shot
+            $analysis = $this->addCameraMovements($analysis, $scene, $context);
+
+            // PHASE 2: Generate video prompts for each shot
+            $analysis = $this->addVideoPrompts($analysis, $scene, $context);
+
+            // PHASE 3: Add continuity analysis
             $analysis = $this->addContinuityAnalysis($analysis, $context);
 
-            Log::info('ShotIntelligenceService: Scene analyzed successfully', [
+            // Add scene type detection results
+            if ($sceneTypeDetection) {
+                $analysis['sceneTypeDetection'] = $sceneTypeDetection;
+            }
+
+            Log::info('ShotIntelligenceService: Scene analyzed with full integration', [
                 'scene_id' => $scene['id'] ?? 'unknown',
                 'shot_count' => $analysis['shotCount'],
                 'total_duration' => $analysis['totalDuration'],
+                'scene_type' => $context['sceneType'] ?? 'unknown',
                 'continuity_score' => $analysis['continuity']['score'] ?? null,
             ]);
 
@@ -104,6 +186,97 @@ class ShotIntelligenceService
     }
 
     /**
+     * PHASE 4: Detect scene type if detector is available and enabled.
+     */
+    protected function detectSceneTypeIfEnabled(array $scene, array $context): ?array
+    {
+        if (!$this->sceneTypeDetector || !$this->sceneTypeDetector->isAutoDetectionEnabled()) {
+            return null;
+        }
+
+        try {
+            return $this->sceneTypeDetector->detectSceneType($scene, $context);
+        } catch (\Throwable $e) {
+            Log::warning('ShotIntelligenceService: Scene type detection failed', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * PHASE 1: Add camera movements to each shot in the analysis.
+     */
+    protected function addCameraMovements(array $analysis, array $scene, array $context): array
+    {
+        if (!$this->cameraMovementService) {
+            return $analysis;
+        }
+
+        $sceneType = $context['sceneType'] ?? 'dialogue';
+        $previousMovement = null;
+
+        foreach ($analysis['shots'] as $index => &$shot) {
+            try {
+                $movementSuggestion = $this->cameraMovementService->suggestMovement([
+                    'shotType' => $shot['type'] ?? 'medium',
+                    'sceneType' => $sceneType,
+                    'isFirstShot' => ($index === 0),
+                    'previousMovement' => $previousMovement,
+                    'mood' => $scene['mood'] ?? $context['mood'] ?? 'neutral',
+                ]);
+
+                if ($movementSuggestion && isset($movementSuggestion['movement'])) {
+                    $shot['cameraMovement'] = $movementSuggestion['movement']['prompt_syntax'] ?? $movementSuggestion['movement']['name'] ?? '';
+                    $shot['movementSlug'] = $movementSuggestion['movement']['slug'] ?? '';
+                    $shot['movementIntensity'] = $movementSuggestion['suggestedIntensity'] ?? 'moderate';
+                    $previousMovement = $shot['movementSlug'];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('ShotIntelligenceService: Camera movement suggestion failed for shot', [
+                    'shot_index' => $index,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $analysis;
+    }
+
+    /**
+     * PHASE 2: Add video prompts to each shot using Higgsfield formula.
+     */
+    protected function addVideoPrompts(array $analysis, array $scene, array $context): array
+    {
+        if (!$this->videoPromptBuilder) {
+            return $analysis;
+        }
+
+        foreach ($analysis['shots'] as $index => &$shot) {
+            try {
+                $promptResult = $this->videoPromptBuilder->buildPrompt($shot, [
+                    'scene' => $scene,
+                    'context' => $context,
+                    'shotIndex' => $index,
+                    'totalShots' => count($analysis['shots']),
+                ]);
+
+                if ($promptResult && isset($promptResult['prompt'])) {
+                    $shot['videoPrompt'] = $promptResult['prompt'];
+                    $shot['promptComponents'] = $promptResult['components'] ?? [];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('ShotIntelligenceService: Video prompt generation failed for shot', [
+                    'shot_index' => $index,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $analysis;
+    }
+
+    /**
      * Build the AI analysis prompt from template and scene data.
      */
     protected function buildAnalysisPrompt(array $scene, array $context, string $template): string
@@ -118,6 +291,9 @@ class ShotIntelligenceService
             'has_dialogue' => !empty($scene['dialogue']) || $this->detectDialogue($scene['narration'] ?? '') ? 'yes' : 'no',
             'characters' => implode(', ', $context['characters'] ?? []),
             'available_shot_types' => $this->getAvailableShotTypesForPrompt(),
+            // Phase 4 & 5: Scene type and coverage pattern for enhanced prompts
+            'scene_type' => $context['sceneType'] ?? 'dialogue',
+            'coverage_pattern' => $context['coveragePattern'] ?? 'dialogue-standard',
         ];
 
         // Replace template variables
@@ -670,6 +846,7 @@ class ShotIntelligenceService
 
     /**
      * Get the default AI prompt template.
+     * PHASE 5: Enhanced with scene type detection and camera movement guidance.
      */
     protected function getDefaultPrompt(): string
     {
@@ -682,6 +859,15 @@ MOOD: {{mood}}
 GENRE: {{genre}}
 PACING: {{pacing}}
 HAS DIALOGUE: {{has_dialogue}}
+SCENE TYPE: {{scene_type}}
+COVERAGE PATTERN: {{coverage_pattern}}
+
+SCENE TYPE COVERAGE PATTERNS:
+- DIALOGUE: Master → Two-Shot → Over-Shoulder → Close-up → Reaction (build intimacy)
+- ACTION: Wide → Tracking → Medium → Close-up → Insert (maintain energy)
+- EMOTIONAL: Wide → Medium → Close-up → Extreme Close-up (build intensity)
+- ESTABLISHING: Extreme-Wide → Wide → Medium-Wide (set location)
+- MONTAGE: Mix shot sizes and angles for visual variety
 
 DURATION RULES (CRITICAL - vary durations based on shot type and content):
 - Establishing/Wide shots: 6s or 10s (longer to set the scene)
@@ -693,13 +879,23 @@ DURATION RULES (CRITICAL - vary durations based on shot type and content):
 - Action sequences: 5s (fast pacing)
 - Emotional/contemplative moments: 6s or 10s (let it breathe)
 
+CAMERA MOVEMENT GUIDANCE:
+- Opening/Establishing shots: slow pan, crane, or aerial
+- Dialogue scenes: static, subtle push-in, gentle drift
+- Action scenes: tracking, handheld, whip-pan
+- Emotional peaks: slow push-in to close-up
+- Transitions: match movement between shots for continuity
+
+30-DEGREE RULE: When cutting between similar shot sizes, camera angle should change at least 30 degrees to avoid jump cuts.
+
 Consider:
 1. Pacing - {{pacing}} pacing affects shot duration (fast=shorter, slow=longer)
 2. Dialogue - shots with speaking characters need lip-sync (needsLipSync: true) and LONGER durations (10-20s)
 3. Visual variety - mix shot types AND durations for professional look
 4. Story beats - establish (6-10s), develop (5-6s), climax (5s for impact)
 5. Scene mood - {{mood}} mood affects rhythm
-6. SUBJECT ACTION (CRITICAL for video animation):
+6. Scene type - follow {{scene_type}} coverage pattern guidelines
+7. SUBJECT ACTION (CRITICAL for video animation):
    - Each shot MUST describe what the subject/characters are DOING
    - Use "the subject" or simple pronouns for image-to-video compatibility
    - For chained shots (shot 2+), describe continuation or transition of action
@@ -711,13 +907,13 @@ Available shot types: {{available_shot_types}}
 Return ONLY valid JSON (no markdown, no explanation):
 {
   "shotCount": number,
-  "reasoning": "brief explanation of shot and DURATION choices",
+  "reasoning": "brief explanation of shot and DURATION choices based on scene type",
   "shots": [
     {
       "type": "shot_type_slug",
       "duration": number (MUST vary: 5 for close-ups/action, 6 for medium/standard, 10 for establishing/dialogue, 15-20 for long dialogue),
-      "purpose": "why this shot",
-      "cameraMovement": "movement description",
+      "purpose": "why this shot fits the {{scene_type}} pattern",
+      "cameraMovement": "specific movement (e.g., slow push-in, static, tracking left)",
       "subjectAction": "REQUIRED: what the subject/characters are doing (e.g. \'The subject looks around with growing awareness\', \'The subjects react with surprise\')",
       "needsLipSync": boolean
     }
