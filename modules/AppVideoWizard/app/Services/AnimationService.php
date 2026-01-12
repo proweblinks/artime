@@ -512,12 +512,13 @@ class AnimationService
             // Store the video file
             Storage::disk($disk)->put($filename, $videoContent);
 
-            // Generate the public URL
+            // Generate the public URL properly
+            // Storage::url() returns /storage/... which needs to be converted to full URL
             $permanentUrl = Storage::disk($disk)->url($filename);
 
-            // If URL doesn't start with http, make it absolute
+            // Fix URL: remove leading slash to avoid double slashes when using url()
             if (!str_starts_with($permanentUrl, 'http')) {
-                $permanentUrl = url($permanentUrl);
+                $permanentUrl = rtrim(config('app.url'), '/') . '/' . ltrim($permanentUrl, '/');
             }
 
             Log::info('AnimationService: Video stored permanently on local server', [
