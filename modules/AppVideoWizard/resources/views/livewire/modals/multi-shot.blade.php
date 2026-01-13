@@ -517,8 +517,8 @@ window.multiShotVideoPolling = function() {
                                     @endif
 
                                     {{-- Image/Video Area --}}
-                                    <div style="height: 90px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; position: relative;"
-                                         @if($hasImage) wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" @endif>
+                                    <div style="height: 90px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;"
+                                         wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                         @if($hasImage)
                                             <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotIndex + 1 }}" style="width: 100%; height: 100%; object-fit: cover;">
                                             {{-- Hover overlay --}}
@@ -537,9 +537,13 @@ window.multiShotVideoPolling = function() {
                                                 @endif
                                             </div>
                                         @elseif($isGeneratingImage)
-                                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                            <div style="display: flex; flex-direction: column; align-items: center; position: relative; width: 100%; height: 100%; justify-content: center;">
                                                 <div style="width: 24px; height: 24px; border: 2px solid rgba(139, 92, 246, 0.2); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                                                 <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">Generating...</span>
+                                                {{-- Hover hint to view prompts --}}
+                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(139,92,246,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
+                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
+                                                </div>
                                             </div>
                                         @elseif($isGeneratingVideo && $hasImage)
                                             <img src="{{ $shot['imageUrl'] }}" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
@@ -548,18 +552,26 @@ window.multiShotVideoPolling = function() {
                                                 <span style="font-size: 0.65rem; color: #67e8f9; margin-top: 0.5rem; font-weight: 600;">🎬 Animating...</span>
                                             </div>
                                         @elseif(($shot['status'] ?? '') === 'error')
-                                            <div style="text-align: center;">
+                                            <div style="text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                                 <span style="font-size: 1.25rem;">⚠️</span>
                                                 <div style="font-size: 0.6rem; color: #ef4444; margin-top: 0.25rem;">Error</div>
+                                                {{-- Hover hint to view prompts --}}
+                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(239,68,68,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
+                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
+                                                </div>
                                             </div>
                                         @else
-                                            <div style="text-align: center;">
+                                            <div style="text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                                 <span style="font-size: 1.5rem; color: rgba(255,255,255,0.3);">🖼️</span>
                                                 <button type="button"
                                                         wire:click.stop="generateShotImage({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
                                                         style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.25rem; color: white; font-size: 0.6rem; cursor: pointer;">
                                                     Generate
                                                 </button>
+                                                {{-- Hover hint to view prompts --}}
+                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(139,92,246,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
+                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
+                                                </div>
                                             </div>
                                         @endif
                                     </div>

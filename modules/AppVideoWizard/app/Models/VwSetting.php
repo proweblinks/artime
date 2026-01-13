@@ -59,6 +59,8 @@ class VwSetting extends Model
     const CATEGORY_SHOT_CONTINUITY = 'shot_continuity';
     const CATEGORY_SCENE_DETECTION = 'scene_detection';
     const CATEGORY_SHOT_PROGRESSION = 'shot_progression';
+    const CATEGORY_NARRATIVE_BEATS = 'narrative_beats';
+    const CATEGORY_CHARACTER_ENRICHMENT = 'character_enrichment';
 
     /**
      * Mapping of VwSetting slugs to legacy get_option keys for backward compatibility.
@@ -335,6 +337,8 @@ class VwSetting extends Model
             self::CATEGORY_SHOT_CONTINUITY => 'Shot Continuity',
             self::CATEGORY_SCENE_DETECTION => 'Scene Detection',
             self::CATEGORY_SHOT_PROGRESSION => 'Shot Progression',
+            self::CATEGORY_NARRATIVE_BEATS => 'Narrative Beat Patterns',
+            self::CATEGORY_CHARACTER_ENRICHMENT => 'Character Enrichment',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
             self::CATEGORY_ANIMATION => 'Animation Models',
             self::CATEGORY_DURATION => 'Duration Settings',
@@ -359,6 +363,8 @@ class VwSetting extends Model
             self::CATEGORY_SHOT_CONTINUITY => 'fa-solid fa-link',
             self::CATEGORY_SCENE_DETECTION => 'fa-solid fa-magnifying-glass-chart',
             self::CATEGORY_SHOT_PROGRESSION => 'fa-solid fa-diagram-project',
+            self::CATEGORY_NARRATIVE_BEATS => 'fa-solid fa-book-open',
+            self::CATEGORY_CHARACTER_ENRICHMENT => 'fa-solid fa-user-pen',
             self::CATEGORY_SHOT_INTELLIGENCE => 'fa-solid fa-brain',
             self::CATEGORY_ANIMATION => 'fa-solid fa-film',
             self::CATEGORY_DURATION => 'fa-solid fa-clock',
@@ -383,6 +389,8 @@ class VwSetting extends Model
             self::CATEGORY_SHOT_CONTINUITY,
             self::CATEGORY_SCENE_DETECTION,
             self::CATEGORY_SHOT_PROGRESSION,
+            self::CATEGORY_NARRATIVE_BEATS,
+            self::CATEGORY_CHARACTER_ENRICHMENT,
             self::CATEGORY_SHOT_INTELLIGENCE,
             self::CATEGORY_ANIMATION,
             self::CATEGORY_DURATION,

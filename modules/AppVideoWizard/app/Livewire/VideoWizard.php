@@ -18,6 +18,7 @@ use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
+use Modules\AppVideoWizard\Services\ShotProgressionService;
 use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
 use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
 use Modules\AppVideoWizard\Services as Services;
@@ -1833,6 +1834,7 @@ class VideoWizard extends Component
                 'productionType' => $this->productionType,
                 'productionSubType' => $this->productionSubtype,
                 'teamId' => session('current_team_id', 0),
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -2013,6 +2015,7 @@ class VideoWizard extends Component
                     'productionType' => $this->productionType,
                     'productionSubType' => $this->productionSubtype,
                     'teamId' => session('current_team_id', 0),
+                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
                 ]);
 
                 $this->concept['refinedConcept'] = $result['improvedConcept'] ?? '';
@@ -2027,7 +2030,10 @@ class VideoWizard extends Component
             $variations = $conceptService->generateVariations(
                 $this->concept['refinedConcept'] ?: $this->concept['rawInput'],
                 3,
-                ['teamId' => session('current_team_id', 0)]
+                [
+                    'teamId' => session('current_team_id', 0),
+                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                ]
             );
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -2121,7 +2127,10 @@ class VideoWizard extends Component
             $variations = $conceptService->generateVariations(
                 $this->concept['rawInput'], // Use original input for fresh variations
                 3,
-                ['teamId' => session('current_team_id', 0)]
+                [
+                    'teamId' => session('current_team_id', 0),
+                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                ]
             );
 
             $this->conceptVariations = $variations;
@@ -2213,6 +2222,8 @@ class VideoWizard extends Component
                 'storyArc' => $this->storyArc,
                 'tensionCurve' => $this->tensionCurve,
                 'emotionalJourney' => $this->emotionalJourney,
+                // AI Model Tier selection
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -6811,21 +6822,40 @@ class VideoWizard extends Component
         $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
 
         // 1. Auto-populate Style Bible based on production type (if not already set)
+        // Each detection runs in its own try-catch to ensure independence
         if (!$hasExistingStyle) {
-            $this->transitionMessage = __('Setting up visual style...');
-            $this->autoPopulateStyleBible();
+            try {
+                $this->transitionMessage = __('Setting up visual style...');
+                $this->autoPopulateStyleBible();
+            } catch (\Exception $e) {
+                Log::error('SceneMemoryPopulation: Style Bible failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // 2. Auto-detect characters from script (if none exist)
         if (!$hasExistingCharacters) {
-            $this->transitionMessage = __('Detecting characters from script...');
-            $this->autoDetectCharactersFromScript();
+            try {
+                $this->transitionMessage = __('Detecting characters from script...');
+                $this->autoDetectCharactersFromScript();
+            } catch (\Exception $e) {
+                Log::error('SceneMemoryPopulation: Character detection failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // 3. Auto-detect locations from script (if none exist)
         if (!$hasExistingLocations) {
-            $this->transitionMessage = __('Identifying locations...');
-            $this->autoDetectLocationsFromScript();
+            try {
+                $this->transitionMessage = __('Identifying locations...');
+                $this->autoDetectLocationsFromScript();
+            } catch (\Exception $e) {
+                Log::error('SceneMemoryPopulation: Location detection failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Dispatch event to notify UI
@@ -7281,6 +7311,7 @@ class VideoWizard extends Component
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
                 'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
             ]);
 
             if ($result['success'] && !empty($result['characters'])) {
@@ -7395,6 +7426,68 @@ class VideoWizard extends Component
                             'aiScenes' => count($aiScenes),
                             'expandedScenes' => count($expandedScenes),
                             'totalScenes' => $totalScenes,
+                        ]);
+                    }
+                }
+
+                // =====================================================================
+                // CHARACTER ENRICHMENT: Fill in missing descriptions
+                // Some characters may have empty descriptions due to AI response limits
+                // =====================================================================
+                $enrichmentEnabled = VwSetting::getValue('character_enrichment_enabled', true);
+                if ($enrichmentEnabled && !empty($this->sceneMemory['characterBible']['characters'])) {
+                    try {
+                        $batchSize = VwSetting::getValue('character_enrichment_batch_size', 3);
+                        $minDescLength = VwSetting::getValue('character_enrichment_min_description_length', 30);
+
+                        $enrichedCharacters = $service->enrichIncompleteCharacters(
+                            $this->sceneMemory['characterBible']['characters'],
+                            $this->script,
+                            [
+                                'teamId' => session('current_team_id', 0),
+                                'visualMode' => $this->getVisualMode(),
+                                'batchSize' => $batchSize,
+                                'minDescriptionLength' => $minDescLength,
+                                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                            ]
+                        );
+
+                        // Replace characters with enriched versions
+                        $this->sceneMemory['characterBible']['characters'] = $enrichedCharacters;
+
+                        Log::info('CharacterExtraction: Enrichment completed', [
+                            'totalCharacters' => count($enrichedCharacters),
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Enrichment failed, keeping original characters', [
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
+                // =====================================================================
+                // CHARACTER SORTING: Sort by importance (role, then scene count)
+                // =====================================================================
+                $sortEnabled = VwSetting::getValue('character_sort_enabled', true);
+                if ($sortEnabled && !empty($this->sceneMemory['characterBible']['characters'])) {
+                    try {
+                        $sortMethod = VwSetting::getValue('character_sort_method', 'role_then_scenes');
+
+                        $sortedCharacters = $service->sortCharactersByImportance(
+                            $this->sceneMemory['characterBible']['characters'],
+                            $sortMethod
+                        );
+
+                        // Replace characters with sorted order
+                        $this->sceneMemory['characterBible']['characters'] = $sortedCharacters;
+
+                        Log::info('CharacterExtraction: Characters sorted', [
+                            'method' => $sortMethod,
+                            'topCharacter' => $sortedCharacters[0]['name'] ?? 'N/A',
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::warning('CharacterExtraction: Sorting failed, keeping original order', [
+                            'error' => $e->getMessage(),
                         ]);
                     }
                 }
@@ -8082,6 +8175,7 @@ class VideoWizard extends Component
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
                 'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
             ]);
 
             if ($result['success'] && !empty($result['locations'])) {
@@ -8189,14 +8283,65 @@ class VideoWizard extends Component
                 }
             }
 
+            // Explicit handling for AI failure (success = false)
+            if (!$result['success']) {
+                Log::warning('LocationExtraction: AI returned failure, falling back to pattern matching', [
+                    'error' => $result['error'] ?? 'Unknown AI error',
+                ]);
+                // Fall through to pattern matching
+            }
+
         } catch (\Exception $e) {
-            Log::warning('LocationExtraction: AI extraction failed, falling back to pattern matching', [
+            Log::warning('LocationExtraction: AI extraction exception, falling back to pattern matching', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
 
-        // Fallback to pattern-based detection
-        $this->autoDetectLocationsWithPatterns();
+        // Fallback to pattern-based detection - wrapped in try-catch for robustness
+        try {
+            $this->autoDetectLocationsWithPatterns();
+        } catch (\Exception $e) {
+            Log::error('LocationExtraction: Pattern-based detection failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        // FINAL FALLBACK: Ensure at least one location exists
+        // This guarantees the Location Bible is never empty after detection runs
+        if (empty($this->sceneMemory['locationBible']['locations'])) {
+            $totalScenes = count($this->script['scenes'] ?? []);
+            Log::warning('LocationExtraction: All detection methods failed, creating default location', [
+                'totalScenes' => $totalScenes,
+            ]);
+
+            $this->sceneMemory['locationBible']['locations'][] = [
+                'id' => uniqid('loc_'),
+                'name' => 'General Location',
+                'type' => 'exterior',
+                'timeOfDay' => 'day',
+                'weather' => 'clear',
+                'atmosphere' => '',
+                'mood' => '',
+                'lightingStyle' => '',
+                'description' => 'Default location for the video. Edit this to add specific environment details.',
+                'scenes' => $totalScenes > 0 ? range(0, $totalScenes - 1) : [],
+                'stateChanges' => [],
+                'referenceImage' => null,
+                'autoDetected' => true,
+                'defaultFallback' => true, // Flag to indicate this was created as a fallback
+            ];
+
+            $this->sceneMemory['locationBible']['enabled'] = true;
+
+            $this->dispatch('vw-debug', [
+                'type' => 'location_extraction',
+                'method' => 'fallback',
+                'count' => 1,
+                'message' => 'Created default location as fallback',
+            ]);
+        }
     }
 
     /**
@@ -8466,12 +8611,35 @@ class VideoWizard extends Component
 
     /**
      * Auto-detect characters from script.
+     * Called when user clicks "Auto-detect from Script" button in Character Bible modal.
      */
     public function autoDetectCharacters(): void
     {
+        Log::info('CharacterExtraction: Manual auto-detect triggered', [
+            'hasScript' => !empty($this->script),
+            'sceneCount' => count($this->script['scenes'] ?? []),
+            'existingCharacters' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+        ]);
+
+        // Clear existing auto-detected characters to allow fresh detection
+        // Keep only manually added characters (those without auto-detection flags)
+        $manualCharacters = array_filter(
+            $this->sceneMemory['characterBible']['characters'] ?? [],
+            fn($char) => empty($char['autoDetected']) && empty($char['aiGenerated']) && empty($char['patternMatched']) && empty($char['defaultGenerated'])
+        );
+        $this->sceneMemory['characterBible']['characters'] = array_values($manualCharacters);
+
+        Log::info('CharacterExtraction: Cleared auto-detected characters', [
+            'keptManual' => count($manualCharacters),
+        ]);
+
         // Use AI-powered extraction (with pattern fallback)
         $this->autoDetectCharactersFromScript();
         $this->saveProject();
+
+        Log::info('CharacterExtraction: Manual auto-detect completed', [
+            'totalCharacters' => count($this->sceneMemory['characterBible']['characters'] ?? []),
+        ]);
     }
 
     /**
@@ -9256,12 +9424,40 @@ EOT;
 
     /**
      * Auto-detect locations from script.
+     * Called when user clicks "Auto-detect from Script" button in Location Bible modal.
      */
     public function autoDetectLocations(): void
     {
-        // Use AI-powered extraction (with pattern fallback)
-        $this->autoDetectLocationsFromScript();
-        $this->saveProject();
+        Log::info('LocationExtraction: Manual auto-detect triggered', [
+            'hasScript' => !empty($this->script),
+            'sceneCount' => count($this->script['scenes'] ?? []),
+            'existingLocations' => count($this->sceneMemory['locationBible']['locations'] ?? []),
+        ]);
+
+        try {
+            // Clear existing auto-detected locations to allow fresh detection
+            $manualLocations = array_filter(
+                $this->sceneMemory['locationBible']['locations'] ?? [],
+                fn($loc) => empty($loc['autoDetected']) && empty($loc['aiGenerated']) && empty($loc['patternMatched'])
+            );
+            $this->sceneMemory['locationBible']['locations'] = array_values($manualLocations);
+
+            // Use AI-powered extraction (with pattern fallback)
+            $this->autoDetectLocationsFromScript();
+            $this->saveProject();
+
+            Log::info('LocationExtraction: Manual auto-detect completed', [
+                'locationCount' => count($this->sceneMemory['locationBible']['locations'] ?? []),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('LocationExtraction: Manual auto-detect failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Ensure at least something is shown to the user
+            $this->error = __('Location detection encountered an issue. A default location has been added.');
+        }
     }
 
     /**
@@ -9793,17 +9989,33 @@ EOT;
     {
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
-        // Build context for AI analysis
+        // Calculate total scenes for narrative positioning
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        // Build context for AI analysis - CRITICAL: Pass all wizard configuration
         $context = [
+            // Basic scene/project settings
             'genre' => $this->content['genre'] ?? 'general',
             'pacing' => $this->content['pacing'] ?? 'balanced',
             'mood' => $scene['mood'] ?? 'neutral',
             'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
             'characters' => array_keys($this->sceneMemory['characterBible']['characters'] ?? []),
+
+            // PHASE 6: Narrative progression context (from wizard UI selections)
+            'tensionCurve' => $this->tensionCurve ?? 'balanced',
+            'emotionalJourney' => $this->emotionalJourney ?? 'hopeful-path',
+            'sceneIndex' => $sceneIndex,
+            'totalScenes' => $totalScenes,
+
+            // Additional narrative context
+            'narrativePreset' => $this->narrativePreset ?? null,
+            'storyArc' => $this->storyArc ?? null,
+            'scriptTone' => $this->scriptTone ?? null,
         ];
 
-        // Call AI Shot Intelligence Service
+        // Call AI Shot Intelligence Service with ShotProgressionService
         $service = new ShotIntelligenceService();
+        $service->setProgressionService(new ShotProgressionService());
         $analysis = $service->analyzeScene($scene, $context);
 
         Log::info('VideoWizard: AI Shot Intelligence analysis complete', [

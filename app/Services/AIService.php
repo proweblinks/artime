@@ -39,7 +39,7 @@ class AIService
     public function process($content, string $category = 'text', array $options = [], int $teamId = 0): array
     {
         $maxLength = get_option("ai_max_output_lenght", 1000);
-        
+
         switch ($category) {
             case 'image':
                 $platform  = get_option("ai_platform_image", "openai");
@@ -76,6 +76,60 @@ class AIService
 
         // Tính credits
         $this->trackCredits($platform, $category, $response, $teamId);
+
+        return $response;
+    }
+
+    /**
+     * Process AI request with explicit provider/model override.
+     * Used by Video Wizard AI Model Tier selection to bypass global settings.
+     *
+     * @param mixed $content The content/prompt to process
+     * @param string $provider The AI provider (openai, grok, gemini, claude, etc.)
+     * @param string|null $model Optional specific model to use
+     * @param string $category The category (text, image, video, etc.)
+     * @param array $options Additional options
+     * @param int $teamId Team ID for quota tracking
+     * @return array Response from AI service
+     */
+    public function processWithOverride(
+        $content,
+        string $provider,
+        ?string $model = null,
+        string $category = 'text',
+        array $options = [],
+        int $teamId = 0
+    ): array {
+        $maxLength = get_option("ai_max_output_lenght", 1000);
+
+        // Kiểm tra quota
+        $quota = \Credit::checkQuota($teamId);
+        if (!$quota['can_use']) {
+            throw new \Exception($quota['message']);
+        }
+
+        $service = $this->getService($provider);
+
+        // If model is specified, pass it in options for the service to use
+        if ($model) {
+            $options['model'] = $model;
+        }
+
+        // Dispatch theo category
+        $response = match ($category) {
+            'text'           => $service->generateText($content, $maxLength, $options['maxResult'] ?? null, $category, $model),
+            'image'          => $service->generateImage($content, $options, $category),
+            'video'          => $service->generateVideo($content, $options, $category),
+            'speech'         => $service->textToSpeech($content, $options, $category),
+            'speech_to_text' => $service->speechToText($content, $options, $category),
+            'audio'          => $service->generateAudio($content, $options, $category),
+            'embedding'      => $service->generateEmbedding($content, $options, $category),
+            'vision'         => $service->generateVision($content, $options, $category),
+            default          => throw new \Exception("Category {$category} not supported"),
+        };
+
+        // Tính credits
+        $this->trackCredits($provider, $category, $response, $teamId);
 
         return $response;
     }

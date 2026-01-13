@@ -83,10 +83,18 @@ class OpenAIService
 
     /**
      * Generate text (chat or responses API)
+     *
+     * @param string|array $prompt The prompt or messages array
+     * @param int $maxLength Maximum output length
+     * @param int $maxResult Number of results (n parameter)
+     * @param string $category The category (text, etc.)
+     * @param string|null $modelOverride Optional specific model to use instead of default
+     * @return array
      */
-    public function generateText(string|array $prompt, int $maxLength, int $maxResult = 1, string $category = 'text'): array
+    public function generateText(string|array $prompt, int $maxLength, int $maxResult = 1, string $category = 'text', ?string $modelOverride = null): array
     {
-        $modelKey = $this->getModel($category);
+        // Use override model if provided, otherwise use default from settings
+        $modelKey = $modelOverride ?? $this->getModel($category);
         $aiModel  = AIModel::where('model_key', $modelKey)->first();
         $apiType  = $aiModel->api_type ?? 'chat';
 

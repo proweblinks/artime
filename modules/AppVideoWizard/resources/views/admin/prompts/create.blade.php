@@ -73,7 +73,10 @@
                                 <option value="gpt-4">GPT-4</option>
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
                                 <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
                                 <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                <option value="grok-4-fast">Grok 4 Fast (xAI)</option>
+                                <option value="grok-4">Grok 4 (xAI)</option>
                                 <option value="claude-3-opus">Claude 3 Opus</option>
                                 <option value="claude-3-sonnet">Claude 3 Sonnet</option>
                             </select>

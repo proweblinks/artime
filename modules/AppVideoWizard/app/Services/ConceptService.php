@@ -8,6 +8,42 @@ use Modules\AppVideoWizard\Models\WizardProject;
 class ConceptService
 {
     /**
+     * AI Model Tier configurations.
+     * Maps tier names to provider/model pairs.
+     */
+    const AI_MODEL_TIERS = [
+        'economy' => [
+            'provider' => 'grok',
+            'model' => 'grok-4-fast',
+        ],
+        'standard' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+        ],
+        'premium' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+        ],
+    ];
+
+    /**
+     * Call AI with tier-based model selection.
+     */
+    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    {
+        $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+
+        return AI::processWithOverride(
+            $prompt,
+            $config['provider'],
+            $config['model'],
+            'text',
+            $options,
+            $teamId
+        );
+    }
+
+    /**
      * Improve/enhance a raw concept using AI.
      */
     public function improveConcept(string $rawInput, array $options = []): array
@@ -15,12 +51,13 @@ class ConceptService
         $productionType = $options['productionType'] ?? null;
         $productionSubType = $options['productionSubType'] ?? null;
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         $prompt = $this->buildImprovePrompt($rawInput, $productionType, $productionSubType);
 
-        $result = AI::process($prompt, 'text', [
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
             'maxResult' => 1
-        ], $teamId);
+        ]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
@@ -112,6 +149,7 @@ PROMPT;
     public function generateVariations(string $concept, int $count = 3, array $options = []): array
     {
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         $prompt = <<<PROMPT
 Based on this video concept, generate {$count} unique variations that explore different angles or approaches:
@@ -130,9 +168,9 @@ Return as JSON array:
 ]
 PROMPT;
 
-        $result = AI::process($prompt, 'text', [
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
             'maxResult' => 1
-        ], $teamId);
+        ]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);

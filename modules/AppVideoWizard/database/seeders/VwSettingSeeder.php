@@ -1489,6 +1489,279 @@ Return ONLY valid JSON (no markdown, no explanation):
                 'is_system' => true,
                 'sort_order' => 6,
             ],
+
+            // =============================================
+            // NARRATIVE BEAT PATTERNS (Phase 6+)
+            // Defines how actions should progress within shots
+            // =============================================
+            [
+                'slug' => 'narrative_beats_enabled',
+                'name' => 'Enable Narrative Beat Patterns',
+                'category' => 'narrative_beats',
+                'description' => 'Master toggle for narrative beat pattern system. Ensures each shot has a distinct action that advances the story.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'When enabled, AI decomposition follows narrative beat templates for action progression',
+                'icon' => 'fa-solid fa-book-open',
+                'is_system' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'slug' => 'narrative_beats_action_templates',
+                'name' => 'Action Progression Templates',
+                'category' => 'narrative_beats',
+                'description' => 'JSON templates defining how actions should progress through shots. Each beat type maps to a sequence of action verbs.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'establishing' => [
+                        'surveys', 'observes', 'takes in', 'notices', 'becomes aware of'
+                    ],
+                    'discovery' => [
+                        'realizes', 'discovers', 'recognizes', 'understands', 'senses'
+                    ],
+                    'decision' => [
+                        'decides', 'commits', 'resolves', 'chooses', 'determines'
+                    ],
+                    'action' => [
+                        'acts', 'moves', 'engages', 'executes', 'performs'
+                    ],
+                    'reaction' => [
+                        'responds', 'reacts', 'processes', 'absorbs', 'reflects'
+                    ],
+                    'revelation' => [
+                        'reveals', 'exposes', 'uncovers', 'shows', 'demonstrates'
+                    ],
+                    'resolution' => [
+                        'settles', 'concludes', 'completes', 'finishes', 'achieves'
+                    ],
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Map beat types to action verb progressions. AI will use these to create distinct actions per shot.',
+                'icon' => 'fa-solid fa-list-ol',
+                'is_system' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'slug' => 'narrative_beats_scene_patterns',
+                'name' => 'Scene Type Patterns',
+                'category' => 'narrative_beats',
+                'description' => 'JSON patterns defining ideal beat sequences for different scene types.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'action' => [
+                        'minShots' => 5,
+                        'maxShots' => 12,
+                        'beatSequence' => ['establishing', 'action', 'reaction', 'action', 'revelation'],
+                        'preferredDurations' => [10, 5, 5, 6, 6],
+                        'description' => 'Fast-paced with multiple action-reaction cycles'
+                    ],
+                    'dialogue' => [
+                        'minShots' => 4,
+                        'maxShots' => 8,
+                        'beatSequence' => ['establishing', 'discovery', 'reaction', 'decision'],
+                        'preferredDurations' => [6, 10, 6, 10],
+                        'description' => 'Conversation-driven with emotional beats'
+                    ],
+                    'emotional' => [
+                        'minShots' => 3,
+                        'maxShots' => 6,
+                        'beatSequence' => ['establishing', 'discovery', 'reaction', 'resolution'],
+                        'preferredDurations' => [10, 10, 6, 10],
+                        'description' => 'Slow build with longer contemplative shots'
+                    ],
+                    'montage' => [
+                        'minShots' => 5,
+                        'maxShots' => 15,
+                        'beatSequence' => ['action', 'action', 'action', 'revelation'],
+                        'preferredDurations' => [5, 5, 5, 6],
+                        'description' => 'Quick cuts showing progression of time/action'
+                    ],
+                    'establishing' => [
+                        'minShots' => 2,
+                        'maxShots' => 4,
+                        'beatSequence' => ['establishing', 'discovery'],
+                        'preferredDurations' => [10, 6],
+                        'description' => 'Set the scene with wide shots and slow reveals'
+                    ],
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Define beat sequences and shot counts per scene type. Controls how AI decomposes scenes.',
+                'icon' => 'fa-solid fa-sitemap',
+                'is_system' => true,
+                'sort_order' => 3,
+            ],
+            [
+                'slug' => 'narrative_beats_min_duration_by_beat',
+                'name' => 'Minimum Duration by Beat Type',
+                'category' => 'narrative_beats',
+                'description' => 'JSON mapping of beat types to minimum durations. Ensures beats have enough time to complete.',
+                'value_type' => 'json',
+                'value' => json_encode([
+                    'establishing' => 6,
+                    'discovery' => 6,
+                    'decision' => 6,
+                    'action' => 5,
+                    'reaction' => 5,
+                    'revelation' => 6,
+                    'resolution' => 6,
+                ], JSON_PRETTY_PRINT),
+                'default_value' => null,
+                'input_type' => 'json_editor',
+                'input_help' => 'Minimum seconds for each beat type. Prevents incomplete actions.',
+                'icon' => 'fa-solid fa-stopwatch',
+                'is_system' => true,
+                'sort_order' => 4,
+            ],
+            [
+                'slug' => 'narrative_beats_enforce_unique_actions',
+                'name' => 'Enforce Unique Actions Per Shot',
+                'category' => 'narrative_beats',
+                'description' => 'Require each shot to have a distinctly different action verb from the previous shot.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'Prevents "man smiles" -> "man smiles" sequences by requiring verb variety',
+                'icon' => 'fa-solid fa-fingerprint',
+                'is_system' => true,
+                'sort_order' => 5,
+            ],
+            [
+                'slug' => 'narrative_beats_dynamic_shot_count',
+                'name' => 'Dynamic Shot Count by Content',
+                'category' => 'narrative_beats',
+                'description' => 'Allow AI to recommend more shots for complex scenes with multiple story beats.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'Enables 6-12+ shots for action scenes, 3-4 for simple establishing shots',
+                'icon' => 'fa-solid fa-arrows-left-right',
+                'is_system' => true,
+                'sort_order' => 6,
+            ],
+            [
+                'slug' => 'narrative_beats_position_awareness',
+                'name' => 'Scene Position Awareness',
+                'category' => 'narrative_beats',
+                'description' => 'Consider scene position in overall video when determining beat patterns (early=establishing, climax=action).',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'Scene 1 of 10 uses establishing patterns; Scene 8 of 10 uses climax patterns',
+                'icon' => 'fa-solid fa-map-marker-alt',
+                'is_system' => true,
+                'sort_order' => 7,
+            ],
+            [
+                'slug' => 'narrative_beats_ai_prompt_enhancement',
+                'name' => 'AI Prompt Enhancement Template',
+                'category' => 'narrative_beats',
+                'description' => 'Additional prompt text injected into AI decomposition to enforce narrative beat patterns.',
+                'value_type' => 'string',
+                'value' => 'NARRATIVE BEAT RULES (CRITICAL - each shot must advance the story):
+1. Each shot MUST have a UNIQUE action verb - never repeat "smiles", "looks", etc. between consecutive shots
+2. Shot actions must BUILD upon each other: observe → notice → react → decide → act
+3. Example progression for 5 shots:
+   - Shot 1: "The subject surveys the environment with cautious awareness"
+   - Shot 2: "The subject notices a critical detail, expression shifting to recognition"
+   - Shot 3: "The subject reacts with determination, stance becoming purposeful"
+   - Shot 4: "The subject initiates action, energy building in movement"
+   - Shot 5: "The subject completes the action, consequences visible in the result"
+4. FORBIDDEN: Two consecutive shots with same/similar actions (no "walks" then "walks")
+5. Each shot must answer: "What NEW thing happens in this shot?"',
+                'default_value' => null,
+                'input_type' => 'textarea',
+                'input_help' => 'This text is added to the AI prompt to enforce narrative progression rules',
+                'icon' => 'fa-solid fa-robot',
+                'is_system' => true,
+                'sort_order' => 8,
+            ],
+
+            // =============================================
+            // CHARACTER ENRICHMENT SETTINGS
+            // Ensures all characters get detailed descriptions
+            // =============================================
+            [
+                'slug' => 'character_enrichment_enabled',
+                'name' => 'Enable Character Enrichment',
+                'category' => 'character_enrichment',
+                'description' => 'Automatically generate descriptions for characters that were extracted without details (due to AI response limits).',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'When enabled, makes follow-up AI calls to fill in missing character descriptions',
+                'icon' => 'fa-solid fa-user-pen',
+                'is_system' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'slug' => 'character_enrichment_batch_size',
+                'name' => 'Enrichment Batch Size',
+                'category' => 'character_enrichment',
+                'description' => 'Number of characters to enrich per AI call. Smaller batches are more reliable but cost more API calls.',
+                'value_type' => 'integer',
+                'value' => '3',
+                'default_value' => '3',
+                'min_value' => 1,
+                'max_value' => 10,
+                'input_type' => 'number',
+                'input_help' => 'Recommended: 3 for reliability, up to 5 for efficiency',
+                'icon' => 'fa-solid fa-layer-group',
+                'is_system' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'slug' => 'character_enrichment_min_description_length',
+                'name' => 'Minimum Description Length',
+                'category' => 'character_enrichment',
+                'description' => 'Characters with descriptions shorter than this will be considered incomplete and enriched.',
+                'value_type' => 'integer',
+                'value' => '30',
+                'default_value' => '30',
+                'min_value' => 10,
+                'max_value' => 100,
+                'input_type' => 'number',
+                'input_help' => 'Characters with description < 30 chars are likely truncated and need enrichment',
+                'icon' => 'fa-solid fa-text-width',
+                'is_system' => true,
+                'sort_order' => 3,
+            ],
+            [
+                'slug' => 'character_sort_enabled',
+                'name' => 'Enable Character Sorting',
+                'category' => 'character_enrichment',
+                'description' => 'Automatically sort characters by importance (role and scene count) in the Character Bible.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'Main characters appear first, sorted by number of scene appearances',
+                'icon' => 'fa-solid fa-arrow-down-wide-short',
+                'is_system' => true,
+                'sort_order' => 4,
+            ],
+            [
+                'slug' => 'character_sort_method',
+                'name' => 'Character Sort Method',
+                'category' => 'character_enrichment',
+                'description' => 'How to sort characters in the Character Bible list.',
+                'value_type' => 'string',
+                'value' => 'role_then_scenes',
+                'default_value' => 'role_then_scenes',
+                'allowed_values' => json_encode(['role_then_scenes', 'scenes_only', 'alphabetical']),
+                'input_type' => 'select',
+                'input_help' => 'role_then_scenes: Main→Supporting→Background, then by scene count. scenes_only: Just by scene count. alphabetical: A-Z by name.',
+                'icon' => 'fa-solid fa-sort',
+                'is_system' => true,
+                'sort_order' => 5,
+            ],
         ];
 
         foreach ($settings as $setting) {

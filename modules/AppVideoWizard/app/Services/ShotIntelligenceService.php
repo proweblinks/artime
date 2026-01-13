@@ -301,9 +301,22 @@ class ShotIntelligenceService
 
     /**
      * Build the AI analysis prompt from template and scene data.
+     * PHASE 6+: Enhanced with narrative beat patterns and scene position awareness.
      */
     protected function buildAnalysisPrompt(array $scene, array $context, string $template): string
     {
+        // Get scene position context
+        $sceneIndex = $context['sceneIndex'] ?? 0;
+        $totalScenes = $context['totalScenes'] ?? 1;
+        $scenePosition = $this->getScenePositionContext($sceneIndex, $totalScenes);
+
+        // Get narrative beat patterns from settings
+        $narrativeBeatRules = $this->getNarrativeBeatRules($context);
+
+        // Get recommended shot count range based on scene type
+        $sceneType = $context['sceneType'] ?? 'dialogue';
+        $shotCountGuidance = $this->getSceneTypeShotGuidance($sceneType);
+
         $variables = [
             'scene_description' => $scene['visualDescription'] ?? $scene['visual'] ?? '',
             'narration' => $scene['narration'] ?? '',
@@ -315,8 +328,14 @@ class ShotIntelligenceService
             'characters' => implode(', ', $context['characters'] ?? []),
             'available_shot_types' => $this->getAvailableShotTypesForPrompt(),
             // Phase 4 & 5: Scene type and coverage pattern for enhanced prompts
-            'scene_type' => $context['sceneType'] ?? 'dialogue',
+            'scene_type' => $sceneType,
             'coverage_pattern' => $context['coveragePattern'] ?? 'dialogue-standard',
+            // Phase 6+: Narrative beat context
+            'scene_position' => $scenePosition,
+            'narrative_beat_rules' => $narrativeBeatRules,
+            'shot_count_guidance' => $shotCountGuidance,
+            'tension_curve' => $context['tensionCurve'] ?? 'balanced',
+            'emotional_journey' => $context['emotionalJourney'] ?? 'hopeful-path',
         ];
 
         // Replace template variables
@@ -326,6 +345,88 @@ class ShotIntelligenceService
         }
 
         return $prompt;
+    }
+
+    /**
+     * Get scene position context string for AI prompt.
+     */
+    protected function getScenePositionContext(int $sceneIndex, int $totalScenes): string
+    {
+        if ($totalScenes <= 1) {
+            return 'Single scene video - include full narrative arc within scene';
+        }
+
+        $position = $sceneIndex / max(1, $totalScenes - 1);
+        $sceneNum = $sceneIndex + 1;
+
+        if ($position <= 0.15) {
+            return "Scene {$sceneNum} of {$totalScenes} - OPENING: Use establishing beats, introduce setting/characters";
+        } elseif ($position <= 0.35) {
+            return "Scene {$sceneNum} of {$totalScenes} - RISING ACTION: Use discovery and development beats";
+        } elseif ($position <= 0.65) {
+            return "Scene {$sceneNum} of {$totalScenes} - MIDPOINT: Use confrontation and decision beats";
+        } elseif ($position <= 0.85) {
+            return "Scene {$sceneNum} of {$totalScenes} - CLIMAX: Use action and revelation beats, peak energy";
+        } else {
+            return "Scene {$sceneNum} of {$totalScenes} - RESOLUTION: Use resolution and closure beats";
+        }
+    }
+
+    /**
+     * Get narrative beat rules from settings.
+     */
+    protected function getNarrativeBeatRules(array $context): string
+    {
+        // Check if narrative beats are enabled
+        $enabled = (bool) VwSetting::getValue('narrative_beats_enabled', true);
+        if (!$enabled) {
+            return '';
+        }
+
+        // Get custom prompt enhancement from settings (admin-configurable)
+        $customRules = VwSetting::getValue('narrative_beats_ai_prompt_enhancement', '');
+        if (!empty($customRules)) {
+            return $customRules;
+        }
+
+        // Default narrative beat rules if no custom rules configured
+        return 'NARRATIVE BEAT RULES (CRITICAL - each shot must advance the story):
+1. Each shot MUST have a UNIQUE action verb - never repeat actions between consecutive shots
+2. Shot actions must BUILD upon each other: observe → notice → react → decide → act
+3. FORBIDDEN: Two consecutive shots with same/similar actions
+4. Each shot must answer: "What NEW thing happens in this shot?"';
+    }
+
+    /**
+     * Get shot count guidance based on scene type.
+     */
+    protected function getSceneTypeShotGuidance(string $sceneType): string
+    {
+        // Get scene patterns from settings
+        $patterns = VwSetting::getValue('narrative_beats_scene_patterns', []);
+        if (is_string($patterns)) {
+            $patterns = json_decode($patterns, true) ?? [];
+        }
+
+        $pattern = $patterns[$sceneType] ?? null;
+
+        if ($pattern) {
+            $min = $pattern['minShots'] ?? 3;
+            $max = $pattern['maxShots'] ?? 8;
+            $desc = $pattern['description'] ?? '';
+            return "RECOMMENDED: {$min}-{$max} shots for {$sceneType} scene. {$desc}";
+        }
+
+        // Default guidance by scene type
+        $defaults = [
+            'action' => 'RECOMMENDED: 5-12 shots for action scenes. Fast-paced with action-reaction cycles.',
+            'dialogue' => 'RECOMMENDED: 4-8 shots for dialogue scenes. Build intimacy with varied angles.',
+            'emotional' => 'RECOMMENDED: 3-6 shots for emotional scenes. Longer durations, slow build.',
+            'montage' => 'RECOMMENDED: 5-15 shots for montage. Quick cuts showing progression.',
+            'establishing' => 'RECOMMENDED: 2-4 shots for establishing. Wide shots, slow reveals.',
+        ];
+
+        return $defaults[$sceneType] ?? 'RECOMMENDED: 3-8 shots based on content complexity.';
     }
 
     /**
@@ -366,25 +467,28 @@ class ShotIntelligenceService
         $provider = VwSetting::getValue('ai_shot_analysis_provider', 'openai');
         $model = VwSetting::getValue('ai_shot_analysis_model', 'gpt-4');
 
-        // Tier-based model overrides (user can still set base provider in admin)
+        // Tier-based model overrides - matches VideoWizard::AI_MODEL_TIERS
+        // Economy: Best value, great quality
+        // Standard: Balanced performance
+        // Premium: Maximum quality
         $tierModels = [
             'economy' => [
                 'openai' => 'gpt-4o-mini',
-                'grok' => 'grok-2-fast',
-                'gemini' => 'gemini-1.5-flash',
-                'anthropic' => 'claude-3-haiku',
+                'grok' => 'grok-4-fast', // Updated: xAI's latest fast model
+                'gemini' => 'gemini-2.5-flash',
+                'anthropic' => 'claude-3.5-haiku',
             ],
             'standard' => [
                 'openai' => 'gpt-4o-mini',
-                'grok' => 'grok-2',
-                'gemini' => 'gemini-1.5-pro',
-                'anthropic' => 'claude-3-5-sonnet',
+                'grok' => 'grok-4-fast',
+                'gemini' => 'gemini-2.5-pro',
+                'anthropic' => 'claude-sonnet-4',
             ],
             'premium' => [
                 'openai' => 'gpt-4o',
-                'grok' => 'grok-3',
-                'gemini' => 'gemini-2.0-flash-exp',
-                'anthropic' => 'claude-3-5-opus',
+                'grok' => 'grok-4', // Full Grok 4 for premium
+                'gemini' => 'gemini-2.5-pro',
+                'anthropic' => 'claude-opus-4',
             ],
         ];
 
@@ -869,7 +973,7 @@ class ShotIntelligenceService
 
     /**
      * Get the default AI prompt template.
-     * PHASE 5: Enhanced with scene type detection and camera movement guidance.
+     * PHASE 6+: Enhanced with narrative beat patterns and action progression requirements.
      */
     protected function getDefaultPrompt(): string
     {
@@ -884,23 +988,33 @@ PACING: {{pacing}}
 HAS DIALOGUE: {{has_dialogue}}
 SCENE TYPE: {{scene_type}}
 COVERAGE PATTERN: {{coverage_pattern}}
+TENSION CURVE: {{tension_curve}}
+EMOTIONAL JOURNEY: {{emotional_journey}}
+
+SCENE POSITION IN VIDEO:
+{{scene_position}}
+
+SHOT COUNT GUIDANCE:
+{{shot_count_guidance}}
+
+{{narrative_beat_rules}}
 
 SCENE TYPE COVERAGE PATTERNS:
 - DIALOGUE: Master → Two-Shot → Over-Shoulder → Close-up → Reaction (build intimacy)
-- ACTION: Wide → Tracking → Medium → Close-up → Insert (maintain energy)
+- ACTION: Wide → Tracking → Medium → Close-up → Insert (maintain energy) - USE 5-12 SHOTS
 - EMOTIONAL: Wide → Medium → Close-up → Extreme Close-up (build intensity)
 - ESTABLISHING: Extreme-Wide → Wide → Medium-Wide (set location)
-- MONTAGE: Mix shot sizes and angles for visual variety
+- MONTAGE: Mix shot sizes and angles for visual variety - USE 5-15 SHOTS
 
-DURATION RULES (CRITICAL - vary durations based on shot type and content):
-- Establishing/Wide shots: 6s or 10s (longer to set the scene)
+DURATION RULES (CRITICAL - minimum 6s for most shots to complete actions):
+- Establishing/Wide shots: 10s (longer to set the scene fully)
 - Medium shots: 6s (standard narrative)
-- Close-up shots: 5s (quick emotional impact)
+- Close-up shots: 5-6s (emotional impact - 6s preferred to complete expression)
 - Detail/Insert shots: 5s (brief focus)
-- Reaction shots: 5s (quick cut)
+- Reaction shots: 5-6s (quick but complete reaction)
 - Dialogue shots with lip-sync: 10s, 15s, or 20s (match dialogue length)
-- Action sequences: 5s (fast pacing)
-- Emotional/contemplative moments: 6s or 10s (let it breathe)
+- Action sequences: 5-6s (fast but complete action)
+- Emotional/contemplative moments: 10s (let it breathe)
 
 CAMERA MOVEMENT GUIDANCE:
 - Opening/Establishing shots: slow pan, crane, or aerial
@@ -911,33 +1025,33 @@ CAMERA MOVEMENT GUIDANCE:
 
 30-DEGREE RULE: When cutting between similar shot sizes, camera angle should change at least 30 degrees to avoid jump cuts.
 
-Consider:
-1. Pacing - {{pacing}} pacing affects shot duration (fast=shorter, slow=longer)
-2. Dialogue - shots with speaking characters need lip-sync (needsLipSync: true) and LONGER durations (10-20s)
-3. Visual variety - mix shot types AND durations for professional look
-4. Story beats - establish (6-10s), develop (5-6s), climax (5s for impact)
-5. Scene mood - {{mood}} mood affects rhythm
-6. Scene type - follow {{scene_type}} coverage pattern guidelines
-7. SUBJECT ACTION (CRITICAL for video animation):
-   - Each shot MUST describe what the subject/characters are DOING
-   - Use "the subject" or simple pronouns for image-to-video compatibility
-   - For chained shots (shot 2+), describe continuation or transition of action
-   - Include emotional state/expression for close-ups
-   - Examples: "The subject looks around in bewilderment", "The subjects orient themselves", "The subject\'s expression shifts to determination"
+SUBJECT ACTION RULES (CRITICAL - THIS IS THE MOST IMPORTANT SECTION):
+1. Each shot MUST have a COMPLETELY DIFFERENT action from the previous shot
+2. Actions must PROGRESS the story: observe → notice → react → decide → act → complete
+3. Use "the subject" or simple pronouns for image-to-video compatibility
+4. Include emotional state/expression changes for close-ups
+5. EXAMPLE PROGRESSION FOR 5 SHOTS (notice how each action is UNIQUE):
+   - Shot 1 (establishing): "The subject surveys the environment with cautious awareness"
+   - Shot 2 (discovery): "The subject notices something unusual, expression shifting to curiosity"
+   - Shot 3 (reaction): "The subject reacts with determination, posture becoming alert"
+   - Shot 4 (action): "The subject initiates deliberate movement, channeling energy"
+   - Shot 5 (revelation): "The subject releases power, the effect becoming visible"
+6. FORBIDDEN: Using the same verb/action in consecutive shots (no "looks" then "looks")
+7. Each shot must answer: "What NEW thing happens in this specific shot?"
 
 Available shot types: {{available_shot_types}}
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
-  "shotCount": number,
-  "reasoning": "brief explanation of shot and DURATION choices based on scene type",
+  "shotCount": number (follow shot count guidance above),
+  "reasoning": "brief explanation of shot choices and how actions PROGRESS through the scene",
   "shots": [
     {
       "type": "shot_type_slug",
-      "duration": number (MUST vary: 5 for close-ups/action, 6 for medium/standard, 10 for establishing/dialogue, 15-20 for long dialogue),
-      "purpose": "why this shot fits the {{scene_type}} pattern",
+      "duration": number (prefer 6-10s to allow complete actions, only use 5s for quick cuts),
+      "purpose": "narrative beat this shot serves (establishing/discovery/reaction/action/revelation)",
       "cameraMovement": "specific movement (e.g., slow push-in, static, tracking left)",
-      "subjectAction": "REQUIRED: what the subject/characters are doing (e.g. \'The subject looks around with growing awareness\', \'The subjects react with surprise\')",
+      "subjectAction": "REQUIRED: UNIQUE action for this shot - must be DIFFERENT from adjacent shots",
       "needsLipSync": boolean
     }
   ]

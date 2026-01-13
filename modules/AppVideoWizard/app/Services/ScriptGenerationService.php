@@ -43,6 +43,67 @@ class ScriptGenerationService
     const MAX_DURATION_SECONDS = 1200;
 
     /**
+     * AI Model Tier configurations.
+     * Maps tier names to provider/model pairs.
+     * Must match VideoWizard::AI_MODEL_TIERS
+     */
+    const AI_MODEL_TIERS = [
+        'economy' => [
+            'provider' => 'grok',
+            'model' => 'grok-4-fast',
+        ],
+        'standard' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+        ],
+        'premium' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+        ],
+    ];
+
+    /**
+     * Get provider and model for a given AI tier.
+     *
+     * @param string $tier The tier name (economy, standard, premium)
+     * @return array ['provider' => string, 'model' => string]
+     */
+    protected function getAIConfigFromTier(string $tier): array
+    {
+        return self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+    }
+
+    /**
+     * Call AI with tier-based model selection.
+     * Uses processWithOverride to bypass global AI settings.
+     *
+     * @param string $prompt The prompt to send
+     * @param string $tier The AI tier (economy, standard, premium)
+     * @param int $teamId Team ID for quota tracking
+     * @param array $options Additional options
+     * @return array AI response
+     */
+    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    {
+        $config = $this->getAIConfigFromTier($tier);
+
+        \Log::info('VideoWizard: AI call with tier', [
+            'tier' => $tier,
+            'provider' => $config['provider'],
+            'model' => $config['model'],
+        ]);
+
+        return AI::processWithOverride(
+            $prompt,
+            $config['provider'],
+            $config['model'],
+            'text',
+            $options,
+            $teamId
+        );
+    }
+
+    /**
      * Generate a video script based on project configuration.
      * Supports videos up to 20 minutes with intelligent scene chunking.
      */
@@ -57,6 +118,9 @@ class ScriptGenerationService
         $duration = min($project->target_duration, self::MAX_DURATION_SECONDS);
         $contentDepth = $options['contentDepth'] ?? 'detailed';
         $additionalInstructions = $options['additionalInstructions'] ?? '';
+
+        // AI Model Tier selection (economy, standard, premium)
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         // Narrative Structure Intelligence options
         $narrativePreset = $options['narrativePreset'] ?? null;
@@ -73,11 +137,12 @@ class ScriptGenerationService
             'duration' => $duration,
             'sceneCount' => $params['sceneCount'],
             'targetWords' => $params['targetWords'],
+            'aiModelTier' => $aiModelTier,
         ]);
 
         // For videos over 5 minutes, use chunked generation
         if ($duration > 300) {
-            return $this->generateLongFormScript($topic, $tone, $duration, $params, $concept, $productionType, $additionalInstructions, $teamId);
+            return $this->generateLongFormScript($topic, $tone, $duration, $params, $concept, $productionType, $additionalInstructions, $teamId, $aiModelTier);
         }
 
         // Standard generation for shorter videos
@@ -103,7 +168,8 @@ class ScriptGenerationService
         $prompt = $this->buildScriptPrompt($promptParams);
         $startTime = microtime(true);
 
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        // Use tier-based AI model selection
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
         $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
         if (!empty($result['error'])) {
@@ -247,16 +313,18 @@ class ScriptGenerationService
         array $concept,
         ?array $productionType,
         string $additionalInstructions,
-        int $teamId
+        int $teamId,
+        string $aiModelTier = 'economy'
     ): array {
         \Log::info('VideoWizard: Using multi-pass generation for long-form video', [
             'duration' => $duration,
             'minutes' => round($duration / 60, 1),
+            'aiModelTier' => $aiModelTier,
         ]);
 
         // Step 1: Generate outline/structure
         $outlinePrompt = $this->buildOutlinePrompt($topic, $tone, $duration, $params, $concept, $additionalInstructions);
-        $outlineResult = AI::process($outlinePrompt, 'text', ['maxResult' => 1], $teamId);
+        $outlineResult = $this->callAIWithTier($outlinePrompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($outlineResult['error'])) {
             throw new \Exception($outlineResult['error']);
@@ -279,7 +347,8 @@ class ScriptGenerationService
                 $topic,
                 $tone,
                 $concept,
-                $teamId
+                $teamId,
+                $aiModelTier
             );
             $allScenes = array_merge($allScenes, $sectionScenes);
         }
@@ -325,12 +394,14 @@ class ScriptGenerationService
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
         $topic = $options['topic'] ?? $project->concept['refinedConcept'] ?? $project->concept['rawInput'] ?? '';
         $sceneCount = $endScene - $startScene + 1;
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         \Log::info('VideoWizard: Generating scene batch', [
             'startScene' => $startScene,
             'endScene' => $endScene,
             'totalScenes' => $totalScenes,
             'sceneCount' => $sceneCount,
+            'aiModelTier' => $aiModelTier,
         ]);
 
         // Build the batch prompt
@@ -343,8 +414,8 @@ class ScriptGenerationService
             $options
         );
 
-        // Call AI
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        // Call AI with tier-based model selection
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($result['error'])) {
             return ['success' => false, 'error' => $result['error'], 'scenes' => []];
@@ -654,7 +725,8 @@ PROMPT;
         string $topic,
         string $tone,
         array $concept,
-        int $teamId
+        int $teamId,
+        string $aiModelTier = 'economy'
     ): array {
         $sectionDuration = $section['duration'] ?? 60;
         $sceneCount = max(2, (int) ceil($sectionDuration / 15));
@@ -698,7 +770,7 @@ REQUIREMENTS:
 - Narration should flow naturally from scene to scene
 PROMPT;
 
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($result['error'])) {
             \Log::warning('VideoWizard: Section generation failed', [
@@ -2506,6 +2578,7 @@ JSON;
         $existingScene = $options['existingScene'] ?? [];
         $tone = $options['tone'] ?? 'engaging';
         $contentDepth = $options['contentDepth'] ?? 'detailed';
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         $concept = $project->concept ?? [];
         $topic = $concept['refinedConcept'] ?? $concept['rawInput'] ?? '';
@@ -2543,7 +2616,7 @@ RESPOND WITH ONLY THIS JSON (no markdown):
 }
 PROMPT;
 
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
@@ -2573,6 +2646,7 @@ PROMPT;
         $style = $options['style'] ?? '';
         $productionType = $options['productionType'] ?? 'movie';
         $aspectRatio = $options['aspectRatio'] ?? '16:9';
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         $styleContext = !empty($style) ? "STYLE REFERENCE: {$style}" : '';
         $conceptContext = !empty($concept['refinedConcept'])
@@ -2598,7 +2672,7 @@ Create a detailed visual prompt that:
 RESPOND WITH ONLY THE PROMPT TEXT (no JSON, no explanation, just the visual description):
 PROMPT;
 
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
@@ -2622,6 +2696,7 @@ PROMPT;
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
         $narrationStyle = $options['narrationStyle'] ?? 'voiceover';
         $tone = $options['tone'] ?? 'engaging';
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         // For simple voiceover, the narration IS the voiceover text
         if ($narrationStyle === 'voiceover' || $narrationStyle === 'narrator') {
@@ -2644,7 +2719,7 @@ Create dialogue that:
 RESPOND WITH ONLY THE DIALOGUE TEXT (no explanation):
 PROMPT;
 
-            $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
             if (!empty($result['error'])) {
                 return $narration; // Fallback to original
@@ -2667,6 +2742,7 @@ PROMPT;
     public function improveScript(array $script, string $instruction, array $options = []): array
     {
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         $scriptJson = json_encode($script, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
@@ -2681,7 +2757,7 @@ INSTRUCTION: {$instruction}
 RESPOND WITH ONLY THE IMPROVED JSON (no markdown, no explanation):
 PROMPT;
 
-        $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);

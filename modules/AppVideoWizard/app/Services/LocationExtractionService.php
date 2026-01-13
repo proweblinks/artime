@@ -12,6 +12,42 @@ use Illuminate\Support\Facades\Log;
 class LocationExtractionService
 {
     /**
+     * AI Model Tier configurations.
+     * Maps tier names to provider/model pairs.
+     */
+    const AI_MODEL_TIERS = [
+        'economy' => [
+            'provider' => 'grok',
+            'model' => 'grok-4-fast',
+        ],
+        'standard' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+        ],
+        'premium' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+        ],
+    ];
+
+    /**
+     * Call AI with tier-based model selection.
+     */
+    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    {
+        $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+
+        return AI::processWithOverride(
+            $prompt,
+            $config['provider'],
+            $config['model'],
+            'text',
+            $options,
+            $teamId
+        );
+    }
+
+    /**
      * Extract locations from a video script using AI analysis.
      *
      * @param array $script The script data with scenes
@@ -35,6 +71,7 @@ class LocationExtractionService
         $productionMode = $options['productionMode'] ?? 'standard';
         $styleBible = $options['styleBible'] ?? null;
         $visualMode = $options['visualMode'] ?? null; // Master visual mode enforcement
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         try {
             // Build scene content for analysis
@@ -52,8 +89,8 @@ class LocationExtractionService
 
             $startTime = microtime(true);
 
-            // Call AI
-            $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+            // Call AI with tier-based model selection
+            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
 

@@ -12,6 +12,42 @@ use Illuminate\Support\Facades\Log;
 class CharacterExtractionService
 {
     /**
+     * AI Model Tier configurations.
+     * Maps tier names to provider/model pairs.
+     */
+    const AI_MODEL_TIERS = [
+        'economy' => [
+            'provider' => 'grok',
+            'model' => 'grok-4-fast',
+        ],
+        'standard' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini',
+        ],
+        'premium' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+        ],
+    ];
+
+    /**
+     * Call AI with tier-based model selection.
+     */
+    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    {
+        $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+
+        return AI::processWithOverride(
+            $prompt,
+            $config['provider'],
+            $config['model'],
+            'text',
+            $options,
+            $teamId
+        );
+    }
+
+    /**
      * Extract characters from a video script using AI analysis.
      *
      * @param array $script The script data with scenes
@@ -36,6 +72,7 @@ class CharacterExtractionService
         $productionMode = $options['productionMode'] ?? 'standard';
         $styleBible = $options['styleBible'] ?? null;
         $visualMode = $options['visualMode'] ?? null; // Master visual mode enforcement
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
 
         try {
             // Build scene content for analysis
@@ -53,8 +90,8 @@ class CharacterExtractionService
 
             $startTime = microtime(true);
 
-            // Call AI
-            $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+            // Call AI with tier-based model selection
+            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
@@ -545,5 +582,301 @@ USER;
         ]);
 
         return $result;
+    }
+
+    /**
+     * Enrich characters that have missing or incomplete descriptions.
+     * Makes targeted AI calls to generate descriptions for characters that were
+     * truncated due to response length limits during initial extraction.
+     *
+     * @param array $characters Array of character data
+     * @param array $script The script data for context
+     * @param array $options Options including teamId, visualMode, batchSize
+     * @return array Enriched characters array
+     */
+    public function enrichIncompleteCharacters(array $characters, array $script, array $options = []): array
+    {
+        $teamId = $options['teamId'] ?? session('current_team_id', 0);
+        $visualMode = $options['visualMode'] ?? null;
+        $batchSize = $options['batchSize'] ?? 3;
+        $minDescriptionLength = $options['minDescriptionLength'] ?? 30;
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+
+        // Identify characters needing enrichment
+        $needsEnrichment = [];
+        $complete = [];
+
+        foreach ($characters as $idx => $char) {
+            $description = trim($char['description'] ?? '');
+            if (empty($description) || strlen($description) < $minDescriptionLength) {
+                $needsEnrichment[$idx] = $char;
+            } else {
+                $complete[$idx] = $char;
+            }
+        }
+
+        if (empty($needsEnrichment)) {
+            Log::info('CharacterEnrichment: All characters have descriptions', [
+                'totalCharacters' => count($characters),
+            ]);
+            return $characters;
+        }
+
+        Log::info('CharacterEnrichment: Starting enrichment', [
+            'totalCharacters' => count($characters),
+            'needsEnrichment' => count($needsEnrichment),
+            'batchSize' => $batchSize,
+        ]);
+
+        // Build scene context for enrichment (condensed)
+        $sceneContext = $this->buildCondensedSceneContext($script['scenes'] ?? []);
+
+        // Process in batches to avoid token limits
+        $batches = array_chunk($needsEnrichment, $batchSize, true);
+        $enriched = [];
+
+        foreach ($batches as $batchIdx => $batch) {
+            try {
+                $batchEnriched = $this->enrichBatch($batch, $sceneContext, $visualMode, $teamId, $aiModelTier);
+                foreach ($batchEnriched as $charIdx => $enrichedChar) {
+                    $enriched[$charIdx] = $enrichedChar;
+                }
+
+                Log::info('CharacterEnrichment: Batch completed', [
+                    'batchIndex' => $batchIdx + 1,
+                    'batchSize' => count($batch),
+                    'enrichedCount' => count($batchEnriched),
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('CharacterEnrichment: Batch failed, keeping originals', [
+                    'batchIndex' => $batchIdx + 1,
+                    'error' => $e->getMessage(),
+                ]);
+                // Keep original characters on failure
+                foreach ($batch as $charIdx => $char) {
+                    $enriched[$charIdx] = $char;
+                }
+            }
+        }
+
+        // Merge enriched characters back with complete ones
+        $result = $complete + $enriched;
+        ksort($result); // Restore original order
+
+        Log::info('CharacterEnrichment: Completed', [
+            'totalEnriched' => count($enriched),
+            'totalFinal' => count($result),
+        ]);
+
+        return array_values($result);
+    }
+
+    /**
+     * Enrich a batch of characters with AI-generated descriptions.
+     */
+    protected function enrichBatch(array $characters, string $sceneContext, ?array $visualMode, int $teamId, string $aiModelTier = 'economy'): array
+    {
+        // Build character list for prompt
+        $charList = [];
+        $charMap = []; // Map names to original indices
+        foreach ($characters as $idx => $char) {
+            $name = $char['name'] ?? 'Unknown';
+            $role = $char['role'] ?? 'Supporting';
+            $scenes = $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
+            $sceneStr = !empty($scenes) ? implode(', ', array_map(fn($s) => $s + 1, $scenes)) : 'various';
+
+            $charList[] = "- {$name} ({$role}): appears in scenes {$sceneStr}";
+            $charMap[$name] = $idx;
+        }
+
+        $charListStr = implode("\n", $charList);
+
+        // Build visual mode context
+        $visualContext = '';
+        if ($visualMode) {
+            $enforcement = $visualMode['enforcement'] ?? '';
+            $keywords = $visualMode['keywords'] ?? '';
+            $visualContext = "\nVISUAL STYLE: {$enforcement}\nRequired keywords: {$keywords}\n";
+        }
+
+        $prompt = <<<PROMPT
+Generate detailed visual descriptions for these characters. Each description must be specific enough for AI image generation.
+{$visualContext}
+SCENE CONTEXT (condensed):
+{$sceneContext}
+
+CHARACTERS NEEDING DESCRIPTIONS:
+{$charListStr}
+
+For EACH character, provide a detailed visual description including:
+- Age (specific range like "early 30s")
+- Gender
+- Ethnicity/skin tone
+- Build (athletic, slim, stocky, etc.)
+- Hair (color, length, style)
+- Eyes (color, shape)
+- Distinctive features
+- Typical clothing/wardrobe
+
+Return ONLY valid JSON in this exact format:
+{
+  "characters": [
+    {
+      "name": "Exact Character Name",
+      "description": "Full detailed visual description..."
+    }
+  ]
+}
+
+CRITICAL: Use the EXACT character names provided. Generate unique, detailed descriptions for each.
+PROMPT;
+
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+
+        if (!empty($result['error'])) {
+            throw new \Exception('AI error: ' . $result['error']);
+        }
+
+        $response = $result['data'][0] ?? '';
+        if (empty($response)) {
+            throw new \Exception('Empty AI response');
+        }
+
+        // Parse response
+        $response = preg_replace('/```json\s*/i', '', $response);
+        $response = preg_replace('/```\s*/', '', $response);
+        $parsed = json_decode(trim($response), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Try to extract JSON
+            if (preg_match('/\{[\s\S]*"characters"[\s\S]*\}/m', $response, $matches)) {
+                $parsed = json_decode($matches[0], true);
+            }
+        }
+
+        if (!is_array($parsed) || empty($parsed['characters'])) {
+            throw new \Exception('Could not parse character descriptions');
+        }
+
+        // Map descriptions back to original characters
+        $enriched = [];
+        foreach ($parsed['characters'] as $enrichedChar) {
+            $name = $enrichedChar['name'] ?? '';
+            $description = $enrichedChar['description'] ?? '';
+
+            // Find matching character by name (fuzzy match)
+            $matchedIdx = null;
+            foreach ($charMap as $origName => $idx) {
+                if (strcasecmp($name, $origName) === 0 ||
+                    stripos($origName, $name) !== false ||
+                    stripos($name, $origName) !== false) {
+                    $matchedIdx = $idx;
+                    break;
+                }
+            }
+
+            if ($matchedIdx !== null && !empty($description)) {
+                $enriched[$matchedIdx] = $characters[$matchedIdx];
+                $enriched[$matchedIdx]['description'] = $description;
+                $enriched[$matchedIdx]['enriched'] = true; // Flag for debugging
+            }
+        }
+
+        // Ensure all characters in batch are returned (even if not enriched)
+        foreach ($characters as $idx => $char) {
+            if (!isset($enriched[$idx])) {
+                $enriched[$idx] = $char;
+            }
+        }
+
+        return $enriched;
+    }
+
+    /**
+     * Build condensed scene context for enrichment prompts.
+     * Shorter than full extraction to save tokens.
+     */
+    protected function buildCondensedSceneContext(array $scenes): string
+    {
+        $context = [];
+        foreach ($scenes as $idx => $scene) {
+            $sceneNum = $idx + 1;
+            $visual = $scene['visualDescription'] ?? $scene['visual'] ?? '';
+            // Truncate to first 100 chars
+            if (strlen($visual) > 100) {
+                $visual = substr($visual, 0, 100) . '...';
+            }
+            $context[] = "Scene {$sceneNum}: {$visual}";
+        }
+        return implode("\n", $context);
+    }
+
+    /**
+     * Sort characters by importance (role priority, then scene count).
+     *
+     * @param array $characters Array of character data
+     * @param string $method Sort method: 'role_then_scenes', 'scenes_only', 'alphabetical'
+     * @return array Sorted characters array
+     */
+    public function sortCharactersByImportance(array $characters, string $method = 'role_then_scenes'): array
+    {
+        if (empty($characters)) {
+            return $characters;
+        }
+
+        // Define role priority (lower = more important)
+        $rolePriority = [
+            'Main' => 1,
+            'main' => 1,
+            'Lead' => 1,
+            'lead' => 1,
+            'Primary' => 1,
+            'primary' => 1,
+            'Supporting' => 2,
+            'supporting' => 2,
+            'Secondary' => 2,
+            'secondary' => 2,
+            'Background' => 3,
+            'background' => 3,
+            'Extra' => 3,
+            'extra' => 3,
+            'Minor' => 3,
+            'minor' => 3,
+        ];
+
+        usort($characters, function ($a, $b) use ($method, $rolePriority) {
+            if ($method === 'alphabetical') {
+                return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+            }
+
+            $aScenes = count($a['appliedScenes'] ?? $a['appearsInScenes'] ?? []);
+            $bScenes = count($b['appliedScenes'] ?? $b['appearsInScenes'] ?? []);
+
+            if ($method === 'scenes_only') {
+                return $bScenes - $aScenes; // Descending by scene count
+            }
+
+            // role_then_scenes (default)
+            $aRole = $a['role'] ?? 'Supporting';
+            $bRole = $b['role'] ?? 'Supporting';
+            $aRolePriority = $rolePriority[$aRole] ?? 2;
+            $bRolePriority = $rolePriority[$bRole] ?? 2;
+
+            // First compare by role
+            if ($aRolePriority !== $bRolePriority) {
+                return $aRolePriority - $bRolePriority;
+            }
+
+            // Then by scene count (descending)
+            return $bScenes - $aScenes;
+        });
+
+        Log::info('CharacterSorting: Characters sorted', [
+            'method' => $method,
+            'count' => count($characters),
+            'topCharacter' => $characters[0]['name'] ?? 'N/A',
+        ]);
+
+        return $characters;
     }
 }
