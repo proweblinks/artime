@@ -100,7 +100,10 @@
                                 <option value="gpt-4" {{ $prompt->model === 'gpt-4' ? 'selected' : '' }}>GPT-4</option>
                                 <option value="gpt-4-turbo" {{ $prompt->model === 'gpt-4-turbo' ? 'selected' : '' }}>GPT-4 Turbo</option>
                                 <option value="gpt-4o" {{ $prompt->model === 'gpt-4o' ? 'selected' : '' }}>GPT-4o</option>
+                                <option value="gpt-4o-mini" {{ $prompt->model === 'gpt-4o-mini' ? 'selected' : '' }}>GPT-4o Mini</option>
                                 <option value="gpt-3.5-turbo" {{ $prompt->model === 'gpt-3.5-turbo' ? 'selected' : '' }}>GPT-3.5 Turbo</option>
+                                <option value="grok-4-fast" {{ $prompt->model === 'grok-4-fast' ? 'selected' : '' }}>Grok 4 Fast (xAI)</option>
+                                <option value="grok-4" {{ $prompt->model === 'grok-4' ? 'selected' : '' }}>Grok 4 (xAI)</option>
                                 <option value="claude-3-opus" {{ $prompt->model === 'claude-3-opus' ? 'selected' : '' }}>Claude 3 Opus</option>
                                 <option value="claude-3-sonnet" {{ $prompt->model === 'claude-3-sonnet' ? 'selected' : '' }}>Claude 3 Sonnet</option>
                             </select>
