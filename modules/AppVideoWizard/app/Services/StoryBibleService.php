@@ -440,22 +440,37 @@ PROMPT;
     {
         // Clean up response
         $response = trim($response);
+        $originalResponse = $response;
         $response = preg_replace('/```json\s*/i', '', $response);
         $response = preg_replace('/```\s*/', '', $response);
+
+        // Log raw response for debugging
+        Log::info('StoryBible: Parsing response', [
+            'responseLength' => strlen($response),
+            'hasCharactersKey' => str_contains($response, '"characters"'),
+            'hasLocationsKey' => str_contains($response, '"locations"'),
+            'firstChars' => substr($response, 0, 200),
+        ]);
 
         // Try to parse JSON
         $result = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // Try to extract JSON from response
-            if (preg_match('/\{[\s\S]*"title"[\s\S]*\}/m', $response, $matches)) {
+            Log::warning('StoryBible: Initial JSON parse failed, trying extraction', [
+                'jsonError' => json_last_error_msg(),
+            ]);
+
+            // Try to extract JSON from response - more robust pattern
+            if (preg_match('/\{[\s\S]*"title"[\s\S]*"characters"[\s\S]*\}/m', $response, $matches)) {
+                $result = json_decode($matches[0], true);
+            } elseif (preg_match('/\{[\s\S]*"title"[\s\S]*\}/m', $response, $matches)) {
                 $result = json_decode($matches[0], true);
             }
         }
 
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($result)) {
-            Log::warning('StoryBible: Failed to parse JSON response', [
-                'response' => substr($response, 0, 500),
+            Log::error('StoryBible: Failed to parse JSON response after all attempts', [
+                'response' => substr($response, 0, 1000),
                 'jsonError' => json_last_error_msg(),
             ]);
 
@@ -463,8 +478,32 @@ PROMPT;
             return $this->buildDefaultStoryBible($template, $duration);
         }
 
+        // Log what was parsed
+        Log::info('StoryBible: JSON parsed successfully', [
+            'hasTitle' => !empty($result['title']),
+            'characterCount' => count($result['characters'] ?? []),
+            'locationCount' => count($result['locations'] ?? []),
+            'actCount' => count($result['acts'] ?? []),
+            'keys' => array_keys($result),
+        ]);
+
         // Normalize and validate the Story Bible
-        return $this->normalizeStoryBible($result, $template, $duration);
+        $normalized = $this->normalizeStoryBible($result, $template, $duration);
+
+        // Warn if characters or locations are empty
+        if (empty($normalized['characters'])) {
+            Log::warning('StoryBible: No characters after normalization', [
+                'rawCharacters' => $result['characters'] ?? 'not present',
+            ]);
+        }
+
+        if (empty($normalized['locations'])) {
+            Log::warning('StoryBible: No locations after normalization', [
+                'rawLocations' => $result['locations'] ?? 'not present',
+            ]);
+        }
+
+        return $normalized;
     }
 
     /**
