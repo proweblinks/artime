@@ -9486,7 +9486,7 @@ class VideoWizard extends Component
 
         // STEP 3: Add Story Bible characters with auto-detected scene assignments
         $syncedCharacters = [];
-        foreach ($storyBibleCharacters as $bibleChar) {
+        foreach ($storyBibleCharacters as $idx => $bibleChar) {
             $name = $bibleChar['name'] ?? '';
             if (empty($name)) continue;
 
@@ -9519,7 +9519,10 @@ class VideoWizard extends Component
             $existing = $existingDataMap[$lowerName] ?? null;
 
             // Convert Story Bible character to Character Bible format
+            // Preserve existing ID or generate new one for portrait generation
+            $characterId = $existing['id'] ?? $bibleChar['id'] ?? ('char_' . time() . '_' . $idx);
             $characterBibleFormat = [
+                'id' => $characterId,
                 'name' => $name,
                 'description' => $bibleChar['description'] ?? '',
                 'traits' => $bibleChar['traits'] ?? [],
@@ -9597,7 +9600,7 @@ class VideoWizard extends Component
 
         // STEP 3: Add Story Bible locations with auto-detected scene assignments
         $syncedLocations = [];
-        foreach ($storyBibleLocations as $bibleLoc) {
+        foreach ($storyBibleLocations as $idx => $bibleLoc) {
             $name = $bibleLoc['name'] ?? '';
             if (empty($name)) continue;
 
@@ -9631,7 +9634,10 @@ class VideoWizard extends Component
 
             // Convert Story Bible location to Location Bible format
             // NOTE: Use 'scenes' field (consistent with toggleLocationScene) not 'appliedScenes'
+            // Preserve existing ID or generate new one for reference image generation
+            $locationId = $existing['id'] ?? $bibleLoc['id'] ?? ('loc_' . time() . '_' . $idx);
             $locationBibleFormat = [
+                'id' => $locationId,
                 'name' => $name,
                 'description' => $bibleLoc['description'] ?? '',
                 'type' => $bibleLoc['type'] ?? 'exterior',
