@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
 use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Services\StoryBibleService;
+use Modules\AppVideoWizard\Services\ExportEnhancementService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
@@ -715,6 +716,15 @@ class VideoWizard extends Component
     // Visual Consistency state (Phase 4: Visual Consistency Engine)
     public string $consistencyMode = 'auto'; // 'auto' | 'strict' | 'enhanced' | 'disabled'
     public array $consistencyAnalysis = [];
+
+    // Export Enhancement state (Phase 5: Bible-Aware Export)
+    public array $exportEnhancement = [
+        'config' => null,
+        'voiceMapping' => [],
+        'colorGrading' => null,
+        'transitions' => null,
+        'configGenerated' => false,
+    ];
 
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
@@ -14621,6 +14631,287 @@ PROMPT;
             $this->dispatch('poll-status', ['pendingJobs' => count($this->pendingJobs)]);
         }
     }
+
+    // =========================================================================
+    // PHASE 5: EXPORT ENHANCEMENT METHODS (Bible-Aware Export Pipeline)
+    // =========================================================================
+
+    /**
+     * Generate Bible-aware export configuration.
+     * Uses Story Bible to configure voices, transitions, color grading.
+     */
+    public function generateExportEnhancement(): void
+    {
+        if (!$this->projectId) {
+            $this->error = __('No project loaded');
+            return;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                $this->error = __('Project not found');
+                return;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+
+            // Build complete export configuration from Story Bible
+            $scenes = $this->script['scenes'] ?? [];
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+                'aspectRatio' => $this->aspectRatio,
+                'pacing' => $this->content['pacing'] ?? 'balanced',
+            ]);
+
+            // Store the enhanced configuration
+            $this->exportEnhancement = [
+                'config' => $config,
+                'voiceMapping' => $config['voiceMapping'] ?? [],
+                'colorGrading' => $config['colorGrading'] ?? null,
+                'transitions' => $config['transitions'] ?? null,
+                'configGenerated' => true,
+            ];
+
+            // Apply voice mappings to assembly settings
+            if (!empty($config['voiceMapping']['sceneVoices'])) {
+                foreach ($config['voiceMapping']['sceneVoices'] as $sceneVoice) {
+                    $sceneId = $sceneVoice['sceneId'] ?? null;
+                    if ($sceneId && isset($sceneVoice['voiceId'])) {
+                        // Could map to scene-specific voice settings
+                    }
+                }
+            }
+
+            // Apply transition presets if available
+            if (!empty($config['transitions']['preset'])) {
+                $this->assembly['defaultTransition'] = $config['transitions']['defaultType'] ?? 'fade';
+            }
+
+            $this->saveProject();
+
+            Log::info('ExportEnhancement: Generated Bible-aware config', [
+                'projectId' => $this->projectId,
+                'sceneCount' => count($scenes),
+                'hasBible' => $project->hasStoryBible(),
+                'colorMode' => $config['colorGrading']['mode'] ?? 'none',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to generate config', [
+                'error' => $e->getMessage(),
+            ]);
+            $this->error = __('Failed to generate export configuration: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Get the voice mapping suggestions for export.
+     * Uses Story Bible character roles to suggest appropriate voices.
+     */
+    public function getVoiceMappingSuggestions(): array
+    {
+        if (!$this->projectId) {
+            return [];
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project || !$project->hasStoryBible()) {
+                return [];
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+            ]);
+
+            return $config['voiceMapping'] ?? [];
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get voice suggestions', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get color grading presets based on Story Bible visual style.
+     */
+    public function getColorGradingPreset(): ?array
+    {
+        if (!$this->projectId) {
+            return null;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project || !$project->hasStoryBible()) {
+                return null;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes);
+
+            return $config['colorGrading'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get color grading', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get transition suggestions based on Story Bible pacing.
+     */
+    public function getTransitionPreset(): ?array
+    {
+        if (!$this->projectId) {
+            return null;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return null;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'pacing' => $this->content['pacing'] ?? 'balanced',
+            ]);
+
+            return $config['transitions'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get transitions', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Apply Bible-enhanced transitions to all scenes.
+     */
+    public function applyBibleTransitions(): void
+    {
+        $transitionPreset = $this->getTransitionPreset();
+        if (!$transitionPreset) {
+            return;
+        }
+
+        $scenes = $this->script['scenes'] ?? [];
+        $transitions = [];
+
+        foreach ($scenes as $index => $scene) {
+            $sceneId = $scene['id'] ?? "scene-{$index}";
+
+            // Get scene-specific transition or use default
+            $sceneTransitions = $transitionPreset['sceneTransitions'] ?? [];
+            $sceneTransition = collect($sceneTransitions)->firstWhere('sceneId', $sceneId);
+
+            $transitions[$sceneId] = [
+                'type' => $sceneTransition['type'] ?? $transitionPreset['defaultType'] ?? 'fade',
+                'duration' => $sceneTransition['duration'] ?? $transitionPreset['defaultDuration'] ?? 0.5,
+            ];
+        }
+
+        $this->assembly['transitions'] = $transitions;
+        $this->saveProject();
+
+        Log::info('ExportEnhancement: Applied Bible transitions', [
+            'sceneCount' => count($transitions),
+            'preset' => $transitionPreset['preset'] ?? 'default',
+        ]);
+    }
+
+    /**
+     * Get export metadata including Bible-derived information.
+     */
+    public function getEnhancedExportMetadata(): array
+    {
+        if (!$this->projectId) {
+            return [];
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return [];
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+                'aspectRatio' => $this->aspectRatio,
+            ]);
+
+            return $config['metadata'] ?? [];
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get metadata', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get available voice presets for export.
+     */
+    public function getExportVoicePresets(): array
+    {
+        return ExportEnhancementService::VOICE_PRESETS;
+    }
+
+    /**
+     * Get available color grade presets.
+     */
+    public function getColorGradePresets(): array
+    {
+        return ExportEnhancementService::COLOR_GRADE_PRESETS;
+    }
+
+    /**
+     * Get available transition presets.
+     */
+    public function getTransitionPresets(): array
+    {
+        return ExportEnhancementService::TRANSITION_PRESETS;
+    }
+
+    /**
+     * Check if export enhancement is available for current project.
+     */
+    public function hasExportEnhancement(): bool
+    {
+        if (!$this->projectId) {
+            return false;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            return $project && $project->hasStoryBible();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // END PHASE 5: EXPORT ENHANCEMENT METHODS
+    // =========================================================================
 
     /**
      * Render the component.
