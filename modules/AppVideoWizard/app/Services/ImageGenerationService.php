@@ -20,6 +20,11 @@ class ImageGenerationService
     protected StructuredPromptBuilderService $structuredPromptBuilder;
 
     /**
+     * VisualConsistencyService for Story Bible-enhanced prompts (Phase 4).
+     */
+    protected ?VisualConsistencyService $consistencyService = null;
+
+    /**
      * Model configurations with token costs matching reference implementation.
      *
      * Correct Model IDs (as of Jan 2026):
@@ -65,6 +70,7 @@ class ImageGenerationService
         $this->geminiService = $geminiService;
         $this->runPodService = $runPodService;
         $this->structuredPromptBuilder = $structuredPromptBuilder;
+        $this->consistencyService = new VisualConsistencyService();
     }
 
     /**
@@ -160,6 +166,161 @@ class ImageGenerationService
         } else {
             return $this->generateWithGemini($project, $scene, $prompt, $resolution, $modelId, $modelConfig, $options, $characterReference, $locationReference, $styleReference);
         }
+    }
+
+    /**
+     * Generate an image with visual consistency enhancement (Phase 4).
+     * Uses Story Bible to ensure character/location/style consistency.
+     */
+    public function generateWithConsistency(WizardProject $project, array $scene, array $options = []): array
+    {
+        // Build consistency-enhanced prompt using VisualConsistencyService
+        $consistencyMode = $options['consistencyMode'] ?? 'auto';
+        $consistencyResult = $this->consistencyService->buildConsistentPrompt($project, $scene, [
+            'consistencyMode' => $consistencyMode,
+        ]);
+
+        Log::info('ImageGeneration: Using consistency-enhanced prompt', [
+            'mode' => $consistencyMode,
+            'consistencyApplied' => $consistencyResult['consistencyApplied'],
+            'detectedCharacters' => count($consistencyResult['detectedCharacters']),
+            'detectedLocations' => count($consistencyResult['detectedLocations']),
+        ]);
+
+        // Override the visual description with the enhanced prompt
+        $enhancedScene = $scene;
+        $enhancedScene['visualDescription'] = $consistencyResult['prompt'];
+
+        // Generate the image with the enhanced prompt
+        $result = $this->generateSceneImage($project, $enhancedScene, $options);
+
+        // Add consistency metadata to the result
+        $result['consistency'] = [
+            'mode' => $consistencyMode,
+            'applied' => $consistencyResult['consistencyApplied'],
+            'characters' => $consistencyResult['detectedCharacters'],
+            'locations' => $consistencyResult['detectedLocations'],
+            'styleApplied' => $consistencyResult['styleApplied'],
+        ];
+
+        return $result;
+    }
+
+    /**
+     * Batch generate images with visual consistency for all scenes.
+     * Ensures consistent character/location appearances across the storyboard.
+     */
+    public function batchGenerateWithConsistency(WizardProject $project, array $scenes, array $options = []): array
+    {
+        $consistencyMode = $options['consistencyMode'] ?? 'auto';
+
+        // First, generate all consistency-enhanced prompts
+        $batchResult = $this->consistencyService->generateBatchConsistentPrompts($project, $scenes, [
+            'consistencyMode' => $consistencyMode,
+        ]);
+
+        Log::info('ImageGeneration: Starting batch generation with consistency', [
+            'totalScenes' => count($scenes),
+            'avgConsistencyScore' => $batchResult['statistics']['averageConsistencyScore'],
+            'charactersUsed' => count($batchResult['statistics']['uniqueCharactersUsed']),
+            'locationsUsed' => count($batchResult['statistics']['uniqueLocationsUsed']),
+        ]);
+
+        $results = [];
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($batchResult['prompts'] as $promptData) {
+            $sceneIndex = $promptData['sceneIndex'];
+            $scene = $scenes[$sceneIndex] ?? null;
+
+            if (!$scene) {
+                continue;
+            }
+
+            try {
+                // Create enhanced scene with consistency prompt
+                $enhancedScene = $scene;
+                $enhancedScene['visualDescription'] = $promptData['prompt'];
+
+                // Generate image
+                $imageResult = $this->generateSceneImage($project, $enhancedScene, array_merge($options, [
+                    'sceneIndex' => $sceneIndex,
+                ]));
+
+                $imageResult['consistency'] = $promptData['consistency'];
+                $imageResult['sceneIndex'] = $sceneIndex;
+
+                $results[] = $imageResult;
+                $successCount++;
+
+            } catch (\Exception $e) {
+                Log::error('ImageGeneration: Batch consistency generation failed for scene', [
+                    'sceneIndex' => $sceneIndex,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $results[] = [
+                    'success' => false,
+                    'sceneIndex' => $sceneIndex,
+                    'error' => $e->getMessage(),
+                    'consistency' => $promptData['consistency'],
+                ];
+                $failCount++;
+            }
+        }
+
+        return [
+            'results' => $results,
+            'statistics' => array_merge($batchResult['statistics'], [
+                'successCount' => $successCount,
+                'failCount' => $failCount,
+            ]),
+        ];
+    }
+
+    /**
+     * Analyze visual consistency for a project's storyboard.
+     */
+    public function analyzeStoryboardConsistency(WizardProject $project): array
+    {
+        $scenes = $project->script['scenes'] ?? [];
+
+        if (empty($scenes)) {
+            return [
+                'overallScore' => 0,
+                'status' => 'no_scenes',
+                'scenes' => [],
+            ];
+        }
+
+        $sceneAnalyses = [];
+        $totalScore = 0;
+
+        foreach ($scenes as $index => $scene) {
+            $analysis = $this->consistencyService->analyzeSceneConsistency($project, $scene);
+            $analysis['sceneIndex'] = $index;
+            $analysis['sceneTitle'] = $scene['title'] ?? "Scene " . ($index + 1);
+
+            $sceneAnalyses[] = $analysis;
+            $totalScore += $analysis['score'];
+        }
+
+        $avgScore = count($sceneAnalyses) > 0 ? round($totalScore / count($sceneAnalyses), 1) : 0;
+
+        // Determine overall status
+        $status = 'excellent';
+        if ($avgScore < 90) $status = 'good';
+        if ($avgScore < 70) $status = 'fair';
+        if ($avgScore < 50) $status = 'needs_attention';
+
+        return [
+            'overallScore' => $avgScore,
+            'status' => $status,
+            'scenes' => $sceneAnalyses,
+            'hasStoryBible' => $project->hasStoryBible(),
+            'totalScenes' => count($scenes),
+        ];
     }
 
     /**

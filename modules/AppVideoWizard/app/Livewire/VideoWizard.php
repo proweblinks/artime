@@ -712,6 +712,10 @@ class VideoWizard extends Component
     public bool $showWritersRoom = false;
     public int $writersRoomActiveScene = 0;
 
+    // Visual Consistency state (Phase 4: Visual Consistency Engine)
+    public string $consistencyMode = 'auto'; // 'auto' | 'strict' | 'enhanced' | 'disabled'
+    public array $consistencyAnalysis = [];
+
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
     public int $storyboardPerPage = 12;
@@ -9265,6 +9269,128 @@ class VideoWizard extends Component
         $this->script['scenes'] = $scenes;
         $this->writersRoomActiveScene = $index + 1;
         $this->saveProject();
+    }
+
+    // =========================================================================
+    // VISUAL CONSISTENCY METHODS (Phase 4: Visual Consistency Engine)
+    // =========================================================================
+
+    /**
+     * Analyze visual consistency for all scenes against Story Bible.
+     */
+    public function analyzeVisualConsistency(): void
+    {
+        if (!$this->projectId) {
+            return;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return;
+            }
+
+            $imageService = app(ImageGenerationService::class);
+            $this->consistencyAnalysis = $imageService->analyzeStoryboardConsistency($project);
+
+            Log::info('VideoWizard: Visual consistency analysis completed', [
+                'overallScore' => $this->consistencyAnalysis['overallScore'] ?? 0,
+                'status' => $this->consistencyAnalysis['status'] ?? 'unknown',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: Visual consistency analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+            $this->consistencyAnalysis = [];
+        }
+    }
+
+    /**
+     * Set the consistency mode for image generation.
+     */
+    public function setConsistencyMode(string $mode): void
+    {
+        $validModes = ['auto', 'strict', 'enhanced', 'disabled'];
+        if (in_array($mode, $validModes)) {
+            $this->consistencyMode = $mode;
+        }
+    }
+
+    /**
+     * Get available consistency modes.
+     */
+    public function getConsistencyModes(): array
+    {
+        return [
+            'auto' => [
+                'name' => 'Auto-Detect',
+                'description' => 'Automatically detect and inject character/location descriptions',
+                'icon' => '🤖',
+            ],
+            'strict' => [
+                'name' => 'Strict Bible',
+                'description' => 'Only use exact Story Bible descriptions',
+                'icon' => '📖',
+            ],
+            'enhanced' => [
+                'name' => 'Enhanced',
+                'description' => 'Bible descriptions + AI enhancement',
+                'icon' => '✨',
+            ],
+            'disabled' => [
+                'name' => 'Disabled',
+                'description' => 'No consistency injection',
+                'icon' => '🚫',
+            ],
+        ];
+    }
+
+    /**
+     * Generate image with consistency enhancement.
+     */
+    public function generateImageWithConsistency(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $project = WizardProject::findOrFail($this->projectId);
+            $imageService = app(ImageGenerationService::class);
+            $scene = $this->script['scenes'][$sceneIndex];
+
+            $result = $imageService->generateWithConsistency($project, $scene, [
+                'consistencyMode' => $this->consistencyMode,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            if (!empty($result['url'])) {
+                $this->script['scenes'][$sceneIndex]['image'] = $result['url'];
+                $this->script['scenes'][$sceneIndex]['imageStatus'] = 'ready';
+
+                // Store consistency metadata
+                if (!empty($result['consistency'])) {
+                    $this->script['scenes'][$sceneIndex]['consistencyData'] = $result['consistency'];
+                }
+
+                $this->saveProject();
+                $this->dispatch('image-generated', ['sceneIndex' => $sceneIndex]);
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate image: ') . $e->getMessage();
+            Log::error('VideoWizard: Consistency image generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
     }
 
     // =========================================================================
