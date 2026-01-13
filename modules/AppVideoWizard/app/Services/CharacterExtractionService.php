@@ -91,7 +91,10 @@ class CharacterExtractionService
             $startTime = microtime(true);
 
             // Call AI with tier-based model selection
-            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+                'maxResult' => 1,
+                'max_tokens' => 10000, // Ensure enough tokens for all characters
+            ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
@@ -296,9 +299,14 @@ USER;
         $result = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // Try to extract JSON from response
-            if (preg_match('/\{[\s\S]*"characters"[\s\S]*\}/m', $response, $matches)) {
-                $result = json_decode($matches[0], true);
+            Log::warning('CharacterExtraction: Initial JSON parse failed, attempting repair', [
+                'error' => json_last_error_msg(),
+            ]);
+
+            // Try to extract and repair JSON from response
+            if (preg_match('/\{[\s\S]*"characters"[\s\S]*/', $response, $matches)) {
+                $repairedJson = $this->repairTruncatedJson($matches[0]);
+                $result = json_decode($repairedJson, true);
             }
         }
 
@@ -372,6 +380,37 @@ USER;
             }
         }
         return array_unique($normalized);
+    }
+
+    /**
+     * Attempt to repair truncated JSON.
+     */
+    protected function repairTruncatedJson(string $json): string
+    {
+        // Remove any trailing incomplete string
+        $json = preg_replace('/,?\s*"[^"]*":\s*"[^"]*$/s', '', $json);
+
+        // Remove any trailing incomplete array
+        $json = preg_replace('/,?\s*"[^"]*":\s*\[[^\]]*$/s', '', $json);
+
+        // Remove any incomplete key at the end
+        $json = preg_replace('/,?\s*"[^"]*$/s', '', $json);
+
+        // Remove trailing commas before closing brackets
+        $json = preg_replace('/,(\s*[\]\}])/s', '$1', $json);
+        $json = preg_replace('/,\s*$/s', '', $json);
+
+        // Count brackets
+        $openBraces = substr_count($json, '{');
+        $closeBraces = substr_count($json, '}');
+        $openBrackets = substr_count($json, '[');
+        $closeBrackets = substr_count($json, ']');
+
+        // Add missing closing characters
+        $json .= str_repeat(']', max(0, $openBrackets - $closeBrackets));
+        $json .= str_repeat('}', max(0, $openBraces - $closeBraces));
+
+        return $json;
     }
 
     /**
@@ -731,7 +770,10 @@ Return ONLY valid JSON in this exact format:
 CRITICAL: Use the EXACT character names provided. Generate unique, detailed descriptions for each.
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 8000, // Ensure enough tokens for character enrichment
+        ]);
 
         if (!empty($result['error'])) {
             throw new \Exception('AI error: ' . $result['error']);

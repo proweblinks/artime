@@ -33,6 +33,19 @@
             </div>
         @endif
 
+        {{-- Warning if Bible is ready but missing critical data --}}
+        @if($storyBible['status'] === 'ready' && (empty($storyBible['characters']) || empty($storyBible['locations'])))
+            <div style="padding: 0.5rem 1rem; background: rgba(251,191,36,0.15); border-bottom: 1px solid rgba(251,191,36,0.3); color: #fcd34d; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+                <span>⚠️</span>
+                <span>{{ __('Story Bible is incomplete') }}:
+                    @if(empty($storyBible['characters'])) {{ __('No characters defined') }}@endif
+                    @if(empty($storyBible['characters']) && empty($storyBible['locations'])) {{ __('and') }} @endif
+                    @if(empty($storyBible['locations'])) {{ __('No locations defined') }}@endif
+                    - {{ __('Click "Regenerate Story Bible" or add them manually') }}
+                </span>
+            </div>
+        @endif
+
         {{-- Tabs --}}
         <div style="display: flex; gap: 0.25rem; padding: 0.5rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; background: rgba(0,0,0,0.2);">
             @foreach(['overview' => ['icon' => '📋', 'label' => 'Overview'], 'characters' => ['icon' => '👥', 'label' => 'Characters'], 'locations' => ['icon' => '🏛️', 'label' => 'Locations'], 'style' => ['icon' => '🎨', 'label' => 'Visual Style']] as $tabKey => $tabInfo)
@@ -136,20 +149,16 @@
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
                     <button type="button"
                             wire:click="generateStoryBible"
-                            wire:loading.attr="disabled"
-                            wire:target="generateStoryBible"
-                            style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); border: none; border-radius: 0.5rem; color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <span wire:loading.remove wire:target="generateStoryBible">
-                            @if($storyBible['status'] === 'ready')
-                                🔄 {{ __('Regenerate Story Bible') }}
-                            @else
-                                ✨ {{ __('Generate Story Bible') }}
-                            @endif
-                        </span>
-                        <span wire:loading wire:target="generateStoryBible" style="display: flex; align-items: center; gap: 0.5rem;">
+                            @if($isGeneratingStoryBible) disabled @endif
+                            style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); border: none; border-radius: 0.5rem; color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; {{ $isGeneratingStoryBible ? 'opacity: 0.7;' : '' }}">
+                        @if($isGeneratingStoryBible)
                             <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                             {{ __('Generating Story Bible...') }}
-                        </span>
+                        @elseif($storyBible['status'] === 'ready')
+                            🔄 {{ __('Regenerate Story Bible') }}
+                        @else
+                            ✨ {{ __('Generate Story Bible') }}
+                        @endif
                     </button>
                     <p style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.65rem; margin-top: 0.5rem;">{{ __('AI will create title, characters, locations, and structure based on your concept') }}</p>
                 </div>
@@ -479,6 +488,10 @@
                     <span style="color: #10b981; font-size: 0.7rem;">
                         ✓ {{ count($storyBible['characters'] ?? []) }} {{ __('characters') }},
                         {{ count($storyBible['locations'] ?? []) }} {{ __('locations') }}
+                    </span>
+                @else
+                    <span style="color: rgba(255,255,255,0.4); font-size: 0.65rem; font-style: italic;">
+                        {{ __('All tabs (Characters, Locations, Style) are generated together as one Story Bible') }}
                     </span>
                 @endif
 

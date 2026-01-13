@@ -15,8 +15,25 @@
                 <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">🎨 {{ __('Style Bible') }}</h3>
                 <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.7rem;">{{ __('Define your visual DNA for consistent imagery') }}</p>
             </div>
-            <button type="button" @click="isOpen = false" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                @if(!empty($storyBible['visualStyle']['mode']) && $storyBible['status'] === 'ready')
+                    <button type="button"
+                            wire:click="syncStoryBibleToStyleBible"
+                            style="padding: 0.3rem 0.6rem; background: linear-gradient(135deg, #f59e0b, #ec4899); border: none; border-radius: 0.35rem; color: white; font-size: 0.65rem; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.25rem;">
+                        🔄 {{ __('Sync from Story Bible') }}
+                    </button>
+                @endif
+                <button type="button" @click="isOpen = false" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            </div>
         </div>
+
+        {{-- Story Bible sync indicator --}}
+        @if(!empty($storyBible['visualStyle']['mode']) && $storyBible['status'] === 'ready')
+            <div style="padding: 0.35rem 1rem; background: rgba(251,191,36,0.1); border-bottom: 1px solid rgba(251,191,36,0.2); color: #fcd34d; font-size: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
+                📖 {{ __('Story Bible has visual style defined') }}: {{ $storyBible['visualStyle']['mode'] ?? 'unknown' }}
+                @if(!empty($storyBible['visualStyle']['colorPalette'])) • {{ __('Color palette set') }}@endif
+            </div>
+        @endif
 
         {{-- Error Display --}}
         @if($error)

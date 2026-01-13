@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
 use Modules\AppVideoWizard\Services\CinematographyService;
 use Modules\AppVideoWizard\Services\StoryBibleService;
+use Modules\AppVideoWizard\Services\ExportEnhancementService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
@@ -711,6 +712,19 @@ class VideoWizard extends Component
     // Writer's Room state (Phase 2: Professional Writing Interface)
     public bool $showWritersRoom = false;
     public int $writersRoomActiveScene = 0;
+
+    // Visual Consistency state (Phase 4: Visual Consistency Engine)
+    public string $consistencyMode = 'auto'; // 'auto' | 'strict' | 'enhanced' | 'disabled'
+    public array $consistencyAnalysis = [];
+
+    // Export Enhancement state (Phase 5: Bible-Aware Export)
+    public array $exportEnhancement = [
+        'config' => null,
+        'voiceMapping' => [],
+        'colorGrading' => null,
+        'transitions' => null,
+        'configGenerated' => false,
+    ];
 
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
@@ -9268,6 +9282,128 @@ class VideoWizard extends Component
     }
 
     // =========================================================================
+    // VISUAL CONSISTENCY METHODS (Phase 4: Visual Consistency Engine)
+    // =========================================================================
+
+    /**
+     * Analyze visual consistency for all scenes against Story Bible.
+     */
+    public function analyzeVisualConsistency(): void
+    {
+        if (!$this->projectId) {
+            return;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return;
+            }
+
+            $imageService = app(ImageGenerationService::class);
+            $this->consistencyAnalysis = $imageService->analyzeStoryboardConsistency($project);
+
+            Log::info('VideoWizard: Visual consistency analysis completed', [
+                'overallScore' => $this->consistencyAnalysis['overallScore'] ?? 0,
+                'status' => $this->consistencyAnalysis['status'] ?? 'unknown',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: Visual consistency analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+            $this->consistencyAnalysis = [];
+        }
+    }
+
+    /**
+     * Set the consistency mode for image generation.
+     */
+    public function setConsistencyMode(string $mode): void
+    {
+        $validModes = ['auto', 'strict', 'enhanced', 'disabled'];
+        if (in_array($mode, $validModes)) {
+            $this->consistencyMode = $mode;
+        }
+    }
+
+    /**
+     * Get available consistency modes.
+     */
+    public function getConsistencyModes(): array
+    {
+        return [
+            'auto' => [
+                'name' => 'Auto-Detect',
+                'description' => 'Automatically detect and inject character/location descriptions',
+                'icon' => '🤖',
+            ],
+            'strict' => [
+                'name' => 'Strict Bible',
+                'description' => 'Only use exact Story Bible descriptions',
+                'icon' => '📖',
+            ],
+            'enhanced' => [
+                'name' => 'Enhanced',
+                'description' => 'Bible descriptions + AI enhancement',
+                'icon' => '✨',
+            ],
+            'disabled' => [
+                'name' => 'Disabled',
+                'description' => 'No consistency injection',
+                'icon' => '🚫',
+            ],
+        ];
+    }
+
+    /**
+     * Generate image with consistency enhancement.
+     */
+    public function generateImageWithConsistency(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $project = WizardProject::findOrFail($this->projectId);
+            $imageService = app(ImageGenerationService::class);
+            $scene = $this->script['scenes'][$sceneIndex];
+
+            $result = $imageService->generateWithConsistency($project, $scene, [
+                'consistencyMode' => $this->consistencyMode,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            if (!empty($result['url'])) {
+                $this->script['scenes'][$sceneIndex]['image'] = $result['url'];
+                $this->script['scenes'][$sceneIndex]['imageStatus'] = 'ready';
+
+                // Store consistency metadata
+                if (!empty($result['consistency'])) {
+                    $this->script['scenes'][$sceneIndex]['consistencyData'] = $result['consistency'];
+                }
+
+                $this->saveProject();
+                $this->dispatch('image-generated', ['sceneIndex' => $sceneIndex]);
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate image: ') . $e->getMessage();
+            Log::error('VideoWizard: Consistency image generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    // =========================================================================
     // CHARACTER BIBLE METHODS
     // =========================================================================
 
@@ -9313,10 +9449,304 @@ class VideoWizard extends Component
     }
 
     /**
+     * Sync Story Bible characters to Character Bible.
+     * This ensures the Storyboard stage uses the same characters defined in Story Bible.
+     */
+    public function syncStoryBibleToCharacterBible(): void
+    {
+        $storyBibleCharacters = $this->storyBible['characters'] ?? [];
+
+        if (empty($storyBibleCharacters)) {
+            Log::info('CharacterBible: No Story Bible characters to sync');
+            return;
+        }
+
+        // STEP 1: Build map of existing character data to preserve (by lowercase name)
+        $existingCharacters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        $existingDataMap = [];
+        foreach ($existingCharacters as $char) {
+            $key = strtolower($char['name'] ?? '');
+            if (!empty($key)) {
+                $existingDataMap[$key] = $char;
+            }
+        }
+
+        // STEP 2: Build scene content for character name matching
+        $scenes = $this->script['scenes'] ?? [];
+        $sceneTexts = [];
+        foreach ($scenes as $idx => $scene) {
+            $text = strtolower(
+                ($scene['narration'] ?? '') . ' ' .
+                ($scene['visualDescription'] ?? '') . ' ' .
+                ($scene['visualPrompt'] ?? '') . ' ' .
+                ($scene['title'] ?? '')
+            );
+            $sceneTexts[$idx] = $text;
+        }
+
+        // STEP 3: Add Story Bible characters with auto-detected scene assignments
+        $syncedCharacters = [];
+        foreach ($storyBibleCharacters as $idx => $bibleChar) {
+            $name = $bibleChar['name'] ?? '';
+            if (empty($name)) continue;
+
+            $lowerName = strtolower($name);
+
+            // Auto-detect which scenes this character appears in
+            $detectedScenes = [];
+            $searchTerms = [$lowerName];
+
+            // Add partial name matches (e.g., "King Saul" should match "king" and "saul")
+            $nameParts = explode(' ', $lowerName);
+            foreach ($nameParts as $part) {
+                if (strlen($part) > 2) { // Only add meaningful parts
+                    $searchTerms[] = $part;
+                }
+            }
+
+            foreach ($sceneTexts as $sceneIdx => $text) {
+                foreach ($searchTerms as $term) {
+                    if (strpos($text, $term) !== false) {
+                        $detectedScenes[] = $sceneIdx;
+                        break; // Found in this scene, move to next scene
+                    }
+                }
+            }
+            $detectedScenes = array_values(array_unique($detectedScenes));
+            sort($detectedScenes);
+
+            // Check if we had existing data for this character (to preserve user settings)
+            $existing = $existingDataMap[$lowerName] ?? null;
+
+            // Convert Story Bible character to Character Bible format
+            // Preserve existing ID or generate new one for portrait generation
+            $characterId = $existing['id'] ?? $bibleChar['id'] ?? ('char_' . time() . '_' . $idx);
+            $characterBibleFormat = [
+                'id' => $characterId,
+                'name' => $name,
+                'description' => $bibleChar['description'] ?? '',
+                'traits' => $bibleChar['traits'] ?? [],
+                'role' => $bibleChar['role'] ?? 'supporting',
+                'arc' => $bibleChar['arc'] ?? '',
+                // Use existing scene assignments if user has set them, otherwise auto-detected
+                'appliedScenes' => (!empty($existing['appliedScenes'])) ? $existing['appliedScenes'] : $detectedScenes,
+                // Preserve user's reference image, or use Story Bible's
+                'referenceImage' => $existing['referenceImage'] ?? $bibleChar['referenceImage'] ?? '',
+                'referenceImageSource' => $existing['referenceImageSource'] ?? (!empty($bibleChar['referenceImage']) ? 'story-bible' : ''),
+                // Preserve DNA fields from existing, or initialize empty
+                'hair' => (!empty($existing['hair']['color'])) ? $existing['hair'] : ['color' => '', 'style' => '', 'length' => '', 'texture' => ''],
+                'wardrobe' => (!empty($existing['wardrobe']['outfit'])) ? $existing['wardrobe'] : ['outfit' => '', 'colors' => '', 'style' => '', 'footwear' => ''],
+                'makeup' => (!empty($existing['makeup']['style'])) ? $existing['makeup'] : ['style' => '', 'details' => ''],
+                'accessories' => $existing['accessories'] ?? [],
+                'syncedFromStoryBible' => true,
+            ];
+
+            $syncedCharacters[] = $characterBibleFormat;
+        }
+
+        // STEP 4: Replace character list with Story Bible characters (authoritative source)
+        $this->sceneMemory['characterBible']['characters'] = $syncedCharacters;
+
+        // Enable Character Bible if we synced characters
+        if (count($syncedCharacters) > 0) {
+            $this->sceneMemory['characterBible']['enabled'] = true;
+        }
+
+        Log::info('CharacterBible: Synced from Story Bible (replaced)', [
+            'syncedCount' => count($syncedCharacters),
+            'characterScenes' => array_map(fn($c) => ['name' => $c['name'], 'scenes' => count($c['appliedScenes'])], $syncedCharacters),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Sync Story Bible locations to Location Bible.
+     * This ensures the Storyboard stage uses the same locations defined in Story Bible.
+     */
+    public function syncStoryBibleToLocationBible(): void
+    {
+        $storyBibleLocations = $this->storyBible['locations'] ?? [];
+
+        if (empty($storyBibleLocations)) {
+            Log::info('LocationBible: No Story Bible locations to sync');
+            return;
+        }
+
+        // STEP 1: Build map of existing location data to preserve (by lowercase name)
+        $existingLocations = $this->sceneMemory['locationBible']['locations'] ?? [];
+        $existingDataMap = [];
+        foreach ($existingLocations as $loc) {
+            $key = strtolower($loc['name'] ?? '');
+            if (!empty($key)) {
+                $existingDataMap[$key] = $loc;
+            }
+        }
+
+        // STEP 2: Build scene content for location name matching
+        $scenes = $this->script['scenes'] ?? [];
+        $sceneTexts = [];
+        foreach ($scenes as $idx => $scene) {
+            $text = strtolower(
+                ($scene['narration'] ?? '') . ' ' .
+                ($scene['visualDescription'] ?? '') . ' ' .
+                ($scene['visualPrompt'] ?? '') . ' ' .
+                ($scene['title'] ?? '') . ' ' .
+                ($scene['location'] ?? '') . ' ' .
+                ($scene['setting'] ?? '')
+            );
+            $sceneTexts[$idx] = $text;
+        }
+
+        // STEP 3: Add Story Bible locations with auto-detected scene assignments
+        $syncedLocations = [];
+        foreach ($storyBibleLocations as $idx => $bibleLoc) {
+            $name = $bibleLoc['name'] ?? '';
+            if (empty($name)) continue;
+
+            $lowerName = strtolower($name);
+
+            // Auto-detect which scenes this location appears in
+            $detectedScenes = [];
+            $searchTerms = [$lowerName];
+
+            // Add partial name matches (e.g., "Valley of Elah" should match "valley", "elah")
+            $nameParts = preg_split('/[\s\-_]+/', $lowerName);
+            foreach ($nameParts as $part) {
+                if (strlen($part) > 3) { // Only add meaningful parts (longer for locations)
+                    $searchTerms[] = $part;
+                }
+            }
+
+            foreach ($sceneTexts as $sceneIdx => $text) {
+                foreach ($searchTerms as $term) {
+                    if (strpos($text, $term) !== false) {
+                        $detectedScenes[] = $sceneIdx;
+                        break; // Found in this scene, move to next scene
+                    }
+                }
+            }
+            $detectedScenes = array_values(array_unique($detectedScenes));
+            sort($detectedScenes);
+
+            // Check if we had existing data for this location (to preserve user settings)
+            $existing = $existingDataMap[$lowerName] ?? null;
+
+            // Convert Story Bible location to Location Bible format
+            // NOTE: Use 'scenes' field (consistent with toggleLocationScene) not 'appliedScenes'
+            // Preserve existing ID or generate new one for reference image generation
+            $locationId = $existing['id'] ?? $bibleLoc['id'] ?? ('loc_' . time() . '_' . $idx);
+            $locationBibleFormat = [
+                'id' => $locationId,
+                'name' => $name,
+                'description' => $bibleLoc['description'] ?? '',
+                'type' => $bibleLoc['type'] ?? 'exterior',
+                'timeOfDay' => $bibleLoc['timeOfDay'] ?? 'day',
+                'weather' => $bibleLoc['weather'] ?? 'clear',
+                'atmosphere' => $bibleLoc['atmosphere'] ?? '',
+                'mood' => $bibleLoc['mood'] ?? '',
+                'lightingStyle' => $bibleLoc['lightingStyle'] ?? '',
+                'keyElements' => $bibleLoc['keyElements'] ?? [],
+                // Use existing scene assignments if user has set them, otherwise auto-detected
+                'scenes' => (!empty($existing['scenes'])) ? $existing['scenes'] : $detectedScenes,
+                // Preserve user's reference image, or use Story Bible's
+                'referenceImage' => $existing['referenceImage'] ?? $bibleLoc['referenceImage'] ?? '',
+                'referenceImageSource' => $existing['referenceImageSource'] ?? (!empty($bibleLoc['referenceImage']) ? 'story-bible' : ''),
+                'referenceImageStatus' => $existing['referenceImageStatus'] ?? (!empty($bibleLoc['referenceImage']) ? 'ready' : 'none'),
+                'syncedFromStoryBible' => true,
+            ];
+
+            $syncedLocations[] = $locationBibleFormat;
+        }
+
+        // STEP 4: Replace location list with Story Bible locations (authoritative source)
+        $this->sceneMemory['locationBible']['locations'] = $syncedLocations;
+
+        // Enable Location Bible if we synced locations
+        if (count($syncedLocations) > 0) {
+            $this->sceneMemory['locationBible']['enabled'] = true;
+        }
+
+        Log::info('LocationBible: Synced from Story Bible (replaced)', [
+            'syncedCount' => count($syncedLocations),
+            'locationScenes' => array_map(fn($l) => ['name' => $l['name'], 'scenes' => count($l['scenes'])], $syncedLocations),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Sync Story Bible visual style to Style Bible.
+     * This ensures the Storyboard stage uses the same visual style defined in Story Bible.
+     */
+    public function syncStoryBibleToStyleBible(): void
+    {
+        $storyBibleStyle = $this->storyBible['visualStyle'] ?? [];
+
+        if (empty($storyBibleStyle) || empty($storyBibleStyle['mode'])) {
+            Log::info('StyleBible: No Story Bible visual style to sync');
+            return;
+        }
+
+        // Map Story Bible visual style fields to Style Bible fields
+        if (!empty($storyBibleStyle['colorPalette'])) {
+            $this->sceneMemory['styleBible']['colorPalette'] = $storyBibleStyle['colorPalette'];
+        }
+
+        if (!empty($storyBibleStyle['lighting'])) {
+            // Handle lighting - could be string or structured
+            if (is_string($storyBibleStyle['lighting'])) {
+                $this->sceneMemory['styleBible']['lighting']['setup'] = $storyBibleStyle['lighting'];
+            } else {
+                $this->sceneMemory['styleBible']['lighting'] = array_merge(
+                    $this->sceneMemory['styleBible']['lighting'],
+                    $storyBibleStyle['lighting']
+                );
+            }
+        }
+
+        if (!empty($storyBibleStyle['cameraLanguage'])) {
+            $this->sceneMemory['styleBible']['cameraLanguage'] = $storyBibleStyle['cameraLanguage'];
+        }
+
+        if (!empty($storyBibleStyle['references'])) {
+            // Store references as part of the style
+            $this->sceneMemory['styleBible']['styleReferences'] = $storyBibleStyle['references'];
+        }
+
+        // Map mode to style
+        $modeToStyle = [
+            'cinematic-realistic' => 'Photorealistic cinematic',
+            'documentary' => 'Documentary style',
+            'animated-3d' => '3D animated',
+            'animated-2d' => '2D animated',
+            'stock-footage' => 'Stock footage style',
+        ];
+        $this->sceneMemory['styleBible']['style'] = $modeToStyle[$storyBibleStyle['mode']] ?? $storyBibleStyle['mode'];
+
+        // Mark as synced
+        $this->sceneMemory['styleBible']['syncedFromStoryBible'] = true;
+
+        Log::info('StyleBible: Synced from Story Bible', [
+            'mode' => $storyBibleStyle['mode'],
+            'hasColorPalette' => !empty($storyBibleStyle['colorPalette']),
+            'hasLighting' => !empty($storyBibleStyle['lighting']),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
      * Open Character Bible modal.
+     * Auto-syncs from Story Bible if available.
      */
     public function openCharacterBibleModal(): void
     {
+        // Auto-sync from Story Bible if it has characters
+        if (!empty($this->storyBible['characters']) && $this->storyBible['status'] === 'ready') {
+            $this->syncStoryBibleToCharacterBible();
+        }
+
         $this->showCharacterBibleModal = true;
         $this->editingCharacterIndex = 0;
     }
@@ -10231,11 +10661,15 @@ EOT;
 
     /**
      * Open Location Bible modal.
-     * Note: Does NOT auto-add placeholder location - let auto-detection populate
-     * or user can click "Add Location" button manually.
+     * Auto-syncs from Story Bible if available.
      */
     public function openLocationBibleModal(): void
     {
+        // Auto-sync from Story Bible if it has locations
+        if (!empty($this->storyBible['locations']) && $this->storyBible['status'] === 'ready') {
+            $this->syncStoryBibleToLocationBible();
+        }
+
         $this->showLocationBibleModal = true;
         // Set editing index to first location if exists, otherwise -1
         $this->editingLocationIndex = !empty($this->sceneMemory['locationBible']['locations']) ? 0 : -1;
@@ -14495,6 +14929,287 @@ PROMPT;
             $this->dispatch('poll-status', ['pendingJobs' => count($this->pendingJobs)]);
         }
     }
+
+    // =========================================================================
+    // PHASE 5: EXPORT ENHANCEMENT METHODS (Bible-Aware Export Pipeline)
+    // =========================================================================
+
+    /**
+     * Generate Bible-aware export configuration.
+     * Uses Story Bible to configure voices, transitions, color grading.
+     */
+    public function generateExportEnhancement(): void
+    {
+        if (!$this->projectId) {
+            $this->error = __('No project loaded');
+            return;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                $this->error = __('Project not found');
+                return;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+
+            // Build complete export configuration from Story Bible
+            $scenes = $this->script['scenes'] ?? [];
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+                'aspectRatio' => $this->aspectRatio,
+                'pacing' => $this->content['pacing'] ?? 'balanced',
+            ]);
+
+            // Store the enhanced configuration
+            $this->exportEnhancement = [
+                'config' => $config,
+                'voiceMapping' => $config['voiceMapping'] ?? [],
+                'colorGrading' => $config['colorGrading'] ?? null,
+                'transitions' => $config['transitions'] ?? null,
+                'configGenerated' => true,
+            ];
+
+            // Apply voice mappings to assembly settings
+            if (!empty($config['voiceMapping']['sceneVoices'])) {
+                foreach ($config['voiceMapping']['sceneVoices'] as $sceneVoice) {
+                    $sceneId = $sceneVoice['sceneId'] ?? null;
+                    if ($sceneId && isset($sceneVoice['voiceId'])) {
+                        // Could map to scene-specific voice settings
+                    }
+                }
+            }
+
+            // Apply transition presets if available
+            if (!empty($config['transitions']['preset'])) {
+                $this->assembly['defaultTransition'] = $config['transitions']['defaultType'] ?? 'fade';
+            }
+
+            $this->saveProject();
+
+            Log::info('ExportEnhancement: Generated Bible-aware config', [
+                'projectId' => $this->projectId,
+                'sceneCount' => count($scenes),
+                'hasBible' => $project->hasStoryBible(),
+                'colorMode' => $config['colorGrading']['mode'] ?? 'none',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to generate config', [
+                'error' => $e->getMessage(),
+            ]);
+            $this->error = __('Failed to generate export configuration: ') . $e->getMessage();
+        }
+    }
+
+    /**
+     * Get the voice mapping suggestions for export.
+     * Uses Story Bible character roles to suggest appropriate voices.
+     */
+    public function getVoiceMappingSuggestions(): array
+    {
+        if (!$this->projectId) {
+            return [];
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project || !$project->hasStoryBible()) {
+                return [];
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+            ]);
+
+            return $config['voiceMapping'] ?? [];
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get voice suggestions', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get color grading presets based on Story Bible visual style.
+     */
+    public function getColorGradingPreset(): ?array
+    {
+        if (!$this->projectId) {
+            return null;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project || !$project->hasStoryBible()) {
+                return null;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes);
+
+            return $config['colorGrading'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get color grading', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get transition suggestions based on Story Bible pacing.
+     */
+    public function getTransitionPreset(): ?array
+    {
+        if (!$this->projectId) {
+            return null;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return null;
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'pacing' => $this->content['pacing'] ?? 'balanced',
+            ]);
+
+            return $config['transitions'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get transitions', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Apply Bible-enhanced transitions to all scenes.
+     */
+    public function applyBibleTransitions(): void
+    {
+        $transitionPreset = $this->getTransitionPreset();
+        if (!$transitionPreset) {
+            return;
+        }
+
+        $scenes = $this->script['scenes'] ?? [];
+        $transitions = [];
+
+        foreach ($scenes as $index => $scene) {
+            $sceneId = $scene['id'] ?? "scene-{$index}";
+
+            // Get scene-specific transition or use default
+            $sceneTransitions = $transitionPreset['sceneTransitions'] ?? [];
+            $sceneTransition = collect($sceneTransitions)->firstWhere('sceneId', $sceneId);
+
+            $transitions[$sceneId] = [
+                'type' => $sceneTransition['type'] ?? $transitionPreset['defaultType'] ?? 'fade',
+                'duration' => $sceneTransition['duration'] ?? $transitionPreset['defaultDuration'] ?? 0.5,
+            ];
+        }
+
+        $this->assembly['transitions'] = $transitions;
+        $this->saveProject();
+
+        Log::info('ExportEnhancement: Applied Bible transitions', [
+            'sceneCount' => count($transitions),
+            'preset' => $transitionPreset['preset'] ?? 'default',
+        ]);
+    }
+
+    /**
+     * Get export metadata including Bible-derived information.
+     */
+    public function getEnhancedExportMetadata(): array
+    {
+        if (!$this->projectId) {
+            return [];
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                return [];
+            }
+
+            $exportService = app(ExportEnhancementService::class);
+            $scenes = $this->script['scenes'] ?? [];
+
+            $config = $exportService->buildExportConfig($project, $scenes, [
+                'platform' => $this->platform,
+                'aspectRatio' => $this->aspectRatio,
+            ]);
+
+            return $config['metadata'] ?? [];
+
+        } catch (\Exception $e) {
+            Log::error('ExportEnhancement: Failed to get metadata', [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get available voice presets for export.
+     */
+    public function getExportVoicePresets(): array
+    {
+        return ExportEnhancementService::VOICE_PRESETS;
+    }
+
+    /**
+     * Get available color grade presets.
+     */
+    public function getColorGradePresets(): array
+    {
+        return ExportEnhancementService::COLOR_GRADE_PRESETS;
+    }
+
+    /**
+     * Get available transition presets.
+     */
+    public function getTransitionPresets(): array
+    {
+        return ExportEnhancementService::TRANSITION_PRESETS;
+    }
+
+    /**
+     * Check if export enhancement is available for current project.
+     */
+    public function hasExportEnhancement(): bool
+    {
+        if (!$this->projectId) {
+            return false;
+        }
+
+        try {
+            $project = WizardProject::find($this->projectId);
+            return $project && $project->hasStoryBible();
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // END PHASE 5: EXPORT ENHANCEMENT METHODS
+    // =========================================================================
 
     /**
      * Render the component.

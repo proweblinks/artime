@@ -56,7 +56,8 @@ class ConceptService
         $prompt = $this->buildImprovePrompt($rawInput, $productionType, $productionSubType);
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
-            'maxResult' => 1
+            'maxResult' => 1,
+            'max_tokens' => 8000, // Ensure enough tokens for full JSON response
         ]);
 
         if (!empty($result['error'])) {
@@ -64,6 +65,8 @@ class ConceptService
         }
 
         $response = $result['data'][0] ?? '';
+
+        \Log::info('ConceptService: AI response length', ['length' => strlen($response)]);
 
         return $this->parseImproveResponse($response);
     }
@@ -130,17 +133,68 @@ PROMPT;
         $result = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            preg_match('/\{[\s\S]*"improvedConcept"[\s\S]*\}/', $response, $matches);
+            \Log::warning('ConceptService: Initial JSON parse failed, attempting repair', [
+                'error' => json_last_error_msg(),
+                'response_length' => strlen($response),
+            ]);
+
+            // Try to extract and repair JSON
+            preg_match('/\{[\s\S]*"improvedConcept"[\s\S]*/', $response, $matches);
             if (!empty($matches[0])) {
-                $result = json_decode($matches[0], true);
+                $repairedJson = $this->repairTruncatedJson($matches[0]);
+                $result = json_decode($repairedJson, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    \Log::error('ConceptService: JSON repair failed', [
+                        'error' => json_last_error_msg(),
+                    ]);
+                } else {
+                    \Log::info('ConceptService: JSON repair successful');
+                }
             }
         }
 
         if (!$result || !isset($result['improvedConcept'])) {
+            \Log::error('ConceptService: Failed to parse response', [
+                'has_result' => !empty($result),
+                'has_improvedConcept' => isset($result['improvedConcept']),
+                'response_preview' => substr($response, 0, 500),
+            ]);
             throw new \Exception('Failed to parse concept improvement response');
         }
 
         return $result;
+    }
+
+    /**
+     * Attempt to repair truncated JSON.
+     */
+    protected function repairTruncatedJson(string $json): string
+    {
+        // Remove any trailing incomplete string
+        $json = preg_replace('/,?\s*"[^"]*":\s*"[^"]*$/s', '', $json);
+
+        // Remove any trailing incomplete array
+        $json = preg_replace('/,?\s*"[^"]*":\s*\[[^\]]*$/s', '', $json);
+
+        // Remove any incomplete key at the end
+        $json = preg_replace('/,?\s*"[^"]*$/s', '', $json);
+
+        // Remove trailing commas before closing brackets
+        $json = preg_replace('/,(\s*[\]\}])/s', '$1', $json);
+        $json = preg_replace('/,\s*$/s', '', $json);
+
+        // Count brackets
+        $openBraces = substr_count($json, '{');
+        $closeBraces = substr_count($json, '}');
+        $openBrackets = substr_count($json, '[');
+        $closeBrackets = substr_count($json, ']');
+
+        // Add missing closing characters
+        $json .= str_repeat(']', max(0, $openBrackets - $closeBrackets));
+        $json .= str_repeat('}', max(0, $openBraces - $closeBraces));
+
+        return $json;
     }
 
     /**
@@ -169,7 +223,8 @@ Return as JSON array:
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
-            'maxResult' => 1
+            'maxResult' => 1,
+            'max_tokens' => 8000, // Ensure enough tokens for variations
         ]);
 
         if (!empty($result['error'])) {
@@ -181,6 +236,12 @@ PROMPT;
         $response = preg_replace('/```\s*/', '', $response);
 
         $variations = json_decode($response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            \Log::warning('ConceptService: Variations JSON parse failed, attempting repair');
+            $response = $this->repairTruncatedJson($response);
+            $variations = json_decode($response, true);
+        }
 
         return $variations ?? [];
     }

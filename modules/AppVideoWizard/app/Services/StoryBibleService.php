@@ -168,7 +168,11 @@ class StoryBibleService
         ]);
 
         // Call AI (single pass - leveraging large context)
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        // Increase max_tokens to ensure full JSON response isn't truncated
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 15000, // Ensure enough tokens for full Story Bible JSON
+        ]);
 
         $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
@@ -427,6 +431,8 @@ Return ONLY valid JSON (no markdown, no explanation):
 5. Ensure acts add up to 100% total
 6. Match the visual mode strictly (realistic vs stylized)
 7. Return ONLY valid JSON - no markdown code blocks, no explanation text
+8. KEEP RESPONSE CONCISE - limit act beats to 3-4 items, traits to 3-4 items
+9. PRIORITIZE: characters and locations are ESSENTIAL - include them before adding extra detail elsewhere
 
 PROMPT;
 
@@ -440,22 +446,48 @@ PROMPT;
     {
         // Clean up response
         $response = trim($response);
+        $originalResponse = $response;
         $response = preg_replace('/```json\s*/i', '', $response);
         $response = preg_replace('/```\s*/', '', $response);
+
+        // Log raw response for debugging
+        Log::info('StoryBible: Parsing response', [
+            'responseLength' => strlen($response),
+            'hasCharactersKey' => str_contains($response, '"characters"'),
+            'hasLocationsKey' => str_contains($response, '"locations"'),
+            'firstChars' => substr($response, 0, 200),
+        ]);
 
         // Try to parse JSON
         $result = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // Try to extract JSON from response
-            if (preg_match('/\{[\s\S]*"title"[\s\S]*\}/m', $response, $matches)) {
-                $result = json_decode($matches[0], true);
+            Log::warning('StoryBible: Initial JSON parse failed, trying repair', [
+                'jsonError' => json_last_error_msg(),
+            ]);
+
+            // Try to repair truncated JSON (common when AI hits token limit)
+            $repairedJson = $this->repairTruncatedJson($response);
+            if ($repairedJson !== $response) {
+                Log::info('StoryBible: Attempting parse with repaired JSON');
+                $result = json_decode($repairedJson, true);
+            }
+
+            // If still failing, try extraction
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                // Try to extract JSON from response - more robust pattern
+                if (preg_match('/\{[\s\S]*"title"[\s\S]*"characters"[\s\S]*\}/m', $response, $matches)) {
+                    $result = json_decode($matches[0], true);
+                } elseif (preg_match('/\{[\s\S]*"title"[\s\S]*\}/m', $response, $matches)) {
+                    $repaired = $this->repairTruncatedJson($matches[0]);
+                    $result = json_decode($repaired, true);
+                }
             }
         }
 
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($result)) {
-            Log::warning('StoryBible: Failed to parse JSON response', [
-                'response' => substr($response, 0, 500),
+            Log::error('StoryBible: Failed to parse JSON response after all attempts', [
+                'response' => substr($response, 0, 1000),
                 'jsonError' => json_last_error_msg(),
             ]);
 
@@ -463,8 +495,66 @@ PROMPT;
             return $this->buildDefaultStoryBible($template, $duration);
         }
 
+        // Log what was parsed
+        Log::info('StoryBible: JSON parsed successfully', [
+            'hasTitle' => !empty($result['title']),
+            'characterCount' => count($result['characters'] ?? []),
+            'locationCount' => count($result['locations'] ?? []),
+            'actCount' => count($result['acts'] ?? []),
+            'keys' => array_keys($result),
+        ]);
+
         // Normalize and validate the Story Bible
-        return $this->normalizeStoryBible($result, $template, $duration);
+        $normalized = $this->normalizeStoryBible($result, $template, $duration);
+
+        // Warn if characters or locations are empty
+        if (empty($normalized['characters'])) {
+            Log::warning('StoryBible: No characters after normalization', [
+                'rawCharacters' => $result['characters'] ?? 'not present',
+            ]);
+        }
+
+        if (empty($normalized['locations'])) {
+            Log::warning('StoryBible: No locations after normalization', [
+                'rawLocations' => $result['locations'] ?? 'not present',
+            ]);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Attempt to repair truncated JSON from AI responses.
+     * Closes unclosed brackets, braces, and strings.
+     */
+    protected function repairTruncatedJson(string $json): string
+    {
+        // Remove any trailing incomplete string (cut off mid-value)
+        // Look for patterns like "key": "incomplete value... (no closing quote)
+        $json = preg_replace('/,?\s*"[^"]*":\s*"[^"]*$/s', '', $json);
+        $json = preg_replace('/,?\s*"[^"]*":\s*\[[^\]]*$/s', '', $json); // Incomplete array
+        $json = preg_replace('/,?\s*"[^"]*$/s', '', $json); // Incomplete key
+
+        // Remove trailing commas
+        $json = preg_replace('/,(\s*[\]\}])/s', '$1', $json);
+        $json = preg_replace('/,\s*$/s', '', $json);
+
+        // Count open/close brackets and braces
+        $openBraces = substr_count($json, '{');
+        $closeBraces = substr_count($json, '}');
+        $openBrackets = substr_count($json, '[');
+        $closeBrackets = substr_count($json, ']');
+
+        // Add missing closing characters
+        $json .= str_repeat(']', max(0, $openBrackets - $closeBrackets));
+        $json .= str_repeat('}', max(0, $openBraces - $closeBraces));
+
+        Log::info('StoryBible: JSON repair attempted', [
+            'addedBrackets' => max(0, $openBrackets - $closeBrackets),
+            'addedBraces' => max(0, $openBraces - $closeBraces),
+        ]);
+
+        return $json;
     }
 
     /**

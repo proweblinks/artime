@@ -100,7 +100,8 @@ class AIService
         array $options = [],
         int $teamId = 0
     ): array {
-        $maxLength = get_option("ai_max_output_lenght", 1000);
+        // Allow options to override the default max length
+        $maxLength = $options['max_tokens'] ?? get_option("ai_max_output_lenght", 1000);
 
         // Kiểm tra quota
         $quota = \Credit::checkQuota($teamId);

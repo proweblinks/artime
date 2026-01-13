@@ -181,7 +181,10 @@ class ScriptGenerationService
         $startTime = microtime(true);
 
         // Use tier-based AI model selection
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 15000, // Ensure enough tokens for full script JSON
+        ]);
         $durationMs = (int)((microtime(true) - $startTime) * 1000);
 
         if (!empty($result['error'])) {
@@ -336,7 +339,10 @@ class ScriptGenerationService
 
         // Step 1: Generate outline/structure
         $outlinePrompt = $this->buildOutlinePrompt($topic, $tone, $duration, $params, $concept, $additionalInstructions);
-        $outlineResult = $this->callAIWithTier($outlinePrompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $outlineResult = $this->callAIWithTier($outlinePrompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 8000, // Ensure enough tokens for outline JSON
+        ]);
 
         if (!empty($outlineResult['error'])) {
             throw new \Exception($outlineResult['error']);
@@ -427,7 +433,10 @@ class ScriptGenerationService
         );
 
         // Call AI with tier-based model selection
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 10000, // Ensure enough tokens for batch scenes
+        ]);
 
         if (!empty($result['error'])) {
             return ['success' => false, 'error' => $result['error'], 'scenes' => []];
@@ -782,7 +791,10 @@ REQUIREMENTS:
 - Narration should flow naturally from scene to scene
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 8000, // Ensure enough tokens for section scenes
+        ]);
 
         if (!empty($result['error'])) {
             \Log::warning('VideoWizard: Section generation failed', [
@@ -2643,7 +2655,10 @@ RESPOND WITH ONLY THIS JSON (no markdown):
 }
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 4000, // Ensure enough tokens for scene regeneration
+        ]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
@@ -2726,7 +2741,10 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
 }
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 4000, // Ensure enough tokens for context-aware regeneration
+        ]);
 
         if (!empty($result['error'])) {
             \Log::error('VideoWizard: Context-aware regeneration failed', ['error' => $result['error']]);
@@ -2917,7 +2935,10 @@ INSTRUCTION: {$instruction}
 RESPOND WITH ONLY THE IMPROVED JSON (no markdown, no explanation):
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, ['maxResult' => 1]);
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 15000, // Ensure enough tokens for improved script
+        ]);
 
         if (!empty($result['error'])) {
             throw new \Exception($result['error']);
