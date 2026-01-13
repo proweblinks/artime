@@ -19,9 +19,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::group(["prefix" => "proxies"], function () {
             Route::resource('', AdminProxiesController::class)->names('admin.proxies');
             Route::post('list', [AdminProxiesController::class, 'list'])->name('admin.proxies.list');
-            Route::post('update', [AdminProxiesController::class, 'update'])->name('admin.proxies.update');
+            Route::post('update', [AdminProxiesController::class, 'update'])->name('admin.proxies.ajax-update');
             Route::post('save', [AdminProxiesController::class, 'save'])->name('admin.proxies.save');
-            Route::post('destroy', [AdminProxiesController::class, 'destroy'])->name('admin.proxies.destroy');
+            Route::post('destroy', [AdminProxiesController::class, 'destroy'])->name('admin.proxies.ajax-destroy');
             Route::post('status/{any}', [AdminProxiesController::class, 'status'])->name('admin.proxies.status');
         });
     });
