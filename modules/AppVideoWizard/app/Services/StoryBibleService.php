@@ -171,7 +171,7 @@ class StoryBibleService
         // Increase max_tokens to ensure full JSON response isn't truncated
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
             'maxResult' => 1,
-            'max_tokens' => 8000, // Ensure enough tokens for full Story Bible JSON (default is only 1024!)
+            'max_tokens' => 15000, // Ensure enough tokens for full Story Bible JSON
         ]);
 
         $durationMs = (int)((microtime(true) - $startTime) * 1000);

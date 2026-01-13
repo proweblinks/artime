@@ -9449,10 +9449,97 @@ class VideoWizard extends Component
     }
 
     /**
+     * Sync Story Bible characters to Character Bible.
+     * This ensures the Storyboard stage uses the same characters defined in Story Bible.
+     */
+    public function syncStoryBibleToCharacterBible(): void
+    {
+        $storyBibleCharacters = $this->storyBible['characters'] ?? [];
+
+        if (empty($storyBibleCharacters)) {
+            Log::info('CharacterBible: No Story Bible characters to sync');
+            return;
+        }
+
+        // Get existing Character Bible characters
+        $existingCharacters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        $existingNames = array_map(fn($c) => strtolower($c['name'] ?? ''), $existingCharacters);
+
+        $syncedCount = 0;
+
+        foreach ($storyBibleCharacters as $bibleChar) {
+            $name = $bibleChar['name'] ?? '';
+            if (empty($name)) continue;
+
+            // Check if character already exists in Character Bible
+            $existingIndex = array_search(strtolower($name), $existingNames);
+
+            // Convert Story Bible character to Character Bible format
+            $characterBibleFormat = [
+                'name' => $name,
+                'description' => $bibleChar['description'] ?? '',
+                'traits' => $bibleChar['traits'] ?? [],
+                'role' => $bibleChar['role'] ?? 'supporting',
+                'arc' => $bibleChar['arc'] ?? '',
+                'appliedScenes' => [],
+                'referenceImage' => $bibleChar['referenceImage'] ?? '',
+                'referenceImageSource' => !empty($bibleChar['referenceImage']) ? 'story-bible' : '',
+                // Hair, wardrobe, makeup, accessories can be filled in later
+                'hair' => ['color' => '', 'style' => '', 'length' => '', 'texture' => ''],
+                'wardrobe' => ['outfit' => '', 'colors' => '', 'style' => '', 'footwear' => ''],
+                'makeup' => ['style' => '', 'details' => ''],
+                'accessories' => [],
+                'syncedFromStoryBible' => true,
+            ];
+
+            if ($existingIndex !== false) {
+                // Update existing character, preserving their reference image if they have one
+                $existing = $existingCharacters[$existingIndex];
+                if (!empty($existing['referenceImage'])) {
+                    $characterBibleFormat['referenceImage'] = $existing['referenceImage'];
+                    $characterBibleFormat['referenceImageSource'] = $existing['referenceImageSource'] ?? 'preserved';
+                }
+                // Preserve applied scenes
+                $characterBibleFormat['appliedScenes'] = $existing['appliedScenes'] ?? [];
+                // Preserve DNA fields if already set
+                if (!empty($existing['hair']['color'])) $characterBibleFormat['hair'] = $existing['hair'];
+                if (!empty($existing['wardrobe']['outfit'])) $characterBibleFormat['wardrobe'] = $existing['wardrobe'];
+                if (!empty($existing['makeup']['style'])) $characterBibleFormat['makeup'] = $existing['makeup'];
+                if (!empty($existing['accessories'])) $characterBibleFormat['accessories'] = $existing['accessories'];
+
+                $this->sceneMemory['characterBible']['characters'][$existingIndex] = $characterBibleFormat;
+            } else {
+                // Add new character
+                $this->sceneMemory['characterBible']['characters'][] = $characterBibleFormat;
+                $existingNames[] = strtolower($name);
+            }
+            $syncedCount++;
+        }
+
+        // Enable Character Bible if we synced characters
+        if ($syncedCount > 0) {
+            $this->sceneMemory['characterBible']['enabled'] = true;
+        }
+
+        Log::info('CharacterBible: Synced from Story Bible', [
+            'syncedCount' => $syncedCount,
+            'totalCharacters' => count($this->sceneMemory['characterBible']['characters']),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
      * Open Character Bible modal.
+     * Auto-syncs from Story Bible if available.
      */
     public function openCharacterBibleModal(): void
     {
+        // Auto-sync from Story Bible if it has characters
+        if (!empty($this->storyBible['characters']) && $this->storyBible['status'] === 'ready') {
+            $this->syncStoryBibleToCharacterBible();
+        }
+
         $this->showCharacterBibleModal = true;
         $this->editingCharacterIndex = 0;
     }
