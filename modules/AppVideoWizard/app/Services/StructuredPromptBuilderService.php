@@ -383,11 +383,21 @@ class StructuredPromptBuilderService
             'attire' => '',
             'pose' => '',
             'micro_action' => '',
+            // =================================================================
+            // PHASE 1: NEW FIELDS FOR CHARACTER COUNT & STORY ACTION
+            // =================================================================
+            'character_count' => 0,
+            'character_names' => [],
+            'story_action' => '',
+            'body_language' => '',
+            'character_count_instruction' => '',
         ];
 
         if (!$characterBible || !($characterBible['enabled'] ?? false)) {
             // Extract subject hints from scene description
             $subject['description'] = $this->extractSubjectFromDescription($sceneDescription);
+            $subject['character_count'] = $this->detectCharacterCountFromDescription($sceneDescription);
+            $subject['story_action'] = $this->extractStoryAction($sceneDescription);
             return $subject;
         }
 
@@ -409,8 +419,22 @@ class StructuredPromptBuilderService
 
         if (empty($sceneCharacters)) {
             $subject['description'] = $this->extractSubjectFromDescription($sceneDescription);
+            $subject['character_count'] = $this->detectCharacterCountFromDescription($sceneDescription);
+            $subject['story_action'] = $this->extractStoryAction($sceneDescription);
             return $subject;
         }
+
+        // =================================================================
+        // PHASE 1: Track character count for duplicate prevention
+        // =================================================================
+        $subject['character_count'] = count($sceneCharacters);
+        $subject['character_names'] = array_map(fn($c) => $c['name'] ?? 'Unknown', $sceneCharacters);
+
+        // Build character count instruction based on how many characters are in scene
+        $subject['character_count_instruction'] = $this->buildCharacterCountInstruction(
+            count($sceneCharacters),
+            $subject['character_names']
+        );
 
         // Build detailed subject from first/main character
         $mainCharacter = $sceneCharacters[0];
@@ -423,6 +447,12 @@ class StructuredPromptBuilderService
         // Extract pose from scene description if available
         $subject['pose'] = $this->extractPoseFromDescription($sceneDescription);
         $subject['micro_action'] = $this->extractMicroAction($sceneDescription);
+
+        // =================================================================
+        // PHASE 1: Extract story action from scene description
+        // =================================================================
+        $subject['story_action'] = $this->extractStoryAction($sceneDescription);
+        $subject['body_language'] = $this->extractBodyLanguage($sceneDescription);
 
         // If multiple characters, add secondary
         if (count($sceneCharacters) > 1) {
@@ -665,6 +695,32 @@ class StructuredPromptBuilderService
             $negativePrompt = array_merge($negativePrompt, $customNegatives);
         }
 
+        // =================================================================
+        // PHASE 1: DUPLICATE CHARACTER PREVENTION
+        // =================================================================
+        // Always add duplicate prevention negatives to avoid cloned characters
+        $duplicatePreventionNegatives = [
+            'duplicate characters',
+            'cloned figures',
+            'same person appearing twice',
+            'multiple copies of same character',
+            'twin copies',
+            'mirrored duplicate',
+            'repeated identical figure',
+        ];
+        $negativePrompt = array_merge($negativePrompt, $duplicatePreventionNegatives);
+
+        // Shot-type specific negatives
+        $shotType = $options['shot_type'] ?? null;
+        if ($shotType) {
+            $singleCharacterShots = ['close-up', 'extreme-close-up', 'medium-close', 'reaction', 'pov'];
+            if (in_array($shotType, $singleCharacterShots)) {
+                // For close shots, emphasize single subject
+                $negativePrompt[] = 'multiple people in close-up';
+                $negativePrompt[] = 'crowded frame';
+            }
+        }
+
         return array_unique($negativePrompt);
     }
 
@@ -709,7 +765,23 @@ class StructuredPromptBuilderService
             if (!empty($subject['micro_action'])) {
                 $subjectParts[] = $subject['micro_action'];
             }
+            // =================================================================
+            // PHASE 1: Include story action and body language
+            // =================================================================
+            if (!empty($subject['story_action'])) {
+                $subjectParts[] = $subject['story_action'];
+            }
+            if (!empty($subject['body_language'])) {
+                $subjectParts[] = $subject['body_language'];
+            }
             $parts[] = implode(', ', array_filter($subjectParts));
+        }
+
+        // =================================================================
+        // PHASE 1: Character count instruction (duplicate prevention)
+        // =================================================================
+        if (!empty($subject['character_count_instruction'])) {
+            $parts[] = $subject['character_count_instruction'];
         }
 
         // Environment
@@ -1163,5 +1235,153 @@ class StructuredPromptBuilderService
         }
 
         return "LOCATION DNA - {$name} (MAINTAIN CONSISTENCY):\n" . implode("\n", $parts);
+    }
+
+    // =========================================================================
+    // PHASE 1: CHARACTER COUNT & STORY ACTION HELPERS
+    // =========================================================================
+
+    /**
+     * Build character count instruction to prevent duplicates.
+     * This explicitly tells the AI how many distinct characters should appear.
+     */
+    protected function buildCharacterCountInstruction(int $count, array $names): string
+    {
+        if ($count <= 0) {
+            return '';
+        }
+
+        if ($count === 1) {
+            $name = $names[0] ?? 'the character';
+            return "IMPORTANT: Exactly ONE person in this image - {$name}. Do NOT duplicate this character. Single figure only.";
+        }
+
+        if ($count === 2) {
+            return "IMPORTANT: Exactly TWO distinct people - " . implode(' and ', $names) . ". Each person is UNIQUE - do NOT duplicate either character.";
+        }
+
+        $nameList = implode(', ', array_slice($names, 0, -1)) . ' and ' . end($names);
+        return "IMPORTANT: Exactly {$count} distinct people - {$nameList}. Each person is UNIQUE with different appearance - no duplicates or clones.";
+    }
+
+    /**
+     * Detect character count from scene description when no Bible is available.
+     */
+    protected function detectCharacterCountFromDescription(string $description): int
+    {
+        $desc = strtolower($description);
+
+        // Check for explicit numbers
+        if (preg_match('/\b(two|2)\s+(people|persons|characters|figures|men|women)/i', $desc)) {
+            return 2;
+        }
+        if (preg_match('/\b(three|3)\s+(people|persons|characters|figures)/i', $desc)) {
+            return 3;
+        }
+        if (preg_match('/\b(group|crowd|army|soldiers|warriors)\b/i', $desc)) {
+            return 5; // Generic "many"
+        }
+
+        // Check for singular indicators
+        $singularKeywords = ['alone', 'solitary', 'single', 'one person', 'a man', 'a woman', 'the man', 'the woman'];
+        foreach ($singularKeywords as $keyword) {
+            if (str_contains($desc, $keyword)) {
+                return 1;
+            }
+        }
+
+        // Default to 1 if a person is mentioned
+        if (preg_match('/\b(person|man|woman|character|figure|he|she)\b/i', $desc)) {
+            return 1;
+        }
+
+        return 0; // No people detected
+    }
+
+    /**
+     * Extract the main story action from scene description.
+     * This captures WHAT is happening in the scene narratively.
+     */
+    protected function extractStoryAction(string $description): string
+    {
+        // Look for strong action verbs and their objects
+        $actionPatterns = [
+            // Dramatic actions
+            '/\b(roars?|screams?|shouts?|bellows?|cries out|yells?)\b[^.]*\./i',
+            '/\b(challenges?|confronts?|faces?|defies?)\b[^.]*\./i',
+            '/\b(raises?|lifts?|holds up|brandishes?)\b[^.]*\./i',
+            '/\b(strikes?|hits?|punches?|attacks?|fights?)\b[^.]*\./i',
+            '/\b(runs?|charges?|rushes?|sprints?|flees?)\b[^.]*\./i',
+            '/\b(falls?|collapses?|drops?|stumbles?)\b[^.]*\./i',
+            '/\b(embraces?|hugs?|kisses?|holds?)\b[^.]*\./i',
+            '/\b(speaks?|says?|tells?|announces?|declares?)\b[^.]*\./i',
+            '/\b(looks?|stares?|gazes?|watches?|observes?)\b[^.]*\./i',
+            '/\b(walks?|strides?|marches?|approaches?|enters?)\b[^.]*\./i',
+        ];
+
+        foreach ($actionPatterns as $pattern) {
+            if (preg_match($pattern, $description, $matches)) {
+                return trim($matches[0], '. ');
+            }
+        }
+
+        // Fall back: extract any sentence with an action verb
+        $sentences = preg_split('/[.!?]+/', $description);
+        $actionVerbs = ['stand', 'sit', 'walk', 'run', 'look', 'hold', 'raise', 'reach', 'turn', 'move', 'speak', 'open', 'close'];
+
+        foreach ($sentences as $sentence) {
+            foreach ($actionVerbs as $verb) {
+                if (preg_match('/\b' . $verb . '(s|ing|ed)?\b/i', $sentence)) {
+                    return trim($sentence);
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Extract body language cues from scene description.
+     */
+    protected function extractBodyLanguage(string $description): string
+    {
+        $bodyLanguageParts = [];
+
+        // Posture indicators
+        $posturePatterns = [
+            '/\b(arms?\s+(spread|raised|crossed|outstretched|at sides|folded))\b/i',
+            '/\b(shoulders?\s+(back|slumped|tense|relaxed|squared))\b/i',
+            '/\b(chin\s+(raised|lowered|tucked))\b/i',
+            '/\b(head\s+(bowed|raised|tilted|turned))\b/i',
+            '/\b(hands?\s+(clenched|open|raised|on hips))\b/i',
+            '/\b(fists?\s+(clenched|raised|pounding))\b/i',
+            '/\b(chest\s+(puffed|heaving))\b/i',
+            '/\b(stance\s+\w+)\b/i',
+        ];
+
+        foreach ($posturePatterns as $pattern) {
+            if (preg_match($pattern, $description, $matches)) {
+                $bodyLanguageParts[] = $matches[0];
+            }
+        }
+
+        // Emotional body language
+        $emotionalPatterns = [
+            'aggressive' => ['towering', 'looming', 'intimidating', 'dominant'],
+            'defensive' => ['cowering', 'shrinking', 'protective'],
+            'confident' => ['proud', 'upright', 'commanding'],
+            'fearful' => ['trembling', 'shaking', 'quivering'],
+        ];
+
+        foreach ($emotionalPatterns as $emotion => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (stripos($description, $keyword) !== false) {
+                    $bodyLanguageParts[] = "{$emotion} posture";
+                    break;
+                }
+            }
+        }
+
+        return implode(', ', array_unique($bodyLanguageParts));
     }
 }

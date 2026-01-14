@@ -11314,12 +11314,20 @@ EOT;
             $selectedVideoModel = $autoSelectModel && $needsLipSync ? 'multitalk' : 'minimax';
 
             // Shot context for subject action generation (Hollywood-quality video prompts)
+            // =================================================================
+            // PHASE 4: Include narration and emotional beat for story-driven prompts
+            // =================================================================
             $shotContext = [
                 'index' => $i,
                 'purpose' => $shotType['purpose'] ?? 'narrative',
                 'isChained' => $i > 0,
                 'description' => $shotType['description'] ?? '',
                 'subjectAction' => $aiShot['subjectAction'] ?? null, // From AI if provided
+                // PHASE 4: Story context for video prompts
+                'narration' => $scene['narration'] ?? '',
+                'emotionalBeat' => $scene['emotionalBeat'] ?? $scene['mood'] ?? '',
+                'storyBeat' => $aiShot['storyBeat'] ?? null,
+                'sceneTitle' => $scene['title'] ?? '',
             ];
 
             $shots[] = [
@@ -11415,11 +11423,18 @@ EOT;
             $cameraMovement = $this->getCameraMovementForShot($shotType['type'], $i);
 
             // Shot context for subject action generation (Hollywood-quality video prompts)
+            // =================================================================
+            // PHASE 4: Include narration and emotional beat for story-driven prompts
+            // =================================================================
             $shotContext = [
                 'index' => $i,
                 'purpose' => $shotType['purpose'] ?? 'narrative',
                 'isChained' => $i > 0,
                 'description' => $shotType['description'] ?? '',
+                // PHASE 4: Story context for video prompts
+                'narration' => $scene['narration'] ?? '',
+                'emotionalBeat' => $scene['emotionalBeat'] ?? $scene['mood'] ?? '',
+                'sceneTitle' => $scene['title'] ?? '',
             ];
 
             $shots[] = [
@@ -12093,6 +12108,8 @@ EOT;
      *
      * Per MiniMax/Runway: Use "the subject" for image-to-video generation.
      * Use SPECIFIC VERBS: "strides", "gazes", "emerges" NOT "is walking", "is looking"
+     *
+     * PHASE 4: Now extracts ACTUAL story actions from scene description
      */
     protected function generateHollywoodSubjectAction(string $shotType, string $visualDescription, array $shotContext = []): string
     {
@@ -12105,10 +12122,19 @@ EOT;
         $isChained = $shotContext['isChained'] ?? ($shotIndex > 0);
         $purpose = $shotContext['purpose'] ?? 'narrative';
 
+        // =================================================================
+        // PHASE 4: Extract ACTUAL story action from scene description
+        // =================================================================
+        $extractedAction = $this->extractActualStoryAction($visualDescription, $shotContext);
+        if (!empty($extractedAction)) {
+            // Enhance the extracted action with Hollywood quality
+            return $this->buildEnhancedStoryAction($extractedAction, $shotType, $shotContext);
+        }
+
         // Extract character type from visual description
         $characterType = $this->extractCharacterType($visualDescription);
 
-        // Get Hollywood-quality action based on shot type
+        // Fall back to generic Hollywood action if no story action extracted
         $action = match($shotType) {
             'establishing', 'extreme-wide' => $this->getHollywoodEstablishingAction($characterType, $visualDescription, $isChained),
             'wide' => $this->getHollywoodWideAction($characterType, $visualDescription, $isChained),
@@ -12121,6 +12147,217 @@ EOT;
         };
 
         return $action;
+    }
+
+    // =========================================================================
+    // PHASE 4: STORY ACTION EXTRACTION FOR VIDEO PROMPTS
+    // =========================================================================
+
+    /**
+     * Extract the ACTUAL story action from the scene description.
+     * This replaces generic actions with what's actually happening in the narrative.
+     */
+    protected function extractActualStoryAction(string $visualDescription, array $shotContext = []): ?string
+    {
+        $desc = $visualDescription;
+
+        // Also check for scene narration in context
+        $narration = $shotContext['narration'] ?? '';
+        if (!empty($narration)) {
+            $desc = $narration . ' ' . $desc;
+        }
+
+        // Priority 1: Look for dramatic action verbs with their full context
+        $dramaticPatterns = [
+            // Vocal actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(roars?|screams?|shouts?|bellows?|yells?|cries\s+out|calls\s+out)[^.]*?(?:\.|$)/i',
+            '/(?:his|her|their)\s+(?:voice|mouth)[^.]*?(roars?|thunders?|echoes?|booms?)[^.]*?(?:\.|$)/i',
+            // Physical confrontation
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(raises?|lifts?|brandishes?|holds\s+up|waves?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(strikes?|hits?|punches?|slams?|pounds?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(charges?|rushes?|attacks?|lunges?)[^.]*?(?:\.|$)/i',
+            // Movement actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(runs?|sprints?|dashes?|flees?|races?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(walks?|strides?|marches?|approaches?|advances?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(falls?|collapses?|drops?|stumbles?|kneels?)[^.]*?(?:\.|$)/i',
+            // Emotional/Communication actions
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(speaks?|says?|declares?|announces?|proclaims?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(challenges?|confronts?|faces?|defies?)[^.]*?(?:\.|$)/i',
+            '/(?:he|she|the\s+\w+|[A-Z]\w+)\s+(embraces?|hugs?|holds?|grasps?)[^.]*?(?:\.|$)/i',
+        ];
+
+        foreach ($dramaticPatterns as $pattern) {
+            if (preg_match($pattern, $desc, $matches)) {
+                return trim($matches[0], '. ');
+            }
+        }
+
+        // Priority 2: Look for "mouth open", "arms raised" type descriptive actions
+        $descriptivePatterns = [
+            '/mouth\s+open[^,.]*/i',
+            '/arms?\s+(raised|spread|outstretched|wide)[^,.]*/i',
+            '/fist\s+(raised|clenched|pounding)[^,.]*/i',
+            '/eyes?\s+(burning|blazing|narrowed|fixed)[^,.]*/i',
+            '/standing\s+(defiantly|proudly|tall|alone)[^,.]*/i',
+        ];
+
+        foreach ($descriptivePatterns as $pattern) {
+            if (preg_match($pattern, $desc, $matches)) {
+                return trim($matches[0]);
+            }
+        }
+
+        // Priority 3: Extract any sentence with strong action verbs
+        $sentences = preg_split('/[.!?]+/', $desc);
+        $strongVerbs = ['roar', 'scream', 'charge', 'strike', 'raise', 'challenge', 'confront', 'thunder', 'bellow', 'pound', 'slam', 'rush', 'leap', 'grab', 'throw'];
+
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            foreach ($strongVerbs as $verb) {
+                if (preg_match('/\b' . $verb . '(s|ed|ing)?\b/i', $sentence)) {
+                    return $sentence;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build enhanced story action with Hollywood quality and shot-appropriate framing.
+     */
+    protected function buildEnhancedStoryAction(string $extractedAction, string $shotType, array $shotContext = []): string
+    {
+        // Convert third-person descriptions to "the subject" format for video AI
+        $action = $this->convertToSubjectFormat($extractedAction);
+
+        // Enhance with Hollywood verbs
+        $action = $this->enhanceActionWithVerbs($action);
+
+        // Add shot-type appropriate framing
+        $action = $this->addShotTypeFraming($action, $shotType, $shotContext);
+
+        // Add body language layer
+        $bodyLanguage = $this->extractBodyLanguageForVideo($extractedAction, $shotContext);
+        if (!empty($bodyLanguage)) {
+            $action .= '. ' . $bodyLanguage;
+        }
+
+        return $action;
+    }
+
+    /**
+     * Convert third-person references to "the subject" for video AI.
+     */
+    protected function convertToSubjectFormat(string $action): string
+    {
+        // Replace character names and pronouns with "the subject"
+        $patterns = [
+            '/\b(He|She|The\s+(?:man|woman|warrior|giant|soldier|figure|character|king|queen|prophet|boy|girl))\b/i' => 'The subject',
+            '/\b(David|Goliath|Moses|Abraham|Sarah|Ruth|Samuel|Saul|Solomon)\b/i' => 'The subject',
+            '/\b(his|her)\s+/i' => 'their ',
+            '/\b(him|her)\b/i' => 'them',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $action = preg_replace($pattern, $replacement, $action);
+        }
+
+        // Ensure action starts with "The subject" if it doesn't already have a subject
+        if (!preg_match('/^The\s+subject/i', $action) && !preg_match('/^[A-Z]/i', $action)) {
+            $action = 'The subject ' . $action;
+        }
+
+        return $action;
+    }
+
+    /**
+     * Add shot-type appropriate framing to the action.
+     */
+    protected function addShotTypeFraming(string $action, string $shotType, array $shotContext): string
+    {
+        $framingAdditions = match($shotType) {
+            'establishing', 'extreme-wide' => ', their figure commanding the vast space',
+            'wide' => ', full body visible with purposeful movement',
+            'medium' => ', upper body engaged with visible emotion',
+            'medium-close' => ', expression and gesture revealing intent',
+            'close-up' => ', every micro-expression visible and meaningful',
+            'extreme-close-up' => ', intimate detail capturing raw emotion',
+            'reaction' => ', response registering across their features',
+            default => '',
+        };
+
+        // Only add if not already present in action
+        if (!empty($framingAdditions) && stripos($action, 'body') === false && stripos($action, 'expression') === false) {
+            $action .= $framingAdditions;
+        }
+
+        return $action;
+    }
+
+    /**
+     * Extract body language cues for video motion.
+     */
+    protected function extractBodyLanguageForVideo(string $description, array $shotContext): string
+    {
+        $bodyLanguage = [];
+
+        // Posture patterns
+        $posturePatterns = [
+            '/arms?\s+(spread|raised|crossed|outstretched|wide)/i' => 'arms $1 with power',
+            '/shoulders?\s+(back|squared|tense|broad)/i' => 'shoulders $1 with presence',
+            '/chest\s+(puffed|heaving|expanded)/i' => 'chest $1 with breath',
+            '/fists?\s+(clenched|raised|balled)/i' => 'fists $1 with tension',
+            '/chin\s+(raised|lifted|high)/i' => 'chin $1 with defiance',
+            '/stance\s+(\w+)/i' => '$1 stance grounding their weight',
+        ];
+
+        foreach ($posturePatterns as $pattern => $replacement) {
+            if (preg_match($pattern, $description, $matches)) {
+                $bodyLanguage[] = preg_replace($pattern, $replacement, $matches[0]);
+            }
+        }
+
+        // Add micro-movements based on emotional context
+        $emotionalContext = $shotContext['emotionalBeat'] ?? $shotContext['mood'] ?? '';
+        if (!empty($emotionalContext)) {
+            $microMovements = $this->getMicroMovementsForEmotion($emotionalContext);
+            if (!empty($microMovements)) {
+                $bodyLanguage[] = $microMovements;
+            }
+        }
+
+        return implode(', ', array_unique($bodyLanguage));
+    }
+
+    /**
+     * Get micro-movements appropriate for the emotional context.
+     */
+    protected function getMicroMovementsForEmotion(string $emotion): string
+    {
+        $emotion = strtolower($emotion);
+
+        $microMovements = [
+            'anger' => 'nostrils flaring, jaw clenching with each breath',
+            'rage' => 'veins visible with tension, breathing heavy and deliberate',
+            'fear' => 'subtle trembling, eyes darting, breath quickening',
+            'determination' => 'steady breath, focused gaze, weight shifting forward',
+            'confrontation' => 'muscles coiled with readiness, eyes locked on target',
+            'triumph' => 'chest expanding, chin lifting, victorious energy',
+            'despair' => 'shoulders dropping, breath shuddering, weight sinking',
+            'love' => 'softening gaze, gentle breath, body inclining toward',
+            'suspense' => 'held breath, muscles tensed, hyper-alert stillness',
+            'revelation' => 'eyes widening, breath catching, body freezing',
+            'challenge' => 'weight shifting aggressively, chest forward, eyes blazing',
+        ];
+
+        foreach ($microMovements as $key => $movement) {
+            if (str_contains($emotion, $key)) {
+                return $movement;
+            }
+        }
+
+        return 'subtle natural breathing, alive in the moment';
     }
 
     /**
@@ -13121,12 +13358,22 @@ EOT;
                     // Use enhanced prompt with shot context
                     $enhancedPrompt = $this->buildEnhancedShotImagePrompt($sceneIndex, $shotIndex);
 
+                    // =================================================================
+                    // PHASE 3: Pass shot context for duplicate prevention
+                    // =================================================================
                     $result = $imageService->generateSceneImage($project, [
                         'id' => $shot['id'],
                         'visualDescription' => $enhancedPrompt,
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
                         'sceneIndex' => $sceneIndex,
+                        // Shot-specific context for StructuredPromptBuilder
+                        'shot_type' => $shot['type'] ?? 'medium',
+                        'shot_purpose' => $shot['purpose'] ?? 'narrative',
+                        'shot_index' => $shotIndex,
+                        'total_shots' => count($decomposed['shots'] ?? []),
+                        'story_beat' => $shot['storyBeat'] ?? $shot['emotionalBeat'] ?? null,
+                        'is_multi_shot' => true,
                     ]);
 
                     if ($result['success']) {
