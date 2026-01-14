@@ -109,6 +109,27 @@ class ShotContinuityService
         'intense' => ['moderate' => 60, 'dynamic' => 80, 'intense' => 85],
     ];
 
+    /**
+     * Energy progression patterns for narrative arc.
+     * Maps shot position percentage to recommended energy level.
+     */
+    public const ENERGY_PROGRESSION = [
+        'building' => [0 => 30, 25 => 50, 50 => 70, 75 => 90, 100 => 100],
+        'steady' => [0 => 50, 25 => 55, 50 => 60, 75 => 55, 100 => 50],
+        'climactic' => [0 => 40, 25 => 50, 50 => 60, 75 => 100, 100 => 70],
+        'resolving' => [0 => 80, 25 => 70, 50 => 50, 75 => 40, 100 => 30],
+    ];
+
+    /**
+     * Eyeline match rules for character gaze continuity.
+     * Screen direction should maintain spatial logic.
+     */
+    public const EYELINE_RULES = [
+        'left_to_right' => ['compatible' => ['right_to_left', 'center'], 'incompatible' => ['left_to_right']],
+        'right_to_left' => ['compatible' => ['left_to_right', 'center'], 'incompatible' => ['right_to_left']],
+        'center' => ['compatible' => ['left_to_right', 'right_to_left', 'center'], 'incompatible' => []],
+    ];
+
     public function __construct(CameraMovementService $cameraMovementService)
     {
         $this->cameraMovementService = $cameraMovementService;
@@ -676,6 +697,409 @@ class ShotContinuityService
             'optimizedScore' => $newAnalysis['score'],
             'improvement' => $newAnalysis['score'] - $this->analyzeSequence($shots)['score'],
         ];
+    }
+
+    // =====================================
+    // HOLLYWOOD CONTINUITY RULES
+    // =====================================
+
+    /**
+     * Check 180-Degree Rule compliance.
+     * The 180-degree rule maintains consistent spatial geography
+     * by keeping the camera on one side of an imaginary axis.
+     *
+     * Based on MasterClass and StudioBinder continuity editing principles.
+     *
+     * @param array $prevShot Previous shot data (should have screenDirection)
+     * @param array $currShot Current shot data
+     * @return array Validation result with suggestions
+     */
+    public function check180DegreeRule(array $prevShot, array $currShot): array
+    {
+        $prevDirection = $prevShot['screenDirection'] ?? $prevShot['spatial_direction'] ?? null;
+        $currDirection = $currShot['screenDirection'] ?? $currShot['spatial_direction'] ?? null;
+
+        // If directions aren't specified, can't validate
+        if (!$prevDirection || !$currDirection) {
+            return [
+                'valid' => true,
+                'message' => 'Screen direction not specified - rule not enforced',
+                'needsManualReview' => true,
+            ];
+        }
+
+        // 180-degree rule violation: crossing the line
+        $violation = false;
+        $message = '';
+
+        // Check if we crossed the line
+        $crossingLine = [
+            'left_to_right' => ['right_to_left_reversed'],
+            'right_to_left' => ['left_to_right_reversed'],
+            'screen_left' => ['screen_right_reversed'],
+            'screen_right' => ['screen_left_reversed'],
+        ];
+
+        if (isset($crossingLine[$prevDirection]) && in_array($currDirection, $crossingLine[$prevDirection])) {
+            $violation = true;
+            $message = "180-degree rule violation: Camera crossed the line from '{$prevDirection}' to '{$currDirection}'";
+        }
+
+        // Also check for confusing same-direction OTS shots
+        if ($prevShot['type'] === 'over-shoulder' && $currShot['type'] === 'over-shoulder') {
+            if ($prevDirection === $currDirection && !isset($currShot['explicitLineCross'])) {
+                $violation = true;
+                $message = 'Over-shoulder shots should alternate screen direction for proper spatial geography';
+            }
+        }
+
+        return [
+            'valid' => !$violation,
+            'message' => $violation ? $message : 'Spatial geography maintained',
+            'suggestion' => $violation
+                ? 'Insert a neutral shot (wide, cutaway, or insert) to re-establish geography before crossing the line, or reverse the screen direction of the second shot'
+                : null,
+        ];
+    }
+
+    /**
+     * Check Match on Action compliance.
+     * Ensures cuts during action feel seamless by matching movement.
+     *
+     * @param array $prevShot Previous shot (should have exitAction)
+     * @param array $currShot Current shot (should have entryAction)
+     * @return array Validation result
+     */
+    public function checkMatchOnAction(array $prevShot, array $currShot): array
+    {
+        $exitAction = $prevShot['exitAction'] ?? $prevShot['endingAction'] ?? null;
+        $entryAction = $currShot['entryAction'] ?? $currShot['startingAction'] ?? null;
+
+        // If actions aren't specified, can't validate
+        if (!$exitAction || !$entryAction) {
+            return [
+                'valid' => true,
+                'message' => 'Action continuity not specified',
+                'needsManualReview' => false,
+            ];
+        }
+
+        // Check if actions match
+        $exitAction = strtolower(trim($exitAction));
+        $entryAction = strtolower(trim($entryAction));
+
+        // Exact match is ideal
+        if ($exitAction === $entryAction) {
+            return [
+                'valid' => true,
+                'score' => 100,
+                'message' => 'Perfect action match',
+            ];
+        }
+
+        // Check for compatible action pairs (continuation of same action)
+        $compatibleActions = [
+            'reaching' => ['grabbing', 'touching', 'holding', 'reaching'],
+            'walking' => ['stepping', 'moving', 'walking', 'striding'],
+            'turning' => ['facing', 'turning', 'rotating', 'pivoting'],
+            'standing' => ['rising', 'standing', 'straightening'],
+            'sitting' => ['lowering', 'sitting', 'settling'],
+            'opening' => ['pushing', 'opening', 'revealing'],
+            'closing' => ['pulling', 'closing', 'shutting'],
+            'looking' => ['gazing', 'staring', 'looking', 'watching'],
+            'speaking' => ['talking', 'speaking', 'saying', 'communicating'],
+        ];
+
+        foreach ($compatibleActions as $action => $compatible) {
+            if (str_contains($exitAction, $action) || in_array($exitAction, $compatible)) {
+                if (str_contains($entryAction, $action) || in_array($entryAction, $compatible)) {
+                    return [
+                        'valid' => true,
+                        'score' => 85,
+                        'message' => 'Compatible action continuity',
+                    ];
+                }
+            }
+        }
+
+        // Actions don't match
+        return [
+            'valid' => false,
+            'score' => 40,
+            'message' => "Action mismatch: '{$exitAction}' doesn't flow into '{$entryAction}'",
+            'suggestion' => 'Adjust the cut point so action continues seamlessly, or insert a neutral beat between actions',
+        ];
+    }
+
+    /**
+     * Check Eyeline Match compliance.
+     * Ensures character gazes align across cuts for spatial logic.
+     *
+     * @param array $prevShot Previous shot (should have lookDirection)
+     * @param array $currShot Current shot (should have lookDirection)
+     * @return array Validation result
+     */
+    public function checkEyelineMatch(array $prevShot, array $currShot): array
+    {
+        $prevLook = $prevShot['lookDirection'] ?? $prevShot['gaze_direction'] ?? null;
+        $currLook = $currShot['lookDirection'] ?? $currShot['gaze_direction'] ?? null;
+
+        if (!$prevLook || !$currLook) {
+            return [
+                'valid' => true,
+                'message' => 'Eyeline direction not specified',
+            ];
+        }
+
+        $prevLook = strtolower(trim($prevLook));
+        $currLook = strtolower(trim($currLook));
+
+        // Check eyeline rules
+        $rules = self::EYELINE_RULES[$prevLook] ?? null;
+
+        if (!$rules) {
+            return [
+                'valid' => true,
+                'message' => 'Eyeline rule not defined for this direction',
+            ];
+        }
+
+        // Check if current look direction is compatible
+        if (in_array($currLook, $rules['incompatible'])) {
+            return [
+                'valid' => false,
+                'message' => "Eyeline mismatch: Character A looking '{$prevLook}' cuts to Character B also looking '{$currLook}' (should be opposite)",
+                'suggestion' => 'For proper eyeline match in dialogue, characters should look in opposite screen directions to appear to be looking at each other',
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'message' => 'Eyeline match maintained',
+        ];
+    }
+
+    /**
+     * Get recommended energy level for a shot at given position in sequence.
+     *
+     * @param int $position Current shot position (0-indexed)
+     * @param int $total Total shots in sequence
+     * @param string $progressionType Type of energy progression
+     * @return array Energy recommendation
+     */
+    public function getEnergyForPosition(int $position, int $total, string $progressionType = 'building'): array
+    {
+        $progression = self::ENERGY_PROGRESSION[$progressionType] ?? self::ENERGY_PROGRESSION['building'];
+
+        // Calculate position percentage
+        $percentage = $total > 1 ? ($position / ($total - 1)) * 100 : 0;
+
+        // Interpolate energy level
+        $energyLevel = $this->interpolateEnergy($percentage, $progression);
+
+        // Map energy level to intensity
+        $intensity = match(true) {
+            $energyLevel < 30 => 'subtle',
+            $energyLevel < 50 => 'static',
+            $energyLevel < 70 => 'moderate',
+            $energyLevel < 90 => 'dynamic',
+            default => 'intense',
+        };
+
+        return [
+            'position' => $position + 1,
+            'percentage' => round($percentage),
+            'energyLevel' => round($energyLevel),
+            'recommendedIntensity' => $intensity,
+            'progressionType' => $progressionType,
+        ];
+    }
+
+    /**
+     * Interpolate energy level from progression curve.
+     */
+    protected function interpolateEnergy(float $percentage, array $progression): float
+    {
+        $keys = array_keys($progression);
+        sort($keys);
+
+        // Find surrounding points
+        $lower = 0;
+        $upper = 100;
+        $lowerVal = $progression[0] ?? 50;
+        $upperVal = $progression[100] ?? 50;
+
+        foreach ($keys as $key) {
+            if ($key <= $percentage) {
+                $lower = $key;
+                $lowerVal = $progression[$key];
+            }
+            if ($key >= $percentage && $upper === 100) {
+                $upper = $key;
+                $upperVal = $progression[$key];
+                break;
+            }
+        }
+
+        // Linear interpolation
+        if ($upper === $lower) {
+            return $lowerVal;
+        }
+
+        $ratio = ($percentage - $lower) / ($upper - $lower);
+        return $lowerVal + ($upperVal - $lowerVal) * $ratio;
+    }
+
+    /**
+     * Perform comprehensive Hollywood continuity analysis.
+     * Checks all professional continuity rules in one call.
+     *
+     * @param array $shots Array of shots with metadata
+     * @param array $options Analysis options
+     * @return array Comprehensive analysis result
+     */
+    public function analyzeHollywoodContinuity(array $shots, array $options = []): array
+    {
+        $sceneType = $options['sceneType'] ?? 'dialogue';
+        $progressionType = $options['progressionType'] ?? 'building';
+
+        $result = [
+            'issues' => [],
+            'suggestions' => [],
+            'scores' => [
+                'shotCompatibility' => 0,
+                '30DegreeRule' => 100,
+                '180DegreeRule' => 100,
+                'matchOnAction' => 100,
+                'eyelineMatch' => 100,
+                'energyProgression' => 0,
+            ],
+            'overall' => 0,
+        ];
+
+        $compatibilityScores = [];
+        $energyScores = [];
+        $rule180Issues = 0;
+        $actionIssues = 0;
+        $eyelineIssues = 0;
+
+        for ($i = 0; $i < count($shots); $i++) {
+            $shot = $shots[$i];
+
+            // Check energy progression
+            $energyRec = $this->getEnergyForPosition($i, count($shots), $progressionType);
+            $actualIntensity = $shot['movementIntensity'] ?? $this->inferIntensity($shot);
+            $expectedIntensity = $energyRec['recommendedIntensity'];
+
+            $intensityMatch = $this->compareIntensities($actualIntensity, $expectedIntensity);
+            $energyScores[] = $intensityMatch;
+
+            if ($intensityMatch < 70) {
+                $result['suggestions'][] = [
+                    'type' => 'energy_progression',
+                    'position' => $i + 1,
+                    'message' => "Shot {$i} has '{$actualIntensity}' intensity but '{$expectedIntensity}' recommended for position",
+                    'recommendation' => "Consider adjusting to '{$expectedIntensity}' for better narrative flow",
+                ];
+            }
+
+            // Compare with previous shot
+            if ($i > 0) {
+                $prevShot = $shots[$i - 1];
+
+                // Shot compatibility
+                $compat = $this->checkShotCompatibility($prevShot, $shot);
+                $compatibilityScores[] = $compat['score'];
+
+                // 180-degree rule
+                $rule180 = $this->check180DegreeRule($prevShot, $shot);
+                if (!$rule180['valid']) {
+                    $rule180Issues++;
+                    $result['issues'][] = [
+                        'type' => '180_degree_rule',
+                        'position' => $i + 1,
+                        'message' => $rule180['message'],
+                        'suggestion' => $rule180['suggestion'],
+                    ];
+                }
+
+                // Match on action
+                $actionMatch = $this->checkMatchOnAction($prevShot, $shot);
+                if (!$actionMatch['valid']) {
+                    $actionIssues++;
+                    $result['issues'][] = [
+                        'type' => 'match_on_action',
+                        'position' => $i + 1,
+                        'message' => $actionMatch['message'],
+                        'suggestion' => $actionMatch['suggestion'],
+                    ];
+                }
+
+                // Eyeline match
+                $eyeline = $this->checkEyelineMatch($prevShot, $shot);
+                if (!$eyeline['valid']) {
+                    $eyelineIssues++;
+                    $result['issues'][] = [
+                        'type' => 'eyeline_match',
+                        'position' => $i + 1,
+                        'message' => $eyeline['message'],
+                        'suggestion' => $eyeline['suggestion'],
+                    ];
+                }
+            }
+        }
+
+        // Calculate scores
+        $totalTransitions = max(1, count($shots) - 1);
+
+        $result['scores']['shotCompatibility'] = !empty($compatibilityScores)
+            ? round(array_sum($compatibilityScores) / count($compatibilityScores))
+            : 100;
+
+        $result['scores']['180DegreeRule'] = round(100 - ($rule180Issues / $totalTransitions * 100));
+        $result['scores']['matchOnAction'] = round(100 - ($actionIssues / $totalTransitions * 100));
+        $result['scores']['eyelineMatch'] = round(100 - ($eyelineIssues / $totalTransitions * 100));
+        $result['scores']['energyProgression'] = !empty($energyScores)
+            ? round(array_sum($energyScores) / count($energyScores))
+            : 100;
+
+        // Overall weighted score
+        $result['overall'] = round(
+            $result['scores']['shotCompatibility'] * 0.25 +
+            $result['scores']['30DegreeRule'] * 0.15 +
+            $result['scores']['180DegreeRule'] * 0.20 +
+            $result['scores']['matchOnAction'] * 0.15 +
+            $result['scores']['eyelineMatch'] * 0.10 +
+            $result['scores']['energyProgression'] * 0.15
+        );
+
+        $result['shotCount'] = count($shots);
+        $result['issueCount'] = count($result['issues']);
+
+        return $result;
+    }
+
+    /**
+     * Compare two intensities and return compatibility score.
+     */
+    protected function compareIntensities(string $actual, string $expected): int
+    {
+        if ($actual === $expected) {
+            return 100;
+        }
+
+        $levels = ['static' => 1, 'subtle' => 2, 'moderate' => 3, 'dynamic' => 4, 'intense' => 5];
+        $actualLevel = $levels[$actual] ?? 3;
+        $expectedLevel = $levels[$expected] ?? 3;
+
+        $diff = abs($actualLevel - $expectedLevel);
+
+        return match($diff) {
+            1 => 80,
+            2 => 60,
+            3 => 40,
+            default => 20,
+        };
     }
 
     // =====================================

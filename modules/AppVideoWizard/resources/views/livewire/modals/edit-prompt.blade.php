@@ -76,7 +76,97 @@
                               style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
                 </div>
 
-                {{-- Suggested Edits --}}
+                {{-- AI Prompt Expander (Hollywood-Quality Enhancement) --}}
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1rem;">✨</span>
+                            <span style="color: #c4b5fd; font-size: 0.8rem; font-weight: 600;">{{ __('Hollywood Prompt Expander') }}</span>
+                        </div>
+                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border-radius: 0.25rem;">AI-Powered</span>
+                    </div>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.75rem;">
+                        {{ __('Transform your basic prompt into Hollywood-quality with professional cinematography, lighting, and emotional depth.') }}
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                        {{-- Enhancement Style Selector --}}
+                        <select wire:model="expanderStyle"
+                                style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                            <option value="cinematic">🎬 {{ __('Cinematic') }}</option>
+                            <option value="action">⚡ {{ __('Action') }}</option>
+                            <option value="emotional">💔 {{ __('Emotional') }}</option>
+                            <option value="atmospheric">🌫️ {{ __('Atmospheric') }}</option>
+                            <option value="documentary">📹 {{ __('Documentary') }}</option>
+                        </select>
+                        {{-- Enhance Button --}}
+                        <button type="button"
+                                wire:click="expandPrompt"
+                                wire:loading.attr="disabled"
+                                wire:target="expandPrompt"
+                                style="padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.35rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                            <span wire:loading.remove wire:target="expandPrompt">✨ {{ __('Enhance Prompt') }}</span>
+                            <span wire:loading wire:target="expandPrompt">
+                                <svg style="width: 14px; height: 14px; animation: spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+                                </svg>
+                                {{ __('Enhancing...') }}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Scene Reference for Visual Consistency --}}
+                @if($editPromptSceneIndex > 0)
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1rem;">🎨</span>
+                        <span style="color: #6ee7b7; font-size: 0.8rem; font-weight: 600;">{{ __('Visual Consistency') }}</span>
+                    </div>
+                    <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.75rem;">
+                        {{ __('Match the style, lighting, and color grading from a previous scene to maintain visual continuity.') }}
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                        {{-- Toggle Reference --}}
+                        <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                            <input type="checkbox"
+                                   wire:model.live="useReferenceScene"
+                                   style="width: 1rem; height: 1rem; accent-color: #10b981;">
+                            <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">{{ __('Use reference scene') }}</span>
+                        </label>
+                        {{-- Scene Selector --}}
+                        @if($useReferenceScene)
+                        <select wire:model="referenceSceneIndex"
+                                style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                            <option value="">{{ __('Select reference scene...') }}</option>
+                            @for($i = 0; $i < $editPromptSceneIndex; $i++)
+                                @if(isset($storyboard['scenes'][$i]['imageUrl']))
+                                <option value="{{ $i }}">
+                                    {{ __('Scene') }} {{ $i + 1 }}: {{ Str::limit($script['scenes'][$i]['title'] ?? 'Untitled', 20) }}
+                                </option>
+                                @endif
+                            @endfor
+                        </select>
+                        @endif
+                    </div>
+                    {{-- Reference Scene Preview --}}
+                    @if($useReferenceScene && $referenceSceneIndex !== null && isset($storyboard['scenes'][$referenceSceneIndex]['imageUrl']))
+                    <div style="margin-top: 0.75rem; display: flex; gap: 0.75rem; align-items: center;">
+                        <div style="width: 80px; height: 45px; border-radius: 0.35rem; overflow: hidden; flex-shrink: 0; border: 2px solid rgba(16,185,129,0.5);">
+                            <img src="{{ $storyboard['scenes'][$referenceSceneIndex]['imageUrl'] }}"
+                                 alt="Reference scene"
+                                 style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="color: #6ee7b7; font-size: 0.7rem; font-weight: 500;">{{ __('Reference:') }} {{ __('Scene') }} {{ $referenceSceneIndex + 1 }}</div>
+                            <div style="color: rgba(255,255,255,0.5); font-size: 0.65rem;">{{ __('Style, lighting, and color grading will be matched') }}</div>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                @endif
+
+                {{-- Quick Add Tags --}}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.5rem; text-transform: uppercase;">{{ __('Quick Add') }}</label>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">

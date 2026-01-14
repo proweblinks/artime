@@ -207,6 +207,207 @@ class ImageGenerationService
     }
 
     /**
+     * Generate scene image with reference to previous scene for visual continuity.
+     *
+     * This method ensures scene-to-scene consistency by:
+     * 1. Extracting style anchors (color grading, lighting, atmosphere) from reference scene
+     * 2. Injecting continuity markers into the prompt
+     * 3. Maintaining visual DNA across the entire video
+     *
+     * @param WizardProject $project The project
+     * @param array $scene The scene to generate
+     * @param array $referenceStyle Style anchors extracted from reference scene
+     * @param array $options Additional generation options
+     * @return array Generation result with continuity metadata
+     */
+    public function generateSceneWithReference(
+        WizardProject $project,
+        array $scene,
+        array $referenceStyle,
+        array $options = []
+    ): array {
+        $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? '';
+
+        // Build continuity-enhanced prompt
+        $continuityParts = [];
+
+        // Start with the original visual description
+        $continuityParts[] = $visualDescription;
+
+        // Add style continuity instructions
+        $styleInstructions = [];
+
+        if (!empty($referenceStyle['colorGrading'])) {
+            $styleInstructions[] = "maintain exact color grading: {$referenceStyle['colorGrading']}";
+        }
+
+        if (!empty($referenceStyle['lightingStyle'])) {
+            $styleInstructions[] = "match lighting style: {$referenceStyle['lightingStyle']}";
+        }
+
+        if (!empty($referenceStyle['filmLook'])) {
+            $styleInstructions[] = "preserve film look: {$referenceStyle['filmLook']}";
+        }
+
+        if (!empty($referenceStyle['atmosphere'])) {
+            $styleInstructions[] = "continue atmosphere: {$referenceStyle['atmosphere']}";
+        }
+
+        if (!empty($referenceStyle['palette'])) {
+            $styleInstructions[] = "use color palette: {$referenceStyle['palette']}";
+        }
+
+        // Add continuity block to prompt
+        if (!empty($styleInstructions)) {
+            $continuityBlock = implode('. ', $styleInstructions);
+            $continuityParts[] = "VISUAL CONTINUITY (CRITICAL - match previous scene exactly): {$continuityBlock}";
+        }
+
+        // Build enhanced scene with continuity prompt
+        $enhancedScene = $scene;
+        $enhancedScene['visualDescription'] = implode('. ', $continuityParts);
+
+        Log::info('ImageGeneration: Generating with scene reference', [
+            'hasColorGrading' => !empty($referenceStyle['colorGrading']),
+            'hasLighting' => !empty($referenceStyle['lightingStyle']),
+            'hasFilmLook' => !empty($referenceStyle['filmLook']),
+            'hasAtmosphere' => !empty($referenceStyle['atmosphere']),
+            'promptLength' => strlen($enhancedScene['visualDescription']),
+        ]);
+
+        // Generate with enhanced prompt
+        $result = $this->generateSceneImage($project, $enhancedScene, $options);
+
+        // Add continuity metadata
+        $result['continuity'] = [
+            'applied' => true,
+            'referenceStyle' => $referenceStyle,
+            'styleInstructions' => $styleInstructions,
+        ];
+
+        return $result;
+    }
+
+    /**
+     * Extract style anchors from an existing scene's prompt for continuity.
+     *
+     * @param string $prompt The prompt used for the reference scene
+     * @param array $analysisData Optional image analysis data
+     * @return array Style anchors for continuity
+     */
+    public function extractStyleAnchorsFromPrompt(string $prompt, array $analysisData = []): array
+    {
+        $anchors = [
+            'colorGrading' => '',
+            'lightingStyle' => '',
+            'filmLook' => '',
+            'atmosphere' => '',
+            'palette' => '',
+        ];
+
+        $prompt = strtolower($prompt);
+
+        // Extract color grading
+        $colorPatterns = [
+            'teal' => 'teal and orange split toning',
+            'warm' => 'warm color temperature',
+            'cool' => 'cool color temperature',
+            'desaturated' => 'desaturated muted palette',
+            'vibrant' => 'vibrant saturated colors',
+            'muted' => 'muted earth tones',
+            'golden' => 'golden warm tones',
+            'neon' => 'neon color accents',
+            'crushed blacks' => 'crushed blacks high contrast',
+            'lifted blacks' => 'lifted blacks low contrast',
+        ];
+
+        foreach ($colorPatterns as $keyword => $grade) {
+            if (str_contains($prompt, $keyword)) {
+                $anchors['colorGrading'] = $grade;
+                break;
+            }
+        }
+
+        // Extract lighting style
+        $lightingPatterns = [
+            'dramatic' => 'dramatic high-contrast lighting',
+            'soft' => 'soft diffused lighting',
+            'harsh' => 'harsh directional lighting',
+            'chiaroscuro' => 'chiaroscuro contrast',
+            'low-key' => 'low-key dramatic shadows',
+            'high-key' => 'high-key bright even',
+            'volumetric' => 'volumetric light rays',
+            'backlit' => 'backlit rim lighting',
+            'rim light' => 'rim lighting separation',
+            'golden hour' => 'golden hour warm directional',
+            'blue hour' => 'blue hour cool ambient',
+            'natural' => 'natural available lighting',
+        ];
+
+        foreach ($lightingPatterns as $keyword => $style) {
+            if (str_contains($prompt, $keyword)) {
+                $anchors['lightingStyle'] = $style;
+                break;
+            }
+        }
+
+        // Extract film look
+        $filmPatterns = [
+            'cinematic' => 'cinematic film look',
+            'film grain' => 'organic film grain texture',
+            'anamorphic' => 'anamorphic lens characteristics',
+            'documentary' => 'documentary realism',
+            'noir' => 'film noir aesthetic',
+            'vintage' => 'vintage film stock',
+            'modern' => 'modern clean digital',
+            'shallow depth' => 'shallow depth of field',
+            'bokeh' => 'bokeh background blur',
+        ];
+
+        foreach ($filmPatterns as $keyword => $look) {
+            if (str_contains($prompt, $keyword)) {
+                $anchors['filmLook'] = $look;
+                break;
+            }
+        }
+
+        // Extract atmosphere
+        $atmospherePatterns = [
+            'moody' => 'moody intimate atmosphere',
+            'epic' => 'epic grand atmosphere',
+            'tense' => 'tense suspenseful atmosphere',
+            'romantic' => 'romantic soft atmosphere',
+            'mysterious' => 'mysterious enigmatic atmosphere',
+            'peaceful' => 'peaceful serene atmosphere',
+            'energetic' => 'energetic dynamic atmosphere',
+            'dark' => 'dark brooding atmosphere',
+            'bright' => 'bright uplifting atmosphere',
+        ];
+
+        foreach ($atmospherePatterns as $keyword => $atmos) {
+            if (str_contains($prompt, $keyword)) {
+                $anchors['atmosphere'] = $atmos;
+                break;
+            }
+        }
+
+        // Include analysis data if provided (from AI image analysis)
+        if (!empty($analysisData)) {
+            if (!empty($analysisData['dominantColors'])) {
+                $anchors['palette'] = implode(', ', $analysisData['dominantColors']);
+            }
+            if (!empty($analysisData['lighting']) && empty($anchors['lightingStyle'])) {
+                $anchors['lightingStyle'] = $analysisData['lighting'];
+            }
+            if (!empty($analysisData['mood']) && empty($anchors['atmosphere'])) {
+                $anchors['atmosphere'] = $analysisData['mood'];
+            }
+        }
+
+        return $anchors;
+    }
+
+    /**
      * Batch generate images with visual consistency for all scenes.
      * Ensures consistent character/location appearances across the storyboard.
      */

@@ -618,7 +618,7 @@ PROMPT;
             ];
         }
 
-        // Normalize visual style
+        // Normalize visual style with Master Style Guide (Hollywood-quality)
         $style = $bible['visualStyle'] ?? [];
         $normalized['visualStyle'] = [
             'mode' => $style['mode'] ?? 'cinematic-realistic',
@@ -626,6 +626,42 @@ PROMPT;
             'lighting' => $style['lighting'] ?? '',
             'cameraLanguage' => $style['cameraLanguage'] ?? '',
             'references' => $style['references'] ?? '',
+
+            // Master Style Guide - Applied to ALL scenes for visual continuity
+            'masterStyleGuide' => [
+                // Color grading profile (e.g., "teal shadows, warm orange highlights")
+                'colorGrading' => $style['masterStyleGuide']['colorGrading']
+                    ?? $style['colorGrading']
+                    ?? $this->inferColorGradingFromPalette($style['colorPalette'] ?? ''),
+
+                // Lighting style (e.g., "dramatic side lighting with soft fill")
+                'lightingStyle' => $style['masterStyleGuide']['lightingStyle']
+                    ?? $style['lightingStyle']
+                    ?? $this->inferLightingStyle($style['lighting'] ?? ''),
+
+                // Film look (e.g., "cinematic grain, shallow depth of field")
+                'filmLook' => $style['masterStyleGuide']['filmLook']
+                    ?? $style['filmLook']
+                    ?? 'cinematic film look, subtle grain, shallow depth of field',
+
+                // Atmosphere (e.g., "moody, intimate")
+                'atmosphere' => $style['masterStyleGuide']['atmosphere']
+                    ?? $style['atmosphere']
+                    ?? '',
+
+                // Dominant color palette (e.g., "muted earth tones with accent colors")
+                'palette' => $style['masterStyleGuide']['palette']
+                    ?? $style['palette']
+                    ?? '',
+
+                // Lens characteristics (e.g., "anamorphic lens, bokeh")
+                'lensCharacteristics' => $style['masterStyleGuide']['lensCharacteristics']
+                    ?? 'anamorphic lens characteristics, natural bokeh',
+
+                // Contrast/exposure style
+                'contrastStyle' => $style['masterStyleGuide']['contrastStyle']
+                    ?? 'balanced contrast with preserved shadow detail',
+            ],
         ];
 
         // Normalize pacing
@@ -811,5 +847,149 @@ PROMPT;
     public static function getStructureTemplates(): array
     {
         return self::STRUCTURE_TEMPLATES;
+    }
+
+    /**
+     * Infer color grading from color palette description.
+     * Translates user-friendly palette descriptions to professional color grading terms.
+     */
+    protected function inferColorGradingFromPalette(string $palette): string
+    {
+        if (empty($palette)) {
+            return 'balanced neutral color grading';
+        }
+
+        $palette = strtolower($palette);
+
+        // Match common palette descriptions to professional grading
+        $gradingMap = [
+            'warm' => 'warm golden tones, lifted shadows',
+            'cool' => 'cool blue undertones, clean highlights',
+            'muted' => 'desaturated muted palette, crushed blacks',
+            'vibrant' => 'vibrant saturated colors, punchy contrast',
+            'earthy' => 'muted earth tones, warm shadows',
+            'teal' => 'teal shadows with warm orange highlights',
+            'orange' => 'warm orange highlights, teal shadows',
+            'golden' => 'golden hour warmth, long shadows',
+            'blue' => 'cool blue hour tones, ambient glow',
+            'cinematic' => 'cinema-grade color science, teal and orange split',
+            'noir' => 'high contrast blacks, desaturated with selective color',
+            'vintage' => 'faded film stock look, lifted blacks, warm cast',
+            'modern' => 'clean contemporary grade, natural colors',
+            'moody' => 'dark moody grade, deep shadows, selective highlights',
+            'bright' => 'bright airy grade, lifted exposure, soft contrast',
+            'dramatic' => 'dramatic contrast, deep blacks, specular highlights',
+            'natural' => 'true-to-life color reproduction, balanced exposure',
+            'pastel' => 'soft pastel tones, reduced contrast, dreamy feel',
+            'neon' => 'neon accents, deep shadows, cyberpunk aesthetic',
+        ];
+
+        foreach ($gradingMap as $keyword => $grading) {
+            if (str_contains($palette, $keyword)) {
+                return $grading;
+            }
+        }
+
+        // Default: use the palette description directly
+        return "color grading based on {$palette}";
+    }
+
+    /**
+     * Infer lighting style from lighting description.
+     * Translates basic lighting descriptions to professional cinematography terms.
+     */
+    protected function inferLightingStyle(string $lighting): string
+    {
+        if (empty($lighting)) {
+            return 'cinematic three-point lighting with soft fill';
+        }
+
+        $lighting = strtolower($lighting);
+
+        // Match common lighting descriptions to professional terms
+        $lightingMap = [
+            'dramatic' => 'dramatic chiaroscuro lighting with deep shadows',
+            'soft' => 'soft diffused lighting with gentle fill',
+            'harsh' => 'harsh directional light with strong contrast',
+            'natural' => 'naturalistic lighting with motivated sources',
+            'moody' => 'moody low-key lighting with atmospheric depth',
+            'bright' => 'bright high-key lighting with minimal shadows',
+            'golden' => 'golden hour side lighting with long warm shadows',
+            'blue' => 'blue hour ambient lighting with cool tones',
+            'cinematic' => 'cinematic three-point lighting setup',
+            'noir' => 'film noir high-contrast side lighting',
+            'practical' => 'practical motivated lighting from in-frame sources',
+            'volumetric' => 'volumetric light rays with atmospheric haze',
+            'backlit' => 'backlighting with rim separation',
+            'silhouette' => 'silhouette lighting against bright background',
+            'rim' => 'rim lighting separating subject from background',
+            'ambient' => 'ambient environmental lighting',
+            'studio' => 'controlled studio lighting setup',
+            'mixed' => 'mixed lighting sources for dynamic feel',
+        ];
+
+        foreach ($lightingMap as $keyword => $style) {
+            if (str_contains($lighting, $keyword)) {
+                return $style;
+            }
+        }
+
+        // Default: use the lighting description directly with enhancement
+        return "{$lighting} with cinematic depth";
+    }
+
+    /**
+     * Get Master Style Guide from Story Bible.
+     * Returns the style anchors that should be applied to ALL scenes.
+     */
+    public function getMasterStyleGuide(array $storyBible): array
+    {
+        $visualStyle = $storyBible['visualStyle'] ?? [];
+        return $visualStyle['masterStyleGuide'] ?? [
+            'colorGrading' => 'balanced neutral color grading',
+            'lightingStyle' => 'cinematic three-point lighting with soft fill',
+            'filmLook' => 'cinematic film look, subtle grain, shallow depth of field',
+            'atmosphere' => '',
+            'palette' => '',
+            'lensCharacteristics' => 'anamorphic lens characteristics, natural bokeh',
+            'contrastStyle' => 'balanced contrast with preserved shadow detail',
+        ];
+    }
+
+    /**
+     * Build continuity prompt block from Master Style Guide.
+     * This should be appended to every image generation prompt.
+     */
+    public function buildContinuityPromptBlock(array $storyBible): string
+    {
+        $guide = $this->getMasterStyleGuide($storyBible);
+
+        $parts = [];
+
+        if (!empty($guide['colorGrading'])) {
+            $parts[] = "Color Grading: {$guide['colorGrading']}";
+        }
+
+        if (!empty($guide['lightingStyle'])) {
+            $parts[] = "Lighting: {$guide['lightingStyle']}";
+        }
+
+        if (!empty($guide['filmLook'])) {
+            $parts[] = "Film Look: {$guide['filmLook']}";
+        }
+
+        if (!empty($guide['atmosphere'])) {
+            $parts[] = "Atmosphere: {$guide['atmosphere']}";
+        }
+
+        if (!empty($guide['lensCharacteristics'])) {
+            $parts[] = "Lens: {$guide['lensCharacteristics']}";
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "MASTER STYLE GUIDE (Apply to ALL scenes for visual continuity):\n" . implode("\n", $parts);
     }
 }

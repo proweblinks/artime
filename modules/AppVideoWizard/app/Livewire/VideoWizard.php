@@ -23,6 +23,8 @@ use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ShotProgressionService;
 use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
 use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
+use Modules\AppVideoWizard\Services\PromptExpanderService;
+use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -477,6 +479,14 @@ class VideoWizard extends Component
     public string $editPromptText = '';
     public string $editSceneNarration = '';
     public int $editSceneDuration = 8;
+
+    // Prompt Expander state
+    public bool $isExpandingPrompt = false;
+    public string $expanderStyle = 'cinematic';
+
+    // Scene Reference for visual consistency
+    public ?int $referenceSceneIndex = null;
+    public bool $useReferenceScene = false;
     public string $editSceneTransition = 'cut';
 
     // Project Manager Modal state
@@ -6003,6 +6013,158 @@ class VideoWizard extends Component
         }
     }
 
+    /**
+     * Expand the current prompt to Hollywood-quality using AI.
+     * Uses PromptExpanderService for intelligent enhancement.
+     */
+    public function expandPrompt(): void
+    {
+        if (empty($this->editPromptText)) {
+            $this->error = __('Please enter a prompt first');
+            return;
+        }
+
+        $this->isExpandingPrompt = true;
+
+        try {
+            $expanderService = app(PromptExpanderService::class);
+
+            // Get story bible context for better enhancement
+            $storyBibleContext = null;
+            if ($this->sceneMemory['storyBible']['enabled'] ?? false) {
+                $storyBible = $this->sceneMemory['storyBible'] ?? [];
+                $storyBibleContext = implode('. ', array_filter([
+                    !empty($storyBible['tone']) ? "Tone: {$storyBible['tone']}" : '',
+                    !empty($storyBible['theme']) ? "Theme: {$storyBible['theme']}" : '',
+                    !empty($this->sceneMemory['styleBible']['style']) ? "Style: {$this->sceneMemory['styleBible']['style']}" : '',
+                ]));
+            }
+
+            // Expand the prompt
+            $result = $expanderService->expandPrompt($this->editPromptText, [
+                'style' => $this->expanderStyle,
+                'genre' => $this->content['genre'] ?? 'cinematic',
+                'useAI' => true,
+                'storyBibleContext' => $storyBibleContext,
+            ]);
+
+            if ($result['success'] && !empty($result['expandedPrompt'])) {
+                $this->editPromptText = $result['expandedPrompt'];
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => __('Prompt enhanced to Hollywood quality!'),
+                ]);
+            } else {
+                $this->error = __('Failed to expand prompt. Please try again.');
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Prompt expansion failed', ['error' => $e->getMessage()]);
+            $this->error = __('Error expanding prompt: ') . $e->getMessage();
+        } finally {
+            $this->isExpandingPrompt = false;
+        }
+    }
+
+    /**
+     * Set the expansion style for prompt enhancement.
+     */
+    public function setExpanderStyle(string $style): void
+    {
+        $validStyles = ['cinematic', 'action', 'emotional', 'atmospheric', 'documentary'];
+        if (in_array($style, $validStyles)) {
+            $this->expanderStyle = $style;
+        }
+    }
+
+    /**
+     * Set the reference scene for visual consistency.
+     */
+    public function setReferenceScene(?int $sceneIndex): void
+    {
+        $this->referenceSceneIndex = $sceneIndex;
+        $this->useReferenceScene = $sceneIndex !== null;
+    }
+
+    /**
+     * Generate image with reference scene for visual consistency.
+     * Uses the previous scene's image as a style reference.
+     */
+    public function generateImageWithReference(int $sceneIndex, string $sceneId): void
+    {
+        if (!$this->useReferenceScene || $this->referenceSceneIndex === null) {
+            // No reference, use normal generation
+            $this->generateImage($sceneIndex, $sceneId);
+            return;
+        }
+
+        $referenceScene = $this->storyboard['scenes'][$this->referenceSceneIndex] ?? null;
+        if (!$referenceScene || empty($referenceScene['imageUrl'])) {
+            // Reference scene has no image, use normal generation
+            $this->generateImage($sceneIndex, $sceneId);
+            return;
+        }
+
+        // Extract style anchors from reference scene
+        $styleAnchors = $this->extractStyleAnchorsFromScene($this->referenceSceneIndex);
+
+        // Store reference data for image generation
+        $this->storyboard['scenes'][$sceneIndex]['referenceStyle'] = $styleAnchors;
+        $this->storyboard['scenes'][$sceneIndex]['referenceSceneIndex'] = $this->referenceSceneIndex;
+
+        // Generate with reference
+        $this->generateImage($sceneIndex, $sceneId);
+    }
+
+    /**
+     * Extract style anchors from an existing scene for visual consistency.
+     */
+    protected function extractStyleAnchorsFromScene(int $sceneIndex): array
+    {
+        $scene = $this->storyboard['scenes'][$sceneIndex] ?? null;
+        if (!$scene) {
+            return [];
+        }
+
+        // Get the prompt that was used for the scene
+        $prompt = $scene['prompt'] ?? '';
+        $scriptScene = $this->script['scenes'][$sceneIndex] ?? [];
+        if (empty($prompt)) {
+            $prompt = $scriptScene['visualDescription'] ?? '';
+        }
+
+        // Use VideoPromptBuilderService to extract style anchors
+        try {
+            $promptBuilder = app(VideoPromptBuilderService::class);
+            return $promptBuilder->extractStyleAnchors($prompt);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to extract style anchors', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Get available scenes for reference (all scenes before the current one).
+     */
+    public function getAvailableReferenceScenes(): array
+    {
+        $scenes = [];
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        for ($i = 0; $i < min($this->editPromptSceneIndex, $totalScenes); $i++) {
+            $storyboardScene = $this->storyboard['scenes'][$i] ?? null;
+            if ($storyboardScene && !empty($storyboardScene['imageUrl'])) {
+                $scenes[] = [
+                    'index' => $i,
+                    'title' => $this->script['scenes'][$i]['title'] ?? "Scene " . ($i + 1),
+                    'imageUrl' => $storyboardScene['imageUrl'],
+                ];
+            }
+        }
+
+        return $scenes;
+    }
+
     // =========================================================================
     // PROJECT MANAGER METHODS
     // =========================================================================
@@ -11518,65 +11680,221 @@ EOT;
     }
 
     /**
-     * Build prompt for a specific shot.
-     * Creates professional AI image prompts following Sora 2 / Runway best practices:
-     * - Optimal length: 50-100 words (2-4 sentences)
-     * - Include: subject, environment, camera specs, lighting, style
-     * - Be specific, avoid vague terms like "beautiful"
+     * Build prompt for a specific shot using Hollywood-quality formula.
+     * [Camera Shot + Motion] + [Subject + Detailed Action] + [Environment] + [Lighting] + [Cinematic Style]
+     *
+     * Based on industry best practices from:
+     * - Runway Text to Video Prompting Guide
+     * - MiniMax/Hailuo Prompt Guide
+     * - Sora 2 Best Practices
+     *
+     * Optimal length: 50-100 words (2-4 sentences)
      */
     protected function buildShotPrompt(string $baseDescription, array $shotType, int $index): string
     {
         $parts = [];
 
-        // 1. Subject and environment (from base description)
-        $parts[] = $baseDescription;
+        // 1. CAMERA SHOT - Professional shot description (establishes visual frame)
+        $shotDescription = $this->getHollywoodShotDescription($shotType['type']);
+        $parts[] = $shotDescription;
 
-        // 2. Shot framing with purpose
-        $purpose = $shotType['purpose'] ?? 'narrative';
-        $parts[] = "{$shotType['type']} shot for {$purpose}";
+        // 2. SUBJECT + ACTION (CRITICAL - this is what AI video models need most)
+        // Enhance the base description with Hollywood-quality verb-based action
+        $enhancedSubject = $this->enhanceSubjectDescription($baseDescription, $shotType);
+        $parts[] = $enhancedSubject;
 
-        // 3. Lens specification (critical for AI video quality)
+        // 3. LENS specification (critical for cinematic quality)
         if (!empty($shotType['lens'])) {
             $parts[] = $shotType['lens'];
+        } else {
+            // Default cinematic lens characteristics
+            $defaultLens = $this->getDefaultLensForShot($shotType['type']);
+            if ($defaultLens) {
+                $parts[] = $defaultLens;
+            }
         }
 
         // 4. Genre-specific styling (uses database-backed CinematographyService)
         $genrePreset = $this->getGenrePreset();
 
-        // Add genre color grade
-        if (!empty($genrePreset['colorGrade'])) {
-            $parts[] = $genrePreset['colorGrade'];
-        }
-
-        // Add genre lighting (first element only to keep prompt concise)
+        // 5. LIGHTING - Enhanced with Hollywood terminology
         if (!empty($genrePreset['lighting'])) {
             $lightingElements = explode(',', $genrePreset['lighting']);
-            $parts[] = trim($lightingElements[0]);
+            $enhancedLighting = $this->enhanceLightingDescription(trim($lightingElements[0]));
+            $parts[] = $enhancedLighting;
+        } else {
+            $parts[] = 'cinematic lighting with depth';
         }
 
-        // 5. Style from Style Bible if enabled (override genre if set)
+        // 6. COLOR GRADING - Essential for visual consistency
+        if (!empty($genrePreset['colorGrade'])) {
+            $parts[] = $genrePreset['colorGrade'];
+        } else {
+            $parts[] = 'professional color grading';
+        }
+
+        // 7. STYLE - From Style Bible (highest priority) or genre preset
         if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
             $parts[] = $this->sceneMemory['styleBible']['style'];
         } elseif (!empty($genrePreset['style'])) {
             $parts[] = $genrePreset['style'];
         }
 
-        // 6. Technical quality specs
+        // 8. CINEMATIC QUALITY markers
+        $parts[] = 'shallow depth of field, subtle film grain';
+
+        // 9. Technical quality specs (if enabled)
         if ($this->storyboard['technicalSpecs']['enabled']) {
             $parts[] = $this->storyboard['technicalSpecs']['positive'];
         }
 
         // Join with proper punctuation for optimal AI processing
-        $prompt = implode('. ', $parts);
+        $prompt = implode('. ', array_filter($parts));
 
         // Ensure prompt stays under ~100 words for optimal AI processing
         $words = str_word_count($prompt);
         if ($words > 120) {
-            // Trim to core elements if too long
-            $prompt = implode('. ', array_slice($parts, 0, 5));
+            // Keep most important elements: shot, subject/action, lighting, style
+            $prompt = implode('. ', array_slice($parts, 0, 6));
         }
 
         return $prompt;
+    }
+
+    /**
+     * Get Hollywood-quality shot description with professional terminology.
+     */
+    protected function getHollywoodShotDescription(string $shotType): string
+    {
+        $descriptions = [
+            'establishing' => 'Establishing shot revealing scene geography',
+            'extreme-wide' => 'Extreme wide shot capturing the full scope and scale',
+            'wide' => 'Wide shot showing complete spatial relationships',
+            'medium-wide' => 'Medium wide shot with full figure and environment context',
+            'medium' => 'Medium shot from waist up, capturing gesture and expression',
+            'medium-close' => 'Medium close-up from chest up, balancing intimacy with context',
+            'close-up' => 'Close-up framing the face, capturing nuanced expression',
+            'extreme-close-up' => 'Extreme close-up revealing intimate detail',
+            'reaction' => 'Reaction shot capturing emotional response',
+            'detail' => 'Detail shot highlighting specific element',
+            'over-shoulder' => 'Over-the-shoulder shot creating conversational intimacy',
+            'pov' => 'Point-of-view shot immersing viewer in character perspective',
+            'two-shot' => 'Two-shot with balanced composition of both subjects',
+            'low-angle' => 'Low angle shot conveying power and presence',
+            'high-angle' => 'High angle shot creating vulnerability or overview',
+        ];
+
+        return $descriptions[$shotType] ?? "{$shotType} shot with professional framing";
+    }
+
+    /**
+     * Enhance subject description with Hollywood-quality action verbs.
+     */
+    protected function enhanceSubjectDescription(string $description, array $shotType): string
+    {
+        // Don't enhance if already has strong action verbs
+        $strongVerbs = ['strides', 'emerges', 'surveys', 'gazes', 'reveals', 'strikes', 'lunges', 'contemplates'];
+        foreach ($strongVerbs as $verb) {
+            if (stripos($description, $verb) !== false) {
+                return $description;
+            }
+        }
+
+        // Detect subject type
+        $subjectType = $this->detectSubjectTypeFromDescription($description);
+        $type = $shotType['type'] ?? 'medium';
+
+        // Get appropriate action enhancement based on shot type
+        $actionEnhancements = [
+            'establishing' => $subjectType === 'group' ? 'positioned within the vast space' : 'present in the establishing view',
+            'wide' => 'moves through the environment with purposeful presence',
+            'medium' => 'engages with visible emotional investment',
+            'medium-close' => 'displays nuanced expression and body language',
+            'close-up' => 'reveals inner emotion through subtle facial movements',
+            'extreme-close-up' => 'shows intricate detail with natural micro-movements',
+            'reaction' => 'registers emotional impact through shifting expression',
+        ];
+
+        $enhancement = $actionEnhancements[$type] ?? 'present with natural life and movement';
+
+        // Combine description with enhancement if not redundant
+        if (!str_contains(strtolower($description), $enhancement)) {
+            return "{$description}, {$enhancement}";
+        }
+
+        return $description;
+    }
+
+    /**
+     * Detect subject type from description for appropriate action generation.
+     */
+    protected function detectSubjectTypeFromDescription(string $description): string
+    {
+        $desc = strtolower($description);
+
+        $groupKeywords = ['group', 'people', 'crowd', 'team', 'warriors', 'soldiers'];
+        foreach ($groupKeywords as $keyword) {
+            if (str_contains($desc, $keyword)) {
+                return 'group';
+            }
+        }
+
+        $objectKeywords = ['object', 'item', 'artifact', 'building', 'vehicle'];
+        foreach ($objectKeywords as $keyword) {
+            if (str_contains($desc, $keyword)) {
+                return 'object';
+            }
+        }
+
+        return 'character';
+    }
+
+    /**
+     * Get default lens for shot type if not specified.
+     */
+    protected function getDefaultLensForShot(string $shotType): string
+    {
+        $lenses = [
+            'establishing' => '24mm wide angle lens',
+            'extreme-wide' => '16mm ultra-wide lens',
+            'wide' => '35mm lens',
+            'medium-wide' => '35mm lens',
+            'medium' => '50mm lens',
+            'medium-close' => '85mm portrait lens',
+            'close-up' => '85mm portrait lens with shallow DOF',
+            'extreme-close-up' => '100mm macro lens',
+            'over-shoulder' => '50mm lens',
+        ];
+
+        return $lenses[$shotType] ?? '50mm lens';
+    }
+
+    /**
+     * Enhance lighting description with Hollywood terminology.
+     */
+    protected function enhanceLightingDescription(string $lighting): string
+    {
+        $lighting = strtolower($lighting);
+
+        // Enhance common lighting terms with cinematic detail
+        $enhancements = [
+            'dramatic' => 'dramatic chiaroscuro lighting with deep shadows',
+            'soft' => 'soft diffused lighting with gentle fill',
+            'harsh' => 'harsh directional light with strong contrast',
+            'natural' => 'naturalistic lighting with motivated sources',
+            'moody' => 'moody low-key lighting with atmospheric depth',
+            'bright' => 'bright high-key lighting with minimal shadows',
+            'golden' => 'golden hour light with long warm shadows',
+            'blue' => 'cool blue hour light with ambient glow',
+        ];
+
+        foreach ($enhancements as $keyword => $enhanced) {
+            if (str_contains($lighting, $keyword)) {
+                return $enhanced;
+            }
+        }
+
+        return $lighting . ' with cinematic depth';
     }
 
     /**
@@ -11693,10 +12011,19 @@ EOT;
 
     /**
      * Get motion description for video generation based on shot type and genre.
-     * Creates professional AI video prompts following Sora 2 / Runway / MiniMax best practices.
+     * Creates Hollywood-quality AI video prompts following industry best practices.
      *
-     * Hollywood-quality prompts follow: Subject + Action + Camera + Environment + Style
-     * Key insight: Prompts must describe WHAT THE SUBJECT IS DOING, not just camera movement.
+     * HOLLYWOOD FORMULA FOR VIDEO:
+     * [Subject Action with Verbs] + [Camera Movement] + [Emotional Context] + [Atmospheric Motion]
+     *
+     * CRITICAL INSIGHT: AI video models need VERB-BASED ACTION descriptions.
+     * "The warrior walks through the forest" generates far better video than
+     * "A warrior in a forest"
+     *
+     * Sources:
+     * - Runway Text to Video Prompting Guide
+     * - MiniMax/Hailuo Prompt Guide (use "the subject" for image-to-video)
+     * - Sora 2 Best Practices
      *
      * @param string $shotType The type of shot (establishing, wide, medium, close-up, etc.)
      * @param string $cameraMovement Camera movement description
@@ -11708,58 +12035,402 @@ EOT;
         // Get genre preset for additional context (uses database-backed service)
         $genrePreset = $this->getGenrePreset();
 
-        // Build professional prompt following Hollywood best practices
-        // Structure: Subject Action -> Camera Movement -> Environment/Atmosphere
+        // Build Hollywood-quality prompt with verb-based actions
         $parts = [];
 
-        // 1. SUBJECT ACTION (CRITICAL - the missing layer for Hollywood-quality animation)
-        // For image-to-video, use "the subject" or simple pronouns per MiniMax/Runway guidance
-        $subjectAction = $this->generateSubjectAction($shotType, $visualDescription, $shotContext);
+        // 1. SUBJECT ACTION (MOST CRITICAL - determines video quality)
+        // For image-to-video: use "the subject" or "the figure" per MiniMax/Runway best practices
+        $subjectAction = $this->generateHollywoodSubjectAction($shotType, $visualDescription, $shotContext);
         if (!empty($subjectAction)) {
             $parts[] = $subjectAction;
         }
 
-        // 2. Camera movement description (shot-type specific)
-        $cameraDescriptions = [
-            'establishing' => 'Slow pan across the scene, establishing the environment',
-            'wide' => 'Expansive view with subtle camera drift',
-            'medium' => 'Subtle camera movement maintaining focus on the subject',
-            'medium-close' => 'Gentle push in for intimacy',
-            'close-up' => 'Slight push in emphasizing details and expressions',
-            'extreme-close-up' => 'Near-static with subtle breathing movement',
-            'reaction' => 'Quick responsive movement',
-            'detail' => 'Slow zoom highlighting specific elements',
-            'over-shoulder' => 'Subtle lateral drift',
-            'pov' => 'Handheld movement from character perspective',
-        ];
-
-        $cameraDesc = $cameraDescriptions[$shotType] ?? 'Natural subtle movement';
-        $parts[] = "Camera: {$cameraDesc}";
-
-        // 3. Specific camera movement if provided and different from base
-        if (!empty($cameraMovement) && $cameraMovement !== 'static' && $cameraMovement !== $cameraDesc) {
-            $parts[] = $cameraMovement;
+        // 2. CAMERA MOVEMENT with professional terminology
+        $cameraPart = $this->buildHollywoodCameraMovement($shotType, $cameraMovement, $shotContext);
+        if (!empty($cameraPart)) {
+            $parts[] = $cameraPart;
         }
 
-        // 4. Genre atmosphere
+        // 3. EMOTIONAL/BODY LANGUAGE context (essential for character shots)
+        $emotionalContext = $this->getEmotionalMotionContext($shotType, $visualDescription, $shotContext);
+        if (!empty($emotionalContext)) {
+            $parts[] = $emotionalContext;
+        }
+
+        // 4. ATMOSPHERIC MOTION (environmental movement)
+        $atmosphericMotion = $this->getAtmosphericMotionElements($visualDescription);
+        if (!empty($atmosphericMotion)) {
+            $parts[] = $atmosphericMotion;
+        }
+
+        // 5. Genre-specific atmosphere
         if (!empty($genrePreset['atmosphere'])) {
             $parts[] = $genrePreset['atmosphere'];
         }
 
-        // 5. Genre lighting feel
+        // 6. Lighting feel for mood
         if (!empty($genrePreset['lighting'])) {
             $lightingHint = explode(',', $genrePreset['lighting'])[0];
-            $parts[] = trim($lightingHint);
+            $parts[] = trim($lightingHint) . ' atmosphere';
         }
 
-        // 6. Visual context from scene description (truncated for prompt efficiency)
-        if (strlen($visualDescription) > 20) {
-            $maxLength = 200; // Slightly reduced since we now have subject action
+        // 7. Brief visual context (only if adds value, heavily truncated)
+        if (strlen($visualDescription) > 50) {
+            $maxLength = 100; // Reduced since we have more action content
             $contextSnippet = $this->truncateAtWordBoundary($visualDescription, $maxLength);
-            $parts[] = $contextSnippet;
+            // Only add if not redundant with subject action
+            if (!str_contains(strtolower($parts[0] ?? ''), strtolower(substr($contextSnippet, 0, 30)))) {
+                $parts[] = "Context: {$contextSnippet}";
+            }
         }
 
-        return implode('. ', $parts);
+        return implode('. ', array_filter($parts));
+    }
+
+    /**
+     * Generate Hollywood-quality subject action with specific verbs.
+     * This is the SINGLE MOST IMPORTANT element for video generation quality.
+     *
+     * Per MiniMax/Runway: Use "the subject" for image-to-video generation.
+     * Use SPECIFIC VERBS: "strides", "gazes", "emerges" NOT "is walking", "is looking"
+     */
+    protected function generateHollywoodSubjectAction(string $shotType, string $visualDescription, array $shotContext = []): string
+    {
+        // If explicit subject action provided (from AI decomposition), enhance it
+        if (!empty($shotContext['subjectAction'])) {
+            return $this->enhanceActionWithVerbs($shotContext['subjectAction']);
+        }
+
+        $shotIndex = $shotContext['index'] ?? 0;
+        $isChained = $shotContext['isChained'] ?? ($shotIndex > 0);
+        $purpose = $shotContext['purpose'] ?? 'narrative';
+
+        // Extract character type from visual description
+        $characterType = $this->extractCharacterType($visualDescription);
+
+        // Get Hollywood-quality action based on shot type
+        $action = match($shotType) {
+            'establishing', 'extreme-wide' => $this->getHollywoodEstablishingAction($characterType, $visualDescription, $isChained),
+            'wide' => $this->getHollywoodWideAction($characterType, $visualDescription, $isChained),
+            'medium', 'medium-close', 'two-shot', 'over-shoulder' => $this->getHollywoodMediumAction($characterType, $visualDescription, $isChained, $purpose),
+            'close-up', 'extreme-close-up' => $this->getHollywoodCloseUpAction($characterType, $visualDescription, $isChained, $purpose),
+            'reaction' => $this->getHollywoodReactionAction($characterType, $visualDescription),
+            'detail', 'insert' => $this->getHollywoodDetailAction($visualDescription),
+            'pov' => $this->getHollywoodPovAction($visualDescription),
+            default => $this->getHollywoodDefaultAction($characterType, $visualDescription, $isChained),
+        };
+
+        return $action;
+    }
+
+    /**
+     * Enhance action with stronger Hollywood verbs.
+     */
+    protected function enhanceActionWithVerbs(string $action): string
+    {
+        // Replace weak verbs with strong Hollywood verbs
+        $replacements = [
+            '/\bis\s+walking\b/i' => 'strides purposefully',
+            '/\bwalks\b/i' => 'strides',
+            '/\bis\s+standing\b/i' => 'stands with presence',
+            '/\bstands\b/i' => 'holds position',
+            '/\bis\s+looking\b/i' => 'gazes intently',
+            '/\blooks\b/i' => 'surveys',
+            '/\bis\s+running\b/i' => 'charges forward',
+            '/\bruns\b/i' => 'rushes',
+            '/\bis\s+sitting\b/i' => 'settles with composure',
+            '/\bsits\b/i' => 'rests',
+            '/\bis\s+talking\b/i' => 'speaks with conviction',
+            '/\btalks\b/i' => 'communicates',
+            '/\bis\s+moving\b/i' => 'advances steadily',
+            '/\bmoves\b/i' => 'shifts',
+        ];
+
+        foreach ($replacements as $pattern => $replacement) {
+            $action = preg_replace($pattern, $replacement, $action, 1);
+        }
+
+        return $action;
+    }
+
+    /**
+     * Extract character type from description for action generation.
+     */
+    protected function extractCharacterType(string $description): string
+    {
+        $desc = strtolower($description);
+
+        // Check for specific character types
+        $typeKeywords = [
+            'warrior' => ['warrior', 'samurai', 'soldier', 'knight', 'fighter'],
+            'group' => ['group', 'people', 'crowd', 'team', 'army'],
+            'mysterious' => ['mysterious', 'hooded', 'cloaked', 'shadowy'],
+            'professional' => ['businessman', 'professional', 'executive', 'doctor'],
+            'young' => ['child', 'kid', 'youth', 'teenager'],
+            'elderly' => ['old', 'elderly', 'aged', 'ancient'],
+        ];
+
+        foreach ($typeKeywords as $type => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($desc, $keyword)) {
+                    return $type;
+                }
+            }
+        }
+
+        return 'character';
+    }
+
+    /**
+     * Get Hollywood-quality establishing shot action.
+     */
+    protected function getHollywoodEstablishingAction(string $characterType, string $visualDescription, bool $isChained): string
+    {
+        if ($characterType === 'group') {
+            return $isChained
+                ? 'The group continues their movement within the vast environment, each figure purposeful in their positioning'
+                : 'The group emerges into the expansive scene, their collective presence establishing the scale';
+        }
+
+        if ($characterType === 'warrior') {
+            return $isChained
+                ? 'The warrior continues their vigilant survey of the terrain, weight shifting with readiness'
+                : 'The warrior stands alone against the vast backdrop, their stance commanding attention';
+        }
+
+        return $isChained
+            ? 'The subject continues their journey through the environment, their presence small against the scale'
+            : 'The subject emerges into the scene, their figure establishing human scale within the vastness';
+    }
+
+    /**
+     * Get Hollywood-quality wide shot action.
+     */
+    protected function getHollywoodWideAction(string $characterType, string $visualDescription, bool $isChained): string
+    {
+        if ($characterType === 'group') {
+            return $isChained
+                ? 'The group advances through the space with collective purpose, their formation revealing intent'
+                : 'The group spreads across the scene, each figure contributing to the narrative tableau';
+        }
+
+        if ($characterType === 'warrior') {
+            return $isChained
+                ? 'The warrior strides forward with measured determination, hand ready at their side'
+                : 'The warrior surveys the field ahead, every muscle coiled with potential energy';
+        }
+
+        return $isChained
+            ? 'The subject continues their path with deliberate steps, body language conveying resolve'
+            : 'The subject moves through the environment, their full figure revealing character through posture';
+    }
+
+    /**
+     * Get Hollywood-quality medium shot action.
+     */
+    protected function getHollywoodMediumAction(string $characterType, string $visualDescription, bool $isChained, string $purpose): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        if ($characterType === 'group') {
+            if ($purpose === 'conversation' || $purpose === 'intimacy') {
+                return $isChained
+                    ? "The subjects lean into their exchange, {$emotionalContext}, subtle shifts in weight revealing dynamics"
+                    : "The subjects engage in meaningful interaction, {$emotionalContext}, bodies angled toward connection";
+            }
+            return $isChained
+                ? "The subjects maintain their positions, {$emotionalContext}, glances exchanged with unspoken communication"
+                : "The subjects react to their situation, {$emotionalContext}, each processing in their own way";
+        }
+
+        if ($purpose === 'reaction') {
+            return "The subject absorbs the moment, their expression shifting through {$emotionalContext}, breath catching";
+        }
+
+        return $isChained
+            ? "The subject continues their engagement, {$emotionalContext}, subtle movements betraying inner thought"
+            : "The subject faces the moment with {$emotionalContext}, hands and shoulders revealing unspoken tension";
+    }
+
+    /**
+     * Get Hollywood-quality close-up action.
+     */
+    protected function getHollywoodCloseUpAction(string $characterType, string $visualDescription, bool $isChained, string $purpose): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        if ($purpose === 'emotion' || $purpose === 'emphasis') {
+            return $isChained
+                ? "The subject's expression evolves through micro-movements, eyes revealing {$emotionalContext}, the weight of the moment visible"
+                : "The subject's face displays {$emotionalContext}, every subtle shift in expression telling the story";
+        }
+
+        return $isChained
+            ? "The subject's eyes move with thought, {$emotionalContext}, small muscular shifts betraying inner processing"
+            : "The subject reveals {$emotionalContext} through nuanced expression, breathing naturally, alive in the moment";
+    }
+
+    /**
+     * Get Hollywood-quality reaction shot action.
+     */
+    protected function getHollywoodReactionAction(string $characterType, string $visualDescription): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+        return "The subject registers the impact, expression transforming as {$emotionalContext} washes across their features, breath held then released";
+    }
+
+    /**
+     * Get Hollywood-quality detail shot action.
+     */
+    protected function getHollywoodDetailAction(string $visualDescription): string
+    {
+        return 'The element holds focus with subtle environmental movement, light shifting across its surface, revealing texture and significance';
+    }
+
+    /**
+     * Get Hollywood-quality POV shot action.
+     */
+    protected function getHollywoodPovAction(string $visualDescription): string
+    {
+        return 'The perspective shifts naturally as if through living eyes, subtle head movement and eye tracking, breath affecting the frame';
+    }
+
+    /**
+     * Get Hollywood-quality default action.
+     */
+    protected function getHollywoodDefaultAction(string $characterType, string $visualDescription, bool $isChained): string
+    {
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        return $isChained
+            ? "The subject continues with natural presence, {$emotionalContext}, small movements maintaining life"
+            : "The subject occupies the frame with quiet intensity, {$emotionalContext}, every micro-movement deliberate";
+    }
+
+    /**
+     * Build Hollywood camera movement description.
+     */
+    protected function buildHollywoodCameraMovement(string $shotType, string $cameraMovement, array $shotContext): string
+    {
+        // Hollywood camera movement terminology
+        $hollywoodMovements = [
+            'establishing' => 'Camera slowly drifts across the scene, establishing geography',
+            'extreme-wide' => 'Camera holds wide with almost imperceptible drift',
+            'wide' => 'Camera tracks with subtle floating movement',
+            'medium' => 'Camera maintains gentle presence with slight organic drift',
+            'medium-close' => 'Camera eases forward, drawing viewer into intimacy',
+            'close-up' => 'Camera breathes with the subject, subtle push accentuating emotion',
+            'extreme-close-up' => 'Camera holds nearly static, any movement matching subject breath',
+            'reaction' => 'Camera responds with quick instinctive adjustment',
+            'detail' => 'Camera slowly reveals with deliberate, reverent movement',
+            'over-shoulder' => 'Camera drifts laterally, maintaining conversational angle',
+            'pov' => 'Camera embodies character perspective with organic handheld life',
+        ];
+
+        $baseMovement = $hollywoodMovements[$shotType] ?? 'Camera moves with cinematic smoothness';
+
+        // Override with specific movement if provided
+        if (!empty($cameraMovement) && $cameraMovement !== 'static') {
+            // Enhance provided movement with Hollywood terminology
+            $enhancedMovement = $this->enhanceCameraMovementTerminology($cameraMovement);
+            return "Camera: {$enhancedMovement}";
+        }
+
+        return "Camera: {$baseMovement}";
+    }
+
+    /**
+     * Enhance camera movement with Hollywood terminology.
+     */
+    protected function enhanceCameraMovementTerminology(string $movement): string
+    {
+        $enhancements = [
+            'pan' => 'smooth pan revealing scene geography',
+            'tilt' => 'controlled tilt following action',
+            'dolly' => 'dolly movement creating depth',
+            'push' => 'intentional push building intensity',
+            'pull' => 'deliberate pull revealing context',
+            'track' => 'tracking shot following subject with purpose',
+            'crane' => 'crane movement adding vertical dynamism',
+            'zoom' => 'slow zoom intensifying focus',
+            'drift' => 'gentle drift with floating quality',
+            'handheld' => 'handheld with organic life and breath',
+            'steadicam' => 'steadicam glide with ethereal smoothness',
+            'static' => 'locked frame with compositional intent',
+        ];
+
+        $movement = strtolower($movement);
+        foreach ($enhancements as $keyword => $enhanced) {
+            if (str_contains($movement, $keyword)) {
+                return $enhanced;
+            }
+        }
+
+        return $movement . ' with cinematic intent';
+    }
+
+    /**
+     * Get emotional/body language motion context.
+     */
+    protected function getEmotionalMotionContext(string $shotType, string $visualDescription, array $shotContext): string
+    {
+        // Only add for character-focused shots
+        if (!in_array($shotType, ['medium', 'medium-close', 'close-up', 'extreme-close-up', 'reaction'])) {
+            return '';
+        }
+
+        $emotionalContext = $this->extractEmotionalContext($visualDescription);
+
+        $bodyLanguage = [
+            'tense' => 'shoulders tight, jaw set, controlled breathing',
+            'fear' => 'eyes darting, shallow breath, subtle tremor',
+            'joy' => 'relaxed shoulders, bright eyes, easy breath',
+            'sad' => 'downcast gaze, heavy breathing, weighted movements',
+            'determined' => 'forward lean, steady gaze, measured breath',
+            'curious' => 'tilted head, widened eyes, engaged posture',
+            'confused' => 'furrowed brow, shifting weight, questioning expression',
+        ];
+
+        // Extract emotion type from context
+        $emotion = $emotionalContext;
+        foreach ($bodyLanguage as $emo => $language) {
+            if (str_contains(strtolower($emotionalContext), $emo)) {
+                return $language;
+            }
+        }
+
+        return 'natural breath and micro-movements maintaining life';
+    }
+
+    /**
+     * Get atmospheric motion elements from description.
+     */
+    protected function getAtmosphericMotionElements(string $description): string
+    {
+        $desc = strtolower($description);
+
+        $atmosphericElements = [
+            'wind' => 'wind stirring hair and fabric with natural movement',
+            'rain' => 'rain falling with dynamic variation, droplets catching light',
+            'snow' => 'snow drifting softly, each flake unique in its path',
+            'fire' => 'flames dancing with organic flicker, casting shifting light',
+            'smoke' => 'smoke wisps curling and dispersing naturally',
+            'fog' => 'fog rolling and shifting with ethereal movement',
+            'dust' => 'dust particles catching light beams, floating lazily',
+            'water' => 'water surface rippling with natural rhythm',
+            'leaves' => 'leaves rustling and occasionally releasing',
+            'clouds' => 'clouds drifting slowly overhead, light shifting',
+            'grass' => 'grass swaying gently in the breeze',
+            'fabric' => 'fabric moving with air currents, adding life',
+        ];
+
+        foreach ($atmosphericElements as $keyword => $motion) {
+            if (str_contains($desc, $keyword)) {
+                return $motion;
+            }
+        }
+
+        return '';
     }
 
     /**
