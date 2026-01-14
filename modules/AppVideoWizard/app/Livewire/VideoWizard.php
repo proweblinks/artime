@@ -13121,12 +13121,22 @@ EOT;
                     // Use enhanced prompt with shot context
                     $enhancedPrompt = $this->buildEnhancedShotImagePrompt($sceneIndex, $shotIndex);
 
+                    // =================================================================
+                    // PHASE 3: Pass shot context for duplicate prevention
+                    // =================================================================
                     $result = $imageService->generateSceneImage($project, [
                         'id' => $shot['id'],
                         'visualDescription' => $enhancedPrompt,
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
                         'sceneIndex' => $sceneIndex,
+                        // Shot-specific context for StructuredPromptBuilder
+                        'shot_type' => $shot['type'] ?? 'medium',
+                        'shot_purpose' => $shot['purpose'] ?? 'narrative',
+                        'shot_index' => $shotIndex,
+                        'total_shots' => count($decomposed['shots'] ?? []),
+                        'story_beat' => $shot['storyBeat'] ?? $shot['emotionalBeat'] ?? null,
+                        'is_multi_shot' => true,
                     ]);
 
                     if ($result['success']) {

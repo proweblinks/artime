@@ -128,8 +128,20 @@ class ImageGenerationService
                 $prompt .= "\n\nCRITICAL - MUST AVOID (will ruin the image): {$customNegativePrompt}";
             }
         } else {
+            // =================================================================
+            // PHASE 3: Extract shot context from options for multi-shot mode
+            // =================================================================
+            $shotContext = [
+                'shot_type' => $options['shot_type'] ?? null,
+                'shot_purpose' => $options['shot_purpose'] ?? null,
+                'shot_index' => $options['shot_index'] ?? null,
+                'total_shots' => $options['total_shots'] ?? null,
+                'story_beat' => $options['story_beat'] ?? null,
+                'is_multi_shot' => $options['is_multi_shot'] ?? false,
+            ];
+
             // Regular scene: build prompt with all Bible integrations
-            $prompt = $this->buildImagePrompt($visualDescription, $styleBible, $visualStyle, $project, $sceneMemory, $sceneIndex);
+            $prompt = $this->buildImagePrompt($visualDescription, $styleBible, $visualStyle, $project, $sceneMemory, $sceneIndex, $shotContext);
         }
 
         // Get resolution based on aspect ratio
@@ -1633,7 +1645,8 @@ EOT;
         ?array $visualStyle,
         WizardProject $project,
         ?array $sceneMemory = null,
-        ?int $sceneIndex = null
+        ?int $sceneIndex = null,
+        array $shotContext = []  // PHASE 3: Shot context for multi-shot mode
     ): string {
         // Determine visual mode from project settings
         $visualMode = $this->getVisualMode($project, $visualStyle);
@@ -1647,7 +1660,8 @@ EOT;
                 $project,
                 $sceneMemory,
                 $sceneIndex,
-                $visualMode
+                $visualMode,
+                $shotContext  // PHASE 3: Pass shot context
             );
         }
 
@@ -1728,7 +1742,8 @@ EOT;
         WizardProject $project,
         ?array $sceneMemory,
         ?int $sceneIndex,
-        string $visualMode
+        string $visualMode,
+        array $shotContext = []  // PHASE 3: Shot context for multi-shot mode
     ): string {
         // Build options for structured prompt builder
         $options = [
@@ -1739,6 +1754,15 @@ EOT;
             'style_bible' => $styleBible,
             'character_bible' => $sceneMemory['characterBible'] ?? null,
             'location_bible' => $sceneMemory['locationBible'] ?? null,
+            // =================================================================
+            // PHASE 3: Pass shot context for duplicate prevention
+            // =================================================================
+            'shot_type' => $shotContext['shot_type'] ?? null,
+            'shot_purpose' => $shotContext['shot_purpose'] ?? null,
+            'shot_index' => $shotContext['shot_index'] ?? null,
+            'total_shots' => $shotContext['total_shots'] ?? null,
+            'story_beat' => $shotContext['story_beat'] ?? null,
+            'is_multi_shot' => $shotContext['is_multi_shot'] ?? false,
         ];
 
         // Build structured prompt
@@ -1767,6 +1791,12 @@ EOT;
             'hasStyleBible' => !empty($styleBible['enabled']),
             'hasCharacterBible' => !empty($sceneMemory['characterBible']['enabled']),
             'hasLocationBible' => !empty($sceneMemory['locationBible']['enabled']),
+            // PHASE 3: Log shot context
+            'shotContext' => [
+                'shot_type' => $shotContext['shot_type'] ?? null,
+                'is_multi_shot' => $shotContext['is_multi_shot'] ?? false,
+                'shot_index' => $shotContext['shot_index'] ?? null,
+            ],
             'promptPreview' => substr($promptString, 0, 300) . '...',
         ]);
 
