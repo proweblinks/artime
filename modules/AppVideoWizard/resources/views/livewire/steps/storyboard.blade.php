@@ -1542,15 +1542,24 @@
                                         </button>
                                     </div>
 
-                                    {{-- Collage Preview (when generated) --}}
+                                    {{-- Collage Preview (when generated) - Multi-Page Support --}}
                                     @php
                                         $sceneCollage = $sceneCollages[$index] ?? null;
+                                        $collageCurrentPage = $sceneCollage['currentPage'] ?? 0;
+                                        $collageTotalPages = $sceneCollage['totalPages'] ?? 1;
+                                        $currentCollageData = $sceneCollage['collages'][$collageCurrentPage] ?? null;
+                                        $currentCollageShots = $currentCollageData['shots'] ?? [];
+                                        $collageRangeStart = !empty($currentCollageShots) ? min($currentCollageShots) + 1 : 1;
+                                        $collageRangeEnd = !empty($currentCollageShots) ? max($currentCollageShots) + 1 : 4;
                                     @endphp
                                     @if($sceneCollage && in_array($sceneCollage['status'], ['ready', 'generating', 'processing']))
                                         <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                                                 <span style="font-size: 0.7rem; color: rgba(255,255,255,0.8); font-weight: 600;">
                                                     🖼️ {{ __('Collage Preview') }}
+                                                    @if($sceneCollage['status'] === 'ready' && $collageTotalPages > 1)
+                                                        <span style="font-size: 0.55rem; color: rgba(255,255,255,0.6); margin-left: 0.25rem;">({{ __('Shots :start-:end', ['start' => $collageRangeStart, 'end' => $collageRangeEnd]) }})</span>
+                                                    @endif
                                                 </span>
                                                 <button type="button"
                                                         wire:click="clearCollagePreview({{ $index }})"
@@ -1566,23 +1575,23 @@
                                                         <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-top: 0.35rem; display: block;">{{ __('Generating...') }}</span>
                                                     </div>
                                                 </div>
-                                            @elseif($sceneCollage['status'] === 'ready' && !empty($sceneCollage['previewUrl']))
+                                            @elseif($sceneCollage['status'] === 'ready' && !empty($currentCollageData['previewUrl']))
                                                 <div style="font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
                                                     {{ __('Click a region to use as scene image:') }}
                                                 </div>
                                                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
                                                     @for($regionIdx = 0; $regionIdx < 4; $regionIdx++)
-                                                        <div wire:click="setSceneImageFromCollageRegion({{ $index }}, {{ $regionIdx }})"
+                                                        <div wire:click="setSceneImageFromCollageRegion({{ $index }}, {{ $collageCurrentPage }}, {{ $regionIdx }})"
                                                              style="aspect-ratio: 16/9; background: rgba(0,0,0,0.3); border-radius: 0.25rem; position: relative; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, transform 0.2s;"
                                                              onmouseover="this.style.borderColor='rgba(236, 72, 153, 0.8)'; this.style.transform='scale(1.02)';"
                                                              onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)';">
                                                             {{-- Simulated region from collage --}}
-                                                            <img src="{{ $sceneCollage['previewUrl'] }}"
+                                                            <img src="{{ $currentCollageData['previewUrl'] }}"
                                                                  style="position: absolute; width: 200%; height: 200%; object-fit: cover;
                                                                         {{ $regionIdx % 2 === 0 ? 'left: 0' : 'left: -100%' }};
                                                                         {{ $regionIdx < 2 ? 'top: 0' : 'top: -100%' }};">
                                                             <div style="position: absolute; top: 0.15rem; left: 0.15rem; background: rgba(0,0,0,0.7); color: white; padding: 0.1rem 0.25rem; border-radius: 0.15rem; font-size: 0.5rem; font-weight: 600;">
-                                                                {{ $regionIdx + 1 }}
+                                                                {{ ($currentCollageShots[$regionIdx] ?? $regionIdx) + 1 }}
                                                             </div>
                                                             <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(139, 92, 246, 0.3)); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center;"
                                                                  onmouseover="this.style.opacity='1';"
@@ -1592,6 +1601,33 @@
                                                         </div>
                                                     @endfor
                                                 </div>
+
+                                                {{-- Pagination Controls --}}
+                                                @if($collageTotalPages > 1)
+                                                    <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                                        <button type="button"
+                                                                wire:click="prevCollagePage({{ $index }})"
+                                                                {{ $collageCurrentPage <= 0 ? 'disabled' : '' }}
+                                                                style="padding: 0.15rem 0.35rem; background: {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.2rem; color: {{ $collageCurrentPage > 0 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.55rem; cursor: {{ $collageCurrentPage > 0 ? 'pointer' : 'not-allowed' }};">
+                                                            ◀
+                                                        </button>
+                                                        <div style="display: flex; align-items: center; gap: 0.2rem;">
+                                                            @for($pageIdx = 0; $pageIdx < $collageTotalPages; $pageIdx++)
+                                                                <button type="button"
+                                                                        wire:click="setCollagePage({{ $index }}, {{ $pageIdx }})"
+                                                                        style="width: 18px; height: 18px; background: {{ $pageIdx === $collageCurrentPage ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $pageIdx === $collageCurrentPage ? 'rgba(236, 72, 153, 0.6)' : 'rgba(255,255,255,0.2)' }}; border-radius: 50%; color: white; font-size: 0.5rem; font-weight: 600; cursor: pointer;">
+                                                                    {{ $pageIdx + 1 }}
+                                                                </button>
+                                                            @endfor
+                                                        </div>
+                                                        <button type="button"
+                                                                wire:click="nextCollagePage({{ $index }})"
+                                                                {{ $collageCurrentPage >= $collageTotalPages - 1 ? 'disabled' : '' }}
+                                                                style="padding: 0.15rem 0.35rem; background: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.2rem; color: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.55rem; cursor: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'pointer' : 'not-allowed' }};">
+                                                            ▶
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             @endif
                                         </div>
                                     @endif

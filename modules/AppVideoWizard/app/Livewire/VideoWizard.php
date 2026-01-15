@@ -618,22 +618,37 @@ class VideoWizard extends Component
     public ?string $capturedFrame = null;
 
     // Per-Scene Collage Preview state (integrated into Multi-Shot Decomposition)
-    // Stores collage preview image and region-to-shot assignments per scene
+    // Stores collage preview images and region-to-shot assignments per scene
+    // Supports multiple collages for scenes with more than 4 shots
     public array $sceneCollages = [];
     /**
-     * Scene Collage Structure:
+     * Scene Collage Structure (Multi-Collage Support):
      * [
      *     sceneIndex => [
-     *         'previewUrl' => 'url-to-2x2-grid-image',
      *         'status' => 'pending' | 'generating' | 'ready' | 'error',
-     *         'regions' => [
-     *             0 => ['row' => 0, 'col' => 0, 'assignedToShot' => null],
-     *             1 => ['row' => 0, 'col' => 1, 'assignedToShot' => null],
-     *             2 => ['row' => 1, 'col' => 0, 'assignedToShot' => null],
-     *             3 => ['row' => 1, 'col' => 1, 'assignedToShot' => null],
+     *         'currentPage' => 0, // Which collage page is currently shown
+     *         'totalPages' => 2, // Total number of collage pages
+     *         'collages' => [
+     *             // Page 0: Shots 1-4
+     *             [
+     *                 'previewUrl' => 'url-to-2x2-grid-image',
+     *                 'shots' => [0, 1, 2, 3], // Shot indices in this collage
+     *                 'regions' => [
+     *                     0 => ['row' => 0, 'col' => 0, 'shotIndex' => 0, 'assignedToShot' => null],
+     *                     1 => ['row' => 0, 'col' => 1, 'shotIndex' => 1, 'assignedToShot' => null],
+     *                     2 => ['row' => 1, 'col' => 0, 'shotIndex' => 2, 'assignedToShot' => null],
+     *                     3 => ['row' => 1, 'col' => 1, 'shotIndex' => 3, 'assignedToShot' => null],
+     *                 ],
+     *             ],
+     *             // Page 1: Shots 5-8
+     *             [
+     *                 'previewUrl' => 'url-to-2x2-grid-image',
+     *                 'shots' => [4, 5, 6, 7],
+     *                 'regions' => [...],
+     *             ],
      *         ],
      *         'shotSources' => [
-     *             shotIndex => regionIndex, // Which region is source for which shot
+     *             shotIndex => ['pageIndex' => 0, 'regionIndex' => 0],
      *         ],
      *     ],
      * ]
@@ -13500,8 +13515,9 @@ EOT;
     // =========================================================================
 
     /**
-     * Generate a 2x2 collage preview for a scene.
-     * Creates a grid image showing all shots for visual planning.
+     * Generate 2x2 collage previews for a scene.
+     * Creates multiple grid images showing all shots (4 shots per collage).
+     * Supports pagination for scenes with more than 4 shots.
      */
     public function generateCollagePreview(int $sceneIndex): void
     {
@@ -13511,20 +13527,41 @@ EOT;
             return;
         }
 
-        // Initialize collage state for this scene
+        $shots = $decomposed['shots'];
+        $totalShots = count($shots);
+        $shotsPerCollage = 4;
+        $totalPages = (int) ceil($totalShots / $shotsPerCollage);
+
+        // Initialize collage state for this scene with multi-page support
         $this->sceneCollages[$sceneIndex] = [
             'status' => 'generating',
-            'previewUrl' => null,
-            'regions' => [],
+            'currentPage' => 0,
+            'totalPages' => $totalPages,
+            'collages' => [],
             'shotSources' => [],
         ];
 
-        // Initialize 4 regions (2x2 grid)
-        for ($i = 0; $i < 4; $i++) {
-            $this->sceneCollages[$sceneIndex]['regions'][$i] = [
-                'row' => intdiv($i, 2),
-                'col' => $i % 2,
-                'assignedToShot' => null,
+        // Initialize collage pages
+        for ($page = 0; $page < $totalPages; $page++) {
+            $startIdx = $page * $shotsPerCollage;
+            $pageShots = array_slice($shots, $startIdx, $shotsPerCollage, true);
+            $shotIndices = array_keys($pageShots);
+
+            $regions = [];
+            foreach ($shotIndices as $regionIdx => $shotIdx) {
+                $regions[$regionIdx] = [
+                    'row' => intdiv($regionIdx, 2),
+                    'col' => $regionIdx % 2,
+                    'shotIndex' => $shotIdx,
+                    'assignedToShot' => null,
+                ];
+            }
+
+            $this->sceneCollages[$sceneIndex]['collages'][$page] = [
+                'previewUrl' => null,
+                'status' => 'pending',
+                'shots' => $shotIndices,
+                'regions' => $regions,
             ];
         }
 
@@ -13532,46 +13569,74 @@ EOT;
 
         try {
             $imageService = app(ImageGenerationService::class);
-            $shots = $decomposed['shots'];
             $scene = $this->script['scenes'][$sceneIndex] ?? [];
-
-            // Build a combined prompt for the 2x2 collage
-            $shotDescriptions = [];
-            foreach (array_slice($shots, 0, 4) as $idx => $shot) {
-                $shotDescriptions[] = "Panel " . ($idx + 1) . ": " . ($shot['imagePrompt'] ?? $shot['prompt'] ?? 'Shot ' . ($idx + 1));
-            }
-
-            $collagePrompt = "A 2x2 grid collage showing 4 different camera angles of the same scene. " .
-                implode('. ', $shotDescriptions) . ". " .
-                "Each panel shows a different shot type while maintaining visual consistency. " .
-                "Style: " . ($decomposed['consistencyAnchors']['style'] ?? 'cinematic');
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
-                    $result = $imageService->generateSceneImage($project, [
-                        'id' => "collage_{$sceneIndex}",
-                        'visualDescription' => $collagePrompt,
-                    ], [
-                        'model' => $this->storyboard['imageModel'] ?? 'hidream',
-                        'sceneIndex' => $sceneIndex,
-                        'is_collage_preview' => true,
-                    ]);
+                    // Generate collages for all pages
+                    foreach ($this->sceneCollages[$sceneIndex]['collages'] as $pageIdx => &$collageData) {
+                        $pageShots = [];
+                        foreach ($collageData['shots'] as $regionIdx => $shotIdx) {
+                            $shot = $shots[$shotIdx] ?? null;
+                            if ($shot) {
+                                $pageShots[] = $shot;
+                            }
+                        }
 
-                    if ($result['success'] && isset($result['imageUrl'])) {
-                        $this->sceneCollages[$sceneIndex]['previewUrl'] = $result['imageUrl'];
-                        $this->sceneCollages[$sceneIndex]['status'] = 'ready';
-                    } elseif (isset($result['jobId'])) {
-                        // Async job
-                        $this->pendingJobs["collage_{$sceneIndex}"] = [
-                            'jobId' => $result['jobId'],
-                            'type' => 'collage',
+                        // Build a combined prompt for the 2x2 collage
+                        $shotDescriptions = [];
+                        foreach ($pageShots as $idx => $shot) {
+                            $shotDescriptions[] = "Panel " . ($idx + 1) . ": " . ($shot['imagePrompt'] ?? $shot['prompt'] ?? 'Shot ' . ($idx + 1));
+                        }
+
+                        $startShot = ($pageIdx * $shotsPerCollage) + 1;
+                        $endShot = min(($pageIdx + 1) * $shotsPerCollage, $totalShots);
+
+                        $collagePrompt = "A 2x2 grid collage showing shots {$startShot}-{$endShot} of a scene. " .
+                            implode('. ', $shotDescriptions) . ". " .
+                            "Each panel shows a different shot type while maintaining visual consistency. " .
+                            "Style: " . ($decomposed['consistencyAnchors']['style'] ?? 'cinematic');
+
+                        $collageData['status'] = 'generating';
+
+                        $result = $imageService->generateSceneImage($project, [
+                            'id' => "collage_{$sceneIndex}_page_{$pageIdx}",
+                            'visualDescription' => $collagePrompt,
+                        ], [
+                            'model' => $this->storyboard['imageModel'] ?? 'hidream',
                             'sceneIndex' => $sceneIndex,
-                        ];
-                        $this->sceneCollages[$sceneIndex]['status'] = 'processing';
-                    } else {
-                        throw new \Exception($result['error'] ?? __('Collage generation failed'));
+                            'is_collage_preview' => true,
+                            'collage_page' => $pageIdx,
+                        ]);
+
+                        if ($result['success'] && isset($result['imageUrl'])) {
+                            $collageData['previewUrl'] = $result['imageUrl'];
+                            $collageData['status'] = 'ready';
+                        } elseif (isset($result['jobId'])) {
+                            // Async job
+                            $this->pendingJobs["collage_{$sceneIndex}_page_{$pageIdx}"] = [
+                                'jobId' => $result['jobId'],
+                                'type' => 'collage',
+                                'sceneIndex' => $sceneIndex,
+                                'pageIndex' => $pageIdx,
+                            ];
+                            $collageData['status'] = 'processing';
+                        } else {
+                            $collageData['status'] = 'error';
+                        }
                     }
+                    unset($collageData);
+
+                    // Check overall status
+                    $allReady = true;
+                    foreach ($this->sceneCollages[$sceneIndex]['collages'] as $collageData) {
+                        if ($collageData['status'] !== 'ready') {
+                            $allReady = false;
+                            break;
+                        }
+                    }
+                    $this->sceneCollages[$sceneIndex]['status'] = $allReady ? 'ready' : 'processing';
                 }
             }
 
@@ -13589,39 +13654,96 @@ EOT;
     }
 
     /**
-     * Assign a collage region to a specific shot.
-     * User clicks on a region to mark it as the source for generating that shot.
+     * Navigate to the next collage page for a scene.
      */
-    public function assignCollageRegionToShot(int $sceneIndex, int $regionIndex, int $shotIndex): void
+    public function nextCollagePage(int $sceneIndex): void
     {
         if (!isset($this->sceneCollages[$sceneIndex])) {
             return;
         }
 
+        $currentPage = $this->sceneCollages[$sceneIndex]['currentPage'] ?? 0;
+        $totalPages = $this->sceneCollages[$sceneIndex]['totalPages'] ?? 1;
+
+        if ($currentPage < $totalPages - 1) {
+            $this->sceneCollages[$sceneIndex]['currentPage'] = $currentPage + 1;
+        }
+    }
+
+    /**
+     * Navigate to the previous collage page for a scene.
+     */
+    public function prevCollagePage(int $sceneIndex): void
+    {
+        if (!isset($this->sceneCollages[$sceneIndex])) {
+            return;
+        }
+
+        $currentPage = $this->sceneCollages[$sceneIndex]['currentPage'] ?? 0;
+
+        if ($currentPage > 0) {
+            $this->sceneCollages[$sceneIndex]['currentPage'] = $currentPage - 1;
+        }
+    }
+
+    /**
+     * Set the current collage page directly.
+     */
+    public function setCollagePage(int $sceneIndex, int $pageIndex): void
+    {
+        if (!isset($this->sceneCollages[$sceneIndex])) {
+            return;
+        }
+
+        $totalPages = $this->sceneCollages[$sceneIndex]['totalPages'] ?? 1;
+
+        if ($pageIndex >= 0 && $pageIndex < $totalPages) {
+            $this->sceneCollages[$sceneIndex]['currentPage'] = $pageIndex;
+        }
+    }
+
+    /**
+     * Assign a collage region to a specific shot.
+     * User clicks on a region to mark it as the source for generating that shot.
+     * Now supports multi-page collages with pageIndex parameter.
+     */
+    public function assignCollageRegionToShot(int $sceneIndex, int $pageIndex, int $regionIndex, int $shotIndex): void
+    {
+        if (!isset($this->sceneCollages[$sceneIndex])) {
+            return;
+        }
+
+        $collage = &$this->sceneCollages[$sceneIndex];
+
         // Clear any previous assignment for this shot
-        foreach ($this->sceneCollages[$sceneIndex]['shotSources'] as $existingShotIndex => $existingRegionIndex) {
-            if ($existingShotIndex === $shotIndex) {
-                unset($this->sceneCollages[$sceneIndex]['shotSources'][$existingShotIndex]);
-                if (isset($this->sceneCollages[$sceneIndex]['regions'][$existingRegionIndex])) {
-                    $this->sceneCollages[$sceneIndex]['regions'][$existingRegionIndex]['assignedToShot'] = null;
-                }
+        if (isset($collage['shotSources'][$shotIndex])) {
+            $prevAssignment = $collage['shotSources'][$shotIndex];
+            $prevPageIdx = $prevAssignment['pageIndex'];
+            $prevRegionIdx = $prevAssignment['regionIndex'];
+            if (isset($collage['collages'][$prevPageIdx]['regions'][$prevRegionIdx])) {
+                $collage['collages'][$prevPageIdx]['regions'][$prevRegionIdx]['assignedToShot'] = null;
             }
+            unset($collage['shotSources'][$shotIndex]);
         }
 
         // Clear previous assignment for this region
-        if (isset($this->sceneCollages[$sceneIndex]['regions'][$regionIndex])) {
-            $previousShot = $this->sceneCollages[$sceneIndex]['regions'][$regionIndex]['assignedToShot'];
+        if (isset($collage['collages'][$pageIndex]['regions'][$regionIndex])) {
+            $previousShot = $collage['collages'][$pageIndex]['regions'][$regionIndex]['assignedToShot'];
             if ($previousShot !== null) {
-                unset($this->sceneCollages[$sceneIndex]['shotSources'][$previousShot]);
+                unset($collage['shotSources'][$previousShot]);
             }
         }
 
         // Assign region to shot
-        $this->sceneCollages[$sceneIndex]['regions'][$regionIndex]['assignedToShot'] = $shotIndex;
-        $this->sceneCollages[$sceneIndex]['shotSources'][$shotIndex] = $regionIndex;
+        $collage['collages'][$pageIndex]['regions'][$regionIndex]['assignedToShot'] = $shotIndex;
+        $collage['shotSources'][$shotIndex] = [
+            'pageIndex' => $pageIndex,
+            'regionIndex' => $regionIndex,
+        ];
 
         Log::info('VideoWizard: Collage region assigned to shot', [
             'sceneIndex' => $sceneIndex,
+            'pageIndex' => $pageIndex,
             'regionIndex' => $regionIndex,
             'shotIndex' => $shotIndex,
         ]);
@@ -13632,18 +13754,30 @@ EOT;
     /**
      * Generate a high-resolution shot image from its assigned collage region.
      * Uses the region as a reference to create a detailed shot.
+     * Now supports multi-page collages.
      */
     public function generateShotFromCollageRegion(int $sceneIndex, int $shotIndex): void
     {
         $collage = $this->sceneCollages[$sceneIndex] ?? null;
-        if (!$collage || $collage['status'] !== 'ready' || empty($collage['previewUrl'])) {
-            $this->error = __('Collage preview not ready');
+        if (!$collage) {
+            $this->error = __('Collage preview not found');
             return;
         }
 
-        $regionIndex = $collage['shotSources'][$shotIndex] ?? null;
-        if ($regionIndex === null) {
+        // Check if this shot has an assigned region
+        $assignment = $collage['shotSources'][$shotIndex] ?? null;
+        if ($assignment === null) {
             $this->error = __('No collage region assigned to this shot');
+            return;
+        }
+
+        $pageIndex = $assignment['pageIndex'];
+        $regionIndex = $assignment['regionIndex'];
+
+        // Get the collage page
+        $collagePage = $collage['collages'][$pageIndex] ?? null;
+        if (!$collagePage || $collagePage['status'] !== 'ready' || empty($collagePage['previewUrl'])) {
+            $this->error = __('Collage preview not ready');
             return;
         }
 
@@ -13654,7 +13788,12 @@ EOT;
         }
 
         $shot = $decomposed['shots'][$shotIndex];
-        $region = $collage['regions'][$regionIndex];
+        $region = $collagePage['regions'][$regionIndex] ?? null;
+
+        if (!$region) {
+            $this->error = __('Region not found');
+            return;
+        }
 
         // Mark shot as generating
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'generating';
@@ -13678,9 +13817,10 @@ EOT;
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
                         'sceneIndex' => $sceneIndex,
-                        'referenceImage' => $collage['previewUrl'],
+                        'referenceImage' => $collagePage['previewUrl'],
                         'from_collage_region' => true,
                         'region_index' => $regionIndex,
+                        'page_index' => $pageIndex,
                         'shot_type' => $shot['type'] ?? 'medium',
                     ]);
 
@@ -13688,7 +13828,10 @@ EOT;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = $regionIndex;
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = [
+                            'pageIndex' => $pageIndex,
+                            'regionIndex' => $regionIndex,
+                        ];
                     } elseif (isset($result['jobId'])) {
                         $this->pendingJobs["shot_{$sceneIndex}_{$shotIndex}"] = [
                             'jobId' => $result['jobId'],
@@ -13711,6 +13854,7 @@ EOT;
             Log::error('VideoWizard: Shot from collage generation failed', [
                 'sceneIndex' => $sceneIndex,
                 'shotIndex' => $shotIndex,
+                'pageIndex' => $pageIndex,
                 'regionIndex' => $regionIndex,
                 'error' => $e->getMessage(),
             ]);
@@ -13741,11 +13885,19 @@ EOT;
     /**
      * Set the scene's main image from a selected collage region.
      * Generates a high-res version of the selected region and sets it as the scene image.
+     * Now supports multi-page collages with pageIndex parameter.
      */
-    public function setSceneImageFromCollageRegion(int $sceneIndex, int $regionIndex): void
+    public function setSceneImageFromCollageRegion(int $sceneIndex, int $pageIndex, int $regionIndex): void
     {
         $collage = $this->sceneCollages[$sceneIndex] ?? null;
-        if (!$collage || $collage['status'] !== 'ready' || empty($collage['previewUrl'])) {
+        if (!$collage) {
+            $this->error = __('Collage preview not found');
+            return;
+        }
+
+        // Get the collage page
+        $collagePage = $collage['collages'][$pageIndex] ?? null;
+        if (!$collagePage || $collagePage['status'] !== 'ready' || empty($collagePage['previewUrl'])) {
             $this->error = __('Collage preview not ready');
             return;
         }
@@ -13784,21 +13936,26 @@ EOT;
                     ], [
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
                         'sceneIndex' => $sceneIndex,
-                        'referenceImage' => $collage['previewUrl'],
+                        'referenceImage' => $collagePage['previewUrl'],
                         'from_collage_region' => true,
                         'region_index' => $regionIndex,
+                        'page_index' => $pageIndex,
                     ]);
 
                     if ($result['success'] && isset($result['imageUrl'])) {
                         $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $result['imageUrl'];
                         $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
-                        $this->storyboard['scenes'][$sceneIndex]['fromCollageRegion'] = $regionIndex;
+                        $this->storyboard['scenes'][$sceneIndex]['fromCollageRegion'] = [
+                            'pageIndex' => $pageIndex,
+                            'regionIndex' => $regionIndex,
+                        ];
 
                         // Clear the collage preview since we've selected an image
                         unset($this->sceneCollages[$sceneIndex]);
 
                         Log::info('VideoWizard: Scene image set from collage region', [
                             'sceneIndex' => $sceneIndex,
+                            'pageIndex' => $pageIndex,
                             'regionIndex' => $regionIndex,
                             'imageUrl' => $result['imageUrl'],
                         ]);
@@ -13822,6 +13979,7 @@ EOT;
             $this->error = __('Failed to generate scene image from collage: ') . $e->getMessage();
             Log::error('VideoWizard: Scene image from collage failed', [
                 'sceneIndex' => $sceneIndex,
+                'pageIndex' => $pageIndex,
                 'regionIndex' => $regionIndex,
                 'error' => $e->getMessage(),
             ]);
