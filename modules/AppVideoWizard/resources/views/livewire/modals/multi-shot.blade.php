@@ -1,4 +1,4 @@
-{{-- Multi-Shot Decomposition Modal --}}
+{{-- Multi-Shot Decomposition Modal - Full Screen Layout --}}
 
 {{-- Define Alpine component for video polling --}}
 <script>
@@ -71,14 +71,12 @@ window.multiShotVideoPolling = function() {
         },
 
         dispatchPoll() {
-            // Safety check: don't poll if component was destroyed
             if (this.componentDestroyed) {
                 console.log('[MultiShot] ⚠️ Component destroyed, skipping poll');
                 this.stopPolling();
                 return;
             }
 
-            // Safety check: stop after max polls to prevent infinite polling
             if (this.pollCount >= this.maxPolls) {
                 console.log('[MultiShot] ⚠️ Max polls reached (' + this.maxPolls + '), stopping');
                 this.stopPolling();
@@ -89,18 +87,15 @@ window.multiShotVideoPolling = function() {
             console.log('[MultiShot] 📡 Poll #' + this.pollCount);
 
             try {
-                // Call Livewire method directly via $wire (more reliable than dispatch)
                 if (this.$wire) {
                     this.$wire.pollVideoJobs().then((result) => {
                         console.log('[MultiShot] ✅ pollVideoJobs result:', result);
-                        // Stop polling if no jobs
                         if (result && result.pendingJobs === 0) {
                             console.log('[MultiShot] ⚠️ No pending jobs - stopping polling');
                             this.stopPolling();
                         }
                     }).catch((e) => {
                         console.error('[MultiShot] ❌ pollVideoJobs() error:', e);
-                        // If we get a component not found error, stop polling
                         if (e.message && e.message.includes('Could not find')) {
                             console.log('[MultiShot] ⚠️ Component not found, stopping polling');
                             this.stopPolling();
@@ -131,14 +126,12 @@ window.multiShotVideoPolling = function() {
             this.pollCount = 0;
             console.log('[MultiShot] ✅ Starting polling (every 5s)');
 
-            // First poll after 1s
             setTimeout(() => {
                 if (!this.componentDestroyed) {
                     this.dispatchPoll();
                 }
             }, 1000);
 
-            // Then every 5 seconds
             this.pollingInterval = setInterval(() => {
                 if (!this.componentDestroyed) {
                     this.dispatchPoll();
@@ -157,12 +150,10 @@ window.multiShotVideoPolling = function() {
             console.log('[MultiShot] ⏹️ Polling stopped after ' + this.pollCount + ' polls');
         },
 
-        // Cleanup listeners and polling
         cleanup() {
             this.componentDestroyed = true;
             this.stopPolling();
 
-            // Remove event listeners to prevent memory leaks
             if (this.videoStartedListener) {
                 this.videoStartedListener();
                 this.videoStartedListener = null;
@@ -179,7 +170,6 @@ window.multiShotVideoPolling = function() {
             console.log('[MultiShot] 🧹 Cleanup complete');
         },
 
-        // Called by Alpine when component is destroyed (x-on:destroy)
         destroy() {
             this.cleanup();
         }
@@ -193,118 +183,105 @@ window.multiShotVideoPolling = function() {
      x-data="multiShotVideoPolling()"
      x-init="initPolling()"
      @destroy="cleanup()"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 0.5rem;">
-    <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.75rem; width: 100%; max-width: 900px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
-        {{-- Header --}}
-        <div style="padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-            <div>
-                <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">✂️ {{ __('Multi-Shot Decomposition') }}</h3>
-                <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ __('Split scene into multiple camera shots for dynamic storytelling') }}</p>
-            </div>
-            <button type="button" wire:click="closeMultiShotModal" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+     style="position: fixed; inset: 0; background: rgba(10, 10, 15, 0.98); display: flex; flex-direction: column; z-index: 1000;">
+
+    @php
+        $scene = $script['scenes'][$multiShotSceneIndex] ?? null;
+        $decomposed = $multiShotMode['decomposedScenes'][$multiShotSceneIndex] ?? null;
+        $storyboardScene = $storyboard['scenes'][$multiShotSceneIndex] ?? null;
+        $collage = $sceneCollages[$multiShotSceneIndex] ?? null;
+        $currentPage = $collage['currentPage'] ?? 0;
+        $totalPages = $collage['totalPages'] ?? 1;
+        $currentCollage = $collage['collages'][$currentPage] ?? null;
+        $currentShots = $currentCollage['shots'] ?? [];
+    @endphp
+
+    {{-- Header Bar --}}
+    <div style="padding: 1rem 1.5rem; background: linear-gradient(180deg, rgba(30,30,45,0.95), rgba(20,20,30,0.9)); border-bottom: 1px solid rgba(139,92,246,0.3); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <h2 style="margin: 0; color: white; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                ✂️ {{ __('Multi-Shot Decomposition') }}
+            </h2>
+            <span style="background: rgba(139,92,246,0.3); color: #a78bfa; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.8rem; font-weight: 500;">
+                {{ __('Scene') }} {{ $multiShotSceneIndex + 1 }}
+            </span>
+            @if($decomposed)
+                @php
+                    $totalDuration = 0;
+                    foreach ($decomposed['shots'] as $shot) {
+                        $totalDuration += $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
+                    }
+                    $imagesReady = collect($decomposed['shots'])->filter(fn($s) => ($s['status'] ?? '') === 'ready' && !empty($s['imageUrl']))->count();
+                    $videosReady = collect($decomposed['shots'])->filter(fn($s) => ($s['videoStatus'] ?? '') === 'ready' && !empty($s['videoUrl']))->count();
+                @endphp
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: 0.5rem;">
+                    <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}</span>
+                    <span style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">• {{ $totalDuration }}s</span>
+                    <span style="color: #10b981; font-size: 0.8rem;">🖼️ {{ $imagesReady }}/{{ count($decomposed['shots']) }}</span>
+                    <span style="color: #06b6d4; font-size: 0.8rem;">🎬 {{ $videosReady }}/{{ count($decomposed['shots']) }}</span>
+                </div>
+            @endif
         </div>
+        <button type="button"
+                wire:click="closeMultiShotModal"
+                style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem 1rem; line-height: 1; border-radius: 0.5rem; transition: all 0.2s;"
+                onmouseover="this.style.background='rgba(239,68,68,0.3)'; this.style.borderColor='rgba(239,68,68,0.5)';"
+                onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.2)';">
+            &times;
+        </button>
+    </div>
 
-        {{-- Content --}}
-        <div style="flex: 1; overflow-y: auto; padding: 0.75rem 1rem;">
-            @php
-                $scene = $script['scenes'][$multiShotSceneIndex] ?? null;
-                $decomposed = $multiShotMode['decomposedScenes'][$multiShotSceneIndex] ?? null;
-            @endphp
-
-            @if($scene)
-                {{-- Scene Preview --}}
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; padding: 0.6rem; margin-bottom: 0.75rem;">
-                    <div style="display: flex; gap: 0.75rem; align-items: start;">
-                        @php
-                            $storyboardScene = $storyboard['scenes'][$multiShotSceneIndex] ?? null;
-                        @endphp
-                        @if($storyboardScene && !empty($storyboardScene['imageUrl']))
-                            <img src="{{ $storyboardScene['imageUrl'] }}"
-                                 alt="Scene {{ $multiShotSceneIndex + 1 }}"
-                                 style="width: 140px; height: 78px; object-fit: cover; border-radius: 0.375rem;">
-                        @else
-                            <div style="width: 140px; height: 78px; background: rgba(255,255,255,0.05); border-radius: 0.375rem; display: flex; align-items: center; justify-content: center;">
-                                <span style="color: rgba(255,255,255,0.4);">🎬</span>
+    @if($scene)
+        @if(!$decomposed)
+            {{-- PRE-DECOMPOSITION VIEW - Centered --}}
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+                <div style="width: 100%; max-width: 600px;">
+                    {{-- Scene Preview --}}
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; gap: 1rem; align-items: start;">
+                            @if($storyboardScene && !empty($storyboardScene['imageUrl']))
+                                <img src="{{ $storyboardScene['imageUrl'] }}"
+                                     alt="Scene {{ $multiShotSceneIndex + 1 }}"
+                                     style="width: 200px; height: 112px; object-fit: cover; border-radius: 0.5rem;">
+                            @else
+                                <div style="width: 200px; height: 112px; background: rgba(255,255,255,0.05); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                                    <span style="color: rgba(255,255,255,0.4); font-size: 2rem;">🎬</span>
+                                </div>
+                            @endif
+                            <div style="flex: 1;">
+                                <div style="color: white; font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">{{ __('Scene') }} {{ $multiShotSceneIndex + 1 }}</div>
+                                <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                                    {{ Str::limit($scene['visualDescription'] ?? $scene['narration'] ?? '', 200) }}
+                                </p>
                             </div>
-                        @endif
-                        <div style="flex: 1;">
-                            <div style="color: white; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem;">{{ __('Scene') }} {{ $multiShotSceneIndex + 1 }}</div>
-                            <p style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin: 0; line-height: 1.3;">
-                                {{ Str::limit($scene['visualDescription'] ?? $scene['narration'] ?? '', 120) }}
-                            </p>
                         </div>
                     </div>
-                </div>
 
-                @if(!$decomposed)
-                    {{-- Shot Count Selector with AI Option --}}
-                    <div style="margin-bottom: 0.75rem;">
-                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Number of Shots') }}</label>
-                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                            {{-- AI Option --}}
+                    {{-- Shot Count Selector --}}
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 500;">{{ __('Number of Shots') }}</label>
+                        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.5rem;">
                             <button type="button"
                                     wire:click="$set('multiShotCount', 0)"
-                                    style="flex: 1; min-width: 70px; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid {{ $multiShotCount === 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $multiShotCount === 0 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2))' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 600;">
+                                    style="padding: 0.75rem; border-radius: 0.5rem; border: 2px solid {{ $multiShotCount === 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $multiShotCount === 0 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25))' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
                                 🤖 {{ __('AI') }}
                             </button>
                             @foreach([2, 3, 4, 5, 6, 8, 10] as $count)
                                 <button type="button"
                                         wire:click="$set('multiShotCount', {{ $count }})"
-                                        style="flex: 1; min-width: 40px; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid {{ $multiShotCount === $count ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $multiShotCount === $count ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                                        style="padding: 0.75rem; border-radius: 0.5rem; border: 2px solid {{ $multiShotCount === $count ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $multiShotCount === $count ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 1rem; font-weight: 600;">
                                     {{ $count }}
                                 </button>
                             @endforeach
                         </div>
                         @if($multiShotCount === 0)
-                            <p style="color: rgba(16, 185, 129, 0.8); font-size: 0.65rem; margin-top: 0.35rem;">
+                            <p style="color: rgba(16, 185, 129, 0.9); font-size: 0.8rem; margin-top: 0.5rem;">
                                 🤖 {{ __('AI will analyze the scene and determine optimal shot count and durations') }}
                             </p>
                         @else
-                            <p style="color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-top: 0.35rem;">
+                            <p style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-top: 0.5rem;">
                                 💡 {{ __('Manual: :count shots with uniform duration', ['count' => $multiShotCount]) }}
                             </p>
-                        @endif
-                    </div>
-
-                    {{-- Shot Types Preview --}}
-                    <div style="margin-bottom: 0.75rem;">
-                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Shot Sequence Preview') }}</label>
-                        @if($multiShotCount === 0)
-                            {{-- AI Mode Preview --}}
-                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.5rem; padding: 0.75rem; text-align: center;">
-                                <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🤖</div>
-                                <div style="color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 500;">{{ __('AI Shot Intelligence') }}</div>
-                                <div style="color: rgba(255,255,255,0.5); font-size: 0.65rem; margin-top: 0.25rem;">
-                                    {{ __('Analyzes scene content to determine:') }}
-                                </div>
-                                <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; flex-wrap: wrap;">
-                                    <span style="background: rgba(139,92,246,0.2); color: #a78bfa; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem;">📊 {{ __('Optimal shot count') }}</span>
-                                    <span style="background: rgba(6,182,212,0.2); color: #67e8f9; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem;">⏱️ {{ __('Per-shot duration') }}</span>
-                                    <span style="background: rgba(251,191,36,0.2); color: #fbbf24; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem;">💬 {{ __('Lip-sync needs') }}</span>
-                                </div>
-                            </div>
-                        @else
-                            {{-- Manual Mode Preview --}}
-                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                                @php
-                                    $shotTypes = [
-                                        ['type' => 'establishing', 'icon' => '🏔️', 'label' => 'Establishing'],
-                                        ['type' => 'medium', 'icon' => '👤', 'label' => 'Medium'],
-                                        ['type' => 'close-up', 'icon' => '🔍', 'label' => 'Close-up'],
-                                        ['type' => 'reaction', 'icon' => '😮', 'label' => 'Reaction'],
-                                        ['type' => 'detail', 'icon' => '✨', 'label' => 'Detail'],
-                                        ['type' => 'wide', 'icon' => '🌄', 'label' => 'Wide'],
-                                    ];
-                                @endphp
-                                @for($i = 0; $i < $multiShotCount; $i++)
-                                    @php $shot = $shotTypes[$i % count($shotTypes)]; @endphp
-                                    <div style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.375rem; padding: 0.35rem 0.5rem; text-align: center;">
-                                        <div style="font-size: 1rem;">{{ $shot['icon'] }}</div>
-                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.7);">{{ __($shot['label']) }}</div>
-                                    </div>
-                                @endfor
-                            </div>
                         @endif
                     </div>
 
@@ -313,80 +290,203 @@ window.multiShotVideoPolling = function() {
                             wire:click="decomposeScene({{ $multiShotSceneIndex }})"
                             wire:loading.attr="disabled"
                             wire:target="decomposeScene"
-                            style="width: 100%; padding: 0.65rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.375rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem;">
+                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 1.1rem;">
                         <span wire:loading.remove wire:target="decomposeScene">✂️ {{ __('Decompose Scene') }}</span>
                         <span wire:loading wire:target="decomposeScene">
-                            <svg style="width: 16px; height: 16px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg style="width: 20px; height: 20px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
                                 <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
                             </svg>
                             {{ __('Decomposing...') }}
                         </span>
                     </button>
-                @else
-                    {{-- DECOMPOSED VIEW --}}
+                </div>
+            </div>
+        @else
+            {{-- DECOMPOSED VIEW - Split Panel Layout --}}
+            <div style="flex: 1; display: flex; overflow: hidden;">
 
-                    {{-- Duration Timeline Bar --}}
-                    @php
-                        $totalDuration = 0;
-                        foreach ($decomposed['shots'] as $shot) {
-                            $totalDuration += $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
-                        }
-                        $imagesReady = collect($decomposed['shots'])->filter(fn($s) => ($s['status'] ?? '') === 'ready' && !empty($s['imageUrl']))->count();
-                        $videosReady = collect($decomposed['shots'])->filter(fn($s) => ($s['videoStatus'] ?? '') === 'ready' && !empty($s['videoUrl']))->count();
-                    @endphp
+                {{-- LEFT PANEL: Collage Preview --}}
+                <div style="width: 45%; min-width: 400px; max-width: 550px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
 
-                    @php
-                        // Check if this was AI-generated
-                        $firstShot = $decomposed['shots'][0] ?? [];
-                        $isAiGenerated = $firstShot['aiRecommended'] ?? false;
-                        $aiReasoning = $firstShot['aiReasoning'] ?? '';
-                        $hasVariableDurations = count(array_unique(array_column($decomposed['shots'], 'duration'))) > 1;
-                        $lipSyncCount = collect($decomposed['shots'])->filter(fn($s) => $s['needsLipSync'] ?? false)->count();
-                    @endphp
-                    <div style="background: rgba(0,0,0,0.3); border: 1px solid {{ $isAiGenerated ? 'rgba(16, 185, 129, 0.4)' : 'rgba(139,92,246,0.3)' }}; border-radius: 0.5rem; padding: 0.6rem; margin-bottom: 0.6rem;">
-                        {{-- Header with stats --}}
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                                <span style="color: white; font-weight: 600; font-size: 0.85rem;">📽️ {{ count($decomposed['shots']) }} SHOTS</span>
-                                <span style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">• {{ $totalDuration }}s</span>
-                                @if($isAiGenerated)
-                                    <span style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3)); color: #10b981; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.55rem; font-weight: 600;" title="{{ $aiReasoning }}">
-                                        🤖 AI
-                                    </span>
-                                @endif
-                                @if($hasVariableDurations)
-                                    <span style="background: rgba(139,92,246,0.2); color: #a78bfa; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.55rem;">
-                                        ⏱️ {{ __('Variable') }}
-                                    </span>
-                                @endif
-                                @if($lipSyncCount > 0)
-                                    <span style="background: rgba(251,191,36,0.2); color: #fbbf24; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.55rem;">
-                                        💬 {{ $lipSyncCount }} {{ __('lip-sync') }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <span style="font-size: 0.65rem; color: rgba(16, 185, 129, 0.9);">
-                                    🖼️ {{ $imagesReady }}/{{ count($decomposed['shots']) }}
-                                </span>
-                                <span style="font-size: 0.65rem; color: rgba(6, 182, 212, 0.8);">
-                                    🎬 {{ $videosReady }}/{{ count($decomposed['shots']) }}
-                                </span>
-                            </div>
+                    {{-- Collage Header --}}
+                    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">🖼️ {{ __('Collage Preview') }}</h3>
+                            <p style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.5); font-size: 0.75rem;">{{ __('Click a region, then assign to a shot') }}</p>
                         </div>
-                        {{-- AI Reasoning (if available) --}}
-                        @if($isAiGenerated && $aiReasoning)
-                            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.35rem; padding: 0.4rem; margin-bottom: 0.5rem;">
-                                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.7);">
-                                    <span style="color: #10b981; font-weight: 600;">🤖 {{ __('AI Analysis:') }}</span>
-                                    {{ Str::limit($aiReasoning, 150) }}
+                        <button type="button"
+                                wire:click="generateCollagePreview({{ $multiShotSceneIndex }})"
+                                wire:loading.attr="disabled"
+                                wire:target="generateCollagePreview"
+                                style="padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(139, 92, 246, 0.3)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.5rem; color: white; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                            <span wire:loading.remove wire:target="generateCollagePreview">🖼️ {{ __('Generate') }}</span>
+                            <span wire:loading wire:target="generateCollagePreview">⏳</span>
+                        </button>
+                    </div>
+
+                    {{-- Collage Content Area --}}
+                    <div style="flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column;">
+                        @if($collage && in_array($collage['status'], ['ready', 'generating', 'processing']))
+                            @if($collage['status'] === 'generating' || $collage['status'] === 'processing')
+                                <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 0.5rem;">
+                                    <div style="text-align: center;">
+                                        <div style="width: 48px; height: 48px; border: 4px solid rgba(236, 72, 153, 0.3); border-top-color: #ec4899; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                                        <span style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-top: 1rem; display: block;">{{ __('Generating collage preview...') }}</span>
+                                    </div>
                                 </div>
+                            @else
+                                {{-- Collage Image with Overlay --}}
+                                <div style="position: relative; border-radius: 0.5rem; overflow: hidden; flex: 1; display: flex; flex-direction: column;"
+                                     x-data="{ selectedRegion: null, selectedPage: {{ $currentPage }} }">
+
+                                    @if($totalPages > 1)
+                                        <div style="background: rgba(236, 72, 153, 0.1); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">
+                                                {{ __('Page :current of :total', ['current' => $currentPage + 1, 'total' => $totalPages]) }}
+                                                <span style="color: rgba(255,255,255,0.5); margin-left: 0.25rem;">({{ __('Shots :start-:end', ['start' => min($currentShots) + 1, 'end' => max($currentShots) + 1]) }})</span>
+                                            </span>
+                                            <div style="display: flex; gap: 0.35rem;">
+                                                <button type="button" wire:click="prevCollagePage({{ $multiShotSceneIndex }})" {{ $currentPage <= 0 ? 'disabled' : '' }}
+                                                        style="padding: 0.35rem 0.75rem; background: {{ $currentPage > 0 ? 'rgba(236, 72, 153, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $currentPage > 0 ? 'rgba(236, 72, 153, 0.5)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.35rem; color: {{ $currentPage > 0 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.8rem; cursor: {{ $currentPage > 0 ? 'pointer' : 'not-allowed' }};">◀</button>
+                                                @for($pageIdx = 0; $pageIdx < $totalPages; $pageIdx++)
+                                                    <button type="button" wire:click="setCollagePage({{ $multiShotSceneIndex }}, {{ $pageIdx }})"
+                                                            style="width: 32px; height: 32px; background: {{ $pageIdx === $currentPage ? 'rgba(236, 72, 153, 0.5)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $pageIdx === $currentPage ? 'rgba(236, 72, 153, 0.7)' : 'rgba(255,255,255,0.2)' }}; border-radius: 50%; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">{{ $pageIdx + 1 }}</button>
+                                                @endfor
+                                                <button type="button" wire:click="nextCollagePage({{ $multiShotSceneIndex }})" {{ $currentPage >= $totalPages - 1 ? 'disabled' : '' }}
+                                                        style="padding: 0.35rem 0.75rem; background: {{ $currentPage < $totalPages - 1 ? 'rgba(236, 72, 153, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $currentPage < $totalPages - 1 ? 'rgba(236, 72, 153, 0.5)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.35rem; color: {{ $currentPage < $totalPages - 1 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.8rem; cursor: {{ $currentPage < $totalPages - 1 ? 'pointer' : 'not-allowed' }};">▶</button>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    {{-- The Collage Image --}}
+                                    <div style="position: relative; flex: 1; min-height: 300px;">
+                                        @if(!empty($currentCollage['previewUrl']))
+                                            <img src="{{ $currentCollage['previewUrl'] }}"
+                                                 alt="Collage Preview"
+                                                 style="width: 100%; height: 100%; object-fit: contain; border-radius: 0.5rem; background: rgba(0,0,0,0.3);">
+                                        @else
+                                            <div style="width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; border-radius: 0.5rem;">
+                                                <span style="color: rgba(255,255,255,0.4); font-size: 1rem;">{{ __('No preview available') }}</span>
+                                            </div>
+                                        @endif
+
+                                        {{-- Clickable Quadrant Overlay --}}
+                                        <div style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr);">
+                                            @for($regionIdx = 0; $regionIdx < 4; $regionIdx++)
+                                                @php
+                                                    $region = $currentCollage['regions'][$regionIdx] ?? null;
+                                                    $assignedShot = $region['assignedToShot'] ?? null;
+                                                @endphp
+                                                <div style="position: relative; cursor: pointer; border: 2px solid rgba(255,255,255,0.3); transition: all 0.2s; margin: 2px;"
+                                                     x-on:click="selectedRegion = {{ $regionIdx }}; selectedPage = {{ $currentPage }}; $dispatch('region-selected', { regionIndex: {{ $regionIdx }}, pageIndex: {{ $currentPage }} })"
+                                                     x-bind:style="selectedRegion === {{ $regionIdx }} && selectedPage === {{ $currentPage }} ? 'background: rgba(236, 72, 153, 0.4); border-color: #ec4899; box-shadow: inset 0 0 0 3px rgba(236, 72, 153, 0.6);' : ''"
+                                                     onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='rgba(255,255,255,0.6)';"
+                                                     onmouseout="if (!this.classList.contains('selected')) { this.style.background='transparent'; this.style.borderColor='rgba(255,255,255,0.3)'; }">
+
+                                                    {{-- Region Number --}}
+                                                    <div style="position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.85); color: white; padding: 0.3rem 0.6rem; border-radius: 0.35rem; font-size: 0.85rem; font-weight: 600;">
+                                                        {{ ($currentShots[$regionIdx] ?? $regionIdx) + 1 }}
+                                                    </div>
+
+                                                    {{-- Assigned Badge --}}
+                                                    @if($assignedShot !== null)
+                                                        <div style="position: absolute; bottom: 0.5rem; right: 0.5rem; background: rgba(16, 185, 129, 0.95); color: white; padding: 0.3rem 0.6rem; border-radius: 0.35rem; font-size: 0.75rem; font-weight: 600;">
+                                                            → {{ __('Shot') }} {{ $assignedShot + 1 }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endfor
+                                        </div>
+                                    </div>
+
+                                    {{-- Shot Assignment Buttons --}}
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);"
+                                         x-data="{ selectedRegionForAssignment: null, selectedPageForAssignment: {{ $currentPage }} }"
+                                         x-on:region-selected.window="selectedRegionForAssignment = $event.detail.regionIndex; selectedPageForAssignment = $event.detail.pageIndex">
+                                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem; font-weight: 500;">
+                                            {{ __('Assign selected region to:') }}
+                                        </div>
+                                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                            @foreach($decomposed['shots'] as $shotIdx => $shotData)
+                                                @php
+                                                    $shotSource = $collage['shotSources'][$shotIdx] ?? null;
+                                                    $shotHasRegion = $shotSource !== null;
+                                                    $assignedPageIdx = $shotSource['pageIndex'] ?? null;
+                                                    $assignedRegionIdx = $shotSource['regionIndex'] ?? null;
+                                                @endphp
+                                                <button type="button"
+                                                        x-on:click="if (selectedRegionForAssignment !== null) { $wire.assignCollageRegionToShot({{ $multiShotSceneIndex }}, selectedPageForAssignment, selectedRegionForAssignment, {{ $shotIdx }}) }"
+                                                        x-bind:disabled="selectedRegionForAssignment === null"
+                                                        x-bind:style="selectedRegionForAssignment === null ? 'opacity: 0.5; cursor: not-allowed;' : ''"
+                                                        style="padding: 0.4rem 0.75rem; background: {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.35)' : 'rgba(139,92,246,0.25)' }}; border: 1px solid {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.6)' : 'rgba(139,92,246,0.5)' }}; border-radius: 0.35rem; color: white; font-size: 0.8rem; cursor: pointer; font-weight: 500;">
+                                                    {{ __('Shot') }} {{ $shotIdx + 1 }}
+                                                    @if($shotHasRegion)
+                                                        <span style="font-size: 0.7rem; opacity: 0.8; margin-left: 0.2rem;">(P{{ $assignedPageIdx + 1 }}R{{ $assignedRegionIdx + 1 }})</span>
+                                                    @endif
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Clear Button --}}
+                                <div style="margin-top: 1rem; text-align: center;">
+                                    <button type="button"
+                                            wire:click="clearCollagePreview({{ $multiShotSceneIndex }})"
+                                            style="padding: 0.4rem 1rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: rgba(255,255,255,0.6); font-size: 0.75rem; cursor: pointer;">
+                                        ✕ {{ __('Clear Collage') }}
+                                    </button>
+                                </div>
+                            @endif
+                        @else
+                            {{-- No Collage - Empty State --}}
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 0.5rem; border: 2px dashed rgba(236, 72, 153, 0.3);">
+                                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🖼️</div>
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem; margin: 0 0 1rem 0; text-align: center;">
+                                    {{ __('Generate a 2x2 collage to quickly assign visual variations to shots') }}
+                                </p>
+                                <button type="button"
+                                        wire:click="generateCollagePreview({{ $multiShotSceneIndex }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="generateCollagePreview"
+                                        style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(139, 92, 246, 0.4)); border: 1px solid rgba(236, 72, 153, 0.6); border-radius: 0.5rem; color: white; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+                                    <span wire:loading.remove wire:target="generateCollagePreview">🖼️ {{ __('Generate Collage Preview') }}</span>
+                                    <span wire:loading wire:target="generateCollagePreview">⏳ {{ __('Generating...') }}</span>
+                                </button>
                             </div>
                         @endif
+                    </div>
+                </div>
 
-                        {{-- Duration Timeline Visual --}}
-                        <div style="display: flex; height: 24px; border-radius: 0.375rem; overflow: hidden; background: rgba(0,0,0,0.4);">
+                {{-- RIGHT PANEL: Shot Grid --}}
+                <div style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.1); overflow: hidden;">
+
+                    {{-- Action Bar --}}
+                    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                        <button type="button"
+                                wire:click="generateAllShots({{ $multiShotSceneIndex }})"
+                                wire:loading.attr="disabled"
+                                style="padding: 0.6rem 1rem; background: rgba(139,92,246,0.25); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.5rem; color: white; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
+                            🎨 {{ __('Generate All Images') }}
+                        </button>
+                        <button type="button"
+                                wire:click="generateAllShotVideos({{ $multiShotSceneIndex }})"
+                                wire:loading.attr="disabled"
+                                style="padding: 0.6rem 1rem; background: rgba(6,182,212,0.25); border: 1px solid rgba(6,182,212,0.5); border-radius: 0.5rem; color: white; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
+                            🎬 {{ __('Animate All Shots') }}
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button type="button"
+                                wire:click="resetDecomposition({{ $multiShotSceneIndex }})"
+                                style="padding: 0.5rem 0.75rem; background: transparent; border: 1px solid rgba(239,68,68,0.4); border-radius: 0.35rem; color: #ef4444; font-size: 0.8rem; cursor: pointer;">
+                            🗑️ {{ __('Reset') }}
+                        </button>
+                    </div>
+
+                    {{-- Duration Timeline --}}
+                    <div style="padding: 0.75rem 1.25rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; height: 32px; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.4);">
                             @foreach($decomposed['shots'] as $idx => $shot)
                                 @php
                                     $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
@@ -395,576 +495,194 @@ window.multiShotVideoPolling = function() {
                                     $hasVideo = ($shot['videoStatus'] ?? '') === 'ready' && !empty($shot['videoUrl']);
                                     $bgColor = $hasVideo ? 'rgba(6, 182, 212, 0.6)' : ($hasImage ? 'rgba(16, 185, 129, 0.5)' : 'rgba(139, 92, 246, 0.3)');
                                 @endphp
-                                <div style="width: {{ $percentage }}%; background: {{ $bgColor }}; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(255,255,255,0.1); position: relative; cursor: pointer;"
+                                <div style="width: {{ $percentage }}%; background: {{ $bgColor }}; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s;"
                                      wire:click="selectShot({{ $multiShotSceneIndex }}, {{ $idx }})"
-                                     title="Shot {{ $idx + 1 }}: {{ $shotDuration }}s">
-                                    <span style="font-size: 0.6rem; color: white; font-weight: 600;">{{ $idx + 1 }}</span>
-                                    @if(($decomposed['selectedShot'] ?? 0) === $idx)
-                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: white;"></div>
-                                    @endif
+                                     title="Shot {{ $idx + 1 }}: {{ $shotDuration }}s"
+                                     onmouseover="this.style.filter='brightness(1.2)';"
+                                     onmouseout="this.style.filter='brightness(1)';">
+                                    <span style="font-size: 0.75rem; color: white; font-weight: 600;">{{ $idx + 1 }}</span>
                                 </div>
                             @endforeach
                         </div>
                     </div>
 
-                    {{-- Action Buttons --}}
-                    <div style="display: flex; gap: 0.4rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
-                        <button type="button"
-                                wire:click="generateAllShots({{ $multiShotSceneIndex }})"
-                                wire:loading.attr="disabled"
-                                style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                            🎨 {{ __('Generate All Images') }}
-                        </button>
-                        <button type="button"
-                                wire:click="generateAllShotVideos({{ $multiShotSceneIndex }})"
-                                wire:loading.attr="disabled"
-                                style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                            🎬 {{ __('Animate All Shots') }}
-                        </button>
-                        <button type="button"
-                                wire:click="generateCollagePreview({{ $multiShotSceneIndex }})"
-                                wire:loading.attr="disabled"
-                                wire:target="generateCollagePreview"
-                                style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(236, 72, 153, 0.4); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                            <span wire:loading.remove wire:target="generateCollagePreview">🖼️ {{ __('Generate Collage Preview') }}</span>
-                            <span wire:loading wire:target="generateCollagePreview">⏳ {{ __('Generating...') }}</span>
-                        </button>
-                    </div>
+                    {{-- Shot Grid --}}
+                    <div style="flex: 1; padding: 1.25rem; overflow-y: auto;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem;">
+                            @foreach($decomposed['shots'] as $shotIndex => $shot)
+                                @php
+                                    $hasImage = ($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']);
+                                    $hasVideo = ($shot['videoStatus'] ?? '') === 'ready' && !empty($shot['videoUrl']);
+                                    $isGeneratingImage = ($shot['status'] ?? '') === 'generating';
+                                    $isGeneratingVideo = in_array($shot['videoStatus'] ?? '', ['generating', 'processing']);
+                                    $wasTransferred = isset($shot['transferredFrom']);
+                                    $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIndex;
+                                    $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
+                                    $durationColor = $shotDuration <= 5 ? '#22c55e' : ($shotDuration <= 6 ? '#eab308' : '#3b82f6');
+                                    $shotSource = $collage['shotSources'][$shotIndex] ?? null;
+                                    $hasCollageRegion = $shotSource !== null;
+                                    $assignedCollagePage = $shotSource['pageIndex'] ?? null;
+                                    $assignedCollageRegion = $shotSource['regionIndex'] ?? null;
+                                    $fromCollageRegion = $shot['fromCollageRegion'] ?? null;
+                                    $hasDialogue = !empty($shot['dialogue']);
+                                @endphp
 
-                    {{-- Collage Preview Section (Multi-Page Support) --}}
-                    @php
-                        $collage = $sceneCollages[$multiShotSceneIndex] ?? null;
-                        $currentPage = $collage['currentPage'] ?? 0;
-                        $totalPages = $collage['totalPages'] ?? 1;
-                        $currentCollage = $collage['collages'][$currentPage] ?? null;
-                        $currentShots = $currentCollage['shots'] ?? [];
-                        $shotRangeStart = !empty($currentShots) ? min($currentShots) + 1 : 1;
-                        $shotRangeEnd = !empty($currentShots) ? max($currentShots) + 1 : 4;
-                    @endphp
-                    @if($collage && ($collage['status'] === 'ready' || $collage['status'] === 'generating'))
-                        <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem; padding: 0.6rem; margin-bottom: 0.6rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <div style="color: white; font-weight: 600; font-size: 0.8rem;">
-                                    🖼️ {{ __('Collage Preview') }}
-                                    @if($collage['status'] === 'ready')
-                                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-left: 0.5rem;">({{ __('Shots :start-:end', ['start' => $shotRangeStart, 'end' => $shotRangeEnd]) }})</span>
-                                    @endif
-                                    <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-left: 0.5rem;">{{ __('Click a region, then click a shot to assign') }}</span>
-                                </div>
-                                <button type="button"
-                                        wire:click="clearCollagePreview({{ $multiShotSceneIndex }})"
-                                        style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 0.7rem; cursor: pointer;">
-                                    ✕ {{ __('Clear') }}
-                                </button>
-                            </div>
-
-                            @if($collage['status'] === 'generating')
-                                <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 0.375rem;">
-                                    <div style="text-align: center;">
-                                        <div style="width: 32px; height: 32px; border: 3px solid rgba(236, 72, 153, 0.3); border-top-color: #ec4899; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem; display: block;">{{ __('Generating collage preview...') }}</span>
-                                    </div>
-                                </div>
-                            @else
-                                {{-- Single collage image with clickable quadrant overlay --}}
-                                <div style="position: relative; border-radius: 0.375rem; overflow: hidden;"
-                                     x-data="{ selectedRegion: null, selectedPage: {{ $currentPage }} }">
-                                    {{-- The single collage image --}}
-                                    @if(!empty($currentCollage['previewUrl']))
-                                        <img src="{{ $currentCollage['previewUrl'] }}"
-                                             alt="Collage Preview"
-                                             style="width: 100%; display: block; border-radius: 0.375rem;">
-                                    @else
-                                        <div style="aspect-ratio: 1/1; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-                                            <span style="color: rgba(255,255,255,0.4);">{{ __('No preview available') }}</span>
-                                        </div>
-                                    @endif
-
-                                    {{-- Clickable quadrant overlay grid (2x2) --}}
-                                    <div style="position: absolute; inset: 0; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr);">
-                                        @for($regionIdx = 0; $regionIdx < 4; $regionIdx++)
-                                            @php
-                                                $region = $currentCollage['regions'][$regionIdx] ?? null;
-                                                $assignedShot = $region['assignedToShot'] ?? null;
-                                            @endphp
-                                            <div style="position: relative; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); transition: all 0.2s;"
-                                                 x-on:click="selectedRegion = {{ $regionIdx }}; selectedPage = {{ $currentPage }}; $dispatch('region-selected', { regionIndex: {{ $regionIdx }}, pageIndex: {{ $currentPage }} })"
-                                                 x-bind:style="selectedRegion === {{ $regionIdx }} && selectedPage === {{ $currentPage }} ? 'background: rgba(236, 72, 153, 0.4); border-color: rgba(236, 72, 153, 0.8);' : ''"
-                                                 onmouseover="if (!this.classList.contains('selected')) this.style.background='rgba(255,255,255,0.15)'"
-                                                 onmouseout="if (!this.classList.contains('selected')) this.style.background='transparent'">
-
-                                                {{-- Region number badge --}}
-                                                <div style="position: absolute; top: 0.35rem; left: 0.35rem; background: rgba(0,0,0,0.8); color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600; z-index: 2;">
-                                                    {{ ($currentShots[$regionIdx] ?? $regionIdx) + 1 }}
-                                                </div>
-
-                                                {{-- Assigned shot badge --}}
-                                                @if($assignedShot !== null)
-                                                    <div style="position: absolute; bottom: 0.35rem; right: 0.35rem; background: rgba(16, 185, 129, 0.95); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600; z-index: 2;">
-                                                        → {{ __('Shot') }} {{ $assignedShot + 1 }}
-                                                    </div>
-                                                @endif
-
-                                                {{-- Selection indicator --}}
-                                                <div style="position: absolute; inset: 0; pointer-events: none; transition: opacity 0.2s;"
-                                                     x-bind:style="selectedRegion === {{ $regionIdx }} && selectedPage === {{ $currentPage }} ? 'box-shadow: inset 0 0 0 3px rgba(236, 72, 153, 0.8);' : ''">
-                                                </div>
-                                            </div>
-                                        @endfor
-                                    </div>
-                                </div>
-
-                                {{-- Pagination Controls --}}
-                                @if($totalPages > 1)
-                                    <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                                        <button type="button"
-                                                wire:click="prevCollagePage({{ $multiShotSceneIndex }})"
-                                                {{ $currentPage <= 0 ? 'disabled' : '' }}
-                                                style="padding: 0.25rem 0.5rem; background: {{ $currentPage > 0 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $currentPage > 0 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.25rem; color: {{ $currentPage > 0 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.7rem; cursor: {{ $currentPage > 0 ? 'pointer' : 'not-allowed' }};">
-                                            ◀ {{ __('Prev') }}
-                                        </button>
-                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                            @for($pageIdx = 0; $pageIdx < $totalPages; $pageIdx++)
-                                                <button type="button"
-                                                        wire:click="setCollagePage({{ $multiShotSceneIndex }}, {{ $pageIdx }})"
-                                                        style="width: 24px; height: 24px; background: {{ $pageIdx === $currentPage ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $pageIdx === $currentPage ? 'rgba(236, 72, 153, 0.6)' : 'rgba(255,255,255,0.2)' }}; border-radius: 50%; color: white; font-size: 0.6rem; font-weight: 600; cursor: pointer;">
-                                                    {{ $pageIdx + 1 }}
-                                                </button>
-                                            @endfor
-                                        </div>
-                                        <button type="button"
-                                                wire:click="nextCollagePage({{ $multiShotSceneIndex }})"
-                                                {{ $currentPage >= $totalPages - 1 ? 'disabled' : '' }}
-                                                style="padding: 0.25rem 0.5rem; background: {{ $currentPage < $totalPages - 1 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $currentPage < $totalPages - 1 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.25rem; color: {{ $currentPage < $totalPages - 1 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.7rem; cursor: {{ $currentPage < $totalPages - 1 ? 'pointer' : 'not-allowed' }};">
-                                            {{ __('Next') }} ▶
-                                        </button>
-                                    </div>
-                                    <div style="text-align: center; font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-top: 0.25rem;">
-                                        {{ __('Page :current of :total', ['current' => $currentPage + 1, 'total' => $totalPages]) }}
-                                    </div>
-                                @endif
-
-                                {{-- Shot Assignment Buttons --}}
-                                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);"
-                                     x-data="{ selectedRegionForAssignment: null, selectedPageForAssignment: {{ $currentPage }} }"
-                                     x-on:region-selected.window="selectedRegionForAssignment = $event.detail.regionIndex; selectedPageForAssignment = $event.detail.pageIndex">
-                                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
-                                        {{ __('Assign selected region to shot:') }}
-                                    </div>
-                                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                        @foreach($decomposed['shots'] as $shotIdx => $shotData)
-                                            @php
-                                                $shotSource = $collage['shotSources'][$shotIdx] ?? null;
-                                                $shotHasRegion = $shotSource !== null;
-                                                $assignedPageIdx = $shotSource['pageIndex'] ?? null;
-                                                $assignedRegionIdx = $shotSource['regionIndex'] ?? null;
-                                            @endphp
-                                            <button type="button"
-                                                    x-on:click="if (selectedRegionForAssignment !== null) { $wire.assignCollageRegionToShot({{ $multiShotSceneIndex }}, selectedPageForAssignment, selectedRegionForAssignment, {{ $shotIdx }}) }"
-                                                    x-bind:disabled="selectedRegionForAssignment === null"
-                                                    style="padding: 0.25rem 0.5rem; background: {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139,92,246,0.2)' }}; border: 1px solid {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.5)' : 'rgba(139,92,246,0.4)' }}; border-radius: 0.25rem; color: white; font-size: 0.65rem; cursor: pointer;">
-                                                {{ __('Shot') }} {{ $shotIdx + 1 }}
-                                                @if($shotHasRegion)
-                                                    <span style="font-size: 0.55rem; opacity: 0.7;">(P{{ $assignedPageIdx + 1 }}R{{ $assignedRegionIdx + 1 }})</span>
-                                                @endif
-                                            </button>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
-
-                    {{-- Shot Timeline with Frame Chain --}}
-                    <div style="position: relative; display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.25rem 0; overflow-x: auto;">
-                        @foreach($decomposed['shots'] as $shotIndex => $shot)
-                            @php
-                                $hasImage = ($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']);
-                                $hasVideo = ($shot['videoStatus'] ?? '') === 'ready' && !empty($shot['videoUrl']);
-                                $isGeneratingImage = ($shot['status'] ?? '') === 'generating';
-                                $isGeneratingVideo = in_array($shot['videoStatus'] ?? '', ['generating', 'processing']);
-                                $wasTransferred = isset($shot['transferredFrom']);
-                                $isLastShot = $shotIndex === count($decomposed['shots']) - 1;
-                                $nextShot = $decomposed['shots'][$shotIndex + 1] ?? null;
-                                $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIndex;
-                                $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
-                                $durationClass = $shotDuration <= 5 ? 'quick' : ($shotDuration <= 6 ? 'short' : 'standard');
-                                $durationColor = $durationClass === 'quick' ? '#22c55e' : ($durationClass === 'short' ? '#eab308' : '#3b82f6');
-                                // Check if this shot has an assigned collage region
-                                $shotSource = $collage['shotSources'][$shotIndex] ?? null;
-                                $hasCollageRegion = $shotSource !== null;
-                                $assignedCollagePage = $shotSource['pageIndex'] ?? null;
-                                $assignedCollageRegion = $shotSource['regionIndex'] ?? null;
-                                $fromCollageRegion = $shot['fromCollageRegion'] ?? null;
-                            @endphp
-
-                            <div style="flex: 1; min-width: 160px; max-width: 200px; position: relative;">
-                                {{-- Frame Chain Connector --}}
-                                @if(!$isLastShot)
-                                    <div style="position: absolute; top: 55px; right: -0.75rem; width: 1.5rem; height: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 3;">
-                                        @if($hasVideo)
-                                            <div style="font-size: 1rem; color: {{ ($nextShot['transferredFrom'] ?? -1) === $shotIndex ? '#10b981' : 'rgba(139, 92, 246, 0.6)' }};">
-                                                {{ ($nextShot['transferredFrom'] ?? -1) === $shotIndex ? '🔗' : '→' }}
-                                            </div>
-                                        @else
-                                            <div style="width: 100%; height: 2px; background: rgba(255,255,255,0.15);"></div>
-                                        @endif
-                                    </div>
-                                @endif
-
-                                {{-- Shot Card --}}
-                                <div style="background: rgba(255,255,255,0.05); border: 1px solid {{ $wasTransferred ? 'rgba(16, 185, 129, 0.4)' : ($hasVideo ? 'rgba(6, 182, 212, 0.4)' : ($isSelected ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.15)')) }}; border-radius: 0.5rem; overflow: hidden; position: relative; z-index: 1; cursor: pointer;"
+                                <div style="background: rgba(255,255,255,0.03); border: 2px solid {{ $hasVideo ? 'rgba(6, 182, 212, 0.5)' : ($isSelected ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)') }}; border-radius: 0.75rem; overflow: hidden; transition: all 0.2s;"
                                      data-video-status="{{ $shot['videoStatus'] ?? 'pending' }}"
-                                     data-shot-index="{{ $shotIndex }}"
-                                     wire:click="selectShot({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
+                                     data-shot-index="{{ $shotIndex }}">
 
-                                    {{-- Shot Number Badge --}}
-                                    <div style="position: absolute; top: 0.25rem; left: 0.25rem; background: rgba(0,0,0,0.7); color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600; z-index: 2;">
-                                        {{ $shotIndex + 1 }}
+                                    {{-- Shot Header --}}
+                                    <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span style="background: rgba(139, 92, 246, 0.5); color: white; padding: 0.2rem 0.5rem; border-radius: 0.3rem; font-size: 0.8rem; font-weight: 600;">{{ $shotIndex + 1 }}</span>
+                                            <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">{{ ucfirst(str_replace('_', ' ', $shot['type'] ?? 'shot')) }}</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            @if($hasDialogue)
+                                                <span style="background: rgba(251, 191, 36, 0.4); color: #fbbf24; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-size: 0.65rem;">💬</span>
+                                            @endif
+                                            <span style="color: {{ $durationColor }}; font-size: 0.8rem; font-weight: 500;">{{ $shotDuration }}s</span>
+                                        </div>
                                     </div>
-
-                                    {{-- Shot Type Badge --}}
-                                    <div style="position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(139, 92, 246, 0.8); color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem; z-index: 2;">
-                                        {{ ucfirst(str_replace('_', ' ', $shot['type'] ?? 'shot')) }}
-                                    </div>
-
-                                    {{-- Audio Type Badge --}}
-                                    @php
-                                        // dialogue can be a string or array, so just check if not empty
-                                        $hasDialogue = !empty($shot['dialogue']);
-                                        $audioType = $hasDialogue ? 'dialogue' : 'music';
-                                        $audioConfig = [
-                                            'dialogue' => ['icon' => '💬', 'label' => __('Dialogue'), 'bg' => 'rgba(251, 191, 36, 0.9)'],
-                                            'music' => ['icon' => '🎵', 'label' => __('Music'), 'bg' => 'rgba(59, 130, 246, 0.7)'],
-                                        ];
-                                        $audio = $audioConfig[$audioType];
-                                        $shotNeedsLipSync = $shot['needsLipSync'] ?? false;
-                                        $shotAiRecommended = $shot['aiRecommended'] ?? false;
-                                        $shotRecommendedModel = $shot['aiRecommendedModel'] ?? null;
-                                    @endphp
-                                    <div style="position: absolute; top: 1.5rem; right: 0.25rem; background: {{ $audio['bg'] }}; color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.45rem; z-index: 2; display: flex; align-items: center; gap: 0.1rem;">
-                                        {{ $audio['icon'] }} {{ $audio['label'] }}
-                                    </div>
-
-                                    {{-- Lip-Sync Badge (AI detected this shot needs lip-sync) --}}
-                                    @if($shotNeedsLipSync)
-                                        <div style="position: absolute; top: 2.4rem; right: 0.25rem; background: rgba(251, 146, 60, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.45rem; z-index: 2;" title="{{ __('AI recommends Multitalk for this dialogue shot') }}">
-                                            👄 {{ __('Lip-Sync') }}
-                                        </div>
-                                    @endif
-
-                                    {{-- AI Recommended Badge --}}
-                                    @if($shotAiRecommended)
-                                        <div style="position: absolute; bottom: 0.25rem; left: 0.25rem; background: rgba(16, 185, 129, 0.8); color: white; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.4rem; z-index: 2;">
-                                            🤖
-                                        </div>
-                                    @endif
-
-                                    {{-- Transferred Badge (positioned below audio badge) --}}
-                                    @if($wasTransferred)
-                                        <div style="position: absolute; top: 2.6rem; right: 0.25rem; background: rgba(16, 185, 129, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; z-index: 2;">
-                                            🔗 from {{ $shot['transferredFrom'] + 1 }}
-                                        </div>
-                                    @endif
-
-                                    {{-- Selected Badge --}}
-                                    @if($isSelected)
-                                        <div style="position: absolute; top: 0.25rem; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; z-index: 2;">
-                                            ✓ Selected
-                                        </div>
-                                    @endif
-
-                                    {{-- Collage Region Badge --}}
-                                    @if($hasCollageRegion)
-                                        <div style="position: absolute; bottom: 0.25rem; left: 0.25rem; background: rgba(236, 72, 153, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.45rem; z-index: 2;" title="{{ __('Assigned from collage page :page region :region', ['page' => $assignedCollagePage + 1, 'region' => $assignedCollageRegion + 1]) }}">
-                                            🖼️ P{{ $assignedCollagePage + 1 }}R{{ $assignedCollageRegion + 1 }}
-                                        </div>
-                                    @endif
-                                    @if($fromCollageRegion !== null)
-                                        <div style="position: absolute; bottom: 1.2rem; left: 0.25rem; background: rgba(236, 72, 153, 0.7); color: white; padding: 0.05rem 0.2rem; border-radius: 0.15rem; font-size: 0.4rem; z-index: 2;">
-                                            {{ __('from collage') }}
-                                        </div>
-                                    @endif
 
                                     {{-- Image/Video Area --}}
-                                    <div style="height: 90px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;"
-                                         wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
+                                    <div style="height: 130px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;"
+                                         wire:click="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                         @if($hasImage)
                                             <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotIndex + 1 }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                            {{-- Hover overlay --}}
-                                            <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
-                                                <span style="font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">{{ $hasVideo ? '▶️' : '🔍' }}</span>
+                                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;"
+                                                 onmouseover="this.style.opacity='1';" onmouseout="this.style.opacity='0';">
+                                                <span style="font-size: 1.5rem;">{{ $hasVideo ? '▶️' : '🔍' }}</span>
                                             </div>
-                                            {{-- Status indicators --}}
-                                            <div style="position: absolute; bottom: 0.25rem; right: 0.25rem; display: flex; gap: 0.15rem;">
-                                                <div style="width: 14px; height: 14px; background: rgba(16, 185, 129, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                                    <span style="color: white; font-size: 7px;">🖼</span>
+                                            {{-- Status Icons --}}
+                                            <div style="position: absolute; bottom: 0.4rem; right: 0.4rem; display: flex; gap: 0.25rem;">
+                                                <div style="width: 20px; height: 20px; background: rgba(16, 185, 129, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                    <span style="font-size: 10px;">🖼</span>
                                                 </div>
                                                 @if($hasVideo)
-                                                    <div style="width: 14px; height: 14px; background: rgba(6, 182, 212, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                                        <span style="color: white; font-size: 7px;">🎬</span>
+                                                    <div style="width: 20px; height: 20px; background: rgba(6, 182, 212, 0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                        <span style="font-size: 10px;">🎬</span>
                                                     </div>
                                                 @endif
                                             </div>
                                         @elseif($isGeneratingImage)
-                                            <div style="display: flex; flex-direction: column; align-items: center; position: relative; width: 100%; height: 100%; justify-content: center;">
-                                                <div style="width: 24px; height: 24px; border: 2px solid rgba(139, 92, 246, 0.2); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">Generating...</span>
-                                                {{-- Hover hint to view prompts --}}
-                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(139,92,246,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
-                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
-                                                </div>
+                                            <div style="text-align: center;">
+                                                <div style="width: 32px; height: 32px; border: 3px solid rgba(139, 92, 246, 0.3); border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                                                <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem; display: block;">{{ __('Generating...') }}</span>
                                             </div>
                                         @elseif($isGeneratingVideo && $hasImage)
-                                            <img src="{{ $shot['imageUrl'] }}" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.5);">
-                                            <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
-                                                <div style="width: 36px; height: 36px; border: 3px solid rgba(6, 182, 212, 0.3); border-top-color: #06b6d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                                <span style="font-size: 0.65rem; color: #67e8f9; margin-top: 0.5rem; font-weight: 600;">🎬 Animating...</span>
-                                            </div>
-                                        @elseif(($shot['status'] ?? '') === 'error')
-                                            <div style="text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                                <span style="font-size: 1.25rem;">⚠️</span>
-                                                <div style="font-size: 0.6rem; color: #ef4444; margin-top: 0.25rem;">Error</div>
-                                                {{-- Hover hint to view prompts --}}
-                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(239,68,68,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
-                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
-                                                </div>
+                                            <img src="{{ $shot['imageUrl'] }}" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.4);">
+                                            <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                                <div style="width: 40px; height: 40px; border: 3px solid rgba(6, 182, 212, 0.3); border-top-color: #06b6d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                                <span style="font-size: 0.8rem; color: #67e8f9; margin-top: 0.5rem; font-weight: 600;">🎬 {{ __('Animating...') }}</span>
                                             </div>
                                         @else
-                                            <div style="text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                                <span style="font-size: 1.5rem; color: rgba(255,255,255,0.3);">🖼️</span>
+                                            <div style="text-align: center;">
+                                                <span style="font-size: 2rem; color: rgba(255,255,255,0.2);">🖼️</span>
                                                 @if($hasCollageRegion)
-                                                    {{-- Generate from collage region --}}
                                                     <button type="button"
                                                             wire:click.stop="generateShotFromCollageRegion({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(139, 92, 246, 0.4)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.25rem; color: white; font-size: 0.55rem; cursor: pointer;">
-                                                        🖼️ {{ __('P:page R:region', ['page' => $assignedCollagePage + 1, 'region' => $assignedCollageRegion + 1]) }}
+                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.35rem 0.75rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(139, 92, 246, 0.4)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                                        🖼️ P{{ $assignedCollagePage + 1 }}R{{ $assignedCollageRegion + 1 }}
                                                     </button>
                                                 @else
                                                     <button type="button"
                                                             wire:click.stop="generateShotImage({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.25rem; color: white; font-size: 0.6rem; cursor: pointer;">
-                                                        Generate
+                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.35rem 0.75rem; background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                                        {{ __('Generate') }}
                                                     </button>
                                                 @endif
-                                                {{-- Hover hint to view prompts --}}
-                                                <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(139,92,246,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
-                                                    <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
-                                                </div>
+                                            </div>
+                                        @endif
+
+                                        {{-- Collage Region Badge --}}
+                                        @if($hasCollageRegion)
+                                            <div style="position: absolute; top: 0.4rem; left: 0.4rem; background: rgba(236, 72, 153, 0.9); color: white; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600;">
+                                                🖼️ P{{ $assignedCollagePage + 1 }}R{{ $assignedCollageRegion + 1 }}
                                             </div>
                                         @endif
                                     </div>
 
-                                    {{-- Shot Info & Controls --}}
-                                    <div style="padding: 0.4rem;">
-                                        {{-- Camera & Duration --}}
-                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.6); margin-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
-                                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                                {{ $shot['cameraMovement'] ?? 'static' }} •
-                                                <span style="color: {{ $durationColor }};">{{ $shotDuration }}s</span>
-                                            </span>
-                                            {{-- Token Cost --}}
-                                            <span style="font-size: 0.5rem; color: #fbbf24;">⚡ {{ ($shotDuration <= 5 ? 100 : ($shotDuration <= 6 ? 120 : 200)) }}t</span>
-                                        </div>
-
-                                        {{-- Shot 1: Scene Image Status --}}
-                                        @if($shotIndex === 0)
-                                            @if($hasImage)
-                                                <div style="text-align: center; padding: 0.2rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
-                                                    <div style="font-size: 0.5rem; color: #10b981;">🔗 {{ __('Scene image') }}</div>
-                                                </div>
-                                            @else
-                                                <div style="text-align: center; padding: 0.2rem; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
-                                                    <div style="font-size: 0.5rem; color: #f59e0b;">⚠ {{ __('Generate scene image first') }}</div>
-                                                </div>
-                                            @endif
-                                        @else
-                                            {{-- Shots 2+: Frame Transfer Status --}}
-                                            @if(!$hasImage && $wasTransferred === false)
-                                                <div style="text-align: center; padding: 0.2rem; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
-                                                    <div style="font-size: 0.5rem; color: #a78bfa;">⏳ {{ __('Waiting for frame from Shot :num', ['num' => $shotIndex]) }}</div>
-                                                </div>
-                                            @elseif($wasTransferred)
-                                                <div style="text-align: center; padding: 0.2rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.25rem; margin-bottom: 0.3rem;">
-                                                    <div style="font-size: 0.5rem; color: #10b981;">🔗 {{ __('Frame from Shot :num', ['num' => $shot['transferredFrom'] + 1]) }}</div>
-                                                </div>
-                                            @endif
-                                        @endif
-
-                                        {{-- Duration Control --}}
+                                    {{-- Shot Controls --}}
+                                    <div style="padding: 0.6rem 0.75rem;">
+                                        {{-- Duration Selector --}}
                                         @php
                                             $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
                                             $shotAvailableDurations = $this->getAvailableDurations($selectedModel);
                                         @endphp
-                                        <div style="font-size: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 0.25rem; padding: 0.25rem; margin-bottom: 0.3rem;">
-                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.15rem;">
-                                                <span style="color: #3b82f6; font-weight: 600;">⏱️ {{ __('Duration') }}</span>
-                                                <span style="color: {{ $durationColor }}; font-weight: 500;">{{ $shotDuration }}s</span>
-                                            </div>
-                                            <div style="display: flex; gap: 0.2rem; margin-bottom: 0.15rem;">
-                                                @foreach($shotAvailableDurations as $dur)
-                                                    @php
-                                                        $durColor = $dur <= 5 ? 'rgba(34, 197, 94' : ($dur <= 6 ? 'rgba(234, 179, 8' : 'rgba(59, 130, 246');
-                                                        $isSelected = $shotDuration === $dur;
-                                                    @endphp
-                                                    <button type="button"
-                                                            wire:click.stop="setShotDuration({{ $multiShotSceneIndex }}, {{ $shotIndex }}, {{ $dur }})"
-                                                            style="flex: 1; padding: 0.15rem 0.25rem; font-size: 0.5rem; background: {{ $isSelected ? $durColor . ', 0.3)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $isSelected ? $durColor . ', 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.2rem; color: white; cursor: pointer;">
-                                                        {{ $dur }}s
-                                                    </button>
-                                                @endforeach
-                                            </div>
-                                            @php
-                                                $shotType = $shot['type'] ?? 'medium';
-                                                $recommendedDuration = match($shotType) {
-                                                    'establishing', 'establishing_wide', 'wide' => 6,
-                                                    'close-up', 'detail', 'reaction' => 5,
-                                                    default => 6
-                                                };
-                                            @endphp
-                                            <div style="font-size: 0.4rem; color: rgba(255,255,255,0.5); line-height: 1.2;">
-                                                💡 {{ $recommendedDuration }}s {{ __('optimal for :type shot', ['type' => str_replace('_', ' ', $shotType)]) }}
-                                            </div>
+                                        <div style="display: flex; gap: 0.25rem; margin-bottom: 0.5rem;">
+                                            @foreach($shotAvailableDurations as $dur)
+                                                @php
+                                                    $durColor = $dur <= 5 ? 'rgba(34, 197, 94' : ($dur <= 6 ? 'rgba(234, 179, 8' : 'rgba(59, 130, 246');
+                                                    $isSelectedDur = $shotDuration === $dur;
+                                                @endphp
+                                                <button type="button"
+                                                        wire:click.stop="setShotDuration({{ $multiShotSceneIndex }}, {{ $shotIndex }}, {{ $dur }})"
+                                                        style="flex: 1; padding: 0.3rem; font-size: 0.7rem; background: {{ $isSelectedDur ? $durColor . ', 0.35)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $isSelectedDur ? $durColor . ', 0.6)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.25rem; color: white; cursor: pointer; font-weight: {{ $isSelectedDur ? '600' : '400' }};">
+                                                    {{ $dur }}s
+                                                </button>
+                                            @endforeach
                                         </div>
 
                                         {{-- Action Buttons --}}
-                                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                                            @if($hasVideo)
-                                                {{-- Play Video --}}
+                                        @if($hasVideo)
+                                            <div style="display: flex; gap: 0.35rem;">
                                                 <button type="button"
                                                         wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        x-on:click="setTimeout(() => $wire.set('shotPreviewTab', 'video'), 100)"
-                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3)); border: 1px solid rgba(16, 185, 129, 0.5); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500;">
-                                                    ▶️ {{ __('Play Video') }}
+                                                        style="flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3)); border: 1px solid rgba(16, 185, 129, 0.5); border-radius: 0.35rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
+                                                    ▶️ {{ __('Play') }}
                                                 </button>
-                                            @elseif($hasImage && !$isGeneratingVideo)
-                                                {{-- Animate Button - Opens Video Model Selector --}}
-                                                <button type="button"
-                                                        wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                                                    🎬 {{ __('Animate') }}
-                                                    @php
-                                                        $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
-                                                        $modelLabel = $selectedModel === 'multitalk' ? 'Lip-Sync' : 'Standard';
-                                                        $modelBg = $selectedModel === 'multitalk' ? 'rgba(251, 191, 36, 0.5)' : 'rgba(59, 130, 246, 0.5)';
-                                                    @endphp
-                                                    <span style="font-size: 0.45rem; background: {{ $modelBg }}; padding: 0.1rem 0.2rem; border-radius: 0.15rem;">{{ __($modelLabel) }}</span>
-                                                </button>
-                                            @elseif($isGeneratingVideo)
-                                                {{-- Video Generation Progress - matches original wizard --}}
-                                                @php
-                                                    $videoStatus = $shot['videoStatus'] ?? 'generating';
-                                                    $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
-                                                    $modelLabel = $selectedModel === 'multitalk' ? 'Lip-Sync' : 'Standard';
-                                                @endphp
-                                                <div
-                                                    x-data="{
-                                                        elapsedSeconds: 0,
-                                                        checkCount: 0,
-                                                        init() {
-                                                            this.startTimer();
-                                                            // Listen for poll events to update check count
-                                                            this.$watch('$wire.pendingJobs', () => this.checkCount++);
-                                                        },
-                                                        startTimer() {
-                                                            setInterval(() => {
-                                                                this.elapsedSeconds++;
-                                                            }, 1000);
-                                                        },
-                                                        formatTime(seconds) {
-                                                            const mins = Math.floor(seconds / 60);
-                                                            const secs = seconds % 60;
-                                                            return mins + ':' + (secs < 10 ? '0' : '') + secs;
-                                                        }
-                                                    }"
-                                                    style="text-align: center; padding: 0.5rem;">
-                                                    {{-- Rendering Status --}}
-                                                    <div style="font-size: 0.7rem; color: #67e8f9; font-weight: 600; margin-bottom: 0.3rem;">
-                                                        ⏳ {{ __('Rendering...') }} <span x-text="formatTime(elapsedSeconds)"></span>
-                                                    </div>
-
-                                                    {{-- Check count and expected time --}}
-                                                    <div style="font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-bottom: 0.4rem;">
-                                                        {{ __('Check') }} #<span x-text="Math.max(1, checkCount)"></span> • {{ __('Usually 1-3 min') }}
-                                                    </div>
-
-                                                    {{-- Progress Bar --}}
-                                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 0.4rem;">
-                                                        <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); animation: progress-indeterminate 1.5s infinite linear;"></div>
-                                                    </div>
-
-                                                    {{-- Model Badge --}}
-                                                    <span style="display: inline-block; font-size: 0.55rem; background: rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-weight: 500;">
-                                                        🎬 {{ __($modelLabel) }}
-                                                    </span>
+                                                @if($shotIndex < count($decomposed['shots']) - 1)
+                                                    <button type="button"
+                                                            wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                            style="padding: 0.4rem 0.6rem; background: rgba(16, 185, 129, 0.25); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.35rem; color: white; cursor: pointer; font-size: 0.7rem;">
+                                                        🎯 → {{ $shotIndex + 2 }}
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        @elseif($hasImage && !$isGeneratingVideo)
+                                            <button type="button"
+                                                    wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                    style="width: 100%; padding: 0.5rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)); border: 1px solid rgba(6, 182, 212, 0.5); border-radius: 0.35rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                                                🎬 {{ __('Animate') }}
+                                            </button>
+                                        @elseif($isGeneratingVideo)
+                                            <div style="text-align: center; padding: 0.25rem;">
+                                                <div style="font-size: 0.75rem; color: #67e8f9;">⏳ {{ __('Rendering...') }}</div>
+                                                <div style="height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 0.35rem;">
+                                                    <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); animation: progress-indeterminate 1.5s infinite linear;"></div>
                                                 </div>
-                                            @endif
-
-                                            @if($hasVideo && !$isLastShot)
-                                                {{-- Capture Frame to Next Shot --}}
-                                                <button type="button"
-                                                        wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="width: 100%; padding: 0.3rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3)); border: 1px solid rgba(16, 185, 129, 0.5); border-radius: 0.3rem; color: white; cursor: pointer; font-size: 0.6rem; font-weight: 500;">
-                                                    🎯 {{ __('Capture') }} → {{ __('Shot') }} {{ $shotIndex + 2 }}
-                                                </button>
-                                            @endif
-
-                                            @if($hasVideo)
-                                                {{-- Re-Animate - Opens Video Model Selector --}}
-                                                <button type="button"
-                                                        wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="width: 100%; padding: 0.25rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.3rem; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.55rem;">
-                                                    🔄 {{ __('Re-Animate') }}
-                                                </button>
-                                            @endif
-                                        </div>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
+                            @endforeach
+                        </div>
                     </div>
-
-                    {{-- Reset Button --}}
-                    <div style="text-align: center; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 0.6rem;">
-                        <button type="button"
-                                wire:click="resetDecomposition({{ $multiShotSceneIndex }})"
-                                style="padding: 0.35rem 0.75rem; background: transparent; border: 1px solid rgba(239,68,68,0.4); border-radius: 0.25rem; color: #ef4444; font-size: 0.7rem; cursor: pointer;">
-                            🗑️ {{ __('Reset Decomposition') }}
-                        </button>
-                    </div>
-                @endif
-            @endif
-        </div>
-
-        {{-- Footer --}}
-        <div style="padding: 0.5rem 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; flex-shrink: 0;">
-            <button type="button"
-                    wire:click="closeMultiShotModal"
-                    style="padding: 0.4rem 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.375rem; color: white; cursor: pointer; font-size: 0.85rem;">
-                {{ __('Close') }}
-            </button>
-        </div>
-    </div>
+                </div>
+            </div>
+        @endif
+    @endif
 </div>
 @endif
 
 {{-- Video Model Selector Popup --}}
 @if($showVideoModelSelector ?? false)
 <div class="vw-popup-overlay"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000;"
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000;"
      wire:click.self="closeVideoModelSelector">
-    <div style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.75rem; width: 320px; max-width: 95vw; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+    <div style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.75rem; width: 360px; max-width: 95vw; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
         {{-- Popup Header --}}
-        <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2)); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2)); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h4 style="margin: 0; color: white; font-size: 0.95rem; font-weight: 600;">🎬 {{ __('Animation Model') }}</h4>
-                <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.7rem;">{{ __('Shot') }} {{ ($videoModelSelectorShotIndex ?? 0) + 1 }}</p>
+                <h4 style="margin: 0; color: white; font-size: 1.1rem; font-weight: 600;">🎬 {{ __('Animation Model') }}</h4>
+                <p style="margin: 0.2rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Shot') }} {{ ($videoModelSelectorShotIndex ?? 0) + 1 }}</p>
             </div>
-            <button type="button" wire:click="closeVideoModelSelector" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" wire:click="closeVideoModelSelector" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Model Selection --}}
-        <div style="padding: 1rem;">
+        <div style="padding: 1.25rem;">
             @php
                 $selectorShot = $multiShotMode['decomposedScenes'][$videoModelSelectorSceneIndex ?? 0]['shots'][$videoModelSelectorShotIndex ?? 0] ?? [];
                 $hasDialogue = !empty($selectorShot['dialogue']);
@@ -975,74 +693,59 @@ window.multiShotVideoPolling = function() {
             @endphp
 
             {{-- MiniMax Option --}}
-            <label style="display: block; cursor: pointer; margin-bottom: 0.75rem;">
-                <div style="background: {{ $currentModel === 'minimax' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 2px solid {{ $currentModel === 'minimax' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.5rem; padding: 0.75rem; transition: all 0.2s;"
+            <div style="margin-bottom: 1rem;">
+                <div style="background: {{ $currentModel === 'minimax' ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255,255,255,0.03)' }}; border: 2px solid {{ $currentModel === 'minimax' ? 'rgba(6, 182, 212, 0.6)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.5rem; padding: 1rem; cursor: pointer; transition: all 0.2s;"
                      wire:click="setVideoModel('minimax')">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 18px; height: 18px; border: 2px solid {{ $currentModel === 'minimax' ? '#06b6d4' : 'rgba(255,255,255,0.3)' }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <div style="width: 22px; height: 22px; border: 2px solid {{ $currentModel === 'minimax' ? '#06b6d4' : 'rgba(255,255,255,0.3)' }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 @if($currentModel === 'minimax')
-                                    <div style="width: 10px; height: 10px; background: #06b6d4; border-radius: 50%;"></div>
+                                    <div style="width: 12px; height: 12px; background: #06b6d4; border-radius: 50%;"></div>
                                 @endif
                             </div>
                             <div>
-                                <div style="color: white; font-weight: 600; font-size: 0.9rem;">MiniMax</div>
-                                <div style="color: rgba(255,255,255,0.6); font-size: 0.7rem;">{{ __('High quality I2V animation') }}</div>
+                                <div style="color: white; font-weight: 600; font-size: 1rem;">MiniMax</div>
+                                <div style="color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('High quality I2V animation') }}</div>
                             </div>
                         </div>
-                        <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">{{ __('Recommended') }}</span>
-                    </div>
-                    <div style="margin-top: 0.5rem; padding-left: 1.75rem;">
-                        <div style="display: flex; gap: 0.25rem; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
-                            <span style="background: rgba(59,130,246,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">5-10s</span>
-                            <span style="background: rgba(139,92,246,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">{{ __('Most scenes') }}</span>
-                        </div>
+                        <span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">{{ __('Recommended') }}</span>
                     </div>
                 </div>
-            </label>
+            </div>
 
             {{-- Multitalk Option --}}
-            <label style="display: block; cursor: {{ $multitalkAvailable ? 'pointer' : 'not-allowed' }}; opacity: {{ $multitalkAvailable ? '1' : '0.5' }}; margin-bottom: 1rem;">
-                <div style="background: {{ $currentModel === 'multitalk' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 2px solid {{ $currentModel === 'multitalk' ? 'rgba(251, 191, 36, 0.6)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.5rem; padding: 0.75rem; transition: all 0.2s;"
+            <div style="margin-bottom: 1.25rem; opacity: {{ $multitalkAvailable ? '1' : '0.5' }};">
+                <div style="background: {{ $currentModel === 'multitalk' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255,255,255,0.03)' }}; border: 2px solid {{ $currentModel === 'multitalk' ? 'rgba(251, 191, 36, 0.6)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.5rem; padding: 1rem; cursor: {{ $multitalkAvailable ? 'pointer' : 'not-allowed' }}; transition: all 0.2s;"
                      @if($multitalkAvailable) wire:click="setVideoModel('multitalk')" @endif>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 18px; height: 18px; border: 2px solid {{ $currentModel === 'multitalk' ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <div style="width: 22px; height: 22px; border: 2px solid {{ $currentModel === 'multitalk' ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 @if($currentModel === 'multitalk')
-                                    <div style="width: 10px; height: 10px; background: #fbbf24; border-radius: 50%;"></div>
+                                    <div style="width: 12px; height: 12px; background: #fbbf24; border-radius: 50%;"></div>
                                 @endif
                             </div>
                             <div>
-                                <div style="color: white; font-weight: 600; font-size: 0.9rem;">Multitalk</div>
-                                <div style="color: rgba(255,255,255,0.6); font-size: 0.7rem;">{{ __('Lip-sync for dialogue scenes') }}</div>
+                                <div style="color: white; font-weight: 600; font-size: 1rem;">Multitalk</div>
+                                <div style="color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Lip-sync for dialogue') }}</div>
                             </div>
                         </div>
                         @if($hasDialogue)
-                            <span style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">💬 {{ __('Dialogue') }}</span>
+                            <span style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600;">💬</span>
                         @endif
                     </div>
-                    <div style="margin-top: 0.5rem; padding-left: 1.75rem;">
-                        <div style="display: flex; gap: 0.25rem; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
-                            <span style="background: rgba(251,191,36,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">5-20s</span>
-                            <span style="background: rgba(251,191,36,0.2); padding: 0.1rem 0.3rem; border-radius: 0.2rem;">{{ __('Requires audio') }}</span>
-                        </div>
-                        @if(!$multitalkAvailable)
-                            <div style="margin-top: 0.35rem; font-size: 0.6rem; color: #ef4444;">⚠️ {{ __('RunPod Multitalk endpoint not configured') }}</div>
-                        @elseif(!$hasAudio && $currentModel === 'multitalk')
-                            <div style="margin-top: 0.35rem; font-size: 0.6rem; color: #f59e0b;">⚠️ {{ __('Generate voiceover first for lip-sync') }}</div>
-                        @endif
-                    </div>
+                    @if(!$multitalkAvailable)
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #ef4444;">⚠️ {{ __('Not configured') }}</div>
+                    @endif
                 </div>
-            </label>
+            </div>
 
             {{-- Duration Selector --}}
-            <div style="margin-bottom: 1rem;">
-                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.4rem;">{{ __('Duration') }}</label>
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; color: rgba(255,255,255,0.8); font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 500;">{{ __('Duration') }}</label>
                 @php
-                    // Get durations from dynamic settings
                     $availableDurations = $this->getAvailableDurations($currentModel);
                 @endphp
-                <div style="display: flex; gap: 0.35rem;">
+                <div style="display: flex; gap: 0.4rem;">
                     @foreach($availableDurations as $dur)
                         @php
                             $isSelected = $currentDuration == $dur;
@@ -1050,48 +753,27 @@ window.multiShotVideoPolling = function() {
                         @endphp
                         <button type="button"
                                 wire:click="setVideoModelDuration({{ $dur }})"
-                                style="flex: 1; padding: 0.5rem; font-size: 0.8rem; font-weight: 600; background: {{ $isSelected ? $durColor . ', 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $isSelected ? $durColor . ', 0.5)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.35rem; color: white; cursor: pointer;">
+                                style="flex: 1; padding: 0.6rem; font-size: 0.9rem; font-weight: 600; background: {{ $isSelected ? $durColor . ', 0.35)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $isSelected ? $durColor . ', 0.6)' : 'rgba(255,255,255,0.15)' }}; border-radius: 0.4rem; color: white; cursor: pointer;">
                             {{ $dur }}s
                         </button>
                     @endforeach
                 </div>
-                @php
-                    $defaultDuration = $this->getDefaultDuration($currentModel);
-                @endphp
-                <div style="margin-top: 0.35rem; font-size: 0.6rem; color: rgba(255,255,255,0.5);">💡 {{ __(':duration s recommended for most shots', ['duration' => $defaultDuration]) }}</div>
             </div>
 
             {{-- Generate Button --}}
             <button type="button"
                     wire:click="confirmVideoModelAndGenerate"
                     wire:loading.attr="disabled"
-                    style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #06b6d4, #3b82f6); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                <span wire:loading.remove wire:target="confirmVideoModelAndGenerate">
-                    🎬 {{ __('Generate Animation') }}
-                </span>
+                    style="width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #06b6d4, #3b82f6); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 1rem;">
+                <span wire:loading.remove wire:target="confirmVideoModelAndGenerate">🎬 {{ __('Generate Animation') }}</span>
                 <span wire:loading wire:target="confirmVideoModelAndGenerate">
-                    <svg style="width: 16px; height: 16px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg style="width: 18px; height: 18px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
                         <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
                     </svg>
                     {{ __('Starting...') }}
                 </span>
             </button>
-
-            {{-- Pre-configure for waiting shots --}}
-            @php
-                $waitingShots = collect($multiShotMode['decomposedScenes'][$videoModelSelectorSceneIndex ?? 0]['shots'] ?? [])
-                    ->filter(fn($s, $i) => $i > ($videoModelSelectorShotIndex ?? 0) && empty($s['videoUrl']) && !empty($s['imageUrl']))
-                    ->count();
-            @endphp
-            @if($waitingShots > 0)
-                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.75rem; color: rgba(255,255,255,0.7);">
-                        <input type="checkbox" wire:model.live="preConfigureWaitingShots" style="accent-color: #06b6d4;">
-                        {{ __('Apply to :count waiting shots', ['count' => $waitingShots]) }}
-                    </label>
-                </div>
-            @endif
         </div>
     </div>
 </div>
@@ -1101,21 +783,8 @@ window.multiShotVideoPolling = function() {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
 @keyframes progress-indeterminate {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
 }
-.shot-hover-overlay:hover {
-    opacity: 1 !important;
-}
 </style>
-
-{{-- Video polling is now handled by Alpine component at the top --}}
