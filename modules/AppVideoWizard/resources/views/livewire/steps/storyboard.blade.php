@@ -1615,28 +1615,40 @@
 
                                                 {{-- Pagination Controls --}}
                                                 @if($collageTotalPages > 1)
-                                                    <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                                                        <button type="button"
-                                                                wire:click="prevCollagePage({{ $index }})"
-                                                                {{ $collageCurrentPage <= 0 ? 'disabled' : '' }}
-                                                                style="padding: 0.15rem 0.35rem; background: {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.2rem; color: {{ $collageCurrentPage > 0 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.55rem; cursor: {{ $collageCurrentPage > 0 ? 'pointer' : 'not-allowed' }};">
-                                                            ◀
-                                                        </button>
-                                                        <div style="display: flex; align-items: center; gap: 0.2rem;">
-                                                            @for($pageIdx = 0; $pageIdx < $collageTotalPages; $pageIdx++)
-                                                                <button type="button"
-                                                                        wire:click="setCollagePage({{ $index }}, {{ $pageIdx }})"
-                                                                        style="width: 18px; height: 18px; background: {{ $pageIdx === $collageCurrentPage ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $pageIdx === $collageCurrentPage ? 'rgba(236, 72, 153, 0.6)' : 'rgba(255,255,255,0.2)' }}; border-radius: 50%; color: white; font-size: 0.5rem; font-weight: 600; cursor: pointer;">
-                                                                    {{ $pageIdx + 1 }}
-                                                                </button>
-                                                            @endfor
+                                                    <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                                        {{-- Page indicator --}}
+                                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.7); font-weight: 500;">
+                                                                {{ __('Page') }} {{ $collageCurrentPage + 1 }}/{{ $collageTotalPages }}
+                                                            </span>
+                                                            <span style="font-size: 0.55rem; color: rgba(236, 72, 153, 0.9); font-weight: 500;">
+                                                                {{ __('Shots') }} {{ $collageRangeStart }}-{{ $collageRangeEnd }}
+                                                            </span>
                                                         </div>
-                                                        <button type="button"
-                                                                wire:click="nextCollagePage({{ $index }})"
-                                                                {{ $collageCurrentPage >= $collageTotalPages - 1 ? 'disabled' : '' }}
-                                                                style="padding: 0.15rem 0.35rem; background: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.2rem; color: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.55rem; cursor: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'pointer' : 'not-allowed' }};">
-                                                            ▶
-                                                        </button>
+                                                        {{-- Navigation buttons --}}
+                                                        <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+                                                            <button type="button"
+                                                                    wire:click="prevCollagePage({{ $index }})"
+                                                                    {{ $collageCurrentPage <= 0 ? 'disabled' : '' }}
+                                                                    style="padding: 0.2rem 0.45rem; background: {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage > 0 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.25rem; color: {{ $collageCurrentPage > 0 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.6rem; cursor: {{ $collageCurrentPage > 0 ? 'pointer' : 'not-allowed' }};">
+                                                                ◀ {{ __('Prev') }}
+                                                            </button>
+                                                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                                                @for($pageIdx = 0; $pageIdx < $collageTotalPages; $pageIdx++)
+                                                                    <button type="button"
+                                                                            wire:click="setCollagePage({{ $index }}, {{ $pageIdx }})"
+                                                                            style="width: 20px; height: 20px; background: {{ $pageIdx === $collageCurrentPage ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.5), rgba(168, 85, 247, 0.4))' : 'rgba(255,255,255,0.1)' }}; border: 1px solid {{ $pageIdx === $collageCurrentPage ? 'rgba(236, 72, 153, 0.7)' : 'rgba(255,255,255,0.2)' }}; border-radius: 50%; color: white; font-size: 0.55rem; font-weight: 600; cursor: pointer; box-shadow: {{ $pageIdx === $collageCurrentPage ? '0 2px 8px rgba(236, 72, 153, 0.3)' : 'none' }};">
+                                                                        {{ $pageIdx + 1 }}
+                                                                    </button>
+                                                                @endfor
+                                                            </div>
+                                                            <button type="button"
+                                                                    wire:click="nextCollagePage({{ $index }})"
+                                                                    {{ $collageCurrentPage >= $collageTotalPages - 1 ? 'disabled' : '' }}
+                                                                    style="padding: 0.2rem 0.45rem; background: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $collageCurrentPage < $collageTotalPages - 1 ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255,255,255,0.1)' }}; border-radius: 0.25rem; color: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'white' : 'rgba(255,255,255,0.3)' }}; font-size: 0.6rem; cursor: {{ $collageCurrentPage < $collageTotalPages - 1 ? 'pointer' : 'not-allowed' }};">
+                                                                {{ __('Next') }} ▶
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 @endif
                                             @endif
