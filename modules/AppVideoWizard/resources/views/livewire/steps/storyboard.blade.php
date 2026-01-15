@@ -1524,7 +1524,77 @@
                                             <span>{{ __('Stock Media') }}</span>
                                             <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
                                         </button>
+                                        <button type="button"
+                                                class="vw-scene-empty-btn collage"
+                                                wire:click="generateCollagePreview({{ $index }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="generateCollagePreview({{ $index }})"
+                                                style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15)); border-color: rgba(236, 72, 153, 0.4);">
+                                            <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️</span>
+                                            <span wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ __('Collage First') }}</span>
+                                            <span wire:loading wire:target="generateCollagePreview({{ $index }})">
+                                                <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                </svg>
+                                            </span>
+                                            <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
+                                        </button>
                                     </div>
+
+                                    {{-- Collage Preview (when generated) --}}
+                                    @php
+                                        $sceneCollage = $sceneCollages[$index] ?? null;
+                                    @endphp
+                                    @if($sceneCollage && in_array($sceneCollage['status'], ['ready', 'generating', 'processing']))
+                                        <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.8); font-weight: 600;">
+                                                    🖼️ {{ __('Collage Preview') }}
+                                                </span>
+                                                <button type="button"
+                                                        wire:click="clearCollagePreview({{ $index }})"
+                                                        style="font-size: 0.6rem; color: rgba(255,255,255,0.5); background: none; border: none; cursor: pointer;">
+                                                    ✕
+                                                </button>
+                                            </div>
+
+                                            @if($sceneCollage['status'] === 'generating' || $sceneCollage['status'] === 'processing')
+                                                <div style="height: 100px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 0.375rem;">
+                                                    <div style="text-align: center;">
+                                                        <div style="width: 24px; height: 24px; border: 2px solid rgba(236, 72, 153, 0.3); border-top-color: #ec4899; border-radius: 50%; animation: vw-spin 1s linear infinite; margin: 0 auto;"></div>
+                                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); margin-top: 0.35rem; display: block;">{{ __('Generating...') }}</span>
+                                                    </div>
+                                                </div>
+                                            @elseif($sceneCollage['status'] === 'ready' && !empty($sceneCollage['previewUrl']))
+                                                <div style="font-size: 0.55rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
+                                                    {{ __('Click a region to use as scene image:') }}
+                                                </div>
+                                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px;">
+                                                    @for($regionIdx = 0; $regionIdx < 4; $regionIdx++)
+                                                        <div wire:click="setSceneImageFromCollageRegion({{ $index }}, {{ $regionIdx }})"
+                                                             style="aspect-ratio: 16/9; background: rgba(0,0,0,0.3); border-radius: 0.25rem; position: relative; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, transform 0.2s;"
+                                                             onmouseover="this.style.borderColor='rgba(236, 72, 153, 0.8)'; this.style.transform='scale(1.02)';"
+                                                             onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)';">
+                                                            {{-- Simulated region from collage --}}
+                                                            <img src="{{ $sceneCollage['previewUrl'] }}"
+                                                                 style="position: absolute; width: 200%; height: 200%; object-fit: cover;
+                                                                        {{ $regionIdx % 2 === 0 ? 'left: 0' : 'left: -100%' }};
+                                                                        {{ $regionIdx < 2 ? 'top: 0' : 'top: -100%' }};">
+                                                            <div style="position: absolute; top: 0.15rem; left: 0.15rem; background: rgba(0,0,0,0.7); color: white; padding: 0.1rem 0.25rem; border-radius: 0.15rem; font-size: 0.5rem; font-weight: 600;">
+                                                                {{ $regionIdx + 1 }}
+                                                            </div>
+                                                            <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(139, 92, 246, 0.3)); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center;"
+                                                                 onmouseover="this.style.opacity='1';"
+                                                                 onmouseout="this.style.opacity='0';">
+                                                                <span style="font-size: 0.6rem; color: white; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">{{ __('Use This') }}</span>
+                                                            </div>
+                                                        </div>
+                                                    @endfor
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         </div>

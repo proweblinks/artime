@@ -13738,6 +13738,98 @@ EOT;
         return $this->sceneCollages[$sceneIndex] ?? null;
     }
 
+    /**
+     * Set the scene's main image from a selected collage region.
+     * Generates a high-res version of the selected region and sets it as the scene image.
+     */
+    public function setSceneImageFromCollageRegion(int $sceneIndex, int $regionIndex): void
+    {
+        $collage = $this->sceneCollages[$sceneIndex] ?? null;
+        if (!$collage || $collage['status'] !== 'ready' || empty($collage['previewUrl'])) {
+            $this->error = __('Collage preview not ready');
+            return;
+        }
+
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        if (!$scene) {
+            $this->error = __('Scene not found');
+            return;
+        }
+
+        // Mark as generating
+        $this->storyboard['scenes'][$sceneIndex]['status'] = 'generating';
+        $this->isLoading = true;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            // Build prompt that references the specific region
+            $regionDescriptions = [
+                0 => 'top-left quadrant',
+                1 => 'top-right quadrant',
+                2 => 'bottom-left quadrant',
+                3 => 'bottom-right quadrant',
+            ];
+            $regionDesc = $regionDescriptions[$regionIndex] ?? "region " . ($regionIndex + 1);
+
+            $enhancedPrompt = "Based on the {$regionDesc} of the reference collage. " .
+                ($scene['visualDescription'] ?? $scene['visuals'] ?? '');
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => $scene['id'],
+                        'visualDescription' => $enhancedPrompt,
+                    ], [
+                        'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                        'sceneIndex' => $sceneIndex,
+                        'referenceImage' => $collage['previewUrl'],
+                        'from_collage_region' => true,
+                        'region_index' => $regionIndex,
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $result['imageUrl'];
+                        $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
+                        $this->storyboard['scenes'][$sceneIndex]['fromCollageRegion'] = $regionIndex;
+
+                        // Clear the collage preview since we've selected an image
+                        unset($this->sceneCollages[$sceneIndex]);
+
+                        Log::info('VideoWizard: Scene image set from collage region', [
+                            'sceneIndex' => $sceneIndex,
+                            'regionIndex' => $regionIndex,
+                            'imageUrl' => $result['imageUrl'],
+                        ]);
+                    } elseif (isset($result['jobId'])) {
+                        // Async job
+                        $this->pendingJobs["scene_{$sceneIndex}"] = [
+                            'jobId' => $result['jobId'],
+                            'type' => 'scene',
+                            'sceneIndex' => $sceneIndex,
+                        ];
+                        $this->storyboard['scenes'][$sceneIndex]['status'] = 'processing';
+                    } else {
+                        throw new \Exception($result['error'] ?? __('Generation failed'));
+                    }
+
+                    $this->saveProject();
+                }
+            }
+        } catch (\Exception $e) {
+            $this->storyboard['scenes'][$sceneIndex]['status'] = 'error';
+            $this->error = __('Failed to generate scene image from collage: ') . $e->getMessage();
+            Log::error('VideoWizard: Scene image from collage failed', [
+                'sceneIndex' => $sceneIndex,
+                'regionIndex' => $regionIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
     // =========================================================================
     // END COLLAGE PREVIEW METHODS
     // =========================================================================
