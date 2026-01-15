@@ -397,61 +397,35 @@
 
     {{-- Step Content --}}
     <div class="px-4 max-w-4xl mx-auto">
-        @if($collageMode)
-            {{-- Collage-First Workflow: Platform → Collage → Animation → Assembly → Export --}}
-            @switch($currentStep)
-                @case(1)
-                    @include('appvideowizard::livewire.steps.platform')
-                    @break
+        @switch($currentStep)
+            @case(1)
+                @include('appvideowizard::livewire.steps.platform')
+                @break
 
-                @case(2)
-                    @include('appvideowizard::livewire.steps.collage')
-                    @break
+            @case(2)
+                @include('appvideowizard::livewire.steps.concept')
+                @break
 
-                @case(3)
-                    @include('appvideowizard::livewire.steps.animation')
-                    @break
+            @case(3)
+                @include('appvideowizard::livewire.steps.script')
+                @break
 
-                @case(4)
-                    @include('appvideowizard::livewire.steps.assembly')
-                    @break
+            @case(4)
+                @include('appvideowizard::livewire.steps.storyboard')
+                @break
 
-                @case(5)
-                    @include('appvideowizard::livewire.steps.export')
-                    @break
-            @endswitch
-        @else
-            {{-- Standard Video-First Workflow --}}
-            @switch($currentStep)
-                @case(1)
-                    @include('appvideowizard::livewire.steps.platform')
-                    @break
+            @case(5)
+                @include('appvideowizard::livewire.steps.animation')
+                @break
 
-                @case(2)
-                    @include('appvideowizard::livewire.steps.concept')
-                    @break
+            @case(6)
+                @include('appvideowizard::livewire.steps.assembly')
+                @break
 
-                @case(3)
-                    @include('appvideowizard::livewire.steps.script')
-                    @break
-
-                @case(4)
-                    @include('appvideowizard::livewire.steps.storyboard')
-                    @break
-
-                @case(5)
-                    @include('appvideowizard::livewire.steps.animation')
-                    @break
-
-                @case(6)
-                    @include('appvideowizard::livewire.steps.assembly')
-                    @break
-
-                @case(7)
-                    @include('appvideowizard::livewire.steps.export')
-                    @break
-            @endswitch
-        @endif
+            @case(7)
+                @include('appvideowizard::livewire.steps.export')
+                @break
+        @endswitch
     </div>
 
     {{-- Navigation --}}
@@ -515,9 +489,6 @@
 
     {{-- Writer's Room Modal (Phase 2: Professional Writing Interface) --}}
     @include('appvideowizard::livewire.modals.writers-room')
-
-    {{-- Collage Builder Modal (Collage-First Workflow) --}}
-    @include('appvideowizard::livewire.modals.collage-builder')
 
     {{-- Debug Console Logger --}}
     @if(config('app.debug', false) || session('login_as') === 'admin')

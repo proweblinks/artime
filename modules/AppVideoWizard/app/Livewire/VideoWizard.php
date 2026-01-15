@@ -617,6 +617,28 @@ class VideoWizard extends Component
     public int $frameCaptureShotIndex = 0;
     public ?string $capturedFrame = null;
 
+    // Per-Scene Collage Preview state (integrated into Multi-Shot Decomposition)
+    // Stores collage preview image and region-to-shot assignments per scene
+    public array $sceneCollages = [];
+    /**
+     * Scene Collage Structure:
+     * [
+     *     sceneIndex => [
+     *         'previewUrl' => 'url-to-2x2-grid-image',
+     *         'status' => 'pending' | 'generating' | 'ready' | 'error',
+     *         'regions' => [
+     *             0 => ['row' => 0, 'col' => 0, 'assignedToShot' => null],
+     *             1 => ['row' => 0, 'col' => 1, 'assignedToShot' => null],
+     *             2 => ['row' => 1, 'col' => 0, 'assignedToShot' => null],
+     *             3 => ['row' => 1, 'col' => 1, 'assignedToShot' => null],
+     *         ],
+     *         'shotSources' => [
+     *             shotIndex => regionIndex, // Which region is source for which shot
+     *         ],
+     *     ],
+     * ]
+     */
+
     // Face Correction Panel state (inside Frame Capture modal)
     public bool $showFaceCorrectionPanel = false;
     public array $selectedFaceCorrectionCharacters = [];
@@ -735,254 +757,6 @@ class VideoWizard extends Component
         'transitions' => null,
         'configGenerated' => false,
     ];
-
-    // =========================================================================
-    // COLLAGE-FIRST WORKFLOW STATE (Unified Collage-First Architecture)
-    // =========================================================================
-
-    /**
-     * Collage Mode - Enables visual-first workflow where users:
-     * 1. Collect/upload images first
-     * 2. Arrange them into a collage layout
-     * 3. Optionally generate narrative from visuals
-     * 4. Animate with Ken Burns/pan/zoom effects
-     *
-     * When enabled, workflow becomes:
-     * Platform → Collage Builder → (Optional: Script) → Animation → Assembly → Export
-     */
-    public bool $collageMode = false;
-
-    /**
-     * Collage Configuration - Full state for collage-first workflow
-     */
-    public array $collage = [
-        'enabled' => false,
-        'status' => 'draft', // 'draft' | 'collecting' | 'arranging' | 'ready' | 'animating'
-
-        // Layout Configuration
-        'layout' => [
-            'type' => 'grid', // 'grid' | 'mosaic' | 'story-flow' | 'magazine' | 'slideshow' | 'custom'
-            'columns' => 3,
-            'rows' => 3,
-            'gap' => 8,
-            'padding' => 16,
-            'backgroundStyle' => 'solid', // 'solid' | 'gradient' | 'blur' | 'image'
-            'backgroundColor' => '#000000',
-            'backgroundGradient' => null,
-            'borderRadius' => 8,
-        ],
-
-        // Collected Images
-        'images' => [],
-        /**
-         * Image Schema:
-         * [
-         *     'id' => 'collage-img-{uuid}',
-         *     'url' => 'https://...',
-         *     'thumbnailUrl' => 'https://...',
-         *     'source' => 'upload' | 'generated' | 'stock' | 'storyboard',
-         *     'position' => ['x' => 0, 'y' => 0],
-         *     'size' => ['width' => 100, 'height' => 100],
-         *     'gridPosition' => ['col' => 1, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1],
-         *     'zIndex' => 1,
-         *     'rotation' => 0,
-         *     'scale' => 1,
-         *     'opacity' => 1,
-         *     'caption' => '',
-         *     'animation' => [
-         *         'type' => 'ken-burns' | 'pan' | 'zoom' | 'fade' | 'none',
-         *         'direction' => 'in' | 'out' | 'left' | 'right' | 'up' | 'down',
-         *         'duration' => 5,
-         *         'delay' => 0,
-         *         'easing' => 'ease-in-out',
-         *     ],
-         *     'metadata' => [
-         *         'originalFilename' => '',
-         *         'uploadedAt' => null,
-         *         'generatedPrompt' => '',
-         *         'aspectRatio' => '1:1',
-         *     ],
-         * ]
-         */
-
-        // Animation Configuration (global settings)
-        'animation' => [
-            'style' => 'cinematic', // 'cinematic' | 'dynamic' | 'subtle' | 'dramatic' | 'none'
-            'defaultEffect' => 'ken-burns',
-            'transitionType' => 'crossfade', // 'crossfade' | 'slide' | 'zoom' | 'wipe' | 'cut'
-            'transitionDuration' => 1.0,
-            'imageDuration' => 5, // Default duration per image in seconds
-            'syncToAudio' => false,
-            'loopPlayback' => false,
-        ],
-
-        // Narrative Generation (optional - AI generates story from images)
-        'narrative' => [
-            'enabled' => false,
-            'status' => 'pending', // 'pending' | 'generating' | 'ready'
-            'style' => 'documentary', // 'documentary' | 'story' | 'poetic' | 'informative'
-            'tone' => 'neutral', // 'neutral' | 'dramatic' | 'uplifting' | 'nostalgic'
-            'generatedScript' => null,
-            'voiceoverEnabled' => false,
-        ],
-
-        // Output Configuration
-        'output' => [
-            'duration' => null, // Auto-calculated or user-specified
-            'aspectRatio' => '16:9',
-            'resolution' => '1080p',
-            'fps' => 30,
-        ],
-
-        // Composition State (for drag-and-drop arrangement)
-        'composition' => [
-            'selectedImageId' => null,
-            'isDragging' => false,
-            'snapToGrid' => true,
-            'showGuides' => true,
-            'history' => [], // Undo/redo stack
-            'historyIndex' => -1,
-        ],
-    ];
-
-    /**
-     * Collage Layout Presets - Pre-designed arrangements
-     */
-    public const COLLAGE_LAYOUTS = [
-        'grid' => [
-            'id' => 'grid',
-            'name' => 'Classic Grid',
-            'icon' => '⊞',
-            'description' => 'Equal-sized images in a uniform grid',
-            'minImages' => 2,
-            'maxImages' => 16,
-            'recommended' => 9,
-        ],
-        'mosaic' => [
-            'id' => 'mosaic',
-            'name' => 'Mosaic',
-            'icon' => '◧',
-            'description' => 'Dynamic layout with varied image sizes',
-            'minImages' => 3,
-            'maxImages' => 12,
-            'recommended' => 6,
-        ],
-        'story-flow' => [
-            'id' => 'story-flow',
-            'name' => 'Story Flow',
-            'icon' => '⟿',
-            'description' => 'Sequential layout for narrative progression',
-            'minImages' => 3,
-            'maxImages' => 20,
-            'recommended' => 8,
-        ],
-        'magazine' => [
-            'id' => 'magazine',
-            'name' => 'Magazine',
-            'icon' => '📰',
-            'description' => 'Editorial-style with hero image and supporting visuals',
-            'minImages' => 4,
-            'maxImages' => 10,
-            'recommended' => 5,
-        ],
-        'slideshow' => [
-            'id' => 'slideshow',
-            'name' => 'Slideshow',
-            'icon' => '▶',
-            'description' => 'Full-screen sequential presentation',
-            'minImages' => 2,
-            'maxImages' => 50,
-            'recommended' => 10,
-        ],
-        'polaroid' => [
-            'id' => 'polaroid',
-            'name' => 'Polaroid Stack',
-            'icon' => '📷',
-            'description' => 'Scattered polaroid-style with rotation',
-            'minImages' => 3,
-            'maxImages' => 12,
-            'recommended' => 6,
-        ],
-        'filmstrip' => [
-            'id' => 'filmstrip',
-            'name' => 'Filmstrip',
-            'icon' => '🎞',
-            'description' => 'Horizontal cinema-style strip',
-            'minImages' => 3,
-            'maxImages' => 15,
-            'recommended' => 8,
-        ],
-        'custom' => [
-            'id' => 'custom',
-            'name' => 'Custom',
-            'icon' => '✏️',
-            'description' => 'Free-form drag and drop arrangement',
-            'minImages' => 1,
-            'maxImages' => 20,
-            'recommended' => null,
-        ],
-    ];
-
-    /**
-     * Collage Animation Styles - Pre-defined motion presets
-     */
-    public const COLLAGE_ANIMATION_STYLES = [
-        'cinematic' => [
-            'id' => 'cinematic',
-            'name' => 'Cinematic',
-            'description' => 'Slow, elegant Ken Burns with smooth transitions',
-            'defaultEffect' => 'ken-burns',
-            'transitionType' => 'crossfade',
-            'imageDuration' => 6,
-            'transitionDuration' => 1.5,
-        ],
-        'dynamic' => [
-            'id' => 'dynamic',
-            'name' => 'Dynamic',
-            'description' => 'Energetic movements with quick cuts',
-            'defaultEffect' => 'zoom',
-            'transitionType' => 'slide',
-            'imageDuration' => 3,
-            'transitionDuration' => 0.5,
-        ],
-        'subtle' => [
-            'id' => 'subtle',
-            'name' => 'Subtle',
-            'description' => 'Gentle, almost imperceptible motion',
-            'defaultEffect' => 'ken-burns',
-            'transitionType' => 'crossfade',
-            'imageDuration' => 8,
-            'transitionDuration' => 2.0,
-        ],
-        'dramatic' => [
-            'id' => 'dramatic',
-            'name' => 'Dramatic',
-            'description' => 'Bold zooms and sweeping pans',
-            'defaultEffect' => 'zoom',
-            'transitionType' => 'wipe',
-            'imageDuration' => 5,
-            'transitionDuration' => 1.0,
-        ],
-        'none' => [
-            'id' => 'none',
-            'name' => 'Static',
-            'description' => 'No animation, simple cuts between images',
-            'defaultEffect' => 'none',
-            'transitionType' => 'cut',
-            'imageDuration' => 4,
-            'transitionDuration' => 0,
-        ],
-    ];
-
-    // Collage Modal state
-    public bool $showCollageModal = false;
-    public string $collageTab = 'images'; // 'images' | 'layout' | 'animation' | 'preview'
-    public int $collageSelectedImageIndex = -1;
-    public bool $isGeneratingCollageNarrative = false;
-    public bool $isUploadingCollageImage = false;
-
-    // Collage Image Upload
-    public $collageImageUpload;
 
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
@@ -1380,6 +1154,9 @@ class VideoWizard extends Component
             if (isset($config['multiShotMode'])) {
                 $this->multiShotMode = array_merge($this->multiShotMode, $config['multiShotMode']);
             }
+            if (isset($config['sceneCollages'])) {
+                $this->sceneCollages = $config['sceneCollages'];
+            }
             if (isset($config['conceptVariations'])) {
                 $this->conceptVariations = $config['conceptVariations'];
             }
@@ -1439,13 +1216,6 @@ class VideoWizard extends Component
                 $this->content = array_merge($this->content, $config['content']);
             }
 
-            // Restore Collage-First Workflow state
-            if (isset($config['collageMode'])) {
-                $this->collageMode = (bool) $config['collageMode'];
-            }
-            if (isset($config['collage'])) {
-                $this->collage = array_merge($this->collage, $config['collage']);
-            }
         }
 
         // Recalculate voice status if script exists
@@ -1480,10 +1250,9 @@ class VideoWizard extends Component
             'assembly' => $this->assembly,
             'sceneMemory' => $this->sceneMemory,
             'multiShotMode' => $this->multiShotMode,
+            'sceneCollages' => $this->sceneCollages,
             'production' => $this->production,
             'content' => $this->content,
-            'collageMode' => $this->collageMode, // Collage-First Workflow
-            'collage' => $this->collage, // Collage-First Workflow
         ];
 
         return md5(json_encode($data));
@@ -1533,17 +1302,16 @@ class VideoWizard extends Component
                 'animation' => $this->animation,
                 'assembly' => $this->assembly,
                 // Save Scene Memory, Multi-Shot Mode, Concept Variations, Character Intelligence, Script Generation State,
-                // Hollywood-style Production/Content configuration, and Collage-First Workflow state
+                // Hollywood-style Production/Content configuration
                 'content_config' => [
                     'sceneMemory' => $this->sceneMemory,
                     'multiShotMode' => $this->multiShotMode,
+                    'sceneCollages' => $this->sceneCollages,
                     'conceptVariations' => $this->conceptVariations,
                     'characterIntelligence' => $this->characterIntelligence,
                     'scriptGeneration' => $this->scriptGeneration,
                     'production' => $this->production,
                     'content' => $this->content,
-                    'collageMode' => $this->collageMode, // Collage-First Workflow
-                    'collage' => $this->collage, // Collage-First Workflow
                 ],
             ];
 
@@ -1602,8 +1370,7 @@ class VideoWizard extends Component
             $this->maxReachedStep = max($this->maxReachedStep, $step);
 
             // Step Transition Hook: Auto-populate Scene Memory when entering Storyboard (step 4)
-            // Only applies to Video-First workflow (not collage mode)
-            if (!$this->collageMode && $step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
+            if ($step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
                 $this->isTransitioning = true;
                 $this->transitionMessage = __('Analyzing script for characters and locations...');
 
@@ -5023,24 +4790,9 @@ class VideoWizard extends Component
 
     /**
      * Get step titles.
-     * Returns different titles based on whether collage mode is active.
      */
     public function getStepTitles(): array
     {
-        if ($this->collageMode) {
-            // Collage-First workflow: Platform → Collage → Animation → Assembly → Export
-            return [
-                1 => 'Platform & Format',
-                2 => 'Collage Builder',
-                3 => 'Animation',
-                4 => 'Assembly',
-                5 => 'Export',
-                6 => '', // Unused in collage mode
-                7 => '', // Unused in collage mode
-            ];
-        }
-
-        // Standard Video-First workflow
         return [
             1 => 'Platform & Format',
             2 => 'Concept',
@@ -5053,11 +4805,11 @@ class VideoWizard extends Component
     }
 
     /**
-     * Get the maximum step number based on current workflow mode.
+     * Get the maximum step number.
      */
     public function getMaxSteps(): int
     {
-        return $this->collageMode ? 5 : 7;
+        return 7;
     }
 
     /**
@@ -5065,19 +4817,6 @@ class VideoWizard extends Component
      */
     public function isStepCompleted(int $step): bool
     {
-        if ($this->collageMode) {
-            // Collage-First workflow step completion
-            return match ($step) {
-                1 => !empty($this->platform) || !empty($this->format),
-                2 => count($this->collage['images']) > 0 && $this->collage['status'] === 'ready',
-                3 => $this->hasAnimationData() || $this->hasCollageContent(),
-                4 => true, // Assembly is optional
-                5 => false, // Export is never "completed" in this sense
-                default => false,
-            };
-        }
-
-        // Standard Video-First workflow
         return match ($step) {
             1 => !empty($this->platform) || !empty($this->format),
             2 => !empty($this->concept['rawInput']) || !empty($this->concept['refinedConcept']),
@@ -13756,6 +13495,253 @@ EOT;
         return $prompt;
     }
 
+    // =========================================================================
+    // COLLAGE PREVIEW METHODS (Per-Scene Collage Integration)
+    // =========================================================================
+
+    /**
+     * Generate a 2x2 collage preview for a scene.
+     * Creates a grid image showing all shots for visual planning.
+     */
+    public function generateCollagePreview(int $sceneIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || count($decomposed['shots'] ?? []) < 2) {
+            $this->error = __('Scene must have at least 2 shots to generate collage preview');
+            return;
+        }
+
+        // Initialize collage state for this scene
+        $this->sceneCollages[$sceneIndex] = [
+            'status' => 'generating',
+            'previewUrl' => null,
+            'regions' => [],
+            'shotSources' => [],
+        ];
+
+        // Initialize 4 regions (2x2 grid)
+        for ($i = 0; $i < 4; $i++) {
+            $this->sceneCollages[$sceneIndex]['regions'][$i] = [
+                'row' => intdiv($i, 2),
+                'col' => $i % 2,
+                'assignedToShot' => null,
+            ];
+        }
+
+        $this->isLoading = true;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+            $shots = $decomposed['shots'];
+            $scene = $this->script['scenes'][$sceneIndex] ?? [];
+
+            // Build a combined prompt for the 2x2 collage
+            $shotDescriptions = [];
+            foreach (array_slice($shots, 0, 4) as $idx => $shot) {
+                $shotDescriptions[] = "Panel " . ($idx + 1) . ": " . ($shot['imagePrompt'] ?? $shot['prompt'] ?? 'Shot ' . ($idx + 1));
+            }
+
+            $collagePrompt = "A 2x2 grid collage showing 4 different camera angles of the same scene. " .
+                implode('. ', $shotDescriptions) . ". " .
+                "Each panel shows a different shot type while maintaining visual consistency. " .
+                "Style: " . ($decomposed['consistencyAnchors']['style'] ?? 'cinematic');
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => "collage_{$sceneIndex}",
+                        'visualDescription' => $collagePrompt,
+                    ], [
+                        'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                        'sceneIndex' => $sceneIndex,
+                        'is_collage_preview' => true,
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->sceneCollages[$sceneIndex]['previewUrl'] = $result['imageUrl'];
+                        $this->sceneCollages[$sceneIndex]['status'] = 'ready';
+                    } elseif (isset($result['jobId'])) {
+                        // Async job
+                        $this->pendingJobs["collage_{$sceneIndex}"] = [
+                            'jobId' => $result['jobId'],
+                            'type' => 'collage',
+                            'sceneIndex' => $sceneIndex,
+                        ];
+                        $this->sceneCollages[$sceneIndex]['status'] = 'processing';
+                    } else {
+                        throw new \Exception($result['error'] ?? __('Collage generation failed'));
+                    }
+                }
+            }
+
+            $this->saveProject();
+        } catch (\Exception $e) {
+            $this->sceneCollages[$sceneIndex]['status'] = 'error';
+            $this->error = __('Failed to generate collage preview: ') . $e->getMessage();
+            Log::error('VideoWizard: Collage preview generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Assign a collage region to a specific shot.
+     * User clicks on a region to mark it as the source for generating that shot.
+     */
+    public function assignCollageRegionToShot(int $sceneIndex, int $regionIndex, int $shotIndex): void
+    {
+        if (!isset($this->sceneCollages[$sceneIndex])) {
+            return;
+        }
+
+        // Clear any previous assignment for this shot
+        foreach ($this->sceneCollages[$sceneIndex]['shotSources'] as $existingShotIndex => $existingRegionIndex) {
+            if ($existingShotIndex === $shotIndex) {
+                unset($this->sceneCollages[$sceneIndex]['shotSources'][$existingShotIndex]);
+                if (isset($this->sceneCollages[$sceneIndex]['regions'][$existingRegionIndex])) {
+                    $this->sceneCollages[$sceneIndex]['regions'][$existingRegionIndex]['assignedToShot'] = null;
+                }
+            }
+        }
+
+        // Clear previous assignment for this region
+        if (isset($this->sceneCollages[$sceneIndex]['regions'][$regionIndex])) {
+            $previousShot = $this->sceneCollages[$sceneIndex]['regions'][$regionIndex]['assignedToShot'];
+            if ($previousShot !== null) {
+                unset($this->sceneCollages[$sceneIndex]['shotSources'][$previousShot]);
+            }
+        }
+
+        // Assign region to shot
+        $this->sceneCollages[$sceneIndex]['regions'][$regionIndex]['assignedToShot'] = $shotIndex;
+        $this->sceneCollages[$sceneIndex]['shotSources'][$shotIndex] = $regionIndex;
+
+        Log::info('VideoWizard: Collage region assigned to shot', [
+            'sceneIndex' => $sceneIndex,
+            'regionIndex' => $regionIndex,
+            'shotIndex' => $shotIndex,
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Generate a high-resolution shot image from its assigned collage region.
+     * Uses the region as a reference to create a detailed shot.
+     */
+    public function generateShotFromCollageRegion(int $sceneIndex, int $shotIndex): void
+    {
+        $collage = $this->sceneCollages[$sceneIndex] ?? null;
+        if (!$collage || $collage['status'] !== 'ready' || empty($collage['previewUrl'])) {
+            $this->error = __('Collage preview not ready');
+            return;
+        }
+
+        $regionIndex = $collage['shotSources'][$shotIndex] ?? null;
+        if ($regionIndex === null) {
+            $this->error = __('No collage region assigned to this shot');
+            return;
+        }
+
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        $region = $collage['regions'][$regionIndex];
+
+        // Mark shot as generating
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'generating';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'generating';
+
+        $this->isLoading = true;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            // Build prompt that references the specific region of the collage
+            $regionDescription = "Based on panel " . ($regionIndex + 1) . " (row " . ($region['row'] + 1) . ", column " . ($region['col'] + 1) . ") of the reference collage. ";
+            $enhancedPrompt = $regionDescription . ($shot['imagePrompt'] ?? $shot['prompt'] ?? '');
+
+            if ($this->projectId) {
+                $project = WizardProject::find($this->projectId);
+                if ($project) {
+                    $result = $imageService->generateSceneImage($project, [
+                        'id' => $shot['id'],
+                        'visualDescription' => $enhancedPrompt,
+                    ], [
+                        'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                        'sceneIndex' => $sceneIndex,
+                        'referenceImage' => $collage['previewUrl'],
+                        'from_collage_region' => true,
+                        'region_index' => $regionIndex,
+                        'shot_type' => $shot['type'] ?? 'medium',
+                    ]);
+
+                    if ($result['success'] && isset($result['imageUrl'])) {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = $regionIndex;
+                    } elseif (isset($result['jobId'])) {
+                        $this->pendingJobs["shot_{$sceneIndex}_{$shotIndex}"] = [
+                            'jobId' => $result['jobId'],
+                            'type' => 'shot',
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                        ];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'processing';
+                    } else {
+                        throw new \Exception($result['error'] ?? __('Generation failed'));
+                    }
+
+                    $this->saveProject();
+                }
+            }
+        } catch (\Exception $e) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'error';
+            $this->error = __('Failed to generate shot from collage: ') . $e->getMessage();
+            Log::error('VideoWizard: Shot from collage generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'regionIndex' => $regionIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Clear collage preview for a scene.
+     */
+    public function clearCollagePreview(int $sceneIndex): void
+    {
+        if (isset($this->sceneCollages[$sceneIndex])) {
+            unset($this->sceneCollages[$sceneIndex]);
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Get collage state for a scene.
+     */
+    public function getSceneCollage(int $sceneIndex): ?array
+    {
+        return $this->sceneCollages[$sceneIndex] ?? null;
+    }
+
+    // =========================================================================
+    // END COLLAGE PREVIEW METHODS
+    // =========================================================================
+
     /**
      * Generate all shots for a scene.
      */
@@ -16425,842 +16411,6 @@ PROMPT;
 
     // =========================================================================
     // END PHASE 5: EXPORT ENHANCEMENT METHODS
-    // =========================================================================
-
-    // =========================================================================
-    // COLLAGE-FIRST WORKFLOW METHODS
-    // =========================================================================
-
-    /**
-     * Toggle collage mode on/off.
-     * When enabled, workflow changes to: Platform → Collage Builder → Animation → Assembly → Export
-     */
-    public function toggleCollageMode(): void
-    {
-        $this->collageMode = !$this->collageMode;
-        $this->collage['enabled'] = $this->collageMode;
-
-        if ($this->collageMode) {
-            // Initialize collage state when enabling
-            $this->collage['status'] = 'draft';
-            $this->collage['output']['aspectRatio'] = $this->aspectRatio;
-
-            Log::info('VideoWizard: Collage mode enabled', [
-                'projectId' => $this->projectId,
-                'aspectRatio' => $this->aspectRatio,
-            ]);
-        } else {
-            Log::info('VideoWizard: Collage mode disabled', [
-                'projectId' => $this->projectId,
-            ]);
-        }
-
-        $this->saveProject();
-    }
-
-    /**
-     * Open the collage builder modal.
-     */
-    public function openCollageModal(): void
-    {
-        $this->showCollageModal = true;
-        $this->collageTab = 'images';
-    }
-
-    /**
-     * Close the collage builder modal.
-     */
-    public function closeCollageModal(): void
-    {
-        $this->showCollageModal = false;
-        $this->collageSelectedImageIndex = -1;
-    }
-
-    /**
-     * Set the active tab in collage modal.
-     */
-    public function setCollageTab(string $tab): void
-    {
-        $allowedTabs = ['images', 'layout', 'animation', 'preview'];
-        if (in_array($tab, $allowedTabs)) {
-            $this->collageTab = $tab;
-        }
-    }
-
-    /**
-     * Set collage layout type.
-     */
-    public function setCollageLayout(string $layoutType): void
-    {
-        $allowedLayouts = array_keys(self::COLLAGE_LAYOUTS);
-        if (in_array($layoutType, $allowedLayouts)) {
-            $this->collage['layout']['type'] = $layoutType;
-
-            // Apply layout defaults
-            $layout = self::COLLAGE_LAYOUTS[$layoutType];
-            if ($layoutType === 'grid') {
-                $this->collage['layout']['columns'] = 3;
-                $this->collage['layout']['rows'] = 3;
-            } elseif ($layoutType === 'filmstrip') {
-                $this->collage['layout']['columns'] = count($this->collage['images']);
-                $this->collage['layout']['rows'] = 1;
-            }
-
-            // Auto-arrange images when layout changes
-            $this->autoArrangeCollageImages();
-            $this->saveProject();
-        }
-    }
-
-    /**
-     * Set collage animation style.
-     */
-    public function setCollageAnimationStyle(string $style): void
-    {
-        $allowedStyles = array_keys(self::COLLAGE_ANIMATION_STYLES);
-        if (in_array($style, $allowedStyles)) {
-            $styleConfig = self::COLLAGE_ANIMATION_STYLES[$style];
-
-            $this->collage['animation']['style'] = $style;
-            $this->collage['animation']['defaultEffect'] = $styleConfig['defaultEffect'];
-            $this->collage['animation']['transitionType'] = $styleConfig['transitionType'];
-            $this->collage['animation']['imageDuration'] = $styleConfig['imageDuration'];
-            $this->collage['animation']['transitionDuration'] = $styleConfig['transitionDuration'];
-
-            // Apply animation settings to all images
-            $this->applyAnimationToAllImages();
-            $this->saveProject();
-        }
-    }
-
-    /**
-     * Handle collage image upload when file is selected.
-     * Livewire lifecycle hook that auto-fires when collageImageUpload property changes.
-     */
-    public function updatedCollageImageUpload(): void
-    {
-        $this->addCollageImageFromUpload();
-    }
-
-    /**
-     * Add image to collage from upload.
-     */
-    public function addCollageImageFromUpload(): void
-    {
-        if (!$this->collageImageUpload) {
-            return;
-        }
-
-        $this->isUploadingCollageImage = true;
-
-        try {
-            // Validate the uploaded file
-            $this->validate([
-                'collageImageUpload' => 'image|max:10240', // 10MB max
-            ]);
-
-            // Store the uploaded file with a unique name
-            $filename = 'collage_' . uniqid() . '_' . time() . '.' . $this->collageImageUpload->getClientOriginalExtension();
-            $path = $this->collageImageUpload->storeAs('wizard-assets/collage', $filename, 'public');
-            $url = Storage::disk('public')->url($path);
-
-            $imageId = 'collage-img-' . uniqid();
-            $gridPosition = $this->calculateNextGridPosition();
-
-            $this->collage['images'][] = [
-                'id' => $imageId,
-                'url' => $url,
-                'thumbnailUrl' => $url,
-                'source' => 'upload',
-                'position' => ['x' => 0, 'y' => 0],
-                'size' => ['width' => 100, 'height' => 100],
-                'gridPosition' => $gridPosition,
-                'zIndex' => count($this->collage['images']) + 1,
-                'rotation' => 0,
-                'scale' => 1,
-                'opacity' => 1,
-                'caption' => '',
-                'animation' => [
-                    'type' => $this->collage['animation']['defaultEffect'],
-                    'direction' => 'in',
-                    'duration' => $this->collage['animation']['imageDuration'],
-                    'delay' => 0,
-                    'easing' => 'ease-in-out',
-                ],
-                'metadata' => [
-                    'originalFilename' => $this->collageImageUpload->getClientOriginalName(),
-                    'uploadedAt' => now()->toIso8601String(),
-                    'generatedPrompt' => '',
-                    'aspectRatio' => '1:1',
-                ],
-            ];
-
-            $this->collage['status'] = 'collecting';
-            $this->collageImageUpload = null;
-
-            Log::info('VideoWizard: Image added to collage', [
-                'projectId' => $this->projectId,
-                'imageId' => $imageId,
-                'totalImages' => count($this->collage['images']),
-            ]);
-
-            $this->saveProject();
-        } catch (\Exception $e) {
-            Log::error('VideoWizard: Failed to upload collage image', [
-                'error' => $e->getMessage(),
-            ]);
-            $this->error = 'Failed to upload image: ' . $e->getMessage();
-        } finally {
-            $this->isUploadingCollageImage = false;
-        }
-    }
-
-    /**
-     * Add image to collage from URL.
-     */
-    public function addCollageImageFromUrl(string $url, string $source = 'generated', string $prompt = ''): void
-    {
-        $imageId = 'collage-img-' . uniqid();
-        $gridPosition = $this->calculateNextGridPosition();
-
-        $this->collage['images'][] = [
-            'id' => $imageId,
-            'url' => $url,
-            'thumbnailUrl' => $url,
-            'source' => $source,
-            'position' => ['x' => 0, 'y' => 0],
-            'size' => ['width' => 100, 'height' => 100],
-            'gridPosition' => $gridPosition,
-            'zIndex' => count($this->collage['images']) + 1,
-            'rotation' => 0,
-            'scale' => 1,
-            'opacity' => 1,
-            'caption' => '',
-            'animation' => [
-                'type' => $this->collage['animation']['defaultEffect'],
-                'direction' => 'in',
-                'duration' => $this->collage['animation']['imageDuration'],
-                'delay' => 0,
-                'easing' => 'ease-in-out',
-            ],
-            'metadata' => [
-                'originalFilename' => '',
-                'uploadedAt' => now()->toIso8601String(),
-                'generatedPrompt' => $prompt,
-                'aspectRatio' => '1:1',
-            ],
-        ];
-
-        $this->collage['status'] = 'collecting';
-        $this->saveProject();
-    }
-
-    /**
-     * Import images from storyboard to collage.
-     */
-    public function importStoryboardImagesToCollage(): void
-    {
-        $scenes = $this->script['scenes'] ?? [];
-
-        foreach ($scenes as $index => $scene) {
-            $imageUrl = $this->storyboard['scenes'][$index]['imageUrl'] ?? null;
-
-            if ($imageUrl) {
-                $this->addCollageImageFromUrl(
-                    $imageUrl,
-                    'storyboard',
-                    $scene['visuals'] ?? ''
-                );
-            }
-        }
-
-        Log::info('VideoWizard: Imported storyboard images to collage', [
-            'projectId' => $this->projectId,
-            'importedCount' => count($this->collage['images']),
-        ]);
-    }
-
-    /**
-     * Remove image from collage.
-     */
-    public function removeCollageImage(int $index): void
-    {
-        if (isset($this->collage['images'][$index])) {
-            $removedImage = $this->collage['images'][$index];
-            array_splice($this->collage['images'], $index, 1);
-
-            // Re-index z-indices
-            foreach ($this->collage['images'] as $i => $image) {
-                $this->collage['images'][$i]['zIndex'] = $i + 1;
-            }
-
-            // Auto-arrange remaining images
-            $this->autoArrangeCollageImages();
-
-            Log::info('VideoWizard: Image removed from collage', [
-                'projectId' => $this->projectId,
-                'imageId' => $removedImage['id'],
-                'remainingImages' => count($this->collage['images']),
-            ]);
-
-            $this->saveProject();
-        }
-    }
-
-    /**
-     * Reorder collage images (drag and drop).
-     */
-    public function reorderCollageImages(array $newOrder): void
-    {
-        $reorderedImages = [];
-        foreach ($newOrder as $index) {
-            if (isset($this->collage['images'][$index])) {
-                $reorderedImages[] = $this->collage['images'][$index];
-            }
-        }
-
-        $this->collage['images'] = $reorderedImages;
-
-        // Update z-indices
-        foreach ($this->collage['images'] as $i => $image) {
-            $this->collage['images'][$i]['zIndex'] = $i + 1;
-        }
-
-        // Recalculate grid positions
-        $this->autoArrangeCollageImages();
-        $this->saveProject();
-    }
-
-    /**
-     * Update individual image properties.
-     */
-    public function updateCollageImage(int $index, array $properties): void
-    {
-        if (!isset($this->collage['images'][$index])) {
-            return;
-        }
-
-        foreach ($properties as $key => $value) {
-            if ($key === 'animation') {
-                $this->collage['images'][$index]['animation'] = array_merge(
-                    $this->collage['images'][$index]['animation'],
-                    $value
-                );
-            } elseif ($key === 'position' || $key === 'size' || $key === 'gridPosition') {
-                $this->collage['images'][$index][$key] = array_merge(
-                    $this->collage['images'][$index][$key] ?? [],
-                    $value
-                );
-            } else {
-                $this->collage['images'][$index][$key] = $value;
-            }
-        }
-
-        $this->saveProject();
-    }
-
-    /**
-     * Select an image for editing.
-     */
-    public function selectCollageImage(int $index): void
-    {
-        $this->collageSelectedImageIndex = $index;
-        $this->collage['composition']['selectedImageId'] = $this->collage['images'][$index]['id'] ?? null;
-    }
-
-    /**
-     * Calculate next grid position for new images.
-     */
-    protected function calculateNextGridPosition(): array
-    {
-        $imageCount = count($this->collage['images']);
-        $columns = $this->collage['layout']['columns'];
-
-        $col = ($imageCount % $columns) + 1;
-        $row = (int) floor($imageCount / $columns) + 1;
-
-        return [
-            'col' => $col,
-            'row' => $row,
-            'colSpan' => 1,
-            'rowSpan' => 1,
-        ];
-    }
-
-    /**
-     * Auto-arrange images based on current layout type.
-     */
-    public function autoArrangeCollageImages(): void
-    {
-        $layoutType = $this->collage['layout']['type'];
-        $imageCount = count($this->collage['images']);
-
-        if ($imageCount === 0) {
-            return;
-        }
-
-        switch ($layoutType) {
-            case 'grid':
-                $this->arrangeGridLayout();
-                break;
-            case 'mosaic':
-                $this->arrangeMosaicLayout();
-                break;
-            case 'story-flow':
-                $this->arrangeStoryFlowLayout();
-                break;
-            case 'magazine':
-                $this->arrangeMagazineLayout();
-                break;
-            case 'slideshow':
-                $this->arrangeSlideshowLayout();
-                break;
-            case 'polaroid':
-                $this->arrangePolaroidLayout();
-                break;
-            case 'filmstrip':
-                $this->arrangeFilmstripLayout();
-                break;
-            case 'custom':
-                // Don't auto-arrange custom layouts
-                break;
-        }
-
-        $this->collage['status'] = 'arranging';
-    }
-
-    /**
-     * Arrange images in a uniform grid.
-     */
-    protected function arrangeGridLayout(): void
-    {
-        $columns = $this->collage['layout']['columns'];
-        $imageCount = count($this->collage['images']);
-
-        // Calculate optimal grid dimensions
-        $rows = (int) ceil($imageCount / $columns);
-        $this->collage['layout']['rows'] = $rows;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            $col = ($i % $columns) + 1;
-            $row = (int) floor($i / $columns) + 1;
-
-            $image['gridPosition'] = [
-                'col' => $col,
-                'row' => $row,
-                'colSpan' => 1,
-                'rowSpan' => 1,
-            ];
-        }
-    }
-
-    /**
-     * Arrange images in a dynamic mosaic pattern.
-     */
-    protected function arrangeMosaicLayout(): void
-    {
-        $imageCount = count($this->collage['images']);
-
-        // Mosaic patterns based on image count
-        $patterns = [
-            3 => [
-                ['col' => 1, 'row' => 1, 'colSpan' => 2, 'rowSpan' => 2],
-                ['col' => 3, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 3, 'row' => 2, 'colSpan' => 1, 'rowSpan' => 1],
-            ],
-            4 => [
-                ['col' => 1, 'row' => 1, 'colSpan' => 2, 'rowSpan' => 2],
-                ['col' => 3, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 3, 'row' => 2, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 1, 'row' => 3, 'colSpan' => 3, 'rowSpan' => 1],
-            ],
-            5 => [
-                ['col' => 1, 'row' => 1, 'colSpan' => 2, 'rowSpan' => 2],
-                ['col' => 3, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 3, 'row' => 2, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 1, 'row' => 3, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 2, 'row' => 3, 'colSpan' => 2, 'rowSpan' => 1],
-            ],
-            6 => [
-                ['col' => 1, 'row' => 1, 'colSpan' => 2, 'rowSpan' => 2],
-                ['col' => 3, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 3, 'row' => 2, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 1, 'row' => 3, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 2, 'row' => 3, 'colSpan' => 1, 'rowSpan' => 1],
-                ['col' => 3, 'row' => 3, 'colSpan' => 1, 'rowSpan' => 1],
-            ],
-        ];
-
-        // Use pattern if available, otherwise fall back to grid
-        $patternKey = min($imageCount, 6);
-        if ($patternKey < 3) {
-            $this->arrangeGridLayout();
-            return;
-        }
-
-        $pattern = $patterns[$patternKey];
-        $this->collage['layout']['columns'] = 3;
-        $this->collage['layout']['rows'] = 3;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            if (isset($pattern[$i])) {
-                $image['gridPosition'] = $pattern[$i];
-            } else {
-                // Extra images go to grid positions
-                $extraIndex = $i - $patternKey;
-                $image['gridPosition'] = [
-                    'col' => ($extraIndex % 3) + 1,
-                    'row' => (int) floor($extraIndex / 3) + 4,
-                    'colSpan' => 1,
-                    'rowSpan' => 1,
-                ];
-            }
-        }
-    }
-
-    /**
-     * Arrange images in sequential story flow.
-     */
-    protected function arrangeStoryFlowLayout(): void
-    {
-        // Story flow is a single column vertical layout
-        $this->collage['layout']['columns'] = 1;
-        $this->collage['layout']['rows'] = count($this->collage['images']);
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            $image['gridPosition'] = [
-                'col' => 1,
-                'row' => $i + 1,
-                'colSpan' => 1,
-                'rowSpan' => 1,
-            ];
-        }
-    }
-
-    /**
-     * Arrange images in magazine-style editorial layout.
-     */
-    protected function arrangeMagazineLayout(): void
-    {
-        // First image is the hero (large), rest are supporting
-        $this->collage['layout']['columns'] = 3;
-        $this->collage['layout']['rows'] = 3;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            if ($i === 0) {
-                // Hero image
-                $image['gridPosition'] = [
-                    'col' => 1,
-                    'row' => 1,
-                    'colSpan' => 2,
-                    'rowSpan' => 2,
-                ];
-            } else {
-                // Supporting images
-                $supportIndex = $i - 1;
-                if ($supportIndex < 2) {
-                    $image['gridPosition'] = [
-                        'col' => 3,
-                        'row' => $supportIndex + 1,
-                        'colSpan' => 1,
-                        'rowSpan' => 1,
-                    ];
-                } else {
-                    $image['gridPosition'] = [
-                        'col' => ($supportIndex - 2) % 3 + 1,
-                        'row' => (int) floor(($supportIndex - 2) / 3) + 3,
-                        'colSpan' => 1,
-                        'rowSpan' => 1,
-                    ];
-                }
-            }
-        }
-    }
-
-    /**
-     * Arrange images for full-screen slideshow.
-     */
-    protected function arrangeSlideshowLayout(): void
-    {
-        // Slideshow is sequential full-screen
-        $this->collage['layout']['columns'] = 1;
-        $this->collage['layout']['rows'] = 1;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            $image['gridPosition'] = [
-                'col' => 1,
-                'row' => 1,
-                'colSpan' => 1,
-                'rowSpan' => 1,
-            ];
-            // Sequential animation delays
-            $image['animation']['delay'] = $i * ($this->collage['animation']['imageDuration'] + $this->collage['animation']['transitionDuration']);
-        }
-    }
-
-    /**
-     * Arrange images in polaroid stack with slight rotations.
-     */
-    protected function arrangePolaroidLayout(): void
-    {
-        $imageCount = count($this->collage['images']);
-        $centerX = 50;
-        $centerY = 50;
-        $spread = 15;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            // Random-ish positions around center
-            $angle = ($i / $imageCount) * 360;
-            $radius = ($i % 3 + 1) * $spread;
-
-            $x = $centerX + cos(deg2rad($angle)) * $radius;
-            $y = $centerY + sin(deg2rad($angle)) * $radius;
-
-            // Random rotation between -15 and 15 degrees
-            $rotation = (($i * 7) % 31) - 15;
-
-            $image['position'] = ['x' => $x, 'y' => $y];
-            $image['rotation'] = $rotation;
-            $image['zIndex'] = $imageCount - $i; // Stack order
-            $image['gridPosition'] = ['col' => 1, 'row' => 1, 'colSpan' => 1, 'rowSpan' => 1];
-        }
-
-        $this->collage['layout']['columns'] = 1;
-        $this->collage['layout']['rows'] = 1;
-    }
-
-    /**
-     * Arrange images in horizontal filmstrip.
-     */
-    protected function arrangeFilmstripLayout(): void
-    {
-        $imageCount = count($this->collage['images']);
-        $this->collage['layout']['columns'] = $imageCount;
-        $this->collage['layout']['rows'] = 1;
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            $image['gridPosition'] = [
-                'col' => $i + 1,
-                'row' => 1,
-                'colSpan' => 1,
-                'rowSpan' => 1,
-            ];
-        }
-    }
-
-    /**
-     * Apply animation settings to all images.
-     */
-    protected function applyAnimationToAllImages(): void
-    {
-        $defaultEffect = $this->collage['animation']['defaultEffect'];
-        $duration = $this->collage['animation']['imageDuration'];
-        $transitionDuration = $this->collage['animation']['transitionDuration'];
-
-        foreach ($this->collage['images'] as $i => &$image) {
-            $image['animation']['type'] = $defaultEffect;
-            $image['animation']['duration'] = $duration;
-
-            // Calculate sequential delays for slideshow-style playback
-            $image['animation']['delay'] = $i * ($duration + $transitionDuration);
-        }
-    }
-
-    /**
-     * Calculate total collage duration based on images and animation settings.
-     */
-    public function calculateCollageDuration(): float
-    {
-        $imageCount = count($this->collage['images']);
-        if ($imageCount === 0) {
-            return 0;
-        }
-
-        $imageDuration = $this->collage['animation']['imageDuration'];
-        $transitionDuration = $this->collage['animation']['transitionDuration'];
-
-        // Total = (image duration * count) + (transition duration * (count - 1))
-        $totalDuration = ($imageDuration * $imageCount) + ($transitionDuration * max(0, $imageCount - 1));
-
-        $this->collage['output']['duration'] = $totalDuration;
-
-        return $totalDuration;
-    }
-
-    /**
-     * Mark collage as ready for animation/export.
-     */
-    public function finalizeCollage(): void
-    {
-        if (count($this->collage['images']) === 0) {
-            $this->error = 'Add at least one image to the collage before finalizing.';
-            return;
-        }
-
-        $this->calculateCollageDuration();
-        $this->collage['status'] = 'ready';
-
-        Log::info('VideoWizard: Collage finalized', [
-            'projectId' => $this->projectId,
-            'imageCount' => count($this->collage['images']),
-            'duration' => $this->collage['output']['duration'],
-            'layout' => $this->collage['layout']['type'],
-        ]);
-
-        $this->saveProject();
-    }
-
-    /**
-     * Generate narrative from collage images using AI.
-     */
-    public function generateCollageNarrative(): void
-    {
-        if (count($this->collage['images']) < 2) {
-            $this->error = 'Add at least 2 images to generate a narrative.';
-            return;
-        }
-
-        $this->isGeneratingCollageNarrative = true;
-        $this->collage['narrative']['status'] = 'generating';
-
-        try {
-            // Build image descriptions for AI
-            $imageDescriptions = [];
-            foreach ($this->collage['images'] as $i => $image) {
-                $description = $image['caption'] ?: $image['metadata']['generatedPrompt'] ?: "Image " . ($i + 1);
-                $imageDescriptions[] = $description;
-            }
-
-            // Use AI to generate narrative (placeholder - would integrate with actual AI service)
-            $narrativeStyle = $this->collage['narrative']['style'];
-            $tone = $this->collage['narrative']['tone'];
-
-            // For now, create a placeholder narrative
-            // In production, this would call the AI service
-            $this->collage['narrative']['generatedScript'] = [
-                'title' => 'Visual Story',
-                'scenes' => array_map(function ($desc, $i) {
-                    return [
-                        'narration' => "Scene " . ($i + 1) . ": " . $desc,
-                        'imageIndex' => $i,
-                    ];
-                }, $imageDescriptions, array_keys($imageDescriptions)),
-            ];
-
-            $this->collage['narrative']['status'] = 'ready';
-            $this->collage['narrative']['enabled'] = true;
-
-            Log::info('VideoWizard: Collage narrative generated', [
-                'projectId' => $this->projectId,
-                'style' => $narrativeStyle,
-                'tone' => $tone,
-                'sceneCount' => count($imageDescriptions),
-            ]);
-
-            $this->saveProject();
-        } catch (\Exception $e) {
-            Log::error('VideoWizard: Failed to generate collage narrative', [
-                'error' => $e->getMessage(),
-            ]);
-            $this->error = 'Failed to generate narrative: ' . $e->getMessage();
-            $this->collage['narrative']['status'] = 'pending';
-        } finally {
-            $this->isGeneratingCollageNarrative = false;
-        }
-    }
-
-    /**
-     * Clear all collage images.
-     */
-    public function clearCollageImages(): void
-    {
-        $this->collage['images'] = [];
-        $this->collage['status'] = 'draft';
-        $this->collageSelectedImageIndex = -1;
-        $this->saveProject();
-    }
-
-    /**
-     * Get collage preview data for rendering.
-     */
-    public function getCollagePreviewData(): array
-    {
-        return [
-            'images' => $this->collage['images'],
-            'layout' => $this->collage['layout'],
-            'animation' => $this->collage['animation'],
-            'duration' => $this->calculateCollageDuration(),
-            'aspectRatio' => $this->collage['output']['aspectRatio'],
-        ];
-    }
-
-    /**
-     * Check if collage mode is active and has content.
-     */
-    public function hasCollageContent(): bool
-    {
-        return $this->collageMode && count($this->collage['images']) > 0;
-    }
-
-    /**
-     * Get available layouts based on current image count.
-     */
-    public function getAvailableCollageLayouts(): array
-    {
-        $imageCount = count($this->collage['images']);
-
-        return array_filter(self::COLLAGE_LAYOUTS, function ($layout) use ($imageCount) {
-            return $imageCount >= $layout['minImages'] || $imageCount === 0;
-        });
-    }
-
-    /**
-     * Export collage to script scenes (converts collage to video-first workflow).
-     */
-    public function convertCollageToScenes(): void
-    {
-        if (count($this->collage['images']) === 0) {
-            $this->error = 'No images in collage to convert.';
-            return;
-        }
-
-        // Convert each collage image to a scene
-        $scenes = [];
-        foreach ($this->collage['images'] as $i => $image) {
-            $scenes[] = [
-                'id' => 'scene_' . ($i + 1),
-                'narration' => $image['caption'] ?: '',
-                'visuals' => $image['metadata']['generatedPrompt'] ?: 'Visual scene ' . ($i + 1),
-                'duration' => $image['animation']['duration'],
-                'characters' => [],
-                'locations' => [],
-                'mood' => 'neutral',
-                'transition' => $this->collage['animation']['transitionType'],
-            ];
-        }
-
-        // Update script with generated scenes
-        $this->script['scenes'] = $scenes;
-
-        // Update storyboard with images
-        foreach ($this->collage['images'] as $i => $image) {
-            $this->storyboard['scenes'][$i] = [
-                'imageUrl' => $image['url'],
-                'status' => 'ready',
-                'prompt' => $image['metadata']['generatedPrompt'],
-            ];
-        }
-
-        Log::info('VideoWizard: Collage converted to scenes', [
-            'projectId' => $this->projectId,
-            'sceneCount' => count($scenes),
-        ]);
-
-        $this->saveProject();
-    }
-
-    // =========================================================================
-    // END COLLAGE-FIRST WORKFLOW METHODS
     // =========================================================================
 
     /**

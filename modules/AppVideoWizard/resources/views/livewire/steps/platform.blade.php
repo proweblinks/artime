@@ -657,59 +657,7 @@
         </div>
     </div>
 
-    {{-- Workflow Mode Card --}}
-    <div class="vw-content-card" style="border: 2px solid {{ $collageMode ? 'rgba(236, 72, 153, 0.4)' : 'transparent' }};">
-        <div class="vw-card-header">
-            <div class="vw-card-icon" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%) !important;">🎨</div>
-            <div>
-                <div class="vw-card-title">{{ __('Workflow Mode') }}</div>
-                <div class="vw-card-subtitle">{{ __('Choose how you want to create your video') }}</div>
-            </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-            {{-- Video-First Mode --}}
-            <div wire:click="{{ $collageMode ? 'toggleCollageMode' : '' }}"
-                 class="vw-format-card {{ !$collageMode ? 'selected' : '' }}"
-                 style="cursor: pointer; text-align: left; padding: 1.25rem;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 1.75rem;">📝</span>
-                    <div>
-                        <div style="font-weight: 700; font-size: 1rem; color: {{ !$collageMode ? '#8b5cf6' : 'rgba(0,0,0,0.8)' }};">{{ __('Script-First') }}</div>
-                        <span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.15); color: #10b981; border-radius: 0.25rem; font-weight: 600;">{{ __('STANDARD') }}</span>
-                    </div>
-                </div>
-                <p style="font-size: 0.8rem; color: rgba(0,0,0,0.5); margin: 0;">{{ __('Start with your concept, generate a script, then create visuals. Best for storytelling and narrative content.') }}</p>
-                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.08);">
-                    <div style="font-size: 0.7rem; color: rgba(0,0,0,0.4);">
-                        {{ __('Concept') }} → {{ __('Script') }} → {{ __('Storyboard') }} → {{ __('Animation') }} → {{ __('Export') }}
-                    </div>
-                </div>
-            </div>
-
-            {{-- Collage-First Mode --}}
-            <div wire:click="{{ !$collageMode ? 'toggleCollageMode' : '' }}"
-                 class="vw-format-card {{ $collageMode ? 'selected' : '' }}"
-                 style="cursor: pointer; text-align: left; padding: 1.25rem; {{ $collageMode ? 'border-color: #ec4899 !important; background: rgba(236, 72, 153, 0.08) !important;' : '' }}">
-                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 1.75rem;">🖼️</span>
-                    <div>
-                        <div style="font-weight: 700; font-size: 1rem; color: {{ $collageMode ? '#ec4899' : 'rgba(0,0,0,0.8)' }};">{{ __('Collage-First') }}</div>
-                        <span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(236,72,153,0.2)); color: #8b5cf6; border-radius: 0.25rem; font-weight: 600;">{{ __('NEW') }}</span>
-                    </div>
-                </div>
-                <p style="font-size: 0.8rem; color: rgba(0,0,0,0.5); margin: 0;">{{ __('Start with images, arrange them into a collage, then animate. Best for photo slideshows and visual montages.') }}</p>
-                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.08);">
-                    <div style="font-size: 0.7rem; color: rgba(0,0,0,0.4);">
-                        {{ __('Images') }} → {{ __('Collage') }} → {{ __('Animation') }} → {{ __('Export') }}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Production Type Card (only show in Script-First mode) --}}
-    @if(!$collageMode)
+    {{-- Production Type Card --}}
     <div class="vw-content-card">
         <div class="vw-card-header">
             <div class="vw-card-icon">🎬</div>
@@ -765,10 +713,9 @@
             </div>
         @endif
     </div>
-    @endif
 
-    {{-- Production Settings Card - Appears after selections are made (Script-First mode only) --}}
-    @if(!$collageMode && $productionType && $productionSubtype)
+    {{-- Production Settings Card - Appears after selections are made --}}
+    @if($productionType && $productionSubtype)
         @php
             $aiModelTiers = \Modules\AppVideoWizard\Livewire\VideoWizard::AI_MODEL_TIERS;
             $languages = \Modules\AppVideoWizard\Livewire\VideoWizard::SUPPORTED_LANGUAGES;

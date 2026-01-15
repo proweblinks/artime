@@ -421,7 +421,105 @@ window.multiShotVideoPolling = function() {
                                 style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
                             🎬 {{ __('Animate All Shots') }}
                         </button>
+                        <button type="button"
+                                wire:click="generateCollagePreview({{ $multiShotSceneIndex }})"
+                                wire:loading.attr="disabled"
+                                wire:target="generateCollagePreview"
+                                style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(236, 72, 153, 0.4); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                            <span wire:loading.remove wire:target="generateCollagePreview">🖼️ {{ __('Generate Collage Preview') }}</span>
+                            <span wire:loading wire:target="generateCollagePreview">⏳ {{ __('Generating...') }}</span>
+                        </button>
                     </div>
+
+                    {{-- Collage Preview Section --}}
+                    @php
+                        $collage = $sceneCollages[$multiShotSceneIndex] ?? null;
+                    @endphp
+                    @if($collage && ($collage['status'] === 'ready' || $collage['status'] === 'generating'))
+                        <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem; padding: 0.6rem; margin-bottom: 0.6rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div style="color: white; font-weight: 600; font-size: 0.8rem;">
+                                    🖼️ {{ __('Collage Preview') }}
+                                    <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-left: 0.5rem;">{{ __('Click a region, then click a shot to assign') }}</span>
+                                </div>
+                                <button type="button"
+                                        wire:click="clearCollagePreview({{ $multiShotSceneIndex }})"
+                                        style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 0.7rem; cursor: pointer;">
+                                    ✕ {{ __('Clear') }}
+                                </button>
+                            </div>
+
+                            @if($collage['status'] === 'generating')
+                                <div style="height: 200px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border-radius: 0.375rem;">
+                                    <div style="text-align: center;">
+                                        <div style="width: 32px; height: 32px; border: 3px solid rgba(236, 72, 153, 0.3); border-top-color: #ec4899; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem; display: block;">{{ __('Generating collage preview...') }}</span>
+                                    </div>
+                                </div>
+                            @else
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; position: relative;"
+                                     x-data="{ selectedRegion: null }">
+                                    @for($regionIdx = 0; $regionIdx < 4; $regionIdx++)
+                                        @php
+                                            $region = $collage['regions'][$regionIdx] ?? null;
+                                            $assignedShot = $region['assignedToShot'] ?? null;
+                                        @endphp
+                                        <div style="aspect-ratio: 16/9; background: rgba(0,0,0,0.3); border-radius: 0.25rem; position: relative; overflow: hidden; cursor: pointer; border: 2px solid {{ $assignedShot !== null ? 'rgba(16, 185, 129, 0.6)' : 'transparent' }};"
+                                             x-on:click="selectedRegion = {{ $regionIdx }}; $dispatch('region-selected', { regionIndex: {{ $regionIdx }} })">
+                                            {{-- Region of the collage image --}}
+                                            @if(!empty($collage['previewUrl']))
+                                                <img src="{{ $collage['previewUrl'] }}"
+                                                     style="position: absolute; width: 200%; height: 200%; object-fit: cover; {{ $regionIdx % 2 === 0 ? 'left: 0' : 'right: 0; left: auto; transform: translateX(50%)' }}; {{ $regionIdx < 2 ? 'top: 0' : 'bottom: 0; top: auto; transform: translateY(50%)' }}; {{ $regionIdx === 1 ? 'transform: translateX(-50%)' : '' }}{{ $regionIdx === 2 ? 'transform: translateY(-50%)' : '' }}{{ $regionIdx === 3 ? 'transform: translate(-50%, -50%)' : '' }}">
+                                            @endif
+
+                                            {{-- Region number overlay --}}
+                                            <div style="position: absolute; top: 0.25rem; left: 0.25rem; background: rgba(0,0,0,0.7); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.6rem; font-weight: 600;">
+                                                {{ $regionIdx + 1 }}
+                                            </div>
+
+                                            {{-- Assigned shot badge --}}
+                                            @if($assignedShot !== null)
+                                                <div style="position: absolute; bottom: 0.25rem; right: 0.25rem; background: rgba(16, 185, 129, 0.9); color: white; padding: 0.1rem 0.4rem; border-radius: 0.2rem; font-size: 0.55rem; font-weight: 600;">
+                                                    → {{ __('Shot') }} {{ $assignedShot + 1 }}
+                                                </div>
+                                            @endif
+
+                                            {{-- Hover overlay --}}
+                                            <div style="position: absolute; inset: 0; background: rgba(236, 72, 153, 0.3); opacity: 0; transition: opacity 0.2s;"
+                                                 x-bind:style="selectedRegion === {{ $regionIdx }} ? 'opacity: 1' : ''">
+                                            </div>
+                                        </div>
+                                    @endfor
+                                </div>
+
+                                {{-- Shot Assignment Buttons --}}
+                                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);"
+                                     x-data="{ selectedRegionForAssignment: null }"
+                                     x-on:region-selected.window="selectedRegionForAssignment = $event.detail.regionIndex">
+                                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">
+                                        {{ __('Assign selected region to shot:') }}
+                                    </div>
+                                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                        @foreach($decomposed['shots'] as $shotIdx => $shotData)
+                                            @php
+                                                $shotHasRegion = isset($collage['shotSources'][$shotIdx]);
+                                                $assignedRegion = $collage['shotSources'][$shotIdx] ?? null;
+                                            @endphp
+                                            <button type="button"
+                                                    x-on:click="if (selectedRegionForAssignment !== null) { $wire.assignCollageRegionToShot({{ $multiShotSceneIndex }}, selectedRegionForAssignment, {{ $shotIdx }}) }"
+                                                    x-bind:disabled="selectedRegionForAssignment === null"
+                                                    style="padding: 0.25rem 0.5rem; background: {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139,92,246,0.2)' }}; border: 1px solid {{ $shotHasRegion ? 'rgba(16, 185, 129, 0.5)' : 'rgba(139,92,246,0.4)' }}; border-radius: 0.25rem; color: white; font-size: 0.65rem; cursor: pointer;">
+                                                {{ __('Shot') }} {{ $shotIdx + 1 }}
+                                                @if($shotHasRegion)
+                                                    <span style="font-size: 0.55rem; opacity: 0.7;">(R{{ $assignedRegion + 1 }})</span>
+                                                @endif
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
 
                     {{-- Shot Timeline with Frame Chain --}}
                     <div style="position: relative; display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.25rem 0; overflow-x: auto;">
@@ -438,6 +536,10 @@ window.multiShotVideoPolling = function() {
                                 $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
                                 $durationClass = $shotDuration <= 5 ? 'quick' : ($shotDuration <= 6 ? 'short' : 'standard');
                                 $durationColor = $durationClass === 'quick' ? '#22c55e' : ($durationClass === 'short' ? '#eab308' : '#3b82f6');
+                                // Check if this shot has an assigned collage region
+                                $hasCollageRegion = isset($collage['shotSources'][$shotIndex]);
+                                $assignedCollageRegion = $collage['shotSources'][$shotIndex] ?? null;
+                                $fromCollageRegion = $shot['fromCollageRegion'] ?? null;
                             @endphp
 
                             <div style="flex: 1; min-width: 160px; max-width: 200px; position: relative;">
@@ -516,6 +618,18 @@ window.multiShotVideoPolling = function() {
                                         </div>
                                     @endif
 
+                                    {{-- Collage Region Badge --}}
+                                    @if($hasCollageRegion)
+                                        <div style="position: absolute; bottom: 0.25rem; left: 0.25rem; background: rgba(236, 72, 153, 0.9); color: white; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.45rem; z-index: 2;" title="{{ __('Assigned from collage region') }}">
+                                            🖼️ R{{ $assignedCollageRegion + 1 }}
+                                        </div>
+                                    @endif
+                                    @if($fromCollageRegion !== null)
+                                        <div style="position: absolute; bottom: 1.2rem; left: 0.25rem; background: rgba(236, 72, 153, 0.7); color: white; padding: 0.05rem 0.2rem; border-radius: 0.15rem; font-size: 0.4rem; z-index: 2;">
+                                            {{ __('from collage') }}
+                                        </div>
+                                    @endif
+
                                     {{-- Image/Video Area --}}
                                     <div style="height: 90px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;"
                                          wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
@@ -563,11 +677,20 @@ window.multiShotVideoPolling = function() {
                                         @else
                                             <div style="text-align: center; position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                                 <span style="font-size: 1.5rem; color: rgba(255,255,255,0.3);">🖼️</span>
-                                                <button type="button"
-                                                        wire:click.stop="generateShotImage({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
-                                                        style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.25rem; color: white; font-size: 0.6rem; cursor: pointer;">
-                                                    Generate
-                                                </button>
+                                                @if($hasCollageRegion)
+                                                    {{-- Generate from collage region --}}
+                                                    <button type="button"
+                                                            wire:click.stop="generateShotFromCollageRegion({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(139, 92, 246, 0.4)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.25rem; color: white; font-size: 0.55rem; cursor: pointer;">
+                                                        🖼️ {{ __('From Region :num', ['num' => $assignedCollageRegion + 1]) }}
+                                                    </button>
+                                                @else
+                                                    <button type="button"
+                                                            wire:click.stop="generateShotImage({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                            style="display: block; margin: 0.5rem auto 0; padding: 0.25rem 0.5rem; background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.25rem; color: white; font-size: 0.6rem; cursor: pointer;">
+                                                        Generate
+                                                    </button>
+                                                @endif
                                                 {{-- Hover hint to view prompts --}}
                                                 <div class="shot-hover-overlay" style="position: absolute; inset: 0; background: rgba(139,92,246,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
                                                     <span style="font-size: 0.65rem; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">📝 {{ __('View Prompts') }}</span>
