@@ -8306,11 +8306,30 @@ class VideoWizard extends Component
         }
 
         // Track which scenes are covered
+        // IMPORTANT: Empty 'scenes' array means "applies to ALL scenes"
         $coveredScenes = [];
+        $hasLocationWithAllScenes = false;
+
         foreach ($locations as $location) {
-            foreach ($location['scenes'] ?? [] as $sceneIndex) {
-                $coveredScenes[$sceneIndex] = true;
+            $locationScenes = $location['scenes'] ?? [];
+
+            // Empty array means this location applies to ALL scenes
+            if (empty($locationScenes)) {
+                $hasLocationWithAllScenes = true;
+                // Mark all scenes as covered
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    $coveredScenes[$i] = true;
+                }
+            } else {
+                foreach ($locationScenes as $sceneIndex) {
+                    $coveredScenes[$sceneIndex] = true;
+                }
             }
+        }
+
+        // If any location covers all scenes, no need to check for uncovered scenes
+        if ($hasLocationWithAllScenes) {
+            return;
         }
 
         // Find uncovered scenes
@@ -8335,7 +8354,9 @@ class VideoWizard extends Component
                 // Check previous scene
                 if ($sceneIndex > 0 && isset($coveredScenes[$sceneIndex - 1])) {
                     foreach ($locations as $idx => &$loc) {
-                        if (in_array($sceneIndex - 1, $loc['scenes'] ?? [])) {
+                        // Skip locations with empty scenes (they already cover all)
+                        $locScenes = $loc['scenes'] ?? [];
+                        if (!empty($locScenes) && in_array($sceneIndex - 1, $locScenes)) {
                             $loc['scenes'][] = $sceneIndex;
                             $assignedLocation = $loc['name'];
                             break;
@@ -8346,7 +8367,9 @@ class VideoWizard extends Component
                 // If not assigned, check next scene
                 if (!$assignedLocation && $sceneIndex < $totalScenes - 1 && isset($coveredScenes[$sceneIndex + 1])) {
                     foreach ($locations as $idx => &$loc) {
-                        if (in_array($sceneIndex + 1, $loc['scenes'] ?? [])) {
+                        // Skip locations with empty scenes (they already cover all)
+                        $locScenes = $loc['scenes'] ?? [];
+                        if (!empty($locScenes) && in_array($sceneIndex + 1, $locScenes)) {
                             $loc['scenes'][] = $sceneIndex;
                             $assignedLocation = $loc['name'];
                             break;
