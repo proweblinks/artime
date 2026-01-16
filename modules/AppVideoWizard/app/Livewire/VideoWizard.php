@@ -14413,14 +14413,42 @@ PROMPT;
 
         // If no decomposed shots, create default shot structure from scene's visual prompt
         if (empty($shots)) {
-            // Generate 4 default shots based on scene's visual description
+            // Calculate shot count using the same logic as decomposeSceneIntoShots
             $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? '';
             $sceneDuration = $scene['duration'] ?? 15;
-            $shotDuration = max(3, (int) ceil($sceneDuration / 4));
+            $clipDuration = (int) ($this->content['videoModel']['duration'] ?? '5s');
+            if (is_string($clipDuration)) {
+                $clipDuration = (int) preg_replace('/[^0-9]/', '', $clipDuration);
+            }
+            $clipDuration = max(5, $clipDuration);
 
-            $shots = [
-                0 => [
-                    'type' => 'establishing',
+            // Get dynamic shot count limits
+            $shotLimits = $this->getShotCountLimits();
+
+            // Calculate shot count: user-selected or calculated from duration
+            $calculatedShotCount = max(
+                $shotLimits['min'],
+                min($shotLimits['max'], (int) ceil($sceneDuration / $clipDuration))
+            );
+            $shotCount = $this->multiShotCount > 0 ? $this->multiShotCount : $calculatedShotCount;
+            $shotDuration = max(3, (int) ceil($sceneDuration / $shotCount));
+
+            // Shot types progression for cinematic variety
+            $shotTypes = ['establishing', 'wide', 'medium', 'medium-close', 'close-up', 'detail', 'reaction', 'insert'];
+
+            $shots = [];
+            for ($i = 0; $i < $shotCount; $i++) {
+                // Cycle through shot types for variety
+                $typeIndex = $i % count($shotTypes);
+                $shotType = $shotTypes[$typeIndex];
+
+                // For first shot, always use establishing
+                if ($i === 0) $shotType = 'establishing';
+                // For last shot, prefer detail or close-up
+                if ($i === $shotCount - 1 && $shotCount > 2) $shotType = 'detail';
+
+                $shots[$i] = [
+                    'type' => $shotType,
                     'description' => $sceneDescription,
                     'imagePrompt' => $sceneDescription,
                     'duration' => $shotDuration,
@@ -14429,41 +14457,8 @@ PROMPT;
                     'videoStatus' => 'pending',
                     'imageUrl' => null,
                     'videoUrl' => null,
-                ],
-                1 => [
-                    'type' => 'medium',
-                    'description' => $sceneDescription,
-                    'imagePrompt' => $sceneDescription,
-                    'duration' => $shotDuration,
-                    'status' => 'pending',
-                    'imageStatus' => 'pending',
-                    'videoStatus' => 'pending',
-                    'imageUrl' => null,
-                    'videoUrl' => null,
-                ],
-                2 => [
-                    'type' => 'close-up',
-                    'description' => $sceneDescription,
-                    'imagePrompt' => $sceneDescription,
-                    'duration' => $shotDuration,
-                    'status' => 'pending',
-                    'imageStatus' => 'pending',
-                    'videoStatus' => 'pending',
-                    'imageUrl' => null,
-                    'videoUrl' => null,
-                ],
-                3 => [
-                    'type' => 'detail',
-                    'description' => $sceneDescription,
-                    'imagePrompt' => $sceneDescription,
-                    'duration' => $shotDuration,
-                    'status' => 'pending',
-                    'imageStatus' => 'pending',
-                    'videoStatus' => 'pending',
-                    'imageUrl' => null,
-                    'videoUrl' => null,
-                ],
-            ];
+                ];
+            }
 
             // IMPORTANT: Save the default shots to decomposedScenes so the UI shows them
             $this->multiShotMode['decomposedScenes'][$sceneIndex] = [
@@ -14476,6 +14471,13 @@ PROMPT;
                 'createdFromCollage' => true,
             ];
             $createdDefaultShots = true;
+
+            Log::info('VideoWizard: Created dynamic shot count for collage', [
+                'sceneIndex' => $sceneIndex,
+                'shotCount' => $shotCount,
+                'calculatedCount' => $calculatedShotCount,
+                'multiShotCount' => $this->multiShotCount,
+            ]);
 
             Log::info('VideoWizard: Generating collage from scene prompt (created default shots)', [
                 'sceneIndex' => $sceneIndex,
@@ -14762,6 +14764,44 @@ PROMPT;
             'shotIndex' => $shotIndex,
         ]);
 
+        // IMMEDIATELY crop and set the image on the shot
+        $collagePage = $collage['collages'][$pageIndex] ?? null;
+        if ($collagePage && $collagePage['status'] === 'ready' && !empty($collagePage['previewUrl'])) {
+            try {
+                $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+
+                if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                    // Ensure decomposedScenes structure exists
+                    if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+                        Log::warning('VideoWizard: Shot structure not found for assignment', [
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                        ]);
+                    } else {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $cropResult['imageUrl'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = [
+                            'pageIndex' => $pageIndex,
+                            'regionIndex' => $regionIndex,
+                        ];
+
+                        Log::info('VideoWizard: Shot image set from collage region assignment', [
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                            'imageUrl' => $cropResult['imageUrl'],
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('VideoWizard: Failed to crop during assignment', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $this->saveProject();
     }
 
@@ -14857,6 +14897,117 @@ PROMPT;
         if (isset($this->sceneCollages[$sceneIndex])) {
             unset($this->sceneCollages[$sceneIndex]);
             $this->saveProject();
+        }
+    }
+
+    /**
+     * Regenerate a shot at proper aspect ratio (16:9) using collage image as reference.
+     * This creates a higher quality image with correct aspect ratio while maintaining
+     * the visual style and composition from the collage quadrant.
+     */
+    public function regenerateShotFromReference(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        $referenceImageUrl = $shot['imageUrl'] ?? null;
+
+        if (empty($referenceImageUrl)) {
+            $this->error = __('No reference image available for this shot');
+            return;
+        }
+
+        // Mark shot as generating
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'generating';
+        $this->isLoading = true;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+            $scene = $this->script['scenes'][$sceneIndex] ?? [];
+
+            if (!$this->projectId) {
+                throw new \Exception('Project not found');
+            }
+
+            $project = WizardProject::find($this->projectId);
+            if (!$project) {
+                throw new \Exception('Project not found');
+            }
+
+            // Build enhanced prompt with reference image context
+            $shotType = $shot['type'] ?? 'medium';
+            $shotDescription = $shot['imagePrompt'] ?? $shot['description'] ?? $scene['visualDescription'] ?? '';
+
+            // Create prompt that instructs to match the reference image style/composition
+            $referencePrompt = "Recreate this exact scene composition and visual style at cinematic 16:9 aspect ratio. " .
+                "Shot type: {$shotType}. " .
+                "Maintain the same characters, poses, lighting, color palette, and atmosphere. " .
+                $shotDescription;
+
+            // Generate at proper aspect ratio with reference
+            $result = $imageService->generateSceneWithReference(
+                $project,
+                $scene,
+                $referenceImageUrl,
+                [
+                    'prompt' => $referencePrompt,
+                    'sceneIndex' => $sceneIndex,
+                    'shot_type' => $shotType,
+                    'shot_index' => $shotIndex,
+                    'is_multi_shot' => true,
+                    'regenerate_from_reference' => true,
+                ]
+            );
+
+            if ($result['success'] && !empty($result['imageUrl'])) {
+                // Update shot with new high-quality image
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['regeneratedFromReference'] = true;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['originalCollageImage'] = $referenceImageUrl;
+
+                Log::info('VideoWizard: Shot regenerated from reference at proper aspect ratio', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                    'newImageUrl' => $result['imageUrl'],
+                ]);
+
+                $this->saveProject();
+            } elseif (isset($result['jobId'])) {
+                // Async job - store for polling
+                $this->pendingJobs["shot_regen_{$sceneIndex}_{$shotIndex}"] = [
+                    'jobId' => $result['jobId'],
+                    'processingJobId' => $result['processingJobId'] ?? null,
+                    'type' => 'shot_regeneration',
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                ];
+                $this->saveProject();
+
+                Log::info('VideoWizard: Shot regeneration started async', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                    'jobId' => $result['jobId'],
+                ]);
+            } else {
+                throw new \Exception($result['error'] ?? __('Failed to regenerate shot'));
+            }
+        } catch (\Exception $e) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'error';
+            $this->error = __('Failed to regenerate shot: ') . $e->getMessage();
+
+            Log::error('VideoWizard: Shot regeneration failed', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
         }
     }
 
