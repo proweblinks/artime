@@ -141,8 +141,43 @@ window.multiShotVideoPolling = function() {
                 </div>
             </main>
         @else
-            {{-- DECOMPOSED VIEW - Split Panel --}}
-            <main class="msm-split-panel">
+            {{-- DECOMPOSED VIEW - Split Panel with Resizable Divider --}}
+            <main class="msm-split-panel"
+                  x-data="{
+                      collageWidth: localStorage.getItem('msm-collage-width') || 380,
+                      isDragging: false,
+                      startX: 0,
+                      startWidth: 0,
+                      minWidth: 280,
+                      maxWidth: 600,
+                      startDrag(e) {
+                          this.isDragging = true;
+                          this.startX = e.clientX || e.touches?.[0]?.clientX || 0;
+                          this.startWidth = parseInt(this.collageWidth);
+                          document.body.style.cursor = 'col-resize';
+                          document.body.style.userSelect = 'none';
+                      },
+                      onDrag(e) {
+                          if (!this.isDragging) return;
+                          const clientX = e.clientX || e.touches?.[0]?.clientX || 0;
+                          const diff = clientX - this.startX;
+                          let newWidth = this.startWidth + diff;
+                          newWidth = Math.max(this.minWidth, Math.min(this.maxWidth, newWidth));
+                          this.collageWidth = newWidth;
+                      },
+                      endDrag() {
+                          if (!this.isDragging) return;
+                          this.isDragging = false;
+                          document.body.style.cursor = '';
+                          document.body.style.userSelect = '';
+                          localStorage.setItem('msm-collage-width', this.collageWidth);
+                      }
+                  }"
+                  x-on:mousemove.window="onDrag($event)"
+                  x-on:mouseup.window="endDrag()"
+                  x-on:touchmove.window="onDrag($event)"
+                  x-on:touchend.window="endDrag()"
+                  x-bind:style="'grid-template-columns: ' + collageWidth + 'px auto 1fr'">
                 {{-- LEFT: Collage Panel --}}
                 <aside class="msm-collage-panel">
                     <div class="msm-panel-header">
@@ -234,6 +269,14 @@ window.multiShotVideoPolling = function() {
                         @endif
                     </div>
                 </aside>
+
+                {{-- RESIZE HANDLE --}}
+                <div class="msm-resize-handle"
+                     x-on:mousedown.prevent="startDrag($event)"
+                     x-on:touchstart.prevent="startDrag($event)"
+                     x-bind:class="isDragging ? 'dragging' : ''">
+                    <div class="msm-resize-grip"></div>
+                </div>
 
                 {{-- RIGHT: Shots Panel --}}
                 <section class="msm-shots-panel">
@@ -470,10 +513,39 @@ window.multiShotVideoPolling = function() {
 .msm-split-panel {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(340px, 400px) 1fr;
+    grid-template-columns: 380px auto 1fr; /* Default: collage panel, resize handle, shots panel */
     overflow: hidden;
     min-height: 0;
     gap: 0;
+}
+
+/* Resize Handle */
+.msm-resize-handle {
+    width: 8px;
+    background: linear-gradient(180deg, rgba(139,92,246,0.15), rgba(6,182,212,0.15));
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+    position: relative;
+    z-index: 10;
+}
+.msm-resize-handle:hover,
+.msm-resize-handle.dragging {
+    background: linear-gradient(180deg, rgba(139,92,246,0.4), rgba(6,182,212,0.4));
+}
+.msm-resize-grip {
+    width: 4px;
+    height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    transition: all 0.2s ease;
+}
+.msm-resize-handle:hover .msm-resize-grip,
+.msm-resize-handle.dragging .msm-resize-grip {
+    background: rgba(255,255,255,0.5);
+    height: 60px;
 }
 
 /* Collage Panel - Left Sidebar */
@@ -481,9 +553,10 @@ window.multiShotVideoPolling = function() {
     display: flex;
     flex-direction: column;
     background: linear-gradient(180deg, rgba(15,15,25,0.95), rgba(10,10,18,0.98));
-    border-right: 1px solid rgba(139,92,246,0.2);
+    border-right: none;
     overflow: hidden;
     box-shadow: 4px 0 30px rgba(0,0,0,0.4);
+    min-width: 0; /* Allow shrinking */
 }
 .msm-panel-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
 .msm-panel-header h3 { margin: 0; color: #fff; font-size: 1rem; font-weight: 600; }
@@ -664,7 +737,8 @@ window.multiShotVideoPolling = function() {
 
 /* Responsive Adjustments */
 @media (max-width: 900px) {
-    .msm-split-panel { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    .msm-collage-panel { max-height: 45vh; border-right: none; border-bottom: 1px solid rgba(139,92,246,0.2); }
+    .msm-split-panel { grid-template-columns: 1fr !important; grid-template-rows: auto auto 1fr; }
+    .msm-collage-panel { max-height: 45vh; border-bottom: 1px solid rgba(139,92,246,0.2); }
+    .msm-resize-handle { display: none; }
 }
 </style>
