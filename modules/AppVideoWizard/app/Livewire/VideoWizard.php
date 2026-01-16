@@ -6768,9 +6768,10 @@ class VideoWizard extends Component
         ];
 
         // Reset multiShotMode with dynamic defaults from settings
+        // Fallbacks must match VwSettingSeeder defaults
         $this->multiShotMode = [
             'enabled' => false,
-            'defaultShotCount' => (int) $this->getDynamicSetting('shot_default_count', 3),
+            'defaultShotCount' => (int) $this->getDynamicSetting('shot_default_count', 5),
             'autoDecompose' => (bool) $this->getDynamicSetting('scene_auto_decompose', false),
             'decomposedScenes' => [],
             'batchStatus' => null,

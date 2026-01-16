@@ -146,8 +146,8 @@ class ShotIntelligenceService
                 $context['sceneTypeConfidence'] = $sceneTypeDetection['confidence'] ?? 0;
             }
 
-            // Get settings
-            $minShots = (int) VwSetting::getValue('shot_min_per_scene', 1);
+            // Get settings - fallbacks must match VwSettingSeeder defaults
+            $minShots = (int) VwSetting::getValue('shot_min_per_scene', 5);
             $maxShots = (int) VwSetting::getValue('shot_max_per_scene', 20);
             $aiPromptTemplate = VwSetting::getValue('shot_ai_prompt', $this->getDefaultPrompt());
 
@@ -201,8 +201,9 @@ class ShotIntelligenceService
                 'scene_id' => $scene['id'] ?? 'unknown',
             ]);
 
+            // Fallbacks must match VwSettingSeeder defaults
             return $this->getFallbackAnalysis($scene, $context,
-                (int) VwSetting::getValue('shot_min_per_scene', 1),
+                (int) VwSetting::getValue('shot_min_per_scene', 5),
                 (int) VwSetting::getValue('shot_max_per_scene', 20)
             );
         }
