@@ -14620,25 +14620,25 @@ PROMPT;
 
         // If no decomposed shots, create default shot structure from scene's visual prompt
         if (empty($shots)) {
-            // Calculate shot count using the same logic as decomposeSceneTraditional
             $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? '';
             // Use consistent scene duration default (35s matches script timing default)
             $sceneDuration = $scene['duration'] ?? ($this->script['timing']['sceneDuration'] ?? 35);
-            // Use centralized getClipDuration() for consistency
-            $clipDuration = $this->getClipDuration();
 
-            // Get dynamic shot count limits
-            $shotLimits = $this->getShotCountLimits();
+            // Use DynamicShotEngine for content-driven shot calculation
+            $engine = new DynamicShotEngine();
+            $context = $this->buildDecompositionContext($sceneIndex, $scene);
+            $analysis = $engine->analyzeScene($scene, $context);
 
-            // Calculate shot count: user-selected or calculated from duration
-            $calculatedShotCount = max(
-                $shotLimits['min'],
-                min($shotLimits['max'], (int) ceil($sceneDuration / $clipDuration))
-            );
-            // IMPORTANT: Clamp manual selection to min/max limits as well
+            // Get shot count from DynamicShotEngine analysis
+            $calculatedShotCount = $analysis['shotCount'] ?? 5;
+
+            // Allow manual override with pacing adjustment
             $shotCount = $this->multiShotCount > 0
-                ? max($shotLimits['min'], min($shotLimits['max'], $this->multiShotCount))
+                ? $this->multiShotCount
                 : $calculatedShotCount;
+
+            // Get target shot duration based on scene type
+            $sceneType = $analysis['sceneType'] ?? 'default';
             $baseShotDuration = max(3, (int) ceil($sceneDuration / $shotCount));
 
             // Check if per-shot duration variation is enabled
@@ -14688,14 +14688,14 @@ PROMPT;
             ];
             $createdDefaultShots = true;
 
-            Log::info('VideoWizard: Created dynamic shot count for collage', [
+            Log::info('VideoWizard: Created DynamicShotEngine-based shots for collage', [
                 'sceneIndex' => $sceneIndex,
                 'shotCount' => $shotCount,
                 'calculatedCount' => $calculatedShotCount,
                 'multiShotCount' => $this->multiShotCount,
                 'sceneDuration' => $sceneDuration,
-                'clipDuration' => $clipDuration,
-                'shotLimits' => $shotLimits,
+                'sceneType' => $sceneType,
+                'analysis' => $analysis,
                 'useVariableDurations' => $useVariableDurations,
             ]);
         }
