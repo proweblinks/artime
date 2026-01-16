@@ -930,8 +930,8 @@ class VideoWizard extends Component
     protected function loadDynamicSettings(): void
     {
         try {
-            // Shot Intelligence settings
-            $this->multiShotMode['defaultShotCount'] = (int) VwSetting::getValue('shot_default_count', 3);
+            // Shot Intelligence settings - fallback must match VwSettingSeeder defaults
+            $this->multiShotMode['defaultShotCount'] = (int) VwSetting::getValue('shot_default_count', 5);
             $this->multiShotMode['autoDecompose'] = (bool) VwSetting::getValue('scene_auto_decompose', false);
             // Default to AI mode (0) instead of manual shot count
             $this->multiShotCount = 0;
@@ -968,16 +968,35 @@ class VideoWizard extends Component
 
     /**
      * Get shot count limits from dynamic settings.
+     * Public for blade template access.
      *
      * @return array ['min' => int, 'max' => int, 'default' => int]
      */
-    protected function getShotCountLimits(): array
+    public function getShotCountLimits(): array
     {
         return [
             'min' => (int) $this->getDynamicSetting('shot_min_per_scene', 5),
             'max' => (int) $this->getDynamicSetting('shot_max_per_scene', 20),
             'default' => (int) $this->getDynamicSetting('shot_default_count', 5),
         ];
+    }
+
+    /**
+     * Get available shot count options for the UI selector.
+     * Returns only values within the min/max limits from VwSetting.
+     *
+     * @return array Array of valid shot count integers
+     */
+    public function getShotCountOptions(): array
+    {
+        $limits = $this->getShotCountLimits();
+        // Standard options that users might want to select
+        $standardOptions = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20];
+
+        // Filter to only include options within the allowed range
+        return array_values(array_filter($standardOptions, function ($count) use ($limits) {
+            return $count >= $limits['min'] && $count <= $limits['max'];
+        }));
     }
 
     /**
@@ -12337,8 +12356,10 @@ PROMPT;
             min($shotLimits['max'], (int) ceil($sceneDuration / $clipDuration))
         );
 
-        // Use calculated count or user-selected count
-        $shotCount = $this->multiShotCount > 0 ? $this->multiShotCount : $calculatedShotCount;
+        // Use calculated count or user-selected count (clamp manual selection to limits)
+        $shotCount = $this->multiShotCount > 0
+            ? max($shotLimits['min'], min($shotLimits['max'], $this->multiShotCount))
+            : $calculatedShotCount;
         $baseShotDuration = $clipDuration;
 
         $shots = [];
@@ -12433,6 +12454,27 @@ PROMPT;
             $duration <= 6 => 'standard',
             $duration <= 10 => 'cinematic',
             default => 'extended',
+        };
+    }
+
+    /**
+     * Get recommended duration for a shot type based on cinematic conventions.
+     * Used when per-shot duration variation is enabled.
+     *
+     * @param string $shotType The type of shot (establishing, wide, medium, etc.)
+     * @return int Duration in seconds
+     */
+    protected function getDurationForShotType(string $shotType): int
+    {
+        // Cinematic conventions for shot durations:
+        // - Establishing/Wide shots: longer to set the scene (10s)
+        // - Medium shots: standard duration (6s)
+        // - Close-ups/Details: quick emotional impact (5s)
+        return match($shotType) {
+            'establishing', 'wide' => 10,
+            'medium', 'medium-close' => 6,
+            'close-up', 'detail', 'reaction', 'insert' => 5,
+            default => 6, // Default to standard
         };
     }
 
@@ -14413,14 +14455,12 @@ PROMPT;
 
         // If no decomposed shots, create default shot structure from scene's visual prompt
         if (empty($shots)) {
-            // Calculate shot count using the same logic as decomposeSceneIntoShots
+            // Calculate shot count using the same logic as decomposeSceneTraditional
             $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? '';
-            $sceneDuration = $scene['duration'] ?? 15;
-            $clipDuration = (int) ($this->content['videoModel']['duration'] ?? '5s');
-            if (is_string($clipDuration)) {
-                $clipDuration = (int) preg_replace('/[^0-9]/', '', $clipDuration);
-            }
-            $clipDuration = max(5, $clipDuration);
+            // Use consistent scene duration default (35s matches script timing default)
+            $sceneDuration = $scene['duration'] ?? ($this->script['timing']['sceneDuration'] ?? 35);
+            // Use centralized getClipDuration() for consistency
+            $clipDuration = $this->getClipDuration();
 
             // Get dynamic shot count limits
             $shotLimits = $this->getShotCountLimits();
@@ -14430,8 +14470,14 @@ PROMPT;
                 $shotLimits['min'],
                 min($shotLimits['max'], (int) ceil($sceneDuration / $clipDuration))
             );
-            $shotCount = $this->multiShotCount > 0 ? $this->multiShotCount : $calculatedShotCount;
-            $shotDuration = max(3, (int) ceil($sceneDuration / $shotCount));
+            // IMPORTANT: Clamp manual selection to min/max limits as well
+            $shotCount = $this->multiShotCount > 0
+                ? max($shotLimits['min'], min($shotLimits['max'], $this->multiShotCount))
+                : $calculatedShotCount;
+            $baseShotDuration = max(3, (int) ceil($sceneDuration / $shotCount));
+
+            // Check if per-shot duration variation is enabled
+            $useVariableDurations = $this->isPerShotDurationEnabled();
 
             // Shot types progression for cinematic variety
             $shotTypes = ['establishing', 'wide', 'medium', 'medium-close', 'close-up', 'detail', 'reaction', 'insert'];
@@ -14446,6 +14492,11 @@ PROMPT;
                 if ($i === 0) $shotType = 'establishing';
                 // For last shot, prefer detail or close-up
                 if ($i === $shotCount - 1 && $shotCount > 2) $shotType = 'detail';
+
+                // Use variable duration based on shot type when enabled
+                $shotDuration = $useVariableDurations
+                    ? $this->getDurationForShotType($shotType)
+                    : $baseShotDuration;
 
                 $shots[$i] = [
                     'type' => $shotType,
@@ -14477,11 +14528,10 @@ PROMPT;
                 'shotCount' => $shotCount,
                 'calculatedCount' => $calculatedShotCount,
                 'multiShotCount' => $this->multiShotCount,
-            ]);
-
-            Log::info('VideoWizard: Generating collage from scene prompt (created default shots)', [
-                'sceneIndex' => $sceneIndex,
-                'shotCount' => count($shots),
+                'sceneDuration' => $sceneDuration,
+                'clipDuration' => $clipDuration,
+                'shotLimits' => $shotLimits,
+                'useVariableDurations' => $useVariableDurations,
             ]);
         }
 
@@ -15328,8 +15378,11 @@ PROMPT;
                     'regionIndex' => $regionIndex,
                 ];
 
-                // Clear the collage preview since we've selected an image
-                unset($this->sceneCollages[$sceneIndex]);
+                // Mark the region as assigned but DON'T clear the collage data
+                // This preserves the collage for further region selections and manual extraction
+                if (isset($this->sceneCollages[$sceneIndex]['collages'][$pageIndex]['regions'][$regionIndex])) {
+                    $this->sceneCollages[$sceneIndex]['collages'][$pageIndex]['regions'][$regionIndex]['assignedToScene'] = true;
+                }
 
                 Log::info('VideoWizard: Scene image set from collage quadrant', [
                     'sceneIndex' => $sceneIndex,

@@ -141,7 +141,7 @@ window.multiShotVideoPolling = function() {
                         <label>{{ __('Number of Shots') }}</label>
                         <div class="msm-shot-buttons">
                             <button type="button" wire:click="$set('multiShotCount', 0)" class="{{ $multiShotCount === 0 ? 'active ai' : '' }}">🤖 {{ __('AI') }}</button>
-                            @foreach([2, 3, 4, 5, 6, 8, 10] as $count)
+                            @foreach($this->getShotCountOptions() as $count)
                                 <button type="button" wire:click="$set('multiShotCount', {{ $count }})" class="{{ $multiShotCount === $count ? 'active' : '' }}">{{ $count }}</button>
                             @endforeach
                         </div>
@@ -149,7 +149,8 @@ window.multiShotVideoPolling = function() {
                             @if($multiShotCount === 0)
                                 🤖 {{ __('AI will analyze the scene and determine optimal shot count') }}
                             @else
-                                💡 {{ __('Manual: :count shots', ['count' => $multiShotCount]) }}
+                                @php $limits = $this->getShotCountLimits(); @endphp
+                                💡 {{ __('Manual: :count shots (min: :min)', ['count' => $multiShotCount, 'min' => $limits['min']]) }}
                             @endif
                         </p>
                     </div>
