@@ -88,13 +88,33 @@ window.multiShotVideoPolling = function() {
                 @php
                     $imagesReady = collect($decomposed['shots'])->filter(fn($s) => ($s['status'] ?? '') === 'ready' && !empty($s['imageUrl']))->count();
                     $videosReady = collect($decomposed['shots'])->filter(fn($s) => ($s['videoStatus'] ?? '') === 'ready' && !empty($s['videoUrl']))->count();
+                    // AI Analysis info
+                    $firstShot = $decomposed['shots'][0] ?? [];
+                    $isAiGenerated = $firstShot['aiRecommended'] ?? false;
+                    $aiReasoning = $firstShot['aiReasoning'] ?? '';
+                    $hasVariableDurations = count(array_unique(array_column($decomposed['shots'], 'duration'))) > 1;
+                    $lipSyncCount = collect($decomposed['shots'])->filter(fn($s) => $s['needsLipSync'] ?? false)->count();
                 @endphp
                 <div class="msm-stats">
                     <span>📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}</span>
                     <span>• {{ $totalDuration }}s</span>
                     <span class="msm-stat-green">🖼️ {{ $imagesReady }}/{{ count($decomposed['shots']) }}</span>
                     <span class="msm-stat-cyan">🎬 {{ $videosReady }}/{{ count($decomposed['shots']) }}</span>
+                    @if($isAiGenerated)
+                        <span class="msm-ai-badge" title="{{ $aiReasoning }}">🤖 AI</span>
+                    @endif
+                    @if($hasVariableDurations)
+                        <span class="msm-var-badge">⏱️ {{ __('Variable') }}</span>
+                    @endif
+                    @if($lipSyncCount > 0)
+                        <span class="msm-lipsync-badge">💬 {{ $lipSyncCount }} {{ __('lip-sync') }}</span>
+                    @endif
                 </div>
+                @if($isAiGenerated && $aiReasoning)
+                    <div class="msm-ai-reasoning" title="{{ $aiReasoning }}">
+                        🤖 {{ Str::limit($aiReasoning, 80) }}
+                    </div>
+                @endif
             @endif
         </div>
         <button type="button" wire:click="closeMultiShotModal" class="msm-close-btn">&times;</button>
@@ -314,29 +334,47 @@ window.multiShotVideoPolling = function() {
                                 $hasColReg = $collageSrc !== null;
                                 $hasDialogue = !empty($shot['dialogue']);
                                 $durColor = $shotDur <= 5 ? 'green' : ($shotDur <= 6 ? 'yellow' : 'blue');
+                                // Additional features from old implementation
+                                $cameraMovement = $shot['cameraMovement'] ?? 'static';
+                                $tokenCost = $shotDur <= 5 ? 100 : ($shotDur <= 6 ? 120 : 200);
+                                $needsLipSync = $shot['needsLipSync'] ?? false;
+                                $aiRecommended = $shot['aiRecommended'] ?? false;
+                                $wasTransferred = isset($shot['transferredFrom']);
+                                $transferredFrom = $shot['transferredFrom'] ?? null;
+                                $isLastShot = $shotIndex === count($decomposed['shots']) - 1;
+                                $isFirstShot = $shotIndex === 0;
+                                $fromCollageRegion = $shot['fromCollageRegion'] ?? null;
+                                $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIndex;
                             @endphp
 
-                            <div class="msm-shot-card {{ $hasVideo ? 'has-video' : '' }}" data-video-status="{{ $shot['videoStatus'] ?? 'pending' }}" data-shot-index="{{ $shotIndex }}">
+                            <div class="msm-shot-card {{ $hasVideo ? 'has-video' : '' }} {{ $wasTransferred ? 'transferred' : '' }} {{ $isSelected ? 'selected' : '' }}" data-video-status="{{ $shot['videoStatus'] ?? 'pending' }}" data-shot-index="{{ $shotIndex }}" wire:click="selectShot({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                 <div class="msm-shot-header">
                                     <span class="msm-shot-num">{{ $shotIndex + 1 }}</span>
                                     <span class="msm-shot-type">{{ ucfirst(str_replace('_', ' ', $shot['type'] ?? 'shot')) }}</span>
                                     <div class="msm-shot-meta">
+                                        @if($needsLipSync)<span class="msm-badge-lipsync" title="{{ __('AI recommends lip-sync') }}">👄</span>@endif
+                                        @if($aiRecommended)<span class="msm-badge-ai" title="{{ __('AI recommended') }}">🤖</span>@endif
                                         @if($hasDialogue)<span class="msm-badge-dialog">💬</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
                                     </div>
                                 </div>
 
-                                <div class="msm-shot-preview" wire:click="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
+                                <div class="msm-shot-preview" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                     @if($hasImage)
                                         <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotIndex + 1 }}">
-                                        <div class="msm-shot-overlay"><span>{{ $hasVideo ? '▶️' : '🔍' }}</span></div>
+                                        <div class="msm-shot-overlay"><span>{{ $hasVideo ? '▶️' : '🔍' }}</span><small>{{ __('View Prompts') }}</small></div>
                                         <div class="msm-shot-icons">
                                             <span class="msm-icon-img">🖼</span>
                                             @if($hasVideo)<span class="msm-icon-vid">🎬</span>@endif
                                         </div>
+                                        {{-- Frame transfer badge --}}
+                                        @if($wasTransferred)
+                                            <span class="msm-transfer-badge">🔗 {{ __('from') }} #{{ $transferredFrom + 1 }}</span>
+                                        @endif
                                     @elseif($isGenImg)
                                         <div class="msm-spinner purple"></div>
                                         <span>{{ __('Generating...') }}</span>
+                                        <div class="msm-hover-hint">📝 {{ __('View Prompts') }}</div>
                                     @elseif($isGenVid && $hasImage)
                                         <img src="{{ $shot['imageUrl'] }}" alt="" class="dimmed">
                                         <div class="msm-vid-progress">
@@ -351,10 +389,37 @@ window.multiShotVideoPolling = function() {
                                             @else
                                                 <button wire:click.stop="generateShotImage({{ $multiShotSceneIndex }}, {{ $shotIndex }})">{{ __('Generate') }}</button>
                                             @endif
+                                            <div class="msm-hover-hint">📝 {{ __('View Prompts') }}</div>
                                         </div>
                                     @endif
                                     @if($hasColReg)
                                         <span class="msm-collage-badge">🖼️ P{{ $collageSrc['pageIndex'] + 1 }}R{{ $collageSrc['regionIndex'] + 1 }}</span>
+                                    @endif
+                                    @if($fromCollageRegion !== null)
+                                        <span class="msm-from-collage">{{ __('from collage') }}</span>
+                                    @endif
+                                </div>
+
+                                {{-- Shot Info Row: Camera + Token Cost --}}
+                                <div class="msm-shot-info">
+                                    <span class="msm-camera">🎥 {{ $cameraMovement }}</span>
+                                    <span class="msm-tokens">⚡ {{ $tokenCost }}t</span>
+                                </div>
+
+                                {{-- Frame Status --}}
+                                <div class="msm-frame-status">
+                                    @if($isFirstShot)
+                                        @if($hasImage)
+                                            <span class="msm-status-ok">🔗 {{ __('Scene image') }}</span>
+                                        @else
+                                            <span class="msm-status-wait">⚠️ {{ __('Generate scene first') }}</span>
+                                        @endif
+                                    @else
+                                        @if($wasTransferred)
+                                            <span class="msm-status-ok">🔗 {{ __('Frame from Shot') }} {{ $transferredFrom + 1 }}</span>
+                                        @elseif(!$hasImage)
+                                            <span class="msm-status-wait">⏳ {{ __('Awaiting frame') }}</span>
+                                        @endif
                                     @endif
                                 </div>
 
@@ -369,7 +434,7 @@ window.multiShotVideoPolling = function() {
                                     @if($hasVideo)
                                         <div class="msm-action-row">
                                             <button wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-play-btn">▶️ {{ __('Play') }}</button>
-                                            @if($shotIndex < count($decomposed['shots']) - 1)
+                                            @if(!$isLastShot)
                                                 <button wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-capture-btn">🎯→{{ $shotIndex + 2 }}</button>
                                             @endif
                                         </div>
@@ -385,6 +450,32 @@ window.multiShotVideoPolling = function() {
                             </div>
                         @endforeach
                     </div>
+
+                    {{-- Collage Region Assignment Panel --}}
+                    @if($collage && $collage['status'] === 'ready')
+                        <div class="msm-assign-panel" x-data="{ selectedRegion: null, selectedPage: {{ $currentPage }} }" x-on:region-selected.window="selectedRegion = $event.detail.regionIndex; selectedPage = $event.detail.pageIndex">
+                            <div class="msm-assign-header">
+                                <span>{{ __('Assign selected region to shot:') }}</span>
+                            </div>
+                            <div class="msm-assign-btns">
+                                @foreach($decomposed['shots'] as $shotIdx => $shotData)
+                                    @php
+                                        $shotSrc = $collage['shotSources'][$shotIdx] ?? null;
+                                        $shotHasReg = $shotSrc !== null;
+                                    @endphp
+                                    <button type="button"
+                                            x-on:click="if (selectedRegion !== null) { $wire.assignCollageRegionToShot({{ $multiShotSceneIndex }}, selectedPage, selectedRegion, {{ $shotIdx }}) }"
+                                            x-bind:disabled="selectedRegion === null"
+                                            class="{{ $shotHasReg ? 'assigned' : '' }}">
+                                        {{ __('Shot') }} {{ $shotIdx + 1 }}
+                                        @if($shotHasReg)
+                                            <small>(P{{ $shotSrc['pageIndex'] + 1 }}R{{ $shotSrc['regionIndex'] + 1 }})</small>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </section>
             </main>
         @endif
@@ -735,10 +826,52 @@ window.multiShotVideoPolling = function() {
 .msm-collage-content::-webkit-scrollbar-thumb:hover,
 .msm-shot-grid::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
 
+/* AI Analysis Badges in Header */
+.msm-ai-badge { background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(6,182,212,0.3)); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; cursor: help; }
+.msm-var-badge { background: rgba(139,92,246,0.25); color: #a78bfa; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; }
+.msm-lipsync-badge { background: rgba(251,191,36,0.25); color: #fbbf24; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; }
+.msm-ai-reasoning { font-size: 0.7rem; color: rgba(255,255,255,0.6); background: rgba(16,185,129,0.1); padding: 0.35rem 0.6rem; border-radius: 0.35rem; margin-top: 0.5rem; border-left: 3px solid rgba(16,185,129,0.5); cursor: help; }
+
+/* Shot Card Enhanced Badges */
+.msm-badge-lipsync { font-size: 0.65rem; cursor: help; }
+.msm-badge-ai { background: rgba(16,185,129,0.3); padding: 0.1rem 0.2rem; border-radius: 0.2rem; font-size: 0.55rem; }
+.msm-shot-card.transferred { border-color: rgba(16,185,129,0.4) !important; }
+.msm-shot-card.selected { border-color: rgba(139,92,246,0.6) !important; box-shadow: 0 0 0 2px rgba(139,92,246,0.25); }
+.msm-transfer-badge { position: absolute; top: 0.35rem; right: 0.35rem; background: rgba(16,185,129,0.9); color: #fff; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem; font-weight: 600; }
+.msm-from-collage { position: absolute; bottom: 1.6rem; left: 0.35rem; background: rgba(236,72,153,0.7); color: #fff; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; }
+.msm-hover-hint { position: absolute; bottom: 0.5rem; left: 50%; transform: translateX(-50%); background: rgba(139,92,246,0.8); color: #fff; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; }
+.msm-shot-preview:hover .msm-hover-hint { opacity: 1; }
+
+/* Shot Info Row */
+.msm-shot-info { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.6rem; }
+.msm-camera { color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
+.msm-tokens { color: #fbbf24; font-weight: 600; }
+
+/* Frame Status */
+.msm-frame-status { padding: 0.25rem 0.5rem; text-align: center; min-height: 1.4rem; }
+.msm-status-ok { font-size: 0.55rem; color: #10b981; background: rgba(16,185,129,0.15); padding: 0.15rem 0.4rem; border-radius: 0.2rem; }
+.msm-status-wait { font-size: 0.55rem; color: #f59e0b; background: rgba(245,158,11,0.15); padding: 0.15rem 0.4rem; border-radius: 0.2rem; }
+
+/* Shot Overlay Enhanced */
+.msm-shot-overlay { flex-direction: column; gap: 0.25rem; }
+.msm-shot-overlay small { font-size: 0.6rem; opacity: 0.8; }
+
+/* Collage Region Assignment Panel */
+.msm-assign-panel { background: linear-gradient(135deg, rgba(236,72,153,0.08), rgba(139,92,246,0.05)); border: 1px solid rgba(236,72,153,0.25); border-radius: 0.75rem; padding: 0.75rem; margin-top: 0.75rem; }
+.msm-assign-header { font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem; }
+.msm-assign-btns { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.msm-assign-btns button { padding: 0.35rem 0.6rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.35rem; color: #fff; font-size: 0.7rem; cursor: pointer; transition: all 0.2s ease; }
+.msm-assign-btns button:hover:not(:disabled) { background: rgba(139,92,246,0.35); }
+.msm-assign-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
+.msm-assign-btns button.assigned { background: rgba(16,185,129,0.3); border-color: rgba(16,185,129,0.5); }
+.msm-assign-btns button small { font-size: 0.55rem; opacity: 0.7; margin-left: 0.2rem; }
+
 /* Responsive Adjustments */
 @media (max-width: 900px) {
     .msm-split-panel { grid-template-columns: 1fr !important; grid-template-rows: auto auto 1fr; }
     .msm-collage-panel { max-height: 45vh; border-bottom: 1px solid rgba(139,92,246,0.2); }
     .msm-resize-handle { display: none; }
+    .msm-shot-info { flex-direction: column; gap: 0.15rem; }
+    .msm-camera { max-width: 100%; }
 }
 </style>
