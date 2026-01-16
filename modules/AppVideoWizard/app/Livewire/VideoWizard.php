@@ -14990,8 +14990,7 @@ PROMPT;
             Log::info('VideoWizard: No decomposed shots to extract quadrants to', [
                 'sceneIndex' => $sceneIndex,
             ]);
-            // Still clear collage and save - we set the scene image already
-            unset($this->sceneCollages[$sceneIndex]);
+            // Keep collage data so modal can still display it
             return;
         }
 
@@ -15044,8 +15043,8 @@ PROMPT;
             'totalShots' => $shotsToProcess,
         ]);
 
-        // Clear the collage data since we've extracted the shots
-        unset($this->sceneCollages[$sceneIndex]);
+        // Keep collage data so modal can still display it for manual region selection
+        // User can regenerate collage or clear it manually if needed
     }
 
     /**
