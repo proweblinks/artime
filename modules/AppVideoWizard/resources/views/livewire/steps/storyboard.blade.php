@@ -658,18 +658,31 @@
         cursor: not-allowed;
     }
 
-    /* Storyboard Grid */
+    /* Storyboard Grid - Larger cards for full-screen */
     .vw-storyboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+        gap: 1.5rem;
     }
 
-    /* Scene Card - Dark theme matching main card */
+    @media (max-width: 1024px) {
+        .vw-storyboard-grid {
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .vw-storyboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Scene Card - Larger dark theme card */
     .vw-scene-card {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 0.75rem;
+        border-radius: 1rem;
         overflow: hidden;
         transition: all 0.2s;
     }
@@ -679,7 +692,7 @@
         background: rgba(139, 92, 246, 0.05);
     }
 
-    /* Scene Image Container */
+    /* Scene Image Container - Larger */
     .vw-scene-image-container {
         position: relative;
         aspect-ratio: 16/9;
@@ -694,15 +707,15 @@
         display: block;
     }
 
-    /* Empty State - Full height within image container */
+    /* Empty State - Larger for full-screen layout */
     .vw-scene-empty {
         height: 100%;
-        min-height: 160px;
+        min-height: 280px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 1rem;
+        padding: 2rem;
         background: rgba(255, 255, 255, 0.03);
         border: 2px dashed rgba(255, 255, 255, 0.15);
         border-radius: 0;
@@ -711,28 +724,29 @@
 
     .vw-scene-empty-text {
         color: rgba(255, 255, 255, 0.6);
-        font-size: 0.75rem;
-        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     .vw-scene-empty-buttons {
         display: flex;
-        gap: 0.5rem;
+        gap: 1rem;
         width: 100%;
+        max-width: 380px;
     }
 
     .vw-scene-empty-btn {
         flex: 1;
-        padding: 0.6rem 0.5rem;
-        border-radius: 0.5rem;
+        padding: 1rem 0.85rem;
+        border-radius: 0.6rem;
         border: 1px solid;
         color: white;
         cursor: pointer;
-        font-size: 0.7rem;
+        font-size: 0.9rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.4rem;
         transition: all 0.2s;
     }
 
@@ -757,11 +771,11 @@
     }
 
     .vw-scene-empty-btn-icon {
-        font-size: 1.1rem;
+        font-size: 1.5rem;
     }
 
     .vw-scene-empty-btn-cost {
-        font-size: 0.6rem;
+        font-size: 0.7rem;
         color: rgba(255, 255, 255, 0.5);
     }
 
@@ -772,12 +786,13 @@
     /* Generating State */
     .vw-scene-generating {
         height: 100%;
+        min-height: 280px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         background: rgba(139, 92, 246, 0.08);
-        gap: 0.75rem;
+        gap: 1rem;
     }
 
     @keyframes vw-spin {
@@ -785,8 +800,8 @@
     }
 
     .vw-spinner {
-        width: 2rem;
-        height: 2rem;
+        width: 2.5rem;
+        height: 2.5rem;
         border: 3px solid rgba(139, 92, 246, 0.3);
         border-top-color: #8b5cf6;
         border-radius: 50%;
@@ -795,7 +810,7 @@
 
     .vw-generating-text {
         color: rgba(255, 255, 255, 0.6);
-        font-size: 0.8rem;
+        font-size: 0.95rem;
     }
 
     /* Alert */
@@ -1536,14 +1551,14 @@
                     {{-- Image Container with Overlays --}}
                     <div style="position: relative;">
                         {{-- Scene Number Badge - Always visible, top-left --}}
-                        <div style="position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.75); color: white; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; z-index: 10;">
+                        <div style="position: absolute; top: 0.75rem; left: 0.75rem; background: rgba(0,0,0,0.8); color: white; padding: 0.35rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; font-weight: 600; z-index: 10;">
                             {{ __('Scene') }} {{ $index + 1 }}
                         </div>
 
                         {{-- Multi-Shot Badge - Top right if decomposed --}}
                         @if($hasMultiShot && !empty($decomposed['shots']))
-                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
-                                <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">
+                            <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
+                                <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.3rem 0.65rem; border-radius: 0.35rem; font-size: 0.8rem; font-weight: 600;">
                                     📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}
                                 </span>
                             </div>
@@ -1551,7 +1566,7 @@
 
                         {{-- Chain Processed Indicator - Below scene number if chain is ready --}}
                         @if($hasChainData && ($storyboard['promptChain']['enabled'] ?? true))
-                            <div style="position: absolute; top: 2rem; left: 0.5rem; background: rgba(251,191,36,0.9); color: #1a1a1a; padding: 0.1rem 0.4rem; border-radius: 0.2rem; font-size: 0.5rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
+                            <div style="position: absolute; top: 3rem; left: 0.75rem; background: rgba(251,191,36,0.9); color: #1a1a1a; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
                                 ⛓️ {{ __('CHAIN') }}
                             </div>
                         @endif
@@ -1619,51 +1634,51 @@
 
                                 {{-- Video Play Icon Overlay --}}
                                 @if($isVideo)
-                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 36px; height: 36px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5;">
-                                        <div style="width: 0; height: 0; border-left: 10px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent; margin-left: 2px;"></div>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5;">
+                                        <div style="width: 0; height: 0; border-left: 14px solid white; border-top: 8px solid transparent; border-bottom: 8px solid transparent; margin-left: 3px;"></div>
                                     </div>
                                     @if($clipDuration)
-                                        <div style="position: absolute; bottom: 2.5rem; right: 0.4rem; background: rgba(0,0,0,0.8); color: white; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-size: 0.6rem; z-index: 10;">
+                                        <div style="position: absolute; bottom: 3rem; right: 0.5rem; background: rgba(0,0,0,0.8); color: white; padding: 0.2rem 0.45rem; border-radius: 0.25rem; font-size: 0.75rem; z-index: 10;">
                                             {{ gmdate($clipDuration >= 3600 ? 'H:i:s' : 'i:s', (int)$clipDuration) }}
                                         </div>
                                     @endif
                                 @endif
 
                                 {{-- Source Badge - Below scene number --}}
-                                <div style="position: absolute; top: 2rem; left: 0.5rem; background: {{ $sourceBgColor }}; color: white; padding: 0.15rem 0.4rem; border-radius: 0.2rem; font-size: 0.55rem; z-index: 10;">
+                                <div style="position: absolute; top: 3rem; left: 0.75rem; background: {{ $sourceBgColor }}; color: white; padding: 0.3rem 0.6rem; border-radius: 0.3rem; font-size: 0.8rem; z-index: 10;">
                                     {!! $sourceLabel !!}
                                 </div>
 
                                 {{-- Action Buttons Overlay - Bottom of image --}}
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); padding: 0.5rem; display: flex; gap: 0.3rem; z-index: 10;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
                                     <button type="button"
                                             wire:click="openAIEditModal({{ $index }})"
-                                            style="flex: 1; padding: 0.35rem; border-radius: 0.4rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.65rem;"
+                                            style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Edit with AI') }}">
                                         ✨ {{ __('Edit') }}
                                     </button>
                                     <button type="button"
                                             wire:click="openEditPromptModal({{ $index }})"
-                                            style="padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.65rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Modify prompt') }}">
                                         ✏️
                                     </button>
                                     <button type="button"
                                             wire:click="openStockBrowser({{ $index }})"
-                                            style="padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid rgba(16,185,129,0.5); background: rgba(16,185,129,0.2); color: white; cursor: pointer; font-size: 0.65rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(16,185,129,0.5); background: rgba(16,185,129,0.2); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Browse stock media') }}">
                                         📷
                                     </button>
                                     <button type="button"
                                             wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                             wire:loading.attr="disabled"
-                                            style="padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.65rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Regenerate with AI') }}">
                                         🔄
                                     </button>
                                     <button type="button"
                                             wire:click="openUpscaleModal({{ $index }})"
-                                            style="padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid rgba(251,191,36,0.5); background: rgba(251,191,36,0.2); color: white; cursor: pointer; font-size: 0.65rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(251,191,36,0.5); background: rgba(251,191,36,0.2); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Upscale to HD/4K') }}">
                                         ⬆️
                                     </button>
@@ -1671,32 +1686,32 @@
                                             wire:click="openMultiShotModal({{ $index }})"
                                             wire:loading.attr="disabled"
                                             wire:target="openMultiShotModal"
-                                            style="padding: 0.35rem 0.5rem; border-radius: 0.4rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.65rem; font-weight: 600;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                             title="{{ __('Multi-shot decomposition') }}">
                                         <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
-                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
                                     </button>
                                 </div>
                             @elseif($status === 'error')
                                 {{-- Error State --}}
-                                <div style="height: 160px; background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.75rem;">
-                                        <span style="font-size: 1rem;">⚠️</span>
-                                        <span style="color: #ef4444; font-size: 0.75rem;">{{ Str::limit($storyboardScene['error'] ?? __('Generation failed'), 40) }}</span>
+                                <div style="height: 220px; background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.25rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <span style="font-size: 1.25rem;">⚠️</span>
+                                        <span style="color: #ef4444; font-size: 0.9rem;">{{ Str::limit($storyboardScene['error'] ?? __('Generation failed'), 50) }}</span>
                                     </div>
-                                    <div style="color: rgba(255,255,255,0.6); font-size: 0.7rem; margin-bottom: 0.5rem;">{{ __('Choose to retry:') }}</div>
-                                    <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                    <div style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 0.75rem;">{{ __('Choose to retry:') }}</div>
+                                    <div style="display: flex; gap: 0.75rem; width: 100%; max-width: 320px;">
                                         <button type="button"
                                                 wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                                 wire:loading.attr="disabled"
-                                                style="flex: 1; padding: 0.5rem 0.4rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.7rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
-                                            <span style="font-size: 1rem;">🎨</span>
+                                                style="flex: 1; padding: 0.75rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                                            <span style="font-size: 1.25rem;">🎨</span>
                                             <span>{{ __('Retry AI') }}</span>
                                         </button>
                                         <button type="button"
                                                 wire:click="openStockBrowser({{ $index }})"
-                                                style="flex: 1; padding: 0.5rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.7rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
-                                            <span style="font-size: 1rem;">📷</span>
+                                                style="flex: 1; padding: 0.75rem 0.5rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                                            <span style="font-size: 1.25rem;">📷</span>
                                             <span>{{ __('Use Stock') }}</span>
                                         </button>
                                     </div>
@@ -2018,19 +2033,19 @@
                     @endif
 
                     {{-- Prompt Section --}}
-                    <div style="padding: 0.75rem;">
-                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <div style="padding: 1rem;">
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
                             {{ __('PROMPT') }}
                         </div>
-                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.75); line-height: 1.4; max-height: 3.2em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                            {{ Str::limit($prompt, 120) }}
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.75); line-height: 1.5; max-height: 4.5em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                            {{ Str::limit($prompt, 180) }}
                         </div>
                         {{-- Duration & Transition --}}
-                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; background: rgba(6,182,212,0.15); color: #67e8f9; border-radius: 0.2rem;">
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(6,182,212,0.15); color: #67e8f9; border-radius: 0.25rem;">
                                 ⏱️ {{ $scene['duration'] ?? 8 }}s
                             </span>
-                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">
                                 ↔️ {{ $scene['transition'] ?? 'cut' }}
                             </span>
                         </div>
