@@ -1,9 +1,218 @@
-{{-- Step 4: Storyboard - Matching Reference Design --}}
+{{-- Step 4: Storyboard - Full Screen Layout --}}
 <style>
-    .vw-storyboard-step {
-        width: 100%;
+    /* ========================================
+       STORYBOARD STUDIO - Full Screen Layout
+       ======================================== */
+
+    .vw-storyboard-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
+    /* CRITICAL: Force hide ALL app sidebars when Storyboard is active */
+    .sidebar,
+    .main-sidebar,
+    div.sidebar,
+    aside.sidebar,
+    .hide-scroll.sidebar {
+        z-index: 1 !important;
+    }
+
+    body.vw-storyboard-fullscreen-active {
+        overflow: hidden !important;
+    }
+
+    body.vw-storyboard-fullscreen-active .sidebar,
+    body.vw-storyboard-fullscreen-active .main-sidebar,
+    body.vw-storyboard-fullscreen-active div.sidebar,
+    body.vw-storyboard-fullscreen-active .sidebar.hide-scroll,
+    body.vw-storyboard-fullscreen-active [class*="sidebar"]:not(.vw-storyboard-sidebar),
+    body.vw-storyboard-fullscreen-active aside:not(.vw-storyboard-fullscreen aside),
+    body.vw-storyboard-fullscreen-active nav:not(.vw-storyboard-fullscreen nav) {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.vw-storyboard-fullscreen-active .main-content,
+    body.vw-storyboard-fullscreen-active .page-wrapper,
+    body.vw-storyboard-fullscreen-active [class*="content"]:not(.vw-storyboard-content):not(.vw-storyboard-fullscreen *) {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Top Header Bar */
+    .vw-storyboard-topbar {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.6rem 1.25rem;
+        background: rgba(15, 15, 28, 0.98);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        backdrop-filter: blur(10px);
+    }
+
+    .vw-storyboard-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .vw-storyboard-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #ec4899, #f97316);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    .vw-storyboard-title {
+        font-weight: 700;
+        color: white;
+        font-size: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .vw-storyboard-subtitle {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Progress Pills in Header */
+    .vw-storyboard-pills {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1.5rem;
+    }
+
+    .vw-storyboard-pill {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 2rem;
+        font-size: 0.7rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .vw-storyboard-pill .pill-value {
+        font-weight: 600;
+        color: #a78bfa;
+    }
+
+    .vw-storyboard-pill.complete {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .vw-storyboard-pill.complete .pill-value {
+        color: #10b981;
+    }
+
+    /* Header Actions */
+    .vw-storyboard-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-left: auto;
+    }
+
+    /* Settings Toggle Button */
+    .vw-settings-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.85rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    .vw-settings-toggle:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .vw-settings-toggle.active {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #a78bfa;
+    }
+
+    /* Main Content Area */
+    .vw-storyboard-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Settings Panel (collapsible) */
+    .vw-storyboard-settings-panel {
+        flex-shrink: 0;
+        background: rgba(20, 20, 35, 0.95);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+        padding: 1rem 1.25rem;
+        display: none;
+    }
+
+    .vw-storyboard-settings-panel.open {
+        display: block;
+    }
+
+    .vw-settings-row {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .vw-settings-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .vw-settings-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    /* Scene Grid Container */
+    .vw-storyboard-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem;
+    }
+
+    /* Legacy support - keep old card styles for nested elements */
     .vw-storyboard-card {
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
         border: 1px solid rgba(139, 92, 246, 0.2) !important;
@@ -18,31 +227,6 @@
         align-items: center !important;
         gap: 1rem !important;
         margin-bottom: 1.25rem !important;
-    }
-
-    .vw-storyboard-icon {
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        background: linear-gradient(135deg, #ec4899 0%, #f97316 100%) !important;
-        border-radius: 0.75rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.5rem !important;
-    }
-
-    .vw-storyboard-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin: 0 !important;
-    }
-
-    .vw-storyboard-subtitle {
-        font-size: 0.85rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-top: 0.25rem !important;
     }
 
     /* Section dividers */
@@ -659,10 +843,84 @@
     }
 </style>
 
-<div class="vw-storyboard-step">
+<div class="vw-storyboard-fullscreen" x-data="{ showSettings: false }">
+    {{-- Top Header Bar --}}
+    <div class="vw-storyboard-topbar">
+        {{-- Brand --}}
+        <div class="vw-storyboard-brand">
+            <div class="vw-storyboard-icon">🎨</div>
+            <div>
+                <div class="vw-storyboard-title">{{ __('Storyboard Studio') }}</div>
+                <div class="vw-storyboard-subtitle">{{ __('Step 4 of 7') }}</div>
+            </div>
+        </div>
+
+        {{-- Progress Pills --}}
+        @php
+            $imagesReady = count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl'])));
+            $totalScenes = count($script['scenes'] ?? []);
+            $allImagesReady = $imagesReady === $totalScenes && $totalScenes > 0;
+        @endphp
+        <div class="vw-storyboard-pills">
+            <div class="vw-storyboard-pill {{ $allImagesReady ? 'complete' : '' }}">
+                <span>🖼️</span>
+                <span class="pill-value">{{ $imagesReady }}/{{ $totalScenes }}</span>
+                <span style="color: rgba(255,255,255,0.5);">{{ __('images') }}</span>
+            </div>
+            @if($multiShotMode['enabled'])
+                @php $shotStats = $this->getShotStatistics(); @endphp
+                <div class="vw-storyboard-pill">
+                    <span>🎬</span>
+                    <span class="pill-value">{{ $shotStats['totalShots'] }}</span>
+                    <span style="color: rgba(255,255,255,0.5);">{{ __('shots') }}</span>
+                </div>
+            @endif
+        </div>
+
+        {{-- Header Actions --}}
+        <div class="vw-storyboard-actions">
+            {{-- Settings Toggle --}}
+            <button type="button"
+                    class="vw-settings-toggle"
+                    :class="{ 'active': showSettings }"
+                    @click="showSettings = !showSettings">
+                <span>⚙️</span>
+                <span>{{ __('Settings') }}</span>
+            </button>
+
+            {{-- Generate All Button --}}
+            @if(!empty($script['scenes']))
+                <button type="button"
+                        class="vw-generate-all-btn"
+                        wire:click="generateAllImages"
+                        wire:loading.attr="disabled"
+                        wire:target="generateAllImages">
+                    <span wire:loading.remove wire:target="generateAllImages">🎨</span>
+                    <span wire:loading wire:target="generateAllImages" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                    {{ __('Generate All Images') }}
+                </button>
+            @endif
+
+            {{-- Navigation Buttons --}}
+            <button type="button"
+                    wire:click="goToStep(3)"
+                    style="padding: 0.45rem 0.85rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                <span>←</span>
+                <span>{{ __('Script') }}</span>
+            </button>
+
+            <button type="button"
+                    wire:click="goToStep(5)"
+                    style="padding: 0.45rem 0.85rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;">
+                <span>{{ __('Animation') }}</span>
+                <span>→</span>
+            </button>
+        </div>
+    </div>
+
     {{-- Error Alert --}}
     @if($error)
-        <div class="vw-alert error">
+        <div class="vw-alert error" style="margin: 0.5rem 1.25rem;">
             <span class="vw-alert-icon">❌</span>
             <span class="vw-alert-text">{{ $error }}</span>
             <button type="button" class="vw-alert-close" wire:click="$set('error', null)">&times;</button>
@@ -670,67 +928,50 @@
     @endif
 
     @if(empty($script['scenes']))
-        <div class="vw-alert warning">
+        <div class="vw-alert warning" style="margin: 1.25rem;">
             <span class="vw-alert-icon">⚠️</span>
             <span class="vw-alert-text">{{ __('Please generate a script first before creating the storyboard.') }}</span>
         </div>
     @else
-        {{-- Main Card --}}
-        <div class="vw-storyboard-card">
-            {{-- Header --}}
-            <div class="vw-storyboard-header">
-                <div class="vw-storyboard-icon">🎨</div>
-                <div style="flex: 1;">
-                    <h2 class="vw-storyboard-title">{{ __('Storyboard') }}</h2>
-                    <p class="vw-storyboard-subtitle">
-                        {{ __('Visual preview of each scene') }} •
-                        {{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}/{{ count($script['scenes']) }}
-                        {{ __('images ready') }}
-                    </p>
-                </div>
-            </div>
-
-            {{-- AI Model Selector --}}
-            <div class="vw-section">
-                <div class="vw-section-label">
-                    <span>🤖</span>
-                    <span>{{ __('AI Model for Image Generation:') }}</span>
-                </div>
-                <div class="vw-model-buttons" style="margin-top: 0.75rem;">
-                    @php
-                        $imageModels = [
-                            'hidream' => ['name' => 'HiDream', 'cost' => 2, 'desc' => 'Artistic & cinematic style'],
-                            'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3, 'desc' => 'High quality, fast generation'],
-                            'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1, 'desc' => 'Quick drafts, lower cost'],
-                        ];
-                        $selectedModel = $storyboard['imageModel'] ?? 'nanobanana';
-                    @endphp
-                    @foreach($imageModels as $modelId => $model)
-                        <button type="button"
-                                class="vw-model-btn {{ $selectedModel === $modelId ? 'selected' : '' }}"
-                                wire:click="$set('storyboard.imageModel', '{{ $modelId }}')"
-                                title="{{ $model['desc'] }}">
-                            <span class="vw-model-btn-name">{{ $model['name'] }}</span>
-                            <span class="vw-model-btn-cost">{{ $model['cost'] }} {{ $model['cost'] === 1 ? __('token') : __('tokens') }}</span>
-                        </button>
-                    @endforeach
-                </div>
-                <p class="vw-model-description">{{ $imageModels[$selectedModel]['desc'] ?? '' }}</p>
-            </div>
-
-            {{-- Hollywood Multi-Shot Mode Section --}}
-            <div class="vw-section">
-                <div class="vw-section-header">
-                    <div class="vw-section-label">
-                        <span>🎬</span>
-                        <span>{{ __('Hollywood Multi-Shot Mode') }}</span>
-                        <span class="vw-badge vw-badge-pro">PRO</span>
+        {{-- Main Content Area --}}
+        <div class="vw-storyboard-main">
+            {{-- Collapsible Settings Panel --}}
+            <div class="vw-storyboard-settings-panel" :class="{ 'open': showSettings }">
+                <div class="vw-settings-row">
+                    {{-- AI Model Selector --}}
+                    <div class="vw-settings-group">
+                        <span class="vw-settings-label"><span>🤖</span> {{ __('AI Model:') }}</span>
+                        @php
+                            $imageModels = [
+                                'hidream' => ['name' => 'HiDream', 'cost' => 2, 'desc' => 'Artistic & cinematic style'],
+                                'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3, 'desc' => 'High quality, fast generation'],
+                                'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1, 'desc' => 'Quick drafts, lower cost'],
+                            ];
+                            $selectedModel = $storyboard['imageModel'] ?? 'nanobanana';
+                        @endphp
+                        <div class="vw-model-buttons">
+                            @foreach($imageModels as $modelId => $model)
+                                <button type="button"
+                                        class="vw-model-btn {{ $selectedModel === $modelId ? 'selected' : '' }}"
+                                        wire:click="$set('storyboard.imageModel', '{{ $modelId }}')"
+                                        title="{{ $model['desc'] }}">
+                                    <span class="vw-model-btn-name">{{ $model['name'] }}</span>
+                                    <span class="vw-model-btn-cost">{{ $model['cost'] }}t</span>
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        {{-- Toggle Switch --}}
+
+                    {{-- Multi-Shot Mode Toggle --}}
+                    <div class="vw-settings-group">
+                        <span class="vw-settings-label">
+                            <span>🎬</span>
+                            {{ __('Multi-Shot Mode') }}
+                            <span class="vw-badge vw-badge-pro">PRO</span>
+                        </span>
                         <label style="display: flex; align-items: center; cursor: pointer; gap: 0.5rem;">
                             <span style="font-size: 0.75rem; color: {{ $multiShotMode['enabled'] ? '#a78bfa' : 'rgba(255,255,255,0.5)' }};">
-                                {{ $multiShotMode['enabled'] ? __('Enabled') : __('Disabled') }}
+                                {{ $multiShotMode['enabled'] ? __('On') : __('Off') }}
                             </span>
                             <div style="position: relative; width: 40px; height: 20px;"
                                  wire:click="toggleMultiShotMode">
@@ -740,104 +981,67 @@
                         </label>
                     </div>
                 </div>
+            </div>
 
+            {{-- Scrollable Content --}}
+            <div class="vw-storyboard-content">
+                {{-- Multi-Shot Stats (only when enabled) --}}
                 @if($multiShotMode['enabled'])
-                    {{-- Shot Statistics Panel --}}
                     @php
                         $shotStats = $this->getShotStatistics();
                         $clipDuration = $this->getClipDuration();
                         $sceneTiming = $script['timing'] ?? ['sceneDuration' => 35, 'pacing' => 'balanced'];
                     @endphp
-                    <div style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem;">
-                        {{-- Stats Row --}}
-                        <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 0.75rem;">
-                            <div>
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #8b5cf6;">{{ $shotStats['totalScenes'] }}</div>
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('Scenes') }}</div>
+                    <div style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                            {{-- Stats --}}
+                            <div style="display: flex; gap: 1.5rem; align-items: center;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #8b5cf6;">{{ $shotStats['totalScenes'] }}</div>
+                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Scenes') }}</div>
+                                </div>
+                                <span style="color: rgba(255,255,255,0.3);">→</span>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #06b6d4;">{{ $shotStats['decomposedScenes'] }}</div>
+                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Decomposed') }}</div>
+                                </div>
+                                <span style="color: rgba(255,255,255,0.3);">→</span>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">{{ $shotStats['totalShots'] }}</div>
+                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Shots') }}</div>
+                                </div>
                             </div>
-                            <div style="color: rgba(255,255,255,0.3);">→</div>
-                            <div>
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #06b6d4;">{{ $shotStats['decomposedScenes'] }}</div>
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('Decomposed') }}</div>
-                            </div>
-                            <div style="color: rgba(255,255,255,0.3);">→</div>
-                            <div>
-                                <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">{{ $shotStats['totalShots'] }}</div>
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('Shots') }}</div>
-                            </div>
-                        </div>
 
-                        {{-- Progress Bars --}}
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                                    <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🖼️ {{ __('Images') }}</span>
-                                    <span style="font-size: 0.65rem; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
+                            {{-- Progress Bars --}}
+                            <div style="display: flex; gap: 1.5rem;">
+                                <div style="min-width: 120px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🖼️ {{ __('Images') }}</span>
+                                        <span style="font-size: 0.65rem; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
+                                    </div>
+                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e);"></div>
+                                    </div>
                                 </div>
-                                <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
-                                    <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e);"></div>
+                                <div style="min-width: 120px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🎬 {{ __('Videos') }}</span>
+                                        <span style="font-size: 0.65rem; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
+                                    </div>
+                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                        <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee);"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                                    <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🎬 {{ __('Videos') }}</span>
-                                    <span style="font-size: 0.65rem; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
-                                </div>
-                                <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
-                                    <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee);"></div>
-                                </div>
-                            </div>
-                        </div>
 
-                        {{-- Timing Info --}}
-                        <div style="display: flex; gap: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; margin-bottom: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="font-size: 0.7rem;">⏱️</span>
-                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ __('Scene') }}: ~{{ $sceneTiming['sceneDuration'] }}s</span>
+                            {{-- Timing Info --}}
+                            <div style="display: flex; gap: 0.75rem; padding: 0.4rem 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.7);">⏱️ {{ $sceneTiming['sceneDuration'] }}s/scene</span>
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.7);">🎞️ {{ $clipDuration }}s/clip</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="font-size: 0.7rem;">🎞️</span>
-                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ __('Clip') }}: {{ $clipDuration }}s</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="font-size: 0.7rem;">🎭</span>
-                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ ucfirst($sceneTiming['pacing'] ?? 'balanced') }}</span>
-                            </div>
-                        </div>
-
-                        {{-- Action Buttons --}}
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button type="button"
-                                    wire:click="decomposeAllScenes"
-                                    wire:loading.attr="disabled"
-                                    wire:target="decomposeAllScenes"
-                                    style="flex: 1; padding: 0.6rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.2)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                                <span wire:loading.remove wire:target="decomposeAllScenes">✂️ {{ __('Decompose All Scenes') }}</span>
-                                <span wire:loading wire:target="decomposeAllScenes">
-                                    <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                    </svg>
-                                    {{ __('Processing...') }}
-                                </span>
-                            </button>
-                            @if($shotStats['decomposedScenes'] > 0)
-                                <button type="button"
-                                        wire:click="clearAllDecompositions"
-                                        wire:confirm="{{ __('This will remove all shot decompositions. Continue?') }}"
-                                        style="padding: 0.6rem 0.75rem; background: transparent; border: 1px solid rgba(239,68,68,0.4); border-radius: 0.5rem; color: #ef4444; cursor: pointer; font-size: 0.8rem;">
-                                    🗑️ {{ __('Clear') }}
-                                </button>
-                            @endif
                         </div>
                     </div>
-                @else
-                    {{-- Disabled State Info --}}
-                    <p style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 0.5rem; line-height: 1.5;">
-                        {{ __('Enable to decompose each scene into multiple shots (5-10s clips). Hollywood-style: scenes (~35s) → shots (~10s each).') }}
-                    </p>
                 @endif
-            </div>
 
             {{-- Video Model Selector (Coming Soon) --}}
             <div class="vw-section" style="opacity: 0.6;">
@@ -1237,43 +1441,27 @@
                 </div>
             </div>
 
-            {{-- Progress Stats & Bulk Actions - INSIDE the card --}}
+            {{-- Scene Stats Bar --}}
             @php
                 $paginatedData = $this->paginatedScenes;
                 $showPagination = $paginatedData['totalPages'] > 1;
             @endphp
-            <div class="vw-progress-bar">
-                <div class="vw-progress-stat">
-                    <span class="vw-progress-stat-icon">🖼️</span>
-                    <span class="vw-progress-stat-value">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.15); border-radius: 0.5rem; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span>🖼️</span>
+                    <span style="font-weight: 600; color: #10b981;">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
+                    <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">{{ __('images') }}</span>
                 </div>
-                <div class="vw-progress-stat">
-                    <span class="vw-progress-stat-icon">🎬</span>
-                    <span class="vw-progress-stat-value">{{ $paginatedData['totalScenes'] }}</span>
-                    <span class="vw-progress-stat-label">{{ __('scenes') }}</span>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <span>🎬</span>
+                    <span style="font-weight: 600; color: #8b5cf6;">{{ $paginatedData['totalScenes'] }}</span>
+                    <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">{{ __('scenes') }}</span>
                 </div>
                 @if($showPagination)
-                    <div class="vw-progress-stat" style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">
+                    <span style="color: rgba(255,255,255,0.4); font-size: 0.75rem;">
                         {{ __('Showing') }} {{ $paginatedData['showingFrom'] }}-{{ $paginatedData['showingTo'] }}
-                    </div>
+                    </span>
                 @endif
-                <div class="vw-bulk-actions">
-                    <button class="vw-generate-all-btn"
-                            wire:click="generateAllImages"
-                            wire:loading.attr="disabled"
-                            wire:target="generateAllImages">
-                        <span wire:loading.remove wire:target="generateAllImages">
-                            🎨 {{ __('Generate All Images') }}
-                        </span>
-                        <span wire:loading wire:target="generateAllImages">
-                            <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                            </svg>
-                            {{ __('Generating...') }}
-                        </span>
-                    </button>
-                </div>
             </div>
 
             {{-- Pagination Controls (Top) --}}
@@ -1850,7 +2038,8 @@
                 </div>
             @endforeach
             </div>
-        </div> {{-- Close vw-storyboard-card --}}
+            </div> {{-- Close vw-storyboard-content --}}
+        </div> {{-- Close vw-storyboard-main --}}
     @endif
 
     {{-- Stock Media Browser Modal --}}
@@ -1882,6 +2071,40 @@
 </div>
 
 <script>
+    // Add body class for fullscreen mode
+    (function() {
+        document.body.classList.add('vw-storyboard-fullscreen-active');
+
+        // Function to aggressively hide all sidebars
+        function hideAllSidebars() {
+            document.querySelectorAll('.sidebar, .main-sidebar, [class*="sidebar"], aside, nav').forEach(function(el) {
+                if (!el.closest('.vw-storyboard-fullscreen')) {
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('visibility', 'hidden', 'important');
+                    el.style.setProperty('width', '0', 'important');
+                    el.style.setProperty('opacity', '0', 'important');
+                }
+            });
+        }
+
+        // Hide sidebars immediately and after delays
+        hideAllSidebars();
+        setTimeout(hideAllSidebars, 100);
+        setTimeout(hideAllSidebars, 500);
+
+        // Cleanup when component is removed
+        if (typeof Livewire !== 'undefined') {
+            Livewire.hook('element.removed', (el, component) => {
+                if (el.classList && el.classList.contains('vw-storyboard-fullscreen')) {
+                    document.body.classList.remove('vw-storyboard-fullscreen-active');
+                    document.querySelectorAll('.sidebar, .main-sidebar, [class*="sidebar"], aside').forEach(function(el) {
+                        el.style.cssText = '';
+                    });
+                }
+            });
+        }
+    })();
+
     document.addEventListener('livewire:init', () => {
         let pollInterval = null;
         let pendingJobs = 0;
