@@ -15270,25 +15270,68 @@ PROMPT;
                 'regionIndex' => $regionIndex,
             ]);
 
-            // Try to get image contents - handle both URLs and local paths
             $imageContents = false;
 
-            // Check if this is a local storage URL that we can access directly
-            if (str_contains($collageUrl, '/storage/')) {
-                // Extract the path from URL and try to read from disk
-                $urlPath = parse_url($collageUrl, PHP_URL_PATH);
-                $relativePath = str_replace('/storage/', '', $urlPath);
-                if (\Storage::disk('public')->exists($relativePath)) {
-                    $imageContents = \Storage::disk('public')->get($relativePath);
-                    Log::info('VideoWizard: Read image from local storage', ['path' => $relativePath]);
+            // Method 1: Try cURL (most reliable for external URLs)
+            if (function_exists('curl_init')) {
+                $ch = curl_init($collageUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_TIMEOUT => 60,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; VideoWizard/1.0)',
+                    CURLOPT_HTTPHEADER => [
+                        'Accept: image/*',
+                    ],
+                ]);
+                $imageContents = curl_exec($ch);
+                $curlError = curl_error($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($imageContents !== false && $httpCode === 200 && strlen($imageContents) > 1000) {
+                    Log::info('VideoWizard: Downloaded image via cURL', [
+                        'size' => strlen($imageContents),
+                        'httpCode' => $httpCode,
+                    ]);
+                } else {
+                    Log::warning('VideoWizard: cURL download issue', [
+                        'error' => $curlError,
+                        'httpCode' => $httpCode,
+                        'size' => $imageContents ? strlen($imageContents) : 0,
+                    ]);
+                    $imageContents = false;
                 }
             }
 
-            // Fallback to HTTP request if local read failed
+            // Method 2: Try Laravel HTTP client as fallback
+            if ($imageContents === false) {
+                try {
+                    $response = \Illuminate\Support\Facades\Http::timeout(60)
+                        ->withOptions(['verify' => false])
+                        ->get($collageUrl);
+
+                    if ($response->successful() && strlen($response->body()) > 1000) {
+                        $imageContents = $response->body();
+                        Log::info('VideoWizard: Downloaded image via HTTP client', ['size' => strlen($imageContents)]);
+                    } else {
+                        Log::warning('VideoWizard: HTTP client failed', [
+                            'status' => $response->status(),
+                            'size' => strlen($response->body()),
+                        ]);
+                    }
+                } catch (\Exception $httpEx) {
+                    Log::warning('VideoWizard: HTTP client exception', ['error' => $httpEx->getMessage()]);
+                }
+            }
+
+            // Method 3: Try file_get_contents with context as last resort
             if ($imageContents === false) {
                 $context = stream_context_create([
                     'http' => [
-                        'timeout' => 30,
+                        'timeout' => 60,
                         'user_agent' => 'Mozilla/5.0 (compatible; VideoWizard/1.0)',
                     ],
                     'ssl' => [
@@ -15297,17 +15340,19 @@ PROMPT;
                     ],
                 ]);
                 $imageContents = @file_get_contents($collageUrl, false, $context);
+                if ($imageContents !== false) {
+                    Log::info('VideoWizard: Downloaded image via file_get_contents', ['size' => strlen($imageContents)]);
+                }
             }
 
-            if ($imageContents === false) {
-                Log::error('VideoWizard: Failed to download collage image', [
+            if ($imageContents === false || strlen($imageContents) < 1000) {
+                Log::error('VideoWizard: All download methods failed for collage image', [
                     'collageUrl' => $collageUrl,
-                    'error' => error_get_last()['message'] ?? 'Unknown error',
                 ]);
-                return ['success' => false, 'error' => 'Failed to download collage image: ' . ($collageUrl)];
+                return ['success' => false, 'error' => 'Failed to download collage image: ' . $collageUrl];
             }
 
-            Log::info('VideoWizard: Downloaded collage image', [
+            Log::info('VideoWizard: Successfully obtained collage image', [
                 'size' => strlen($imageContents),
             ]);
 
