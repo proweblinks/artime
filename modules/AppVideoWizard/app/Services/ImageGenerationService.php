@@ -145,7 +145,10 @@ class ImageGenerationService
         }
 
         // Get resolution based on aspect ratio
-        $resolution = $this->getResolution($project->aspect_ratio);
+        // For collage previews, use 1:1 aspect ratio for proper 2x2 grid layout
+        $isCollagePreview = $options['is_collage_preview'] ?? false;
+        $aspectRatio = $isCollagePreview ? '1:1' : $project->aspect_ratio;
+        $resolution = $this->getResolution($aspectRatio);
 
         // Check credits
         $quota = \Credit::checkQuota($teamId);

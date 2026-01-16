@@ -14327,36 +14327,77 @@ PROMPT;
 
         $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
         $shots = $decomposed['shots'] ?? [];
+        $createdDefaultShots = false;
 
         // If no decomposed shots, create default shot structure from scene's visual prompt
         if (empty($shots)) {
             // Generate 4 default shots based on scene's visual description
             $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? '';
+            $sceneDuration = $scene['duration'] ?? 15;
+            $shotDuration = max(3, (int) ceil($sceneDuration / 4));
+
             $shots = [
                 0 => [
                     'type' => 'establishing',
                     'description' => $sceneDescription,
                     'imagePrompt' => $sceneDescription,
+                    'duration' => $shotDuration,
+                    'status' => 'pending',
+                    'imageStatus' => 'pending',
+                    'videoStatus' => 'pending',
+                    'imageUrl' => null,
+                    'videoUrl' => null,
                 ],
                 1 => [
                     'type' => 'medium',
                     'description' => $sceneDescription,
                     'imagePrompt' => $sceneDescription,
+                    'duration' => $shotDuration,
+                    'status' => 'pending',
+                    'imageStatus' => 'pending',
+                    'videoStatus' => 'pending',
+                    'imageUrl' => null,
+                    'videoUrl' => null,
                 ],
                 2 => [
                     'type' => 'close-up',
                     'description' => $sceneDescription,
                     'imagePrompt' => $sceneDescription,
+                    'duration' => $shotDuration,
+                    'status' => 'pending',
+                    'imageStatus' => 'pending',
+                    'videoStatus' => 'pending',
+                    'imageUrl' => null,
+                    'videoUrl' => null,
                 ],
                 3 => [
                     'type' => 'detail',
                     'description' => $sceneDescription,
                     'imagePrompt' => $sceneDescription,
+                    'duration' => $shotDuration,
+                    'status' => 'pending',
+                    'imageStatus' => 'pending',
+                    'videoStatus' => 'pending',
+                    'imageUrl' => null,
+                    'videoUrl' => null,
                 ],
             ];
 
-            Log::info('VideoWizard: Generating collage from scene prompt (no decomposed shots)', [
+            // IMPORTANT: Save the default shots to decomposedScenes so the UI shows them
+            $this->multiShotMode['decomposedScenes'][$sceneIndex] = [
+                'shots' => $shots,
+                'totalDuration' => $sceneDuration,
+                'selectedShot' => 0,
+                'consistencyAnchors' => [
+                    'style' => $this->sceneMemory['styleBible']['style'] ?? 'cinematic',
+                ],
+                'createdFromCollage' => true,
+            ];
+            $createdDefaultShots = true;
+
+            Log::info('VideoWizard: Generating collage from scene prompt (created default shots)', [
                 'sceneIndex' => $sceneIndex,
+                'shotCount' => count($shots),
             ]);
         }
 
@@ -14504,6 +14545,16 @@ PROMPT;
             }
 
             $this->saveProject();
+
+            // Open the multi-shot modal to show the collage and allow shot editing
+            $this->multiShotSceneIndex = $sceneIndex;
+            $this->multiShotCount = 0; // AI mode
+            $this->showMultiShotModal = true;
+
+            Log::info('VideoWizard: Collage preview generated, opening multi-shot modal', [
+                'sceneIndex' => $sceneIndex,
+                'createdDefaultShots' => $createdDefaultShots,
+            ]);
         } catch (\Exception $e) {
             $this->sceneCollages[$sceneIndex]['status'] = 'error';
             $this->error = __('Failed to generate collage preview: ') . $e->getMessage();
