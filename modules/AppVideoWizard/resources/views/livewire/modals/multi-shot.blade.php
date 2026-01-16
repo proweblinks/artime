@@ -400,6 +400,21 @@ window.multiShotVideoPolling = function() {
                                     @endif
                                 </div>
 
+                                {{-- Regenerate at 16:9 button (only show when shot has collage image) --}}
+                                @if($hasImage && ($fromCollageRegion !== null || ($shot['fromCollageQuadrant'] ?? null) !== null))
+                                    <div class="msm-regen-16x9" style="margin-top: 0.25rem;">
+                                        <button wire:click.stop="regenerateShotFromReference({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="regenerateShotFromReference({{ $multiShotSceneIndex }}, {{ $shotIndex }})"
+                                                class="msm-regen-btn"
+                                                style="width: 100%; padding: 0.35rem 0.5rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.4rem; color: #10b981; font-size: 0.7rem; cursor: pointer; transition: all 0.2s;"
+                                                title="{{ __('Regenerate at proper 16:9 aspect ratio using this image as reference') }}">
+                                            <span wire:loading.remove wire:target="regenerateShotFromReference({{ $multiShotSceneIndex }}, {{ $shotIndex }})">⬆️ {{ __('Regen 16:9') }}</span>
+                                            <span wire:loading wire:target="regenerateShotFromReference({{ $multiShotSceneIndex }}, {{ $shotIndex }})">⏳ {{ __('Generating...') }}</span>
+                                        </button>
+                                    </div>
+                                @endif
+
                                 {{-- Shot Info Row: Camera + Token Cost --}}
                                 <div class="msm-shot-info">
                                     <span class="msm-camera">🎥 {{ $cameraMovement }}</span>
