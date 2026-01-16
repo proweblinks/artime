@@ -5793,20 +5793,13 @@ class VideoWizard extends Component
                 $this->sceneCollages[$sceneIndex]['collages'][$pageIndex]['previewUrl'] = $result['imageUrl'];
                 $this->sceneCollages[$sceneIndex]['collages'][$pageIndex]['status'] = 'ready';
 
-                // Check if all pages are ready
-                $allReady = true;
-                foreach ($this->sceneCollages[$sceneIndex]['collages'] as $collageData) {
-                    if ($collageData['status'] !== 'ready') {
-                        $allReady = false;
-                        break;
-                    }
-                }
+                // Set overall status to 'ready' as soon as ANY page is ready
+                // This allows the "Extract All" button to work with partial pages
+                $this->sceneCollages[$sceneIndex]['status'] = 'ready';
 
-                if ($allReady) {
-                    $this->sceneCollages[$sceneIndex]['status'] = 'ready';
-                    // Extract quadrants to shots when collage is fully ready
-                    $this->extractCollageQuadrantsToShots($sceneIndex);
-                }
+                // Extract quadrants to shots immediately when each page completes
+                // This gives the user instant feedback as images are generated
+                $this->extractCollageQuadrantsToShots($sceneIndex);
             }
 
             unset($this->pendingJobs[$jobKey]);
@@ -15486,8 +15479,22 @@ PROMPT;
     public function extractAllCollageRegions(int $sceneIndex): void
     {
         $collage = $this->sceneCollages[$sceneIndex] ?? null;
-        if (!$collage || $collage['status'] !== 'ready') {
-            $this->error = __('Collage is not ready yet');
+        if (!$collage) {
+            $this->error = __('No collage found for this scene');
+            return;
+        }
+
+        // Check if at least ONE page has images ready (don't require ALL pages)
+        $hasAnyReadyPage = false;
+        foreach ($collage['collages'] ?? [] as $pageData) {
+            if (($pageData['status'] ?? '') === 'ready' && !empty($pageData['previewUrl'])) {
+                $hasAnyReadyPage = true;
+                break;
+            }
+        }
+
+        if (!$hasAnyReadyPage) {
+            $this->error = __('No collage pages are ready yet. Generate a collage first.');
             return;
         }
 
