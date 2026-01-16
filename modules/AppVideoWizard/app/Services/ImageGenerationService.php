@@ -1179,7 +1179,14 @@ class ImageGenerationService
             '4:5' => '3:4',
         ];
 
-        $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
+        // Determine the aspect ratio to use
+        // For collage previews, use 1:1 (passed via resolutionArray['size'] as '1024x1024')
+        $isCollagePreview = $options['is_collage_preview'] ?? false;
+        if ($isCollagePreview) {
+            $aspectRatio = '1:1';
+        } else {
+            $aspectRatio = $aspectRatioMap[$project->aspect_ratio] ?? '16:9';
+        }
 
         // Get model resolution string (1K, 2K, 4K) for API call
         $modelResolution = $modelConfig['resolution'] ?? '2K';
