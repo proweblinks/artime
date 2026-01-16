@@ -249,7 +249,12 @@
                         {{-- Character-Location Affinities --}}
                         @if(!empty($affinities))
                             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                @foreach($affinities as $charName => $locationData)
+                                @foreach($affinities as $charName => $charData)
+                                    @php
+                                        $locations = $charData['locations'] ?? [];
+                                        $primaryLoc = $charData['primaryLocation'] ?? null;
+                                        $sceneCount = $charData['sceneCount'] ?? 0;
+                                    @endphp
                                     <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; padding: 0.6rem;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                             <div style="display: flex; align-items: center; gap: 0.35rem;">
@@ -257,14 +262,17 @@
                                                 <span style="color: white; font-weight: 600; font-size: 0.75rem;">{{ $charName }}</span>
                                             </div>
                                             <span style="color: rgba(255,255,255,0.5); font-size: 0.6rem;">
-                                                {{ count($locationData) }} {{ __('locations') }}
+                                                {{ count($locations) }} {{ __('locations') }} &middot; {{ $sceneCount }} {{ __('scenes') }}
                                             </span>
                                         </div>
                                         <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                                            @foreach($locationData as $locName => $count)
-                                                <div style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3); border-radius: 0.35rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
+                                            @foreach($locations as $locName => $count)
+                                                <div style="background: rgba(52,211,153,0.15); border: 1px solid {{ $locName === $primaryLoc ? 'rgba(52,211,153,0.6)' : 'rgba(52,211,153,0.3)' }}; border-radius: 0.35rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
                                                     <span style="color: #6ee7b7; font-size: 0.6rem;">{{ $locName }}</span>
                                                     <span style="background: rgba(52,211,153,0.3); color: #34d399; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.5rem; font-weight: 600;">{{ $count }}x</span>
+                                                    @if($locName === $primaryLoc)
+                                                        <span style="color: #10b981; font-size: 0.5rem;" title="{{ __('Primary location') }}">&#x2605;</span>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>
