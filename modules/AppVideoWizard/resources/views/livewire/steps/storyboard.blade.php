@@ -1580,7 +1580,7 @@
                                         $collageRangeStart = !empty($currentCollageShots) ? min($currentCollageShots) + 1 : 1;
                                         $collageRangeEnd = !empty($currentCollageShots) ? max($currentCollageShots) + 1 : 4;
                                     @endphp
-                                    @if($sceneCollage && in_array($sceneCollage['status'], ['ready', 'generating', 'processing']))
+                                    @if($sceneCollage && in_array($sceneCollage['status'], ['ready', 'generating', 'processing']) && empty($decomposed['shots']))
                                         <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                                                 <span style="font-size: 0.7rem; color: rgba(255,255,255,0.8); font-weight: 600;">
