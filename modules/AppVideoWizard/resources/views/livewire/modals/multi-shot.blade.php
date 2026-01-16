@@ -359,7 +359,7 @@ window.multiShotVideoPolling = function() {
                                     </div>
                                 </div>
 
-                                <div class="msm-shot-preview" x-on:click="$root.showModal('{{ __('Loading preview...') }}')" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
+                                <div class="msm-shot-preview" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                     @if($hasImage)
                                         <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotIndex + 1 }}">
                                         <div class="msm-shot-overlay"><span>{{ $hasVideo ? '▶️' : '🔍' }}</span><small>{{ __('View Prompts') }}</small></div>
@@ -433,7 +433,7 @@ window.multiShotVideoPolling = function() {
 
                                     @if($hasVideo)
                                         <div class="msm-action-row">
-                                            <button x-on:click="$root.showModal('{{ __('Loading preview...') }}')" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-play-btn">▶️ {{ __('Play') }}</button>
+                                            <button wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-play-btn">▶️ {{ __('Play') }}</button>
                                             @if(!$isLastShot)
                                                 <button wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-capture-btn">🎯→{{ $shotIndex + 2 }}</button>
                                             @endif

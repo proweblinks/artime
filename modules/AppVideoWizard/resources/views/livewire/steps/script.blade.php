@@ -2003,7 +2003,7 @@
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <button class="vw-full-script-btn"
-                            x-data
+                            x-data="{}"
                             @click="$dispatch('open-full-script')">
                         📄 {{ __('Full Script') }}
                     </button>

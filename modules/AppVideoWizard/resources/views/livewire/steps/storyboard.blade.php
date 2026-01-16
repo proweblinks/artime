@@ -1480,7 +1480,6 @@
                                         ⬆️
                                     </button>
                                     <button type="button"
-                                            x-on:click="$root.showModal('{{ __('Opening Multi-Shot...') }}')"
                                             wire:click="openMultiShotModal({{ $index }})"
                                             wire:loading.attr="disabled"
                                             wire:target="openMultiShotModal"
@@ -1713,7 +1712,6 @@
                                     </div>
                                 </div>
                                 <button type="button"
-                                        x-on:click="$root.showModal('{{ __('Opening Multi-Shot...') }}')"
                                         wire:click="openMultiShotModal({{ $index }})"
                                         wire:loading.attr="disabled"
                                         style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #a78bfa; cursor: pointer;">
@@ -1746,7 +1744,6 @@
                                         $borderColor = $hasVideo ? 'rgba(6,182,212,0.6)' : ($hasImage ? 'rgba(16,185,129,0.5)' : ($isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.1)'));
                                     @endphp
                                     <div style="cursor: pointer; position: relative; border-radius: 0.35rem; overflow: hidden; border: 2px solid {{ $borderColor }}; background: {{ $isSelected ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)' }}; transition: all 0.2s;"
-                                         x-on:click="$root.showModal('{{ __('Opening Multi-Shot...') }}')"
                                          wire:click="openMultiShotModal({{ $index }})"
                                          title="{{ $shot['description'] ?? 'Shot ' . ($shotIdx + 1) }} ({{ $shotDuration }}s)">
                                         {{-- Thumbnail --}}
