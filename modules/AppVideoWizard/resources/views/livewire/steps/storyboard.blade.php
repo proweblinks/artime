@@ -998,17 +998,32 @@
                     {{ __('Visual consistency with Style, Character & Location Bibles') }}
                 </p>
                 <div class="vw-memory-grid">
-                    {{-- Style Bible --}}
-                    <div class="vw-memory-card">
+                    {{-- Style Bible - Shows link to Scene DNA when DNA is enabled --}}
+                    @php
+                        $sceneDNAEnabled = $sceneMemory['sceneDNA']['enabled'] ?? false;
+                    @endphp
+                    <div class="vw-memory-card" style="{{ $sceneDNAEnabled ? 'opacity: 0.6;' : '' }}">
                         <div class="vw-memory-icon">🎨</div>
                         <div class="vw-memory-content">
                             <div class="vw-memory-title">{{ __('Style Bible') }}</div>
-                            <div class="vw-memory-desc">{{ __('Visual DNA') }}</div>
+                            <div class="vw-memory-desc">
+                                @if($sceneDNAEnabled)
+                                    {{ __('Managed via Scene DNA') }}
+                                @else
+                                    {{ __('Visual DNA') }}
+                                @endif
+                            </div>
                         </div>
                         <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="$dispatch('open-style-bible-modal')">
-                                {{ __('Edit') }}
-                            </button>
+                            @if($sceneDNAEnabled)
+                                <button type="button" class="vw-edit-btn" wire:click="$set('showSceneDNAModal', true); $set('sceneDNAActiveTab', 'style')" style="font-size: 0.6rem;">
+                                    {{ __('Scene DNA') }} →
+                                </button>
+                            @else
+                                <button type="button" class="vw-edit-btn" wire:click="$dispatch('open-style-bible-modal')">
+                                    {{ __('Edit') }}
+                                </button>
+                            @endif
                             <input type="checkbox"
                                    class="vw-memory-checkbox"
                                    wire:model.live="sceneMemory.styleBible.enabled"
