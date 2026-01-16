@@ -274,7 +274,19 @@ window.multiShotVideoPolling = function() {
                                     </div>
                                 </div>
 
-                                <button type="button" wire:click="clearCollagePreview({{ $multiShotSceneIndex }})" class="msm-clear-btn">✕ {{ __('Clear') }}</button>
+                                {{-- Extract All & Clear buttons --}}
+                                <div class="msm-collage-actions" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <button type="button"
+                                            wire:click="extractAllCollageRegions({{ $multiShotSceneIndex }})"
+                                            wire:loading.attr="disabled"
+                                            class="msm-extract-btn"
+                                            style="flex: 1; padding: 0.5rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.4rem; color: #10b981; font-size: 0.75rem; cursor: pointer;"
+                                            title="{{ __('Extract all collage regions to their respective shots') }}">
+                                        <span wire:loading.remove wire:target="extractAllCollageRegions">📥 {{ __('Extract All to Shots') }}</span>
+                                        <span wire:loading wire:target="extractAllCollageRegions">⏳ {{ __('Extracting...') }}</span>
+                                    </button>
+                                    <button type="button" wire:click="clearCollagePreview({{ $multiShotSceneIndex }})" class="msm-clear-btn">✕ {{ __('Clear') }}</button>
+                                </div>
                             @endif
                         @else
                             {{-- Empty State --}}

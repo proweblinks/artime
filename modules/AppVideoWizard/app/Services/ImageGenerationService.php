@@ -161,10 +161,20 @@ class ImageGenerationService
         $locationReference = null;
         $styleReference = null;
 
-        // For location references: NO character references (empty environments only)
-        // For character portraits: NO location references (studio backdrop)
-        // For regular scenes: use all available references
-        if (!$isLocationReference && !$isCharacterPortrait) {
+        // Check for direct style reference override (used for regeneration from collage)
+        $directStyleReference = $options['directStyleReference'] ?? null;
+        if ($directStyleReference && !empty($directStyleReference['base64'])) {
+            // Use the direct style reference instead of Bible references
+            $styleReference = $directStyleReference;
+            Log::info('[ImageGeneration] Using direct style reference override', [
+                'hasBase64' => true,
+                'mimeType' => $directStyleReference['mimeType'] ?? 'image/png',
+                'hasStyleDescription' => !empty($directStyleReference['styleDescription']),
+            ]);
+        } elseif (!$isLocationReference && !$isCharacterPortrait) {
+            // For location references: NO character references (empty environments only)
+            // For character portraits: NO location references (studio backdrop)
+            // For regular scenes: use all available references
             // Regular scene: get all references for consistency
             $characterReference = $this->getCharacterReferenceForScene($sceneMemory, $sceneIndex);
             $locationReference = $this->getLocationReferenceForScene($sceneMemory, $sceneIndex);

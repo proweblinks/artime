@@ -974,9 +974,9 @@ class VideoWizard extends Component
     protected function getShotCountLimits(): array
     {
         return [
-            'min' => (int) $this->getDynamicSetting('shot_min_per_scene', 1),
+            'min' => (int) $this->getDynamicSetting('shot_min_per_scene', 5),
             'max' => (int) $this->getDynamicSetting('shot_max_per_scene', 20),
-            'default' => (int) $this->getDynamicSetting('shot_default_count', 3),
+            'default' => (int) $this->getDynamicSetting('shot_default_count', 5),
         ];
     }
 
@@ -14938,28 +14938,55 @@ PROMPT;
                 throw new \Exception('Project not found');
             }
 
+            // Download reference image and convert to base64
+            $referenceBase64 = null;
+            $referenceMimeType = 'image/png';
+            try {
+                $imageContent = file_get_contents($referenceImageUrl);
+                if ($imageContent !== false) {
+                    $referenceBase64 = base64_encode($imageContent);
+                    // Detect mime type from content
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $detectedMime = $finfo->buffer($imageContent);
+                    if ($detectedMime && str_starts_with($detectedMime, 'image/')) {
+                        $referenceMimeType = $detectedMime;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('VideoWizard: Could not download reference image for regeneration', [
+                    'url' => $referenceImageUrl,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Build enhanced prompt with reference image context
             $shotType = $shot['type'] ?? 'medium';
             $shotDescription = $shot['imagePrompt'] ?? $shot['description'] ?? $scene['visualDescription'] ?? '';
 
-            // Create prompt that instructs to match the reference image style/composition
-            $referencePrompt = "Recreate this exact scene composition and visual style at cinematic 16:9 aspect ratio. " .
-                "Shot type: {$shotType}. " .
-                "Maintain the same characters, poses, lighting, color palette, and atmosphere. " .
-                $shotDescription;
+            // Create a modified scene with the shot-specific description
+            $modifiedScene = array_merge($scene, [
+                'visualDescription' => "RECREATE THIS EXACT COMPOSITION at cinematic 16:9 aspect ratio. " .
+                    "Shot type: {$shotType}. " .
+                    "Maintain the same characters, poses, lighting, color palette, and atmosphere from the reference image. " .
+                    $shotDescription,
+            ]);
 
-            // Generate at proper aspect ratio with reference
-            $result = $imageService->generateSceneWithReference(
+            // Generate at proper aspect ratio with the reference as a direct style reference
+            $result = $imageService->generateSceneImage(
                 $project,
-                $scene,
-                $referenceImageUrl,
+                $modifiedScene,
                 [
-                    'prompt' => $referencePrompt,
                     'sceneIndex' => $sceneIndex,
                     'shot_type' => $shotType,
                     'shot_index' => $shotIndex,
                     'is_multi_shot' => true,
                     'regenerate_from_reference' => true,
+                    // Pass the reference image directly as a style reference override
+                    'directStyleReference' => $referenceBase64 ? [
+                        'base64' => $referenceBase64,
+                        'mimeType' => $referenceMimeType,
+                        'styleDescription' => "Match this exact visual composition, character poses, lighting, and atmosphere. This is a reference from a collage that needs to be regenerated at proper 16:9 cinematic aspect ratio.",
+                    ] : null,
                 ]
             );
 
@@ -15106,34 +15133,23 @@ PROMPT;
             return;
         }
 
-        // Get the first page collage (page 0 contains shots 0-3)
-        $firstPage = $collage['collages'][0] ?? null;
-        if (!$firstPage || $firstPage['status'] !== 'ready' || empty($firstPage['previewUrl'])) {
-            Log::warning('VideoWizard: extractCollageQuadrantsToShots - first page not ready', [
-                'sceneIndex' => $sceneIndex,
-                'hasFirstPage' => !empty($firstPage),
-                'pageStatus' => $firstPage['status'] ?? 'none',
-                'hasPreviewUrl' => !empty($firstPage['previewUrl'] ?? null),
-            ]);
-            return;
-        }
-
-        $collageUrl = $firstPage['previewUrl'];
-
         // Ensure storyboard scene exists
         if (!isset($this->storyboard['scenes'][$sceneIndex])) {
             $this->storyboard['scenes'][$sceneIndex] = [];
         }
 
-        // Set the collage as the scene's main image for the 2x2 grid display
-        $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $collageUrl;
-        $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
-        $this->storyboard['scenes'][$sceneIndex]['fromCollage'] = true;
+        // Set the first page collage as the scene's main image for the 2x2 grid display
+        $firstPage = $collage['collages'][0] ?? null;
+        if ($firstPage && $firstPage['status'] === 'ready' && !empty($firstPage['previewUrl'])) {
+            $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $firstPage['previewUrl'];
+            $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
+            $this->storyboard['scenes'][$sceneIndex]['fromCollage'] = true;
 
-        Log::info('VideoWizard: Set scene main image from collage', [
-            'sceneIndex' => $sceneIndex,
-            'collageUrl' => $collageUrl,
-        ]);
+            Log::info('VideoWizard: Set scene main image from collage', [
+                'sceneIndex' => $sceneIndex,
+                'collageUrl' => $firstPage['previewUrl'],
+            ]);
+        }
 
         // Get decomposed shots
         $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
@@ -15141,61 +15157,132 @@ PROMPT;
             Log::info('VideoWizard: No decomposed shots to extract quadrants to', [
                 'sceneIndex' => $sceneIndex,
             ]);
-            // Keep collage data so modal can still display it
             return;
         }
 
-        Log::info('VideoWizard: Extracting collage quadrants to shots', [
+        $totalShots = count($decomposed['shots']);
+        $totalPages = $collage['totalPages'] ?? 1;
+        $shotsPerPage = 4;
+        $totalSuccessCount = 0;
+
+        Log::info('VideoWizard: Extracting ALL collage pages to shots', [
             'sceneIndex' => $sceneIndex,
-            'collageUrl' => $collageUrl,
-            'shotCount' => count($decomposed['shots']),
+            'totalShots' => $totalShots,
+            'totalPages' => $totalPages,
         ]);
 
-        // Extract each quadrant and assign to corresponding shot (up to 4 shots for first page)
-        $shotsToProcess = min(4, count($decomposed['shots']));
-        $successCount = 0;
+        // Process ALL pages, not just the first one
+        for ($pageIdx = 0; $pageIdx < $totalPages; $pageIdx++) {
+            $pageCollage = $collage['collages'][$pageIdx] ?? null;
+            if (!$pageCollage || $pageCollage['status'] !== 'ready' || empty($pageCollage['previewUrl'])) {
+                Log::warning('VideoWizard: Skipping page - not ready', [
+                    'sceneIndex' => $sceneIndex,
+                    'pageIndex' => $pageIdx,
+                    'status' => $pageCollage['status'] ?? 'missing',
+                ]);
+                continue;
+            }
 
-        for ($regionIdx = 0; $regionIdx < $shotsToProcess; $regionIdx++) {
-            try {
-                $cropResult = $this->cropCollageQuadrant($collageUrl, $regionIdx);
+            $collageUrl = $pageCollage['previewUrl'];
+            $startShotIdx = $pageIdx * $shotsPerPage;
 
-                if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
-                    // Assign the cropped image to the shot
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$regionIdx]['imageUrl'] = $cropResult['imageUrl'];
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$regionIdx]['imageStatus'] = 'ready';
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$regionIdx]['status'] = 'ready';
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$regionIdx]['fromCollageQuadrant'] = $regionIdx;
-                    $successCount++;
+            // Calculate how many regions to process on this page
+            $remainingShots = $totalShots - $startShotIdx;
+            $regionsOnPage = min($shotsPerPage, $remainingShots);
 
-                    Log::info('VideoWizard: Shot image assigned from collage quadrant', [
+            for ($regionIdx = 0; $regionIdx < $regionsOnPage; $regionIdx++) {
+                $shotIdx = $startShotIdx + $regionIdx;
+
+                // Skip if shot already has an image
+                $existingImage = $decomposed['shots'][$shotIdx]['imageUrl'] ?? null;
+                if (!empty($existingImage)) {
+                    Log::info('VideoWizard: Shot already has image, skipping', [
                         'sceneIndex' => $sceneIndex,
-                        'shotIndex' => $regionIdx,
-                        'imageUrl' => $cropResult['imageUrl'],
+                        'shotIndex' => $shotIdx,
                     ]);
-                } else {
-                    Log::warning('VideoWizard: Crop failed for quadrant', [
+                    continue;
+                }
+
+                try {
+                    $cropResult = $this->cropCollageQuadrant($collageUrl, $regionIdx);
+
+                    if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                        // Assign the cropped image to the shot
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageUrl'] = $cropResult['imageUrl'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageStatus'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['status'] = 'ready';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['fromCollageQuadrant'] = $regionIdx;
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['fromCollagePage'] = $pageIdx;
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['fromCollageRegion'] = [
+                            'pageIndex' => $pageIdx,
+                            'regionIndex' => $regionIdx,
+                        ];
+
+                        // Also update the shotSources mapping
+                        $this->sceneCollages[$sceneIndex]['shotSources'][$shotIdx] = [
+                            'pageIndex' => $pageIdx,
+                            'regionIndex' => $regionIdx,
+                        ];
+
+                        $totalSuccessCount++;
+
+                        Log::info('VideoWizard: Shot image assigned from collage', [
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIdx,
+                            'pageIndex' => $pageIdx,
+                            'regionIndex' => $regionIdx,
+                            'imageUrl' => $cropResult['imageUrl'],
+                        ]);
+                    } else {
+                        Log::warning('VideoWizard: Crop failed for quadrant', [
+                            'sceneIndex' => $sceneIndex,
+                            'pageIndex' => $pageIdx,
+                            'regionIdx' => $regionIdx,
+                            'error' => $cropResult['error'] ?? 'Unknown error',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: Failed to extract quadrant for shot', [
                         'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIdx,
+                        'pageIndex' => $pageIdx,
                         'regionIdx' => $regionIdx,
-                        'error' => $cropResult['error'] ?? 'Unknown error',
+                        'error' => $e->getMessage(),
                     ]);
                 }
-            } catch (\Exception $e) {
-                Log::warning('VideoWizard: Failed to extract quadrant for shot', [
-                    'sceneIndex' => $sceneIndex,
-                    'regionIdx' => $regionIdx,
-                    'error' => $e->getMessage(),
-                ]);
             }
         }
 
-        Log::info('VideoWizard: Collage extraction complete', [
+        Log::info('VideoWizard: Multi-page collage extraction complete', [
             'sceneIndex' => $sceneIndex,
-            'successCount' => $successCount,
-            'totalShots' => $shotsToProcess,
+            'totalSuccessCount' => $totalSuccessCount,
+            'totalShots' => $totalShots,
+            'totalPages' => $totalPages,
         ]);
 
         // Keep collage data so modal can still display it for manual region selection
         // User can regenerate collage or clear it manually if needed
+    }
+
+    /**
+     * Public method to manually trigger extraction of all collage regions to shots.
+     * Called from the "Extract All" button in the multi-shot modal.
+     */
+    public function extractAllCollageRegions(int $sceneIndex): void
+    {
+        $collage = $this->sceneCollages[$sceneIndex] ?? null;
+        if (!$collage || $collage['status'] !== 'ready') {
+            $this->error = __('Collage is not ready yet');
+            return;
+        }
+
+        // Call the protected extraction method
+        $this->extractCollageQuadrantsToShots($sceneIndex);
+        $this->saveProject();
+
+        Log::info('VideoWizard: Manual extract all triggered', [
+            'sceneIndex' => $sceneIndex,
+        ]);
     }
 
     /**
