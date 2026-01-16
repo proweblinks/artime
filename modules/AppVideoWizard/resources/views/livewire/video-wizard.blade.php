@@ -141,8 +141,7 @@
         }
         .vw-connector.completed { background: rgba(16, 185, 129, 0.5) !important; }
 
-        /* Loading states */
-        .vw-step-loading { opacity: 0.7; pointer-events: none; }
+        /* Loading animation */
         @keyframes vw-spin {
             to { transform: rotate(360deg); }
         }
@@ -231,10 +230,6 @@
             border-top-color: #8b5cf6 !important;
             border-radius: 50% !important;
             animation: vw-spin 0.8s linear infinite !important;
-        }
-
-        @keyframes vw-spin {
-            to { transform: rotate(360deg); }
         }
 
         .vw-btn-save {
@@ -425,18 +420,13 @@
 
             <div @if($isReachable) x-on:click="showModal('{{ __('Loading step...') }}')" wire:click="goToStep({{ $step }})" @endif
                  class="vw-step {{ $isActive ? 'active' : '' }} {{ $isCompleted ? 'completed' : '' }} {{ !$isReachable ? 'disabled' : '' }}"
-                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }};"
-                 wire:loading.class="vw-step-loading"
-                 wire:target="goToStep">
+                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }};">
                 <div class="vw-step-number">
-                    <span wire:loading.remove wire:target="goToStep({{ $step }})">
-                        @if($isCompleted)
-                            ✓
-                        @else
-                            {{ $step }}
-                        @endif
-                    </span>
-                    <span wire:loading wire:target="goToStep({{ $step }})" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                    @if($isCompleted)
+                        ✓
+                    @else
+                        {{ $step }}
+                    @endif
                 </div>
                 <span class="vw-step-label">{{ $title }}</span>
             </div>
