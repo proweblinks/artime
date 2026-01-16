@@ -337,6 +337,12 @@ class StructuredPromptBuilderService
         $styleBible = $options['style_bible'] ?? null;
         $sceneIndex = $options['scene_index'] ?? 0;
 
+        // Extract multi-shot context for proper framing
+        $shotType = $options['shot_type'] ?? null;
+        $shotIndex = $options['shot_index'] ?? null;
+        $totalShots = $options['total_shots'] ?? null;
+        $isMultiShot = $options['is_multi_shot'] ?? false;
+
         // Build subject from character bible
         $subject = $this->buildSubjectDescription($characterBible, $sceneIndex, $sceneDescription);
 
@@ -358,6 +364,9 @@ class StructuredPromptBuilderService
         // Build Location DNA for environmental consistency
         $locationDNA = $this->buildLocationDNA($locationBible, $sceneIndex);
 
+        // Build shot composition/framing instructions for multi-shot sequences
+        $composition = $this->buildShotComposition($shotType, $shotIndex, $totalShots, $isMultiShot);
+
         return [
             'scene_summary' => $sceneSummary,
             'subject' => $subject,
@@ -368,6 +377,7 @@ class StructuredPromptBuilderService
             'character_dna' => $characterDNA, // Array of DNA blocks for each character
             'style_dna' => $styleDNA,         // Style DNA block for visual consistency
             'location_dna' => $locationDNA,   // Location DNA block for environmental consistency
+            'composition' => $composition,    // Shot-specific framing instructions
         ];
     }
 
@@ -746,6 +756,22 @@ class StructuredPromptBuilderService
             $parts[] = $creative['scene_summary'];
         }
 
+        // SHOT COMPOSITION - Critical framing instructions for multi-shot sequences
+        $composition = $creative['composition'] ?? [];
+        if (!empty($composition['composition_instruction'])) {
+            // Add composition as HIGH PRIORITY instruction
+            $parts[] = '[FRAMING: ' . $composition['composition_instruction'] . ']';
+        }
+        if (!empty($composition['framing'])) {
+            $parts[] = $composition['framing'];
+        }
+        if (!empty($composition['subject_scale'])) {
+            $parts[] = $composition['subject_scale'];
+        }
+        if (!empty($composition['depth_of_field'])) {
+            $parts[] = $composition['depth_of_field'];
+        }
+
         // Subject details
         $subject = $creative['subject'] ?? [];
         if (!empty($subject['description'])) {
@@ -784,19 +810,42 @@ class StructuredPromptBuilderService
             $parts[] = $subject['character_count_instruction'];
         }
 
-        // Environment
+        // Environment - respect shot composition for background treatment
         $environment = $creative['environment'] ?? [];
+        $backgroundTreatment = $composition['background_treatment'] ?? '';
+        $shotType = $composition['shot_type'] ?? 'standard';
+
+        // For close-ups and extreme close-ups, minimize environment details
+        $isCloseShot = in_array($shotType, ['close-up', 'extreme-close-up', 'reaction', 'detail', 'insert']);
+
         if (!empty($environment['location']) || !empty($environment['background'])) {
             $envParts = [];
+
+            // Always include location context, but frame it appropriately
             if (!empty($environment['location'])) {
-                $envParts[] = 'set in ' . $environment['location'];
+                if ($isCloseShot) {
+                    // For close shots, just mention location without detail
+                    $envParts[] = 'location: ' . $environment['location'] . ' (blurred background)';
+                } else {
+                    $envParts[] = 'set in ' . $environment['location'];
+                }
             }
-            if (!empty($environment['background'])) {
-                $envParts[] = $environment['background'];
+
+            // Only add detailed background for wide/medium shots
+            if (!$isCloseShot) {
+                if (!empty($environment['background'])) {
+                    $envParts[] = $environment['background'];
+                }
+                if (!empty($environment['details'])) {
+                    $envParts[] = $environment['details'];
+                }
             }
-            if (!empty($environment['details'])) {
-                $envParts[] = $environment['details'];
+
+            // Add background treatment instruction if specified
+            if (!empty($backgroundTreatment)) {
+                $envParts[] = 'Background: ' . $backgroundTreatment;
             }
+
             $parts[] = implode(', ', array_filter($envParts));
         }
 
@@ -1235,6 +1284,132 @@ class StructuredPromptBuilderService
         }
 
         return "LOCATION DNA - {$name} (MAINTAIN CONSISTENCY):\n" . implode("\n", $parts);
+    }
+
+    // =========================================================================
+    // SHOT COMPOSITION - Framing & Composition for Multi-Shot Sequences
+    // =========================================================================
+
+    /**
+     * Build shot composition instructions based on shot type.
+     * This creates visual variety between shots in a multi-shot sequence.
+     */
+    protected function buildShotComposition(?string $shotType, ?int $shotIndex, ?int $totalShots, bool $isMultiShot): array
+    {
+        // Default composition if not a multi-shot context
+        if (!$isMultiShot || !$shotType) {
+            return [
+                'shot_type' => 'standard',
+                'framing' => '',
+                'depth_of_field' => '',
+                'subject_scale' => '',
+                'background_treatment' => '',
+                'composition_instruction' => '',
+            ];
+        }
+
+        // Detailed framing instructions per shot type - these define WHAT to show
+        $compositions = [
+            'establishing' => [
+                'shot_type' => 'establishing',
+                'framing' => 'ULTRA-WIDE establishing shot, environment-dominant composition',
+                'depth_of_field' => 'Deep focus - everything sharp from foreground to background',
+                'subject_scale' => 'Characters appear SMALL in frame (under 20% of frame height), environment takes 80%+ of composition',
+                'background_treatment' => 'Background is the PRIMARY subject - show full location scope',
+                'composition_instruction' => 'CRITICAL: This is an ENVIRONMENT shot. Show the ENTIRE location with tiny figures. Characters should be barely visible in the distance. Emphasize scale and atmosphere.',
+            ],
+            'wide' => [
+                'shot_type' => 'wide',
+                'framing' => 'Wide shot showing full scene context with spatial relationships',
+                'depth_of_field' => 'Deep focus - environment and characters both visible',
+                'subject_scale' => 'Characters appear at 30-40% of frame height, showing full bodies with significant environment',
+                'background_treatment' => 'Environment visible and in focus, providing context',
+                'composition_instruction' => 'Wide framing: Full body characters visible with significant environment. Show spatial relationships between characters and location.',
+            ],
+            'medium' => [
+                'shot_type' => 'medium',
+                'framing' => 'Medium shot from waist/hips up, balanced subject-environment ratio',
+                'depth_of_field' => 'Moderate depth - subject sharp, background slightly soft',
+                'subject_scale' => 'Characters fill 50-60% of frame height, waist-up framing',
+                'background_treatment' => 'Background visible but secondary, provides context without distraction',
+                'composition_instruction' => 'Medium framing: Waist-up composition showing upper body language and gestures. Subject dominates but environment remains visible.',
+            ],
+            'medium-close' => [
+                'shot_type' => 'medium-close',
+                'framing' => 'Medium close-up from chest up, intimate framing for dialogue',
+                'depth_of_field' => 'Shallow depth - face sharp, background noticeably soft',
+                'subject_scale' => 'Character fills 65-75% of frame height, chest-up framing',
+                'background_treatment' => 'Background soft and blurred, minimal distraction',
+                'composition_instruction' => 'Medium close-up: Chest-up framing focusing on facial expression and upper body. Background should be noticeably out of focus.',
+            ],
+            'close-up' => [
+                'shot_type' => 'close-up',
+                'framing' => 'Close-up of face filling the frame, emotional intensity',
+                'depth_of_field' => 'Very shallow - eyes sharp, ears may be soft, background completely blurred',
+                'subject_scale' => 'Face fills 80-90% of frame, head and shoulders framing',
+                'background_treatment' => 'Background is COMPLETELY BLURRED bokeh, unrecognizable',
+                'composition_instruction' => 'CRITICAL: CLOSE-UP means FACE FILLS THE FRAME. Show only head and shoulders. Background must be heavily blurred bokeh. Focus on eyes and emotional expression.',
+            ],
+            'extreme-close-up' => [
+                'shot_type' => 'extreme-close-up',
+                'framing' => 'Extreme close-up on specific detail - eyes, hands, or crucial object',
+                'depth_of_field' => 'Extremely shallow - only focal point sharp',
+                'subject_scale' => 'Detail fills 90%+ of frame - eyes only, or hands only, or single object',
+                'background_treatment' => 'No recognizable background - abstract blur or single color',
+                'composition_instruction' => 'EXTREME CLOSE-UP: Show ONLY the detail - eyes filling frame, OR hands/fingers, OR specific object. Nothing else visible. Macro-style isolation.',
+            ],
+            'reaction' => [
+                'shot_type' => 'reaction',
+                'framing' => 'Reaction shot focused on facial response to off-screen action',
+                'depth_of_field' => 'Shallow depth - face sharp, background soft',
+                'subject_scale' => 'Face fills 70-80% of frame, focused on emotional response',
+                'background_treatment' => 'Background blurred, attention on expression',
+                'composition_instruction' => 'Reaction shot: Focus ENTIRELY on facial expression showing emotional response. Subject reacting to something off-screen. Clear emotional read.',
+            ],
+            'detail' => [
+                'shot_type' => 'detail',
+                'framing' => 'Insert/detail shot of specific object or action',
+                'depth_of_field' => 'Selective focus on the detail only',
+                'subject_scale' => 'Object/detail fills most of frame',
+                'background_treatment' => 'Minimal or no background, isolated subject',
+                'composition_instruction' => 'DETAIL/INSERT: Show a SPECIFIC OBJECT or DETAIL - hands on keyboard, a document, a weapon, etc. NOT a face. NOT full scene. One specific element isolated.',
+            ],
+            'over-shoulder' => [
+                'shot_type' => 'over-shoulder',
+                'framing' => 'Over-the-shoulder shot showing conversation perspective',
+                'depth_of_field' => 'Foreground shoulder soft, facing character sharp',
+                'subject_scale' => 'Foreground character blurred shoulder/back, facing character at medium-close',
+                'background_treatment' => 'Background visible through conversation space',
+                'composition_instruction' => 'Over-shoulder: Show back/shoulder of one character in soft foreground, with another character in focus facing camera. Classic dialogue framing.',
+            ],
+            'pov' => [
+                'shot_type' => 'pov',
+                'framing' => 'Point-of-view shot from character\'s perspective',
+                'depth_of_field' => 'Natural vision depth - focus on what character is looking at',
+                'subject_scale' => 'Shows what character sees, not the character themselves',
+                'background_treatment' => 'Environment as character would see it',
+                'composition_instruction' => 'POV SHOT: Show what the CHARACTER SEES - their hands may be visible at bottom of frame, but NO face of the POV character. First-person perspective.',
+            ],
+            'insert' => [
+                'shot_type' => 'insert',
+                'framing' => 'Insert shot of specific narrative element',
+                'depth_of_field' => 'Tight focus on the insert element',
+                'subject_scale' => 'Specific element fills frame',
+                'background_treatment' => 'Minimal, undistracting',
+                'composition_instruction' => 'INSERT: Specific object, text, screen, hand action - NOT a character portrait. Show the THING that matters to the story.',
+            ],
+        ];
+
+        // Get composition for this shot type, fallback to medium
+        $comp = $compositions[$shotType] ?? $compositions['medium'];
+
+        // Add sequence context
+        if ($shotIndex !== null && $totalShots !== null) {
+            $position = $shotIndex + 1;
+            $comp['sequence_context'] = "Shot {$position} of {$totalShots} in sequence";
+        }
+
+        return $comp;
     }
 
     // =========================================================================

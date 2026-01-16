@@ -13588,23 +13588,46 @@ EOT;
                         $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? 'a cinematic scene';
                         $style = $decomposed['consistencyAnchors']['style'] ?? 'cinematic';
 
-                        // Get shot types for each quadrant
+                        // Build detailed framing instructions for each quadrant based on shot type
                         $quadrantDescriptions = [];
                         $positions = ['Top-left', 'Top-right', 'Bottom-left', 'Bottom-right'];
+
+                        // Professional framing instructions that create VISUAL VARIETY
+                        $framingInstructions = [
+                            'establishing' => 'ULTRA-WIDE view showing entire environment, characters appear small in the distance, emphasize location and atmosphere',
+                            'wide' => 'WIDE SHOT showing full scene environment with characters visible but environment dominant, deep focus',
+                            'medium' => 'MEDIUM SHOT framing characters from waist up, balanced composition with some background context',
+                            'medium-close' => 'MEDIUM CLOSE-UP framing character from chest up, intimate framing, soft background blur',
+                            'close-up' => 'CLOSE-UP of face filling the frame, shallow depth of field, blurred background, emotional focus',
+                            'extreme-close-up' => 'EXTREME CLOSE-UP of eyes or crucial detail, macro-style, abstract background',
+                            'reaction' => 'REACTION SHOT focused on face showing emotional response, tight framing on expression',
+                            'detail' => 'INSERT SHOT of specific object, hand, or detail element - NOT the full scene, macro focus',
+                            'over-shoulder' => 'OVER-THE-SHOULDER view showing one character from behind with another in focus',
+                            'pov' => 'POV SHOT showing what character sees, first-person perspective view',
+                            'insert' => 'INSERT SHOT of a specific detail, object, or action - close focus on one element only',
+                        ];
+
                         foreach ($pageShots as $idx => $shot) {
                             $shotType = $shot['type'] ?? 'medium';
                             $shotDesc = $shot['imagePrompt'] ?? $shot['prompt'] ?? $shot['description'] ?? '';
                             $position = $positions[$idx] ?? "Panel " . ($idx + 1);
-                            $quadrantDescriptions[] = "{$position}: {$shotType} shot" . ($shotDesc ? " - {$shotDesc}" : '');
+                            $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
+
+                            // Build rich quadrant description
+                            $quadrantDescriptions[] = "{$position} ({$shotType}): {$framing}" . ($shotDesc ? ". Content: {$shotDesc}" : '');
                         }
 
-                        // Build a clear prompt for generating ONE image with 4 panels
-                        $collagePrompt = "Create a 2x2 grid collage image divided into exactly 4 equal quadrants, showing 4 different camera angles of the same scene: {$sceneDescription}. " .
-                            implode('. ', $quadrantDescriptions) . ". " .
-                            "Each quadrant should show the same scene from a different perspective and camera angle. " .
-                            "The image must be clearly divided into 4 equal panels in a 2x2 grid layout. " .
-                            "Professional {$style} quality, consistent lighting, color grading, and art style across all four panels. " .
-                            "Maintain visual continuity - same characters, setting, and atmosphere in each panel.";
+                        // Build prompt that emphasizes VISUAL VARIETY between quadrants
+                        $collagePrompt = "Create a professional 2x2 grid storyboard with 4 DISTINCTLY DIFFERENT compositions based on: {$sceneDescription}. " .
+                            "CRITICAL: Each quadrant must show a COMPLETELY DIFFERENT framing and composition - they should NOT look similar! " .
+                            implode(' | ', $quadrantDescriptions) . ". " .
+                            "REQUIREMENTS: " .
+                            "1) Wide shots must show environment with tiny figures. " .
+                            "2) Close-ups must show only face/detail filling the frame. " .
+                            "3) Each panel must be visually distinct - different scale, different framing, different focal point. " .
+                            "4) Clear 2x2 grid layout with visible dividing lines between panels. " .
+                            "Professional {$style} cinematography, {$style} color grading. " .
+                            "Maintain character/setting consistency but VARY the shot composition dramatically between panels.";
 
                         $collageData['status'] = 'generating';
 
