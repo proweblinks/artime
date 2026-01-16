@@ -538,6 +538,16 @@ class VideoWizard extends Component
             'enabled' => false,
             'locations' => [],
         ],
+        // Scene DNA: Unified per-scene data combining all Bibles
+        // This is the single source of truth for what appears in each scene
+        'sceneDNA' => [
+            'enabled' => false,
+            'autoSync' => true,           // Auto-rebuild when Bibles change
+            'scenes' => [],               // Per-scene DNA data
+            'continuityIssues' => [],     // Detected inconsistencies
+            'characterAffinities' => [],  // Character-Location associations
+            'lastSyncedAt' => null,
+        ],
     ];
 
     // RunPod job polling state
@@ -11193,6 +11203,642 @@ EOT;
         } finally {
             $this->isGeneratingLocationRef = false;
         }
+    }
+
+    // =========================================================================
+    // SCENE DNA METHODS - Unified Bible Synchronization System
+    // =========================================================================
+
+    /**
+     * Build Scene DNA for all scenes.
+     * Combines Character Bible + Location Bible + Style Bible into unified per-scene data.
+     * This is the single source of truth for what appears in each scene.
+     */
+    public function buildSceneDNA(): void
+    {
+        $scenes = $this->script['scenes'] ?? [];
+        $totalScenes = count($scenes);
+
+        if ($totalScenes === 0) {
+            return;
+        }
+
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+        $locationBible = $this->sceneMemory['locationBible'] ?? [];
+        $styleBible = $this->sceneMemory['styleBible'] ?? [];
+
+        $sceneDNAData = [];
+
+        foreach ($scenes as $sceneIndex => $scene) {
+            // Get characters for this scene
+            $sceneCharacters = $this->getCharactersForSceneDNA($characterBible, $sceneIndex);
+
+            // Get location for this scene
+            $sceneLocation = $this->getLocationForSceneDNA($locationBible, $sceneIndex);
+
+            // Get location state if there are state changes
+            $locationState = null;
+            if ($sceneLocation && !empty($sceneLocation['stateChanges'])) {
+                $locationState = $this->getLocationStateAtScene($sceneLocation, $sceneIndex);
+            }
+
+            // Build the Scene DNA entry
+            $sceneDNAData[$sceneIndex] = [
+                'sceneIndex' => $sceneIndex,
+                'sceneTitle' => $scene['title'] ?? "Scene " . ($sceneIndex + 1),
+
+                // Characters in this scene
+                'characters' => array_map(function ($char) {
+                    return [
+                        'id' => $char['id'] ?? null,
+                        'name' => $char['name'] ?? 'Unknown',
+                        'role' => $char['role'] ?? 'supporting',
+                        'description' => $char['description'] ?? '',
+                        'hair' => $char['hair'] ?? [],
+                        'wardrobe' => $char['wardrobe'] ?? [],
+                        'makeup' => $char['makeup'] ?? [],
+                        'accessories' => $char['accessories'] ?? [],
+                        'hasReferenceImage' => !empty($char['referenceImageBase64']),
+                    ];
+                }, $sceneCharacters),
+                'characterCount' => count($sceneCharacters),
+                'characterNames' => array_map(fn($c) => $c['name'] ?? 'Unknown', $sceneCharacters),
+
+                // Location in this scene
+                'location' => $sceneLocation ? [
+                    'id' => $sceneLocation['id'] ?? null,
+                    'name' => $sceneLocation['name'] ?? 'Unknown Location',
+                    'description' => $sceneLocation['description'] ?? '',
+                    'type' => $sceneLocation['type'] ?? 'exterior',
+                    'timeOfDay' => $sceneLocation['timeOfDay'] ?? 'day',
+                    'weather' => $sceneLocation['weather'] ?? 'clear',
+                    'atmosphere' => $sceneLocation['atmosphere'] ?? '',
+                    'mood' => $sceneLocation['mood'] ?? '',
+                    'lightingStyle' => $sceneLocation['lightingStyle'] ?? '',
+                    'currentState' => $locationState,
+                    'hasReferenceImage' => !empty($sceneLocation['referenceImageBase64']),
+                ] : null,
+
+                // Style (global, applies to all scenes)
+                'style' => ($styleBible['enabled'] ?? false) ? [
+                    'visualStyle' => $styleBible['visualStyle'] ?? '',
+                    'colorPalette' => $styleBible['colorPalette'] ?? '',
+                    'lightingStyle' => $styleBible['lightingStyle'] ?? '',
+                    'mood' => $styleBible['mood'] ?? '',
+                    'era' => $styleBible['era'] ?? '',
+                ] : null,
+
+                // Scene-specific visual data
+                'visualDescription' => $scene['visualDescription'] ?? $scene['visual'] ?? '',
+                'mood' => $scene['mood'] ?? '',
+                'narration' => $scene['narration'] ?? '',
+
+                // Continuity tracking
+                'previousScene' => $sceneIndex > 0 ? $sceneIndex - 1 : null,
+                'nextScene' => $sceneIndex < $totalScenes - 1 ? $sceneIndex + 1 : null,
+            ];
+        }
+
+        // Store the Scene DNA
+        $this->sceneMemory['sceneDNA']['scenes'] = $sceneDNAData;
+        $this->sceneMemory['sceneDNA']['enabled'] = true;
+        $this->sceneMemory['sceneDNA']['lastSyncedAt'] = now()->toIso8601String();
+
+        // Build character-location affinities
+        $this->buildCharacterLocationAffinities();
+
+        // Validate continuity
+        $this->validateSceneContinuity();
+
+        Log::info('SceneDNA: Built unified scene data', [
+            'totalScenes' => $totalScenes,
+            'scenesWithCharacters' => count(array_filter($sceneDNAData, fn($s) => $s['characterCount'] > 0)),
+            'scenesWithLocations' => count(array_filter($sceneDNAData, fn($s) => $s['location'] !== null)),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Get characters for Scene DNA (with full data).
+     */
+    protected function getCharactersForSceneDNA(array $characterBible, int $sceneIndex): array
+    {
+        if (!($characterBible['enabled'] ?? false)) {
+            return [];
+        }
+
+        $characters = $characterBible['characters'] ?? [];
+        $sceneCharacters = [];
+
+        foreach ($characters as $character) {
+            $appliedScenes = $character['appliedScenes'] ?? [];
+
+            // Empty = all scenes, or check if scene is in list
+            if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
+                $sceneCharacters[] = $character;
+            }
+        }
+
+        return $sceneCharacters;
+    }
+
+    /**
+     * Get location for Scene DNA (with full data).
+     */
+    protected function getLocationForSceneDNA(array $locationBible, int $sceneIndex): ?array
+    {
+        if (!($locationBible['enabled'] ?? false)) {
+            return null;
+        }
+
+        $locations = $locationBible['locations'] ?? [];
+
+        foreach ($locations as $location) {
+            $scenes = $location['scenes'] ?? [];
+
+            // Empty = all scenes, or check if scene is in list
+            if (empty($scenes) || in_array($sceneIndex, $scenes)) {
+                return $location;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get location state at a specific scene (considering state changes).
+     */
+    protected function getLocationStateAtScene(array $location, int $sceneIndex): ?string
+    {
+        $stateChanges = $location['stateChanges'] ?? [];
+        if (empty($stateChanges)) {
+            return null;
+        }
+
+        // Sort by scene index
+        usort($stateChanges, fn($a, $b) =>
+            ($a['sceneIndex'] ?? $a['scene'] ?? 0) <=> ($b['sceneIndex'] ?? $b['scene'] ?? 0)
+        );
+
+        // Find the most recent state at or before this scene
+        $currentState = null;
+        foreach ($stateChanges as $change) {
+            $changeScene = $change['sceneIndex'] ?? $change['scene'] ?? -1;
+            if ($changeScene <= $sceneIndex) {
+                $currentState = $change['stateDescription'] ?? $change['state'] ?? null;
+            } else {
+                break;
+            }
+        }
+
+        return $currentState;
+    }
+
+    /**
+     * Build character-location affinities.
+     * Tracks which characters are commonly associated with which locations.
+     */
+    protected function buildCharacterLocationAffinities(): void
+    {
+        $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'] ?? [];
+        $affinities = [];
+
+        // Count character-location co-occurrences
+        foreach ($sceneDNA as $scene) {
+            $locationName = $scene['location']['name'] ?? null;
+            if (!$locationName) continue;
+
+            foreach ($scene['characters'] as $character) {
+                $charName = $character['name'] ?? 'Unknown';
+
+                if (!isset($affinities[$charName])) {
+                    $affinities[$charName] = [
+                        'locations' => [],
+                        'primaryLocation' => null,
+                        'sceneCount' => 0,
+                    ];
+                }
+
+                $affinities[$charName]['sceneCount']++;
+
+                if (!isset($affinities[$charName]['locations'][$locationName])) {
+                    $affinities[$charName]['locations'][$locationName] = 0;
+                }
+                $affinities[$charName]['locations'][$locationName]++;
+            }
+        }
+
+        // Determine primary location for each character (most frequent)
+        foreach ($affinities as $charName => &$data) {
+            if (!empty($data['locations'])) {
+                arsort($data['locations']);
+                $data['primaryLocation'] = array_key_first($data['locations']);
+            }
+        }
+
+        $this->sceneMemory['sceneDNA']['characterAffinities'] = $affinities;
+
+        Log::debug('SceneDNA: Built character-location affinities', [
+            'characterCount' => count($affinities),
+            'affinities' => array_map(fn($a) => $a['primaryLocation'], $affinities),
+        ]);
+    }
+
+    /**
+     * Validate scene continuity and detect issues.
+     */
+    protected function validateSceneContinuity(): void
+    {
+        $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'] ?? [];
+        $issues = [];
+
+        foreach ($sceneDNA as $sceneIndex => $scene) {
+            // Skip first scene
+            if ($sceneIndex === 0) continue;
+
+            $prevScene = $sceneDNA[$sceneIndex - 1] ?? null;
+            if (!$prevScene) continue;
+
+            // Check 1: Character teleportation
+            // If a character was at Location A in scene N-1, and scene N is also Location A,
+            // but character is missing, flag it
+            $prevLocation = $prevScene['location']['name'] ?? null;
+            $currLocation = $scene['location']['name'] ?? null;
+            $prevCharNames = $prevScene['characterNames'] ?? [];
+            $currCharNames = $scene['characterNames'] ?? [];
+
+            if ($prevLocation && $currLocation && $prevLocation === $currLocation) {
+                // Same location - check for missing characters
+                $missingChars = array_diff($prevCharNames, $currCharNames);
+                foreach ($missingChars as $charName) {
+                    // Only flag if character doesn't appear later (they might have left)
+                    $issues[] = [
+                        'type' => 'character_disappeared',
+                        'severity' => 'warning',
+                        'sceneIndex' => $sceneIndex,
+                        'message' => "{$charName} was at {$currLocation} in scene " . $sceneIndex . " but disappeared in scene " . ($sceneIndex + 1) . " (same location)",
+                        'suggestion' => "Either add {$charName} to scene " . ($sceneIndex + 1) . " or add a scene showing them leaving",
+                    ];
+                }
+            }
+
+            // Check 2: Location state continuity
+            // If location changed state in scene N-1, it should persist in scene N
+            $prevLocationState = $prevScene['location']['currentState'] ?? null;
+            $currLocationState = $scene['location']['currentState'] ?? null;
+
+            if ($prevLocation === $currLocation && $prevLocationState && !$currLocationState) {
+                $issues[] = [
+                    'type' => 'location_state_reset',
+                    'severity' => 'info',
+                    'sceneIndex' => $sceneIndex,
+                    'message' => "{$currLocation} had state '{$prevLocationState}' but no state in scene " . ($sceneIndex + 1),
+                    'suggestion' => "Location state should persist unless explicitly changed",
+                ];
+            }
+
+            // Check 3: Time of day jumps (no explicit time progression)
+            $prevTime = $prevScene['location']['timeOfDay'] ?? null;
+            $currTime = $scene['location']['timeOfDay'] ?? null;
+
+            if ($prevTime && $currTime) {
+                $timeOrder = ['dawn' => 1, 'morning' => 2, 'day' => 3, 'afternoon' => 4, 'evening' => 5, 'dusk' => 6, 'night' => 7];
+                $prevOrder = $timeOrder[$prevTime] ?? 3;
+                $currOrder = $timeOrder[$currTime] ?? 3;
+
+                // Flag if time goes backwards (unless it's a new day or flashback)
+                if ($currOrder < $prevOrder && abs($currOrder - $prevOrder) > 2) {
+                    $issues[] = [
+                        'type' => 'time_discontinuity',
+                        'severity' => 'info',
+                        'sceneIndex' => $sceneIndex,
+                        'message' => "Time jumps from {$prevTime} to {$currTime} between scenes " . $sceneIndex . " and " . ($sceneIndex + 1),
+                        'suggestion' => "This may be intentional (flashback/new day) - verify timeline",
+                    ];
+                }
+            }
+        }
+
+        $this->sceneMemory['sceneDNA']['continuityIssues'] = $issues;
+
+        if (!empty($issues)) {
+            Log::info('SceneDNA: Continuity issues detected', [
+                'issueCount' => count($issues),
+                'types' => array_count_values(array_column($issues, 'type')),
+            ]);
+        }
+    }
+
+    /**
+     * Get Scene DNA for a specific scene.
+     */
+    public function getSceneDNAForScene(int $sceneIndex): ?array
+    {
+        return $this->sceneMemory['sceneDNA']['scenes'][$sceneIndex] ?? null;
+    }
+
+    /**
+     * AI-powered full sync: Analyze script and populate all Bibles.
+     */
+    public function analyzeAndSyncAllBibles(): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $scenes = $this->script['scenes'] ?? [];
+            if (empty($scenes)) {
+                throw new \Exception('No scenes to analyze');
+            }
+
+            // Build context from all scenes
+            $sceneContexts = [];
+            foreach ($scenes as $idx => $scene) {
+                $sceneContexts[] = [
+                    'index' => $idx,
+                    'title' => $scene['title'] ?? "Scene " . ($idx + 1),
+                    'narration' => $scene['narration'] ?? '',
+                    'visualDescription' => $scene['visualDescription'] ?? $scene['visual'] ?? '',
+                ];
+            }
+
+            $prompt = $this->buildBibleAnalysisPrompt($sceneContexts);
+
+            // Call AI service
+            $aiService = app(\Modules\AppVideoWizard\app\Services\AIService::class);
+            $response = $aiService->generate($prompt, [
+                'max_tokens' => 4000,
+                'temperature' => 0.3,
+            ]);
+
+            if (empty($response)) {
+                throw new \Exception('Empty response from AI');
+            }
+
+            // Parse JSON response
+            $analysis = $this->parseAIBibleAnalysis($response);
+
+            if ($analysis) {
+                // Apply analysis to Bibles
+                $this->applyAIBibleAnalysis($analysis);
+
+                // Rebuild Scene DNA
+                $this->buildSceneDNA();
+
+                session()->flash('success', __('AI analysis complete! Bibles synchronized.'));
+            } else {
+                throw new \Exception('Could not parse AI analysis');
+            }
+
+        } catch (\Exception $e) {
+            $this->error = __('Bible analysis failed: ') . $e->getMessage();
+            Log::error('SceneDNA: AI analysis failed', ['error' => $e->getMessage()]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Build prompt for AI Bible analysis.
+     */
+    protected function buildBibleAnalysisPrompt(array $sceneContexts): string
+    {
+        $scenesJson = json_encode($sceneContexts, JSON_PRETTY_PRINT);
+
+        return <<<PROMPT
+Analyze this script and extract structured data for a video production system.
+
+SCENES:
+{$scenesJson}
+
+For each scene, identify:
+1. **Characters present** - Who appears in this scene (names, roles)
+2. **Location** - Where the scene takes place
+3. **Time of day** - When the scene occurs
+4. **Character states** - Any notable character conditions (injuries, emotions, wardrobe changes)
+5. **Location states** - Any changes to the location (damage, weather, lighting)
+
+Also identify:
+- **Character-Location associations** - Which characters are typically at which locations
+- **Continuity concerns** - Any potential issues with character/location consistency
+
+Return a JSON object with this structure:
+{
+  "characters": [
+    {
+      "name": "Character Name",
+      "role": "main|supporting|background",
+      "description": "Brief visual description",
+      "appearsInScenes": [0, 1, 2]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Location Name",
+      "type": "interior|exterior",
+      "description": "Visual description",
+      "timeOfDay": "day|night|dawn|dusk",
+      "appearsInScenes": [0, 1],
+      "stateChanges": [
+        {"sceneIndex": 2, "state": "damaged after explosion"}
+      ]
+    }
+  ],
+  "sceneAnalysis": [
+    {
+      "sceneIndex": 0,
+      "characters": ["Name1", "Name2"],
+      "location": "Location Name",
+      "timeOfDay": "day",
+      "mood": "tense",
+      "notes": "Any continuity notes"
+    }
+  ],
+  "characterAffinities": {
+    "Character Name": {
+      "primaryLocation": "Most common location",
+      "typicalCompanions": ["Other Character"]
+    }
+  }
+}
+
+Return ONLY valid JSON, no markdown or explanation.
+PROMPT;
+    }
+
+    /**
+     * Parse AI Bible analysis response.
+     */
+    protected function parseAIBibleAnalysis(string $response): ?array
+    {
+        // Clean response - remove markdown code blocks if present
+        $response = preg_replace('/^```json\s*/m', '', $response);
+        $response = preg_replace('/^```\s*/m', '', $response);
+        $response = trim($response);
+
+        try {
+            $data = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+            return $data;
+        } catch (\JsonException $e) {
+            Log::warning('SceneDNA: Failed to parse AI response', [
+                'error' => $e->getMessage(),
+                'responsePreview' => substr($response, 0, 500),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Apply AI Bible analysis to the actual Bibles.
+     */
+    protected function applyAIBibleAnalysis(array $analysis): void
+    {
+        // Apply characters to Character Bible
+        if (!empty($analysis['characters'])) {
+            $existingNames = array_map(
+                fn($c) => strtolower($c['name'] ?? ''),
+                $this->sceneMemory['characterBible']['characters'] ?? []
+            );
+
+            foreach ($analysis['characters'] as $char) {
+                $charName = $char['name'] ?? '';
+                if (empty($charName)) continue;
+
+                // Skip if already exists
+                if (in_array(strtolower($charName), $existingNames)) {
+                    // Update scene assignments for existing character
+                    foreach ($this->sceneMemory['characterBible']['characters'] as &$existingChar) {
+                        if (strtolower($existingChar['name'] ?? '') === strtolower($charName)) {
+                            // Merge scene assignments
+                            $existing = $existingChar['appliedScenes'] ?? [];
+                            $new = $char['appearsInScenes'] ?? [];
+                            $existingChar['appliedScenes'] = array_values(array_unique(array_merge($existing, $new)));
+                            sort($existingChar['appliedScenes']);
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                // Add new character
+                $this->sceneMemory['characterBible']['characters'][] = [
+                    'id' => 'char_' . time() . '_' . count($this->sceneMemory['characterBible']['characters']),
+                    'name' => $charName,
+                    'role' => $char['role'] ?? 'supporting',
+                    'description' => $char['description'] ?? '',
+                    'appliedScenes' => $char['appearsInScenes'] ?? [],
+                    'traits' => [],
+                    'hair' => ['color' => '', 'style' => '', 'length' => '', 'texture' => ''],
+                    'wardrobe' => ['outfit' => '', 'colors' => '', 'style' => '', 'footwear' => ''],
+                    'makeup' => ['style' => '', 'details' => ''],
+                    'accessories' => [],
+                    'referenceImage' => null,
+                    'fromAIAnalysis' => true,
+                ];
+            }
+
+            $this->sceneMemory['characterBible']['enabled'] = true;
+        }
+
+        // Apply locations to Location Bible
+        if (!empty($analysis['locations'])) {
+            $existingNames = array_map(
+                fn($l) => strtolower($l['name'] ?? ''),
+                $this->sceneMemory['locationBible']['locations'] ?? []
+            );
+
+            foreach ($analysis['locations'] as $loc) {
+                $locName = $loc['name'] ?? '';
+                if (empty($locName)) continue;
+
+                // Skip if already exists
+                if (in_array(strtolower($locName), $existingNames)) {
+                    // Update scene assignments for existing location
+                    foreach ($this->sceneMemory['locationBible']['locations'] as &$existingLoc) {
+                        if (strtolower($existingLoc['name'] ?? '') === strtolower($locName)) {
+                            // Merge scene assignments
+                            $existing = $existingLoc['scenes'] ?? [];
+                            $new = $loc['appearsInScenes'] ?? [];
+                            $existingLoc['scenes'] = array_values(array_unique(array_merge($existing, $new)));
+                            sort($existingLoc['scenes']);
+
+                            // Add state changes
+                            if (!empty($loc['stateChanges'])) {
+                                $existingLoc['stateChanges'] = array_merge(
+                                    $existingLoc['stateChanges'] ?? [],
+                                    $loc['stateChanges']
+                                );
+                            }
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                // Add new location
+                $this->sceneMemory['locationBible']['locations'][] = [
+                    'id' => 'loc_' . time() . '_' . count($this->sceneMemory['locationBible']['locations']),
+                    'name' => $locName,
+                    'type' => $loc['type'] ?? 'exterior',
+                    'description' => $loc['description'] ?? '',
+                    'timeOfDay' => $loc['timeOfDay'] ?? 'day',
+                    'weather' => 'clear',
+                    'atmosphere' => '',
+                    'mood' => '',
+                    'lightingStyle' => '',
+                    'scenes' => $loc['appearsInScenes'] ?? [],
+                    'stateChanges' => $loc['stateChanges'] ?? [],
+                    'referenceImage' => null,
+                    'fromAIAnalysis' => true,
+                ];
+            }
+
+            $this->sceneMemory['locationBible']['enabled'] = true;
+        }
+
+        // Store character affinities
+        if (!empty($analysis['characterAffinities'])) {
+            $this->sceneMemory['sceneDNA']['characterAffinities'] = $analysis['characterAffinities'];
+        }
+
+        Log::info('SceneDNA: Applied AI analysis to Bibles', [
+            'charactersAdded' => count($analysis['characters'] ?? []),
+            'locationsAdded' => count($analysis['locations'] ?? []),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Toggle Scene DNA auto-sync.
+     */
+    public function toggleSceneDNAAutoSync(): void
+    {
+        $this->sceneMemory['sceneDNA']['autoSync'] = !($this->sceneMemory['sceneDNA']['autoSync'] ?? true);
+        $this->saveProject();
+    }
+
+    /**
+     * Get Scene DNA summary for display.
+     */
+    public function getSceneDNASummary(): array
+    {
+        $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'] ?? [];
+        $issues = $this->sceneMemory['sceneDNA']['continuityIssues'] ?? [];
+        $affinities = $this->sceneMemory['sceneDNA']['characterAffinities'] ?? [];
+
+        return [
+            'totalScenes' => count($sceneDNA),
+            'scenesWithCharacters' => count(array_filter($sceneDNA, fn($s) => ($s['characterCount'] ?? 0) > 0)),
+            'scenesWithLocations' => count(array_filter($sceneDNA, fn($s) => $s['location'] !== null)),
+            'uniqueCharacters' => count(array_unique(array_merge(...array_map(fn($s) => $s['characterNames'] ?? [], $sceneDNA)))),
+            'uniqueLocations' => count(array_unique(array_filter(array_map(fn($s) => $s['location']['name'] ?? null, $sceneDNA)))),
+            'continuityIssues' => count($issues),
+            'issuesByType' => array_count_values(array_column($issues, 'type')),
+            'characterAffinities' => $affinities,
+            'lastSynced' => $this->sceneMemory['sceneDNA']['lastSyncedAt'] ?? null,
+        ];
     }
 
     // =========================================================================
