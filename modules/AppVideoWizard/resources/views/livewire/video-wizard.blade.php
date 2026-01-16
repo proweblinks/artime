@@ -5,9 +5,60 @@
 <script src="{{ asset('modules/appvideowizard/js/preview-controller.js') }}"></script>
 @endassets
 
-<div class="video-wizard min-h-screen" x-data="{ showPreview: false }">
+<div class="video-wizard min-h-screen"
+     x-data="{
+         showPreview: false,
+         isLoading: false,
+         loadingText: '',
+         showModal: function(text) {
+             this.loadingText = text || 'Loading...';
+             this.isLoading = true;
+         },
+         hideModal: function() {
+             this.isLoading = false;
+         }
+     }"
+     x-on:livewire:navigating.window="isLoading = true; loadingText = 'Loading...'"
+     x-on:livewire:navigated.window="isLoading = false"
+     x-init="
+         Livewire.hook('request', ({ respond }) => {
+             respond(() => { isLoading = false; });
+         });
+     "
+     wire:loading.class="vw-loading">
+
+    {{-- Global Loading Overlay for instant feedback --}}
+    <div x-show="isLoading"
+         x-transition:enter="transition ease-out duration-100"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-75"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2147483640; backdrop-filter: blur(2px);"
+         x-cloak>
+        <div style="background: linear-gradient(135deg, rgba(30,30,50,0.95), rgba(20,20,35,0.98)); padding: 1.5rem 2.5rem; border-radius: 1rem; border: 1px solid rgba(139,92,246,0.4); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 24px; height: 24px; border: 3px solid rgba(139,92,246,0.3); border-top-color: #8b5cf6; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
+                <span x-text="loadingText" style="color: white; font-weight: 500;"></span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Livewire loading indicator (shows during any server request) --}}
+    <div wire:loading.delay.longer
+         style="position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6); background-size: 200% 100%; animation: vw-loading-bar 1.5s ease-in-out infinite; z-index: 2147483650;">
+    </div>
+
     {{-- Embedded CSS for Stepper (ensures styles aren't overridden) --}}
     <style>
+        @keyframes vw-loading-bar {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .vw-loading { pointer-events: none; opacity: 0.9; }
+        [x-cloak] { display: none !important; }
+
         .vw-stepper {
             display: flex !important;
             flex-direction: row !important;
@@ -89,6 +140,12 @@
             flex-shrink: 0 !important;
         }
         .vw-connector.completed { background: rgba(16, 185, 129, 0.5) !important; }
+
+        /* Loading states */
+        .vw-step-loading { opacity: 0.7; pointer-events: none; }
+        @keyframes vw-spin {
+            to { transform: rotate(360deg); }
+        }
 
         @media (max-width: 768px) {
             .vw-stepper { justify-content: flex-start !important; padding: 0.75rem !important; }
@@ -366,15 +423,20 @@
                 $isReachable = $step <= $maxReachedStep + 1;
             @endphp
 
-            <div @if($isReachable) wire:click="goToStep({{ $step }})" @endif
+            <div @if($isReachable) x-on:click="showModal('{{ __('Loading step...') }}')" wire:click="goToStep({{ $step }})" @endif
                  class="vw-step {{ $isActive ? 'active' : '' }} {{ $isCompleted ? 'completed' : '' }} {{ !$isReachable ? 'disabled' : '' }}"
-                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }};">
+                 style="cursor: {{ $isReachable ? 'pointer' : 'not-allowed' }};"
+                 wire:loading.class="vw-step-loading"
+                 wire:target="goToStep">
                 <div class="vw-step-number">
-                    @if($isCompleted)
-                        ✓
-                    @else
-                        {{ $step }}
-                    @endif
+                    <span wire:loading.remove wire:target="goToStep({{ $step }})">
+                        @if($isCompleted)
+                            ✓
+                        @else
+                            {{ $step }}
+                        @endif
+                    </span>
+                    <span wire:loading wire:target="goToStep({{ $step }})" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
                 </div>
                 <span class="vw-step-label">{{ $title }}</span>
             </div>
