@@ -10,6 +10,7 @@ use Modules\AppVideoWizard\Services\SceneTypeDetectorService;
 use Modules\AppVideoWizard\Services\CameraMovementService;
 use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
 use Modules\AppVideoWizard\Services\ShotProgressionService;
+use Modules\AppVideoWizard\Services\DynamicShotEngine;
 
 /**
  * ShotIntelligenceService - AI-driven shot decomposition for scenes.
@@ -902,32 +903,25 @@ class ShotIntelligenceService
 
     /**
      * Get fallback analysis when AI fails.
+     * Uses DynamicShotEngine for content-driven intelligent fallback.
      */
     protected function getFallbackAnalysis(array $scene, array $context, int $minShots, int $maxShots): array
     {
-        $sceneDuration = $scene['duration'] ?? 30;
-        $clipDuration = (int) VwSetting::getValue('duration_shot_default', 6);
+        // Use DynamicShotEngine for intelligent content-driven fallback
+        $engine = new DynamicShotEngine($this->sceneTypeDetector);
+        $analysis = $engine->analyzeScene($scene, $context);
 
-        // Calculate shot count based on scene duration
-        $shotCount = max($minShots, min($maxShots, (int) ceil($sceneDuration / $clipDuration)));
+        // The engine handles all the intelligent calculation
+        // Just update the source to indicate it's a fallback
+        $analysis['source'] = 'dynamic_engine_fallback';
+        $analysis['reasoning'] = $analysis['reasoning'] . ' (AI unavailable, using content analysis)';
 
-        $shots = [];
-        $totalDuration = 0;
+        Log::info('ShotIntelligenceService: Using DynamicShotEngine fallback', [
+            'shotCount' => $analysis['shotCount'],
+            'sceneType' => $analysis['analysis']['sceneType'] ?? 'unknown',
+        ]);
 
-        for ($i = 0; $i < $shotCount; $i++) {
-            $shot = $this->createDefaultShot($i, $shotCount, $scene);
-            $shots[] = $shot;
-            $totalDuration += $shot['duration'];
-        }
-
-        return [
-            'success' => true,
-            'shotCount' => $shotCount,
-            'shots' => $shots,
-            'totalDuration' => $totalDuration,
-            'reasoning' => 'Standard shot breakdown (AI unavailable)',
-            'source' => 'fallback',
-        ];
+        return $analysis;
     }
 
     /**

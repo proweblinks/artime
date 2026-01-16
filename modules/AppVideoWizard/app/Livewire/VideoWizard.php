@@ -21,6 +21,7 @@ use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ShotProgressionService;
+use Modules\AppVideoWizard\Services\DynamicShotEngine;
 use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
 use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
 use Modules\AppVideoWizard\Services\PromptExpanderService;
@@ -12091,6 +12092,60 @@ PROMPT;
     }
 
     /**
+     * Get scene analysis and shot recommendation using DynamicShotEngine.
+     * This provides intelligent recommendations based on scene content.
+     *
+     * @param int $sceneIndex Scene index
+     * @return array Analysis with shotCount, sceneType, confidence, reasoning
+     */
+    public function getSceneRecommendation(int $sceneIndex): array
+    {
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        if (!$scene) {
+            return [
+                'shotCount' => 5,
+                'sceneType' => 'default',
+                'confidence' => 0,
+                'summary' => 'Scene not found',
+            ];
+        }
+
+        $engine = new DynamicShotEngine();
+        $context = $this->buildDecompositionContext($sceneIndex, $scene);
+
+        return $engine->getQuickRecommendation($scene, $context);
+    }
+
+    /**
+     * Build context for scene decomposition (used by DynamicShotEngine)
+     */
+    protected function buildDecompositionContext(int $sceneIndex, array $scene): array
+    {
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        return [
+            // Scene positioning
+            'sceneIndex' => $sceneIndex,
+            'totalScenes' => $totalScenes,
+
+            // Content metadata
+            'genre' => $this->content['genre'] ?? 'general',
+            'pacing' => $this->content['pacing'] ?? 'balanced',
+            'mood' => $scene['mood'] ?? 'neutral',
+
+            // Character data
+            'characters' => array_keys($this->sceneMemory['characterBible']['characters'] ?? []),
+
+            // Narrative progression
+            'tensionCurve' => $this->tensionCurve ?? 'balanced',
+            'emotionalJourney' => $this->emotionalJourney ?? 'hopeful-path',
+            'narrativePreset' => $this->narrativePreset ?? null,
+            'storyArc' => $this->storyArc ?? null,
+            'scriptTone' => $this->scriptTone ?? null,
+        ];
+    }
+
+    /**
      * Open multi-shot decomposition modal.
      */
     public function openMultiShotModal(int $sceneIndex): void
@@ -12115,7 +12170,8 @@ PROMPT;
 
     /**
      * Decompose scene into multiple shots.
-     * Uses AI Shot Intelligence when enabled, otherwise Hollywood Math: shots = sceneDuration / clipDuration
+     * Uses DynamicShotEngine for content-driven intelligent decomposition.
+     * Falls back to AI Shot Intelligence for enhanced prompts when enabled.
      */
     public function decomposeScene(int $sceneIndex): void
     {
@@ -12132,16 +12188,8 @@ PROMPT;
             $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
             $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
-            // Check if AI Shot Intelligence is enabled
-            $useAI = $this->isAiShotIntelligenceEnabled() && $this->multiShotCount <= 0;
-
-            if ($useAI) {
-                // Use AI-driven shot analysis
-                $shots = $this->decomposeSceneWithAI($scene, $sceneIndex, $visualDescription);
-            } else {
-                // Use traditional Hollywood Math calculation
-                $shots = $this->decomposeSceneTraditional($scene, $sceneIndex, $visualDescription);
-            }
+            // Use DynamicShotEngine for content-driven decomposition
+            $shots = $this->decomposeSceneWithDynamicEngine($scene, $sceneIndex, $visualDescription);
 
             // Calculate total duration for all shots
             $totalDuration = array_sum(array_column($shots, 'duration'));
@@ -12185,8 +12233,124 @@ PROMPT;
     }
 
     /**
+     * Decompose scene using DynamicShotEngine.
+     * Content-driven intelligent decomposition that considers:
+     * - Scene type (action, dialogue, emotional, establishing)
+     * - Character count (more characters = more coverage needed)
+     * - Dialogue density (dialogue needs close-up coverage)
+     * - Action intensity (action needs faster cuts)
+     * - Scene position (opening/climax affects pacing)
+     * - Pacing setting (fast/balanced/contemplative)
+     */
+    protected function decomposeSceneWithDynamicEngine(array $scene, int $sceneIndex, string $visualDescription): array
+    {
+        $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
+
+        // Build context for dynamic analysis
+        $context = $this->buildDecompositionContext($sceneIndex, $scene);
+
+        // Use DynamicShotEngine for content-driven shot calculation
+        $engine = new DynamicShotEngine();
+        $analysis = $engine->analyzeScene($scene, $context);
+
+        Log::info('VideoWizard: DynamicShotEngine analysis complete', [
+            'scene_id' => $sceneId,
+            'shot_count' => $analysis['shotCount'],
+            'scene_type' => $analysis['analysis']['sceneType'] ?? 'unknown',
+            'reasoning' => $analysis['reasoning'] ?? '',
+        ]);
+
+        // Convert engine analysis to shot structures with full prompts
+        $shots = [];
+        foreach ($analysis['shots'] as $i => $engineShot) {
+            $shotType = $this->getShotTypeForIndex($i, $analysis['shotCount'], $scene);
+
+            // Use engine's shot type if provided
+            if (!empty($engineShot['type'])) {
+                $shotType['type'] = $engineShot['type'];
+            }
+            if (!empty($engineShot['purpose'])) {
+                $shotType['purpose'] = $engineShot['purpose'];
+            }
+
+            $cameraMovement = $this->getCameraMovementForShot($shotType['type'], $i);
+            $duration = $engineShot['duration'] ?? $this->getClipDuration();
+
+            // Shot context for video prompt generation
+            $shotContext = [
+                'index' => $i,
+                'purpose' => $shotType['purpose'] ?? 'narrative',
+                'isChained' => $i > 0,
+                'description' => $shotType['description'] ?? '',
+                'narration' => $scene['narration'] ?? '',
+                'emotionalBeat' => $scene['emotionalBeat'] ?? $scene['mood'] ?? '',
+                'sceneTitle' => $scene['title'] ?? '',
+            ];
+
+            $shots[] = [
+                // Identification
+                'id' => "shot-{$sceneId}-{$i}",
+                'sceneId' => $sceneId,
+                'index' => $i,
+
+                // Shot type and description
+                'type' => $shotType['type'],
+                'shotType' => $shotType['type'],
+                'description' => $shotType['description'],
+                'purpose' => $shotType['purpose'],
+                'lens' => $shotType['lens'] ?? '50mm',
+
+                // Prompts for generation
+                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
+                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+
+                // Image state
+                'imageUrl' => null,
+                'imageStatus' => 'pending',
+                'status' => 'pending',
+
+                // Video state
+                'videoUrl' => null,
+                'videoStatus' => 'pending',
+
+                // Frame chain
+                'fromSceneImage' => $i === 0,
+                'fromFrameCapture' => $i > 0,
+                'capturedFrameUrl' => null,
+
+                // Timing
+                'duration' => $duration,
+                'selectedDuration' => $duration,
+                'durationClass' => $this->getDurationClass($duration),
+
+                // Camera movement
+                'cameraMovement' => $cameraMovement,
+
+                // Video model (default to minimax)
+                'selectedVideoModel' => 'minimax',
+                'needsLipSync' => false,
+
+                // Motion/Action description
+                'narrativeBeat' => [
+                    'motionDescription' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
+                ],
+
+                // Analysis metadata
+                'engineAnalysis' => [
+                    'sceneType' => $analysis['analysis']['sceneType'] ?? 'default',
+                    'confidence' => $analysis['analysis']['sceneTypeConfidence'] ?? 0,
+                ],
+            ];
+        }
+
+        return $shots;
+    }
+
+    /**
      * Decompose scene using AI Shot Intelligence.
      * Analyzes scene content to determine optimal shot breakdown.
+     * @deprecated Use decomposeSceneWithDynamicEngine instead
      */
     protected function decomposeSceneWithAI(array $scene, int $sceneIndex, string $visualDescription): array
     {

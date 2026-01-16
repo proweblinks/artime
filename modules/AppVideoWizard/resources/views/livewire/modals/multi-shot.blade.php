@@ -137,22 +137,71 @@ window.multiShotVideoPolling = function() {
                         </div>
                     </div>
 
-                    <div class="msm-shot-selector">
-                        <label>{{ __('Number of Shots') }}</label>
-                        <div class="msm-shot-buttons">
-                            <button type="button" wire:click="$set('multiShotCount', 0)" class="{{ $multiShotCount === 0 ? 'active ai' : '' }}">🤖 {{ __('AI') }}</button>
-                            @foreach($this->getShotCountOptions() as $count)
-                                <button type="button" wire:click="$set('multiShotCount', {{ $count }})" class="{{ $multiShotCount === $count ? 'active' : '' }}">{{ $count }}</button>
-                            @endforeach
+                    {{-- Intelligent Scene Analysis & Recommendation --}}
+                    @php
+                        $recommendation = $this->getSceneRecommendation($multiShotSceneIndex);
+                        $sceneType = $recommendation['sceneType'] ?? 'default';
+                        $confidence = $recommendation['confidence'] ?? 0;
+                        $recommendedShots = $recommendation['shotCount'] ?? 5;
+                        $summary = $recommendation['summary'] ?? '';
+                    @endphp
+
+                    <div class="msm-scene-analysis">
+                        <div class="msm-analysis-header">
+                            <span class="msm-analysis-icon">🎬</span>
+                            <span class="msm-analysis-title">{{ __('Scene Analysis') }}</span>
                         </div>
-                        <p class="msm-hint">
-                            @if($multiShotCount === 0)
-                                🤖 {{ __('AI will analyze the scene and determine optimal shot count') }}
-                            @else
-                                @php $limits = $this->getShotCountLimits(); @endphp
-                                💡 {{ __('Manual: :count shots (min: :min)', ['count' => $multiShotCount, 'min' => $limits['min']]) }}
-                            @endif
-                        </p>
+
+                        <div class="msm-analysis-grid">
+                            <div class="msm-analysis-item">
+                                <span class="msm-analysis-label">{{ __('Type') }}</span>
+                                <span class="msm-analysis-value msm-scene-type-{{ $sceneType }}">
+                                    {{ ucfirst($sceneType) }}
+                                    <small>({{ $confidence }}%)</small>
+                                </span>
+                            </div>
+                            <div class="msm-analysis-item">
+                                <span class="msm-analysis-label">{{ __('Duration') }}</span>
+                                <span class="msm-analysis-value">{{ $scene['duration'] ?? 30 }}s</span>
+                            </div>
+                            <div class="msm-analysis-item">
+                                <span class="msm-analysis-label">{{ __('Pacing') }}</span>
+                                <span class="msm-analysis-value">{{ ucfirst($this->content['pacing'] ?? 'balanced') }}</span>
+                            </div>
+                        </div>
+
+                        <div class="msm-recommendation-box">
+                            <div class="msm-recommendation-header">
+                                <span class="msm-recommendation-count">{{ $recommendedShots }}</span>
+                                <span class="msm-recommendation-label">{{ __('shots recommended') }}</span>
+                            </div>
+                            <p class="msm-recommendation-summary">{{ $summary }}</p>
+                        </div>
+
+                        {{-- Pacing Adjustment --}}
+                        <div class="msm-pacing-adjuster">
+                            <label>{{ __('Adjust Pacing') }}</label>
+                            <div class="msm-pacing-buttons">
+                                <button type="button"
+                                        wire:click="$set('content.pacing', 'fast')"
+                                        class="{{ ($this->content['pacing'] ?? 'balanced') === 'fast' ? 'active' : '' }}">
+                                    ⚡ {{ __('Fast') }}
+                                </button>
+                                <button type="button"
+                                        wire:click="$set('content.pacing', 'balanced')"
+                                        class="{{ ($this->content['pacing'] ?? 'balanced') === 'balanced' ? 'active' : '' }}">
+                                    ⚖️ {{ __('Balanced') }}
+                                </button>
+                                <button type="button"
+                                        wire:click="$set('content.pacing', 'contemplative')"
+                                        class="{{ ($this->content['pacing'] ?? 'balanced') === 'contemplative' ? 'active' : '' }}">
+                                    🌙 {{ __('Slower') }}
+                                </button>
+                            </div>
+                            <p class="msm-pacing-hint">
+                                {{ __('Pacing affects shot duration and count') }}
+                            </p>
+                        </div>
                     </div>
 
                     <button type="button" wire:click="decomposeScene({{ $multiShotSceneIndex }})" wire:loading.attr="disabled" wire:target="decomposeScene" class="msm-decompose-btn">
@@ -624,6 +673,35 @@ window.multiShotVideoPolling = function() {
 .msm-shot-buttons button.active { border-color: rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.2)); color: #fff; box-shadow: 0 4px 15px rgba(139,92,246,0.25); }
 .msm-shot-buttons button.ai.active { border-color: rgba(16,185,129,0.6); background: linear-gradient(135deg, rgba(16,185,129,0.3), rgba(6,182,212,0.25)); box-shadow: 0 4px 15px rgba(16,185,129,0.25); }
 .msm-hint { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 0.75rem; font-weight: 500; }
+
+/* Scene Analysis - New Intelligent UI */
+.msm-scene-analysis { background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(139,92,246,0.2); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.msm-analysis-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.msm-analysis-icon { font-size: 1.5rem; }
+.msm-analysis-title { color: #fff; font-size: 1.1rem; font-weight: 600; }
+.msm-analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+.msm-analysis-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.msm-analysis-label { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.msm-analysis-value { color: #fff; font-size: 1rem; font-weight: 600; }
+.msm-analysis-value small { color: rgba(255,255,255,0.5); font-weight: 400; margin-left: 0.25rem; }
+.msm-scene-type-action { color: #ef4444; }
+.msm-scene-type-dialogue { color: #3b82f6; }
+.msm-scene-type-emotional { color: #ec4899; }
+.msm-scene-type-establishing { color: #10b981; }
+.msm-scene-type-default { color: #8b5cf6; }
+.msm-recommendation-box { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(6,182,212,0.1)); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; text-align: center; }
+.msm-recommendation-header { display: flex; align-items: baseline; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.msm-recommendation-count { font-size: 2.5rem; font-weight: 800; color: #fff; text-shadow: 0 0 20px rgba(139,92,246,0.5); }
+.msm-recommendation-label { color: rgba(255,255,255,0.7); font-size: 1rem; font-weight: 500; }
+.msm-recommendation-summary { color: rgba(255,255,255,0.6); font-size: 0.85rem; line-height: 1.5; margin: 0; }
+.msm-pacing-adjuster { margin-top: 1rem; }
+.msm-pacing-adjuster label { display: block; color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; margin-bottom: 0.75rem; }
+.msm-pacing-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.msm-pacing-buttons button { padding: 0.75rem 0.5rem; border-radius: 10px; border: 2px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.8); cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s ease; }
+.msm-pacing-buttons button:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+.msm-pacing-buttons button.active { border-color: rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.2)); color: #fff; box-shadow: 0 4px 15px rgba(139,92,246,0.25); }
+.msm-pacing-hint { color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: 0.5rem; text-align: center; }
+
 .msm-decompose-btn { width: 100%; padding: 1.1rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 12px; color: #fff; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 6px 25px rgba(139,92,246,0.35); }
 .msm-decompose-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(139,92,246,0.45); }
 .msm-decompose-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
