@@ -172,6 +172,11 @@ class CinematicIntelligenceService
             $charName = $character['name'] ?? 'Unknown';
             $appliedScenes = $character['appliedScenes'] ?? [];
 
+            // Empty appliedScenes means "all scenes" - expand to full range
+            if (empty($appliedScenes)) {
+                $appliedScenes = range(0, $totalScenes - 1);
+            }
+
             $characterStates[$charId] = [
                 'name' => $charName,
                 'role' => $character['role'] ?? 'Supporting',
@@ -346,11 +351,17 @@ class CinematicIntelligenceService
     ): array {
         $inferences = [];
         $locationCharMap = []; // Track which characters were last seen at each location
+        $totalScenes = count($scenes);
 
         // Build initial map from existing character-scene assignments
         foreach ($characters as $char) {
             $charId = $char['id'] ?? '';
             $appliedScenes = $char['appliedScenes'] ?? [];
+
+            // Empty appliedScenes means "all scenes" - expand to full range
+            if (empty($appliedScenes)) {
+                $appliedScenes = range(0, $totalScenes - 1);
+            }
 
             foreach ($appliedScenes as $sceneIndex) {
                 if (isset($scenes[$sceneIndex])) {
@@ -683,11 +694,17 @@ class CinematicIntelligenceService
         array $generatedImages = []
     ): array {
         $chain = [];
+        $totalScenes = count($generatedImages);
 
         foreach ($characters as $char) {
             $charId = $char['id'] ?? '';
             $charName = $char['name'] ?? 'Unknown';
             $appliedScenes = $char['appliedScenes'] ?? [];
+
+            // Empty appliedScenes means "all scenes" - expand to full range
+            if (empty($appliedScenes)) {
+                $appliedScenes = range(0, max(0, $totalScenes - 1));
+            }
             sort($appliedScenes);
 
             if (empty($appliedScenes)) {
@@ -1040,8 +1057,10 @@ class CinematicIntelligenceService
         foreach ($characters as $char) {
             $role = $char['role'] ?? 'Supporting';
             $appliedScenes = $char['appliedScenes'] ?? [];
-            $sceneCount = count($appliedScenes);
             $charName = $char['name'] ?? 'Unknown';
+
+            // Empty appliedScenes means "all scenes" - count as total scenes
+            $sceneCount = empty($appliedScenes) ? $totalScenes : count($appliedScenes);
 
             $targetPercent = match ($role) {
                 'Main' => 0.70,
@@ -1181,7 +1200,8 @@ class CinematicIntelligenceService
             $beatScenes = array_keys(array_filter($storyBeats, fn($b) => $b === $keyBeat));
             foreach ($mainChars as $char) {
                 $charScenes = $char['appliedScenes'] ?? [];
-                $present = !empty(array_intersect($beatScenes, $charScenes));
+                // Empty appliedScenes means "all scenes" - character is present in all beats
+                $present = empty($charScenes) || !empty(array_intersect($beatScenes, $charScenes));
                 if (!$present && !empty($beatScenes)) {
                     $issues[] = [
                         'type' => 'main_char_missing_key_beat',
@@ -1272,7 +1292,9 @@ class CinematicIntelligenceService
             $role = $char['role'] ?? 'Supporting';
             $appliedScenes = $char['appliedScenes'] ?? [];
 
-            if (!empty($charId) && !empty($appliedScenes)) {
+            // Empty appliedScenes means "all scenes" - character should get emotional arc
+            // Only skip if charId is missing
+            if (!empty($charId)) {
                 $arc = $this->generateEmotionalArc($role, count($scenes), $genre);
                 $this->applyEmotionalArc($characterStates, $charId, $arc);
             }
