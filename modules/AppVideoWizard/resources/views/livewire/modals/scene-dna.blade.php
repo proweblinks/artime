@@ -318,12 +318,17 @@
                                                 </span>
                                             </div>
                                             <span style="color: rgba(255,255,255,0.5); font-size: 0.6rem;">
-                                                {{ __('Scene') }} {{ ($issue['fromScene'] ?? 0) + 1 }} → {{ ($issue['toScene'] ?? 0) + 1 }}
+                                                {{ __('Scene') }} {{ ($issue['prevSceneIndex'] ?? 0) + 1 }} → {{ ($issue['sceneIndex'] ?? 0) + 1 }}
                                             </span>
                                         </div>
                                         <p style="color: rgba(255,255,255,0.8); font-size: 0.65rem; margin: 0;">
-                                            {{ $issue['description'] ?? '' }}
+                                            {{ $issue['message'] ?? '' }}
                                         </p>
+                                        @if(!empty($issue['suggestion']))
+                                            <p style="color: rgba(16,185,129,0.8); font-size: 0.6rem; margin: 0.25rem 0 0 0; font-style: italic;">
+                                                💡 {{ $issue['suggestion'] }}
+                                            </p>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>

@@ -12043,7 +12043,8 @@ EOT;
         $sceneCharacters = [];
 
         foreach ($characters as $character) {
-            $appliedScenes = $character['appliedScenes'] ?? [];
+            // Support both field names: appliedScenes (internal) and appearsInScenes (from AI extraction)
+            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Empty = all scenes, or check if scene is in list
             if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
@@ -12066,8 +12067,9 @@ EOT;
         $locations = $locationBible['locations'] ?? [];
 
         // Priority 1: Find location with EXPLICIT scene assignment (most specific)
+        // Support both field names: scenes (internal) and appearsInScenes (from AI extraction)
         foreach ($locations as $location) {
-            $scenes = $location['scenes'] ?? [];
+            $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
 
             // Explicit scene assignment takes priority over "all scenes"
             if (!empty($scenes) && in_array($sceneIndex, $scenes)) {
@@ -12077,7 +12079,7 @@ EOT;
 
         // Priority 2: Fall back to location with empty scenes array (applies to all)
         foreach ($locations as $location) {
-            $scenes = $location['scenes'] ?? [];
+            $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
 
             if (empty($scenes)) {
                 return $location;
@@ -12234,7 +12236,8 @@ EOT;
                     'type' => 'location_state_reset',
                     'severity' => 'info',
                     'sceneIndex' => $sceneIndex,
-                    'message' => "{$currLocation} had state '{$prevLocationState}' but no state in scene " . ($sceneIndex + 1),
+                    'prevSceneIndex' => $sceneIndex - 1,
+                    'message' => "{$currLocation} had state '{$prevLocationState}' in scene {$sceneIndex} but no state in scene " . ($sceneIndex + 1),
                     'suggestion' => "Location state should persist unless explicitly changed",
                 ];
             }
@@ -12244,17 +12247,31 @@ EOT;
             $currTime = $scene['location']['timeOfDay'] ?? null;
 
             if ($prevTime && $currTime) {
-                $timeOrder = ['dawn' => 1, 'morning' => 2, 'day' => 3, 'afternoon' => 4, 'evening' => 5, 'dusk' => 6, 'night' => 7];
+                // Time order map - consistent with LocationExtractionService normalizeTimeOfDay()
+                // Values: dawn, day (normalized from morning/afternoon), golden-hour, dusk, night (normalized from evening)
+                $timeOrder = [
+                    'dawn' => 1,
+                    'morning' => 2,  // Legacy support - should be normalized to 'day'
+                    'day' => 3,
+                    'afternoon' => 4,  // Legacy support - should be normalized to 'day'
+                    'golden-hour' => 5,
+                    'evening' => 6,  // Legacy support - should be normalized to 'night'
+                    'dusk' => 7,
+                    'night' => 8,
+                ];
                 $prevOrder = $timeOrder[$prevTime] ?? 3;
                 $currOrder = $timeOrder[$currTime] ?? 3;
 
-                // Flag if time goes backwards (unless it's a new day or flashback)
-                if ($currOrder < $prevOrder && abs($currOrder - $prevOrder) > 2) {
+                // Flag if time goes backwards significantly (unless it's a new day or flashback)
+                if ($currOrder < $prevOrder && abs($currOrder - $prevOrder) > 3) {
+                    $prevSceneNum = $sceneIndex;  // 0-indexed, display as scene number
+                    $currSceneNum = $sceneIndex + 1;
                     $issues[] = [
                         'type' => 'time_discontinuity',
                         'severity' => 'info',
                         'sceneIndex' => $sceneIndex,
-                        'message' => "Time jumps from {$prevTime} to {$currTime} between scenes " . $sceneIndex . " and " . ($sceneIndex + 1),
+                        'prevSceneIndex' => $sceneIndex - 1,
+                        'message' => "Time jumps backwards from {$prevTime} to {$currTime} between scenes {$prevSceneNum} and {$currSceneNum}",
                         'suggestion' => "This may be intentional (flashback/new day) - verify timeline",
                     ];
                 }
@@ -15042,7 +15059,8 @@ PROMPT;
     {
         $characters = [];
         foreach ($this->sceneMemory['characterBible']['characters'] ?? [] as $character) {
-            $appliedScenes = $character['appliedScenes'] ?? [];
+            // Support both field names: appliedScenes (internal) and appearsInScenes (from AI extraction)
+            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
             // Empty array means "applies to ALL scenes" (default behavior)
             // Non-empty array means "applies only to these specific scenes"
             if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
@@ -15058,7 +15076,8 @@ PROMPT;
     protected function getLocationForScene(int $sceneIndex): ?array
     {
         foreach ($this->sceneMemory['locationBible']['locations'] ?? [] as $location) {
-            $appliedScenes = $location['appliedScenes'] ?? $location['scenes'] ?? [];
+            // Support multiple field names: scenes (internal), appliedScenes (legacy), appearsInScenes (from AI extraction)
+            $appliedScenes = $location['scenes'] ?? $location['appliedScenes'] ?? $location['appearsInScenes'] ?? [];
             // Empty array means "applies to ALL scenes" (default behavior)
             // Non-empty array means "applies only to these specific scenes"
             if (empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {
