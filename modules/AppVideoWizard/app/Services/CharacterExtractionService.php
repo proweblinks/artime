@@ -721,7 +721,8 @@ USER;
         foreach ($characters as $idx => $char) {
             $name = $char['name'] ?? 'Unknown';
             $role = $char['role'] ?? 'Supporting';
-            $scenes = $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching VideoWizard)
+            $scenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
             $sceneStr = !empty($scenes) ? implode(', ', array_map(fn($s) => $s + 1, $scenes)) : 'various';
 
             $charList[] = "- {$name} ({$role}): appears in scenes {$sceneStr}";
@@ -891,8 +892,9 @@ PROMPT;
                 return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
             }
 
-            $aScenes = count($a['appliedScenes'] ?? $a['appearsInScenes'] ?? []);
-            $bScenes = count($b['appliedScenes'] ?? $b['appearsInScenes'] ?? []);
+            // Support multiple field names for scene assignment (matching VideoWizard)
+            $aScenes = count($a['scenes'] ?? $a['appliedScenes'] ?? $a['appearsInScenes'] ?? []);
+            $bScenes = count($b['scenes'] ?? $b['appliedScenes'] ?? $b['appearsInScenes'] ?? []);
 
             if ($method === 'scenes_only') {
                 return $bScenes - $aScenes; // Descending by scene count

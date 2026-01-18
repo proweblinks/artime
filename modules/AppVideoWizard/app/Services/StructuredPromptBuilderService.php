@@ -846,8 +846,8 @@ class StructuredPromptBuilderService
         $sceneCharacters = [];
 
         foreach ($characters as $character) {
-            // Support multiple field names for scene assignment (matching ImageGenerationService)
-            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching VideoWizard and ImageGenerationService)
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Include character if:
             // - sceneIndex is null (no scene context, e.g., portrait generation) - include all
@@ -865,11 +865,11 @@ class StructuredPromptBuilderService
             'filteredCharacterCount' => count($sceneCharacters),
             'filteredCharacters' => array_map(fn($c) => [
                 'name' => $c['name'] ?? 'Unknown',
-                'appliedScenes' => $c['appliedScenes'] ?? $c['appearsInScenes'] ?? [],
+                'appliedScenes' => $c['scenes'] ?? $c['appliedScenes'] ?? $c['appearsInScenes'] ?? [],
             ], $sceneCharacters),
             'excludedCharacters' => array_map(fn($c) => [
                 'name' => $c['name'] ?? 'Unknown',
-                'appliedScenes' => $c['appliedScenes'] ?? $c['appearsInScenes'] ?? [],
+                'appliedScenes' => $c['scenes'] ?? $c['appliedScenes'] ?? $c['appearsInScenes'] ?? [],
             ], array_filter($characters, fn($c) => !in_array($c, $sceneCharacters))),
         ]);
 
@@ -1472,7 +1472,8 @@ class StructuredPromptBuilderService
         $dnaBlocks = [];
 
         foreach ($characters as $character) {
-            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching VideoWizard and ImageGenerationService)
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Include if: no scene context, applies to all scenes, or matches this scene
             if ($sceneIndex === null || empty($appliedScenes) || in_array($sceneIndex, $appliedScenes)) {

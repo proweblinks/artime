@@ -2503,7 +2503,8 @@ EOT;
         }
 
         return array_filter($characters, function ($character) use ($sceneIndex) {
-            $appliedScenes = $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching VideoWizard and StructuredPromptBuilder)
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Empty array means character applies to ALL scenes (per UI design)
             if (empty($appliedScenes)) {
