@@ -8446,6 +8446,7 @@ class VideoWizard extends Component
 
     /**
      * Validate and fill missing scene assignments for locations.
+     * ENFORCES: Each scene can only belong to ONE location (no duplicates allowed).
      * Ensures every scene has at least one location assigned.
      */
     protected function validateLocationSceneAssignments(): void
@@ -8460,67 +8461,58 @@ class VideoWizard extends Component
             return;
         }
 
-        // STEP 0: Resolve conflicts - each scene can only belong to ONE location
-        // If multiple locations claim the same scene, keep it only in the FIRST location that has it
+        // MASTER OWNERSHIP MAP - tracks which location owns each scene
+        // This is the SINGLE SOURCE OF TRUTH and must be maintained throughout ALL steps
         $sceneOwnership = []; // sceneIndex => locationIndex
+
+        // STEP 0: Build initial ownership map and resolve conflicts
+        // If multiple locations claim the same scene, keep it only in the FIRST location
         foreach ($locations as $locIdx => &$location) {
             $locationScenes = $location['scenes'] ?? [];
             $filteredScenes = [];
             foreach ($locationScenes as $sceneIndex) {
                 if (!isset($sceneOwnership[$sceneIndex])) {
-                    // This location is the first to claim this scene - keep it
+                    // This location is the first to claim this scene
                     $sceneOwnership[$sceneIndex] = $locIdx;
                     $filteredScenes[] = $sceneIndex;
                 }
-                // If scene is already owned by another location, skip it (remove duplicate)
+                // If scene is already owned, skip it (remove duplicate)
             }
             $location['scenes'] = $filteredScenes;
             sort($location['scenes']);
         }
         unset($location);
 
-        // Track which scenes are covered
-        // NOTE: Empty 'scenes' array now means "no scenes assigned" (NOT "all scenes")
-        // Locations with empty scenes will be assigned to uncovered scenes
-        $coveredScenes = [];
-        $locationsWithEmptyScenes = [];
-
-        foreach ($locations as $idx => $location) {
-            $locationScenes = $location['scenes'] ?? [];
-
-            // Empty array means this location has NO assigned scenes yet
-            if (empty($locationScenes)) {
-                $locationsWithEmptyScenes[] = $idx;
-            } else {
-                foreach ($locationScenes as $sceneIndex) {
-                    $coveredScenes[$sceneIndex] = true;
-                }
-            }
-        }
-
-        // Find uncovered scenes
+        // Find uncovered scenes (not owned by any location)
         $uncoveredScenes = [];
         for ($i = 0; $i < $totalScenes; $i++) {
-            if (!isset($coveredScenes[$i])) {
+            if (!isset($sceneOwnership[$i])) {
                 $uncoveredScenes[] = $i;
             }
         }
 
-        // STEP 1: First distribute uncovered scenes to locations without assignments
-        if (!empty($uncoveredScenes) && !empty($locationsWithEmptyScenes)) {
-            Log::debug('LocationValidation: Distributing uncovered scenes to empty locations', [
-                'uncoveredScenes' => $uncoveredScenes,
-                'emptyLocations' => count($locationsWithEmptyScenes),
-            ]);
+        // Find locations without any scenes
+        $locationsWithEmptyScenes = [];
+        foreach ($locations as $idx => $location) {
+            if (empty($location['scenes'])) {
+                $locationsWithEmptyScenes[] = $idx;
+            }
+        }
 
+        // STEP 1: Distribute uncovered scenes to locations without assignments
+        if (!empty($uncoveredScenes) && !empty($locationsWithEmptyScenes)) {
             $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithEmptyScenes)));
             $scenePointer = 0;
 
             foreach ($locationsWithEmptyScenes as $locIdx) {
                 $assignedScenes = [];
                 for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
-                    $assignedScenes[] = $uncoveredScenes[$scenePointer];
-                    $coveredScenes[$uncoveredScenes[$scenePointer]] = true; // Mark as covered
+                    $sceneIndex = $uncoveredScenes[$scenePointer];
+                    // ALWAYS check ownership before assigning
+                    if (!isset($sceneOwnership[$sceneIndex])) {
+                        $sceneOwnership[$sceneIndex] = $locIdx;
+                        $assignedScenes[] = $sceneIndex;
+                    }
                     $scenePointer++;
                 }
                 if (!empty($assignedScenes)) {
@@ -8532,50 +8524,40 @@ class VideoWizard extends Component
             // Recalculate uncovered scenes
             $uncoveredScenes = [];
             for ($i = 0; $i < $totalScenes; $i++) {
-                if (!isset($coveredScenes[$i])) {
+                if (!isset($sceneOwnership[$i])) {
                     $uncoveredScenes[] = $i;
                 }
             }
         }
 
-        // STEP 2: If there are still uncovered scenes, assign them to adjacent locations
+        // STEP 2: Assign remaining uncovered scenes to adjacent locations
         if (!empty($uncoveredScenes)) {
-            Log::debug('LocationValidation: Found remaining uncovered scenes', [
-                'uncovered' => $uncoveredScenes,
-                'total' => $totalScenes,
-            ]);
-
             foreach ($uncoveredScenes as $sceneIndex) {
-                $assignedLocation = null;
-
-                // Check previous scene's location
-                if ($sceneIndex > 0 && isset($coveredScenes[$sceneIndex - 1])) {
-                    foreach ($locations as $idx => &$loc) {
-                        $locScenes = $loc['scenes'] ?? [];
-                        if (!empty($locScenes) && in_array($sceneIndex - 1, $locScenes)) {
-                            $loc['scenes'][] = $sceneIndex;
-                            $assignedLocation = $loc['name'];
-                            break;
-                        }
-                    }
+                // Skip if already owned (safety check)
+                if (isset($sceneOwnership[$sceneIndex])) {
+                    continue;
                 }
 
-                // If not assigned, check next scene's location
-                if (!$assignedLocation && $sceneIndex < $totalScenes - 1 && isset($coveredScenes[$sceneIndex + 1])) {
-                    foreach ($locations as $idx => &$loc) {
-                        $locScenes = $loc['scenes'] ?? [];
-                        if (!empty($locScenes) && in_array($sceneIndex + 1, $locScenes)) {
-                            $loc['scenes'][] = $sceneIndex;
-                            $assignedLocation = $loc['name'];
-                            break;
-                        }
-                    }
+                $assigned = false;
+
+                // Try to assign to location that owns the previous scene
+                if (!$assigned && $sceneIndex > 0 && isset($sceneOwnership[$sceneIndex - 1])) {
+                    $ownerIdx = $sceneOwnership[$sceneIndex - 1];
+                    $sceneOwnership[$sceneIndex] = $ownerIdx;
+                    $locations[$ownerIdx]['scenes'][] = $sceneIndex;
+                    $assigned = true;
                 }
 
-                // If still not assigned, distribute round-robin among ALL locations (not just first)
-                // This prevents the first location from accumulating all uncovered scenes
-                if (!$assignedLocation && !empty($locations)) {
-                    // Find the location with the FEWEST scenes assigned (for better balance)
+                // Try to assign to location that owns the next scene
+                if (!$assigned && $sceneIndex < $totalScenes - 1 && isset($sceneOwnership[$sceneIndex + 1])) {
+                    $ownerIdx = $sceneOwnership[$sceneIndex + 1];
+                    $sceneOwnership[$sceneIndex] = $ownerIdx;
+                    $locations[$ownerIdx]['scenes'][] = $sceneIndex;
+                    $assigned = true;
+                }
+
+                // Fallback: assign to location with fewest scenes
+                if (!$assigned) {
                     $minScenes = PHP_INT_MAX;
                     $targetIdx = 0;
                     foreach ($locations as $idx => $loc) {
@@ -8585,30 +8567,56 @@ class VideoWizard extends Component
                             $targetIdx = $idx;
                         }
                     }
-
+                    $sceneOwnership[$sceneIndex] = $targetIdx;
                     if (!isset($locations[$targetIdx]['scenes'])) {
                         $locations[$targetIdx]['scenes'] = [];
                     }
                     $locations[$targetIdx]['scenes'][] = $sceneIndex;
-                    $assignedLocation = $locations[$targetIdx]['name'];
                 }
-
-                // Logging removed from loop for performance - see final summary log
             }
         }
 
-        // STEP 3: Ensure all locations have at least one scene (round-robin for any still empty)
+        // STEP 3: Ensure all locations have at least one scene
         foreach ($locations as $idx => &$loc) {
             if (empty($loc['scenes'])) {
-                $loc['scenes'] = [$idx % $totalScenes];
+                // Find an unclaimed scene, or use round-robin
+                $assignedScene = null;
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    if (!isset($sceneOwnership[$i])) {
+                        $assignedScene = $i;
+                        $sceneOwnership[$i] = $idx;
+                        break;
+                    }
+                }
+                if ($assignedScene === null) {
+                    // All scenes are claimed - give this location the scene at its index position
+                    // This is a last resort and will create a duplicate, but ensures every location has a scene
+                    $assignedScene = $idx % $totalScenes;
+                }
+                $loc['scenes'] = [$assignedScene];
             }
-            // Clean up and sort
-            $loc['scenes'] = array_values(array_unique($loc['scenes']));
+            // Sort scenes for consistent display
             sort($loc['scenes']);
         }
+        unset($loc);
+
+        // FINAL STEP: Rebuild all location scenes from the ownership map
+        // This guarantees no duplicates exist across locations
+        $locationScenesFinal = array_fill(0, count($locations), []);
+        foreach ($sceneOwnership as $sceneIndex => $locIdx) {
+            if (isset($locationScenesFinal[$locIdx])) {
+                $locationScenesFinal[$locIdx][] = $sceneIndex;
+            }
+        }
+        foreach ($locations as $idx => &$loc) {
+            $loc['scenes'] = $locationScenesFinal[$idx] ?? [];
+            sort($loc['scenes']);
+        }
+        unset($loc);
 
         Log::debug('LocationValidation: Complete', [
             'totalLocations' => count($locations),
+            'sceneOwnership' => $sceneOwnership,
             'locationAssignments' => array_map(fn($l) => ['name' => $l['name'], 'scenes' => $l['scenes'] ?? []], $locations),
         ]);
     }
