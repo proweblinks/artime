@@ -12846,11 +12846,16 @@ PROMPT;
 
         // Extract character descriptions from Character Bible
         $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
-        if (!empty($characters)) {
+        if (!empty($characters) && is_array($characters)) {
             $characterDescriptions = [];
             foreach ($characters as $name => $character) {
+                if (!is_array($character)) continue;
                 $desc = $character['appearance'] ?? $character['description'] ?? '';
-                if ($desc) {
+                // Ensure desc is a string
+                if (is_array($desc)) {
+                    $desc = implode(' ', array_filter($desc));
+                }
+                if ($desc && is_string($desc)) {
                     $characterDescriptions[] = "{$name}: {$desc}";
                 }
             }
@@ -12861,38 +12866,50 @@ PROMPT;
 
         // Extract location description from Location Bible
         $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
-        if (!empty($locations)) {
+        if (!empty($locations) && is_array($locations)) {
             // Try to find location for this scene from Scene DNA
             $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'][$sceneIndex] ?? null;
             $sceneLocationName = $sceneDNA['location']['name'] ?? null;
 
+            $locationDesc = '';
             if ($sceneLocationName && isset($locations[$sceneLocationName])) {
                 $loc = $locations[$sceneLocationName];
-                $context['location'] = $loc['description'] ?? $loc['visualDetails'] ?? $sceneLocationName;
+                if (is_array($loc)) {
+                    $locationDesc = $loc['description'] ?? $loc['visualDetails'] ?? $sceneLocationName;
+                }
             } else {
                 // Use first location as fallback
                 $firstLocation = reset($locations);
-                if ($firstLocation) {
-                    $context['location'] = $firstLocation['description'] ?? $firstLocation['visualDetails'] ?? '';
+                if ($firstLocation && is_array($firstLocation)) {
+                    $locationDesc = $firstLocation['description'] ?? $firstLocation['visualDetails'] ?? '';
                 }
             }
+            // Ensure locationDesc is a string
+            if (is_array($locationDesc)) {
+                $locationDesc = implode(' ', array_filter($locationDesc));
+            }
+            $context['location'] = is_string($locationDesc) ? $locationDesc : '';
         }
 
         // Extract style from Style Bible
         $styleBible = $this->sceneMemory['styleBible'] ?? [];
-        if (!empty($styleBible)) {
+        if (!empty($styleBible) && is_array($styleBible)) {
             $styleParts = [];
             if (!empty($styleBible['style'])) {
-                $styleParts[] = $styleBible['style'];
+                $styleVal = is_array($styleBible['style']) ? implode(', ', $styleBible['style']) : $styleBible['style'];
+                if ($styleVal) $styleParts[] = $styleVal;
             }
             if (!empty($styleBible['mood'])) {
-                $styleParts[] = "mood: {$styleBible['mood']}";
+                $moodVal = is_array($styleBible['mood']) ? implode(', ', $styleBible['mood']) : $styleBible['mood'];
+                if ($moodVal) $styleParts[] = "mood: {$moodVal}";
             }
             if (!empty($styleBible['lighting'])) {
-                $styleParts[] = "lighting: {$styleBible['lighting']}";
+                $lightVal = is_array($styleBible['lighting']) ? implode(', ', $styleBible['lighting']) : $styleBible['lighting'];
+                if ($lightVal) $styleParts[] = "lighting: {$lightVal}";
             }
             if (!empty($styleBible['colorPalette'])) {
-                $styleParts[] = "colors: {$styleBible['colorPalette']}";
+                $colorVal = is_array($styleBible['colorPalette']) ? implode(', ', $styleBible['colorPalette']) : $styleBible['colorPalette'];
+                if ($colorVal) $styleParts[] = "colors: {$colorVal}";
             }
             if (!empty($styleParts)) {
                 $context['style'] = implode(', ', $styleParts);
@@ -15571,7 +15588,14 @@ PROMPT;
                         }
 
                         $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? 'a cinematic scene';
+                        if (is_array($sceneDescription)) {
+                            $sceneDescription = implode(' ', array_filter($sceneDescription));
+                        }
                         $style = $decomposed['consistencyAnchors']['style'] ?? $this->sceneMemory['styleBible']['style'] ?? 'cinematic';
+                        if (is_array($style)) {
+                            $style = implode(', ', array_filter($style));
+                        }
+                        $style = $style ?: 'cinematic'; // Ensure not empty
 
                         // Build consistency context from Scene Memory (Character Bible, Location Bible, Style Profile)
                         $consistencyContext = $this->buildCollageConsistencyContext($sceneIndex);
