@@ -462,6 +462,7 @@ class VideoWizard extends Component
     public bool $isLoading = false;
     public bool $isSaving = false;
     public bool $isBatchUpdating = false;  // Prevents cascading updated() triggers during batch operations
+    public bool $isDirty = false;          // Tracks whether data has changed since last save (Phase 2 optimization)
     public bool $isTransitioning = false;  // Track step transitions for loading overlay
     public ?string $transitionMessage = null;  // Message to show during transition
     public ?string $error = null;
@@ -1324,6 +1325,7 @@ class VideoWizard extends Component
     /**
      * Compute a hash of the current saveable state.
      * Used to detect changes and avoid redundant saves.
+     * PHASE 2 OPTIMIZATION: Only called when isDirty flag is set.
      */
     protected function computeSaveHash(): string
     {
@@ -1353,8 +1355,31 @@ class VideoWizard extends Component
     }
 
     /**
+     * Mark the project as having unsaved changes.
+     * PHASE 2 OPTIMIZATION: Use this instead of calling saveProject() directly
+     * for operations that don't require immediate persistence.
+     * The actual save will happen at key moments (step transitions, modal closes).
+     */
+    public function markDirty(): void
+    {
+        $this->isDirty = true;
+    }
+
+    /**
+     * Save project if there are pending changes (isDirty flag is set).
+     * PHASE 2 OPTIMIZATION: Call this at key moments like step transitions.
+     */
+    public function saveIfDirty(): void
+    {
+        if ($this->isDirty) {
+            $this->saveProject();
+        }
+    }
+
+    /**
      * Save project with change detection to avoid redundant database writes.
      * Uses hash comparison to skip saves when nothing has changed.
+     * PHASE 2 OPTIMIZATION: Resets isDirty flag after successful save.
      */
     public function saveProject(): void
     {
@@ -1420,8 +1445,9 @@ class VideoWizard extends Component
                 $this->projectId = $project->id;
             }
 
-            // Update hash after successful save
+            // Update hash after successful save and reset dirty flag
             $this->lastSaveHash = $currentHash;
+            $this->isDirty = false;
 
             $this->dispatch('project-saved', projectId: $this->projectId);
 
@@ -7308,54 +7334,62 @@ class VideoWizard extends Component
      */
     protected function autoPopulateSceneMemory(): void
     {
-        // Skip if already has characters or locations (don't override user edits)
-        $hasExistingCharacters = !empty($this->sceneMemory['characterBible']['characters']);
-        $hasExistingLocations = !empty($this->sceneMemory['locationBible']['locations']);
-        $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
+        // PHASE 2 OPTIMIZATION: Prevent cascading updates during batch operation
+        $this->isBatchUpdating = true;
 
-        // 1. Auto-populate Style Bible based on production type (if not already set)
-        // Each detection runs in its own try-catch to ensure independence
-        if (!$hasExistingStyle) {
-            try {
-                $this->transitionMessage = __('Setting up visual style...');
-                $this->autoPopulateStyleBible();
-            } catch (\Exception $e) {
-                Log::error('SceneMemoryPopulation: Style Bible failed', [
-                    'error' => $e->getMessage(),
-                ]);
+        try {
+            // Skip if already has characters or locations (don't override user edits)
+            $hasExistingCharacters = !empty($this->sceneMemory['characterBible']['characters']);
+            $hasExistingLocations = !empty($this->sceneMemory['locationBible']['locations']);
+            $hasExistingStyle = !empty($this->sceneMemory['styleBible']['style']);
+
+            // 1. Auto-populate Style Bible based on production type (if not already set)
+            // Each detection runs in its own try-catch to ensure independence
+            if (!$hasExistingStyle) {
+                try {
+                    $this->transitionMessage = __('Setting up visual style...');
+                    $this->autoPopulateStyleBible();
+                } catch (\Exception $e) {
+                    Log::error('SceneMemoryPopulation: Style Bible failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
-        }
 
-        // 2. Auto-detect characters from script (if none exist)
-        if (!$hasExistingCharacters) {
-            try {
-                $this->transitionMessage = __('Detecting characters from script...');
-                $this->autoDetectCharactersFromScript();
-            } catch (\Exception $e) {
-                Log::error('SceneMemoryPopulation: Character detection failed', [
-                    'error' => $e->getMessage(),
-                ]);
+            // 2. Auto-detect characters from script (if none exist)
+            if (!$hasExistingCharacters) {
+                try {
+                    $this->transitionMessage = __('Detecting characters from script...');
+                    $this->autoDetectCharactersFromScript();
+                } catch (\Exception $e) {
+                    Log::error('SceneMemoryPopulation: Character detection failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
-        }
 
-        // 3. Auto-detect locations from script (if none exist)
-        if (!$hasExistingLocations) {
-            try {
-                $this->transitionMessage = __('Identifying locations...');
-                $this->autoDetectLocationsFromScript();
-            } catch (\Exception $e) {
-                Log::error('SceneMemoryPopulation: Location detection failed', [
-                    'error' => $e->getMessage(),
-                ]);
+            // 3. Auto-detect locations from script (if none exist)
+            if (!$hasExistingLocations) {
+                try {
+                    $this->transitionMessage = __('Identifying locations...');
+                    $this->autoDetectLocationsFromScript();
+                } catch (\Exception $e) {
+                    Log::error('SceneMemoryPopulation: Location detection failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
-        }
 
-        // Dispatch event to notify UI
-        $this->dispatch('scene-memory-populated', [
-            'characters' => count($this->sceneMemory['characterBible']['characters']),
-            'locations' => count($this->sceneMemory['locationBible']['locations']),
-            'styleBibleEnabled' => $this->sceneMemory['styleBible']['enabled'],
-        ]);
+            // Dispatch event to notify UI
+            $this->dispatch('scene-memory-populated', [
+                'characters' => count($this->sceneMemory['characterBible']['characters']),
+                'locations' => count($this->sceneMemory['locationBible']['locations']),
+                'styleBibleEnabled' => $this->sceneMemory['styleBible']['enabled'],
+            ]);
+        } finally {
+            // PHASE 2 OPTIMIZATION: Always reset batch flag
+            $this->isBatchUpdating = false;
+        }
     }
 
     /**
