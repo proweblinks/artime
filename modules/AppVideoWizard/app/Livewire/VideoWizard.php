@@ -8449,30 +8449,22 @@ class VideoWizard extends Component
         }
 
         // Track which scenes are covered
-        // IMPORTANT: Empty 'scenes' array means "applies to ALL scenes"
+        // NOTE: Empty 'scenes' array now means "no scenes assigned" (NOT "all scenes")
+        // Locations with empty scenes will be assigned to uncovered scenes
         $coveredScenes = [];
-        $hasLocationWithAllScenes = false;
+        $locationsWithEmptyScenes = [];
 
-        foreach ($locations as $location) {
+        foreach ($locations as $idx => $location) {
             $locationScenes = $location['scenes'] ?? [];
 
-            // Empty array means this location applies to ALL scenes
+            // Empty array means this location has NO assigned scenes yet
             if (empty($locationScenes)) {
-                $hasLocationWithAllScenes = true;
-                // Mark all scenes as covered
-                for ($i = 0; $i < $totalScenes; $i++) {
-                    $coveredScenes[$i] = true;
-                }
+                $locationsWithEmptyScenes[] = $idx;
             } else {
                 foreach ($locationScenes as $sceneIndex) {
                     $coveredScenes[$sceneIndex] = true;
                 }
             }
-        }
-
-        // If any location covers all scenes, no need to check for uncovered scenes
-        if ($hasLocationWithAllScenes) {
-            return;
         }
 
         // Find uncovered scenes
@@ -8483,21 +8475,51 @@ class VideoWizard extends Component
             }
         }
 
-        // If there are uncovered scenes, assign them to the most relevant location
+        // STEP 1: First distribute uncovered scenes to locations without assignments
+        if (!empty($uncoveredScenes) && !empty($locationsWithEmptyScenes)) {
+            Log::info('LocationValidation: Distributing uncovered scenes to empty locations', [
+                'uncoveredScenes' => $uncoveredScenes,
+                'emptyLocations' => count($locationsWithEmptyScenes),
+            ]);
+
+            $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithEmptyScenes)));
+            $scenePointer = 0;
+
+            foreach ($locationsWithEmptyScenes as $locIdx) {
+                $assignedScenes = [];
+                for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
+                    $assignedScenes[] = $uncoveredScenes[$scenePointer];
+                    $coveredScenes[$uncoveredScenes[$scenePointer]] = true; // Mark as covered
+                    $scenePointer++;
+                }
+                if (!empty($assignedScenes)) {
+                    $locations[$locIdx]['scenes'] = $assignedScenes;
+                    sort($locations[$locIdx]['scenes']);
+                }
+            }
+
+            // Recalculate uncovered scenes
+            $uncoveredScenes = [];
+            for ($i = 0; $i < $totalScenes; $i++) {
+                if (!isset($coveredScenes[$i])) {
+                    $uncoveredScenes[] = $i;
+                }
+            }
+        }
+
+        // STEP 2: If there are still uncovered scenes, assign them to adjacent locations
         if (!empty($uncoveredScenes)) {
-            Log::info('LocationExtraction: Found uncovered scenes', [
+            Log::info('LocationValidation: Found remaining uncovered scenes', [
                 'uncovered' => $uncoveredScenes,
                 'total' => $totalScenes,
             ]);
 
             foreach ($uncoveredScenes as $sceneIndex) {
-                // Try to assign to an adjacent scene's location
                 $assignedLocation = null;
 
-                // Check previous scene
+                // Check previous scene's location
                 if ($sceneIndex > 0 && isset($coveredScenes[$sceneIndex - 1])) {
                     foreach ($locations as $idx => &$loc) {
-                        // Skip locations with empty scenes (they already cover all)
                         $locScenes = $loc['scenes'] ?? [];
                         if (!empty($locScenes) && in_array($sceneIndex - 1, $locScenes)) {
                             $loc['scenes'][] = $sceneIndex;
@@ -8507,10 +8529,9 @@ class VideoWizard extends Component
                     }
                 }
 
-                // If not assigned, check next scene
+                // If not assigned, check next scene's location
                 if (!$assignedLocation && $sceneIndex < $totalScenes - 1 && isset($coveredScenes[$sceneIndex + 1])) {
                     foreach ($locations as $idx => &$loc) {
-                        // Skip locations with empty scenes (they already cover all)
                         $locScenes = $loc['scenes'] ?? [];
                         if (!empty($locScenes) && in_array($sceneIndex + 1, $locScenes)) {
                             $loc['scenes'][] = $sceneIndex;
@@ -8520,38 +8541,46 @@ class VideoWizard extends Component
                     }
                 }
 
-                // If still not assigned, use the first location (General Location or primary)
+                // If still not assigned, use the first location with scenes (or create assignment for first location)
                 if (!$assignedLocation && !empty($locations)) {
-                    // Look for a "General Location" first
-                    $generalIdx = null;
+                    $targetIdx = 0;
                     foreach ($locations as $idx => $loc) {
-                        if (stripos($loc['name'], 'general') !== false) {
-                            $generalIdx = $idx;
+                        if (!empty($loc['scenes'])) {
+                            $targetIdx = $idx;
                             break;
                         }
                     }
 
-                    $targetIdx = $generalIdx ?? 0;
+                    if (!isset($locations[$targetIdx]['scenes'])) {
+                        $locations[$targetIdx]['scenes'] = [];
+                    }
                     $locations[$targetIdx]['scenes'][] = $sceneIndex;
                     $assignedLocation = $locations[$targetIdx]['name'];
                 }
 
                 if ($assignedLocation) {
-                    Log::info('LocationExtraction: Auto-assigned uncovered scene', [
+                    Log::info('LocationValidation: Auto-assigned scene', [
                         'scene' => $sceneIndex + 1,
                         'location' => $assignedLocation,
                     ]);
                 }
             }
-
-            // Sort all scene arrays
-            foreach ($locations as &$loc) {
-                if (!empty($loc['scenes'])) {
-                    $loc['scenes'] = array_unique($loc['scenes']);
-                    sort($loc['scenes']);
-                }
-            }
         }
+
+        // STEP 3: Ensure all locations have at least one scene (round-robin for any still empty)
+        foreach ($locations as $idx => &$loc) {
+            if (empty($loc['scenes'])) {
+                $loc['scenes'] = [$idx % $totalScenes];
+            }
+            // Clean up and sort
+            $loc['scenes'] = array_values(array_unique($loc['scenes']));
+            sort($loc['scenes']);
+        }
+
+        Log::info('LocationValidation: Complete', [
+            'totalLocations' => count($locations),
+            'locationAssignments' => array_map(fn($l) => ['name' => $l['name'], 'scenes' => $l['scenes'] ?? []], $locations),
+        ]);
     }
 
     /**
@@ -10107,7 +10136,69 @@ class VideoWizard extends Component
             $syncedLocations[] = $locationBibleFormat;
         }
 
-        // STEP 4: Replace location list with Story Bible locations (authoritative source)
+        // STEP 4: Intelligent scene distribution for locations without detected scenes
+        // This ensures locations are spread across scenes instead of first location getting "all"
+        $totalScenes = count($scenes);
+        if ($totalScenes > 0 && count($syncedLocations) > 0) {
+            // Find which scenes are already covered
+            $coveredScenes = [];
+            $locationsWithoutScenes = [];
+
+            foreach ($syncedLocations as $idx => $loc) {
+                if (empty($loc['scenes'])) {
+                    $locationsWithoutScenes[] = $idx;
+                } else {
+                    foreach ($loc['scenes'] as $sceneIdx) {
+                        $coveredScenes[$sceneIdx] = true;
+                    }
+                }
+            }
+
+            // If we have locations without scenes, distribute them evenly across uncovered scenes
+            if (!empty($locationsWithoutScenes)) {
+                $uncoveredScenes = [];
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    if (!isset($coveredScenes[$i])) {
+                        $uncoveredScenes[] = $i;
+                    }
+                }
+
+                if (!empty($uncoveredScenes)) {
+                    // Distribute uncovered scenes evenly among locations without scenes
+                    $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithoutScenes)));
+                    $scenePointer = 0;
+
+                    foreach ($locationsWithoutScenes as $locIdx) {
+                        $assignedScenes = [];
+                        for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
+                            $assignedScenes[] = $uncoveredScenes[$scenePointer];
+                            $scenePointer++;
+                        }
+                        $syncedLocations[$locIdx]['scenes'] = $assignedScenes;
+                        sort($syncedLocations[$locIdx]['scenes']);
+                    }
+
+                    Log::info('LocationBible: Distributed locations without scenes', [
+                        'locationsDistributed' => count($locationsWithoutScenes),
+                        'scenesDistributed' => count($uncoveredScenes),
+                    ]);
+                } else {
+                    // All scenes are covered but some locations have no scenes
+                    // Assign each unassigned location to at least one scene (round-robin)
+                    $sceneIdx = 0;
+                    foreach ($locationsWithoutScenes as $locIdx) {
+                        $syncedLocations[$locIdx]['scenes'] = [$sceneIdx % $totalScenes];
+                        $sceneIdx++;
+                    }
+
+                    Log::info('LocationBible: All scenes covered, assigned locations round-robin', [
+                        'locationsAssigned' => count($locationsWithoutScenes),
+                    ]);
+                }
+            }
+        }
+
+        // STEP 5: Replace location list with Story Bible locations (authoritative source)
         $this->sceneMemory['locationBible']['locations'] = $syncedLocations;
 
         // Enable Location Bible if we synced locations
