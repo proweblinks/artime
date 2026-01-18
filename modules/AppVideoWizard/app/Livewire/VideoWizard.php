@@ -12832,6 +12832,102 @@ PROMPT;
     }
 
     /**
+     * Build consistency context for collage shots from Scene Memory.
+     * Extracts Character Bible, Location Bible, and Style Profile data
+     * to ensure visual consistency across all generated shots.
+     */
+    protected function buildCollageConsistencyContext(int $sceneIndex): array
+    {
+        $context = [
+            'characters' => '',
+            'location' => '',
+            'style' => '',
+        ];
+
+        // Extract character descriptions from Character Bible
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        if (!empty($characters)) {
+            $characterDescriptions = [];
+            foreach ($characters as $name => $character) {
+                $desc = $character['appearance'] ?? $character['description'] ?? '';
+                if ($desc) {
+                    $characterDescriptions[] = "{$name}: {$desc}";
+                }
+            }
+            if (!empty($characterDescriptions)) {
+                $context['characters'] = implode('. ', $characterDescriptions);
+            }
+        }
+
+        // Extract location description from Location Bible
+        $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+        if (!empty($locations)) {
+            // Try to find location for this scene from Scene DNA
+            $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'][$sceneIndex] ?? null;
+            $sceneLocationName = $sceneDNA['location']['name'] ?? null;
+
+            if ($sceneLocationName && isset($locations[$sceneLocationName])) {
+                $loc = $locations[$sceneLocationName];
+                $context['location'] = $loc['description'] ?? $loc['visualDetails'] ?? $sceneLocationName;
+            } else {
+                // Use first location as fallback
+                $firstLocation = reset($locations);
+                if ($firstLocation) {
+                    $context['location'] = $firstLocation['description'] ?? $firstLocation['visualDetails'] ?? '';
+                }
+            }
+        }
+
+        // Extract style from Style Bible
+        $styleBible = $this->sceneMemory['styleBible'] ?? [];
+        if (!empty($styleBible)) {
+            $styleParts = [];
+            if (!empty($styleBible['style'])) {
+                $styleParts[] = $styleBible['style'];
+            }
+            if (!empty($styleBible['mood'])) {
+                $styleParts[] = "mood: {$styleBible['mood']}";
+            }
+            if (!empty($styleBible['lighting'])) {
+                $styleParts[] = "lighting: {$styleBible['lighting']}";
+            }
+            if (!empty($styleBible['colorPalette'])) {
+                $styleParts[] = "colors: {$styleBible['colorPalette']}";
+            }
+            if (!empty($styleParts)) {
+                $context['style'] = implode(', ', $styleParts);
+            }
+        }
+
+        // Fallback to storyboard visual style settings
+        if (empty($context['style'])) {
+            $visualStyle = $this->storyboard['visualStyle'] ?? [];
+            $styleParts = [];
+            if (!empty($visualStyle['mood'])) {
+                $styleParts[] = $visualStyle['mood'];
+            }
+            if (!empty($visualStyle['lighting'])) {
+                $styleParts[] = $visualStyle['lighting'];
+            }
+            if (!empty($visualStyle['colors'])) {
+                $styleParts[] = $visualStyle['colors'];
+            }
+            if (!empty($styleParts)) {
+                $context['style'] = implode(', ', $styleParts);
+            }
+        }
+
+        Log::debug('VideoWizard: Built collage consistency context', [
+            'sceneIndex' => $sceneIndex,
+            'hasCharacters' => !empty($context['characters']),
+            'hasLocation' => !empty($context['location']),
+            'hasStyle' => !empty($context['style']),
+        ]);
+
+        return $context;
+    }
+
+    /**
      * Open multi-shot decomposition modal.
      */
     public function openMultiShotModal(int $sceneIndex): void
@@ -15461,101 +15557,155 @@ PROMPT;
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
-                    // Generate collages for all pages
+                    // Generate 4 SEPARATE images for each collage page (not a single grid)
+                    // Each image is a complete, properly-framed shot with consistency data
                     foreach ($this->sceneCollages[$sceneIndex]['collages'] as $pageIdx => &$collageData) {
                         $pageShots = [];
+                        $shotIndicesForPage = [];
                         foreach ($collageData['shots'] as $regionIdx => $shotIdx) {
                             $shot = $shots[$shotIdx] ?? null;
                             if ($shot) {
-                                $pageShots[] = $shot;
+                                $pageShots[$regionIdx] = $shot;
+                                $shotIndicesForPage[$regionIdx] = $shotIdx;
                             }
                         }
 
-                        // Build a combined prompt for a single 2x2 grid collage image
                         $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? 'a cinematic scene';
                         $style = $decomposed['consistencyAnchors']['style'] ?? $this->sceneMemory['styleBible']['style'] ?? 'cinematic';
 
-                        // Build detailed framing instructions for each quadrant based on shot type
-                        $quadrantDescriptions = [];
-                        $positions = ['Top-left', 'Top-right', 'Bottom-left', 'Bottom-right'];
+                        // Build consistency context from Scene Memory (Character Bible, Location Bible, Style Profile)
+                        $consistencyContext = $this->buildCollageConsistencyContext($sceneIndex);
 
-                        // Professional framing instructions that create VISUAL VARIETY
+                        // Professional framing instructions for each shot type
                         $framingInstructions = [
-                            'establishing' => 'ULTRA-WIDE view showing entire environment, characters appear small in the distance, emphasize location and atmosphere',
-                            'wide' => 'WIDE SHOT showing full scene environment with characters visible but environment dominant, deep focus',
-                            'medium' => 'MEDIUM SHOT framing characters from waist up, balanced composition with some background context',
-                            'medium-close' => 'MEDIUM CLOSE-UP framing character from chest up, intimate framing, soft background blur',
-                            'close-up' => 'CLOSE-UP of face filling the frame, shallow depth of field, blurred background, emotional focus',
-                            'extreme-close-up' => 'EXTREME CLOSE-UP of eyes or crucial detail, macro-style, abstract background',
-                            'reaction' => 'REACTION SHOT focused on face showing emotional response, tight framing on expression',
-                            'detail' => 'INSERT SHOT of specific object, hand, or detail element - NOT the full scene, macro focus',
-                            'over-shoulder' => 'OVER-THE-SHOULDER view showing one character from behind with another in focus',
-                            'pov' => 'POV SHOT showing what character sees, first-person perspective view',
-                            'insert' => 'INSERT SHOT of a specific detail, object, or action - close focus on one element only',
+                            'establishing' => 'ULTRA-WIDE establishing shot showing the entire environment and atmosphere. Characters appear small in the distance. Emphasize the location, scale, and mood of the scene. Deep focus, everything sharp.',
+                            'wide' => 'WIDE SHOT showing the full scene environment with characters visible but environment dominant. Establish spatial relationships. Deep focus with clear background detail.',
+                            'medium' => 'MEDIUM SHOT framing the main subject from approximately waist up. Balanced composition showing the character in context with some background visible. Natural conversational framing.',
+                            'medium-close' => 'MEDIUM CLOSE-UP framing the subject from chest up. More intimate framing that captures emotion while maintaining some environmental context. Soft background blur.',
+                            'close-up' => 'CLOSE-UP with the face filling most of the frame. Shallow depth of field with beautifully blurred background. Focus on eyes and emotional expression. Intimate and powerful.',
+                            'extreme-close-up' => 'EXTREME CLOSE-UP focusing on a specific detail - eyes, hands, or crucial object. Macro-style framing. Abstract or heavily blurred background. Maximum emotional impact.',
+                            'reaction' => 'REACTION SHOT capturing emotional response. Tight framing on the face showing clear expression. The viewer should feel what the character feels.',
+                            'detail' => 'DETAIL/INSERT SHOT of a specific object, hand gesture, or important element. Macro-style close focus on one element only. Background completely blurred or minimal.',
+                            'over-shoulder' => 'OVER-THE-SHOULDER shot showing one character from behind with another character or scene element in focus. Creates depth and connection.',
+                            'pov' => 'POV (Point of View) shot showing exactly what the character sees. First-person perspective. Immersive framing.',
+                            'insert' => 'INSERT SHOT of a specific detail, object, or action. Close focus on one element that advances the story. Clean, focused composition.',
                         ];
 
-                        foreach ($pageShots as $idx => $shot) {
-                            $shotType = $shot['type'] ?? 'medium';
-                            $shotDesc = $shot['imagePrompt'] ?? $shot['prompt'] ?? $shot['description'] ?? '';
-                            $position = $positions[$idx] ?? "Panel " . ($idx + 1);
-                            $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
+                        $collageData['status'] = 'generating';
+                        $collageData['regionImages'] = []; // Store individual images for each region
+                        $allRegionsReady = true;
+                        $hasAsyncJobs = false;
 
-                            // Build rich quadrant description
-                            $quadrantDescriptions[] = "{$position} ({$shotType}): {$framing}" . ($shotDesc ? ". Content: {$shotDesc}" : '');
+                        // Generate each shot as a SEPARATE, COMPLETE image
+                        foreach ($pageShots as $regionIdx => $shot) {
+                            $shotType = $shot['type'] ?? 'medium';
+                            $shotDesc = $shot['imagePrompt'] ?? $shot['prompt'] ?? $shot['description'] ?? $sceneDescription;
+                            $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
+                            $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
+
+                            // Build a complete prompt for this individual shot
+                            $shotPrompt = "Create a single, complete, professionally composed {$shotType} shot. " .
+                                "FRAMING: {$framing} " .
+                                "SCENE: {$shotDesc} " .
+                                "STYLE: Professional {$style} cinematography with {$style} color grading. ";
+
+                            // Add consistency context (Character Bible, Location Bible, Style Profile)
+                            if (!empty($consistencyContext['characters'])) {
+                                $shotPrompt .= "CHARACTERS: {$consistencyContext['characters']} ";
+                            }
+                            if (!empty($consistencyContext['location'])) {
+                                $shotPrompt .= "LOCATION: {$consistencyContext['location']} ";
+                            }
+                            if (!empty($consistencyContext['style'])) {
+                                $shotPrompt .= "VISUAL STYLE: {$consistencyContext['style']} ";
+                            }
+
+                            $shotPrompt .= "This must be a COMPLETE, properly framed image - not a crop or portion of a larger image.";
+
+                            $result = $imageService->generateSceneImage($project, [
+                                'id' => "collage_{$sceneIndex}_page_{$pageIdx}_region_{$regionIdx}",
+                                'visualDescription' => $shotPrompt,
+                            ], [
+                                'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                                'sceneIndex' => $sceneIndex,
+                                'shot_type' => $shotType,
+                                'shot_index' => $shotIndex,
+                                'is_multi_shot' => true,
+                                'is_collage_shot' => true, // New flag to indicate individual collage shot
+                            ]);
+
+                            if ($result['success'] && !empty($result['imageUrl'])) {
+                                $collageData['regionImages'][$regionIdx] = [
+                                    'imageUrl' => $result['imageUrl'],
+                                    'status' => 'ready',
+                                    'shotType' => $shotType,
+                                    'shotIndex' => $shotIndex,
+                                ];
+                            } elseif (isset($result['jobId']) || isset($result['processingJobId'])) {
+                                // Async job for this specific region
+                                $jobKey = "collage_{$sceneIndex}_page_{$pageIdx}_region_{$regionIdx}";
+                                $this->pendingJobs[$jobKey] = [
+                                    'jobId' => $result['jobId'] ?? null,
+                                    'processingJobId' => $result['processingJobId'] ?? null,
+                                    'type' => 'collage_region',
+                                    'sceneIndex' => $sceneIndex,
+                                    'pageIndex' => $pageIdx,
+                                    'regionIndex' => $regionIdx,
+                                    'shotIndex' => $shotIndex,
+                                    'shotType' => $shotType,
+                                ];
+                                $collageData['regionImages'][$regionIdx] = [
+                                    'imageUrl' => null,
+                                    'status' => 'processing',
+                                    'shotType' => $shotType,
+                                    'shotIndex' => $shotIndex,
+                                    'jobKey' => $jobKey,
+                                ];
+                                $allRegionsReady = false;
+                                $hasAsyncJobs = true;
+
+                                Log::info('VideoWizard: Collage region generation started async', [
+                                    'sceneIndex' => $sceneIndex,
+                                    'pageIndex' => $pageIdx,
+                                    'regionIndex' => $regionIdx,
+                                    'shotType' => $shotType,
+                                    'jobId' => $result['jobId'] ?? null,
+                                ]);
+                            } else {
+                                $collageData['regionImages'][$regionIdx] = [
+                                    'imageUrl' => null,
+                                    'status' => 'error',
+                                    'shotType' => $shotType,
+                                    'shotIndex' => $shotIndex,
+                                    'error' => $result['error'] ?? 'Generation failed',
+                                ];
+                                $allRegionsReady = false;
+                                Log::error('VideoWizard: Collage region generation failed', [
+                                    'sceneIndex' => $sceneIndex,
+                                    'pageIndex' => $pageIdx,
+                                    'regionIndex' => $regionIdx,
+                                    'result' => $result,
+                                ]);
+                            }
                         }
 
-                        // Build prompt that emphasizes VISUAL VARIETY between quadrants
-                        $collagePrompt = "Create a professional 2x2 grid storyboard with 4 DISTINCTLY DIFFERENT compositions based on: {$sceneDescription}. " .
-                            "CRITICAL: Each quadrant must show a COMPLETELY DIFFERENT framing and composition - they should NOT look similar! " .
-                            implode(' | ', $quadrantDescriptions) . ". " .
-                            "REQUIREMENTS: " .
-                            "1) Wide shots must show environment with tiny figures. " .
-                            "2) Close-ups must show only face/detail filling the frame. " .
-                            "3) Each panel must be visually distinct - different scale, different framing, different focal point. " .
-                            "4) Clear 2x2 grid layout with visible dividing lines between panels. " .
-                            "Professional {$style} cinematography, {$style} color grading. " .
-                            "Maintain character/setting consistency but VARY the shot composition dramatically between panels.";
-
-                        $collageData['status'] = 'generating';
-
-                        $result = $imageService->generateSceneImage($project, [
-                            'id' => "collage_{$sceneIndex}_page_{$pageIdx}",
-                            'visualDescription' => $collagePrompt,
-                        ], [
-                            'model' => $this->storyboard['imageModel'] ?? 'hidream',
-                            'sceneIndex' => $sceneIndex,
-                            'is_collage_preview' => true,
-                            'collage_page' => $pageIdx,
-                        ]);
-
-                        if ($result['success'] && !empty($result['imageUrl'])) {
-                            $collageData['previewUrl'] = $result['imageUrl'];
+                        // Set collage page status based on all regions
+                        if ($allRegionsReady) {
                             $collageData['status'] = 'ready';
-                        } elseif (isset($result['jobId']) || isset($result['processingJobId'])) {
-                            // Async job - store both jobId and processingJobId for polling
-                            $this->pendingJobs["collage_{$sceneIndex}_page_{$pageIdx}"] = [
-                                'jobId' => $result['jobId'] ?? null,
-                                'processingJobId' => $result['processingJobId'] ?? null,
-                                'type' => 'collage',
-                                'sceneIndex' => $sceneIndex,
-                                'pageIndex' => $pageIdx,
-                            ];
+                            // Create composite preview URL from first region for backwards compatibility
+                            $collageData['previewUrl'] = $collageData['regionImages'][0]['imageUrl'] ?? null;
+                        } elseif ($hasAsyncJobs) {
                             $collageData['status'] = 'processing';
-
-                            Log::info('VideoWizard: Collage generation started async', [
-                                'sceneIndex' => $sceneIndex,
-                                'pageIndex' => $pageIdx,
-                                'jobId' => $result['jobId'] ?? null,
-                                'processingJobId' => $result['processingJobId'] ?? null,
-                            ]);
                         } else {
                             $collageData['status'] = 'error';
-                            Log::error('VideoWizard: Collage generation failed - no imageUrl or jobId', [
-                                'sceneIndex' => $sceneIndex,
-                                'pageIndex' => $pageIdx,
-                                'result' => $result,
-                            ]);
                         }
+
+                        Log::info('VideoWizard: Generated separate images for collage page', [
+                            'sceneIndex' => $sceneIndex,
+                            'pageIndex' => $pageIdx,
+                            'regionCount' => count($collageData['regionImages']),
+                            'allReady' => $allRegionsReady,
+                        ]);
                     }
                     unset($collageData);
 
@@ -15694,13 +15844,30 @@ PROMPT;
             'shotIndex' => $shotIndex,
         ]);
 
-        // IMMEDIATELY crop and set the image on the shot
+        // Get image from collage region (prefer pre-generated regionImages, fallback to cropping)
         $collagePage = $collage['collages'][$pageIndex] ?? null;
-        if ($collagePage && $collagePage['status'] === 'ready' && !empty($collagePage['previewUrl'])) {
+        if ($collagePage && $collagePage['status'] === 'ready') {
             try {
-                $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+                $imageUrl = null;
 
-                if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                // NEW: Check for pre-generated region images first (4 separate images approach)
+                if (isset($collagePage['regionImages'][$regionIndex]['imageUrl'])) {
+                    $imageUrl = $collagePage['regionImages'][$regionIndex]['imageUrl'];
+                    Log::info('VideoWizard: Using pre-generated region image', [
+                        'sceneIndex' => $sceneIndex,
+                        'regionIndex' => $regionIndex,
+                        'imageUrl' => $imageUrl,
+                    ]);
+                }
+                // FALLBACK: Crop from grid image (legacy approach)
+                elseif (!empty($collagePage['previewUrl'])) {
+                    $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+                    if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                        $imageUrl = $cropResult['imageUrl'];
+                    }
+                }
+
+                if ($imageUrl) {
                     // Ensure decomposedScenes structure exists
                     if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
                         Log::warning('VideoWizard: Shot structure not found for assignment', [
@@ -15708,7 +15875,7 @@ PROMPT;
                             'shotIndex' => $shotIndex,
                         ]);
                     } else {
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $cropResult['imageUrl'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $imageUrl;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = [
@@ -15719,12 +15886,12 @@ PROMPT;
                         Log::info('VideoWizard: Shot image set from collage region assignment', [
                             'sceneIndex' => $sceneIndex,
                             'shotIndex' => $shotIndex,
-                            'imageUrl' => $cropResult['imageUrl'],
+                            'imageUrl' => $imageUrl,
                         ]);
                     }
                 }
             } catch (\Exception $e) {
-                Log::warning('VideoWizard: Failed to crop during assignment', [
+                Log::warning('VideoWizard: Failed to get region image during assignment', [
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIndex,
                     'error' => $e->getMessage(),
@@ -15778,12 +15945,27 @@ PROMPT;
         $this->isLoading = true;
 
         try {
-            // Crop the specific quadrant from the collage image
-            $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+            $imageUrl = null;
 
-            if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
-                // Set the cropped image as the shot image
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $cropResult['imageUrl'];
+            // NEW: Check for pre-generated region images first (4 separate images approach)
+            if (isset($collagePage['regionImages'][$regionIndex]['imageUrl'])) {
+                $imageUrl = $collagePage['regionImages'][$regionIndex]['imageUrl'];
+                Log::info('VideoWizard: Using pre-generated region image for shot', [
+                    'sceneIndex' => $sceneIndex,
+                    'regionIndex' => $regionIndex,
+                ]);
+            }
+            // FALLBACK: Crop from grid image (legacy approach)
+            elseif (!empty($collagePage['previewUrl'])) {
+                $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+                if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                    $imageUrl = $cropResult['imageUrl'];
+                }
+            }
+
+            if ($imageUrl) {
+                // Set the image as the shot image
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $imageUrl;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['fromCollageRegion'] = [
@@ -15791,17 +15973,17 @@ PROMPT;
                     'regionIndex' => $regionIndex,
                 ];
 
-                Log::info('VideoWizard: Shot image set from collage quadrant', [
+                Log::info('VideoWizard: Shot image set from collage region', [
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIndex,
                     'pageIndex' => $pageIndex,
                     'regionIndex' => $regionIndex,
-                    'imageUrl' => $cropResult['imageUrl'],
+                    'imageUrl' => $imageUrl,
                 ]);
 
                 $this->saveProject();
             } else {
-                throw new \Exception($cropResult['error'] ?? __('Failed to crop quadrant'));
+                throw new \Exception(__('No image available for this region'));
             }
         } catch (\Exception $e) {
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'error';
@@ -16246,11 +16428,35 @@ PROMPT;
                 }
 
                 try {
-                    $cropResult = $this->cropCollageQuadrant($collageUrl, $regionIdx);
+                    $imageUrl = null;
 
-                    if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
-                        // Assign the cropped image to the shot
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageUrl'] = $cropResult['imageUrl'];
+                    // NEW: Check for pre-generated region images first (4 separate images approach)
+                    if (isset($pageCollage['regionImages'][$regionIdx]['imageUrl'])) {
+                        $imageUrl = $pageCollage['regionImages'][$regionIdx]['imageUrl'];
+                        Log::info('VideoWizard: Using pre-generated region image', [
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIdx,
+                            'pageIndex' => $pageIdx,
+                            'regionIndex' => $regionIdx,
+                        ]);
+                    }
+                    // FALLBACK: Crop from grid image (legacy approach)
+                    elseif (!empty($collageUrl)) {
+                        $cropResult = $this->cropCollageQuadrant($collageUrl, $regionIdx);
+                        if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                            $imageUrl = $cropResult['imageUrl'];
+                            Log::info('VideoWizard: Using cropped quadrant (fallback)', [
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIdx,
+                                'pageIndex' => $pageIdx,
+                                'regionIndex' => $regionIdx,
+                            ]);
+                        }
+                    }
+
+                    if ($imageUrl) {
+                        // Assign the image to the shot
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageUrl'] = $imageUrl;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageStatus'] = 'ready';
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['status'] = 'ready';
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['fromCollageQuadrant'] = $regionIdx;
@@ -16273,14 +16479,13 @@ PROMPT;
                             'shotIndex' => $shotIdx,
                             'pageIndex' => $pageIdx,
                             'regionIndex' => $regionIdx,
-                            'imageUrl' => $cropResult['imageUrl'],
+                            'imageUrl' => $imageUrl,
                         ]);
                     } else {
-                        Log::warning('VideoWizard: Crop failed for quadrant', [
+                        Log::warning('VideoWizard: No image available for quadrant', [
                             'sceneIndex' => $sceneIndex,
                             'pageIndex' => $pageIdx,
                             'regionIdx' => $regionIdx,
-                            'error' => $cropResult['error'] ?? 'Unknown error',
                         ]);
                     }
                 } catch (\Exception $e) {
@@ -16372,12 +16577,33 @@ PROMPT;
         $this->isLoading = true;
 
         try {
-            // Crop the specific quadrant from the collage image
-            $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+            $imageUrl = null;
 
-            if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
-                // Set the cropped image as the scene image
-                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $cropResult['imageUrl'];
+            // NEW: Check for pre-generated region images first (4 separate images approach)
+            if (isset($collagePage['regionImages'][$regionIndex]['imageUrl'])) {
+                $imageUrl = $collagePage['regionImages'][$regionIndex]['imageUrl'];
+                Log::info('VideoWizard: Using pre-generated region image for scene', [
+                    'sceneIndex' => $sceneIndex,
+                    'pageIndex' => $pageIndex,
+                    'regionIndex' => $regionIndex,
+                ]);
+            }
+            // FALLBACK: Crop from grid image (legacy approach)
+            elseif (!empty($collagePage['previewUrl'])) {
+                $cropResult = $this->cropCollageQuadrant($collagePage['previewUrl'], $regionIndex);
+                if ($cropResult['success'] && isset($cropResult['imageUrl'])) {
+                    $imageUrl = $cropResult['imageUrl'];
+                    Log::info('VideoWizard: Using cropped quadrant for scene (fallback)', [
+                        'sceneIndex' => $sceneIndex,
+                        'pageIndex' => $pageIndex,
+                        'regionIndex' => $regionIndex,
+                    ]);
+                }
+            }
+
+            if ($imageUrl) {
+                // Set the image as the scene image
+                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $imageUrl;
                 $this->storyboard['scenes'][$sceneIndex]['status'] = 'ready';
                 $this->storyboard['scenes'][$sceneIndex]['fromCollageRegion'] = [
                     'pageIndex' => $pageIndex,
@@ -16390,16 +16616,16 @@ PROMPT;
                     $this->sceneCollages[$sceneIndex]['collages'][$pageIndex]['regions'][$regionIndex]['assignedToScene'] = true;
                 }
 
-                Log::info('VideoWizard: Scene image set from collage quadrant', [
+                Log::info('VideoWizard: Scene image set from collage region', [
                     'sceneIndex' => $sceneIndex,
                     'pageIndex' => $pageIndex,
                     'regionIndex' => $regionIndex,
-                    'imageUrl' => $cropResult['imageUrl'],
+                    'imageUrl' => $imageUrl,
                 ]);
 
                 $this->saveProject();
             } else {
-                throw new \Exception($cropResult['error'] ?? __('Failed to crop quadrant'));
+                throw new \Exception(__('Failed to get image for region'));
             }
         } catch (\Exception $e) {
             $this->storyboard['scenes'][$sceneIndex]['status'] = 'error';

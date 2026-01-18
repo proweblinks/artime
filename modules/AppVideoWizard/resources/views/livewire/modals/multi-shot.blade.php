@@ -283,26 +283,68 @@ window.multiShotVideoPolling = function() {
                                     </div>
                                 @endif
 
-                                {{-- Collage Image --}}
+                                {{-- Collage Image - supports both 4 separate images and single grid image --}}
                                 <div class="msm-collage-image" x-data="{ selectedRegion: null }">
-                                    @if(!empty($currentCollage['previewUrl']))
+                                    @php
+                                        $hasRegionImages = !empty($currentCollage['regionImages']) && count($currentCollage['regionImages']) > 0;
+                                    @endphp
+
+                                    @if($hasRegionImages)
+                                        {{-- NEW: Display 4 separate images in a 2x2 grid --}}
+                                        <div class="msm-region-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; aspect-ratio: 1;">
+                                            @for($r = 0; $r < 4; $r++)
+                                                @php
+                                                    $regionImage = $currentCollage['regionImages'][$r] ?? null;
+                                                    $assigned = ($currentCollage['regions'][$r]['assignedToShot'] ?? null);
+                                                    $imageUrl = $regionImage['imageUrl'] ?? null;
+                                                    $imageStatus = $regionImage['status'] ?? 'pending';
+                                                @endphp
+                                                <div class="msm-region-cell"
+                                                     style="position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 4px; cursor: pointer; border: 2px solid transparent;"
+                                                     x-on:click="selectedRegion = {{ $r }}; $dispatch('region-selected', { regionIndex: {{ $r }}, pageIndex: {{ $currentPage }} })"
+                                                     x-bind:style="selectedRegion === {{ $r }} ? 'border-color: #ec4899;' : ''">
+                                                    @if($imageStatus === 'generating')
+                                                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: rgba(0,0,0,0.3);">
+                                                            <div class="msm-spinner pink" style="width: 24px; height: 24px;"></div>
+                                                        </div>
+                                                    @elseif($imageUrl)
+                                                        <img src="{{ $imageUrl }}" alt="Shot {{ ($currentShots[$r] ?? $r) + 1 }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                                    @else
+                                                        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: rgba(0,0,0,0.2); color: #666;">
+                                                            <span>—</span>
+                                                        </div>
+                                                    @endif
+                                                    {{-- Overlay with shot number --}}
+                                                    <div style="position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.7); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">
+                                                        {{ ($currentShots[$r] ?? $r) + 1 }}
+                                                    </div>
+                                                    @if($assigned !== null)
+                                                        <div style="position: absolute; bottom: 4px; right: 4px; background: rgba(16, 185, 129, 0.9); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">
+                                                            → Shot {{ $assigned + 1 }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endfor
+                                        </div>
+                                    @elseif(!empty($currentCollage['previewUrl']))
+                                        {{-- FALLBACK: Single grid image with overlay (legacy) --}}
                                         <img src="{{ $currentCollage['previewUrl'] }}" alt="Collage">
+                                        <div class="msm-quadrant-overlay">
+                                            @for($r = 0; $r < 4; $r++)
+                                                @php $assigned = ($currentCollage['regions'][$r]['assignedToShot'] ?? null); @endphp
+                                                <div class="msm-quadrant"
+                                                     x-on:click="selectedRegion = {{ $r }}; $dispatch('region-selected', { regionIndex: {{ $r }}, pageIndex: {{ $currentPage }} })"
+                                                     x-bind:class="selectedRegion === {{ $r }} ? 'selected' : ''">
+                                                    <span class="msm-q-num">{{ ($currentShots[$r] ?? $r) + 1 }}</span>
+                                                    @if($assigned !== null)
+                                                        <span class="msm-q-assigned">→ {{ __('Shot') }} {{ $assigned + 1 }}</span>
+                                                    @endif
+                                                </div>
+                                            @endfor
+                                        </div>
                                     @else
                                         <div class="msm-no-preview">{{ __('No preview') }}</div>
                                     @endif
-                                    <div class="msm-quadrant-overlay">
-                                        @for($r = 0; $r < 4; $r++)
-                                            @php $assigned = ($currentCollage['regions'][$r]['assignedToShot'] ?? null); @endphp
-                                            <div class="msm-quadrant"
-                                                 x-on:click="selectedRegion = {{ $r }}; $dispatch('region-selected', { regionIndex: {{ $r }}, pageIndex: {{ $currentPage }} })"
-                                                 x-bind:class="selectedRegion === {{ $r }} ? 'selected' : ''">
-                                                <span class="msm-q-num">{{ ($currentShots[$r] ?? $r) + 1 }}</span>
-                                                @if($assigned !== null)
-                                                    <span class="msm-q-assigned">→ {{ __('Shot') }} {{ $assigned + 1 }}</span>
-                                                @endif
-                                            </div>
-                                        @endfor
-                                    </div>
                                 </div>
 
                                 {{-- Assignment Buttons --}}
