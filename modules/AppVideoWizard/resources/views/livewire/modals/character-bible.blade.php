@@ -171,7 +171,7 @@
                             <div style="margin-bottom: 0.4rem;">
                                 <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Character Name') }}</label>
                                 <input type="text"
-                                       wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.name"
+                                       wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.name"
                                        placeholder="{{ __('e.g., Sarah, The Detective...') }}"
                                        style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
                             </div>
@@ -190,7 +190,7 @@
                             {{-- Visual Description --}}
                             <div style="margin-bottom: 0.4rem;">
                                 <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Visual Description') }}</label>
-                                <textarea wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.description"
+                                <textarea wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.description"
                                           placeholder="{{ __('e.g., Mid-30s woman with short dark hair, sharp features, wears a leather jacket...') }}"
                                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 55px; resize: vertical;"></textarea>
                             </div>
@@ -305,16 +305,16 @@
                                             @endif
                                         </div>
                                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.2rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.color"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.color"
                                                    placeholder="{{ __('Color') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.style"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.style"
                                                    placeholder="{{ __('Style') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.length"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.length"
                                                    placeholder="{{ __('Length') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.texture"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.texture"
                                                    placeholder="{{ __('Texture') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
                                         </div>
@@ -328,17 +328,17 @@
                                                 <span style="color: #10b981; font-size: 0.45rem;">✓</span>
                                             @endif
                                         </div>
-                                        <textarea wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.outfit"
+                                        <textarea wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.outfit"
                                                   placeholder="{{ __('Outfit description (e.g., fitted black jacket, slim pants)') }}"
                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem; min-height: 28px; resize: none; margin-bottom: 0.2rem;"></textarea>
                                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.colors"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.colors"
                                                    placeholder="{{ __('Colors') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.style"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.style"
                                                    placeholder="{{ __('Style') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.footwear"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.footwear"
                                                    placeholder="{{ __('Footwear') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
                                         </div>
@@ -354,10 +354,10 @@
                                                     <span style="color: #10b981; font-size: 0.45rem;">✓</span>
                                                 @endif
                                             </div>
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.style"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.style"
                                                    placeholder="{{ __('Style (minimal, bold...)') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem; margin-bottom: 0.15rem;">
-                                            <input type="text" wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.details"
+                                            <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.details"
                                                    placeholder="{{ __('Details') }}"
                                                    style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
                                         </div>

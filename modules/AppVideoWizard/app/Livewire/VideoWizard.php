@@ -903,6 +903,12 @@ class VideoWizard extends Component
             return;
         }
 
+        // PERFORMANCE: Skip auto-sync when bible modals are open
+        // Scene DNA will be rebuilt when the modal closes instead
+        if ($this->showCharacterBibleModal || $this->showLocationBibleModal) {
+            return;
+        }
+
         // Auto-sync Scene DNA when Bibles change
         if ($this->sceneMemory['sceneDNA']['autoSync'] ?? true) {
             $triggerProperties = [
@@ -8440,6 +8446,7 @@ class VideoWizard extends Component
 
     /**
      * Validate and fill missing scene assignments for locations.
+     * ENFORCES: Each scene can only belong to ONE location (no duplicates allowed).
      * Ensures every scene has at least one location assigned.
      */
     protected function validateLocationSceneAssignments(): void
@@ -8454,48 +8461,58 @@ class VideoWizard extends Component
             return;
         }
 
-        // Track which scenes are covered
-        // NOTE: Empty 'scenes' array now means "no scenes assigned" (NOT "all scenes")
-        // Locations with empty scenes will be assigned to uncovered scenes
-        $coveredScenes = [];
-        $locationsWithEmptyScenes = [];
+        // MASTER OWNERSHIP MAP - tracks which location owns each scene
+        // This is the SINGLE SOURCE OF TRUTH and must be maintained throughout ALL steps
+        $sceneOwnership = []; // sceneIndex => locationIndex
 
-        foreach ($locations as $idx => $location) {
+        // STEP 0: Build initial ownership map and resolve conflicts
+        // If multiple locations claim the same scene, keep it only in the FIRST location
+        foreach ($locations as $locIdx => &$location) {
             $locationScenes = $location['scenes'] ?? [];
-
-            // Empty array means this location has NO assigned scenes yet
-            if (empty($locationScenes)) {
-                $locationsWithEmptyScenes[] = $idx;
-            } else {
-                foreach ($locationScenes as $sceneIndex) {
-                    $coveredScenes[$sceneIndex] = true;
+            $filteredScenes = [];
+            foreach ($locationScenes as $sceneIndex) {
+                if (!isset($sceneOwnership[$sceneIndex])) {
+                    // This location is the first to claim this scene
+                    $sceneOwnership[$sceneIndex] = $locIdx;
+                    $filteredScenes[] = $sceneIndex;
                 }
+                // If scene is already owned, skip it (remove duplicate)
             }
+            $location['scenes'] = $filteredScenes;
+            sort($location['scenes']);
         }
+        unset($location);
 
-        // Find uncovered scenes
+        // Find uncovered scenes (not owned by any location)
         $uncoveredScenes = [];
         for ($i = 0; $i < $totalScenes; $i++) {
-            if (!isset($coveredScenes[$i])) {
+            if (!isset($sceneOwnership[$i])) {
                 $uncoveredScenes[] = $i;
             }
         }
 
-        // STEP 1: First distribute uncovered scenes to locations without assignments
-        if (!empty($uncoveredScenes) && !empty($locationsWithEmptyScenes)) {
-            Log::debug('LocationValidation: Distributing uncovered scenes to empty locations', [
-                'uncoveredScenes' => $uncoveredScenes,
-                'emptyLocations' => count($locationsWithEmptyScenes),
-            ]);
+        // Find locations without any scenes
+        $locationsWithEmptyScenes = [];
+        foreach ($locations as $idx => $location) {
+            if (empty($location['scenes'])) {
+                $locationsWithEmptyScenes[] = $idx;
+            }
+        }
 
+        // STEP 1: Distribute uncovered scenes to locations without assignments
+        if (!empty($uncoveredScenes) && !empty($locationsWithEmptyScenes)) {
             $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithEmptyScenes)));
             $scenePointer = 0;
 
             foreach ($locationsWithEmptyScenes as $locIdx) {
                 $assignedScenes = [];
                 for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
-                    $assignedScenes[] = $uncoveredScenes[$scenePointer];
-                    $coveredScenes[$uncoveredScenes[$scenePointer]] = true; // Mark as covered
+                    $sceneIndex = $uncoveredScenes[$scenePointer];
+                    // ALWAYS check ownership before assigning
+                    if (!isset($sceneOwnership[$sceneIndex])) {
+                        $sceneOwnership[$sceneIndex] = $locIdx;
+                        $assignedScenes[] = $sceneIndex;
+                    }
                     $scenePointer++;
                 }
                 if (!empty($assignedScenes)) {
@@ -8507,50 +8524,40 @@ class VideoWizard extends Component
             // Recalculate uncovered scenes
             $uncoveredScenes = [];
             for ($i = 0; $i < $totalScenes; $i++) {
-                if (!isset($coveredScenes[$i])) {
+                if (!isset($sceneOwnership[$i])) {
                     $uncoveredScenes[] = $i;
                 }
             }
         }
 
-        // STEP 2: If there are still uncovered scenes, assign them to adjacent locations
+        // STEP 2: Assign remaining uncovered scenes to adjacent locations
         if (!empty($uncoveredScenes)) {
-            Log::debug('LocationValidation: Found remaining uncovered scenes', [
-                'uncovered' => $uncoveredScenes,
-                'total' => $totalScenes,
-            ]);
-
             foreach ($uncoveredScenes as $sceneIndex) {
-                $assignedLocation = null;
-
-                // Check previous scene's location
-                if ($sceneIndex > 0 && isset($coveredScenes[$sceneIndex - 1])) {
-                    foreach ($locations as $idx => &$loc) {
-                        $locScenes = $loc['scenes'] ?? [];
-                        if (!empty($locScenes) && in_array($sceneIndex - 1, $locScenes)) {
-                            $loc['scenes'][] = $sceneIndex;
-                            $assignedLocation = $loc['name'];
-                            break;
-                        }
-                    }
+                // Skip if already owned (safety check)
+                if (isset($sceneOwnership[$sceneIndex])) {
+                    continue;
                 }
 
-                // If not assigned, check next scene's location
-                if (!$assignedLocation && $sceneIndex < $totalScenes - 1 && isset($coveredScenes[$sceneIndex + 1])) {
-                    foreach ($locations as $idx => &$loc) {
-                        $locScenes = $loc['scenes'] ?? [];
-                        if (!empty($locScenes) && in_array($sceneIndex + 1, $locScenes)) {
-                            $loc['scenes'][] = $sceneIndex;
-                            $assignedLocation = $loc['name'];
-                            break;
-                        }
-                    }
+                $assigned = false;
+
+                // Try to assign to location that owns the previous scene
+                if (!$assigned && $sceneIndex > 0 && isset($sceneOwnership[$sceneIndex - 1])) {
+                    $ownerIdx = $sceneOwnership[$sceneIndex - 1];
+                    $sceneOwnership[$sceneIndex] = $ownerIdx;
+                    $locations[$ownerIdx]['scenes'][] = $sceneIndex;
+                    $assigned = true;
                 }
 
-                // If still not assigned, distribute round-robin among ALL locations (not just first)
-                // This prevents the first location from accumulating all uncovered scenes
-                if (!$assignedLocation && !empty($locations)) {
-                    // Find the location with the FEWEST scenes assigned (for better balance)
+                // Try to assign to location that owns the next scene
+                if (!$assigned && $sceneIndex < $totalScenes - 1 && isset($sceneOwnership[$sceneIndex + 1])) {
+                    $ownerIdx = $sceneOwnership[$sceneIndex + 1];
+                    $sceneOwnership[$sceneIndex] = $ownerIdx;
+                    $locations[$ownerIdx]['scenes'][] = $sceneIndex;
+                    $assigned = true;
+                }
+
+                // Fallback: assign to location with fewest scenes
+                if (!$assigned) {
                     $minScenes = PHP_INT_MAX;
                     $targetIdx = 0;
                     foreach ($locations as $idx => $loc) {
@@ -8560,30 +8567,56 @@ class VideoWizard extends Component
                             $targetIdx = $idx;
                         }
                     }
-
+                    $sceneOwnership[$sceneIndex] = $targetIdx;
                     if (!isset($locations[$targetIdx]['scenes'])) {
                         $locations[$targetIdx]['scenes'] = [];
                     }
                     $locations[$targetIdx]['scenes'][] = $sceneIndex;
-                    $assignedLocation = $locations[$targetIdx]['name'];
                 }
-
-                // Logging removed from loop for performance - see final summary log
             }
         }
 
-        // STEP 3: Ensure all locations have at least one scene (round-robin for any still empty)
+        // STEP 3: Ensure all locations have at least one scene
         foreach ($locations as $idx => &$loc) {
             if (empty($loc['scenes'])) {
-                $loc['scenes'] = [$idx % $totalScenes];
+                // Find an unclaimed scene, or use round-robin
+                $assignedScene = null;
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    if (!isset($sceneOwnership[$i])) {
+                        $assignedScene = $i;
+                        $sceneOwnership[$i] = $idx;
+                        break;
+                    }
+                }
+                if ($assignedScene === null) {
+                    // All scenes are claimed - give this location the scene at its index position
+                    // This is a last resort and will create a duplicate, but ensures every location has a scene
+                    $assignedScene = $idx % $totalScenes;
+                }
+                $loc['scenes'] = [$assignedScene];
             }
-            // Clean up and sort
-            $loc['scenes'] = array_values(array_unique($loc['scenes']));
+            // Sort scenes for consistent display
             sort($loc['scenes']);
         }
+        unset($loc);
+
+        // FINAL STEP: Rebuild all location scenes from the ownership map
+        // This guarantees no duplicates exist across locations
+        $locationScenesFinal = array_fill(0, count($locations), []);
+        foreach ($sceneOwnership as $sceneIndex => $locIdx) {
+            if (isset($locationScenesFinal[$locIdx])) {
+                $locationScenesFinal[$locIdx][] = $sceneIndex;
+            }
+        }
+        foreach ($locations as $idx => &$loc) {
+            $loc['scenes'] = $locationScenesFinal[$idx] ?? [];
+            sort($loc['scenes']);
+        }
+        unset($loc);
 
         Log::debug('LocationValidation: Complete', [
             'totalLocations' => count($locations),
+            'sceneOwnership' => $sceneOwnership,
             'locationAssignments' => array_map(fn($l) => ['name' => $l['name'], 'scenes' => $l['scenes'] ?? []], $locations),
         ]);
     }
@@ -10325,10 +10358,13 @@ class VideoWizard extends Component
 
     /**
      * Close Character Bible modal.
+     * Saves changes and rebuilds scene DNA once (instead of on every edit).
      */
     public function closeCharacterBibleModal(): void
     {
         $this->showCharacterBibleModal = false;
+        $this->buildSceneDNA();
+        $this->saveProject();
     }
 
     /**
@@ -10346,7 +10382,7 @@ class VideoWizard extends Component
             $this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes'][] = $sceneIndex;
         }
 
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -10356,7 +10392,7 @@ class VideoWizard extends Component
     {
         $sceneCount = count($this->script['scenes'] ?? []);
         $this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes'] = range(0, $sceneCount - 1);
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -10368,7 +10404,7 @@ class VideoWizard extends Component
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = null;
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = null;
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'none';
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -11249,15 +11285,18 @@ EOT;
 
     /**
      * Close Location Bible modal.
+     * Saves changes and rebuilds scene DNA once (instead of on every edit).
      */
     public function closeLocationBibleModal(): void
     {
         $this->showLocationBibleModal = false;
+        $this->buildSceneDNA();
         $this->saveProject();
     }
 
     /**
      * Toggle location assignment to a scene.
+     * Enforces ONE location per scene - adding a scene to this location removes it from others.
      */
     public function toggleLocationScene(int $locIndex, int $sceneIndex): void
     {
@@ -11268,17 +11307,31 @@ EOT;
         $scenes = $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] ?? [];
 
         if (in_array($sceneIndex, $scenes)) {
+            // Removing scene from this location - just remove it
             $scenes = array_values(array_filter($scenes, fn($s) => $s !== $sceneIndex));
         } else {
+            // Adding scene to this location - REMOVE from all other locations first
+            // This enforces one-location-per-scene rule
+            foreach ($this->sceneMemory['locationBible']['locations'] as $idx => &$otherLoc) {
+                if ($idx !== $locIndex && isset($otherLoc['scenes'])) {
+                    $otherLoc['scenes'] = array_values(array_filter(
+                        $otherLoc['scenes'],
+                        fn($s) => $s !== $sceneIndex
+                    ));
+                }
+            }
+            unset($otherLoc); // Break reference
             $scenes[] = $sceneIndex;
         }
 
+        sort($scenes);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = $scenes;
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
      * Apply location to all scenes.
+     * Clears all other locations' scenes since one location now owns all scenes.
      */
     public function applyLocationToAllScenes(int $locIndex): void
     {
@@ -11289,8 +11342,17 @@ EOT;
         // FIX: Use script['scenes'] instead of storyboard['scenes']
         // Script is the source of truth for scene count during project creation
         $sceneCount = count($this->script['scenes'] ?? []);
+
+        // Clear scenes from ALL other locations (this location now owns all scenes)
+        foreach ($this->sceneMemory['locationBible']['locations'] as $idx => &$otherLoc) {
+            if ($idx !== $locIndex) {
+                $otherLoc['scenes'] = [];
+            }
+        }
+        unset($otherLoc);
+
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -11303,7 +11365,7 @@ EOT;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = null;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = null;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'none';
-            $this->saveProject();
+            // Don't save here - let modal close handle batched saves for better performance
         }
     }
 
