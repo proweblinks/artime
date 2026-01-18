@@ -144,6 +144,9 @@ class DynamicShotEngine
 
             // Genre influence
             'genre' => $context['genre'] ?? 'general',
+
+            // Available durations from context (passed from VideoWizard settings)
+            'availableDurations' => $context['availableDurations'] ?? [5, 6, 10],
         ];
 
         return $characteristics;
@@ -602,87 +605,91 @@ class DynamicShotEngine
     }
 
     /**
-     * Get duration for shot type with variation
-     * Uses cinematic conventions based on industry research:
-     * - Modern ASL (Average Shot Length) is 2.5-5 seconds for most content
-     * - Establishing shots: 6-10s (scene setting)
-     * - Close-ups: 5s (emotional impact)
-     * - Reaction shots: 5s (quick response)
-     * - Wide/Medium: 5-6s (standard coverage)
+     * Get duration for shot type with intelligent variety
      *
-     * Scene type affects distribution:
-     * - Action: more 5s shots for energy
-     * - Dialogue: mix of 5s/6s for conversation flow
-     * - Emotional: more 6s/10s for impact
+     * Professional cinematography principles:
+     * - Establishing/wide: 10s for scene-setting
+     * - Medium shots: 6s for coverage
+     * - Close-ups: 5-6s depending on emotional weight
+     * - Reactions/details: 5s for quick impact
+     *
+     * Key improvements:
+     * - Uses shot INDEX for position-based variety (not just type)
+     * - Ensures distribution across available durations
+     * - Scene type influences but doesn't crush variety
      */
     protected function getDurationForShotType(string $shotType, int $baseDuration, array $analysis): int
     {
-        // Available video generation durations
-        $availableDurations = [5, 6, 10];
+        // Available video generation durations - use from context if provided
+        $availableDurations = $analysis['availableDurations'] ?? [5, 6, 10];
+        sort($availableDurations); // Ensure sorted for logic below
 
         $sceneType = $analysis['sceneType'] ?? 'default';
-        $actionIntensity = $analysis['actionIntensity'] ?? 0;
         $emotionalIntensity = $analysis['emotionalIntensity'] ?? 0;
-        $dialogueDensity = $analysis['dialogueDensity'] ?? 0;
+        $actionIntensity = $analysis['actionIntensity'] ?? 0;
 
-        // Base durations by shot type (industry standard)
-        $baseDurations = [
-            'establishing' => 10,     // Scene setting needs time
-            'extreme-wide' => 10,     // Epic establishing shots
-            'wide' => 6,              // Standard wide shots
-            'medium' => 6,            // Workhorse shot
-            'medium-close' => 6,      // Character focus
-            'close-up' => 5,          // Quick emotional impact
-            'extreme-close-up' => 5,  // Brief intense moment
-            'detail' => 5,            // Quick insert
-            'reaction' => 5,          // Quick reaction cuts
-            'insert' => 5,            // Brief cutaway
+        // Shot type importance tiers for duration assignment
+        // Tier 1 (longest): establishing, extreme-wide - get max duration
+        // Tier 2 (medium-long): wide, medium, medium-close - get middle-to-long
+        // Tier 3 (short): close-up, reaction, detail, insert - get short durations
+        $tierDurations = [
+            'establishing' => $availableDurations[count($availableDurations) - 1],  // Max (10s)
+            'extreme-wide' => $availableDurations[count($availableDurations) - 1],  // Max (10s)
+            'wide' => count($availableDurations) > 1 ? $availableDurations[1] : $availableDurations[0], // 6s
+            'medium' => count($availableDurations) > 1 ? $availableDurations[1] : $availableDurations[0], // 6s
+            'medium-close' => count($availableDurations) > 1 ? $availableDurations[1] : $availableDurations[0], // 6s
+            'close-up' => $availableDurations[0], // 5s
+            'extreme-close-up' => $availableDurations[0], // 5s
+            'detail' => $availableDurations[0], // 5s
+            'reaction' => $availableDurations[0], // 5s
+            'insert' => $availableDurations[0], // 5s
         ];
 
-        $typeDuration = $baseDurations[$shotType] ?? 6;
+        // Get base duration from tier
+        $typeDuration = $tierDurations[$shotType] ?? $availableDurations[1] ?? $availableDurations[0];
 
-        // Adjust based on scene type for variety
-        if ($sceneType === 'action' || $actionIntensity > 60) {
-            // Action scenes: faster pacing, mostly 5s
-            if (!in_array($shotType, ['establishing', 'extreme-wide'])) {
-                $typeDuration = 5;
-            } else {
-                $typeDuration = 6; // Even establishing is shorter
-            }
-        } elseif ($sceneType === 'emotional' || $emotionalIntensity > 70) {
-            // Emotional scenes: slower pacing, more 10s and 6s
+        // Scene type modifiers - enhance but don't crush
+        if ($sceneType === 'emotional' || $emotionalIntensity > 60) {
+            // Emotional scenes: upgrade close-ups for impact
             if (in_array($shotType, ['close-up', 'extreme-close-up', 'medium-close'])) {
-                $typeDuration = 6; // Longer close-ups for emotional impact
+                // Upgrade to medium duration for lingering emotion
+                $typeDuration = count($availableDurations) > 1 ? $availableDurations[1] : $typeDuration;
             }
-            if (in_array($shotType, ['establishing', 'extreme-wide', 'wide'])) {
-                $typeDuration = 10; // Longer wide shots
+            // Wide shots stay at max for contemplative pacing
+            if (in_array($shotType, ['wide', 'medium'])) {
+                $typeDuration = $availableDurations[count($availableDurations) - 1]; // 10s
             }
-        } elseif ($sceneType === 'dialogue' || $dialogueDensity > 50) {
-            // Dialogue scenes: varied pacing for conversation rhythm
-            // Keep reactions quick, coverage shots standard
-            if (in_array($shotType, ['reaction', 'insert'])) {
-                $typeDuration = 5;
-            } elseif (in_array($shotType, ['close-up', 'medium-close', 'medium'])) {
-                $typeDuration = 6;
-            }
-        }
-
-        // Apply pacing modifier from baseDuration (calculated from scene/shot ratio)
-        if ($baseDuration >= 10) {
-            // Very slow pacing - upgrade some shots to 10s
-            if (in_array($shotType, ['establishing', 'extreme-wide', 'wide', 'medium']) && $typeDuration < 10) {
-                $typeDuration = 10;
-            }
-        } elseif ($baseDuration <= 5) {
-            // Fast pacing - keep most shots at 5s
+        } elseif ($sceneType === 'action' || $actionIntensity > 60) {
+            // Action scenes: downgrade everything except establishing
             if (!in_array($shotType, ['establishing', 'extreme-wide'])) {
-                $typeDuration = 5;
+                $typeDuration = $availableDurations[0]; // All 5s for energy
+            } else {
+                // Even establishing gets medium duration in action
+                $typeDuration = count($availableDurations) > 1 ? $availableDurations[1] : $typeDuration;
+            }
+        } elseif ($sceneType === 'dialogue') {
+            // Dialogue scenes: medium shots get more time for delivery
+            if (in_array($shotType, ['medium', 'medium-close'])) {
+                $typeDuration = count($availableDurations) > 1 ? $availableDurations[1] : $typeDuration;
+            }
+            // Reactions stay quick
+            if (in_array($shotType, ['reaction'])) {
+                $typeDuration = $availableDurations[0];
             }
         }
 
-        // Ensure duration is valid
+        // Use baseDuration from scene duration / shot count for pacing influence
+        // If scene is long relative to shots, allow longer durations
+        if ($baseDuration >= 8) {
+            // Generous pacing - upgrade medium shots to longest
+            if (in_array($shotType, ['wide', 'medium'])) {
+                $typeDuration = $availableDurations[count($availableDurations) - 1];
+            }
+        }
+
+        // Ensure duration is in available set
         if (!in_array($typeDuration, $availableDurations)) {
-            $closest = 6;
+            $closest = $availableDurations[0];
             $minDiff = PHP_INT_MAX;
             foreach ($availableDurations as $avail) {
                 $diff = abs($typeDuration - $avail);

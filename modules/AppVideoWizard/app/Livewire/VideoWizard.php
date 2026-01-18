@@ -12135,6 +12135,9 @@ PROMPT;
             'narrativePreset' => $this->narrativePreset ?? null,
             'storyArc' => $this->storyArc ?? null,
             'scriptTone' => $this->scriptTone ?? null,
+
+            // Available durations from settings for DynamicShotEngine
+            'availableDurations' => $this->getAvailableDurations('minimax'),
         ];
     }
 
@@ -12215,6 +12218,13 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageStatus'] = 'ready';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['status'] = 'ready';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['fromSceneImage'] = true;
+            }
+
+            // If scene has a collage ready, extract quadrants to shots now that shots exist
+            // This handles the case where collage was generated before decomposition
+            $collage = $this->sceneCollages[$sceneIndex] ?? null;
+            if ($collage && ($collage['status'] ?? '') === 'ready') {
+                $this->extractCollageQuadrantsToShots($sceneIndex);
             }
 
             $this->saveProject();
@@ -12716,10 +12726,20 @@ PROMPT;
 
         // PROFESSIONAL SHOT SEQUENCING PATTERNS
         // Based on Hollywood cinematography principles
+        // NOTE: Shot types are now primarily determined by DynamicShotEngine
+        // which considers scene type, content, and position. This function
+        // provides fallback defaults only.
 
-        // First shot: Always establish context
+        // First shot: Default to wide (engine will override based on scene analysis)
+        // Only "opening" or "setup" scenes should get establishing shots
         if ($index === 0) {
-            return $shotTypes['establishing'];
+            // Check if scene is in opening position
+            $sceneIndex = $scene['index'] ?? 0;
+            $totalScenes = count($this->script['scenes'] ?? []);
+            $isOpening = $sceneIndex === 0 || ($sceneIndex / max(1, $totalScenes - 1)) < 0.25;
+
+            // Return establishing only for opening scenes, otherwise wide
+            return $isOpening ? $shotTypes['establishing'] : $shotTypes['wide'];
         }
 
         // Last shot: Close with resolution (wide for scope, or close-up for emotion)
