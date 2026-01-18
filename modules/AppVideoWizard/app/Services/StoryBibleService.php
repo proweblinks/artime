@@ -509,8 +509,9 @@ SCALED;
                 'jsonError' => json_last_error_msg(),
             ]);
 
-            // Return a minimal default structure
-            return $this->buildDefaultStoryBible($template, $duration);
+            // Throw exception instead of silently returning empty structure
+            // This ensures the caller knows generation failed and can handle it
+            throw new \Exception('Failed to parse Story Bible response. The AI returned invalid JSON. Please try again.');
         }
 
         // Log what was parsed

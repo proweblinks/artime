@@ -170,7 +170,8 @@ class CinematicIntelligenceService
         foreach ($characters as $character) {
             $charId = $character['id'] ?? uniqid('char_');
             $charName = $character['name'] ?? 'Unknown';
-            $appliedScenes = $character['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Empty appliedScenes means "all scenes" - expand to full range
             if (empty($appliedScenes)) {
@@ -356,7 +357,8 @@ class CinematicIntelligenceService
         // Build initial map from existing character-scene assignments
         foreach ($characters as $char) {
             $charId = $char['id'] ?? '';
-            $appliedScenes = $char['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
 
             // Empty appliedScenes means "all scenes" - expand to full range
             if (empty($appliedScenes)) {
@@ -385,7 +387,8 @@ class CinematicIntelligenceService
 
             foreach ($characters as $char) {
                 $charId = $char['id'] ?? '';
-                $appliedScenes = $char['appliedScenes'] ?? [];
+                // Support multiple field names for scene assignment (matching CharacterExtractionService)
+                $appliedScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
 
                 // Skip if character is already assigned to this scene
                 // Empty array means "applies to ALL scenes" (default behavior)
@@ -699,7 +702,8 @@ class CinematicIntelligenceService
         foreach ($characters as $char) {
             $charId = $char['id'] ?? '';
             $charName = $char['name'] ?? 'Unknown';
-            $appliedScenes = $char['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
 
             // Empty appliedScenes means "all scenes" - expand to full range
             if (empty($appliedScenes)) {
@@ -1056,7 +1060,8 @@ class CinematicIntelligenceService
 
         foreach ($characters as $char) {
             $role = $char['role'] ?? 'Supporting';
-            $appliedScenes = $char['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
             $charName = $char['name'] ?? 'Unknown';
 
             // Empty appliedScenes means "all scenes" - count as total scenes
@@ -1199,7 +1204,8 @@ class CinematicIntelligenceService
         foreach ($keyBeats as $keyBeat) {
             $beatScenes = array_keys(array_filter($storyBeats, fn($b) => $b === $keyBeat));
             foreach ($mainChars as $char) {
-                $charScenes = $char['appliedScenes'] ?? [];
+                // Support multiple field names for scene assignment (matching CharacterExtractionService)
+                $charScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
                 // Empty appliedScenes means "all scenes" - character is present in all beats
                 $present = empty($charScenes) || !empty(array_intersect($beatScenes, $charScenes));
                 if (!$present && !empty($beatScenes)) {
@@ -1290,7 +1296,8 @@ class CinematicIntelligenceService
         foreach ($characters as $char) {
             $charId = $char['id'] ?? '';
             $role = $char['role'] ?? 'Supporting';
-            $appliedScenes = $char['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $char['scenes'] ?? $char['appliedScenes'] ?? $char['appearsInScenes'] ?? [];
 
             // Empty appliedScenes means "all scenes" - character should get emotional arc
             // Only skip if charId is missing

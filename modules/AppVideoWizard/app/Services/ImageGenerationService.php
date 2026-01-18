@@ -2533,7 +2533,8 @@ EOT;
         }
 
         foreach ($locations as $location) {
-            $scenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching LocationExtractionService)
+            $scenes = $location['scenes'] ?? $location['appliedScenes'] ?? $location['appearsInScenes'] ?? [];
 
             // Empty array means location applies to ALL scenes (per UI design)
             if (empty($scenes)) {

@@ -181,7 +181,8 @@ class SceneSyncService
 
         foreach ($characters as $charIdx => $character) {
             $charName = $character['name'] ?? "Character {$charIdx}";
-            $appliedScenes = $character['appliedScenes'] ?? [];
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
             // Check for out-of-range scene indices
             foreach ($appliedScenes as $sceneIndex) {
@@ -277,7 +278,9 @@ class SceneSyncService
         // Check for scenes without any characters (warning only)
         $scenesWithCharacters = [];
         foreach ($characterBible['characters'] ?? [] as $character) {
-            foreach ($character['appliedScenes'] ?? [] as $sceneIndex) {
+            // Support multiple field names for scene assignment (matching CharacterExtractionService)
+            $charScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            foreach ($charScenes as $sceneIndex) {
                 $scenesWithCharacters[$sceneIndex] = true;
             }
         }
