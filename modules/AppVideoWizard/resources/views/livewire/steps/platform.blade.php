@@ -775,7 +775,7 @@
             } else {
                 // Default duration range when subtype not yet selected
                 $durationMin = 15;
-                $durationMax = 300;
+                $durationMax = 5400;  // 90 minutes - allow full movie creation
             }
         @endphp
         <div class="vw-content-card">
