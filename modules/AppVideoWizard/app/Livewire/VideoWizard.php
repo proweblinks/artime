@@ -26,6 +26,7 @@ use Modules\AppVideoWizard\Services\ProductionIntelligenceService;
 use Modules\AppVideoWizard\Services\CinematicIntelligenceService;
 use Modules\AppVideoWizard\Services\PromptExpanderService;
 use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
+use Modules\AppVideoWizard\Services\SceneSyncService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -10392,11 +10393,34 @@ class VideoWizard extends Component
 
     /**
      * Close Character Bible modal.
-     * Saves changes and rebuilds scene DNA once (instead of on every edit).
+     * PHASE 3: Validates data integrity, then rebuilds Scene DNA.
      */
     public function closeCharacterBibleModal(): void
     {
         $this->showCharacterBibleModal = false;
+
+        // PHASE 3: Use SceneSyncService to validate character assignments
+        $syncService = app(SceneSyncService::class);
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        $validation = $syncService->validateCharacterBible($this->sceneMemory['characterBible'] ?? [], $totalScenes);
+        if (!$validation['valid']) {
+            Log::warning('CharacterBibleModal: Validation issues on close', [
+                'issues' => $validation['issues'],
+            ]);
+            // Auto-fix invalid scene indices by removing them
+            foreach ($this->sceneMemory['characterBible']['characters'] as &$character) {
+                if (isset($character['appliedScenes'])) {
+                    $character['appliedScenes'] = array_values(array_filter(
+                        $character['appliedScenes'],
+                        fn($s) => $s >= 0 && $s < $totalScenes
+                    ));
+                }
+            }
+            unset($character);
+        }
+
+        // Rebuild Scene DNA with validated data
         $this->buildSceneDNA();
         $this->saveProject();
     }
@@ -11319,11 +11343,33 @@ EOT;
 
     /**
      * Close Location Bible modal.
-     * Saves changes and rebuilds scene DNA once (instead of on every edit).
+     * PHASE 3: Validates data integrity, fixes conflicts, then rebuilds Scene DNA.
      */
     public function closeLocationBibleModal(): void
     {
         $this->showLocationBibleModal = false;
+
+        // PHASE 3: Use SceneSyncService to validate and fix any conflicts
+        $syncService = app(SceneSyncService::class);
+
+        // Fix any duplicate scene assignments
+        $conflictsFixed = $syncService->fixLocationConflicts($this->sceneMemory['locationBible']);
+        if ($conflictsFixed > 0) {
+            Log::info('LocationBibleModal: Fixed scene conflicts on close', [
+                'conflictsFixed' => $conflictsFixed,
+            ]);
+        }
+
+        // Ensure all scenes have a location
+        $totalScenes = count($this->script['scenes'] ?? []);
+        $assigned = $syncService->ensureAllScenesHaveLocation($this->sceneMemory['locationBible'], $totalScenes);
+        if ($assigned > 0) {
+            Log::info('LocationBibleModal: Assigned unassigned scenes on close', [
+                'scenesAssigned' => $assigned,
+            ]);
+        }
+
+        // Rebuild Scene DNA with validated data
         $this->buildSceneDNA();
         $this->saveProject();
     }
@@ -11752,6 +11798,57 @@ EOT;
         ]);
 
         $this->saveProject();
+    }
+
+    /**
+     * Validate all Bible systems are in sync.
+     * PHASE 3: Uses SceneSyncService for comprehensive validation.
+     *
+     * @return array Validation result with 'valid' boolean and 'issues' array
+     */
+    public function validateAllBibles(): array
+    {
+        $syncService = app(SceneSyncService::class);
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        $result = $syncService->validateAllBibles($this->sceneMemory, $totalScenes);
+
+        // Store validation issues in Scene DNA for UI display
+        $this->sceneMemory['sceneDNA']['validationIssues'] = $result['issues'];
+        $this->sceneMemory['sceneDNA']['lastValidatedAt'] = now()->toIso8601String();
+
+        if (!$result['valid']) {
+            Log::warning('VideoWizard: Bible validation failed', [
+                'issueCount' => count($result['issues']),
+                'issues' => $result['issues'],
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fix all Bible sync issues automatically.
+     * PHASE 3: Uses SceneSyncService to resolve conflicts.
+     */
+    public function fixAllBibleIssues(): void
+    {
+        $syncService = app(SceneSyncService::class);
+        $totalScenes = count($this->script['scenes'] ?? []);
+
+        // Fix location conflicts
+        $conflictsFixed = $syncService->fixLocationConflicts($this->sceneMemory['locationBible']);
+
+        // Ensure all scenes have locations
+        $scenesAssigned = $syncService->ensureAllScenesHaveLocation($this->sceneMemory['locationBible'], $totalScenes);
+
+        Log::info('VideoWizard: Fixed Bible issues', [
+            'locationConflictsFixed' => $conflictsFixed,
+            'scenesAssigned' => $scenesAssigned,
+        ]);
+
+        // Rebuild Scene DNA with fixed data
+        $this->buildSceneDNA();
     }
 
     /**
