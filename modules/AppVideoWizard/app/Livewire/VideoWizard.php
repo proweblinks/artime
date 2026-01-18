@@ -15623,7 +15623,17 @@ PROMPT;
                         // Generate each shot as a SEPARATE, COMPLETE image
                         foreach ($pageShots as $regionIdx => $shot) {
                             $shotType = $shot['type'] ?? 'medium';
+                            if (is_array($shotType)) {
+                                $shotType = $shotType['type'] ?? 'medium';
+                            }
                             $shotDesc = $shot['imagePrompt'] ?? $shot['prompt'] ?? $shot['description'] ?? $sceneDescription;
+                            // Ensure shotDesc is a string
+                            if (is_array($shotDesc)) {
+                                $shotDesc = implode(' ', array_filter(array_map(function($v) {
+                                    return is_string($v) ? $v : '';
+                                }, $shotDesc)));
+                            }
+                            $shotDesc = $shotDesc ?: 'a cinematic scene';
                             $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
                             $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
 
