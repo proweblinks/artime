@@ -6246,9 +6246,15 @@ class VideoWizard extends Component
         foreach ($characters as $charIdx => $character) {
             $characterScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
-            // Characters must be explicitly assigned to scenes (no more "empty = all" logic)
-            foreach ($characterScenes as $sceneIdx) {
-                $this->cachedSceneCharacterMap[$sceneIdx][] = $charIdx;
+            if (empty($characterScenes)) {
+                // Empty = applies to ALL scenes (default behavior for compatibility)
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    $this->cachedSceneCharacterMap[$i][] = $charIdx;
+                }
+            } else {
+                foreach ($characterScenes as $sceneIdx) {
+                    $this->cachedSceneCharacterMap[$sceneIdx][] = $charIdx;
+                }
             }
         }
 
@@ -6257,10 +6263,18 @@ class VideoWizard extends Component
         foreach ($locations as $locIdx => $location) {
             $locationScenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
 
-            // Locations must be explicitly assigned to scenes (no more "empty = all" logic)
-            foreach ($locationScenes as $sceneIdx) {
-                if (!isset($this->cachedSceneLocationMap[$sceneIdx])) {
-                    $this->cachedSceneLocationMap[$sceneIdx] = $locIdx;
+            if (empty($locationScenes)) {
+                // Empty = applies to ALL scenes - first location wins
+                for ($i = 0; $i < $totalScenes; $i++) {
+                    if (!isset($this->cachedSceneLocationMap[$i])) {
+                        $this->cachedSceneLocationMap[$i] = $locIdx;
+                    }
+                }
+            } else {
+                foreach ($locationScenes as $sceneIdx) {
+                    if (!isset($this->cachedSceneLocationMap[$sceneIdx])) {
+                        $this->cachedSceneLocationMap[$sceneIdx] = $locIdx;
+                    }
                 }
             }
         }
@@ -6301,9 +6315,9 @@ class VideoWizard extends Component
         // Note: 'scenes' is the new standardized field name for characters
         return array_filter($characters, function ($character) use ($sceneIndex) {
             $characterScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
-            // Characters must be explicitly assigned to scenes (no more "empty = all" logic)
+            // Empty array means "applies to ALL scenes" (default behavior for compatibility)
             if (empty($characterScenes)) {
-                return false;
+                return true;
             }
             // Use array_flip for O(1) lookup instead of in_array
             $flipped = array_flip($characterScenes);
@@ -6326,9 +6340,9 @@ class VideoWizard extends Component
         // Fallback to original method with array_flip optimization
         foreach ($locations as $location) {
             $locationScenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
-            // Locations must be explicitly assigned to scenes (no more "empty = all" logic)
+            // Empty array means "applies to ALL scenes" (default behavior for compatibility)
             if (empty($locationScenes)) {
-                continue;
+                return $location;
             }
             // Use array_flip for O(1) lookup instead of in_array
             $flipped = array_flip($locationScenes);
@@ -12087,8 +12101,8 @@ EOT;
             // Support both field names: scenes (new standard), appliedScenes (legacy)
             $characterScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
 
-            // Characters must be explicitly assigned to scenes (no more "empty = all" logic)
-            if (!empty($characterScenes) && in_array($sceneIndex, $characterScenes)) {
+            // Empty array means "applies to ALL scenes" (default behavior for compatibility)
+            if (empty($characterScenes) || in_array($sceneIndex, $characterScenes)) {
                 $sceneCharacters[] = $character;
             }
         }
@@ -15105,8 +15119,8 @@ PROMPT;
         foreach ($this->sceneMemory['characterBible']['characters'] ?? [] as $character) {
             // Support both field names: scenes (new standard), appliedScenes (legacy)
             $characterScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
-            // Characters must be explicitly assigned to scenes (no more "empty = all" logic)
-            if (!empty($characterScenes) && in_array($sceneIndex, $characterScenes)) {
+            // Empty array means "applies to ALL scenes" (default behavior for compatibility)
+            if (empty($characterScenes) || in_array($sceneIndex, $characterScenes)) {
                 $characters[] = $character;
             }
         }
@@ -15121,8 +15135,8 @@ PROMPT;
         foreach ($this->sceneMemory['locationBible']['locations'] ?? [] as $location) {
             // Support multiple field names: scenes (internal), appearsInScenes (from AI extraction)
             $locationScenes = $location['scenes'] ?? $location['appearsInScenes'] ?? [];
-            // Locations must be explicitly assigned to scenes (no more "empty = all" logic)
-            if (!empty($locationScenes) && in_array($sceneIndex, $locationScenes)) {
+            // Empty array means "applies to ALL scenes" (default behavior for compatibility)
+            if (empty($locationScenes) || in_array($sceneIndex, $locationScenes)) {
                 return $location;
             }
         }
