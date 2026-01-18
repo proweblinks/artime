@@ -14452,18 +14452,26 @@ PROMPT;
 
         $shot = $decomposed['shots'][$shotIndex];
 
-        // FRAME CHAIN LOGIC: Shot 1 should use scene's existing image
+        // FRAME CHAIN LOGIC: Shot 1 can use scene's existing image ONLY if it's not a collage
+        // Collage images contain multiple shots and should be cropped instead
         if ($shotIndex === 0) {
-            $sceneImage = $this->getSceneImage($sceneIndex);
-            if ($sceneImage) {
-                // Auto-sync scene image to Shot 1
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $sceneImage;
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageStatus'] = 'ready';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['status'] = 'ready';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['fromSceneImage'] = true;
-                $this->saveProject();
-                return;
+            $storyboardScene = $this->storyboard['scenes'][$sceneIndex] ?? null;
+            $isCollageImage = $storyboardScene['fromCollage'] ?? false;
+
+            // Only use scene image if it's individually generated (not a collage)
+            if (!$isCollageImage) {
+                $sceneImage = $this->getSceneImage($sceneIndex);
+                if ($sceneImage) {
+                    // Auto-sync scene image to Shot 1
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $sceneImage;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageStatus'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['status'] = 'ready';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['fromSceneImage'] = true;
+                    $this->saveProject();
+                    return;
+                }
             }
+            // If scene has collage, don't auto-assign - let the user generate from collage region
         }
 
         // FRAME CHAIN LOGIC: Shots 2+ can use captured frame from previous shot
