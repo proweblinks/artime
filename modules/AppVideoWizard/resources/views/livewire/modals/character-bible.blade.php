@@ -416,7 +416,9 @@
                                     $isApplied = in_array($sceneIndex, $currentChar['appliedScenes'] ?? []);
                                 @endphp
                                 <button type="button"
-                                        wire:click="toggleCharacterScene({{ $editIndex }}, {{ $sceneIndex }})"
+                                        wire:click.debounce.300ms="toggleCharacterScene({{ $editIndex }}, {{ $sceneIndex }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="toggleCharacterScene"
                                         style="width: 28px; height: 28px; border-radius: 0.3rem; border: 2px solid {{ $isApplied ? '#8b5cf6' : 'rgba(255,255,255,0.2)' }}; background: {{ $isApplied ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'rgba(255,255,255,0.05)' }}; color: {{ $isApplied ? 'white' : 'rgba(255,255,255,0.5)' }}; cursor: pointer; font-size: 0.7rem; font-weight: {{ $isApplied ? '700' : '500' }}; transition: all 0.15s ease; {{ $isApplied ? 'box-shadow: 0 2px 8px rgba(139,92,246,0.4);' : '' }}">
                                     {{ $sceneIndex + 1 }}
                                 </button>
@@ -426,7 +428,9 @@
                                     $allScenesApplied = $appliedCount === $totalScenes;
                                 @endphp
                                 <button type="button"
-                                        wire:click="applyCharacterToAllScenes({{ $editIndex }})"
+                                        wire:click.debounce.300ms="applyCharacterToAllScenes({{ $editIndex }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="applyCharacterToAllScenes"
                                         style="padding: 0.25rem 0.6rem; border-radius: 0.3rem; border: 2px solid {{ $allScenesApplied ? '#10b981' : 'rgba(16,185,129,0.4)' }}; background: {{ $allScenesApplied ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(16,185,129,0.15)' }}; color: {{ $allScenesApplied ? 'white' : '#6ee7b7' }}; cursor: pointer; font-size: 0.6rem; font-weight: 600; margin-left: 0.3rem; {{ $allScenesApplied ? 'box-shadow: 0 2px 8px rgba(16,185,129,0.3);' : '' }}">
                                     {{ __('All') }}
                                 </button>

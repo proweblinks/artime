@@ -1368,14 +1368,20 @@
                         <div style="display: flex; gap: 0.5rem;">
                             <button type="button"
                                     wire:click="openStoryBibleModal"
+                                    wire:loading.attr="disabled"
+                                    wire:target="openStoryBibleModal"
                                     style="padding: 0.35rem 0.75rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.375rem; color: #6ee7b7; font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
-                                ✏️ {{ __('Edit Bible') }}
+                                <span wire:loading.remove wire:target="openStoryBibleModal">✏️ {{ __('Edit Bible') }}</span>
+                                <span wire:loading wire:target="openStoryBibleModal">...</span>
                             </button>
                             @if(!empty($script['scenes']))
                             <button type="button"
                                     wire:click="openWritersRoom"
+                                    wire:loading.attr="disabled"
+                                    wire:target="openWritersRoom"
                                     style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.2)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.375rem; color: #c4b5fd; font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
-                                ✍️ {{ __("Writer's Room") }}
+                                <span wire:loading.remove wire:target="openWritersRoom">✍️ {{ __("Writer's Room") }}</span>
+                                <span wire:loading wire:target="openWritersRoom">...</span>
                             </button>
                             @endif
                         </div>
@@ -1672,7 +1678,7 @@
                             📐 {{ __('Story Arc') }}
                             <span class="vw-option-sublabel">{{ __('How the narrative unfolds') }}</span>
                         </label>
-                        <select wire:model.live="storyArc" class="vw-narrative-select">
+                        <select wire:model.change="storyArc" class="vw-narrative-select">
                             <option value="">{{ __('Auto (from preset)') }}</option>
                             @foreach($storyArcs as $key => $arc)
                                 <option value="{{ $key }}">{{ $arc['icon'] ?? '' }} {{ $arc['name'] ?? $key }}</option>
@@ -1689,7 +1695,7 @@
                             📈 {{ __('Tension Curve') }}
                             <span class="vw-option-sublabel">{{ __('Pacing dynamics') }}</span>
                         </label>
-                        <select wire:model.live="tensionCurve" class="vw-narrative-select">
+                        <select wire:model.change="tensionCurve" class="vw-narrative-select">
                             <option value="">{{ __('Auto (from preset)') }}</option>
                             @foreach($tensionCurves as $key => $curve)
                                 <option value="{{ $key }}">{{ $curve['icon'] ?? '' }} {{ $curve['name'] ?? $key }}</option>
@@ -1706,7 +1712,7 @@
                             🎭 {{ __('Emotional Journey') }}
                             <span class="vw-option-sublabel">{{ __('Viewer feeling arc') }}</span>
                         </label>
-                        <select wire:model.live="emotionalJourney" class="vw-narrative-select">
+                        <select wire:model.change="emotionalJourney" class="vw-narrative-select">
                             <option value="">{{ __('Auto (from preset)') }}</option>
                             @foreach($emotionalJourneys as $key => $journey)
                                 <option value="{{ $key }}">{{ $journey['icon'] ?? '' }} {{ $journey['name'] ?? $key }}</option>

@@ -905,7 +905,7 @@
         {{-- Main Input --}}
         <div class="vw-field-group">
             <label class="vw-field-label">{{ __("What's your video about?") }}</label>
-            <textarea wire:model.live.debounce.300ms="concept.rawInput"
+            <textarea wire:model.blur="concept.rawInput"
                       class="vw-textarea"
                       placeholder="{{ __("Describe your idea, theme, or story... Be creative! Examples:
 • A mysterious figure discovers an ancient power

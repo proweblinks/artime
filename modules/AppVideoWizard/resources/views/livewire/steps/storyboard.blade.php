@@ -1147,7 +1147,7 @@
                     {{-- Mood --}}
                     <div class="vw-style-select-wrapper">
                         <span class="vw-style-select-label">{{ __('Mood') }}</span>
-                        <select class="vw-style-select" wire:model.live="storyboard.visualStyle.mood">
+                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.mood">
                             <option value="">{{ __('Auto') }}</option>
                             <option value="epic">{{ __('Epic') }}</option>
                             <option value="intimate">{{ __('Intimate') }}</option>
@@ -1162,7 +1162,7 @@
                     {{-- Lighting --}}
                     <div class="vw-style-select-wrapper">
                         <span class="vw-style-select-label">{{ __('Lighting') }}</span>
-                        <select class="vw-style-select" wire:model.live="storyboard.visualStyle.lighting">
+                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.lighting">
                             <option value="">{{ __('Auto') }}</option>
                             <option value="natural">{{ __('Natural') }}</option>
                             <option value="golden-hour">{{ __('Golden Hour') }}</option>
@@ -1175,7 +1175,7 @@
                     {{-- Colors --}}
                     <div class="vw-style-select-wrapper">
                         <span class="vw-style-select-label">{{ __('Colors') }}</span>
-                        <select class="vw-style-select" wire:model.live="storyboard.visualStyle.colorPalette">
+                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.colorPalette">
                             <option value="">{{ __('Auto') }}</option>
                             <option value="teal-orange">{{ __('Teal/Orange') }}</option>
                             <option value="warm-tones">{{ __('Warm Tones') }}</option>
@@ -1188,7 +1188,7 @@
                     {{-- Shot --}}
                     <div class="vw-style-select-wrapper">
                         <span class="vw-style-select-label">{{ __('Shot') }}</span>
-                        <select class="vw-style-select" wire:model.live="storyboard.visualStyle.composition">
+                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.composition">
                             <option value="">{{ __('Auto') }}</option>
                             <option value="wide">{{ __('Wide') }}</option>
                             <option value="medium">{{ __('Medium') }}</option>
@@ -1225,8 +1225,9 @@
                             <div class="vw-memory-desc">{{ __('Managed via Scene DNA') }}</div>
                         </div>
                         <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal('style')" style="font-size: 0.6rem;">
-                                {{ __('Scene DNA') }} →
+                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal('style')" wire:loading.attr="disabled" wire:target="openSceneDNAModal" style="font-size: 0.6rem;">
+                                <span wire:loading.remove wire:target="openSceneDNAModal">{{ __('Scene DNA') }} →</span>
+                                <span wire:loading wire:target="openSceneDNAModal">...</span>
                             </button>
                             <input type="checkbox"
                                    class="vw-memory-checkbox"
@@ -1243,8 +1244,9 @@
                             <div class="vw-memory-desc">{{ __('Consistent faces') }}</div>
                         </div>
                         <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openCharacterBibleModal">
-                                {{ __('Edit') }}
+                            <button type="button" class="vw-edit-btn" wire:click="openCharacterBibleModal" wire:loading.attr="disabled" wire:target="openCharacterBibleModal">
+                                <span wire:loading.remove wire:target="openCharacterBibleModal">{{ __('Edit') }}</span>
+                                <span wire:loading wire:target="openCharacterBibleModal">...</span>
                             </button>
                             <input type="checkbox"
                                    class="vw-memory-checkbox"
@@ -1261,8 +1263,9 @@
                             <div class="vw-memory-desc">{{ __('Consistent environments') }}</div>
                         </div>
                         <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openLocationBibleModal">
-                                {{ __('Edit') }}
+                            <button type="button" class="vw-edit-btn" wire:click="openLocationBibleModal" wire:loading.attr="disabled" wire:target="openLocationBibleModal">
+                                <span wire:loading.remove wire:target="openLocationBibleModal">{{ __('Edit') }}</span>
+                                <span wire:loading wire:target="openLocationBibleModal">...</span>
                             </button>
                             <input type="checkbox"
                                    class="vw-memory-checkbox"
@@ -1290,8 +1293,9 @@
                             </div>
                         </div>
                         <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border-color: rgba(6,182,212,0.4);">
-                                {{ __('View') }}
+                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal" wire:loading.attr="disabled" wire:target="openSceneDNAModal" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border-color: rgba(6,182,212,0.4);">
+                                <span wire:loading.remove wire:target="openSceneDNAModal">{{ __('View') }}</span>
+                                <span wire:loading wire:target="openSceneDNAModal">...</span>
                             </button>
                         </div>
                     </div>
@@ -1321,7 +1325,7 @@
                     {{-- Output Quality --}}
                     <div style="margin-bottom: 0.75rem;">
                         <label style="display: block; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 0.35rem;">{{ __('Output Quality') }}</label>
-                        <select class="vw-style-select" wire:model.live="storyboard.technicalSpecs.quality" style="max-width: 200px;">
+                        <select class="vw-style-select" wire:model.change="storyboard.technicalSpecs.quality" style="max-width: 200px;">
                             <option value="4k">{{ __('4K (3840×2160)') }}</option>
                             <option value="2k">{{ __('2K (2560×1440)') }}</option>
                             <option value="1080p">{{ __('1080p (1920×1080)') }}</option>
@@ -1335,7 +1339,7 @@
                             ✅ {{ __('Positive Prompts') }}
                             <span style="color: rgba(255,255,255,0.3); font-weight: normal;">({{ __('enhance quality') }})</span>
                         </label>
-                        <textarea wire:model.live.debounce.500ms="storyboard.technicalSpecs.positive"
+                        <textarea wire:model.blur="storyboard.technicalSpecs.positive"
                                   placeholder="{{ __('high quality, detailed, professional, 8K resolution, sharp focus, cinematic...') }}"
                                   style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
                     </div>
@@ -1346,7 +1350,7 @@
                             ❌ {{ __('Negative Prompts') }}
                             <span style="color: rgba(255,255,255,0.3); font-weight: normal;">({{ __('avoid these') }})</span>
                         </label>
-                        <textarea wire:model.live.debounce.500ms="storyboard.technicalSpecs.negative"
+                        <textarea wire:model.blur="storyboard.technicalSpecs.negative"
                                   placeholder="{{ __('blurry, low quality, ugly, distorted, watermark, text, logo, nsfw...') }}"
                                   style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 0.5rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
                     </div>

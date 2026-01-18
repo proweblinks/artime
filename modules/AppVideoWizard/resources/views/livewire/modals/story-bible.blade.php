@@ -75,7 +75,7 @@
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Title') }}</label>
                             <input type="text"
-                                   wire:model.live="storyBible.title"
+                                   wire:model.blur="storyBible.title"
                                    placeholder="{{ __('Video title...') }}"
                                    style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.85rem;">
                         </div>
@@ -83,7 +83,7 @@
                         {{-- Logline --}}
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Logline') }}</label>
-                            <textarea wire:model.live="storyBible.logline"
+                            <textarea wire:model.blur="storyBible.logline"
                                       placeholder="{{ __('One-sentence summary of your story...') }}"
                                       style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
                         </div>
@@ -93,14 +93,14 @@
                             <div>
                                 <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Theme') }}</label>
                                 <input type="text"
-                                       wire:model.live="storyBible.theme"
+                                       wire:model.blur="storyBible.theme"
                                        placeholder="{{ __('Core message...') }}"
                                        style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
                             </div>
                             <div>
                                 <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Tone') }}</label>
                                 <input type="text"
-                                       wire:model.live="storyBible.tone"
+                                       wire:model.blur="storyBible.tone"
                                        placeholder="{{ __('Emotional feel...') }}"
                                        style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
                             </div>
@@ -209,13 +209,13 @@
                                     <div>
                                         <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Character Name') }}</label>
                                         <input type="text"
-                                               wire:model.live="storyBible.characters.{{ $editingBibleCharacterIndex }}.name"
+                                               wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.name"
                                                placeholder="{{ __('Full name...') }}"
                                                style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.8rem;">
                                     </div>
                                     <div>
                                         <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Role') }}</label>
-                                        <select wire:model.live="storyBible.characters.{{ $editingBibleCharacterIndex }}.role"
+                                        <select wire:model.change="storyBible.characters.{{ $editingBibleCharacterIndex }}.role"
                                                 style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
                                             <option value="protagonist">{{ __('Protagonist') }}</option>
                                             <option value="antagonist">{{ __('Antagonist') }}</option>
@@ -231,7 +231,7 @@
                                         {{ __('Visual Description') }}
                                         <span style="color: #f59e0b;">({{ __('Critical for AI consistency') }})</span>
                                     </label>
-                                    <textarea wire:model.live="storyBible.characters.{{ $editingBibleCharacterIndex }}.description"
+                                    <textarea wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.description"
                                               placeholder="{{ __('Age, gender, ethnicity, build, hair color/style, eye color, distinctive features, typical clothing...') }}"
                                               style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 80px; resize: vertical;"></textarea>
                                     <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.4); font-size: 0.55rem;">{{ __('Be specific - this description will be used in every image prompt featuring this character') }}</p>
@@ -240,7 +240,7 @@
                                 {{-- Character Arc --}}
                                 <div>
                                     <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Character Arc') }}</label>
-                                    <textarea wire:model.live="storyBible.characters.{{ $editingBibleCharacterIndex }}.arc"
+                                    <textarea wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.arc"
                                               placeholder="{{ __('How does this character change throughout the story?') }}"
                                               style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
@@ -334,7 +334,7 @@
                                 <div>
                                     <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Location Name') }}</label>
                                     <input type="text"
-                                           wire:model.live="storyBible.locations.{{ $editingBibleLocationIndex }}.name"
+                                           wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.name"
                                            placeholder="{{ __('e.g., Corporate Office, Beach at Sunset...') }}"
                                            style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.8rem;">
                                 </div>
@@ -343,7 +343,7 @@
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
                                     <div>
                                         <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
-                                        <select wire:model.live="storyBible.locations.{{ $editingBibleLocationIndex }}.type"
+                                        <select wire:model.change="storyBible.locations.{{ $editingBibleLocationIndex }}.type"
                                                 style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
                                             <option value="interior">{{ __('Interior') }}</option>
                                             <option value="exterior">{{ __('Exterior') }}</option>
@@ -352,7 +352,7 @@
                                     </div>
                                     <div>
                                         <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Time of Day') }}</label>
-                                        <select wire:model.live="storyBible.locations.{{ $editingBibleLocationIndex }}.timeOfDay"
+                                        <select wire:model.change="storyBible.locations.{{ $editingBibleLocationIndex }}.timeOfDay"
                                                 style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
                                             <option value="day">{{ __('Day') }}</option>
                                             <option value="night">{{ __('Night') }}</option>
@@ -364,7 +364,7 @@
                                     <div>
                                         <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Atmosphere') }}</label>
                                         <input type="text"
-                                               wire:model.live="storyBible.locations.{{ $editingBibleLocationIndex }}.atmosphere"
+                                               wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.atmosphere"
                                                placeholder="{{ __('tense, peaceful...') }}"
                                                style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
                                     </div>
@@ -376,7 +376,7 @@
                                         {{ __('Visual Description') }}
                                         <span style="color: #06b6d4;">({{ __('Critical for AI consistency') }})</span>
                                     </label>
-                                    <textarea wire:model.live="storyBible.locations.{{ $editingBibleLocationIndex }}.description"
+                                    <textarea wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.description"
                                               placeholder="{{ __('Architecture, materials, colors, key objects, textures, lighting conditions...') }}"
                                               style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 100px; resize: vertical;"></textarea>
                                     <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.4); font-size: 0.55rem;">{{ __('Be specific - this description will be used in every image prompt set in this location') }}</p>
@@ -424,13 +424,13 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Color Palette') }}</label>
-                            <textarea wire:model.live="storyBible.visualStyle.colorPalette"
+                            <textarea wire:model.blur="storyBible.visualStyle.colorPalette"
                                       placeholder="{{ __('e.g., Cool blues with warm amber accents, desaturated earth tones...') }}"
                                       style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Lighting Style') }}</label>
-                            <textarea wire:model.live="storyBible.visualStyle.lighting"
+                            <textarea wire:model.blur="storyBible.visualStyle.lighting"
                                       placeholder="{{ __('e.g., Natural window light with dramatic shadows, soft diffused studio lighting...') }}"
                                       style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
@@ -440,13 +440,13 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Camera Language') }}</label>
-                            <textarea wire:model.live="storyBible.visualStyle.cameraLanguage"
+                            <textarea wire:model.blur="storyBible.visualStyle.cameraLanguage"
                                       placeholder="{{ __('e.g., Steady handheld, smooth dolly movements, intimate close-ups...') }}"
                                       style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Visual References') }}</label>
-                            <textarea wire:model.live="storyBible.visualStyle.references"
+                            <textarea wire:model.blur="storyBible.visualStyle.references"
                                       placeholder="{{ __('e.g., Blade Runner meets The Social Network, Pixar style with moody lighting...') }}"
                                       style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>

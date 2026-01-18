@@ -194,7 +194,7 @@
                                 <div style="display: flex; gap: 0.35rem; margin-bottom: 0.4rem;">
                                     <div style="flex: 1;">
                                         <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Type') }}</label>
-                                        <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.type"
+                                        <select wire:model.change="sceneMemory.locationBible.locations.{{ $editIndex }}.type"
                                                 style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="exterior">{{ __('Exterior') }}</option>
                                             <option value="interior">{{ __('Interior') }}</option>
@@ -203,7 +203,7 @@
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Time of Day') }}</label>
-                                        <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.timeOfDay"
+                                        <select wire:model.change="sceneMemory.locationBible.locations.{{ $editIndex }}.timeOfDay"
                                                 style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="day">{{ __('Day') }}</option>
                                             <option value="night">{{ __('Night') }}</option>
@@ -214,7 +214,7 @@
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Weather') }}</label>
-                                        <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.weather"
+                                        <select wire:model.change="sceneMemory.locationBible.locations.{{ $editIndex }}.weather"
                                                 style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                             <option value="clear">{{ __('Clear') }}</option>
                                             <option value="cloudy">{{ __('Cloudy') }}</option>
@@ -229,7 +229,7 @@
                                 {{-- Mood / Atmosphere --}}
                                 <div style="margin-bottom: 0.4rem;">
                                     <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Mood / Atmosphere') }}</label>
-                                    <select wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.mood"
+                                    <select wire:model.change="sceneMemory.locationBible.locations.{{ $editIndex }}.mood"
                                             style="width: 100%; padding: 0.3rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                         <option value="neutral">{{ __('Neutral') }}</option>
                                         <option value="tense">{{ __('Tense / Dramatic') }}</option>
@@ -283,14 +283,18 @@
                                         $isAssigned = in_array($sceneIdx, $assignedScenes);
                                     @endphp
                                     <button type="button"
-                                            wire:click="toggleLocationScene({{ $editIndex }}, {{ $sceneIdx }})"
+                                            wire:click.debounce.300ms="toggleLocationScene({{ $editIndex }}, {{ $sceneIdx }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="toggleLocationScene"
                                             style="width: 28px; height: 28px; border-radius: 0.3rem; border: 2px solid {{ $isAssigned ? '#f59e0b' : 'rgba(255,255,255,0.2)' }}; background: {{ $isAssigned ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.05)' }}; color: {{ $isAssigned ? 'white' : 'rgba(255,255,255,0.5)' }}; cursor: pointer; font-size: 0.7rem; font-weight: {{ $isAssigned ? '700' : '500' }}; transition: all 0.15s ease; {{ $isAssigned ? 'box-shadow: 0 2px 8px rgba(245,158,11,0.4);' : '' }}">
                                         {{ $sceneIdx + 1 }}
                                     </button>
                                 @endforeach
                                 @if($totalScenes > 0)
                                     <button type="button"
-                                            wire:click="applyLocationToAllScenes({{ $editIndex }})"
+                                            wire:click.debounce.300ms="applyLocationToAllScenes({{ $editIndex }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="applyLocationToAllScenes"
                                             style="padding: 0.25rem 0.6rem; border-radius: 0.3rem; border: 2px solid {{ $allScenesAssigned ? '#10b981' : 'rgba(16, 185, 129, 0.4)' }}; background: {{ $allScenesAssigned ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(16, 185, 129, 0.15)' }}; color: {{ $allScenesAssigned ? 'white' : '#6ee7b7' }}; cursor: pointer; font-size: 0.6rem; font-weight: 600; margin-left: 0.25rem; {{ $allScenesAssigned ? 'box-shadow: 0 2px 8px rgba(16,185,129,0.3);' : '' }}">
                                         {{ __('All') }}
                                     </button>

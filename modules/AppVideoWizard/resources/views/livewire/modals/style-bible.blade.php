@@ -130,7 +130,7 @@
             {{-- Visual Style --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual Style') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.style"
+                <textarea wire:model.blur="sceneMemory.styleBible.style"
                           placeholder="{{ __('e.g., Photorealistic with cinematic framing, shallow depth of field...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
             </div>
@@ -138,7 +138,7 @@
             {{-- Color Grade --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Color Grade') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.colorGrade"
+                <textarea wire:model.blur="sceneMemory.styleBible.colorGrade"
                           placeholder="{{ __('e.g., Teal and orange color grading, lifted blacks, desaturated skin tones...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
@@ -146,7 +146,7 @@
             {{-- Atmosphere --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Atmosphere & Mood') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.atmosphere"
+                <textarea wire:model.blur="sceneMemory.styleBible.atmosphere"
                           placeholder="{{ __('e.g., Moody, mysterious, with volumetric lighting and subtle haze...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
@@ -154,7 +154,7 @@
             {{-- Camera Language --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Camera Language') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.camera"
+                <textarea wire:model.blur="sceneMemory.styleBible.camera"
                           placeholder="{{ __('e.g., Shot on ARRI Alexa, anamorphic lenses, wide establishing shots...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
@@ -162,7 +162,7 @@
             {{-- Visual DNA --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual DNA (Additional Keywords)') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.visualDNA"
+                <textarea wire:model.blur="sceneMemory.styleBible.visualDNA"
                           placeholder="{{ __('e.g., high quality, detailed, professional, 8K resolution, sharp focus...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
@@ -178,14 +178,14 @@
                         {{-- Setup --}}
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Setup') }}</label>
-                            <input type="text" wire:model.live="sceneMemory.styleBible.lighting.setup"
+                            <input type="text" wire:model.blur="sceneMemory.styleBible.lighting.setup"
                                    placeholder="{{ __('e.g., three-point lighting') }}"
                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                         </div>
                         {{-- Intensity --}}
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Intensity') }}</label>
-                            <select wire:model.live="sceneMemory.styleBible.lighting.intensity"
+                            <select wire:model.change="sceneMemory.styleBible.lighting.intensity"
                                     style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="high-key">{{ __('High-key (bright)') }}</option>
@@ -196,7 +196,7 @@
                         {{-- Type --}}
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
-                            <select wire:model.live="sceneMemory.styleBible.lighting.type"
+                            <select wire:model.change="sceneMemory.styleBible.lighting.type"
                                     style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="natural">{{ __('Natural') }}</option>
@@ -208,7 +208,7 @@
                         {{-- Mood --}}
                         <div>
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Mood') }}</label>
-                            <select wire:model.live="sceneMemory.styleBible.lighting.mood"
+                            <select wire:model.change="sceneMemory.styleBible.lighting.mood"
                                     style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="dramatic">{{ __('Dramatic') }}</option>
@@ -224,7 +224,7 @@
             {{-- Negative Prompt --}}
             <div style="margin-bottom: 0.5rem;">
                 <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Negative Prompt (Things to Avoid)') }}</label>
-                <textarea wire:model.live="sceneMemory.styleBible.negativePrompt"
+                <textarea wire:model.blur="sceneMemory.styleBible.negativePrompt"
                           placeholder="{{ __('e.g., blurry, low quality, oversaturated, plastic skin, cartoon, anime...') }}"
                           style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.35rem; color: #fca5a5; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
                 <p style="color: rgba(255,255,255,0.4); font-size: 0.5rem; margin: 0.2rem 0 0 0;">
