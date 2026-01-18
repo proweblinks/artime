@@ -1,287 +1,317 @@
 {{-- Step 3: Script Generation --}}
 <style>
-    .vw-script-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    /* ============================================
+       STEP 3: SCRIPT GENERATION - SCOPED CSS
+       All selectors scoped under .vw-script-step
+       ============================================ */
+
+    .vw-script-step .vw-script-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    .vw-script-header {
-        display: flex !important;
-        align-items: flex-start !important;
-        gap: 1rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-script-step .vw-script-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-script-icon {
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
-        border-radius: 50% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.5rem !important;
+    .vw-script-step .vw-script-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
     }
 
-    .vw-script-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin: 0 !important;
+    .vw-script-step .vw-script-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
     }
 
-    .vw-script-subtitle {
-        font-size: 0.875rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        margin-top: 0.25rem !important;
+    .vw-script-step .vw-script-subtitle {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 0.25rem;
     }
 
     /* Direct Concept Card */
-    .vw-direct-concept-card {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1.5rem !important;
-        position: relative !important;
+    .vw-script-step .vw-direct-concept-card {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        position: relative;
     }
 
-    .vw-direct-concept-label {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        color: #f472b6 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-        margin-bottom: 0.75rem !important;
+    .vw-script-step .vw-direct-concept-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #f472b6;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-direct-concept-badges {
-        position: absolute !important;
-        top: 1rem !important;
-        right: 1rem !important;
-        display: flex !important;
-        gap: 0.5rem !important;
-        flex-wrap: wrap !important;
+    .vw-script-step .vw-direct-concept-badges {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
 
-    .vw-type-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.25rem !important;
-        padding: 0.25rem 0.625rem !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.75rem !important;
-        font-weight: 500 !important;
+    .vw-script-step .vw-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
     }
 
-    .vw-type-badge.passthrough {
-        background: rgba(16, 185, 129, 0.2) !important;
-        color: #34d399 !important;
+    .vw-script-step .vw-type-badge.passthrough {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
     }
 
-    .vw-type-badge.production {
-        background: rgba(139, 92, 246, 0.2) !important;
-        color: #c4b5fd !important;
+    .vw-script-step .vw-type-badge.production {
+        background: rgba(139, 92, 246, 0.2);
+        color: #c4b5fd;
     }
 
-    .vw-type-badge.subtype {
-        background: rgba(236, 72, 153, 0.2) !important;
-        color: #f9a8d4 !important;
+    .vw-script-step .vw-type-badge.subtype {
+        background: rgba(236, 72, 153, 0.2);
+        color: #f9a8d4;
     }
 
-    .vw-direct-concept-title {
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.75rem !important;
+    .vw-script-step .vw-direct-concept-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-direct-concept-text {
-        color: rgba(255, 255, 255, 0.8) !important;
-        line-height: 1.7 !important;
-        font-size: 0.95rem !important;
-        margin-bottom: 1rem !important;
+    .vw-script-step .vw-direct-concept-text {
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.7;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
     }
 
-    .vw-concept-meta {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        flex-wrap: wrap !important;
-        gap: 1rem !important;
+    .vw-script-step .vw-concept-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
-    .vw-concept-meta-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 1.5rem !important;
-        flex-wrap: wrap !important;
+    .vw-script-step .vw-concept-meta-left {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
     }
 
-    .vw-concept-meta-item {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        font-size: 0.85rem !important;
+    .vw-script-step .vw-concept-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.85rem;
     }
 
-    .vw-concept-meta-item span:first-child {
-        color: rgba(255, 255, 255, 0.5) !important;
+    .vw-script-step .vw-concept-meta-item span:first-child {
+        color: rgba(255, 255, 255, 0.5);
     }
 
-    .vw-concept-meta-item span:last-child {
-        color: #34d399 !important;
-        font-weight: 500 !important;
+    .vw-script-step .vw-concept-meta-item span:last-child {
+        color: #34d399;
+        font-weight: 500;
     }
 
-    .vw-concept-meta-item.duration span:last-child {
-        color: #f472b6 !important;
+    .vw-script-step .vw-concept-meta-item.duration span:last-child {
+        color: #f472b6;
     }
 
-    .vw-char-count {
-        font-size: 0.8rem !important;
-        color: #34d399 !important;
+    .vw-script-step .vw-char-count {
+        font-size: 0.8rem;
+        color: #34d399;
+    }
+
+    /* Scene Source Indicators */
+    .vw-script-step .vw-scene-source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .vw-script-step .vw-scene-source-badge.ai {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.2));
+        color: #c4b5fd;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .vw-script-step .vw-scene-source-badge.manual {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
     /* Selector Sections */
-    .vw-selector-section {
-        margin-bottom: 1.5rem !important;
+    .vw-script-step .vw-selector-section {
+        margin-bottom: 1.5rem;
     }
 
-    .vw-selector-label {
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.75rem !important;
+    .vw-script-step .vw-selector-label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-selector-sublabel {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        font-weight: 400 !important;
-        margin-left: 0.5rem !important;
+    .vw-script-step .vw-selector-sublabel {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 400;
+        margin-left: 0.5rem;
     }
 
-    .vw-selector-grid {
-        display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: 0.75rem !important;
+    .vw-script-step .vw-selector-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
     }
 
     @media (max-width: 768px) {
-        .vw-selector-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+        .vw-script-step .vw-selector-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    .vw-selector-btn {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 1rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        text-align: center !important;
+    .vw-script-step .vw-selector-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
     }
 
-    .vw-selector-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        background: rgba(139, 92, 246, 0.1) !important;
+    .vw-script-step .vw-selector-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
     }
 
-    .vw-selector-btn.selected {
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-selector-btn.selected {
+        border-color: rgba(139, 92, 246, 0.6);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+        color: #ffffff;
     }
 
-    .vw-selector-btn-title {
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
+    .vw-script-step .vw-selector-btn-title {
+        font-weight: 600;
+        font-size: 0.9rem;
     }
 
-    .vw-selector-btn-subtitle {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-top: 0.25rem !important;
+    .vw-script-step .vw-selector-btn-subtitle {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.25rem;
     }
 
-    .vw-selector-btn.selected .vw-selector-btn-subtitle {
-        color: rgba(255, 255, 255, 0.6) !important;
+    .vw-script-step .vw-selector-btn.selected .vw-selector-btn-subtitle {
+        color: rgba(255, 255, 255, 0.6);
     }
 
     /* Additional Instructions */
-    .vw-instructions-textarea {
-        width: 100% !important;
-        min-height: 100px !important;
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 1rem !important;
-        color: #ffffff !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
-        resize: vertical !important;
-        transition: border-color 0.2s, box-shadow 0.2s !important;
+    .vw-script-step .vw-instructions-textarea {
+        width: 100%;
+        min-height: 100px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        color: #ffffff;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        resize: vertical;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    .vw-instructions-textarea:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    .vw-script-step .vw-instructions-textarea:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 
-    .vw-instructions-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4) !important;
+    .vw-script-step .vw-instructions-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.4);
     }
 
     /* Generate Button */
-    .vw-generate-script-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-        width: 100% !important;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%) !important;
-        color: white !important;
-        padding: 1rem 1.5rem !important;
-        border-radius: 0.75rem !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
-        margin-top: 1.5rem !important;
+    .vw-script-step .vw-generate-script-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 1.5rem;
     }
 
-    .vw-generate-script-btn:hover:not(:disabled) {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 25px rgba(236, 72, 153, 0.4) !important;
+    .vw-script-step .vw-generate-script-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(236, 72, 153, 0.4);
     }
 
-    .vw-generate-script-btn:disabled {
-        opacity: 0.6 !important;
-        cursor: not-allowed !important;
+    .vw-script-step .vw-generate-script-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
-    .vw-cost-estimate {
-        text-align: center !important;
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.4) !important;
-        margin-top: 0.75rem !important;
+    .vw-script-step .vw-cost-estimate {
+        text-align: center;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.75rem;
     }
 
     /* Spinner Animation */
@@ -296,944 +326,944 @@
     }
 
     /* Loading content inner wrapper */
-    .vw-loading-inner {
+    .vw-script-step .vw-loading-inner {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
     }
 
     /* Script Results Section */
-    .vw-script-results {
-        margin-top: 1.5rem !important;
+    .vw-script-step .vw-script-results {
+        margin-top: 1.5rem;
     }
 
-    .vw-scene-card {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1rem !important;
+    .vw-script-step .vw-scene-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
     }
 
-    .vw-scene-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 0.75rem !important;
+    .vw-script-step .vw-scene-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-scene-number {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 28px !important;
-        height: 28px !important;
-        background: rgba(139, 92, 246, 0.3) !important;
-        border-radius: 50% !important;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        color: #c4b5fd !important;
-        margin-right: 0.75rem !important;
+    .vw-script-step .vw-scene-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 50%;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #c4b5fd;
+        margin-right: 0.75rem;
     }
 
-    .vw-scene-title {
-        font-weight: 600 !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-scene-title {
+        font-weight: 600;
+        color: #ffffff;
     }
 
-    .vw-scene-duration {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        padding: 0.25rem 0.5rem !important;
-        border-radius: 0.25rem !important;
+    .vw-script-step .vw-scene-duration {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        background: rgba(0, 0, 0, 0.3);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
     }
 
-    .vw-scene-narration {
-        color: rgba(255, 255, 255, 0.8) !important;
-        font-size: 0.9rem !important;
-        line-height: 1.6 !important;
+    .vw-script-step .vw-scene-narration {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        line-height: 1.6;
     }
 
     /* Script Stats Bar */
-    .vw-script-stats-bar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 0.875rem 1.25rem !important;
-        margin-bottom: 1.25rem !important;
-        flex-wrap: wrap !important;
-        gap: 1rem !important;
+    .vw-script-step .vw-script-stats-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.875rem 1.25rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 
-    .vw-script-stats-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 2rem !important;
-        flex-wrap: wrap !important;
+    .vw-script-step .vw-script-stats-left {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        flex-wrap: wrap;
     }
 
-    .vw-script-stat {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.125rem !important;
+    .vw-script-step .vw-script-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
     }
 
-    .vw-script-stat-label {
-        font-size: 0.7rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
+    .vw-script-step .vw-script-stat-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
-    .vw-script-stat-value {
-        font-size: 1rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-script-stat-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ffffff;
     }
 
-    .vw-script-stat-value.highlight {
-        color: #34d399 !important;
+    .vw-script-step .vw-script-stat-value.highlight {
+        color: #34d399;
     }
 
-    .vw-pacing-indicator {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        padding: 0.5rem 0.875rem !important;
-        background: rgba(139, 92, 246, 0.2) !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.85rem !important;
-        color: #c4b5fd !important;
-        font-weight: 500 !important;
+    .vw-script-step .vw-pacing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        background: rgba(139, 92, 246, 0.2);
+        border-radius: 0.375rem;
+        font-size: 0.85rem;
+        color: #c4b5fd;
+        font-weight: 500;
     }
 
     /* Voice & Dialogue Status Panel */
-    .vw-voice-status-panel {
-        background: rgba(0, 0, 0, 0.25) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-script-step .vw-voice-status-panel {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-voice-status-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 1rem !important;
+    .vw-script-step .vw-voice-status-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
     }
 
-    .vw-voice-status-title {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-voice-status-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #ffffff;
     }
 
-    .vw-voice-pending-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        background: rgba(251, 191, 36, 0.2) !important;
-        color: #fbbf24 !important;
-        padding: 0.375rem 0.75rem !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
+    .vw-script-step .vw-voice-pending-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.8rem;
+        font-weight: 500;
     }
 
-    .vw-voice-status-grid {
-        display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: 0.75rem !important;
+    .vw-script-step .vw-voice-status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
     }
 
     @media (max-width: 768px) {
-        .vw-voice-status-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+        .vw-script-step .vw-voice-status-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    .vw-voice-stat-card {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 0.5rem !important;
-        padding: 1rem !important;
-        text-align: center !important;
+    .vw-script-step .vw-voice-stat-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
     }
 
-    .vw-voice-stat-value {
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.25rem !important;
+    .vw-script-step .vw-voice-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.25rem;
     }
 
-    .vw-voice-stat-label {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
+    .vw-script-step .vw-voice-stat-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     /* Full Script View Button */
-    .vw-full-script-btn {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        padding: 0.5rem 0.875rem !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.85rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-full-script-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.375rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-full-script-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        color: #c4b5fd !important;
-        background: rgba(139, 92, 246, 0.1) !important;
+    .vw-script-step .vw-full-script-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #c4b5fd;
+        background: rgba(139, 92, 246, 0.1);
     }
 
     /* Full Script Modal - hidden by default */
-    .vw-full-script-modal {
-        position: fixed !important;
-        inset: 0 !important;
-        z-index: 100 !important;
-        display: none !important; /* Hidden by default */
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 2rem !important;
+    .vw-script-step .vw-full-script-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: none; /* Hidden by default */
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
     }
 
     /* Only show when .is-open class is added by Alpine */
-    .vw-full-script-modal.is-open {
-        display: flex !important;
+    .vw-script-step .vw-full-script-modal.is-open {
+        display: flex;
     }
 
-    .vw-full-script-overlay {
-        position: absolute !important;
-        inset: 0 !important;
-        background: rgba(0, 0, 0, 0.75) !important;
-        backdrop-filter: blur(4px) !important;
+    .vw-script-step .vw-full-script-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(4px);
     }
 
-    .vw-full-script-content {
-        position: relative !important;
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        max-width: 800px !important;
-        width: 100% !important;
-        max-height: 80vh !important;
-        overflow-y: auto !important;
+    .vw-script-step .vw-full-script-content {
+        position: relative;
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        max-width: 800px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
     }
 
-    .vw-full-script-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 1.25rem !important;
-        padding-bottom: 1rem !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    .vw-script-step .vw-full-script-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .vw-full-script-close {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 32px !important;
-        height: 32px !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: none !important;
-        border-radius: 50% !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-full-script-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 50%;
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-full-script-close:hover {
-        background: rgba(239, 68, 68, 0.3) !important;
-        color: #fca5a5 !important;
+    .vw-script-step .vw-full-script-close:hover {
+        background: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
     }
 
-    .vw-full-script-text {
-        color: rgba(255, 255, 255, 0.85) !important;
-        line-height: 1.8 !important;
-        font-size: 0.95rem !important;
-        white-space: pre-wrap !important;
+    .vw-script-step .vw-full-script-text {
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.8;
+        font-size: 0.95rem;
+        white-space: pre-wrap;
     }
 
-    .vw-full-script-scene-divider {
-        margin: 1.5rem 0 !important;
-        text-align: center !important;
-        color: rgba(255, 255, 255, 0.3) !important;
-        font-size: 0.8rem !important;
+    .vw-script-step .vw-full-script-scene-divider {
+        margin: 1.5rem 0;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 0.8rem;
     }
 
     /* Advanced Scene Cards */
-    .vw-advanced-scene-card {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.75rem !important;
-        margin-bottom: 1rem !important;
-        overflow: hidden !important;
-        transition: border-color 0.2s !important;
+    .vw-script-step .vw-advanced-scene-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        transition: border-color 0.2s;
     }
 
-    .vw-advanced-scene-card:hover {
-        border-color: rgba(139, 92, 246, 0.3) !important;
+    .vw-script-step .vw-advanced-scene-card:hover {
+        border-color: rgba(139, 92, 246, 0.3);
     }
 
-    .vw-advanced-scene-card.expanded {
-        border-color: rgba(139, 92, 246, 0.4) !important;
+    .vw-script-step .vw-advanced-scene-card.expanded {
+        border-color: rgba(139, 92, 246, 0.4);
     }
 
-    .vw-scene-card-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 1rem 1.25rem !important;
-        cursor: pointer !important;
-        user-select: none !important;
+    .vw-script-step .vw-scene-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        cursor: pointer;
+        user-select: none;
     }
 
-    .vw-scene-card-header-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.75rem !important;
-        flex: 1 !important;
+    .vw-script-step .vw-scene-card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
     }
 
-    .vw-scene-expand-icon {
-        color: rgba(255, 255, 255, 0.5) !important;
-        transition: transform 0.2s !important;
-        font-size: 0.9rem !important;
+    .vw-script-step .vw-scene-expand-icon {
+        color: rgba(255, 255, 255, 0.5);
+        transition: transform 0.2s;
+        font-size: 0.9rem;
     }
 
-    .vw-advanced-scene-card.expanded .vw-scene-expand-icon {
-        transform: rotate(180deg) !important;
+    .vw-script-step .vw-advanced-scene-card.expanded .vw-scene-expand-icon {
+        transform: rotate(180deg);
     }
 
-    .vw-scene-music-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.25rem !important;
-        padding: 0.25rem 0.5rem !important;
-        background: rgba(251, 191, 36, 0.2) !important;
-        color: #fbbf24 !important;
-        border-radius: 0.25rem !important;
-        font-size: 0.7rem !important;
-        font-weight: 500 !important;
+    .vw-script-step .vw-scene-music-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 500;
     }
 
-    .vw-scene-meta-badges {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        flex-wrap: wrap !important;
+    .vw-script-step .vw-scene-meta-badges {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
 
-    .vw-scene-meta-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.25rem !important;
-        padding: 0.25rem 0.5rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border-radius: 0.25rem !important;
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
+    .vw-script-step .vw-scene-meta-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
     }
 
-    .vw-scene-card-body {
-        padding: 0 1.25rem 1.25rem !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    .vw-script-step .vw-scene-card-body {
+        padding: 0 1.25rem 1.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .vw-scene-section {
-        margin-top: 1.25rem !important;
+    .vw-script-step .vw-scene-section {
+        margin-top: 1.25rem;
     }
 
-    .vw-scene-section-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 0.5rem !important;
+    .vw-script-step .vw-scene-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
     }
 
-    .vw-scene-section-label {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.7) !important;
+    .vw-script-step .vw-scene-section-label {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
     }
 
-    .vw-scene-write-btn {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.25rem !important;
-        padding: 0.375rem 0.625rem !important;
-        background: rgba(139, 92, 246, 0.2) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.375rem !important;
-        color: #c4b5fd !important;
-        font-size: 0.75rem !important;
-        font-weight: 500 !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-scene-write-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.625rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.375rem;
+        color: #c4b5fd;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-scene-write-btn:hover:not(:disabled) {
-        background: rgba(139, 92, 246, 0.3) !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-scene-write-btn:hover:not(:disabled) {
+        background: rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-scene-write-btn:disabled {
-        opacity: 0.5 !important;
-        cursor: not-allowed !important;
+    .vw-script-step .vw-scene-write-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
-    .vw-scene-textarea {
-        width: 100% !important;
-        min-height: 80px !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 0.75rem !important;
-        color: #ffffff !important;
-        font-size: 0.9rem !important;
-        line-height: 1.5 !important;
-        resize: vertical !important;
-        transition: border-color 0.2s !important;
+    .vw-script-step .vw-scene-textarea {
+        width: 100%;
+        min-height: 80px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        color: #ffffff;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        resize: vertical;
+        transition: border-color 0.2s;
     }
 
-    .vw-scene-textarea:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-scene-textarea:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-scene-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.3) !important;
+    .vw-script-step .vw-scene-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.3);
     }
 
-    .vw-music-only-notice {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        padding: 0.75rem !important;
-        background: rgba(251, 191, 36, 0.1) !important;
-        border: 1px solid rgba(251, 191, 36, 0.2) !important;
-        border-radius: 0.5rem !important;
-        color: #fbbf24 !important;
-        font-size: 0.85rem !important;
+    .vw-script-step .vw-music-only-notice {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        border-radius: 0.5rem;
+        color: #fbbf24;
+        font-size: 0.85rem;
     }
 
-    .vw-scene-controls-row {
-        display: flex !important;
-        align-items: flex-end !important;
-        gap: 1rem !important;
-        margin-top: 1.25rem !important;
-        flex-wrap: wrap !important;
+    .vw-script-step .vw-scene-controls-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 1rem;
+        margin-top: 1.25rem;
+        flex-wrap: wrap;
     }
 
-    .vw-scene-control-group {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.375rem !important;
+    .vw-script-step .vw-scene-control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
     }
 
-    .vw-scene-control-label {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
+    .vw-script-step .vw-scene-control-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
     }
 
-    .vw-scene-duration-input {
-        width: 80px !important;
-        padding: 0.5rem 0.75rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.375rem !important;
-        color: #ffffff !important;
-        font-size: 0.9rem !important;
-        text-align: center !important;
+    .vw-script-step .vw-scene-duration-input {
+        width: 80px;
+        padding: 0.5rem 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        color: #ffffff;
+        font-size: 0.9rem;
+        text-align: center;
     }
 
-    .vw-scene-duration-input:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-scene-duration-input:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-scene-transition-select {
-        padding: 0.5rem 0.75rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.375rem !important;
-        color: #ffffff !important;
-        font-size: 0.9rem !important;
-        cursor: pointer !important;
-        min-width: 120px !important;
+    .vw-script-step .vw-scene-transition-select {
+        padding: 0.5rem 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        color: #ffffff;
+        font-size: 0.9rem;
+        cursor: pointer;
+        min-width: 120px;
     }
 
-    .vw-scene-transition-select:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-scene-transition-select:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-scene-transition-select option {
-        background: #1a1a2e !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-scene-transition-select option {
+        background: #1a1a2e;
+        color: #ffffff;
     }
 
-    .vw-scene-actions {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        margin-left: auto !important;
+    .vw-script-step .vw-scene-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
     }
 
-    .vw-scene-action-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 32px !important;
-        height: 32px !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.375rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        font-size: 0.9rem !important;
+    .vw-script-step .vw-scene-action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9rem;
     }
 
-    .vw-scene-action-btn:hover:not(:disabled) {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        color: #c4b5fd !important;
-        background: rgba(139, 92, 246, 0.1) !important;
+    .vw-script-step .vw-scene-action-btn:hover:not(:disabled) {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #c4b5fd;
+        background: rgba(139, 92, 246, 0.1);
     }
 
-    .vw-scene-action-btn.danger:hover:not(:disabled) {
-        border-color: rgba(239, 68, 68, 0.4) !important;
-        color: #fca5a5 !important;
-        background: rgba(239, 68, 68, 0.1) !important;
+    .vw-script-step .vw-scene-action-btn.danger:hover:not(:disabled) {
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+        background: rgba(239, 68, 68, 0.1);
     }
 
-    .vw-scene-action-btn:disabled {
-        opacity: 0.3 !important;
-        cursor: not-allowed !important;
+    .vw-script-step .vw-scene-action-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
     }
 
-    .vw-scene-regenerate-btn {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        padding: 0.5rem 0.875rem !important;
-        background: rgba(139, 92, 246, 0.2) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.375rem !important;
-        color: #c4b5fd !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-scene-regenerate-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.875rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.375rem;
+        color: #c4b5fd;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-scene-regenerate-btn:hover:not(:disabled) {
-        background: rgba(139, 92, 246, 0.3) !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-scene-regenerate-btn:hover:not(:disabled) {
+        background: rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-scene-regenerate-btn:disabled {
-        opacity: 0.5 !important;
-        cursor: not-allowed !important;
+    .vw-script-step .vw-scene-regenerate-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     /* Add Scene Button */
-    .vw-add-scene-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-        width: 100% !important;
-        padding: 1rem !important;
-        background: transparent !important;
-        border: 2px dashed rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.75rem !important;
-        color: rgba(139, 92, 246, 0.7) !important;
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        margin-top: 1rem !important;
+    .vw-script-step .vw-add-scene-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 1rem;
+        background: transparent;
+        border: 2px dashed rgba(139, 92, 246, 0.3);
+        border-radius: 0.75rem;
+        color: rgba(139, 92, 246, 0.7);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 1rem;
     }
 
-    .vw-add-scene-btn:hover {
-        border-color: rgba(139, 92, 246, 0.5) !important;
-        background: rgba(139, 92, 246, 0.05) !important;
-        color: #c4b5fd !important;
+    .vw-script-step .vw-add-scene-btn:hover {
+        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(139, 92, 246, 0.05);
+        color: #c4b5fd;
     }
 
     /* Music Only Toggle */
-    .vw-music-only-toggle {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        cursor: pointer !important;
-        user-select: none !important;
+    .vw-script-step .vw-music-only-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        user-select: none;
     }
 
-    .vw-music-only-checkbox {
-        width: 18px !important;
-        height: 18px !important;
-        accent-color: #8b5cf6 !important;
-        cursor: pointer !important;
+    .vw-script-step .vw-music-only-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+        cursor: pointer;
     }
 
-    .vw-music-only-label {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
+    .vw-script-step .vw-music-only-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
     }
 
     /* Narrative Structure Intelligence Styles */
-    .vw-narrative-section {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-script-step .vw-narrative-section {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-narrative-clear-btn {
-        background: rgba(239, 68, 68, 0.2) !important;
-        border: 1px solid rgba(239, 68, 68, 0.3) !important;
-        color: #fca5a5 !important;
-        padding: 0.375rem 0.75rem !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.75rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-narrative-clear-btn {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-narrative-clear-btn:hover {
-        background: rgba(239, 68, 68, 0.3) !important;
-        border-color: rgba(239, 68, 68, 0.5) !important;
+    .vw-script-step .vw-narrative-clear-btn:hover {
+        background: rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.5);
     }
 
-    .vw-narrative-presets-row {
-        margin-top: 0.75rem !important;
+    .vw-script-step .vw-narrative-presets-row {
+        margin-top: 0.75rem;
     }
 
-    .vw-narrative-preset-label {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        margin-bottom: 0.5rem !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
+    .vw-script-step .vw-narrative-preset-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
-    .vw-narrative-presets-grid {
-        display: grid !important;
-        grid-template-columns: repeat(6, 1fr) !important;
-        gap: 0.5rem !important;
+    .vw-script-step .vw-narrative-presets-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.5rem;
     }
 
     @media (max-width: 1024px) {
-        .vw-narrative-presets-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
+        .vw-script-step .vw-narrative-presets-grid {
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 
     @media (max-width: 640px) {
-        .vw-narrative-presets-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+        .vw-script-step .vw-narrative-presets-grid {
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    .vw-narrative-preset-btn {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0.625rem 0.5rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        text-align: center !important;
-        min-height: 60px !important;
+    .vw-script-step .vw-narrative-preset-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 0.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        min-height: 60px;
     }
 
-    .vw-narrative-preset-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        background: rgba(139, 92, 246, 0.1) !important;
+    .vw-script-step .vw-narrative-preset-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
     }
 
-    .vw-narrative-preset-btn.selected {
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.15) 100%) !important;
-        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
+    .vw-script-step .vw-narrative-preset-btn.selected {
+        border-color: rgba(139, 92, 246, 0.6);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.15) 100%);
+        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
     }
 
-    .vw-preset-icon {
-        font-size: 1.25rem !important;
-        margin-bottom: 0.25rem !important;
+    .vw-script-step .vw-preset-icon {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
     }
 
-    .vw-preset-name {
-        font-size: 0.7rem !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        font-weight: 500 !important;
-        line-height: 1.2 !important;
+    .vw-script-step .vw-preset-name {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+        line-height: 1.2;
     }
 
-    .vw-narrative-preset-btn.selected .vw-preset-name {
-        color: #ffffff !important;
+    .vw-script-step .vw-narrative-preset-btn.selected .vw-preset-name {
+        color: #ffffff;
     }
 
     /* Cascading preset organization styles */
-    .vw-format-toggle {
-        display: inline-flex !important;
-        margin-left: 0.75rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border-radius: 0.375rem !important;
-        padding: 0.125rem !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    .vw-script-step .vw-format-toggle {
+        display: inline-flex;
+        margin-left: 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.375rem;
+        padding: 0.125rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .vw-format-btn {
-        padding: 0.25rem 0.75rem !important;
-        font-size: 0.7rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.03em !important;
-        border: none !important;
-        background: transparent !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        cursor: pointer !important;
-        border-radius: 0.25rem !important;
-        transition: all 0.2s !important;
+    .vw-script-step .vw-format-btn {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
     }
 
-    .vw-format-btn:hover {
-        color: rgba(255, 255, 255, 0.8) !important;
+    .vw-script-step .vw-format-btn:hover {
+        color: rgba(255, 255, 255, 0.8);
     }
 
-    .vw-format-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(168, 85, 247, 0.3) 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 8px rgba(139, 92, 246, 0.3) !important;
+    .vw-script-step .vw-format-btn.active {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(168, 85, 247, 0.3) 100%);
+        color: #ffffff;
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
     }
 
     /* Legacy badge styles - kept for compatibility */
-    .vw-format-badge {
-        display: inline-block !important;
-        padding: 0.125rem 0.5rem !important;
-        border-radius: 0.25rem !important;
-        font-size: 0.65rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-        margin-left: 0.5rem !important;
+    .vw-script-step .vw-format-badge {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: 0.5rem;
     }
 
-    .vw-format-badge.short {
-        background: rgba(59, 130, 246, 0.2) !important;
-        color: rgba(96, 165, 250, 0.9) !important;
-        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    .vw-script-step .vw-format-badge.short {
+        background: rgba(59, 130, 246, 0.2);
+        color: rgba(96, 165, 250, 0.9);
+        border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
-    .vw-format-badge.feature {
-        background: rgba(168, 85, 247, 0.2) !important;
-        color: rgba(192, 132, 252, 0.9) !important;
-        border: 1px solid rgba(168, 85, 247, 0.3) !important;
+    .vw-script-step .vw-format-badge.feature {
+        background: rgba(168, 85, 247, 0.2);
+        color: rgba(192, 132, 252, 0.9);
+        border: 1px solid rgba(168, 85, 247, 0.3);
     }
 
-    .vw-preset-context-hint {
-        font-size: 0.75rem !important;
-        color: rgba(16, 185, 129, 0.8) !important;
-        font-weight: 400 !important;
-        text-transform: none !important;
-        letter-spacing: normal !important;
+    .vw-script-step .vw-preset-context-hint {
+        font-size: 0.75rem;
+        color: rgba(16, 185, 129, 0.8);
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: normal;
     }
 
-    .vw-narrative-preset-btn.recommended {
-        border-color: rgba(16, 185, 129, 0.3) !important;
-        background: rgba(16, 185, 129, 0.08) !important;
-        position: relative !important;
+    .vw-script-step .vw-narrative-preset-btn.recommended {
+        border-color: rgba(16, 185, 129, 0.3);
+        background: rgba(16, 185, 129, 0.08);
+        position: relative;
     }
 
-    .vw-narrative-preset-btn.recommended:hover {
-        border-color: rgba(16, 185, 129, 0.5) !important;
-        background: rgba(16, 185, 129, 0.15) !important;
+    .vw-script-step .vw-narrative-preset-btn.recommended:hover {
+        border-color: rgba(16, 185, 129, 0.5);
+        background: rgba(16, 185, 129, 0.15);
     }
 
-    .vw-narrative-preset-btn.recommended.selected {
-        border-color: rgba(16, 185, 129, 0.7) !important;
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%) !important;
-        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+    .vw-script-step .vw-narrative-preset-btn.recommended.selected {
+        border-color: rgba(16, 185, 129, 0.7);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
     }
 
-    .vw-preset-recommended-badge {
-        position: absolute !important;
-        top: 2px !important;
-        right: 4px !important;
-        font-size: 0.6rem !important;
-        color: rgba(16, 185, 129, 0.9) !important;
-        font-weight: 700 !important;
+    .vw-script-step .vw-preset-recommended-badge {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        font-size: 0.6rem;
+        color: rgba(16, 185, 129, 0.9);
+        font-weight: 700;
     }
 
-    .vw-narrative-preset-btn.compatible {
-        opacity: 0.85 !important;
+    .vw-script-step .vw-narrative-preset-btn.compatible {
+        opacity: 0.85;
     }
 
-    .vw-presets-other-details {
-        margin-top: 0.5rem !important;
+    .vw-script-step .vw-presets-other-details {
+        margin-top: 0.5rem;
     }
 
-    .vw-presets-other-toggle {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        cursor: pointer !important;
-        padding: 0.25rem 0 !important;
-        user-select: none !important;
+    .vw-script-step .vw-presets-other-toggle {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        padding: 0.25rem 0;
+        user-select: none;
     }
 
-    .vw-presets-other-toggle:hover {
-        color: rgba(255, 255, 255, 0.7) !important;
+    .vw-script-step .vw-presets-other-toggle:hover {
+        color: rgba(255, 255, 255, 0.7);
     }
 
-    .vw-presets-other .vw-narrative-preset-btn {
-        opacity: 0.7 !important;
+    .vw-script-step .vw-presets-other .vw-narrative-preset-btn {
+        opacity: 0.7;
     }
 
-    .vw-presets-other .vw-narrative-preset-btn:hover {
-        opacity: 1 !important;
+    .vw-script-step .vw-presets-other .vw-narrative-preset-btn:hover {
+        opacity: 1;
     }
 
-    .vw-narrative-tip {
-        display: flex !important;
-        align-items: flex-start !important;
-        gap: 0.5rem !important;
-        margin-top: 0.75rem !important;
-        padding: 0.75rem !important;
-        background: rgba(139, 92, 246, 0.1) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 0.5rem !important;
-        font-size: 0.8rem !important;
-        color: #c4b5fd !important;
-        line-height: 1.5 !important;
+    .vw-script-step .vw-narrative-tip {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        color: #c4b5fd;
+        line-height: 1.5;
     }
 
-    .vw-narrative-tip-icon {
-        flex-shrink: 0 !important;
+    .vw-script-step .vw-narrative-tip-icon {
+        flex-shrink: 0;
     }
 
-    .vw-narrative-advanced-toggle {
-        margin-top: 1rem !important;
+    .vw-script-step .vw-narrative-advanced-toggle {
+        margin-top: 1rem;
     }
 
-    .vw-advanced-toggle-btn {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        background: transparent !important;
-        border: none !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        font-size: 0.85rem !important;
-        cursor: pointer !important;
-        padding: 0.5rem 0 !important;
-        transition: color 0.2s !important;
+    .vw-script-step .vw-advanced-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0.5rem 0;
+        transition: color 0.2s;
     }
 
-    .vw-advanced-toggle-btn:hover {
-        color: #c4b5fd !important;
+    .vw-script-step .vw-advanced-toggle-btn:hover {
+        color: #c4b5fd;
     }
 
-    .vw-advanced-active-badge {
-        background: rgba(34, 197, 94, 0.2) !important;
-        color: #22c55e !important;
-        padding: 0.125rem 0.5rem !important;
-        border-radius: 0.25rem !important;
-        font-size: 0.7rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
+    .vw-script-step .vw-advanced-active-badge {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
-    .vw-narrative-advanced-panel {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 1rem !important;
-        margin-top: 1rem !important;
-        padding-top: 1rem !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    .vw-script-step .vw-narrative-advanced-panel {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     @media (max-width: 1024px) {
-        .vw-narrative-advanced-panel {
-            grid-template-columns: 1fr !important;
+        .vw-script-step .vw-narrative-advanced-panel {
+            grid-template-columns: 1fr;
         }
     }
 
-    .vw-narrative-option-group {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 0.375rem !important;
+    .vw-script-step .vw-narrative-option-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
     }
 
-    .vw-narrative-option-label {
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-narrative-option-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffffff;
     }
 
-    .vw-option-sublabel {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        font-weight: 400 !important;
-        margin-left: 0.25rem !important;
+    .vw-script-step .vw-option-sublabel {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 400;
+        margin-left: 0.25rem;
     }
 
-    .vw-narrative-select {
-        width: 100% !important;
-        padding: 0.625rem 0.75rem !important;
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 0.5rem !important;
-        color: #ffffff !important;
-        font-size: 0.85rem !important;
-        cursor: pointer !important;
-        transition: border-color 0.2s !important;
+    .vw-script-step .vw-narrative-select {
+        width: 100%;
+        padding: 0.625rem 0.75rem;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.5rem;
+        color: #ffffff;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: border-color 0.2s;
     }
 
-    .vw-narrative-select:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
+    .vw-script-step .vw-narrative-select:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
     }
 
-    .vw-narrative-select option {
-        background: #1a1a2e !important;
-        color: #ffffff !important;
+    .vw-script-step .vw-narrative-select option {
+        background: #1a1a2e;
+        color: #ffffff;
     }
 
-    .vw-option-description {
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        line-height: 1.4 !important;
-        padding: 0.375rem !important;
-        background: rgba(0, 0, 0, 0.2) !important;
-        border-radius: 0.25rem !important;
+    .vw-script-step .vw-option-description {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.4;
+        padding: 0.375rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 0.25rem;
     }
 </style>
 
@@ -2165,6 +2195,11 @@
                     $safeDuration = is_array($safeDuration) ? 15 : intval($safeDuration);
                     $transitionLabel = is_array($transitionLabel) ? 'Cut' : strval($transitionLabel);
                     $moodDisplay = is_array($moodDisplay) ? '' : strval($moodDisplay);
+
+                    // Extract scene source (ai = AI-generated, manual = user-added)
+                    $rawSource = $scene['source'] ?? null;
+                    if (is_array($rawSource)) $rawSource = reset($rawSource) ?: null;
+                    $sceneSource = is_string($rawSource) ? $rawSource : 'ai';
                 @endphp
                 <div class="vw-advanced-scene-card"
                      wire:key="scene-card-{{ $sceneId }}"
@@ -2175,6 +2210,12 @@
                         <div class="vw-scene-card-header-left">
                             <span class="vw-scene-expand-icon">▼</span>
                             <span class="vw-scene-number">{{ $index + 1 }}</span>
+                            {{-- Scene Source Indicator --}}
+                            @if($sceneSource === 'manual')
+                                <span class="vw-scene-source-badge manual" title="{{ __('Manually created scene') }}">✎ {{ __('Manual') }}</span>
+                            @else
+                                <span class="vw-scene-source-badge ai" title="{{ __('AI-generated scene') }}">✨ {{ __('AI') }}</span>
+                            @endif
                             @if($isMusicOnly)
                                 <span class="vw-scene-music-badge">🎵 {{ __('Music only') }}</span>
                             @endif

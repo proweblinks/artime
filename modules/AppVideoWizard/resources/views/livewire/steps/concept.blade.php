@@ -1,231 +1,354 @@
 {{-- Step 2: Concept Development --}}
 <style>
-    .vw-concept-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    /* Scoped CSS for Concept Step - uses parent selector for specificity instead of !important */
+    .vw-concept-step .vw-concept-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    .vw-concept-header {
-        display: flex !important;
-        align-items: flex-start !important;
-        gap: 1rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-concept-step .vw-concept-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-concept-icon {
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-        border-radius: 50% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.5rem !important;
+    .vw-concept-step .vw-concept-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
     }
 
-    .vw-concept-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin: 0 !important;
+    .vw-concept-step .vw-concept-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
     }
 
-    .vw-concept-subtitle {
-        font-size: 0.875rem !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        margin-top: 0.25rem !important;
+    .vw-concept-step .vw-concept-subtitle {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 0.25rem;
     }
 
-    .vw-context-bar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border-radius: 0.5rem !important;
-        padding: 0.75rem 1rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-concept-step .vw-context-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-context-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        font-size: 0.875rem !important;
+    .vw-concept-step .vw-context-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
     }
 
-    .vw-context-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        background: rgba(139, 92, 246, 0.3) !important;
-        color: #c4b5fd !important;
-        padding: 0.375rem 0.75rem !important;
-        border-radius: 0.375rem !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
+    .vw-concept-step .vw-context-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: rgba(139, 92, 246, 0.3);
+        color: #c4b5fd;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.8rem;
+        font-weight: 500;
     }
 
-    .vw-context-badge.accent {
-        background: rgba(236, 72, 153, 0.3) !important;
-        color: #f9a8d4 !important;
+    .vw-concept-step .vw-context-badge.accent {
+        background: rgba(236, 72, 153, 0.3);
+        color: #f9a8d4;
     }
 
-    .vw-context-arrow {
-        color: rgba(255, 255, 255, 0.4) !important;
+    .vw-concept-step .vw-context-arrow {
+        color: rgba(255, 255, 255, 0.4);
     }
 
-    .vw-context-duration {
-        color: #34d399 !important;
-        font-weight: 600 !important;
-        font-size: 0.875rem !important;
+    .vw-concept-step .vw-context-duration {
+        color: #34d399;
+        font-weight: 600;
+        font-size: 0.875rem;
     }
 
-    .vw-field-label {
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.75rem !important;
+    /* Visual Mode Selector - Master Style Authority - PROMINENT POSITIONING */
+    .vw-concept-step .vw-visual-mode-section {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
+        border: 2px solid rgba(139, 92, 246, 0.4);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-textarea {
-        width: 100% !important;
-        min-height: 140px !important;
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 1rem !important;
-        color: #ffffff !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
-        resize: vertical !important;
-        transition: border-color 0.2s, box-shadow 0.2s !important;
+    .vw-concept-step .vw-visual-mode-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
     }
 
-    .vw-textarea:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    .vw-concept-step .vw-visual-mode-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #c4b5fd;
     }
 
-    .vw-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4) !important;
+    .vw-concept-step .vw-visual-mode-badge {
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        color: white;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.25rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
     }
 
-    .vw-input {
-        width: 100% !important;
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 0.875rem 1rem !important;
-        color: #ffffff !important;
-        font-size: 0.95rem !important;
-        transition: border-color 0.2s, box-shadow 0.2s !important;
+    .vw-concept-step .vw-visual-mode-options {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
     }
 
-    .vw-input:focus {
-        outline: none !important;
-        border-color: rgba(139, 92, 246, 0.5) !important;
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    .vw-concept-step .vw-visual-mode-option {
+        flex: 1;
+        min-width: 140px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
     }
 
-    .vw-input::placeholder {
-        color: rgba(255, 255, 255, 0.4) !important;
+    .vw-concept-step .vw-visual-mode-option:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
     }
 
-    .vw-enhance-btn {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-        color: white !important;
-        padding: 0.75rem 1.25rem !important;
-        border-radius: 0.5rem !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
-        margin-top: 0.75rem !important;
+    .vw-concept-step .vw-visual-mode-option.active {
+        border-color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.25);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
     }
 
-    .vw-enhance-btn:hover:not(:disabled) {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important;
+    .vw-concept-step .vw-visual-mode-option.active .vw-mode-label {
+        color: #c4b5fd;
     }
 
-    .vw-enhance-btn:disabled {
-        opacity: 0.6 !important;
-        cursor: not-allowed !important;
+    .vw-concept-step .vw-mode-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
     }
 
-    .vw-enhance-hint {
-        display: inline-block !important;
-        margin-left: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.4) !important;
-        font-size: 0.8rem !important;
+    .vw-concept-step .vw-mode-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
     }
 
-    .vw-field-group {
-        margin-bottom: 1.5rem !important;
+    .vw-concept-step .vw-mode-desc {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.25rem;
     }
 
-    .vw-field-note {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-bottom: 0.5rem !important;
+    .vw-concept-step .vw-field-label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-field-note .warning {
-        color: #fbbf24 !important;
+    .vw-concept-step .vw-textarea {
+        width: 100%;
+        min-height: 140px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        color: #ffffff;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        resize: vertical;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    .vw-field-helper {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.4) !important;
-        margin-top: 0.5rem !important;
+    .vw-concept-step .vw-textarea:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
 
-    .vw-generate-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-        width: 100% !important;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%) !important;
-        color: white !important;
-        padding: 1rem 1.5rem !important;
-        border-radius: 0.75rem !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
-        margin-top: 1rem !important;
+    .vw-concept-step .vw-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.4);
     }
 
-    .vw-generate-btn:hover:not(:disabled) {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 25px rgba(236, 72, 153, 0.4) !important;
+    .vw-concept-step .vw-textarea.enhanced {
+        border-color: rgba(16, 185, 129, 0.5);
+        background: rgba(16, 185, 129, 0.05);
     }
 
-    .vw-generate-btn:disabled {
-        opacity: 0.6 !important;
-        cursor: not-allowed !important;
+    .vw-concept-step .vw-input {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.875rem 1rem;
+        color: #ffffff;
+        font-size: 0.95rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
     }
 
-    .vw-divider {
-        height: 1px !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        margin: 1.5rem 0 !important;
+    .vw-concept-step .vw-input:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    .vw-concept-step .vw-input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .vw-concept-step .vw-enhance-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .vw-concept-step .vw-enhance-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .vw-concept-step .vw-enhance-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-concept-step .vw-enhance-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .vw-concept-step .vw-enhance-hint {
+        display: inline-block;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.8rem;
+    }
+
+    .vw-concept-step .vw-enhanced-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        color: white;
+        padding: 0.5rem 0.875rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        animation: vw-fade-in 0.3s ease-out;
+    }
+
+    .vw-concept-step .vw-undo-btn {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.35rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .vw-concept-step .vw-undo-btn:hover {
+        border-color: rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .vw-concept-step .vw-field-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .vw-concept-step .vw-field-note {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-concept-step .vw-field-note .warning {
+        color: #fbbf24;
+    }
+
+    .vw-concept-step .vw-field-helper {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.5rem;
+    }
+
+    .vw-concept-step .vw-generate-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 1rem;
+    }
+
+    .vw-concept-step .vw-generate-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(236, 72, 153, 0.4);
+    }
+
+    .vw-concept-step .vw-generate-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .vw-concept-step .vw-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 1.5rem 0;
     }
 
     /* Spinner Animation */
@@ -233,595 +356,454 @@
         to { transform: rotate(360deg); }
     }
 
-    /* Loading content inner wrapper */
-    .vw-loading-inner {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-    }
-    .vw-loading-inner.lg {
-        gap: 0.5rem;
-    }
-
-    /* Your Concept Results Card */
-    .vw-your-concept-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-
-    .vw-your-concept-header {
-        display: flex !important;
-        align-items: flex-start !important;
-        gap: 1rem !important;
-        margin-bottom: 1.25rem !important;
-    }
-
-    .vw-your-concept-icon {
-        width: 40px !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
-        border-radius: 0.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.25rem !important;
-    }
-
-    .vw-main-concept-card {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-
-    .vw-main-concept-title {
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.75rem !important;
-    }
-
-    .vw-main-concept-text {
-        color: rgba(255, 255, 255, 0.8) !important;
-        line-height: 1.7 !important;
-        font-size: 0.95rem !important;
-    }
-
-    .vw-concept-badges {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 0.5rem !important;
-        margin-top: 1rem !important;
-    }
-
-    .vw-concept-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 0.375rem !important;
-        padding: 0.375rem 0.75rem !important;
-        border-radius: 1rem !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
-    }
-
-    .vw-concept-badge.engaging {
-        background: rgba(6, 182, 212, 0.2) !important;
-        color: #22d3ee !important;
-    }
-
-    .vw-concept-badge.professional {
-        background: rgba(16, 185, 129, 0.2) !important;
-        color: #34d399 !important;
-    }
-
-    /* Alternative Directions */
-    .vw-alt-directions-label {
-        font-size: 0.85rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-bottom: 0.75rem !important;
-    }
-
-    .vw-alt-directions-grid {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 0.75rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-
-    @media (max-width: 768px) {
-        .vw-alt-directions-grid {
-            grid-template-columns: 1fr !important;
-        }
-    }
-
-    .vw-alt-card {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 1rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-    }
-
-    .vw-alt-card:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        background: rgba(139, 92, 246, 0.1) !important;
-    }
-
-    .vw-alt-card.selected {
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        background: rgba(139, 92, 246, 0.15) !important;
-    }
-
-    .vw-alt-card-title {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        margin-bottom: 0.25rem !important;
-    }
-
-    .vw-alt-card-subtitle {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-    }
-
-    .vw-generate-different-btn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.5rem !important;
-        width: 100% !important;
-        background: transparent !important;
-        border: 1px dashed rgba(255, 255, 255, 0.2) !important;
-        color: rgba(255, 255, 255, 0.6) !important;
-        padding: 1rem !important;
-        border-radius: 0.5rem !important;
-        font-size: 0.9rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-    }
-
-    .vw-generate-different-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        color: #c4b5fd !important;
-        background: rgba(139, 92, 246, 0.05) !important;
-    }
-
-    /* Character Intelligence Section */
-    .vw-character-intel-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-
-    .vw-character-intel-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 1.25rem !important;
-    }
-
-    .vw-character-intel-left {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.75rem !important;
-    }
-
-    .vw-character-intel-icon {
-        width: 40px !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%) !important;
-        border-radius: 0.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 1.25rem !important;
-    }
-
-    .vw-character-intel-title {
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        color: #ffffff !important;
-        margin: 0 !important;
-    }
-
-    .vw-character-intel-subtitle {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-top: 0.125rem !important;
-    }
-
-    .vw-character-intel-toggle {
-        position: relative !important;
-        width: 44px !important;
-        height: 24px !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        cursor: pointer !important;
-        transition: background 0.2s !important;
-    }
-
-    .vw-character-intel-toggle.active {
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-    }
-
-    .vw-character-intel-toggle::after {
-        content: '' !important;
-        position: absolute !important;
-        top: 2px !important;
-        left: 2px !important;
-        width: 20px !important;
-        height: 20px !important;
-        background: white !important;
-        border-radius: 50% !important;
-        transition: transform 0.2s !important;
-    }
-
-    .vw-character-intel-toggle.active::after {
-        transform: translateX(20px) !important;
-    }
-
-    .vw-narration-style-section {
-        margin-bottom: 1.5rem !important;
-    }
-
-    .vw-narration-style-label {
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-        margin-bottom: 0.75rem !important;
-    }
-
-    .vw-narration-style-grid {
-        display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: 0.75rem !important;
-    }
-
-    @media (max-width: 768px) {
-        .vw-narration-style-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-        }
-    }
-
-    .vw-narration-style-btn {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 1rem 0.75rem !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
-        text-align: center !important;
-    }
-
-    .vw-narration-style-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        background: rgba(139, 92, 246, 0.1) !important;
-    }
-
-    .vw-narration-style-btn.selected {
-        border-color: rgba(139, 92, 246, 0.6) !important;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-    }
-
-    .vw-narration-style-btn.disabled {
-        opacity: 0.4 !important;
-        cursor: not-allowed !important;
-        text-decoration: line-through !important;
-    }
-
-    .vw-narration-style-icon {
-        font-size: 1.5rem !important;
-        margin-bottom: 0.5rem !important;
-    }
-
-    .vw-narration-style-name {
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-    }
-
-    .vw-narration-style-btn.selected .vw-narration-style-name {
-        color: #c4b5fd !important;
-    }
-
-    .vw-character-count-section {
-        margin-top: 1.5rem !important;
-    }
-
-    .vw-character-count-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 0.75rem !important;
-    }
-
-    .vw-character-count-label {
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
-    }
-
-    .vw-character-count-suggested {
-        font-size: 0.8rem !important;
-        color: #34d399 !important;
-        font-weight: 500 !important;
-    }
-
-    .vw-character-slider-container {
-        position: relative !important;
-        padding: 0.5rem 0 !important;
-    }
-
-    .vw-character-slider {
-        -webkit-appearance: none !important;
-        appearance: none !important;
-        width: 100% !important;
-        height: 6px !important;
-        background: linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.6) 100%) !important;
-        border-radius: 3px !important;
-        outline: none !important;
-        cursor: pointer !important;
-    }
-
-    .vw-character-slider::-webkit-slider-thumb {
-        -webkit-appearance: none !important;
-        appearance: none !important;
-        width: 20px !important;
-        height: 20px !important;
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-        border-radius: 50% !important;
-        cursor: pointer !important;
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
-    }
-
-    .vw-character-slider::-moz-range-thumb {
-        width: 20px !important;
-        height: 20px !important;
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-        border-radius: 50% !important;
-        cursor: pointer !important;
-        border: none !important;
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
-    }
-
-    .vw-character-count-value {
-        position: absolute !important;
-        right: 0 !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: #c4b5fd !important;
-        min-width: 30px !important;
-        text-align: right !important;
-    }
-
-    .vw-character-count-hint {
-        font-size: 0.8rem !important;
-        color: rgba(255, 255, 255, 0.4) !important;
-        margin-top: 0.5rem !important;
-    }
-
-    .vw-character-intel-disabled {
-        opacity: 0.5 !important;
-        pointer-events: none !important;
-    }
-
-    .vw-loading-opacity {
-        opacity: 0.6 !important;
-        pointer-events: none !important;
-    }
-
-    /* Enhancement Preview Section */
-    .vw-enhancement-preview {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%) !important;
-        border: 1px solid rgba(16, 185, 129, 0.3) !important;
-        border-radius: 0.75rem !important;
-        padding: 1.25rem !important;
-        margin-top: 1rem !important;
-        animation: vw-fade-in 0.3s ease-out !important;
-    }
-
     @keyframes vw-fade-in {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .vw-enhancement-header {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        margin-bottom: 1rem !important;
+    .vw-concept-step .vw-loading-inner {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
     }
 
-    .vw-enhancement-badge {
-        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
-        color: white !important;
-        padding: 0.25rem 0.75rem !important;
-        border-radius: 1rem !important;
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
+    .vw-concept-step .vw-loading-inner.lg {
+        gap: 0.5rem;
     }
 
-    .vw-enhancement-logline {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border-left: 3px solid #10b981 !important;
-        padding: 0.75rem 1rem !important;
-        border-radius: 0 0.5rem 0.5rem 0 !important;
-        margin-bottom: 1rem !important;
-        font-style: italic !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+    /* Enhancement Meta Tags */
+    .vw-concept-step .vw-enhancement-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .vw-enhancement-refined {
-        color: rgba(255, 255, 255, 0.8) !important;
-        line-height: 1.6 !important;
-        font-size: 0.9rem !important;
-        margin-bottom: 1rem !important;
+    .vw-concept-step .vw-enhancement-tag {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.35rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.7);
     }
 
-    .vw-enhancement-meta {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 0.5rem !important;
-        margin-bottom: 1rem !important;
+    .vw-concept-step .vw-enhancement-tag.mood {
+        background: rgba(139, 92, 246, 0.15);
+        border-color: rgba(139, 92, 246, 0.3);
+        color: #c4b5fd;
     }
 
-    .vw-enhancement-tag {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        padding: 0.25rem 0.6rem !important;
-        border-radius: 0.35rem !important;
-        font-size: 0.75rem !important;
-        color: rgba(255, 255, 255, 0.7) !important;
+    .vw-concept-step .vw-enhancement-tag.tone {
+        background: rgba(236, 72, 153, 0.15);
+        border-color: rgba(236, 72, 153, 0.3);
+        color: #f9a8d4;
     }
 
-    .vw-enhancement-tag.mood {
-        background: rgba(139, 92, 246, 0.15) !important;
-        border-color: rgba(139, 92, 246, 0.3) !important;
-        color: #c4b5fd !important;
+    /* Your Concept Results Card */
+    .vw-concept-step .vw-your-concept-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-enhancement-tag.tone {
-        background: rgba(236, 72, 153, 0.15) !important;
-        border-color: rgba(236, 72, 153, 0.3) !important;
-        color: #f9a8d4 !important;
+    .vw-concept-step .vw-your-concept-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
     }
 
-    .vw-enhancement-actions {
-        display: flex !important;
-        gap: 0.5rem !important;
-        margin-top: 1rem !important;
-        padding-top: 1rem !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    .vw-concept-step .vw-your-concept-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
     }
 
-    .vw-apply-btn {
-        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
-        color: white !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 0.5rem !important;
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
+    .vw-concept-step .vw-main-concept-card {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-apply-btn:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    .vw-concept-step .vw-main-concept-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
     }
 
-    .vw-dismiss-btn {
-        background: rgba(255, 255, 255, 0.08) !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        padding: 0.5rem 1rem !important;
-        border-radius: 0.5rem !important;
-        font-size: 0.8rem !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        cursor: pointer !important;
+    .vw-concept-step .vw-main-concept-text {
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.7;
+        font-size: 0.95rem;
     }
 
-    .vw-dismiss-btn:hover {
-        background: rgba(255, 255, 255, 0.12) !important;
+    .vw-concept-step .vw-concept-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
     }
 
-    /* Visual Mode Selector - Master Style Authority */
-    .vw-visual-mode-section {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid rgba(139, 92, 246, 0.3) !important;
-        border-radius: 0.75rem !important;
-        padding: 1rem !important;
-        margin-bottom: 1.5rem !important;
+    .vw-concept-step .vw-concept-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.8rem;
+        font-weight: 500;
     }
 
-    .vw-visual-mode-header {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-        margin-bottom: 0.75rem !important;
+    .vw-concept-step .vw-concept-badge.engaging {
+        background: rgba(6, 182, 212, 0.2);
+        color: #22d3ee;
     }
 
-    .vw-visual-mode-title {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        color: #c4b5fd !important;
+    .vw-concept-step .vw-concept-badge.professional {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
     }
 
-    .vw-visual-mode-badge {
-        background: rgba(139, 92, 246, 0.3) !important;
-        color: #c4b5fd !important;
-        padding: 0.2rem 0.5rem !important;
-        border-radius: 0.25rem !important;
-        font-size: 0.65rem !important;
-        font-weight: 500 !important;
-        text-transform: uppercase !important;
+    /* Alternative Directions */
+    .vw-concept-step .vw-alt-directions-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 0.75rem;
     }
 
-    .vw-visual-mode-options {
-        display: flex !important;
-        gap: 0.75rem !important;
-        flex-wrap: wrap !important;
+    .vw-concept-step .vw-alt-directions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
     }
 
-    .vw-visual-mode-option {
-        flex: 1 !important;
-        min-width: 140px !important;
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 2px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 0.5rem !important;
-        padding: 0.75rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s !important;
+    @media (max-width: 768px) {
+        .vw-concept-step .vw-alt-directions-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
-    .vw-visual-mode-option:hover {
-        border-color: rgba(139, 92, 246, 0.4) !important;
-        background: rgba(139, 92, 246, 0.1) !important;
+    .vw-concept-step .vw-alt-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .vw-visual-mode-option.active {
-        border-color: #8b5cf6 !important;
-        background: rgba(139, 92, 246, 0.2) !important;
+    .vw-concept-step .vw-alt-card:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
     }
 
-    .vw-visual-mode-option.active .vw-mode-label {
-        color: #c4b5fd !important;
+    .vw-concept-step .vw-alt-card.selected {
+        border-color: rgba(139, 92, 246, 0.6);
+        background: rgba(139, 92, 246, 0.15);
     }
 
-    .vw-mode-icon {
-        font-size: 1.25rem !important;
-        margin-bottom: 0.25rem !important;
+    .vw-concept-step .vw-alt-card-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 0.25rem;
     }
 
-    .vw-mode-label {
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.8) !important;
+    .vw-concept-step .vw-alt-card-subtitle {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
     }
 
-    .vw-mode-desc {
-        font-size: 0.7rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-        margin-top: 0.25rem !important;
+    .vw-concept-step .vw-generate-different-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        background: transparent;
+        border: 1px dashed rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.6);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .vw-concept-step .vw-generate-different-btn:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #c4b5fd;
+        background: rgba(139, 92, 246, 0.05);
+    }
+
+    /* Character Intelligence Section - Always visible */
+    .vw-concept-step .vw-character-intel-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .vw-concept-step .vw-character-intel-card.preview-mode {
+        opacity: 0.7;
+        border-style: dashed;
+    }
+
+    .vw-concept-step .vw-character-intel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+    }
+
+    .vw-concept-step .vw-character-intel-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .vw-concept-step .vw-character-intel-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .vw-concept-step .vw-character-intel-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+    }
+
+    .vw-concept-step .vw-character-intel-subtitle {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.125rem;
+    }
+
+    .vw-concept-step .vw-character-intel-toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .vw-concept-step .vw-character-intel-toggle.active {
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    }
+
+    .vw-concept-step .vw-character-intel-toggle::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+
+    .vw-concept-step .vw-character-intel-toggle.active::after {
+        transform: translateX(20px);
+    }
+
+    .vw-concept-step .vw-preview-hint {
+        text-align: center;
+        padding: 1rem;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+
+    .vw-concept-step .vw-narration-style-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .vw-concept-step .vw-narration-style-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-concept-step .vw-narration-style-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .vw-concept-step .vw-narration-style-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .vw-concept-step .vw-narration-style-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+    }
+
+    .vw-concept-step .vw-narration-style-btn:hover:not(:disabled) {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .vw-concept-step .vw-narration-style-btn.selected {
+        border-color: rgba(139, 92, 246, 0.6);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+    }
+
+    .vw-concept-step .vw-narration-style-btn.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .vw-concept-step .vw-narration-style-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-concept-step .vw-narration-style-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffffff;
+    }
+
+    .vw-concept-step .vw-narration-style-btn.selected .vw-narration-style-name {
+        color: #c4b5fd;
+    }
+
+    .vw-concept-step .vw-character-count-section {
+        margin-top: 1.5rem;
+    }
+
+    .vw-concept-step .vw-character-count-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-concept-step .vw-character-count-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .vw-concept-step .vw-character-count-suggested {
+        font-size: 0.8rem;
+        color: #34d399;
+        font-weight: 500;
+    }
+
+    .vw-concept-step .vw-character-slider-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .vw-concept-step .vw-character-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        flex: 1;
+        height: 6px;
+        background: linear-gradient(90deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.6) 100%);
+        border-radius: 3px;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .vw-concept-step .vw-character-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-concept-step .vw-character-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-concept-step .vw-character-count-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #c4b5fd;
+        min-width: 30px;
+        text-align: right;
+    }
+
+    .vw-concept-step .vw-character-count-hint {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.5rem;
+    }
+
+    .vw-concept-step .vw-character-intel-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .vw-concept-step .vw-loading-opacity {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .vw-concept-step .vw-error-alert {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        color: #fca5a5;
     }
 </style>
 
@@ -829,7 +811,7 @@
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
-            <div class="vw-error-alert" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; color: #fca5a5;">
+            <div class="vw-error-alert">
                 <span style="margin-right: 0.5rem;">⚠️</span>
                 {{ $error }}
             </div>
@@ -874,11 +856,11 @@
             </div>
         @endif
 
-        {{-- Visual Mode Selector - MASTER STYLE AUTHORITY --}}
+        {{-- Visual Mode Selector - MASTER STYLE AUTHORITY - Prominent at top --}}
         <div class="vw-visual-mode-section">
             <div class="vw-visual-mode-header">
                 <span class="vw-visual-mode-title">🎨 {{ __('Visual Style') }}</span>
-                <span class="vw-visual-mode-badge">{{ __('GLOBAL') }}</span>
+                <span class="vw-visual-mode-badge">{{ __('MASTER') }}</span>
             </div>
             <div class="vw-visual-mode-options">
                 <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? 'cinematic-realistic') === 'cinematic-realistic' ? 'active' : '' }}"
@@ -906,79 +888,61 @@
         <div class="vw-field-group">
             <label class="vw-field-label">{{ __("What's your video about?") }}</label>
             <textarea wire:model.blur="concept.rawInput"
-                      class="vw-textarea"
+                      class="vw-textarea {{ !empty($concept['refinedConcept']) ? 'enhanced' : '' }}"
                       placeholder="{{ __("Describe your idea, theme, or story... Be creative! Examples:
 • A mysterious figure discovers an ancient power
 • The untold story of a small town's greatest secret
 • A journey through impossible landscapes
 • An entrepreneur's rise from nothing") }}"></textarea>
 
-            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem;">
-                <button class="vw-enhance-btn"
-                        wire:click="enhanceConcept"
-                        wire:loading.attr="disabled"
-                        wire:target="enhanceConcept, generateIdeas">
-                    <span wire:loading.remove wire:target="enhanceConcept">✨ {{ __('Enhance with AI') }}</span>
-                    <span wire:loading wire:target="enhanceConcept">
-                        <span class="vw-loading-inner">
-                            <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                            </svg>
-                            {{ __('Enhancing...') }}
-                        </span>
+            <div class="vw-enhance-row">
+                @if(!empty($concept['refinedConcept']))
+                    {{-- Show enhanced badge with undo option --}}
+                    <span class="vw-enhanced-badge">
+                        ✓ {{ __('AI Enhanced') }}
                     </span>
-                </button>
-                <span class="vw-enhance-hint">{{ __('Auto-extracts styles & fills all fields') }}</span>
+                    <button type="button" class="vw-undo-btn" wire:click="dismissEnhancement">
+                        ↩ {{ __('Undo Enhancement') }}
+                    </button>
+                @else
+                    {{-- Show enhance button --}}
+                    <button class="vw-enhance-btn"
+                            wire:click="enhanceConcept"
+                            wire:loading.attr="disabled"
+                            wire:target="enhanceConcept, generateIdeas"
+                            @if(empty($concept['rawInput'])) disabled @endif>
+                        <span wire:loading.remove wire:target="enhanceConcept">✨ {{ __('Enhance with AI') }}</span>
+                        <span wire:loading wire:target="enhanceConcept">
+                            <span class="vw-loading-inner">
+                                <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                </svg>
+                                {{ __('Enhancing...') }}
+                            </span>
+                        </span>
+                    </button>
+                    <span class="vw-enhance-hint">{{ __('Auto-improves your concept with AI') }}</span>
+                @endif
             </div>
 
-            {{-- Enhancement Preview - Shows after AI enhancement --}}
-            @if(!empty($concept['refinedConcept']))
-                <div class="vw-enhancement-preview">
-                    <div class="vw-enhancement-header">
-                        <span class="vw-enhancement-badge">✨ {{ __('AI Enhanced') }}</span>
-                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">{{ __('Preview of your enhanced concept') }}</span>
-                    </div>
-
-                    {{-- Logline --}}
-                    @if(!empty($concept['logline']))
-                        <div class="vw-enhancement-logline">
-                            "{{ $concept['logline'] }}"
-                        </div>
+            {{-- Enhancement Meta Tags (mood, tone, etc.) - shows when enhanced --}}
+            @if(!empty($concept['suggestedMood']) || !empty($concept['suggestedTone']) || !empty($concept['keyElements']))
+                <div class="vw-enhancement-meta">
+                    @if(!empty($concept['suggestedMood']))
+                        <span class="vw-enhancement-tag mood">🎭 {{ ucfirst($concept['suggestedMood']) }}</span>
                     @endif
-
-                    {{-- Refined Concept --}}
-                    <div class="vw-enhancement-refined">
-                        {{ $concept['refinedConcept'] }}
-                    </div>
-
-                    {{-- Mood/Tone/Key Elements --}}
-                    <div class="vw-enhancement-meta">
-                        @if(!empty($concept['suggestedMood']))
-                            <span class="vw-enhancement-tag mood">🎭 {{ ucfirst($concept['suggestedMood']) }}</span>
-                        @endif
-                        @if(!empty($concept['suggestedTone']))
-                            <span class="vw-enhancement-tag tone">🎯 {{ ucfirst($concept['suggestedTone']) }}</span>
-                        @endif
-                        @if(!empty($concept['targetAudience']))
-                            <span class="vw-enhancement-tag">👥 {{ $concept['targetAudience'] }}</span>
-                        @endif
-                        @if(!empty($concept['keyElements']) && is_array($concept['keyElements']))
-                            @foreach(array_slice($concept['keyElements'], 0, 3) as $element)
-                                <span class="vw-enhancement-tag">{{ $element }}</span>
-                            @endforeach
-                        @endif
-                    </div>
-
-                    {{-- Actions --}}
-                    <div class="vw-enhancement-actions">
-                        <button type="button" class="vw-apply-btn" wire:click="applyEnhancedConcept">
-                            ✓ {{ __('Apply Enhancement') }}
-                        </button>
-                        <button type="button" class="vw-dismiss-btn" wire:click="dismissEnhancement">
-                            {{ __('Keep Original') }}
-                        </button>
-                    </div>
+                    @if(!empty($concept['suggestedTone']))
+                        <span class="vw-enhancement-tag tone">🎯 {{ ucfirst($concept['suggestedTone']) }}</span>
+                    @endif
+                    @if(!empty($concept['targetAudience']))
+                        <span class="vw-enhancement-tag">👥 {{ $concept['targetAudience'] }}</span>
+                    @endif
+                    @if(!empty($concept['keyElements']) && is_array($concept['keyElements']))
+                        @foreach(array_slice($concept['keyElements'], 0, 3) as $element)
+                            <span class="vw-enhancement-tag">{{ $element }}</span>
+                        @endforeach
+                    @endif
                 </div>
             @endif
         </div>
@@ -1098,24 +1062,31 @@
         </div>
     @endif
 
-    {{-- Character Intelligence Section --}}
-    @if(!empty($conceptVariations) && count($conceptVariations) > 0)
-        <div class="vw-character-intel-card">
-            {{-- Header with Toggle --}}
-            <div class="vw-character-intel-header">
-                <div class="vw-character-intel-left">
-                    <div class="vw-character-intel-icon">👥</div>
-                    <div>
-                        <h3 class="vw-character-intel-title">{{ __('Character Intelligence') }}</h3>
-                        <p class="vw-character-intel-subtitle">{{ __('AI-suggested based on your production type') }}</p>
-                    </div>
+    {{-- Character Intelligence Section - Always visible --}}
+    <div class="vw-character-intel-card {{ empty($conceptVariations) || count($conceptVariations) === 0 ? 'preview-mode' : '' }}">
+        {{-- Header with Toggle --}}
+        <div class="vw-character-intel-header">
+            <div class="vw-character-intel-left">
+                <div class="vw-character-intel-icon">👥</div>
+                <div>
+                    <h3 class="vw-character-intel-title">{{ __('Character Intelligence') }}</h3>
+                    <p class="vw-character-intel-subtitle">{{ __('AI-suggested based on your production type') }}</p>
                 </div>
+            </div>
+            @if(!empty($conceptVariations) && count($conceptVariations) > 0)
                 <div class="vw-character-intel-toggle {{ $characterIntelligence['enabled'] ? 'active' : '' }}"
                      wire:click="updateCharacterIntelligence('enabled', {{ $characterIntelligence['enabled'] ? 'false' : 'true' }})"
                      title="{{ $characterIntelligence['enabled'] ? __('Disable') : __('Enable') }} {{ __('Character Intelligence') }}">
                 </div>
-            </div>
+            @endif
+        </div>
 
+        {{-- Preview hint when no variations yet --}}
+        @if(empty($conceptVariations) || count($conceptVariations) === 0)
+            <div class="vw-preview-hint">
+                💡 {{ __('Generate your concept ideas above to unlock character settings') }}
+            </div>
+        @else
             {{-- Content (conditionally shown based on enabled state) --}}
             <div class="{{ !$characterIntelligence['enabled'] ? 'vw-character-intel-disabled' : '' }}">
                 {{-- Narration Style Section --}}
@@ -1149,7 +1120,7 @@
                         <span class="vw-character-count-label">{{ __('CHARACTER COUNT') }}</span>
                         <span class="vw-character-count-suggested">{{ __('SUGGESTED:') }} {{ $characterIntelligence['suggestedCount'] }}</span>
                     </div>
-                    <div class="vw-character-slider-container" style="display: flex; align-items: center; gap: 1rem;">
+                    <div class="vw-character-slider-container">
                         <input type="range"
                                class="vw-character-slider"
                                min="1"
@@ -1157,9 +1128,8 @@
                                step="1"
                                value="{{ $characterIntelligence['characterCount'] }}"
                                wire:change="updateCharacterIntelligence('characterCount', $event.target.value)"
-                               @if(!$characterIntelligence['enabled']) disabled @endif
-                               style="flex: 1;">
-                        <span class="vw-character-count-value" style="position: relative; transform: none;">{{ $characterIntelligence['characterCount'] }}</span>
+                               @if(!$characterIntelligence['enabled']) disabled @endif>
+                        <span class="vw-character-count-value">{{ $characterIntelligence['characterCount'] }}</span>
                     </div>
                     <p class="vw-character-count-hint">
                         @if($characterIntelligence['characterCount'] < 2)
@@ -1172,6 +1142,6 @@
                     </p>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 </div>

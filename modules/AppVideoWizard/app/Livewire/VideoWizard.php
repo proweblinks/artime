@@ -3435,6 +3435,7 @@ class VideoWizard extends Component
             'transition' => 'cut',
             'mood' => 'neutral',
             'status' => 'draft',
+            'source' => 'manual',  // Mark as manually added
         ], $sceneCount);
 
         $this->script['scenes'][] = $newScene;
@@ -3649,6 +3650,9 @@ class VideoWizard extends Component
 
             // Camera/direction hints
             'cameraHints' => is_array($scene['cameraHints'] ?? null) ? $scene['cameraHints'] : [],
+
+            // Scene source tracking (ai = AI-generated, manual = user-added)
+            'source' => $this->ensureString($scene['source'] ?? null, 'ai'),
         ];
     }
 

@@ -10,50 +10,13 @@
         left: 0;
         right: 0;
         bottom: 0;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100vw;
+        height: 100vh;
         background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
-        z-index: 999999;
+        z-index: 9999;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-    }
-
-    /* CRITICAL: Force hide ALL app sidebars when Storyboard is active */
-    .sidebar,
-    .main-sidebar,
-    div.sidebar,
-    aside.sidebar,
-    .hide-scroll.sidebar {
-        z-index: 1 !important;
-    }
-
-    body.vw-storyboard-fullscreen-active {
-        overflow: hidden !important;
-    }
-
-    body.vw-storyboard-fullscreen-active .sidebar,
-    body.vw-storyboard-fullscreen-active .main-sidebar,
-    body.vw-storyboard-fullscreen-active div.sidebar,
-    body.vw-storyboard-fullscreen-active .sidebar.hide-scroll,
-    body.vw-storyboard-fullscreen-active [class*="sidebar"]:not(.vw-storyboard-sidebar),
-    body.vw-storyboard-fullscreen-active aside:not(.vw-storyboard-fullscreen aside),
-    body.vw-storyboard-fullscreen-active nav:not(.vw-storyboard-fullscreen nav) {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        width: 0 !important;
-        max-width: 0 !important;
-        overflow: hidden !important;
-    }
-
-    body.vw-storyboard-fullscreen-active .main-content,
-    body.vw-storyboard-fullscreen-active .page-wrapper,
-    body.vw-storyboard-fullscreen-active [class*="content"]:not(.vw-storyboard-content):not(.vw-storyboard-fullscreen *) {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        width: 100% !important;
     }
 
     /* Top Header Bar */
@@ -171,17 +134,16 @@
         overflow: hidden;
     }
 
-    /* Settings Panel (collapsible) */
+    /* Settings Panel (collapsible, visible by default) */
     .vw-storyboard-settings-panel {
         flex-shrink: 0;
         background: rgba(20, 20, 35, 0.95);
         border-bottom: 1px solid rgba(139, 92, 246, 0.15);
         padding: 1rem 1.25rem;
-        display: none;
     }
 
-    .vw-storyboard-settings-panel.open {
-        display: block;
+    .vw-storyboard-settings-panel.closed {
+        display: none;
     }
 
     .vw-settings-row {
@@ -213,20 +175,20 @@
     }
 
     /* Legacy support - keep old card styles for nested elements */
-    .vw-storyboard-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    .vw-storyboard-fullscreen .vw-storyboard-card {
+        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    .vw-storyboard-header {
-        display: flex !important;
-        align-items: center !important;
-        gap: 1rem !important;
-        margin-bottom: 1.25rem !important;
+    .vw-storyboard-fullscreen .vw-storyboard-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     /* Section dividers */
@@ -858,7 +820,7 @@
     }
 </style>
 
-<div class="vw-storyboard-fullscreen" x-data="{ showSettings: false }">
+<div class="vw-storyboard-fullscreen" x-data="{ showSettings: true }">
     {{-- Top Header Bar --}}
     <div class="vw-storyboard-topbar">
         {{-- Brand --}}
@@ -951,7 +913,7 @@
         {{-- Main Content Area --}}
         <div class="vw-storyboard-main">
             {{-- Collapsible Settings Panel --}}
-            <div class="vw-storyboard-settings-panel" :class="{ 'open': showSettings }">
+            <div class="vw-storyboard-settings-panel" :class="{ 'closed': !showSettings }">
                 <div class="vw-settings-row">
                     {{-- AI Model Selector --}}
                     <div class="vw-settings-group">
@@ -1845,7 +1807,7 @@
                                                 </div>
                                                 <style>
                                                     .use-this-overlay { opacity: 0; }
-                                                    div:hover > .use-this-overlay { opacity: 1 !important; }
+                                                    div:hover > .use-this-overlay { opacity: 1; }
                                                 </style>
 
                                                 {{-- Pagination Controls --}}
