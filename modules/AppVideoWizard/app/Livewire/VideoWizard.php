@@ -7521,11 +7521,27 @@ class VideoWizard extends Component
                 }
             }
 
+            // =====================================================================
+            // PHASE 1 FIX: Build Scene DNA AFTER character/location detection
+            // This triggers the sync logic that populates charactersInScene and
+            // locationRef in script.scenes for image generation
+            // =====================================================================
+            try {
+                $this->transitionMessage = __('Building scene DNA...');
+                $this->buildSceneDNA();
+                Log::info('SceneMemoryPopulation: Scene DNA built and synced to script scenes');
+            } catch (\Exception $e) {
+                Log::error('SceneMemoryPopulation: Scene DNA build failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Dispatch event to notify UI
             $this->dispatch('scene-memory-populated', [
                 'characters' => count($this->sceneMemory['characterBible']['characters']),
                 'locations' => count($this->sceneMemory['locationBible']['locations']),
                 'styleBibleEnabled' => $this->sceneMemory['styleBible']['enabled'],
+                'sceneDNAEnabled' => $this->sceneMemory['sceneDNA']['enabled'] ?? false,
             ]);
         } finally {
             // PHASE 2 OPTIMIZATION: Always reset batch flag
@@ -12022,6 +12038,46 @@ EOT;
         $this->sceneMemory['sceneDNA']['scenes'] = $sceneDNAData;
         $this->sceneMemory['sceneDNA']['enabled'] = true;
         $this->sceneMemory['sceneDNA']['lastSyncedAt'] = now()->toIso8601String();
+
+        // =====================================================================
+        // PHASE 1 FIX: Sync Scene DNA back to script.scenes for image generation
+        // This populates charactersInScene and locationRef for each scene
+        // =====================================================================
+        foreach ($sceneDNAData as $sceneIndex => $dnaEntry) {
+            if (!isset($this->script['scenes'][$sceneIndex])) {
+                continue;
+            }
+
+            // Populate charactersInScene with character IDs from Scene DNA
+            $characterIds = [];
+            foreach ($dnaEntry['characters'] ?? [] as $char) {
+                if (!empty($char['id'])) {
+                    $characterIds[] = $char['id'];
+                }
+            }
+            $this->script['scenes'][$sceneIndex]['charactersInScene'] = $characterIds;
+
+            // Populate locationRef with location data from Scene DNA
+            if (!empty($dnaEntry['location'])) {
+                $this->script['scenes'][$sceneIndex]['locationRef'] = [
+                    'id' => $dnaEntry['location']['id'] ?? null,
+                    'name' => $dnaEntry['location']['name'] ?? null,
+                    'type' => $dnaEntry['location']['type'] ?? 'exterior',
+                    'timeOfDay' => $dnaEntry['location']['timeOfDay'] ?? 'day',
+                    'weather' => $dnaEntry['location']['weather'] ?? 'clear',
+                    'atmosphere' => $dnaEntry['location']['atmosphere'] ?? '',
+                    'hasReferenceImage' => $dnaEntry['location']['hasReferenceImage'] ?? false,
+                ];
+            } else {
+                $this->script['scenes'][$sceneIndex]['locationRef'] = null;
+            }
+        }
+
+        Log::info('SceneDNA: Synced Bible data to script scenes', [
+            'totalScenes' => $totalScenes,
+            'scenesWithCharacters' => count(array_filter($this->script['scenes'] ?? [], fn($s) => !empty($s['charactersInScene']))),
+            'scenesWithLocations' => count(array_filter($this->script['scenes'] ?? [], fn($s) => !empty($s['locationRef']))),
+        ]);
 
         // Build character-location affinities
         $this->buildCharacterLocationAffinities();
