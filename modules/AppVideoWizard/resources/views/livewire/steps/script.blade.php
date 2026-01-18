@@ -1867,6 +1867,7 @@
 
                         <button wire:click="generateAllRemaining"
                                 wire:loading.attr="disabled"
+                                wire:target="generateAllRemaining"
                                 @if($scriptGeneration['status'] === 'generating') disabled @endif
                                 style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: {{ $scriptGeneration['status'] === 'generating' ? '0.6' : '1' }};">
                             ⚡ {{ __('Auto-Generate All') }}

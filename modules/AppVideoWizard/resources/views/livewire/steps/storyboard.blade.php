@@ -13,7 +13,7 @@
         width: 100vw;
         height: 100vh;
         background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
-        z-index: 9999;
+        z-index: 999999;  /* Above sidebar (10000) */
         display: flex;
         flex-direction: column;
         overflow: hidden;
