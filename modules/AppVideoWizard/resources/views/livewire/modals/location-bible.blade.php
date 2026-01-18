@@ -172,7 +172,7 @@
                                 <div style="margin-bottom: 0.4rem;">
                                     <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.65rem; margin-bottom: 0.15rem;">{{ __('Location Name') }}</label>
                                     <input type="text"
-                                           wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.name"
+                                           wire:model.blur="sceneMemory.locationBible.locations.{{ $editIndex }}.name"
                                            placeholder="{{ __('e.g., Downtown Office, Forest Clearing...') }}"
                                            style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.3rem; color: white; font-size: 0.8rem;">
                                 </div>
@@ -244,7 +244,7 @@
                         {{-- Description --}}
                         <div style="margin-bottom: 0.4rem;">
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Visual Description') }}</label>
-                            <textarea wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.description"
+                            <textarea wire:model.blur="sceneMemory.locationBible.locations.{{ $editIndex }}.description"
                                       placeholder="{{ __('Describe the environment in detail: architecture, colors, textures, key elements...') }}"
                                       style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.3rem; color: white; font-size: 0.7rem; min-height: 45px; resize: none;"></textarea>
                         </div>
@@ -253,7 +253,7 @@
                         <div style="margin-bottom: 0.4rem;">
                             <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Lighting Style (optional)') }}</label>
                             <input type="text"
-                                   wire:model.live="sceneMemory.locationBible.locations.{{ $editIndex }}.lightingStyle"
+                                   wire:model.blur="sceneMemory.locationBible.locations.{{ $editIndex }}.lightingStyle"
                                    placeholder="{{ __('e.g., Neon signs with wet surface reflections, dramatic rim lighting') }}"
                                    style="width: 100%; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
                         </div>

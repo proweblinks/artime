@@ -903,6 +903,12 @@ class VideoWizard extends Component
             return;
         }
 
+        // PERFORMANCE: Skip auto-sync when bible modals are open
+        // Scene DNA will be rebuilt when the modal closes instead
+        if ($this->showCharacterBibleModal || $this->showLocationBibleModal) {
+            return;
+        }
+
         // Auto-sync Scene DNA when Bibles change
         if ($this->sceneMemory['sceneDNA']['autoSync'] ?? true) {
             $triggerProperties = [
@@ -8454,6 +8460,25 @@ class VideoWizard extends Component
             return;
         }
 
+        // STEP 0: Resolve conflicts - each scene can only belong to ONE location
+        // If multiple locations claim the same scene, keep it only in the FIRST location that has it
+        $sceneOwnership = []; // sceneIndex => locationIndex
+        foreach ($locations as $locIdx => &$location) {
+            $locationScenes = $location['scenes'] ?? [];
+            $filteredScenes = [];
+            foreach ($locationScenes as $sceneIndex) {
+                if (!isset($sceneOwnership[$sceneIndex])) {
+                    // This location is the first to claim this scene - keep it
+                    $sceneOwnership[$sceneIndex] = $locIdx;
+                    $filteredScenes[] = $sceneIndex;
+                }
+                // If scene is already owned by another location, skip it (remove duplicate)
+            }
+            $location['scenes'] = $filteredScenes;
+            sort($location['scenes']);
+        }
+        unset($location);
+
         // Track which scenes are covered
         // NOTE: Empty 'scenes' array now means "no scenes assigned" (NOT "all scenes")
         // Locations with empty scenes will be assigned to uncovered scenes
@@ -10325,10 +10350,13 @@ class VideoWizard extends Component
 
     /**
      * Close Character Bible modal.
+     * Saves changes and rebuilds scene DNA once (instead of on every edit).
      */
     public function closeCharacterBibleModal(): void
     {
         $this->showCharacterBibleModal = false;
+        $this->buildSceneDNA();
+        $this->saveProject();
     }
 
     /**
@@ -10346,7 +10374,7 @@ class VideoWizard extends Component
             $this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes'][] = $sceneIndex;
         }
 
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -10356,7 +10384,7 @@ class VideoWizard extends Component
     {
         $sceneCount = count($this->script['scenes'] ?? []);
         $this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes'] = range(0, $sceneCount - 1);
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -10368,7 +10396,7 @@ class VideoWizard extends Component
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = null;
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = null;
         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'none';
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -11249,15 +11277,18 @@ EOT;
 
     /**
      * Close Location Bible modal.
+     * Saves changes and rebuilds scene DNA once (instead of on every edit).
      */
     public function closeLocationBibleModal(): void
     {
         $this->showLocationBibleModal = false;
+        $this->buildSceneDNA();
         $this->saveProject();
     }
 
     /**
      * Toggle location assignment to a scene.
+     * Enforces ONE location per scene - adding a scene to this location removes it from others.
      */
     public function toggleLocationScene(int $locIndex, int $sceneIndex): void
     {
@@ -11268,17 +11299,31 @@ EOT;
         $scenes = $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] ?? [];
 
         if (in_array($sceneIndex, $scenes)) {
+            // Removing scene from this location - just remove it
             $scenes = array_values(array_filter($scenes, fn($s) => $s !== $sceneIndex));
         } else {
+            // Adding scene to this location - REMOVE from all other locations first
+            // This enforces one-location-per-scene rule
+            foreach ($this->sceneMemory['locationBible']['locations'] as $idx => &$otherLoc) {
+                if ($idx !== $locIndex && isset($otherLoc['scenes'])) {
+                    $otherLoc['scenes'] = array_values(array_filter(
+                        $otherLoc['scenes'],
+                        fn($s) => $s !== $sceneIndex
+                    ));
+                }
+            }
+            unset($otherLoc); // Break reference
             $scenes[] = $sceneIndex;
         }
 
+        sort($scenes);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = $scenes;
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
      * Apply location to all scenes.
+     * Clears all other locations' scenes since one location now owns all scenes.
      */
     public function applyLocationToAllScenes(int $locIndex): void
     {
@@ -11289,8 +11334,17 @@ EOT;
         // FIX: Use script['scenes'] instead of storyboard['scenes']
         // Script is the source of truth for scene count during project creation
         $sceneCount = count($this->script['scenes'] ?? []);
+
+        // Clear scenes from ALL other locations (this location now owns all scenes)
+        foreach ($this->sceneMemory['locationBible']['locations'] as $idx => &$otherLoc) {
+            if ($idx !== $locIndex) {
+                $otherLoc['scenes'] = [];
+            }
+        }
+        unset($otherLoc);
+
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
-        $this->saveProject();
+        // Don't save here - let modal close handle batched saves for better performance
     }
 
     /**
@@ -11303,7 +11357,7 @@ EOT;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = null;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = null;
             $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'none';
-            $this->saveProject();
+            // Don't save here - let modal close handle batched saves for better performance
         }
     }
 
