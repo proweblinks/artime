@@ -416,8 +416,8 @@ class StructuredPromptBuilderService
         // Build Character DNA blocks for consistency
         $characterDNA = $this->buildCharacterDNAFromSceneDNA($sceneDNAEntry);
 
-        // Build Style DNA for visual consistency
-        $styleDNA = $this->buildStyleDNAFromSceneDNA($sceneDNAEntry);
+        // Build Style DNA for visual consistency (pass visual_mode from options as fallback)
+        $styleDNA = $this->buildStyleDNAFromSceneDNA($sceneDNAEntry, $options['visual_mode'] ?? null);
 
         // Build Location DNA for environmental consistency
         $locationDNA = $this->buildLocationDNAFromSceneDNA($sceneDNAEntry);
@@ -430,6 +430,10 @@ class StructuredPromptBuilderService
             'characterCount' => $sceneDNAEntry['characterCount'] ?? 0,
             'hasLocation' => !empty($sceneDNAEntry['location']),
             'hasStyle' => !empty($sceneDNAEntry['style']),
+            'visualMode' => $options['visual_mode'] ?? 'cinematic-realistic',
+            'styleDNAVisuaMode' => $sceneDNAEntry['style']['visualMode'] ?? 'not-set',
+            'hasStyleDNA' => !empty($styleDNA),
+            'hasCharacterDNA' => !empty($characterDNA),
         ]);
 
         return [
@@ -619,7 +623,7 @@ class StructuredPromptBuilderService
         $name = $character['name'] ?? 'Character';
         $parts = [];
 
-        // Identity/Face section
+        // Identity/Face section with REALISM markers
         $identityParts = [];
         if (!empty($character['description'])) {
             $identityParts[] = $character['description'];
@@ -627,6 +631,9 @@ class StructuredPromptBuilderService
         $identityParts[] = "Same skin tone, same complexion, same facial proportions";
         $identityParts[] = "Same body type and build";
         $parts[] = "IDENTITY: " . implode('. ', $identityParts);
+
+        // CRITICAL: Add realism markers for photorealistic rendering
+        $parts[] = "REALISM (MANDATORY): Real human skin with visible pores and natural texture, realistic facial features with natural imperfections, authentic skin tones with subtle color variation, genuine human proportions - NOT CGI, NOT 3D render, NOT digital art, NOT airbrushed";
 
         // Hair section
         $hair = $character['hair'] ?? [];
@@ -636,6 +643,8 @@ class StructuredPromptBuilderService
             if (!empty($hair['length'])) $hairParts[] = $hair['length'];
             if (!empty($hair['style'])) $hairParts[] = $hair['style'];
             if (!empty($hair['texture'])) $hairParts[] = $hair['texture'] . ' texture';
+            // Add realism for hair
+            $hairParts[] = 'individual strands visible, realistic hair texture';
             if (!empty($hairParts)) {
                 $parts[] = "HAIR (EXACT MATCH): " . implode(', ', $hairParts);
             }
@@ -648,6 +657,8 @@ class StructuredPromptBuilderService
             if (!empty($wardrobe['outfit'])) $wardrobeParts[] = $wardrobe['outfit'];
             if (!empty($wardrobe['colors'])) $wardrobeParts[] = "in " . $wardrobe['colors'];
             if (!empty($wardrobe['style'])) $wardrobeParts[] = $wardrobe['style'] . ' style';
+            // Add realism for fabric
+            $wardrobeParts[] = 'realistic fabric weave texture, natural fabric drape';
             if (!empty($wardrobeParts)) {
                 $parts[] = "WARDROBE (EXACT MATCH): " . implode(', ', $wardrobeParts);
             }
@@ -673,7 +684,7 @@ class StructuredPromptBuilderService
             }
         }
 
-        if (count($parts) <= 1) {
+        if (count($parts) <= 2) {  // Changed from 1 to 2 since we always add REALISM now
             return '';
         }
 
@@ -682,30 +693,39 @@ class StructuredPromptBuilderService
 
     /**
      * Build Style DNA from Scene DNA.
+     * @param array $sceneDNAEntry The Scene DNA entry for this scene
+     * @param string|null $fallbackVisualMode Visual mode from options as fallback
      */
-    protected function buildStyleDNAFromSceneDNA(array $sceneDNAEntry): string
+    protected function buildStyleDNAFromSceneDNA(array $sceneDNAEntry, ?string $fallbackVisualMode = null): string
     {
         $style = $sceneDNAEntry['style'] ?? null;
-        if (!$style) {
-            return '';
-        }
-
         $parts = [];
 
-        if (!empty($style['visualStyle'])) {
-            $parts[] = "VISUAL STYLE: " . $style['visualStyle'];
+        // CRITICAL: Always add realism enforcement for cinematic-realistic mode
+        // This ensures photorealistic output even when style data is minimal
+        // Priority: style.visualMode > fallback from options > default to cinematic-realistic
+        $visualMode = $style['visualMode'] ?? $fallbackVisualMode ?? 'cinematic-realistic';
+        if (in_array($visualMode, ['cinematic-realistic', 'documentary-realistic'])) {
+            $parts[] = "RENDER MODE (MANDATORY): PHOTOREALISTIC - Real photograph quality, shot on professional cinema camera, natural film grain, authentic lighting with real shadows and highlights, NO CGI, NO 3D render, NO illustration, NO digital painting, NO anime/cartoon styling";
+            $parts[] = "QUALITY MARKERS: 8K UHD, hyperdetailed, cinematic depth of field, professional color grading, natural bokeh with real optical characteristics";
         }
-        if (!empty($style['colorPalette'])) {
-            $parts[] = "COLOR GRADE (CONSISTENT): " . $style['colorPalette'];
-        }
-        if (!empty($style['lightingStyle'])) {
-            $parts[] = "LIGHTING (CONSISTENT): " . $style['lightingStyle'];
-        }
-        if (!empty($style['mood'])) {
-            $parts[] = "ATMOSPHERE: " . $style['mood'];
-        }
-        if (!empty($style['era'])) {
-            $parts[] = "ERA/PERIOD: " . $style['era'];
+
+        if ($style) {
+            if (!empty($style['visualStyle'])) {
+                $parts[] = "VISUAL STYLE: " . $style['visualStyle'];
+            }
+            if (!empty($style['colorPalette'])) {
+                $parts[] = "COLOR GRADE (CONSISTENT): " . $style['colorPalette'];
+            }
+            if (!empty($style['lightingStyle'])) {
+                $parts[] = "LIGHTING (CONSISTENT): " . $style['lightingStyle'];
+            }
+            if (!empty($style['mood'])) {
+                $parts[] = "ATMOSPHERE: " . $style['mood'];
+            }
+            if (!empty($style['era'])) {
+                $parts[] = "ERA/PERIOD: " . $style['era'];
+            }
         }
 
         if (empty($parts)) {

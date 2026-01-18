@@ -1668,8 +1668,8 @@ EOT;
         ?int $sceneIndex = null,
         array $shotContext = []  // PHASE 3: Shot context for multi-shot mode
     ): string {
-        // Determine visual mode from project settings
-        $visualMode = $this->getVisualMode($project, $visualStyle);
+        // Determine visual mode from project settings (now includes Scene DNA check)
+        $visualMode = $this->getVisualMode($project, $visualStyle, $sceneMemory, $sceneIndex);
 
         // For realistic modes, use the structured prompt builder
         if ($this->shouldUseStructuredPrompt($visualMode)) {
@@ -1700,7 +1700,7 @@ EOT;
      * Determine the visual mode from project settings.
      * Checks multiple locations where visualMode might be stored.
      */
-    protected function getVisualMode(WizardProject $project, ?array $visualStyle): string
+    protected function getVisualMode(WizardProject $project, ?array $visualStyle, ?array $sceneMemory = null, ?int $sceneIndex = null): string
     {
         // Priority 1: Check concept for visual mode (this is where VideoWizard stores it)
         $concept = $project->concept ?? [];
@@ -1708,20 +1708,32 @@ EOT;
             return $concept['visualMode'];
         }
 
-        // Priority 2: Check storyboard for visual mode (fallback location)
+        // Priority 2: Check Scene DNA for visual mode (unified Bible data)
+        if ($sceneMemory && $sceneIndex !== null) {
+            $sceneDNA = $sceneMemory['sceneDNA'] ?? null;
+            if ($sceneDNA && ($sceneDNA['enabled'] ?? false) && !empty($sceneDNA['scenes'][$sceneIndex])) {
+                $sceneEntry = $sceneDNA['scenes'][$sceneIndex];
+                // Check style.visualMode in Scene DNA entry
+                if (!empty($sceneEntry['style']['visualMode'])) {
+                    return $sceneEntry['style']['visualMode'];
+                }
+            }
+        }
+
+        // Priority 3: Check storyboard for visual mode (fallback location)
         $storyboard = $project->storyboard ?? [];
         if (!empty($storyboard['visualMode'])) {
             return $storyboard['visualMode'];
         }
 
-        // Priority 3: Check content_config.content for visual mode
+        // Priority 4: Check content_config.content for visual mode
         $contentConfig = $project->content_config ?? [];
         $content = $contentConfig['content'] ?? [];
         if (!empty($content['visualMode'])) {
             return $content['visualMode'];
         }
 
-        // Priority 4: Infer from visual style settings
+        // Priority 5: Infer from visual style settings
         if ($visualStyle) {
             $style = $visualStyle['style'] ?? $visualStyle['renderStyle'] ?? '';
             if (stripos($style, 'realistic') !== false || stripos($style, 'cinematic') !== false) {
@@ -1774,6 +1786,10 @@ EOT;
             'style_bible' => $styleBible,
             'character_bible' => $sceneMemory['characterBible'] ?? null,
             'location_bible' => $sceneMemory['locationBible'] ?? null,
+            // =================================================================
+            // Scene DNA - unified Bible data for consistent image generation
+            // =================================================================
+            'scene_dna' => $sceneMemory['sceneDNA'] ?? null,
             // =================================================================
             // PHASE 3: Pass shot context for duplicate prevention
             // =================================================================
