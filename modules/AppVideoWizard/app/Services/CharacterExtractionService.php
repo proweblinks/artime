@@ -123,16 +123,20 @@ class CharacterExtractionService
             // Parse the response
             $parsed = $this->parseResponse($response);
 
-            Log::info('CharacterExtraction: Extracted characters', [
-                'count' => count($parsed['characters']),
-                'hasHumanCharacters' => $parsed['hasHumanCharacters'],
+            // Filter and consolidate characters (remove extras, merge age variants)
+            $characters = $this->filterAndConsolidateCharacters($parsed['characters']);
+
+            Log::info('CharacterExtraction: Extracted and filtered characters', [
+                'beforeFilter' => count($parsed['characters']),
+                'afterFilter' => count($characters),
+                'hasHumanCharacters' => count($characters) > 0,
                 'durationMs' => $durationMs,
             ]);
 
             return [
                 'success' => true,
-                'characters' => $parsed['characters'],
-                'hasHumanCharacters' => $parsed['hasHumanCharacters'],
+                'characters' => $characters,
+                'hasHumanCharacters' => count($characters) > 0,
                 'suggestedStyleNote' => $parsed['suggestedStyleNote'] ?? null,
                 'durationMs' => $durationMs,
             ];
@@ -203,16 +207,18 @@ You are an expert at analyzing video scripts and identifying characters for visu
 Your task is to extract ALL characters that appear in the script and create detailed visual descriptions for AI image generation.
 {$visualModeEnforcement}
 CORE TASK:
-1. Read the script carefully and identify EVERY person who appears visually
+1. Read the script carefully and identify MAIN and RECURRING characters who appear visually
 2. Create a DETAILED visual description for each character (age, gender, ethnicity, build, hair, eyes, clothing)
 3. Track which scenes each character appears in
+4. EXCLUDE extras, background characters, and generic numbered roles
 
 CRITICAL REQUIREMENTS:
-- Extract ALL characters - do not limit or combine them
+- Focus on MAIN/RECURRING characters - those who appear in 2+ scenes OR have plot significance
 - Every character MUST have a detailed description (never empty)
 - Each entry is ONE individual person (never groups)
 - Descriptions must be specific: "brown shoulder-length wavy hair" not just "brown hair"
-- If script mentions "a group of people", extract each individual separately with unique descriptions
+- MERGE AGE VARIANTS: "Young Sarah" and "Sarah" = ONE entry with age note in description
+- EXCLUDE: "Guard 1", "Officer 2", "Waiter", "Pedestrian", crowd members, unnamed extras
 
 STYLE MATCHING:
 For CINEMATIC-REALISTIC mode: Describe as real people, like casting for a film
@@ -267,11 +273,23 @@ Extract ALL characters that appear visually in the script. PRIORITIZE finding ev
 }
 
 === CRITICAL RULES ===
-1. **EXTRACT ALL CHARACTERS** - If the script shows 5 people, extract 5 separate characters
-2. Each character MUST have a DETAILED description field - this is REQUIRED, never leave it empty
-3. Each entry MUST be a SINGLE individual person (never groups)
-4. Description must include: age, gender, ethnicity/skin tone, build, hair, eyes, clothing
-5. If script mentions "a group" - extract EACH individual as their own character entry
+1. **EXTRACT MAIN AND RECURRING CHARACTERS ONLY** - Focus on characters that appear in 2+ scenes OR have plot significance
+2. **EXCLUDE EXTRAS** - Do NOT include: unnamed background characters, generic roles like "Guard 1", "Waiter", "Police Officer 2", crowd members, or one-scene generic characters
+3. **MERGE AGE VARIANTS** - If "Young Sarah" and "Sarah" are the same character at different ages, create ONE entry with name "Sarah" and note age variations in description (e.g., "Also appears younger in flashback scenes")
+4. Each character MUST have a DETAILED description field - this is REQUIRED, never leave it empty
+5. Description must include: age, gender, ethnicity/skin tone, build, hair, eyes, clothing
+6. For groups or crowds, only extract NAMED individuals with plot significance
+
+=== WHO TO INCLUDE ===
+- Protagonists and main characters (always include)
+- Supporting characters with names who appear in multiple scenes
+- Antagonists with names (even if 1-2 scenes, if plot-critical)
+
+=== WHO TO EXCLUDE ===
+- "Guard 1", "Officer 2", "Waiter", "Pedestrian" - generic numbered/role characters
+- "Crowd member", "Bystander", "Extra" - background people
+- Unnamed characters with no dialogue or plot significance
+- "Young X" as separate entry - merge with adult "X"
 
 === EXAMPLE DESCRIPTIONS ===
 Good: "A tall African American man in his late 40s with a shaved head, warm brown skin, and deep-set dark eyes. Broad-shouldered with an authoritative presence. Wears a charcoal business suit with a burgundy tie."
@@ -922,5 +940,199 @@ PROMPT;
         ]);
 
         return $characters;
+    }
+
+    /**
+     * Filter out extras and merge age variants from extracted characters.
+     * This ensures the Character Bible only contains main/recurring characters.
+     *
+     * @param array $characters Array of extracted characters
+     * @return array Filtered and consolidated characters
+     */
+    protected function filterAndConsolidateCharacters(array $characters): array
+    {
+        $filtered = [];
+        $nameMap = []; // Track base names for age variant merging
+
+        foreach ($characters as $char) {
+            // Skip extras and background characters
+            if ($this->isExtraOrBackground($char)) {
+                Log::debug('CharacterExtraction: Filtered out extra/background', [
+                    'name' => $char['name'] ?? 'unknown',
+                    'role' => $char['role'] ?? 'unknown',
+                ]);
+                continue;
+            }
+
+            // Check for age variants (e.g., "Young Sarah" should merge with "Sarah")
+            $baseName = $this->extractBaseName($char['name'] ?? '');
+
+            if (isset($nameMap[$baseName])) {
+                // Merge with existing character
+                $existingIdx = $nameMap[$baseName];
+                $filtered[$existingIdx] = $this->mergeAgeVariants($filtered[$existingIdx], $char);
+                Log::debug('CharacterExtraction: Merged age variant', [
+                    'variant' => $char['name'],
+                    'mergedWith' => $filtered[$existingIdx]['name'],
+                ]);
+            } else {
+                // Add as new character
+                $nameMap[$baseName] = count($filtered);
+                $filtered[] = $char;
+            }
+        }
+
+        return array_values($filtered);
+    }
+
+    /**
+     * Check if character is an extra or background character that should be filtered.
+     *
+     * @param array $char Character data
+     * @return bool True if character should be filtered out
+     */
+    protected function isExtraOrBackground(array $char): bool
+    {
+        $name = strtolower($char['name'] ?? '');
+        $role = strtolower($char['role'] ?? '');
+        $sceneCount = count($char['appearsInScenes'] ?? []);
+
+        // Role-based filtering
+        if (in_array($role, ['extra', 'background', 'crowd'])) {
+            return true;
+        }
+
+        // Generic numbered character pattern (Guard 1, Officer 2, etc.)
+        if (preg_match('/^(guard|officer|soldier|enforcer|agent|worker|employee|servant|waiter|waitress|bartender|driver|pilot|nurse|doctor|official|protestor|bystander|pedestrian|customer|patron|guest|member|person|man|woman|figure|individual)\s*\d*$/i', $name)) {
+            return true;
+        }
+
+        // Shadowy/mysterious generic figures
+        if (preg_match('/^(shadowy|mysterious|hooded|masked|dark|unknown)\s+(figure|person|man|woman|individual)\s*\d*$/i', $name)) {
+            return true;
+        }
+
+        // Generic role-only names
+        $genericNames = [
+            'the waiter', 'the guard', 'the officer', 'a stranger', 'mysterious figure',
+            'shadowy figure', 'hooded figure', 'masked figure', 'crowd member', 'bystander',
+            'pedestrian', 'passerby', 'onlooker', 'spectator', 'attendant', 'receptionist'
+        ];
+        if (in_array($name, $genericNames)) {
+            return true;
+        }
+
+        // Single-scene characters with generic names (Supporting role + 1 scene + no proper name)
+        if ($sceneCount <= 1 && $role === 'supporting' && !$this->hasProperName($name)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if name appears to be a proper name vs generic role.
+     *
+     * @param string $name Character name
+     * @return bool True if name appears to be a proper name
+     */
+    protected function hasProperName(string $name): bool
+    {
+        $name = trim($name);
+
+        // Starts with "The" or "A/An" - likely generic
+        if (preg_match('/^(the|a|an)\s+/i', $name)) {
+            return false;
+        }
+
+        // Contains numbers - likely generic (Guard 1, Officer 2)
+        if (preg_match('/\d+/', $name)) {
+            return false;
+        }
+
+        // Has first+last name structure - likely proper
+        if (preg_match('/^[A-Z][a-z]+\s+[A-Z][a-z]+/', $name)) {
+            return true;
+        }
+
+        // Single word that looks like a role - likely generic
+        $roleWords = ['guard', 'officer', 'soldier', 'enforcer', 'waiter', 'driver', 'worker', 'official'];
+        if (in_array(strtolower($name), $roleWords)) {
+            return false;
+        }
+
+        return true; // Default to proper name
+    }
+
+    /**
+     * Extract base name for age variant detection.
+     * "Young Sarah Chen" -> "sarah chen"
+     * "Old Marcus" -> "marcus"
+     *
+     * @param string $name Character name
+     * @return string Normalized base name
+     */
+    protected function extractBaseName(string $name): string
+    {
+        $name = strtolower(trim($name));
+
+        // Remove age prefixes
+        $agePatterns = [
+            '/^young\s+/',
+            '/^old\s+/',
+            '/^elderly\s+/',
+            '/^teenage?\s+/',
+            '/^child\s+/',
+            '/^baby\s+/',
+            '/^adult\s+/',
+            '/^middle[- ]aged?\s+/',
+        ];
+
+        foreach ($agePatterns as $pattern) {
+            $name = preg_replace($pattern, '', $name);
+        }
+
+        return trim($name);
+    }
+
+    /**
+     * Merge two characters that are age variants of each other.
+     *
+     * @param array $main The main character entry
+     * @param array $variant The age variant to merge
+     * @return array Merged character data
+     */
+    protected function mergeAgeVariants(array $main, array $variant): array
+    {
+        // Combine scenes
+        $allScenes = array_unique(array_merge(
+            $main['appearsInScenes'] ?? [],
+            $variant['appearsInScenes'] ?? []
+        ));
+        sort($allScenes);
+        $main['appearsInScenes'] = $allScenes;
+
+        // Add age variant note to description if not already there
+        $variantName = $variant['name'] ?? '';
+        if (!empty($variantName) && stripos($main['description'] ?? '', 'age variant') === false &&
+            stripos($main['description'] ?? '', 'flashback') === false) {
+            $main['description'] = ($main['description'] ?? '') . " (Also appears as {$variantName} in flashback/memory scenes)";
+        }
+
+        // Combine traits
+        $main['traits'] = array_unique(array_merge(
+            $main['traits'] ?? [],
+            $variant['traits'] ?? []
+        ));
+
+        // Keep the "more important" role
+        $roleHierarchy = ['main' => 1, 'Main' => 1, 'supporting' => 2, 'Supporting' => 2, 'background' => 3, 'Background' => 3, 'extra' => 4, 'Extra' => 4];
+        $mainPriority = $roleHierarchy[$main['role'] ?? 'Supporting'] ?? 2;
+        $variantPriority = $roleHierarchy[$variant['role'] ?? 'Supporting'] ?? 2;
+        if ($variantPriority < $mainPriority) {
+            $main['role'] = $variant['role'];
+        }
+
+        return $main;
     }
 }

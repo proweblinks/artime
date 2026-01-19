@@ -12,7 +12,8 @@
       "WebSearch",
       "Bash(php:*)",
       "Bash(php -l:*)",
-      "Bash(.phpphp.exe -l modules/AppVideoWizard/app/Services/SmartReferenceService.php)"
+      "Bash(.phpphp.exe -l modules/AppVideoWizard/app/Services/SmartReferenceService.php)",
+      "Bash(where:*)"
     ]
   }
 }

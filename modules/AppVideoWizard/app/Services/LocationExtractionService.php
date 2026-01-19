@@ -120,14 +120,18 @@ class LocationExtractionService
             // Parse the response
             $parsed = $this->parseResponse($response);
 
-            Log::info('LocationExtraction: Extracted locations', [
-                'count' => count($parsed['locations']),
+            // Consolidate fragmented locations (merge building rooms, related areas)
+            $locations = $this->consolidateLocations($parsed['locations']);
+
+            Log::info('LocationExtraction: Extracted and consolidated locations', [
+                'beforeConsolidation' => count($parsed['locations']),
+                'afterConsolidation' => count($locations),
                 'durationMs' => $durationMs,
             ]);
 
             return [
                 'success' => true,
-                'locations' => $parsed['locations'],
+                'locations' => $locations,
                 'suggestedStyleNote' => $parsed['suggestedStyleNote'] ?? null,
                 'durationMs' => $durationMs,
             ];
@@ -202,14 +206,20 @@ You are an expert at analyzing video scripts and identifying locations for visua
 Your task is to extract all unique locations that appear in the script and create detailed visual descriptions for AI image generation.
 {$visualModeEnforcement}
 CRITICAL RULES:
-1. Identify DISTINCT LOCATIONS that appear visually in the video
-2. Merge similar locations (e.g., "office" and "corporate office" are the same location)
-3. Create SPECIFIC, CONSISTENT descriptions for each location
-4. Include: setting type (interior/exterior), time of day, weather, atmosphere, architectural details, colors, textures
-5. Track which scenes each location appears in
-6. **EXTRACT ALL LOCATIONS** - Do NOT artificially limit. Include every distinct environment.
+1. **CONSOLIDATE RELATED LOCATIONS** - Different rooms/areas of the same building = ONE location
+   - "Living Room", "Kitchen", "Bedroom" in same house = "The House" or "Home"
+   - "Office Lobby", "Office Meeting Room", "Office Rooftop" = "Corporate Office"
+2. **MERGE OUTDOOR AREAS** - Related outdoor spaces = ONE location
+   - "Forest Path", "Forest Clearing", "Dense Woods" = "Forest"
+   - "Beach Shore", "Beach Dunes" = "Beach"
+3. **TIME IS NOT A LOCATION** - Same place at different times = ONE entry
+   - "Dock at Dawn" and "Dock at Night" = "Dock" (note time variations)
+4. Create SPECIFIC, CONSISTENT descriptions for each location
+5. Include: setting type (interior/exterior), time of day, weather, atmosphere, architectural details
+6. Track which scenes each location appears in
 7. **STYLE CONSISTENCY IS PARAMOUNT** - ALL locations must match the Master Visual Style above
 8. If the visual mode is "cinematic-realistic", ALL locations must be real-world, photorealistic settings - NO fantasy, cartoon, or stylized imagery
+9. A 5-minute film typically has 3-6 distinct locations, not 10+
 
 LOCATION ANALYSIS:
 - Look for explicit location mentions in narration
@@ -283,11 +293,28 @@ Extract ALL distinct locations that appear in the script. PRIORITIZE finding eve
 }
 
 === CRITICAL RULES ===
-1. **EXTRACT ALL LOCATIONS** - Do NOT limit yourself. Every distinct environment should be a separate location.
-2. Each scene may have its own location - extract them all
+1. **CONSOLIDATE** - Rooms in the same building = ONE location (e.g., "John's Home" not "John's Kitchen" + "John's Bedroom")
+2. **MERGE** - Related outdoor areas = ONE location (e.g., "Forest" not "Forest Path" + "Forest Clearing")
 3. If the same location appears multiple times, list it once with all scene numbers
 4. DNA fields (mood, lightingStyle, stateChanges) are OPTIONAL - include if inferable
-5. Focus on QUANTITY first - basic descriptions for all locations is better than detailed DNA for few
+5. Focus on DISTINCT VISUAL ENVIRONMENTS - a typical 5-min film has 3-6 locations, not 10+
+
+=== CONSOLIDATION EXAMPLES ===
+WRONG (fragmented):
+- "John's House Exterior"
+- "John's House Living Room"
+- "John's House Kitchen"
+
+CORRECT (consolidated):
+- "John's House" (includes all rooms/areas)
+
+WRONG (fragmented):
+- "Forest Path"
+- "Forest Clearing"
+- "Dark Forest"
+
+CORRECT (consolidated):
+- "Forest" (various areas within)
 
 === QUICK REFERENCE ===
 - name: Distinctive location name (e.g., "Corporate Boardroom", "Forest Clearing", "Space Station Bridge")
@@ -504,5 +531,179 @@ USER;
         $json .= str_repeat('}', max(0, $openBraces - $closeBraces));
 
         return $json;
+    }
+
+    /**
+     * Consolidate fragmented locations into unified entries.
+     * Merges building rooms into single building, related outdoor areas into single area.
+     *
+     * @param array $locations Array of extracted locations
+     * @return array Consolidated locations
+     */
+    protected function consolidateLocations(array $locations): array
+    {
+        if (empty($locations)) {
+            return $locations;
+        }
+
+        $consolidated = [];
+        $hierarchyMap = []; // Track "Building" -> index for merging "Building Room"
+
+        foreach ($locations as $loc) {
+            $name = $loc['name'] ?? '';
+            $baseName = $this->extractLocationBaseName($name);
+
+            // Check if this is a sub-location of an existing entry
+            if (isset($hierarchyMap[$baseName])) {
+                // Merge into existing location
+                $existingIdx = $hierarchyMap[$baseName];
+                $consolidated[$existingIdx] = $this->mergeLocations($consolidated[$existingIdx], $loc);
+                Log::debug('LocationExtraction: Merged sub-location', [
+                    'subLocation' => $name,
+                    'mergedWith' => $consolidated[$existingIdx]['name'],
+                ]);
+                continue;
+            }
+
+            // Check if any existing location should be merged with this one
+            $foundParent = false;
+            foreach ($consolidated as $idx => $existing) {
+                if ($this->shouldMergeLocations($name, $existing['name'])) {
+                    // Merge with existing
+                    $consolidated[$idx] = $this->mergeLocations($existing, $loc);
+                    $hierarchyMap[$baseName] = $idx;
+                    $foundParent = true;
+                    Log::debug('LocationExtraction: Merged related location', [
+                        'location' => $name,
+                        'mergedWith' => $consolidated[$idx]['name'],
+                    ]);
+                    break;
+                }
+            }
+
+            if (!$foundParent) {
+                // Add as new location
+                $hierarchyMap[$baseName] = count($consolidated);
+                $consolidated[] = $loc;
+            }
+        }
+
+        return array_values($consolidated);
+    }
+
+    /**
+     * Extract base name for location hierarchy detection.
+     * "Elias's Home Living Room" -> "elias's home"
+     * "Corporate Office Lobby" -> "corporate office"
+     *
+     * @param string $name Location name
+     * @return string Normalized base name
+     */
+    protected function extractLocationBaseName(string $name): string
+    {
+        $name = strtolower(trim($name));
+
+        // Common room/area suffixes to remove
+        $suffixes = [
+            // Building rooms
+            '/\s+(room|lobby|hallway|corridor|entrance|foyer|kitchen|bedroom|bathroom|living\s*room|dining\s*room|study|office|basement|attic|garage|garden|yard|patio|balcony|rooftop|exterior|interior)$/i',
+            // Outdoor areas
+            '/\s+(path|clearing|trail|meadow|shore|dunes|cliff|peak|base|edge|depths|outskirts)$/i',
+            // Time of day variations
+            '/\s+at\s+(dawn|dusk|night|day|noon|morning|evening|sunset|sunrise)$/i',
+        ];
+
+        foreach ($suffixes as $pattern) {
+            $name = preg_replace($pattern, '', $name);
+        }
+
+        return trim($name);
+    }
+
+    /**
+     * Check if two locations should be merged.
+     *
+     * @param string $a First location name
+     * @param string $b Second location name
+     * @return bool True if locations should be merged
+     */
+    protected function shouldMergeLocations(string $a, string $b): bool
+    {
+        $a = strtolower(trim($a));
+        $b = strtolower(trim($b));
+
+        // A contains B as prefix: "Elias's Home Living Room" contains "Elias's Home"
+        if (strpos($a, $b) === 0 && strlen($a) > strlen($b)) {
+            return true;
+        }
+
+        // B contains A as prefix: "Elias's Home" is prefix of "Elias's Home Living Room"
+        if (strpos($b, $a) === 0 && strlen($b) > strlen($a)) {
+            return true;
+        }
+
+        // Check for possessive variations with same base
+        $aBase = $this->extractLocationBaseName($a);
+        $bBase = $this->extractLocationBaseName($b);
+
+        // Same base name but different full names = should merge
+        if ($aBase === $bBase && ($aBase !== $a || $bBase !== $b)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Merge two locations that are related (same building/area).
+     *
+     * @param array $main The main location entry
+     * @param array $sub The sub-location to merge
+     * @return array Merged location data
+     */
+    protected function mergeLocations(array $main, array $sub): array
+    {
+        // Use shorter/simpler name (the parent location)
+        if (strlen($sub['name'] ?? '') < strlen($main['name'] ?? '')) {
+            $main['name'] = $sub['name'];
+        }
+
+        // Combine scenes
+        $allScenes = array_unique(array_merge(
+            $main['scenes'] ?? [],
+            $sub['scenes'] ?? []
+        ));
+        sort($allScenes);
+        $main['scenes'] = $allScenes;
+
+        // Merge descriptions (keep the more detailed one, note variations)
+        $mainDesc = $main['description'] ?? '';
+        $subDesc = $sub['description'] ?? '';
+        if (strlen($subDesc) > strlen($mainDesc)) {
+            $main['description'] = $subDesc;
+        }
+
+        // Add note about sub-areas if not already mentioned
+        $subName = $sub['name'] ?? '';
+        if (!empty($subName) && $subName !== ($main['name'] ?? '') &&
+            stripos($main['description'] ?? '', $subName) === false) {
+            $main['description'] = ($main['description'] ?? '') . " (Includes areas: {$subName})";
+        }
+
+        // Track time of day variations
+        if (!isset($main['timeVariations'])) {
+            $main['timeVariations'] = [];
+        }
+        if (!empty($sub['timeOfDay']) && !in_array($sub['timeOfDay'], $main['timeVariations'])) {
+            $main['timeVariations'][] = $sub['timeOfDay'];
+        }
+
+        // Merge state changes
+        $main['stateChanges'] = array_merge(
+            $main['stateChanges'] ?? [],
+            $sub['stateChanges'] ?? []
+        );
+
+        return $main;
     }
 }
