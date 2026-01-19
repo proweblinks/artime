@@ -1043,40 +1043,49 @@ PROMPT;
         // === CAST & LOCATIONS REQUIREMENTS (Dynamic based on duration) ===
         if ($suggestedCharacterCount || $suggestedLocationCount) {
             $prompt .= "=== CAST & LOCATIONS REQUIREMENTS ===\n";
-            $prompt .= "CRITICAL: For a {$minutes}-minute video, you MUST create a rich world with adequate characters and settings.\n\n";
+            $prompt .= "⚠️ MANDATORY CHARACTER/LOCATION REQUIREMENT for a {$minutes}-minute video:\n\n";
 
             if ($suggestedCharacterCount) {
-                $prompt .= "MINIMUM CHARACTERS: {$suggestedCharacterCount}\n";
-                $prompt .= "- Create at least {$suggestedCharacterCount} distinct named characters\n";
-                $prompt .= "- Include variety: protagonist(s), antagonist/obstacle, supporting cast, minor characters\n";
-                $prompt .= "- Each character needs: unique name, distinct personality, clear role in the story\n";
-                $prompt .= "- Characters should have meaningful interactions and relationships\n";
+                $prompt .= "MINIMUM CHARACTERS: {$suggestedCharacterCount} (THIS IS MANDATORY)\n";
+                $prompt .= "You MUST include AT LEAST {$suggestedCharacterCount} distinct NAMED characters in your script.\n";
+                $prompt .= "CRITICAL REQUIREMENT FOR VISUAL DESCRIPTIONS:\n";
+                $prompt .= "- Each character MUST be explicitly NAMED BY NAME in the visualDescription fields\n";
+                $prompt .= "- Format: 'Character Name, a [description]' (e.g., 'Marcus Chen, a weathered detective in his 50s')\n";
+                $prompt .= "- EVERY scene should reference at least one character BY NAME in its visualDescription\n";
+                $prompt .= "- Characters must appear with CONSISTENT names across all scenes (same spelling)\n\n";
+                $prompt .= "CHARACTER VARIETY REQUIRED:\n";
+                $prompt .= "- Protagonist(s): The main character(s) driving the story\n";
+                $prompt .= "- Antagonist/Obstacle: Opposition or conflict source\n";
+                $prompt .= "- Supporting cast: Allies, mentors, friends who help the protagonist\n";
+                $prompt .= "- Minor characters: Background characters who add depth\n";
                 if ($productionSubtype === 'thriller' || $productionSubtype === 'mystery') {
-                    $prompt .= "- Include: suspects, witnesses, authority figures, victims, and mysterious strangers\n";
+                    $prompt .= "- THRILLER CAST: Include suspects, witnesses, authority figures, victims, and mysterious strangers\n";
                 } elseif ($productionSubtype === 'action' || $productionSubtype === 'adventure') {
-                    $prompt .= "- Include: heroes, villains, allies, informants, and bystanders\n";
+                    $prompt .= "- ACTION CAST: Include heroes, villains, allies, informants, and bystanders\n";
                 } elseif ($productionSubtype === 'drama') {
-                    $prompt .= "- Include: family members, friends, rivals, mentors, and confidants\n";
+                    $prompt .= "- DRAMA CAST: Include family members, friends, rivals, mentors, and confidants\n";
                 }
                 $prompt .= "\n";
             }
 
             if ($suggestedLocationCount) {
-                $prompt .= "MINIMUM LOCATIONS: {$suggestedLocationCount}\n";
-                $prompt .= "- Use at least {$suggestedLocationCount} different settings/environments\n";
+                $prompt .= "MINIMUM LOCATIONS: {$suggestedLocationCount} (THIS IS MANDATORY)\n";
+                $prompt .= "You MUST use AT LEAST {$suggestedLocationCount} different settings/environments.\n";
+                $prompt .= "- EVERY visualDescription should clearly identify the location/setting\n";
                 $prompt .= "- Vary locations: indoor/outdoor, day/night, public/private spaces\n";
                 $prompt .= "- Each location should serve the story's progression\n";
                 $prompt .= "- Locations should feel distinct and visually interesting\n";
                 if ($productionSubtype === 'thriller' || $productionSubtype === 'mystery') {
-                    $prompt .= "- Include: crime scenes, interrogation rooms, dark alleys, offices, hideouts\n";
+                    $prompt .= "- THRILLER LOCATIONS: crime scenes, interrogation rooms, dark alleys, offices, hideouts, surveillance spots\n";
                 } elseif ($productionSubtype === 'action' || $productionSubtype === 'adventure') {
-                    $prompt .= "- Include: chase locations, confrontation sites, bases, urban and natural environments\n";
+                    $prompt .= "- ACTION LOCATIONS: chase routes, confrontation sites, bases, urban and natural environments\n";
                 }
                 $prompt .= "\n";
             }
 
-            $prompt .= "IMPORTANT: Do NOT create a minimal cast with only 2-3 characters for a {$minutes}-minute video.\n";
-            $prompt .= "A rich story needs adequate characters and locations to maintain viewer engagement.\n\n";
+            $prompt .= "⛔ FAILURE CONDITION: Creating only 2-3 characters for a {$minutes}-minute video is UNACCEPTABLE.\n";
+            $prompt .= "⛔ A professional production requires AT LEAST {$suggestedCharacterCount} named characters distributed across scenes.\n";
+            $prompt .= "✅ SUCCESS: Name EACH character explicitly in visualDescriptions so they can be extracted.\n\n";
         }
 
         // === LAYER 4: STRUCTURE GUIDANCE ===
