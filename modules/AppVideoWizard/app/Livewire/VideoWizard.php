@@ -703,6 +703,8 @@ class VideoWizard extends Component
     public int $videoModelSelectorSceneIndex = 0;
     public int $videoModelSelectorShotIndex = 0;
     public bool $preConfigureWaitingShots = false;
+    public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk
+    public string $shotMonologueEdit = ''; // Editable monologue text for current shot
 
     // Upscale Modal state
     public bool $showUpscaleModal = false;
@@ -14791,6 +14793,10 @@ PROMPT;
                 $this->extractCollageQuadrantsToShots($sceneIndex);
             }
 
+            // Enrich shots with monologue for lip-sync (pre-extract for needsLipSync shots)
+            // This must happen AFTER storing so extractShotMonologue can access the shots
+            $this->enrichShotsWithMonologueStored($sceneIndex);
+
             $this->saveProject();
             // Keep modal open to show the decomposed results
             $this->showMultiShotModal = true;
@@ -14900,6 +14906,15 @@ PROMPT;
                 // Video model (default to minimax)
                 'selectedVideoModel' => 'minimax',
                 'needsLipSync' => false,
+
+                // Audio layer for Multitalk lip-sync
+                'dialogue' => $this->getDialogueForShot($scene, $i, count($analysis['shots'] ?? [])),
+                'speakingCharacters' => [],
+                'monologue' => null,           // Text content for voiceover
+                'audioUrl' => null,            // URL of generated voiceover
+                'audioDuration' => null,       // Duration of audio in seconds
+                'voiceId' => null,             // Selected voice for this shot
+                'audioStatus' => 'pending',    // pending | generating | ready | error
 
                 // Motion/Action description
                 'narrativeBeat' => [
@@ -15054,9 +15069,14 @@ PROMPT;
                 'needsLipSync' => $needsLipSync,
                 'aiRecommendedModel' => $recommendedModel,
 
-                // Audio layer
+                // Audio layer for Multitalk lip-sync
                 'dialogue' => $this->getDialogueForShot($scene, $i, count($analysis['shots'])),
                 'speakingCharacters' => [],
+                'monologue' => null,           // Text content for voiceover
+                'audioUrl' => null,            // URL of generated voiceover
+                'audioDuration' => null,       // Duration of audio in seconds
+                'voiceId' => null,             // Selected voice for this shot
+                'audioStatus' => 'pending',    // pending | generating | ready | error
 
                 // AI metadata
                 'aiRecommended' => $aiShot['aiRecommended'] ?? true,
@@ -15162,9 +15182,14 @@ PROMPT;
                 'selectedVideoModel' => 'minimax',
                 'needsLipSync' => false,
 
-                // Audio layer
+                // Audio layer for Multitalk lip-sync
                 'dialogue' => $this->getDialogueForShot($scene, $i, $shotCount),
                 'speakingCharacters' => [],
+                'monologue' => null,           // Text content for voiceover
+                'audioUrl' => null,            // URL of generated voiceover
+                'audioDuration' => null,       // Duration of audio in seconds
+                'voiceId' => null,             // Selected voice for this shot
+                'audioStatus' => 'pending',    // pending | generating | ready | error
 
                 // AI metadata
                 'aiRecommended' => false,
@@ -17053,6 +17078,433 @@ PROMPT;
         }
 
         return implode(' ', array_slice($sentences, $start, $end - $start));
+    }
+
+    /**
+     * Extract or generate monologue text for a shot.
+     * Used for Multitalk lip-sync animation.
+     *
+     * @param int $sceneIndex
+     * @param int $shotIndex
+     * @return array ['text' => string, 'source' => 'extracted'|'generated'|'dialogue', 'characterName' => string]
+     */
+    public function extractShotMonologue(int $sceneIndex, int $shotIndex): array
+    {
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+        $decomposition = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        $shot = $decomposition['shots'][$shotIndex] ?? [];
+
+        // Get character in this shot
+        $characters = $scene['characters'] ?? [];
+        $mainCharacter = $characters[0] ?? 'the character';
+
+        // Get shot's narrative beat/action
+        $narrativeBeat = $shot['narrativeBeat'] ?? [];
+        $action = $narrativeBeat['action'] ?? $shot['subjectAction'] ?? $shot['action'] ?? '';
+
+        // Get scene narration
+        $narration = $scene['narration'] ?? '';
+
+        // Option 1: Use existing dialogue from shot if available
+        $existingDialogue = $shot['dialogue'] ?? null;
+        if (!empty($existingDialogue) && strlen($existingDialogue) > 10) {
+            return [
+                'text' => $existingDialogue,
+                'source' => 'dialogue',
+                'characterName' => $mainCharacter,
+            ];
+        }
+
+        // Option 2: Extract dialogue from quotes in narration
+        if (preg_match_all('/"([^"]+)"/', $narration, $matches)) {
+            // Found quoted text - use as dialogue
+            $dialogue = $matches[1][0] ?? '';
+            if (strlen($dialogue) > 10) {
+                return [
+                    'text' => $dialogue,
+                    'source' => 'extracted',
+                    'characterName' => $mainCharacter,
+                ];
+            }
+        }
+
+        // Option 3: Generate inner monologue using AI
+        try {
+            $prompt = $this->buildMonologuePrompt($scene, $shot, $mainCharacter);
+            $result = $this->generateAIMonologue($prompt);
+
+            if (!empty($result['text'])) {
+                return [
+                    'text' => $result['text'],
+                    'source' => 'generated',
+                    'characterName' => $mainCharacter,
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to generate monologue for shot', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback: Create simple inner thought from action
+        $fallbackText = $this->createFallbackMonologue($action, $mainCharacter, $scene['mood'] ?? 'neutral');
+
+        return [
+            'text' => $fallbackText,
+            'source' => 'fallback',
+            'characterName' => $mainCharacter,
+        ];
+    }
+
+    /**
+     * Build AI prompt for generating shot monologue.
+     */
+    protected function buildMonologuePrompt(array $scene, array $shot, string $character): string
+    {
+        $narration = $scene['narration'] ?? '';
+        $action = $shot['subjectAction'] ?? $shot['action'] ?? '';
+        $shotType = $shot['type'] ?? 'close-up';
+        $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 10;
+        $mood = $scene['mood'] ?? 'neutral';
+
+        // Calculate word count for duration (150 wpm speaking rate)
+        $wordCount = max(10, floor(($duration * 150) / 60));
+
+        return <<<PROMPT
+Generate inner monologue/thoughts for a character in a film scene.
+
+CHARACTER: {$character}
+SCENE CONTEXT: {$narration}
+SHOT TYPE: {$shotType}
+SHOT ACTION: {$action}
+MOOD: {$mood}
+DURATION: {$duration} seconds
+
+Requirements:
+1. Write approximately {$wordCount} words (for {$duration}s at 150 wpm)
+2. Inner thoughts reflecting character's mental state during this action
+3. First-person perspective
+4. Match the emotional tone of the scene ({$mood})
+5. Keep it natural - how someone would actually think
+6. NO stage directions, just the thoughts
+7. Make it sound like internal monologue, not narration
+
+Return ONLY the monologue text, nothing else.
+PROMPT;
+    }
+
+    /**
+     * Generate monologue using AI.
+     */
+    protected function generateAIMonologue(string $prompt): array
+    {
+        try {
+            $aiProvider = $this->content['aiModelTier'] ?? 'economy';
+
+            // Use the AI facade for text generation
+            $result = \App\Facades\AI::process($prompt, 'text', [
+                'model' => $this->getAIModelForTier($aiProvider),
+                'maxTokens' => 200,
+                'temperature' => 0.8,
+            ], session('current_team_id', 0));
+
+            if (!empty($result['error'])) {
+                throw new \Exception($result['error']);
+            }
+
+            $text = $result['data'][0] ?? $result['text'] ?? '';
+
+            // Clean up the response
+            $text = trim($text);
+            $text = preg_replace('/^["\']+|["\']+$/', '', $text); // Remove surrounding quotes
+
+            return ['text' => $text, 'success' => true];
+
+        } catch (\Exception $e) {
+            Log::error('AI monologue generation failed', ['error' => $e->getMessage()]);
+            return ['text' => '', 'success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Create fallback monologue from action description.
+     */
+    protected function createFallbackMonologue(string $action, string $character, string $mood): string
+    {
+        // Map moods to inner thought styles
+        $moodPhrases = [
+            'tense' => ['I need to stay alert.', 'Something isn\'t right here.', 'I have to be careful.'],
+            'mysterious' => ['What is this place?', 'There\'s more to this than meets the eye.', 'I sense something hidden.'],
+            'dramatic' => ['This is the moment.', 'Everything has led to this.', 'I won\'t back down.'],
+            'romantic' => ['My heart races.', 'Could this be real?', 'I never expected this feeling.'],
+            'action' => ['No time to hesitate.', 'I have to move now.', 'Focus. Execute.'],
+            'neutral' => ['Let me think about this.', 'What should I do next?', 'I need to understand.'],
+            'hopeful' => ['Maybe this will work.', 'I believe in this.', 'There\'s still a chance.'],
+            'dark' => ['The shadows are closing in.', 'I can feel it watching.', 'Something wicked approaches.'],
+        ];
+
+        $phrases = $moodPhrases[$mood] ?? $moodPhrases['neutral'];
+        $randomPhrase = $phrases[array_rand($phrases)];
+
+        // Build a simple monologue
+        if (!empty($action)) {
+            return "{$randomPhrase} " . ucfirst($action) . "...";
+        }
+
+        return $randomPhrase;
+    }
+
+    /**
+     * Get character voice for a shot based on Character Bible.
+     */
+    public function getCharacterVoice(int $sceneIndex, int $shotIndex): string
+    {
+        // Check if character has assigned voice in Character Bible
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+        $characters = $scene['characters'] ?? [];
+
+        if (!empty($characters[0])) {
+            $charName = $characters[0];
+            $charBible = $this->sceneMemory['characterBible']['characters'] ?? [];
+
+            foreach ($charBible as $char) {
+                if (($char['name'] ?? '') === $charName && !empty($char['voice'])) {
+                    return $char['voice'];
+                }
+            }
+
+            // Try to determine voice based on character gender
+            foreach ($charBible as $char) {
+                if (($char['name'] ?? '') === $charName) {
+                    $gender = strtolower($char['gender'] ?? '');
+                    if (str_contains($gender, 'female') || str_contains($gender, 'woman')) {
+                        return 'nova'; // Female voice
+                    } elseif (str_contains($gender, 'male') || str_contains($gender, 'man')) {
+                        return 'onyx'; // Male voice
+                    }
+                }
+            }
+        }
+
+        // Default voice based on setting or fallback
+        return $this->storyboard['defaultVoice'] ?? 'nova';
+    }
+
+    /**
+     * Generate voiceover audio for a specific shot.
+     * Used for Multitalk lip-sync animation.
+     *
+     * @param int $sceneIndex Scene index
+     * @param int $shotIndex Shot index within the scene's decomposition
+     * @param array $options Optional settings: voice, speed
+     */
+    public function generateShotVoiceover(int $sceneIndex, int $shotIndex, array $options = []): void
+    {
+        // Get reference to the shot in decomposed scenes
+        if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            Log::error('Shot not found for voiceover generation', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+            ]);
+            $this->dispatch('shot-audio-error', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => 'Shot not found',
+            ]);
+            return;
+        }
+
+        // Update status to generating
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'generating';
+        $this->dispatch('shot-audio-generating', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+        ]);
+
+        try {
+            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+
+            // Check if user provided custom monologue text via the modal
+            $customText = !empty($this->shotMonologueEdit) ? trim($this->shotMonologueEdit) : null;
+
+            // Get or generate monologue text
+            $text = $customText ?? $shot['monologue'] ?? null;
+            if (empty($text)) {
+                $monologueResult = $this->extractShotMonologue($sceneIndex, $shotIndex);
+                $text = $monologueResult['text'];
+                // Store the generated monologue
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $text;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakingCharacters'] = [$monologueResult['characterName']];
+            } elseif ($customText) {
+                // User provided custom text - store it
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $customText;
+            }
+
+            if (empty($text)) {
+                throw new \Exception('No monologue text available for voiceover');
+            }
+
+            // Get voice selection
+            $voiceId = $options['voice'] ?? $shot['voiceId'] ?? $this->getCharacterVoice($sceneIndex, $shotIndex);
+
+            // Generate audio using VoiceoverService
+            $project = \Modules\AppVideoWizard\Models\WizardProject::findOrFail($this->projectId);
+            $voiceoverService = app(VoiceoverService::class);
+
+            $result = $voiceoverService->generateSceneVoiceover($project, [
+                'id' => "shot_{$sceneIndex}_{$shotIndex}",
+                'narration' => $text,
+                'title' => "Scene {$sceneIndex} Shot {$shotIndex} Voiceover",
+            ], [
+                'voice' => $voiceId,
+                'speed' => $options['speed'] ?? 1.0,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            // Update shot with audio data
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $result['audioUrl'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration'] = $result['duration'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+
+            $this->saveProject();
+
+            Log::info('Shot voiceover generated successfully', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'audioUrl' => $result['audioUrl'],
+                'duration' => $result['duration'],
+            ]);
+
+            $this->dispatch('shot-audio-ready', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'audioUrl' => $result['audioUrl'],
+                'duration' => $result['duration'],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Shot voiceover generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioError'] = $e->getMessage();
+
+            $this->dispatch('shot-audio-error', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Enrich stored shots with monologue text after decomposition.
+     * Pre-extracts monologue for shots marked as needing lip-sync.
+     * Must be called AFTER shots are stored in multiShotMode['decomposedScenes'].
+     *
+     * @param int $sceneIndex Scene index
+     */
+    protected function enrichShotsWithMonologueStored(int $sceneIndex): void
+    {
+        $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+
+        if (empty($shots)) {
+            return;
+        }
+
+        $enriched = 0;
+        foreach ($shots as $index => $shot) {
+            // Only pre-generate monologue for shots that need lip-sync
+            if (!empty($shot['needsLipSync']) && empty($shot['monologue'])) {
+                try {
+                    $result = $this->extractShotMonologue($sceneIndex, $index);
+
+                    // Update the stored shot with extracted monologue
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$index]['monologue'] = $result['text'];
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$index]['monologueSource'] = $result['source'];
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$index]['speakingCharacters'] = [$result['characterName']];
+
+                    $enriched++;
+                    Log::info('Pre-extracted monologue for lip-sync shot', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $index,
+                        'source' => $result['source'],
+                        'textLength' => strlen($result['text']),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to pre-extract monologue for shot', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $index,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Don't fail decomposition, just skip enrichment
+                }
+            }
+        }
+
+        if ($enriched > 0) {
+            Log::info('Enriched shots with monologue', [
+                'sceneIndex' => $sceneIndex,
+                'enrichedCount' => $enriched,
+                'totalShots' => count($shots),
+            ]);
+        }
+    }
+
+    /**
+     * Generate voiceovers for all shots in a scene that need lip-sync.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $options Optional settings: voice, speed, force (regenerate even if exists)
+     */
+    public function generateAllShotVoiceovers(int $sceneIndex, array $options = []): void
+    {
+        $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+
+        if (empty($shots)) {
+            Log::warning('No shots found for voiceover generation', ['sceneIndex' => $sceneIndex]);
+            return;
+        }
+
+        $force = $options['force'] ?? false;
+        $generated = 0;
+        $skipped = 0;
+
+        foreach ($shots as $shotIndex => $shot) {
+            // Check if shot needs lip-sync
+            $needsLipSync = $shot['needsLipSync'] ?? false;
+
+            // Skip if already has audio (unless force regenerate)
+            if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
+                $skipped++;
+                continue;
+            }
+
+            // Only generate for shots that need lip-sync OR if force is true
+            if ($needsLipSync || $force) {
+                $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
+                $generated++;
+            }
+        }
+
+        Log::info('Batch shot voiceover generation complete', [
+            'sceneIndex' => $sceneIndex,
+            'generated' => $generated,
+            'skipped' => $skipped,
+        ]);
+
+        $this->dispatch('scene-voiceovers-generated', [
+            'sceneIndex' => $sceneIndex,
+            'generated' => $generated,
+            'skipped' => $skipped,
+        ]);
     }
 
     /**
@@ -19681,6 +20133,13 @@ PROMPT;
         $this->videoModelSelectorSceneIndex = $sceneIndex;
         $this->videoModelSelectorShotIndex = $shotIndex;
         $this->preConfigureWaitingShots = false;
+
+        // Initialize voice selection from shot or character
+        $this->shotVoiceSelection = $shot['voiceId'] ?? $this->getCharacterVoice($sceneIndex, $shotIndex);
+
+        // Initialize monologue text if available
+        $this->shotMonologueEdit = $shot['monologue'] ?? '';
+
         $this->showVideoModelSelector = true;
     }
 
@@ -19690,6 +20149,7 @@ PROMPT;
     public function closeVideoModelSelector(): void
     {
         $this->showVideoModelSelector = false;
+        $this->shotMonologueEdit = '';
     }
 
     /**
@@ -20184,17 +20644,38 @@ PROMPT;
                 'imageUrl' => substr($shot['imageUrl'], 0, 80) . '...',
             ]);
 
+            // Get audio URL for Multitalk lip-sync
+            $audioUrl = null;
+            if ($selectedModel === 'multitalk') {
+                $audioUrl = $shot['audioUrl'] ?? $shot['voiceoverUrl'] ?? null;
+
+                // Validate audio availability for Multitalk
+                if (empty($audioUrl)) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = __('Multitalk requires audio');
+                    $this->isLoading = false;
+                    $this->dispatch('generation-error', [
+                        'message' => __('Multitalk requires audio. Please generate voiceover first.'),
+                        'type' => 'multitalk_no_audio',
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                    ]);
+                    \Log::warning('Multitalk selected but no audio available', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                    ]);
+                    return;
+                }
+
+                \Log::info('🎬 Multitalk audio URL found', ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
+            }
+
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
-                    // Build motion description for the shot
-                    $motionPrompt = $this->buildShotMotionPrompt($shot);
-
-                    // Get audio URL for Multitalk lip-sync
-                    $audioUrl = null;
-                    if ($selectedModel === 'multitalk') {
-                        $audioUrl = $shot['audioUrl'] ?? $shot['voiceoverUrl'] ?? null;
-                    }
+                    // Build motion description for the shot, optimized for selected model
+                    $scene = $this->script['scenes'][$sceneIndex] ?? [];
+                    $motionPrompt = $this->buildShotMotionPrompt($shot, $selectedModel, $scene);
 
                     $result = $animationService->generateAnimation($project, [
                         'imageUrl' => $shot['imageUrl'],
@@ -20286,8 +20767,13 @@ PROMPT;
     /**
      * Build motion prompt for a shot.
      */
-    protected function buildShotMotionPrompt(array $shot): string
+    protected function buildShotMotionPrompt(array $shot, string $model = 'minimax', array $scene = []): string
     {
+        // For Multitalk, use specialized lip-sync optimized prompt
+        if ($model === 'multitalk') {
+            return $this->buildMultitalkPrompt($shot, $scene);
+        }
+
         $prompt = '';
 
         // Use narrative beat motion description if available
@@ -20311,6 +20797,44 @@ PROMPT;
 
             $prompt = $movements[$shotType] ?? 'natural subtle movement';
         }
+
+        return $prompt;
+    }
+
+    /**
+     * Build prompt optimized for Multitalk lip-sync animation.
+     * Multitalk works best with minimal prompts focused on facial expressions.
+     */
+    protected function buildMultitalkPrompt(array $shot, array $scene): string
+    {
+        $character = $scene['characters'][0] ?? 'the subject';
+        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
+        $action = $shot['subjectAction'] ?? $shot['action'] ?? 'speaking';
+
+        // Emotion-specific expression mappings
+        $emotionExpressions = [
+            'tense' => 'serious, focused expression with slight tension',
+            'mysterious' => 'subtle knowing look, enigmatic expression',
+            'dramatic' => 'intense emotional expression',
+            'romantic' => 'soft, warm expression with gentle eyes',
+            'action' => 'determined, alert expression',
+            'neutral' => 'natural, calm expression',
+            'hopeful' => 'optimistic expression with bright eyes',
+            'dark' => 'somber, brooding expression',
+            'happy' => 'joyful expression with natural smile',
+            'sad' => 'melancholic expression with emotional depth',
+            'angry' => 'fierce, intense gaze',
+        ];
+
+        $expressionDesc = $emotionExpressions[$emotion] ?? $emotionExpressions['neutral'];
+
+        // Multitalk works best with minimal, focused prompts
+        $prompt = "{$character} speaking with natural lip movement, ";
+        $prompt .= "{$expressionDesc}, ";
+        $prompt .= "subtle head movement, ";
+        $prompt .= "eyes alive with thought, ";
+        $prompt .= "realistic facial micro-expressions, ";
+        $prompt .= "natural breathing motion";
 
         return $prompt;
     }

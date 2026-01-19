@@ -608,7 +608,7 @@ window.multiShotVideoPolling = function() {
 {{-- Video Model Selector --}}
 @if($showVideoModelSelector ?? false)
 <div class="msm-popup-overlay" wire:click.self="closeVideoModelSelector">
-    <div class="msm-popup">
+    <div class="msm-popup msm-popup-lg">
         <div class="msm-popup-header">
             <div>
                 <h4>🎬 {{ __('Animation Model') }}</h4>
@@ -622,20 +622,95 @@ window.multiShotVideoPolling = function() {
                 $curModel = $selShot['selectedVideoModel'] ?? 'minimax';
                 $curDur = $selShot['selectedDuration'] ?? $selShot['duration'] ?? 6;
                 $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
+                $hasAudio = !empty($selShot['audioUrl']) && ($selShot['audioStatus'] ?? '') === 'ready';
+                $audioGenerating = ($selShot['audioStatus'] ?? '') === 'generating';
+                $needsLipSync = $selShot['needsLipSync'] ?? false;
             @endphp
 
+            {{-- MiniMax Option --}}
             <div class="msm-model-opt {{ $curModel === 'minimax' ? 'active' : '' }}" wire:click="setVideoModel('minimax')">
                 <div class="msm-radio {{ $curModel === 'minimax' ? 'checked' : '' }}"></div>
                 <div><strong>MiniMax</strong><span>{{ __('High quality I2V') }}</span></div>
                 <span class="msm-rec">{{ __('Recommended') }}</span>
             </div>
 
-            <div class="msm-model-opt {{ $curModel === 'multitalk' ? 'active' : '' }} {{ !$mtAvail ? 'disabled' : '' }}" @if($mtAvail) wire:click="setVideoModel('multitalk')" @endif>
-                <div class="msm-radio {{ $curModel === 'multitalk' ? 'checked' : '' }}"></div>
-                <div><strong>Multitalk</strong><span>{{ __('Lip-sync for dialogue') }}</span></div>
-                @if(!$mtAvail)<span class="msm-warn">⚠️</span>@endif
+            {{-- Multitalk Option with Audio Controls --}}
+            <div class="msm-model-opt msm-model-multitalk {{ $curModel === 'multitalk' ? 'active' : '' }} {{ !$mtAvail ? 'disabled' : '' }}">
+                <div class="msm-model-header-row" @if($mtAvail) wire:click="setVideoModel('multitalk')" @endif>
+                    <div class="msm-radio {{ $curModel === 'multitalk' ? 'checked' : '' }}"></div>
+                    <div>
+                        <strong>Multitalk</strong>
+                        <span class="msm-badge-lip">Lip-Sync</span>
+                    </div>
+                    @if(!$mtAvail)<span class="msm-warn">⚠️ {{ __('Not configured') }}</span>@endif
+                </div>
+
+                @if($mtAvail)
+                    @if($hasAudio)
+                        {{-- Audio Ready --}}
+                        <div class="msm-audio-ready">
+                            <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
+                            @if($selShot['audioDuration'] ?? null)
+                                <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
+                            @endif
+                        </div>
+                    @elseif($audioGenerating)
+                        {{-- Audio Generating --}}
+                        <div class="msm-audio-generating">
+                            <div class="msm-spinner-small"></div>
+                            <span>{{ __('Generating voiceover...') }}</span>
+                        </div>
+                    @else
+                        {{-- No Audio - Show Generation Options --}}
+                        <div class="msm-audio-setup">
+                            <span class="msm-audio-hint">{{ __('Lip-sync requires voiceover audio') }}</span>
+
+                            {{-- Voice Selection --}}
+                            <div class="msm-voice-select">
+                                <label>{{ __('Voice') }}:</label>
+                                <select wire:model="shotVoiceSelection" class="msm-voice-dropdown">
+                                    <option value="alloy">Alloy ({{ __('Neutral') }})</option>
+                                    <option value="echo">Echo ({{ __('Male') }})</option>
+                                    <option value="fable">Fable ({{ __('Storytelling') }})</option>
+                                    <option value="onyx">Onyx ({{ __('Deep Male') }})</option>
+                                    <option value="nova">Nova ({{ __('Female') }})</option>
+                                    <option value="shimmer">Shimmer ({{ __('Bright Female') }})</option>
+                                </select>
+                            </div>
+
+                            {{-- Monologue Preview/Edit --}}
+                            <div class="msm-monologue-edit">
+                                <label>{{ __('Dialogue/Monologue') }}:</label>
+                                <textarea wire:model.lazy="shotMonologueEdit"
+                                          class="msm-monologue-textarea"
+                                          rows="2"
+                                          placeholder="{{ __('Leave empty to auto-generate from scene context') }}"></textarea>
+                            </div>
+
+                            {{-- Generate Voice Button --}}
+                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }}, {'voice': '{{ $shotVoiceSelection }}'})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="generateShotVoiceover"
+                                    class="msm-btn msm-btn-voice">
+                                <span wire:loading.remove wire:target="generateShotVoiceover">
+                                    🎤 {{ __('Generate Voice') }}
+                                </span>
+                                <span wire:loading wire:target="generateShotVoiceover">
+                                    ⏳ {{ __('Generating...') }}
+                                </span>
+                            </button>
+                        </div>
+                    @endif
+
+                    @if($needsLipSync && !$hasAudio)
+                        <div class="msm-lipsync-hint">
+                            💡 {{ __('This shot has dialogue - Multitalk recommended') }}
+                        </div>
+                    @endif
+                @endif
             </div>
 
+            {{-- Duration Selector --}}
             <div class="msm-dur-selector">
                 <label>{{ __('Duration') }}</label>
                 <div class="msm-dur-opts">
@@ -645,10 +720,17 @@ window.multiShotVideoPolling = function() {
                 </div>
             </div>
 
-            <button wire:click="confirmVideoModelAndGenerate" wire:loading.attr="disabled" class="msm-gen-anim-btn">
-                <span wire:loading.remove>🎬 {{ __('Generate Animation') }}</span>
-                <span wire:loading>⏳</span>
-            </button>
+            {{-- Generate Animation Button --}}
+            @if($curModel === 'multitalk' && !$hasAudio)
+                <button disabled class="msm-gen-anim-btn msm-btn-disabled">
+                    🎬 {{ __('Generate voice first to use Multitalk') }}
+                </button>
+            @else
+                <button wire:click="confirmVideoModelAndGenerate" wire:loading.attr="disabled" class="msm-gen-anim-btn">
+                    <span wire:loading.remove>🎬 {{ __('Generate Animation') }}</span>
+                    <span wire:loading>⏳</span>
+                </button>
+            @endif
         </div>
     </div>
 </div>
@@ -964,6 +1046,35 @@ window.multiShotVideoPolling = function() {
 
 .msm-gen-anim-btn { width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #06b6d4, #3b82f6); border: none; border-radius: 10px; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 20px rgba(6,182,212,0.3); }
 .msm-gen-anim-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(6,182,212,0.4); }
+.msm-gen-anim-btn.msm-btn-disabled { opacity: 0.5; cursor: not-allowed; background: rgba(100,100,120,0.5); box-shadow: none; }
+.msm-gen-anim-btn.msm-btn-disabled:hover { transform: none; }
+
+/* Multitalk Audio Controls */
+.msm-popup-lg { width: 440px; }
+.msm-model-multitalk { flex-direction: column; align-items: stretch; }
+.msm-model-header-row { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; width: 100%; }
+.msm-badge-lip { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600; margin-left: 0.5rem; }
+.msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); }
+.msm-audio-status { font-size: 0.85rem; font-weight: 500; }
+.msm-status-ready { color: #10b981; }
+.msm-audio-duration { color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-left: auto; }
+.msm-audio-generating { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(139,92,246,0.12); border-radius: 8px; border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; font-size: 0.85rem; }
+.msm-spinner-small { width: 16px; height: 16px; border: 2px solid rgba(139,92,246,0.3); border-top-color: #8b5cf6; border-radius: 50%; animation: msm-spin 0.8s linear infinite; }
+.msm-audio-setup { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.msm-audio-hint { display: block; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 0.75rem; }
+.msm-voice-select { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.msm-voice-select label { color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+.msm-voice-dropdown { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; font-size: 0.85rem; cursor: pointer; }
+.msm-voice-dropdown:focus { border-color: rgba(139,92,246,0.5); outline: none; }
+.msm-monologue-edit { margin-bottom: 0.75rem; }
+.msm-monologue-edit label { display: block; color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; margin-bottom: 0.35rem; }
+.msm-monologue-textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; font-size: 0.8rem; resize: vertical; min-height: 50px; }
+.msm-monologue-textarea:focus { border-color: rgba(139,92,246,0.5); outline: none; }
+.msm-monologue-textarea::placeholder { color: rgba(255,255,255,0.35); }
+.msm-btn-voice { width: 100%; padding: 0.65rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.25)); border: 1px solid rgba(139,92,246,0.5); border-radius: 8px; color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-btn-voice:hover { background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(168,85,247,0.35)); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(139,92,246,0.25); }
+.msm-btn-voice:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.msm-lipsync-hint { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(251,191,36,0.1); border-radius: 6px; border: 1px solid rgba(251,191,36,0.2); color: #fbbf24; font-size: 0.8rem; }
 
 /* Animations */
 @keyframes msm-spin { to { transform: rotate(360deg); } }
