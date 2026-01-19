@@ -15214,6 +15214,44 @@ PROMPT;
     }
 
     /**
+     * Get narrative purpose for a shot type.
+     * Used for video prompt generation context.
+     */
+    protected function getShotPurpose(string $shotType): string
+    {
+        return match($shotType) {
+            'establishing' => 'context',
+            'wide' => 'scope',
+            'medium' => 'narrative',
+            'medium-close' => 'emotion',
+            'close-up' => 'intimacy',
+            'detail' => 'emphasis',
+            'reaction' => 'response',
+            'insert' => 'detail',
+            default => 'narrative',
+        };
+    }
+
+    /**
+     * Get lens recommendation for a shot type.
+     * Professional cinematography lens selection.
+     */
+    protected function getLensForShotType(string $shotType): string
+    {
+        return match($shotType) {
+            'establishing' => 'wide-angle 24mm',
+            'wide' => 'ultra-wide 16mm',
+            'medium' => 'standard 50mm',
+            'medium-close' => 'portrait 85mm',
+            'close-up' => 'telephoto 85mm',
+            'detail' => 'macro 100mm',
+            'reaction' => 'portrait 85mm',
+            'insert' => 'macro 100mm',
+            default => 'standard 50mm',
+        };
+    }
+
+    /**
      * Get shot type configuration based on index, total count, and narrative context.
      * Uses professional Hollywood shot sequencing patterns.
      */
@@ -17252,19 +17290,55 @@ PROMPT;
                     ? $this->getDurationForShotType($shotType)
                     : $baseShotDuration;
 
+                // Get camera movement for this shot type
+                $cameraMovement = $this->getCameraMovementForShot($shotType, $i);
+
+                // Build shot context for Hollywood-quality video prompts
+                $shotContext = [
+                    'index' => $i,
+                    'purpose' => $this->getShotPurpose($shotType),
+                    'isChained' => $i > 0,
+                    'description' => $sceneDescription,
+                    'narration' => $scene['narration'] ?? '',
+                    'emotionalBeat' => $scene['emotionalBeat'] ?? $scene['mood'] ?? '',
+                    'sceneTitle' => $scene['title'] ?? '',
+                ];
+
+                // Generate Hollywood-quality video prompt
+                $videoPrompt = $this->getMotionDescriptionForShot($shotType, $cameraMovement, $sceneDescription, $shotContext);
+
+                // Determine video model
+                $selectedVideoModel = $this->storyboard['videoModel'] ?? 'wan';
+
                 $shots[$i] = [
                     'id' => "shot-scene{$sceneIndex}-{$i}",
                     'index' => $i,
                     'sceneIndex' => $sceneIndex,
+                    'sceneId' => $scene['id'] ?? "scene_{$sceneIndex}",
                     'type' => $shotType,
+                    'shotType' => $shotType,
                     'description' => $sceneDescription,
+                    'purpose' => $this->getShotPurpose($shotType),
+                    'lens' => $this->getLensForShotType($shotType),
                     'imagePrompt' => $sceneDescription,
+                    'prompt' => $sceneDescription,
+                    // CRITICAL: Hollywood-quality video prompts
+                    'videoPrompt' => $videoPrompt,
+                    'narrativeBeat' => [
+                        'motionDescription' => $videoPrompt,
+                    ],
+                    'cameraMovement' => $cameraMovement,
                     'duration' => $shotDuration,
+                    'selectedDuration' => $shotDuration,
+                    'durationClass' => $this->getDurationClass($shotDuration),
                     'status' => 'pending',
                     'imageStatus' => 'pending',
                     'videoStatus' => 'pending',
                     'imageUrl' => null,
                     'videoUrl' => null,
+                    'selectedVideoModel' => $selectedVideoModel,
+                    'fromSceneImage' => $i === 0,
+                    'fromFrameCapture' => $i > 0,
                 ];
             }
 
