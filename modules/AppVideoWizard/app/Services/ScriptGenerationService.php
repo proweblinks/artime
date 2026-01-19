@@ -134,6 +134,11 @@ class ScriptGenerationService
         $tensionCurve = $options['tensionCurve'] ?? null;
         $emotionalJourney = $options['emotionalJourney'] ?? null;
 
+        // Dynamic cast and location guidance (based on duration and production type)
+        $suggestedCharacterCount = $options['suggestedCharacterCount'] ?? null;
+        $suggestedLocationCount = $options['suggestedLocationCount'] ?? null;
+        $productionSubtype = $options['productionSubtype'] ?? null;
+
         // Story Bible constraint (Phase 1: Bible-First Architecture)
         // If the project has a Story Bible, use it to constrain script generation
         $storyBibleConstraint = $project->hasStoryBible() ? $project->getStoryBibleConstraint() : '';
@@ -175,6 +180,10 @@ class ScriptGenerationService
             'emotionalJourney' => $emotionalJourney,
             // Story Bible constraint (Phase 1: Bible-First Architecture)
             'storyBibleConstraint' => $storyBibleConstraint,
+            // Dynamic cast and location requirements
+            'suggestedCharacterCount' => $suggestedCharacterCount,
+            'suggestedLocationCount' => $suggestedLocationCount,
+            'productionSubtype' => $productionSubtype,
         ];
 
         $prompt = $this->buildScriptPrompt($promptParams);
@@ -860,6 +869,11 @@ PROMPT;
         // Story Bible constraint (Phase 1: Bible-First Architecture)
         $storyBibleConstraint = $params['storyBibleConstraint'] ?? '';
 
+        // Dynamic cast and location requirements
+        $suggestedCharacterCount = $params['suggestedCharacterCount'] ?? null;
+        $suggestedLocationCount = $params['suggestedLocationCount'] ?? null;
+        $productionSubtype = $params['productionSubtype'] ?? null;
+
         $minutes = round($duration / 60, 1);
         $avgSceneDuration = (int) ceil($duration / $sceneCount);
 
@@ -886,6 +900,10 @@ PROMPT;
             'emotionalJourney' => $emotionalJourney,
             // Story Bible constraint (Phase 1: Bible-First Architecture)
             'storyBibleConstraint' => $storyBibleConstraint,
+            // Dynamic cast and location requirements
+            'suggestedCharacterCount' => $suggestedCharacterCount,
+            'suggestedLocationCount' => $suggestedLocationCount,
+            'productionSubtype' => $productionSubtype,
         ]);
 
         return $prompt;
@@ -918,6 +936,11 @@ PROMPT;
 
         // Story Bible constraint (Phase 1: Bible-First Architecture)
         $storyBibleConstraint = $params['storyBibleConstraint'] ?? '';
+
+        // Dynamic cast and location requirements
+        $suggestedCharacterCount = $params['suggestedCharacterCount'] ?? null;
+        $suggestedLocationCount = $params['suggestedLocationCount'] ?? null;
+        $productionSubtype = $params['productionSubtype'] ?? null;
 
         // Load configs
         $narrativePresets = config('appvideowizard.narrative_presets', []);
@@ -1015,6 +1038,45 @@ PROMPT;
 
         if (!empty($additionalInstructions)) {
             $prompt .= "ADDITIONAL REQUIREMENTS: {$additionalInstructions}\n\n";
+        }
+
+        // === CAST & LOCATIONS REQUIREMENTS (Dynamic based on duration) ===
+        if ($suggestedCharacterCount || $suggestedLocationCount) {
+            $prompt .= "=== CAST & LOCATIONS REQUIREMENTS ===\n";
+            $prompt .= "CRITICAL: For a {$minutes}-minute video, you MUST create a rich world with adequate characters and settings.\n\n";
+
+            if ($suggestedCharacterCount) {
+                $prompt .= "MINIMUM CHARACTERS: {$suggestedCharacterCount}\n";
+                $prompt .= "- Create at least {$suggestedCharacterCount} distinct named characters\n";
+                $prompt .= "- Include variety: protagonist(s), antagonist/obstacle, supporting cast, minor characters\n";
+                $prompt .= "- Each character needs: unique name, distinct personality, clear role in the story\n";
+                $prompt .= "- Characters should have meaningful interactions and relationships\n";
+                if ($productionSubtype === 'thriller' || $productionSubtype === 'mystery') {
+                    $prompt .= "- Include: suspects, witnesses, authority figures, victims, and mysterious strangers\n";
+                } elseif ($productionSubtype === 'action' || $productionSubtype === 'adventure') {
+                    $prompt .= "- Include: heroes, villains, allies, informants, and bystanders\n";
+                } elseif ($productionSubtype === 'drama') {
+                    $prompt .= "- Include: family members, friends, rivals, mentors, and confidants\n";
+                }
+                $prompt .= "\n";
+            }
+
+            if ($suggestedLocationCount) {
+                $prompt .= "MINIMUM LOCATIONS: {$suggestedLocationCount}\n";
+                $prompt .= "- Use at least {$suggestedLocationCount} different settings/environments\n";
+                $prompt .= "- Vary locations: indoor/outdoor, day/night, public/private spaces\n";
+                $prompt .= "- Each location should serve the story's progression\n";
+                $prompt .= "- Locations should feel distinct and visually interesting\n";
+                if ($productionSubtype === 'thriller' || $productionSubtype === 'mystery') {
+                    $prompt .= "- Include: crime scenes, interrogation rooms, dark alleys, offices, hideouts\n";
+                } elseif ($productionSubtype === 'action' || $productionSubtype === 'adventure') {
+                    $prompt .= "- Include: chase locations, confrontation sites, bases, urban and natural environments\n";
+                }
+                $prompt .= "\n";
+            }
+
+            $prompt .= "IMPORTANT: Do NOT create a minimal cast with only 2-3 characters for a {$minutes}-minute video.\n";
+            $prompt .= "A rich story needs adequate characters and locations to maintain viewer engagement.\n\n";
         }
 
         // === LAYER 4: STRUCTURE GUIDANCE ===

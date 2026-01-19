@@ -2558,6 +2558,18 @@ class VideoWizard extends Component
             ]);
             $scriptService = app(ScriptGenerationService::class);
 
+            // Calculate suggested character and location counts based on duration and production type
+            $suggestedCharacterCount = $this->calculateSuggestedCharacterCount();
+            $suggestedLocationCount = $this->calculateSuggestedLocationCount();
+
+            Log::info('VideoWizard: Dynamic cast/location calculation', [
+                'duration' => $this->targetDuration,
+                'productionType' => $this->productionType,
+                'productionSubtype' => $this->productionSubtype,
+                'suggestedCharacters' => $suggestedCharacterCount,
+                'suggestedLocations' => $suggestedLocationCount,
+            ]);
+
             $generatedScript = $scriptService->generateScript($project, [
                 'teamId' => session('current_team_id', 0),
                 'tone' => $this->scriptTone,
@@ -2570,6 +2582,11 @@ class VideoWizard extends Component
                 'emotionalJourney' => $this->emotionalJourney,
                 // AI Model Tier selection
                 'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                // Dynamic cast and location guidance based on duration
+                'suggestedCharacterCount' => $suggestedCharacterCount,
+                'suggestedLocationCount' => $suggestedLocationCount,
+                'productionType' => $this->productionType,
+                'productionSubtype' => $this->productionSubtype,
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -4053,27 +4070,99 @@ class VideoWizard extends Component
     }
 
     /**
-     * Calculate suggested character count based on production type and narration style.
+     * Calculate suggested character count based on production type, duration, and genre.
+     * Longer videos need more characters to maintain engagement and story complexity.
+     *
+     * Formula: Characters = Base + Duration Modifier + Genre Modifier
+     * Result clamped to range [2, 10]
      */
     protected function calculateSuggestedCharacterCount(): int
     {
-        $narrationStyle = $this->characterIntelligence['narrationStyle'] ?? 'voiceover';
-
-        // No characters needed for voiceover or none
-        if (in_array($narrationStyle, ['voiceover', 'narrator', 'none'])) {
-            return 0;
-        }
-
-        // For dialogue, suggest based on production type
+        // Base character count by production type
         $productionType = $this->productionType ?? 'social';
-
-        return match ($productionType) {
-            'movie' => 4,
-            'series' => 5,
+        $baseCount = match ($productionType) {
+            'movie' => 3,
+            'series' => 4,
             'commercial' => 2,
-            'educational' => 1,
+            'educational' => 2,
             default => 2,
         };
+
+        // Duration modifier (longer videos need more characters)
+        $durationSeconds = $this->targetDuration ?? 60;
+        $durationMinutes = $durationSeconds / 60;
+
+        $durationModifier = match (true) {
+            $durationMinutes >= 10 => 5,
+            $durationMinutes >= 6 => 4,
+            $durationMinutes >= 4 => 3,
+            $durationMinutes >= 2 => 2,
+            $durationMinutes >= 1 => 1,
+            default => 0,
+        };
+
+        // Genre modifier (some genres need more characters)
+        $genreModifier = match ($this->productionSubtype ?? '') {
+            'thriller', 'mystery', 'drama' => 1,
+            'action', 'adventure' => 1,
+            'romance', 'comedy' => 0,
+            'documentary', 'tutorial' => -1,
+            'product', 'demo' => -1,
+            default => 0,
+        };
+
+        $totalCount = $baseCount + $durationModifier + $genreModifier;
+
+        // Clamp to reasonable range (2-10 characters)
+        return max(2, min(10, $totalCount));
+    }
+
+    /**
+     * Calculate suggested location count based on production type, duration, and genre.
+     * Longer videos need more locations for visual variety and story progression.
+     *
+     * Formula: Locations = Base + Duration Modifier + Genre Modifier
+     * Result clamped to range [1, 8]
+     */
+    protected function calculateSuggestedLocationCount(): int
+    {
+        // Base location count by production type
+        $productionType = $this->productionType ?? 'social';
+        $baseCount = match ($productionType) {
+            'movie' => 3,
+            'series' => 3,
+            'commercial' => 1,
+            'educational' => 2,
+            default => 1,
+        };
+
+        // Duration modifier (longer videos need more locations)
+        $durationSeconds = $this->targetDuration ?? 60;
+        $durationMinutes = $durationSeconds / 60;
+
+        $durationModifier = match (true) {
+            $durationMinutes >= 10 => 5,
+            $durationMinutes >= 6 => 4,
+            $durationMinutes >= 4 => 3,
+            $durationMinutes >= 2 => 2,
+            $durationMinutes >= 1 => 1,
+            default => 0,
+        };
+
+        // Genre modifier (some genres need more locations)
+        $genreModifier = match ($this->productionSubtype ?? '') {
+            'action', 'adventure' => 2,
+            'thriller', 'mystery' => 1,
+            'documentary', 'travel' => 2,
+            'tutorial', 'how-to' => -1,
+            'product', 'demo' => -2,
+            default => 0,
+        };
+
+        $totalCount = $baseCount + $durationModifier + $genreModifier;
+
+        // Clamp to reasonable range (1-8 locations)
+        return max(1, min(8, $totalCount));
     }
 
     /**
