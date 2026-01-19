@@ -457,11 +457,20 @@
 
 {{-- JavaScript for batch location reference generation polling --}}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
+    // Prevent duplicate listener registration
+    if (window.locBiblePollingInitialized) {
+        console.log('[LocationBible] Polling already initialized, skipping');
+        return;
+    }
+    window.locBiblePollingInitialized = true;
+
     // Location Bible batch generation polling
     let locGenPollingActive = false;
     let locGenRetryCount = 0;
     const locGenMaxRetries = 50;
+
+    console.log('[LocationBible] Setting up Livewire event listener for continue-location-reference-generation');
 
     Livewire.on('continue-location-reference-generation', function(data) {
         console.log('[LocationBible] Received continue-location-reference-generation event', data);
@@ -484,9 +493,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Use setTimeout to give Livewire time to update state
         setTimeout(function() {
-            const component = Livewire.find(document.querySelector('[wire\\:id]')?.getAttribute('wire:id'));
-            if (component) {
-                component.call('generateNextPendingLocationReference').then(function(result) {
+            // Find the Livewire component
+            const wireEl = Array.from(document.querySelectorAll('*')).find(function(el) {
+                return el.hasAttribute('wire:id');
+            });
+            const wireId = wireEl ? wireEl.getAttribute('wire:id') : null;
+            const component = wireId ? Livewire.find(wireId) : null;
+
+            if (component && component.$wire) {
+                component.$wire.generateNextPendingLocationReference().then(function(result) {
                     console.log('[LocationBible] generateNextPendingLocationReference result:', result);
                     if (result && result.remaining > 0) {
                         // More references to generate, continue polling
@@ -506,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 500);
     }
-});
+})();
 </script>
 @endif
 

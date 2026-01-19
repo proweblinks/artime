@@ -491,11 +491,20 @@
 
 {{-- JavaScript for batch portrait generation polling --}}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
+    // Prevent duplicate listener registration
+    if (window.charBiblePollingInitialized) {
+        console.log('[CharacterBible] Polling already initialized, skipping');
+        return;
+    }
+    window.charBiblePollingInitialized = true;
+
     // Character Bible batch generation polling
     let charGenPollingActive = false;
     let charGenRetryCount = 0;
     const charGenMaxRetries = 50;
+
+    console.log('[CharacterBible] Setting up Livewire event listener for continue-character-reference-generation');
 
     Livewire.on('continue-character-reference-generation', function(data) {
         console.log('[CharacterBible] Received continue-character-reference-generation event', data);
@@ -518,9 +527,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Use setTimeout to give Livewire time to update state
         setTimeout(function() {
-            const component = Livewire.find(document.querySelector('[wire\\:id]')?.getAttribute('wire:id'));
-            if (component) {
-                component.call('generateNextPendingCharacterPortrait').then(function(result) {
+            // Find the Livewire component
+            const wireEl = Array.from(document.querySelectorAll('*')).find(function(el) {
+                return el.hasAttribute('wire:id');
+            });
+            const wireId = wireEl ? wireEl.getAttribute('wire:id') : null;
+            const component = wireId ? Livewire.find(wireId) : null;
+
+            if (component && component.$wire) {
+                component.$wire.generateNextPendingCharacterPortrait().then(function(result) {
                     console.log('[CharacterBible] generateNextPendingCharacterPortrait result:', result);
                     if (result && result.remaining > 0) {
                         // More portraits to generate, continue polling
@@ -540,6 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 500);
     }
-});
+})();
 </script>
 @endif
