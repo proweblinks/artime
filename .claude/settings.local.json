@@ -9,7 +9,10 @@
       "Bash(findstr:*)",
       "Bash(more:*)",
       "Bash(git push:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(php:*)",
+      "Bash(php -l:*)",
+      "Bash(.phpphp.exe -l modules/AppVideoWizard/app/Services/SmartReferenceService.php)"
     ]
   }
 }

@@ -29,6 +29,7 @@ use Modules\AppVideoWizard\Services\VideoPromptBuilderService;
 use Modules\AppVideoWizard\Services\SceneSyncService;
 use Modules\AppVideoWizard\Services\PerformanceMonitoringService;
 use Modules\AppVideoWizard\Services\QueuedJobsManager;
+use Modules\AppVideoWizard\Services\SmartReferenceService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -4033,6 +4034,7 @@ class VideoWizard extends Component
 
     /**
      * Generate images for all scenes.
+     * Supports Smart Reference Generation: extracts character portraits from Scene 0 first.
      */
     #[On('generate-all-images')]
     public function generateAllImages(): void
@@ -4040,6 +4042,7 @@ class VideoWizard extends Component
         $this->isLoading = true;
         $this->error = null;
         $hasAsyncJobs = false;
+        $heroFrameAsync = false;
 
         try {
             if (!$this->projectId) {
@@ -4051,6 +4054,38 @@ class VideoWizard extends Component
 
             if (!isset($this->storyboard['scenes'])) {
                 $this->storyboard['scenes'] = [];
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // SMART REFERENCE GENERATION: Extract character portraits from Scene 0
+            // ═══════════════════════════════════════════════════════════════════
+            if ($this->shouldExtractHeroFrame()) {
+                $this->dispatch('generation-status', ['message' => 'Generating foundation scene...']);
+
+                Log::info('SmartReference: Hero frame extraction enabled for batch generation');
+
+                // Generate Scene 0 first with high-quality model
+                $heroResult = $this->generateHeroFrame();
+
+                if ($heroResult['success']) {
+                    if ($heroResult['async'] ?? false) {
+                        // Async generation (HiDream) - extraction will happen when job completes
+                        $heroFrameAsync = true;
+                        $hasAsyncJobs = true;
+                        Log::info('SmartReference: Hero frame queued async, extraction pending');
+                    } elseif (!empty($heroResult['imageBase64'])) {
+                        // Sync generation - extract references immediately
+                        $this->dispatch('generation-status', ['message' => 'Extracting character references...']);
+                        $this->extractReferencesFromHeroFrame($heroResult['imageBase64']);
+                    }
+                } else {
+                    Log::warning('SmartReference: Hero frame generation failed', [
+                        'error' => $heroResult['error'] ?? 'Unknown error',
+                    ]);
+                    // Continue with normal generation even if hero frame failed
+                }
+
+                $this->dispatch('generation-status', ['message' => 'Generating remaining scenes...']);
             }
 
             // First pass: Set all pending scenes to 'generating' status for immediate UI feedback
@@ -4353,6 +4388,12 @@ class VideoWizard extends Component
                         ];
 
                         $this->saveProject();
+
+                        // Check if this is Scene 0 with pending hero frame extraction
+                        if ($sceneIndex === 0 && ($this->storyboard['pendingHeroFrameExtraction'] ?? false)) {
+                            Log::info('SmartReference: Async hero frame completed, triggering extraction');
+                            $this->handleHeroFrameJobCompletion($result['imageUrl']);
+                        }
 
                         $this->dispatch('image-ready', [
                             'sceneIndex' => $sceneIndex,
@@ -10957,6 +10998,276 @@ class VideoWizard extends Component
         } finally {
             $this->isGeneratingPortrait = false;
         }
+    }
+
+    // =========================================================================
+    // SMART REFERENCE GENERATION (Hero Frame Extraction)
+    // =========================================================================
+
+    /**
+     * Check if hero frame extraction should be performed.
+     * Returns true if Character Bible has characters without reference images.
+     */
+    protected function shouldExtractHeroFrame(): bool
+    {
+        // Check if auto-extraction is enabled (default: true)
+        if (!($this->storyboard['autoReferenceExtraction'] ?? true)) {
+            return false;
+        }
+
+        // Check if Character Bible is enabled and has characters
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+        if (!($characterBible['enabled'] ?? false)) {
+            return false;
+        }
+
+        $characters = $characterBible['characters'] ?? [];
+        if (empty($characters)) {
+            return false;
+        }
+
+        // Check if any characters need reference images
+        foreach ($characters as $char) {
+            $hasReference = !empty($char['referenceImageBase64']);
+            $isReady = ($char['referenceImageStatus'] ?? '') === 'ready';
+
+            if (!$hasReference || !$isReady) {
+                return true; // At least one character needs a reference
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate the hero frame (Scene 0) with high-quality model.
+     * This is the foundation scene from which character references are extracted.
+     */
+    protected function generateHeroFrame(): array
+    {
+        $scene = $this->script['scenes'][0] ?? null;
+        if (!$scene) {
+            return ['success' => false, 'error' => 'No Scene 0 available'];
+        }
+
+        try {
+            $project = WizardProject::findOrFail($this->projectId);
+            $imageService = app(ImageGenerationService::class);
+
+            // Use Pro model for hero frame (best face consistency)
+            $heroModel = $this->storyboard['heroFrameModel'] ?? 'nanobanana-pro';
+
+            Log::info('SmartReference: Generating hero frame', [
+                'projectId' => $this->projectId,
+                'model' => $heroModel,
+                'sceneId' => $scene['id'] ?? null,
+            ]);
+
+            $result = $imageService->generateSceneImage($project, $scene, [
+                'sceneIndex' => 0,
+                'teamId' => session('current_team_id', 0),
+                'model' => $heroModel,
+            ]);
+
+            if ($result['async'] ?? false) {
+                // HiDream async - mark for pending extraction
+                $this->storyboard['pendingHeroFrameExtraction'] = true;
+                $this->storyboard['scenes'][0] = [
+                    'sceneId' => $scene['id'],
+                    'imageUrl' => null,
+                    'assetId' => null,
+                    'status' => 'generating',
+                    'source' => 'ai',
+                    'jobId' => $result['jobId'] ?? null,
+                    'processingJobId' => $result['processingJobId'] ?? null,
+                ];
+                $this->saveProject();
+
+                Log::info('SmartReference: Hero frame queued for async generation', [
+                    'jobId' => $result['jobId'] ?? null,
+                ]);
+
+                return [
+                    'success' => true,
+                    'async' => true,
+                    'jobId' => $result['jobId'] ?? null,
+                ];
+            }
+
+            if ($result['success'] && isset($result['imageUrl'])) {
+                // Update storyboard with the generated image
+                $this->storyboard['scenes'][0] = [
+                    'sceneId' => $scene['id'],
+                    'imageUrl' => $result['imageUrl'],
+                    'assetId' => $result['assetId'] ?? null,
+                    'source' => 'ai',
+                    'status' => 'ready',
+                ];
+                $this->saveProject();
+
+                // Fetch image as base64 for extraction
+                $imageContent = @file_get_contents($result['imageUrl']);
+                if ($imageContent !== false) {
+                    Log::info('SmartReference: Hero frame generated successfully', [
+                        'imageUrl' => $result['imageUrl'],
+                        'imageSize' => strlen($imageContent),
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'imageUrl' => $result['imageUrl'],
+                        'imageBase64' => base64_encode($imageContent),
+                        'async' => false,
+                    ];
+                } else {
+                    Log::warning('SmartReference: Could not fetch hero frame as base64');
+                    return [
+                        'success' => true,
+                        'imageUrl' => $result['imageUrl'],
+                        'imageBase64' => null,
+                        'async' => false,
+                        'warning' => 'Could not fetch image as base64',
+                    ];
+                }
+            }
+
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Failed to generate hero frame',
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('SmartReference: Hero frame generation failed', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Extract character references from the hero frame.
+     * Analyzes the scene for characters and extracts isolated portraits.
+     */
+    protected function extractReferencesFromHeroFrame(string $imageBase64): void
+    {
+        $smartRef = app(SmartReferenceService::class);
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+
+        // Analyze the scene for characters
+        $this->dispatch('generation-status', ['message' => 'Analyzing characters in scene...']);
+
+        Log::info('SmartReference: Starting character analysis');
+
+        $analysis = $smartRef->analyzeSceneForCharacters($imageBase64, $characterBible);
+
+        if (!$analysis['success'] || empty($analysis['detectedCharacters'])) {
+            Log::info('SmartReference: No characters detected in hero frame', [
+                'error' => $analysis['error'] ?? null,
+            ]);
+            $this->dispatch('generation-status', ['message' => 'No characters detected, continuing...']);
+            return;
+        }
+
+        Log::info('SmartReference: Characters detected', [
+            'count' => count($analysis['detectedCharacters']),
+        ]);
+
+        // Extract portrait for each detected character
+        foreach ($analysis['detectedCharacters'] as $detected) {
+            $bibleIndex = $detected['bibleIndex'];
+            $charData = $detected['bibleCharacter'];
+
+            // Skip if character already has a ready reference
+            if (!empty($charData['referenceImageBase64']) &&
+                ($charData['referenceImageStatus'] ?? '') === 'ready') {
+                Log::debug('SmartReference: Skipping character with existing reference', [
+                    'characterName' => $charData['name'] ?? 'Unknown',
+                ]);
+                continue;
+            }
+
+            $this->dispatch('generation-status', [
+                'message' => "Extracting portrait for {$charData['name']}..."
+            ]);
+
+            Log::info('SmartReference: Extracting portrait', [
+                'characterName' => $charData['name'] ?? 'Unknown',
+                'bibleIndex' => $bibleIndex,
+            ]);
+
+            $portrait = $smartRef->extractCharacterPortrait($imageBase64, $detected, $charData);
+
+            if ($portrait['success']) {
+                $this->updateCharacterWithReference($bibleIndex, $portrait);
+            } else {
+                Log::warning('SmartReference: Portrait extraction failed', [
+                    'character' => $charData['name'] ?? 'Unknown',
+                    'error' => $portrait['error'] ?? 'Unknown error',
+                ]);
+            }
+
+            // Small delay to avoid rate limits (500ms)
+            usleep(500000);
+        }
+    }
+
+    /**
+     * Update a character with extracted reference image.
+     */
+    protected function updateCharacterWithReference(int $characterIndex, array $portraitData): void
+    {
+        if (!isset($this->sceneMemory['characterBible']['characters'][$characterIndex])) {
+            Log::warning('SmartReference: Character index not found', [
+                'characterIndex' => $characterIndex,
+            ]);
+            return;
+        }
+
+        $charName = $this->sceneMemory['characterBible']['characters'][$characterIndex]['name'] ?? 'Unknown';
+
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['referenceImageBase64'] = $portraitData['base64'];
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['referenceImageMimeType'] = $portraitData['mimeType'] ?? 'image/png';
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['referenceImageStatus'] = 'ready';
+        $this->sceneMemory['characterBible']['characters'][$characterIndex]['referenceImageSource'] = 'hero-extraction';
+
+        $this->saveProject();
+
+        Log::info('SmartReference: Character reference updated from hero frame', [
+            'characterIndex' => $characterIndex,
+            'characterName' => $charName,
+            'base64Length' => strlen($portraitData['base64']),
+        ]);
+    }
+
+    /**
+     * Handle hero frame extraction when async job completes.
+     * Called from pollImageJob when Scene 0 with pendingHeroFrameExtraction completes.
+     */
+    protected function handleHeroFrameJobCompletion(string $imageUrl): void
+    {
+        // Clear the pending flag
+        $this->storyboard['pendingHeroFrameExtraction'] = false;
+        $this->saveProject();
+
+        // Fetch image as base64
+        $imageContent = @file_get_contents($imageUrl);
+        if ($imageContent === false) {
+            Log::warning('SmartReference: Could not fetch completed hero frame');
+            return;
+        }
+
+        $imageBase64 = base64_encode($imageContent);
+
+        Log::info('SmartReference: Async hero frame completed, starting extraction', [
+            'imageUrl' => $imageUrl,
+            'imageSize' => strlen($imageContent),
+        ]);
+
+        // Dispatch status update
+        $this->dispatch('generation-status', ['message' => 'Hero frame ready, extracting references...']);
+
+        // Run extraction workflow
+        $this->extractReferencesFromHeroFrame($imageBase64);
+
+        $this->dispatch('generation-status', ['message' => 'Reference extraction complete']);
     }
 
     // =========================================================================
