@@ -8251,6 +8251,44 @@ class VideoWizard extends Component
                 ]);
             }
 
+            // =====================================================================
+            // AUTO-GENERATE CHARACTER PORTRAITS (Full Auto Mode)
+            // =====================================================================
+            $autoGenCharRefs = VwSetting::getValue('auto_generate_character_references', true);
+            if ($autoGenCharRefs && !empty($this->sceneMemory['characterBible']['characters'])) {
+                try {
+                    $this->transitionMessage = __('Auto-generating character portraits...');
+
+                    // Queue portrait generation for all characters
+                    $this->queueAutoCharacterPortraits();
+
+                    Log::info('CharacterExtraction: Auto-portrait generation queued');
+                } catch (\Exception $e) {
+                    Log::warning('CharacterExtraction: Auto-portrait generation failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // =====================================================================
+            // AUTO-GENERATE LOCATION REFERENCES (Full Auto Mode)
+            // =====================================================================
+            $autoGenLocRefs = VwSetting::getValue('auto_generate_location_references', true);
+            if ($autoGenLocRefs && !empty($this->sceneMemory['locationBible']['locations'])) {
+                try {
+                    $this->transitionMessage = __('Auto-generating location references...');
+
+                    // Queue location reference generation for all locations
+                    $this->queueAutoLocationReferences();
+
+                    Log::info('LocationExtraction: Auto-reference generation queued');
+                } catch (\Exception $e) {
+                    Log::warning('LocationExtraction: Auto-reference generation failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             // Dispatch event to notify UI
             $this->dispatch('scene-memory-populated', [
                 'characters' => count($this->sceneMemory['characterBible']['characters']),

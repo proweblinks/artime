@@ -1762,6 +1762,53 @@ Return ONLY valid JSON (no markdown, no explanation):
                 'is_system' => true,
                 'sort_order' => 5,
             ],
+
+            // =============================================
+            // AUTOMATION SETTINGS
+            // Auto-generation of references and prompt chain
+            // =============================================
+            [
+                'slug' => 'auto_generate_character_references',
+                'name' => 'Auto-Generate Character Portraits',
+                'category' => 'automation',
+                'description' => 'Automatically generate character portrait reference images after Character Bible is populated.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'When enabled, character portraits are queued for generation automatically after detection',
+                'icon' => 'fa-solid fa-portrait',
+                'is_system' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'slug' => 'auto_generate_location_references',
+                'name' => 'Auto-Generate Location References',
+                'category' => 'automation',
+                'description' => 'Automatically generate location reference images after Location Bible is populated.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'When enabled, location references are queued for generation automatically after detection',
+                'icon' => 'fa-solid fa-location-dot',
+                'is_system' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'slug' => 'auto_process_prompt_chain',
+                'name' => 'Auto-Process Prompt Chain',
+                'category' => 'automation',
+                'description' => 'Automatically process and compile prompt chain after script generation.',
+                'value_type' => 'boolean',
+                'value' => 'true',
+                'default_value' => 'true',
+                'input_type' => 'checkbox',
+                'input_help' => 'When enabled, prompt chain is processed immediately after script is generated',
+                'icon' => 'fa-solid fa-link',
+                'is_system' => true,
+                'sort_order' => 3,
+            ],
         ];
 
         foreach ($settings as $setting) {
