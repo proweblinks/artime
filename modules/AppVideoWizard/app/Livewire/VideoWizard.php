@@ -17443,6 +17443,34 @@ PROMPT;
                         // Build consistency context from Scene Memory (Character Bible, Location Bible, Style Profile)
                         $consistencyContext = $this->buildCollageConsistencyContext($sceneIndex);
 
+                        // CRITICAL: Get location type (INTERIOR/EXTERIOR) for spatial consistency
+                        $locationType = 'INTERIOR'; // Default to interior for safety
+                        $locationName = '';
+
+                        // Try Scene DNA first
+                        $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'][$sceneIndex] ?? null;
+                        if ($sceneDNA && isset($sceneDNA['location'])) {
+                            $locationType = strtoupper($sceneDNA['location']['type'] ?? 'INTERIOR');
+                            $locationName = $sceneDNA['location']['name'] ?? '';
+                        }
+                        // Fallback to Location Bible
+                        if (empty($locationName)) {
+                            $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+                            foreach ($locations as $loc) {
+                                $locScenes = $loc['scenes'] ?? $loc['appearsInScenes'] ?? [];
+                                if (empty($locScenes) || in_array($sceneIndex, $locScenes)) {
+                                    $locationType = strtoupper($loc['type'] ?? 'INTERIOR');
+                                    $locationName = $loc['name'] ?? '';
+                                    break;
+                                }
+                            }
+                        }
+                        // Infer from description if still unknown
+                        if (empty($locationName) && !empty($consistencyContext['location'])) {
+                            $locationType = $this->inferLocationType($consistencyContext['location']);
+                            $locationType = strtoupper($locationType);
+                        }
+
                         // Professional framing instructions for each shot type
                         $framingInstructions = [
                             'establishing' => 'ULTRA-WIDE establishing shot showing the entire environment and atmosphere. Characters appear small in the distance. Emphasize the location, scale, and mood of the scene. Deep focus, everything sharp.',
@@ -17481,23 +17509,36 @@ PROMPT;
                             $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
 
                             // Build a complete prompt for this individual shot
-                            $shotPrompt = "Create a single, complete, professionally composed {$shotType} shot. " .
+                            // CRITICAL: Environment and location constraints FIRST to prevent spatial confusion
+                            $environmentConstraint = $locationType === 'EXTERIOR'
+                                ? "MANDATORY ENVIRONMENT: OUTDOOR/EXTERIOR scene. All elements must be outdoors. NO indoor furniture, NO bathroom fixtures, NO interior walls."
+                                : "MANDATORY ENVIRONMENT: INDOOR/INTERIOR scene. All elements must be indoors. Appropriate interior setting with walls, ceiling, indoor lighting.";
+
+                            $locationConstraint = '';
+                            if (!empty($consistencyContext['location'])) {
+                                $locationConstraint = "SPECIFIC LOCATION: {$consistencyContext['location']}. ";
+                            } elseif (!empty($locationName)) {
+                                $locationConstraint = "SPECIFIC LOCATION: {$locationName}. ";
+                            }
+
+                            // Build prompt with ENVIRONMENT FIRST, then location, then scene details
+                            $shotPrompt = "{$environmentConstraint} " .
+                                "{$locationConstraint}" .
+                                "Create a single, complete, professionally composed {$shotType} shot. " .
                                 "FRAMING: {$framing} " .
-                                "SCENE: {$shotDesc} " .
+                                "SCENE CONTENT: {$shotDesc} " .
                                 "STYLE: Professional {$style} cinematography with {$style} color grading. ";
 
-                            // Add consistency context (Character Bible, Location Bible, Style Profile)
+                            // Add character consistency
                             if (!empty($consistencyContext['characters'])) {
                                 $shotPrompt .= "CHARACTERS: {$consistencyContext['characters']} ";
                             }
-                            if (!empty($consistencyContext['location'])) {
-                                $shotPrompt .= "LOCATION: {$consistencyContext['location']} ";
-                            }
+                            // Add visual style
                             if (!empty($consistencyContext['style'])) {
                                 $shotPrompt .= "VISUAL STYLE: {$consistencyContext['style']} ";
                             }
 
-                            $shotPrompt .= "This must be a COMPLETE, properly framed image - not a crop or portion of a larger image.";
+                            $shotPrompt .= "CRITICAL: Respect the {$locationType} environment constraint. This must be a COMPLETE, properly framed image - not a crop or portion of a larger image.";
 
                             $result = $imageService->generateSceneImage($project, [
                                 'id' => "collage_{$sceneIndex}_page_{$pageIdx}_region_{$regionIdx}",
