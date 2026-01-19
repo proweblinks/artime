@@ -404,11 +404,27 @@ window.multiShotVideoPolling = function() {
 
                 {{-- RIGHT: Shots Panel --}}
                 <section class="msm-shots-panel">
+                    @php
+                        // Get lip-sync shot stats
+                        $lipSyncStats = $this->getLipSyncShotStats($multiShotSceneIndex);
+                    @endphp
                     {{-- Action Bar --}}
                     <div class="msm-action-bar">
                         <button wire:click="generateAllShots({{ $multiShotSceneIndex }})" wire:loading.attr="disabled" class="msm-action-btn purple">🎨 {{ __('Generate All Images') }}</button>
-                        <button wire:click="generateAllShotVideos({{ $multiShotSceneIndex }})" wire:loading.attr="disabled" class="msm-action-btn cyan">🎬 {{ __('Animate All Shots') }}</button>
+                        {{-- Generate Voiceovers button (shown when there are lip-sync shots needing audio) --}}
+                        @if($lipSyncStats['needsAudio'] > 0)
+                            <button wire:click="generateAllShotVoiceovers({{ $multiShotSceneIndex }})" wire:loading.attr="disabled" class="msm-action-btn amber" title="{{ __('Generate voiceovers for :count dialogue shot(s)', ['count' => $lipSyncStats['needsAudio']]) }}">
+                                🎤 {{ __('Gen. Voiceovers') }} ({{ $lipSyncStats['needsAudio'] }})
+                            </button>
+                        @endif
+                        <button wire:click="generateAllShotVideos({{ $multiShotSceneIndex }})" wire:loading.attr="disabled" class="msm-action-btn cyan">🎬 {{ __('Animate All') }}</button>
                         <span class="msm-spacer"></span>
+                        {{-- Lip-sync status indicator --}}
+                        @if($lipSyncStats['total'] > 0)
+                            <span class="msm-lipsync-status" title="{{ __('Dialogue shots: :has of :total have voiceovers', ['has' => $lipSyncStats['hasAudio'], 'total' => $lipSyncStats['total']]) }}">
+                                👄 {{ $lipSyncStats['hasAudio'] }}/{{ $lipSyncStats['total'] }}
+                            </span>
+                        @endif
                         <button wire:click="resetDecomposition({{ $multiShotSceneIndex }})" class="msm-reset-btn">🗑️ {{ __('Reset') }}</button>
                     </div>
 
@@ -455,12 +471,25 @@ window.multiShotVideoPolling = function() {
                                 <div class="msm-shot-header">
                                     <span class="msm-shot-num">{{ $shotIndex + 1 }}</span>
                                     <span class="msm-shot-type">{{ ucfirst(str_replace('_', ' ', $shot['type'] ?? 'shot')) }}</span>
+                                    @php
+                                        $hasMonologue = !empty($shot['monologue']);
+                                        $hasAudioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+                                        $audioGenerating = ($shot['audioStatus'] ?? '') === 'generating';
+                                    @endphp
                                     <div class="msm-shot-meta">
                                         @if($needsLipSync)<span class="msm-badge-lipsync" title="{{ __('AI recommends lip-sync') }}">👄</span>@endif
                                         @if($aiRecommended)<span class="msm-badge-ai" title="{{ __('AI recommended') }}">🤖</span>@endif
                                         @if($hasDialogue)<span class="msm-badge-dialog">💬</span>@endif
+                                        @if($hasAudioReady)<span class="msm-badge-audio" title="{{ __('Voiceover ready') }}">🎤</span>@endif
+                                        @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
                                     </div>
+                                    {{-- Monologue/Dialogue text indicator --}}
+                                    @if($hasMonologue || $hasDialogue)
+                                        <div class="msm-monologue-indicator" title="{{ $shot['monologue'] ?? $shot['dialogue'] ?? '' }}">
+                                            <small class="msm-monologue-preview">🗣️ "{{ Str::limit($shot['monologue'] ?? $shot['dialogue'] ?? '', 30) }}"</small>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="msm-shot-preview" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
@@ -551,12 +580,26 @@ window.multiShotVideoPolling = function() {
                                     </div>
 
                                     @if($hasVideo)
+                                        @php
+                                            $usedModel = $shot['selectedVideoModel'] ?? 'minimax';
+                                            $wrongModel = $needsLipSync && $usedModel !== 'multitalk';
+                                        @endphp
                                         <div class="msm-action-row">
                                             <button wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-play-btn">▶️ {{ __('Play') }}</button>
                                             @if(!$isLastShot)
                                                 <button wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-capture-btn">🎯→{{ $shotIndex + 2 }}</button>
                                             @endif
+                                            {{-- Re-Animate Button --}}
+                                            <button wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-reanimate-btn {{ $wrongModel ? 'msm-needs-reanimate' : '' }}" title="{{ $wrongModel ? __('Shot has dialogue - should use Multitalk') : __('Re-animate with different model') }}">
+                                                🔄
+                                            </button>
                                         </div>
+                                        {{-- Warning if animated with wrong model --}}
+                                        @if($wrongModel)
+                                            <div class="msm-wrong-model-hint">
+                                                ⚠️ {{ __('Has dialogue, used') }} {{ ucfirst($usedModel) }}
+                                            </div>
+                                        @endif
                                     @elseif($hasImage && !$isGenVid)
                                         <div class="msm-action-row">
                                             <button wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-animate-btn">🎬 {{ __('Animate') }}</button>
@@ -937,6 +980,9 @@ window.multiShotVideoPolling = function() {
 .msm-action-btn.purple:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(139,92,246,0.35); }
 .msm-action-btn.cyan { background: linear-gradient(135deg, rgba(6,182,212,0.3), rgba(59,130,246,0.2)); border: 1px solid rgba(6,182,212,0.5); box-shadow: 0 2px 12px rgba(6,182,212,0.2); }
 .msm-action-btn.cyan:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(6,182,212,0.35); }
+.msm-action-btn.amber { background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(251,191,36,0.2)); border: 1px solid rgba(245,158,11,0.5); box-shadow: 0 2px 12px rgba(245,158,11,0.2); }
+.msm-action-btn.amber:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.35); }
+.msm-lipsync-status { background: rgba(251,191,36,0.2); color: #fbbf24; padding: 0.35rem 0.65rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(251,191,36,0.3); cursor: help; }
 .msm-spacer { flex: 1; }
 .msm-reset-btn { padding: 0.5rem 0.8rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; color: #ef4444; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
 .msm-reset-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
@@ -1129,6 +1175,21 @@ window.multiShotVideoPolling = function() {
 .msm-assign-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
 .msm-assign-btns button.assigned { background: rgba(16,185,129,0.3); border-color: rgba(16,185,129,0.5); }
 .msm-assign-btns button small { font-size: 0.55rem; opacity: 0.7; margin-left: 0.2rem; }
+
+/* Monologue/Dialogue Indicators */
+.msm-badge-audio { background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.35)); color: #10b981; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.6rem; }
+.msm-badge-audio-gen { background: rgba(139,92,246,0.3); color: #a78bfa; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.55rem; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.msm-monologue-indicator { padding: 0.15rem 0.5rem; background: rgba(236,72,153,0.1); border-top: 1px solid rgba(236,72,153,0.15); }
+.msm-monologue-preview { color: rgba(236,72,153,0.85); font-size: 0.55rem; font-style: italic; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Re-Animate Button */
+.msm-reanimate-btn { background: rgba(139,92,246,0.2) !important; border: 1px solid rgba(139,92,246,0.4) !important; padding: 0.3rem 0.4rem !important; font-size: 0.7rem !important; border-radius: 0.3rem !important; cursor: pointer; transition: all 0.2s ease; }
+.msm-reanimate-btn:hover { background: rgba(139,92,246,0.35) !important; }
+.msm-reanimate-btn.msm-needs-reanimate { background: rgba(245,158,11,0.25) !important; border-color: rgba(245,158,11,0.5) !important; animation: pulse 2s infinite; }
+
+/* Wrong Model Warning */
+.msm-wrong-model-hint { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 0.55rem; padding: 0.2rem 0.4rem; text-align: center; border-top: 1px solid rgba(245,158,11,0.25); }
 
 /* Responsive Adjustments */
 @media (max-width: 900px) {

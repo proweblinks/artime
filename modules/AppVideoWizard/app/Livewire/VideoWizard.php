@@ -21809,11 +21809,143 @@ PROMPT;
             return;
         }
 
+        $skippedLipSync = 0;
+        $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
+
         foreach ($decomposed['shots'] as $shotIndex => $shot) {
             if (!empty($shot['imageUrl']) && ($shot['videoStatus'] ?? 'pending') !== 'ready') {
-                $this->generateShotVideo($sceneIndex, $shotIndex);
+                // Check if shot needs lip-sync
+                $needsLipSync = $shot['needsLipSync'] ?? false;
+                $hasAudio = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+
+                if ($needsLipSync && $mtAvail) {
+                    if ($hasAudio) {
+                        // Has audio - use Multitalk
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
+                        $this->generateShotVideo($sceneIndex, $shotIndex);
+                    } else {
+                        // Needs lip-sync but no audio - skip and warn
+                        $skippedLipSync++;
+                        Log::info('Skipping lip-sync shot without audio in Animate All', [
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                        ]);
+                    }
+                } else {
+                    // Regular shot - use default model
+                    $this->generateShotVideo($sceneIndex, $shotIndex);
+                }
             }
         }
+
+        // Show warning if some shots were skipped
+        if ($skippedLipSync > 0) {
+            $this->dispatch('generation-warning', [
+                'message' => __(':count shot(s) with dialogue were skipped - generate voiceover first to use Multitalk.', ['count' => $skippedLipSync]),
+                'type' => 'lipsync_skipped',
+            ]);
+        }
+    }
+
+    /**
+     * Generate voiceovers for all shots that need lip-sync.
+     * This prepares shots for Multitalk animation by creating audio.
+     *
+     * @param int $sceneIndex Scene index
+     */
+    public function generateAllShotVoiceovers(int $sceneIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed) {
+            $this->error = __('Scene not decomposed');
+            return;
+        }
+
+        $generated = 0;
+        $skipped = 0;
+
+        foreach ($decomposed['shots'] as $shotIndex => $shot) {
+            $needsLipSync = $shot['needsLipSync'] ?? false;
+            $hasMonologue = !empty($shot['monologue']) || !empty($shot['dialogue']);
+            $audioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+            $audioGenerating = ($shot['audioStatus'] ?? '') === 'generating';
+
+            // Only generate for shots that need lip-sync and don't have audio yet
+            if ($needsLipSync && !$audioReady && !$audioGenerating) {
+                try {
+                    // Get or generate monologue first if needed
+                    if (!$hasMonologue) {
+                        $monologueResult = $this->extractShotMonologue($sceneIndex, $shotIndex);
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $monologueResult['text'];
+                    }
+
+                    // Generate voiceover
+                    $this->generateShotVoiceover($sceneIndex, $shotIndex, []);
+                    $generated++;
+
+                } catch (\Exception $e) {
+                    Log::warning('Failed to generate voiceover for shot', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $skipped++;
+                }
+            } elseif ($audioReady) {
+                $skipped++; // Already has audio
+            }
+        }
+
+        if ($generated > 0) {
+            $this->dispatch('generation-status', [
+                'message' => __('Generated voiceovers for :count shot(s) with dialogue.', ['count' => $generated]),
+            ]);
+        }
+
+        if ($skipped > 0 && $generated === 0) {
+            $this->dispatch('generation-status', [
+                'message' => __('All dialogue shots already have voiceovers.'),
+            ]);
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Get count of shots that need lip-sync but don't have audio.
+     *
+     * @param int $sceneIndex Scene index
+     * @return array Stats about lip-sync shots
+     */
+    public function getLipSyncShotStats(int $sceneIndex): array
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed) {
+            return ['total' => 0, 'needsAudio' => 0, 'hasAudio' => 0];
+        }
+
+        $total = 0;
+        $needsAudio = 0;
+        $hasAudio = 0;
+
+        foreach ($decomposed['shots'] ?? [] as $shot) {
+            $needsLipSync = $shot['needsLipSync'] ?? false;
+            if ($needsLipSync) {
+                $total++;
+                $audioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+                if ($audioReady) {
+                    $hasAudio++;
+                } else {
+                    $needsAudio++;
+                }
+            }
+        }
+
+        return [
+            'total' => $total,
+            'needsAudio' => $needsAudio,
+            'hasAudio' => $hasAudio,
+        ];
     }
 
     // =========================================================================
