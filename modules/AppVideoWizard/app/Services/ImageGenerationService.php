@@ -172,10 +172,61 @@ class ImageGenerationService
                 'hasStyleDescription' => !empty($directStyleReference['styleDescription']),
             ]);
         } elseif (!$isLocationReference && !$isCharacterPortrait) {
-            // For location references: NO character references (empty environments only)
-            // For character portraits: NO location references (studio backdrop)
-            // For regular scenes: use all available references
-            // Regular scene: get all references for consistency
+            // =========================================================================
+            // PHASE 3: Reference Cascade System
+            // =========================================================================
+            // For regular scenes, use the Reference Cascade system to get ALL references
+            // (up to 5 characters + location + style + continuity)
+            // This provides Hollywood-level visual consistency across scenes
+            // =========================================================================
+
+            // Check if cascade mode is enabled (default: true for regular scenes)
+            $useCascade = $options['useCascade'] ?? true;
+            $storyboard = $project->storyboard ?? [];
+
+            if ($useCascade && $sceneIndex !== null) {
+                // Get all references using the cascade system
+                $references = $this->getAllReferencesForScene($sceneMemory, $sceneIndex, $storyboard);
+
+                // Use cascade generation if we have multiple references (more powerful consistency)
+                // Cascade triggers when: 2+ characters, OR character + location, OR total 2+ images
+                $shouldUseCascade = (
+                    count($references['characters']) >= 2 ||
+                    (count($references['characters']) >= 1 && !empty($references['location'])) ||
+                    $references['totalImages'] >= 2
+                );
+
+                if ($shouldUseCascade && $modelConfig['provider'] !== 'runpod') {
+                    Log::info('[generateSceneImage] Using Reference Cascade system', [
+                        'sceneIndex' => $sceneIndex,
+                        'totalImages' => $references['totalImages'],
+                        'characterCount' => count($references['characters']),
+                        'hasLocation' => !empty($references['location']),
+                        'hasStyle' => !empty($references['style']),
+                        'hasContinuity' => !empty($references['continuity']),
+                    ]);
+
+                    return $this->generateWithReferenceCascade(
+                        $project,
+                        $scene,
+                        $prompt,
+                        $resolution,
+                        $modelId,
+                        $modelConfig,
+                        $references,
+                        $options
+                    );
+                }
+
+                // Fall back to single-reference mode if cascade not applicable
+                Log::info('[generateSceneImage] Cascade not applicable, using single-reference mode', [
+                    'sceneIndex' => $sceneIndex,
+                    'totalImages' => $references['totalImages'],
+                    'reason' => $modelConfig['provider'] === 'runpod' ? 'RunPod provider' : 'Insufficient references',
+                ]);
+            }
+
+            // Legacy single-reference retrieval (fallback)
             $characterReference = $this->getCharacterReferenceForScene($sceneMemory, $sceneIndex);
             $locationReference = $this->getLocationReferenceForScene($sceneMemory, $sceneIndex);
             $styleReference = $this->getStyleReference($sceneMemory);
@@ -839,6 +890,513 @@ class ImageGenerationService
         }
 
         return implode('. ', $parts);
+    }
+
+    // =========================================================================
+    // PHASE 3: REFERENCE CASCADE SYSTEM
+    // =========================================================================
+
+    /**
+     * Get ALL references for a scene using the Reference Cascade system.
+     *
+     * This implements the Hollywood-level consistency approach:
+     * 1. Character References - Up to 5 character portraits from Character Bible
+     * 2. Location Reference - Environment reference from Location Bible
+     * 3. Style Reference - Visual style from Style Bible
+     * 4. Continuity Reference - Previous scene for smooth transitions
+     *
+     * @param array|null $sceneMemory The scene memory containing all Bibles
+     * @param int $sceneIndex The current scene index
+     * @param array|null $storyboard The storyboard with generated images
+     * @return array Reference cascade data structure
+     */
+    public function getAllReferencesForScene(?array $sceneMemory, int $sceneIndex, ?array $storyboard = null): array
+    {
+        $references = [
+            'characters' => [],      // Array of character references (up to 5)
+            'location' => null,      // Single location reference
+            'style' => null,         // Style reference
+            'continuity' => null,    // Previous scene for transitions
+            'totalImages' => 0,      // Total reference images count
+            'primaryReference' => null, // The main reference to use as base
+        ];
+
+        // 1. Get ALL character references for this scene (up to 5)
+        $references['characters'] = $this->getAllCharacterReferencesForScene($sceneMemory, $sceneIndex);
+
+        // 2. Get location reference
+        $references['location'] = $this->getLocationReferenceForScene($sceneMemory, $sceneIndex);
+
+        // 3. Get style reference
+        $references['style'] = $this->getStyleReference($sceneMemory);
+
+        // 4. Get continuity reference (previous scene image)
+        if ($sceneIndex > 0 && $storyboard) {
+            $references['continuity'] = $this->getContinuityReference($storyboard, $sceneIndex);
+        }
+
+        // Calculate total images and determine primary reference
+        $references['totalImages'] = count($references['characters']);
+        if ($references['location']) $references['totalImages']++;
+        if ($references['style']) $references['totalImages']++;
+        if ($references['continuity']) $references['totalImages']++;
+
+        // Determine primary reference (order: character > location > style > continuity)
+        if (!empty($references['characters'])) {
+            $references['primaryReference'] = 'character';
+        } elseif ($references['location']) {
+            $references['primaryReference'] = 'location';
+        } elseif ($references['style']) {
+            $references['primaryReference'] = 'style';
+        } elseif ($references['continuity']) {
+            $references['primaryReference'] = 'continuity';
+        }
+
+        Log::info('[getAllReferencesForScene] Reference cascade assembled', [
+            'sceneIndex' => $sceneIndex,
+            'characterCount' => count($references['characters']),
+            'hasLocation' => !empty($references['location']),
+            'hasStyle' => !empty($references['style']),
+            'hasContinuity' => !empty($references['continuity']),
+            'totalImages' => $references['totalImages'],
+            'primaryReference' => $references['primaryReference'],
+        ]);
+
+        return $references;
+    }
+
+    /**
+     * Get ALL character references for a scene (up to 5 for Gemini API limit).
+     * Returns characters that appear in this scene AND have ready reference images.
+     *
+     * @param array|null $sceneMemory The scene memory containing Character Bible
+     * @param int $sceneIndex The scene index
+     * @return array Array of character reference data
+     */
+    protected function getAllCharacterReferencesForScene(?array $sceneMemory, int $sceneIndex): array
+    {
+        if (!$sceneMemory) {
+            return [];
+        }
+
+        $characterBible = $sceneMemory['characterBible'] ?? null;
+        if (!$characterBible || !($characterBible['enabled'] ?? false)) {
+            return [];
+        }
+
+        $characters = $characterBible['characters'] ?? [];
+        if (empty($characters)) {
+            return [];
+        }
+
+        // Get characters applicable to this scene with ready reference images
+        $sceneCharacters = [];
+        $maxCharacterRefs = 5; // Gemini API limit
+
+        foreach ($characters as $idx => $character) {
+            // Check if character appears in this scene
+            $appliedScenes = $character['scenes'] ?? $character['appliedScenes'] ?? $character['appearsInScenes'] ?? [];
+            $isInScene = empty($appliedScenes) || in_array($sceneIndex, $appliedScenes);
+
+            if (!$isInScene) {
+                continue;
+            }
+
+            // Check if character has a ready reference image
+            $hasBase64 = !empty($character['referenceImageBase64']);
+            $isReady = ($character['referenceImageStatus'] ?? '') === 'ready';
+
+            if ($hasBase64 && $isReady) {
+                $sceneCharacters[] = [
+                    'index' => $idx,
+                    'base64' => $character['referenceImageBase64'],
+                    'mimeType' => $character['referenceImageMimeType'] ?? 'image/png',
+                    'characterName' => $character['name'] ?? 'Character',
+                    'characterDescription' => $character['description'] ?? '',
+                    'hair' => $character['hair'] ?? [],
+                    'wardrobe' => $character['wardrobe'] ?? [],
+                    'makeup' => $character['makeup'] ?? [],
+                    'accessories' => $character['accessories'] ?? [],
+                    'role' => $character['role'] ?? 'Supporting',
+                ];
+
+                // Limit to max characters
+                if (count($sceneCharacters) >= $maxCharacterRefs) {
+                    break;
+                }
+            }
+        }
+
+        // Sort by role priority (Protagonist first)
+        usort($sceneCharacters, function ($a, $b) {
+            $rolePriority = ['Protagonist' => 1, 'Lead' => 1, 'Supporting' => 2, 'Background' => 3];
+            $priorityA = $rolePriority[$a['role']] ?? 4;
+            $priorityB = $rolePriority[$b['role']] ?? 4;
+            return $priorityA - $priorityB;
+        });
+
+        Log::debug('[getAllCharacterReferencesForScene] Found characters for scene', [
+            'sceneIndex' => $sceneIndex,
+            'totalInBible' => count($characters),
+            'inScene' => count($sceneCharacters),
+            'names' => array_map(fn($c) => $c['characterName'], $sceneCharacters),
+        ]);
+
+        return $sceneCharacters;
+    }
+
+    /**
+     * Get continuity reference from previous scene.
+     * Used to maintain visual flow between scenes.
+     *
+     * @param array $storyboard The storyboard with generated images
+     * @param int $sceneIndex Current scene index
+     * @return array|null Continuity reference data or null
+     */
+    protected function getContinuityReference(array $storyboard, int $sceneIndex): ?array
+    {
+        // Get previous scene
+        $prevIndex = $sceneIndex - 1;
+        $prevScene = $storyboard['scenes'][$prevIndex] ?? null;
+
+        if (!$prevScene) {
+            return null;
+        }
+
+        // Check if previous scene has a ready image
+        $imageUrl = $prevScene['imageUrl'] ?? null;
+        $status = $prevScene['status'] ?? '';
+
+        if (!$imageUrl || $status !== 'ready') {
+            return null;
+        }
+
+        // Fetch previous scene image as base64
+        try {
+            $imageContent = @file_get_contents($imageUrl);
+            if ($imageContent === false) {
+                Log::warning('[getContinuityReference] Could not fetch previous scene image', [
+                    'sceneIndex' => $sceneIndex,
+                    'prevSceneUrl' => $imageUrl,
+                ]);
+                return null;
+            }
+
+            Log::info('[getContinuityReference] Using previous scene for continuity', [
+                'currentScene' => $sceneIndex,
+                'prevScene' => $prevIndex,
+                'imageSize' => strlen($imageContent),
+            ]);
+
+            return [
+                'base64' => base64_encode($imageContent),
+                'mimeType' => 'image/png',
+                'sceneIndex' => $prevIndex,
+            ];
+
+        } catch (\Exception $e) {
+            Log::warning('[getContinuityReference] Error fetching previous scene', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Build the additional images array for Gemini API from reference cascade.
+     *
+     * @param array $references The reference cascade from getAllReferencesForScene()
+     * @param string $primaryType Which reference type is primary (used as main image)
+     * @return array Array of additional images for Gemini API
+     */
+    protected function buildAdditionalImagesFromCascade(array $references, string $primaryType = 'character'): array
+    {
+        $additionalImages = [];
+
+        // Add character references (skip first if it's the primary)
+        $skipFirstCharacter = ($primaryType === 'character');
+        foreach ($references['characters'] as $idx => $character) {
+            if ($skipFirstCharacter && $idx === 0) {
+                continue;
+            }
+            $additionalImages[] = [
+                'base64' => $character['base64'],
+                'mimeType' => $character['mimeType'],
+            ];
+        }
+
+        // Add location reference (skip if it's the primary)
+        if ($references['location'] && $primaryType !== 'location') {
+            $additionalImages[] = [
+                'base64' => $references['location']['base64'],
+                'mimeType' => $references['location']['mimeType'],
+            ];
+        }
+
+        // Add style reference (skip if it's the primary)
+        if ($references['style'] && $primaryType !== 'style') {
+            $additionalImages[] = [
+                'base64' => $references['style']['base64'],
+                'mimeType' => $references['style']['mimeType'],
+            ];
+        }
+
+        // Add continuity reference (skip if it's the primary)
+        if ($references['continuity'] && $primaryType !== 'continuity') {
+            $additionalImages[] = [
+                'base64' => $references['continuity']['base64'],
+                'mimeType' => $references['continuity']['mimeType'],
+            ];
+        }
+
+        Log::debug('[buildAdditionalImagesFromCascade] Built additional images', [
+            'primaryType' => $primaryType,
+            'additionalCount' => count($additionalImages),
+        ]);
+
+        return $additionalImages;
+    }
+
+    /**
+     * Build cascade-enhanced prompt with explicit reference instructions.
+     *
+     * @param string $basePrompt The original scene prompt
+     * @param array $references The reference cascade
+     * @return string Enhanced prompt with reference instructions
+     */
+    protected function buildCascadeEnhancedPrompt(string $basePrompt, array $references): string
+    {
+        $sections = [];
+
+        // Identity anchors for characters
+        $characterCount = count($references['characters']);
+        if ($characterCount > 0) {
+            $charNames = array_map(fn($c) => $c['characterName'], $references['characters']);
+
+            if ($characterCount === 1) {
+                $sections[] = "IDENTITY ANCHOR: The person in reference image 1 is {$charNames[0]}. " .
+                    "Maintain EXACT appearance - same face, same hair, same clothing throughout.";
+            } else {
+                $charList = implode(', ', array_map(fn($n, $i) => "reference image " . ($i + 1) . " is {$n}", $charNames, array_keys($charNames)));
+                $sections[] = "IDENTITY ANCHORS: {$charList}. " .
+                    "Each character must maintain their EXACT appearance from their reference - same face, same hair, same clothing. " .
+                    "Do NOT swap or blend character appearances.";
+            }
+        }
+
+        // Location anchor
+        if ($references['location']) {
+            $locationName = $references['location']['locationName'] ?? 'the environment';
+            $refNum = $characterCount + 1;
+            $sections[] = "ENVIRONMENT ANCHOR: Reference image {$refNum} shows {$locationName}. " .
+                "Maintain identical architecture, lighting direction, color palette, and spatial layout.";
+        }
+
+        // Style anchor
+        if ($references['style']) {
+            $sections[] = "STYLE ANCHOR: Match the visual style, color grading, and atmosphere from the style reference. " .
+                "Same color temperature, contrast levels, and cinematic mood.";
+        }
+
+        // Continuity anchor
+        if ($references['continuity']) {
+            $sections[] = "CONTINUITY: This scene follows directly from the previous scene. " .
+                "Maintain consistent lighting direction, color grading, and visual flow.";
+        }
+
+        // Assemble prompt
+        $enhancedPrompt = "";
+
+        if (!empty($sections)) {
+            $enhancedPrompt .= "REFERENCE CASCADE INSTRUCTIONS:\n" . implode("\n\n", $sections) . "\n\n";
+        }
+
+        $enhancedPrompt .= "SCENE TO GENERATE:\n{$basePrompt}\n\n";
+
+        $enhancedPrompt .= "QUALITY REQUIREMENTS:\n" .
+            "- 8K photorealistic cinematic quality\n" .
+            "- Natural skin texture, visible pores\n" .
+            "- Professional cinematography lighting\n" .
+            "- Sharp focus with cinematic depth of field\n\n";
+
+        $enhancedPrompt .= "OUTPUT: Generate a single high-quality image that preserves ALL referenced identities exactly.";
+
+        return $enhancedPrompt;
+    }
+
+    /**
+     * Generate image using the Reference Cascade system.
+     *
+     * This is the Phase 3 implementation that uses multiple references (up to 5 characters,
+     * plus location, style, and continuity) for Hollywood-level visual consistency.
+     *
+     * @param WizardProject $project The project
+     * @param array $scene The scene data
+     * @param string $prompt The base prompt
+     * @param array $resolutionArray Resolution configuration
+     * @param string $modelId The model ID
+     * @param array $modelConfig The model configuration
+     * @param array $references The reference cascade from getAllReferencesForScene()
+     * @param array $options Additional options
+     * @return array Generation result
+     */
+    public function generateWithReferenceCascade(
+        WizardProject $project,
+        array $scene,
+        string $prompt,
+        array $resolutionArray,
+        string $modelId,
+        array $modelConfig,
+        array $references,
+        array $options = []
+    ): array {
+        // Map aspect ratio for Gemini
+        $aspectRatioMap = [
+            '16:9' => '16:9',
+            '9:16' => '9:16',
+            '1:1' => '1:1',
+            '4:3' => '4:3',
+            '4:5' => '3:4',
+        ];
+
+        $isCollagePreview = $options['is_collage_preview'] ?? false;
+        $aspectRatio = $isCollagePreview ? '1:1' : ($aspectRatioMap[$project->aspect_ratio] ?? '16:9');
+        $modelResolution = $modelConfig['resolution'] ?? '2K';
+
+        Log::info('[generateWithReferenceCascade] Starting cascade generation', [
+            'sceneIndex' => $options['sceneIndex'] ?? 'unknown',
+            'characterCount' => count($references['characters']),
+            'hasLocation' => !empty($references['location']),
+            'hasStyle' => !empty($references['style']),
+            'hasContinuity' => !empty($references['continuity']),
+            'totalImages' => $references['totalImages'],
+            'primaryReference' => $references['primaryReference'],
+            'aspectRatio' => $aspectRatio,
+            'model' => $modelId,
+        ]);
+
+        // Build cascade-enhanced prompt
+        $cascadePrompt = $this->buildCascadeEnhancedPrompt($prompt, $references);
+
+        // Determine primary reference image (the base image for image-to-image generation)
+        $primaryBase64 = null;
+        $primaryMimeType = 'image/png';
+        $primaryType = $references['primaryReference'];
+
+        if ($primaryType === 'character' && !empty($references['characters'])) {
+            $primaryBase64 = $references['characters'][0]['base64'];
+            $primaryMimeType = $references['characters'][0]['mimeType'];
+        } elseif ($primaryType === 'location' && $references['location']) {
+            $primaryBase64 = $references['location']['base64'];
+            $primaryMimeType = $references['location']['mimeType'];
+        } elseif ($primaryType === 'style' && $references['style']) {
+            $primaryBase64 = $references['style']['base64'];
+            $primaryMimeType = $references['style']['mimeType'];
+        } elseif ($primaryType === 'continuity' && $references['continuity']) {
+            $primaryBase64 = $references['continuity']['base64'];
+            $primaryMimeType = $references['continuity']['mimeType'];
+        }
+
+        // If no primary reference available, fall back to text-to-image
+        if (!$primaryBase64) {
+            Log::warning('[generateWithReferenceCascade] No primary reference, falling back to text-to-image');
+            return $this->generateWithGemini(
+                $project,
+                $scene,
+                $prompt,
+                $resolutionArray,
+                $modelId,
+                $modelConfig,
+                $options,
+                null,
+                null,
+                null
+            );
+        }
+
+        // Build additional images array (excluding the primary)
+        $additionalImages = $this->buildAdditionalImagesFromCascade($references, $primaryType);
+
+        Log::info('[generateWithReferenceCascade] Calling Gemini with cascade references', [
+            'primaryType' => $primaryType,
+            'additionalImagesCount' => count($additionalImages),
+            'cascadePromptLength' => strlen($cascadePrompt),
+        ]);
+
+        // Call Gemini with all references
+        $result = $this->geminiService->generateImageFromImage(
+            $primaryBase64,
+            $cascadePrompt,
+            [
+                'model' => $modelConfig['model'] ?? 'gemini-2.5-flash-image',
+                'mimeType' => $primaryMimeType,
+                'aspectRatio' => $aspectRatio,
+                'resolution' => $modelResolution,
+                'additionalImages' => $additionalImages,
+            ]
+        );
+
+        // Handle response
+        if (!empty($result['error']) || (!$result['success'] ?? false)) {
+            throw new \Exception($result['error'] ?? 'Reference cascade image generation failed');
+        }
+
+        if (!empty($result['imageData'])) {
+            // Store the base64 image
+            $storedPath = $this->storeBase64Image(
+                $result['imageData'],
+                $result['mimeType'] ?? 'image/png',
+                $project,
+                $scene['id']
+            );
+            $imageUrl = $this->getPublicUrl($storedPath);
+
+            // Create asset record
+            $asset = WizardAsset::create([
+                'project_id' => $project->id,
+                'user_id' => $project->user_id,
+                'type' => WizardAsset::TYPE_IMAGE,
+                'name' => $scene['id'],
+                'path' => $storedPath,
+                'url' => $imageUrl,
+                'mime_type' => $result['mimeType'] ?? 'image/png',
+                'scene_index' => $options['sceneIndex'] ?? null,
+                'scene_id' => $scene['id'],
+                'metadata' => [
+                    'prompt' => $prompt,
+                    'model' => $modelId,
+                    'referenceCascade' => true,
+                    'characterCount' => count($references['characters']),
+                    'characterNames' => array_map(fn($c) => $c['characterName'], $references['characters']),
+                    'locationUsed' => $references['location']['locationName'] ?? null,
+                    'hasStyleReference' => !empty($references['style']),
+                    'hasContinuityReference' => !empty($references['continuity']),
+                    'totalReferences' => $references['totalImages'],
+                ],
+            ]);
+
+            Log::info('[generateWithReferenceCascade] Successfully generated with cascade', [
+                'sceneIndex' => $options['sceneIndex'] ?? 'unknown',
+                'imageUrl' => $imageUrl,
+                'totalReferences' => $references['totalImages'],
+            ]);
+
+            return [
+                'success' => true,
+                'imageUrl' => $imageUrl,
+                'prompt' => $prompt,
+                'model' => $modelId,
+                'assetId' => $asset->id,
+                'referenceCascade' => true,
+                'characterCount' => count($references['characters']),
+                'characterNames' => array_map(fn($c) => $c['characterName'], $references['characters']),
+                'locationUsed' => $references['location']['locationName'] ?? null,
+                'styleUsed' => !empty($references['style']),
+                'continuityUsed' => !empty($references['continuity']),
+            ];
+        }
+
+        throw new \Exception('No image data in reference cascade response');
     }
 
     /**
