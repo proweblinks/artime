@@ -731,7 +731,7 @@ window.multiShotVideoPolling = function() {
                             </div>
 
                             {{-- Generate Voice Button --}}
-                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }}, {'voice': '{{ $shotVoiceSelection }}'})"
+                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }}, ['voice' => '{{ $shotVoiceSelection }}'])"
                                     wire:loading.attr="disabled"
                                     wire:target="generateShotVoiceover"
                                     class="msm-btn msm-btn-voice">
