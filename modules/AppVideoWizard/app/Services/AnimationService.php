@@ -169,7 +169,8 @@ class AnimationService
         string $imageUrl,
         string $prompt,
         ?string $audioUrl,
-        int $duration
+        int $duration,
+        array $options = []
     ): array {
         // Check app credits first (consistent with ImageGenerationService)
         $teamId = $project->team_id ?? session('current_team_id', 0);
@@ -188,17 +189,59 @@ class AnimationService
             return $this->errorResponse('Audio URL is required for Multitalk lip-sync animation');
         }
 
+        // Generate signed upload URL for the video
+        $filename = 'multitalk_' . time() . '_' . uniqid() . '.mp4';
+        $uploadData = \Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController::generateVideoUploadUrl(
+            $project->id,
+            $filename
+        );
+
         Log::info("AnimationService: Generating with Multitalk", [
             'project_id' => $project->id,
             'endpoint' => $endpointId,
             'duration' => $duration,
+            'upload_url' => substr($uploadData['upload_url'], 0, 80) . '...',
+            'video_url' => $uploadData['video_url'],
         ]);
 
+        // Calculate frame count based on duration (fps * seconds)
+        $fps = $options['fps'] ?? 25.0;
+        $numFrames = (int) ($fps * $duration);
+
+        // Build input with ALL required Multitalk parameters
         $input = [
+            // Required file URLs
             'image_url' => $imageUrl,
             'audio_url' => $audioUrl,
-            'prompt' => $prompt,
-            'duration' => $duration,
+            'video_upload_url' => $uploadData['upload_url'],
+
+            // Audio cropping
+            'audio_crop_start_time' => $options['audio_crop_start_time'] ?? 0,
+            'audio_crop_end_time' => $options['audio_crop_end_time'] ?? $duration,
+
+            // Prompts
+            'positive_prompt' => $prompt ?: 'natural talking head animation, smooth lip sync, realistic facial expressions',
+            'negative_prompt' => $options['negative_prompt'] ?? 'blurry, distorted, unnatural movement, artifacts',
+
+            // Video dimensions
+            'aspect_ratio' => $options['aspect_ratio'] ?? '16:9',
+            'scale_to_length' => $options['scale_to_length'] ?? 1280,
+            'scale_to_side' => $options['scale_to_side'] ?? 'width',
+
+            // Animation parameters
+            'fps' => $fps,
+            'num_frames' => $numFrames,
+
+            // Audio embedding settings
+            'embeds_audio_scale' => $options['embeds_audio_scale'] ?? 1.0,
+            'embeds_cfg_audio_scale' => $options['embeds_cfg_audio_scale'] ?? 2.0,
+            'embeds_multi_audio_type' => $options['embeds_multi_audio_type'] ?? 'average',
+            'embeds_normalize_loudness' => $options['embeds_normalize_loudness'] ?? true,
+
+            // Generation settings
+            'steps' => $options['steps'] ?? 4,
+            'seed' => $options['seed'] ?? -1,
+            'scheduler' => $options['scheduler'] ?? 'euler',
         ];
 
         $result = $this->runPodService->runAsync($endpointId, $input);
@@ -207,12 +250,21 @@ class AnimationService
             return $this->errorResponse($result['error'] ?? 'Failed to submit Multitalk job');
         }
 
+        // Store the expected video URL in cache so we can retrieve it when job completes
+        $taskId = $result['id'];
+        \Illuminate\Support\Facades\Cache::put(
+            "multitalk_video_url:{$taskId}",
+            $uploadData['video_url'],
+            now()->addHours(3)
+        );
+
         return [
             'success' => true,
-            'taskId' => $result['id'],
+            'taskId' => $taskId,
             'provider' => 'multitalk',
             'status' => 'processing',
             'endpointId' => $endpointId,
+            'expectedVideoUrl' => $uploadData['video_url'],
         ];
     }
 
@@ -358,48 +410,84 @@ class AnimationService
             'provider' => 'multitalk',
         ];
 
-        if ($normalizedStatus === 'completed' && isset($status['output'])) {
-            $output = $status['output'];
+        if ($normalizedStatus === 'completed') {
+            // First, check our cached video URL (from when we submitted the job)
+            $cachedVideoUrl = \Illuminate\Support\Facades\Cache::get("multitalk_video_url:{$taskId}");
 
-            // Log raw output for debugging
-            \Log::info('🎬 Multitalk raw output', [
-                'taskId' => $taskId,
-                'outputType' => gettype($output),
-                'output' => is_array($output) ? $output : substr((string)$output, 0, 500),
-            ]);
+            if ($cachedVideoUrl) {
+                \Log::info('🎬 Multitalk completed, checking cached video URL', [
+                    'taskId' => $taskId,
+                    'expectedUrl' => $cachedVideoUrl,
+                ]);
 
-            // Try multiple possible output formats
-            if (is_array($output)) {
-                // Check common URL keys
-                $urlKeys = ['video_url', 'videoUrl', 'url', 'video', 'result'];
-                foreach ($urlKeys as $key) {
-                    if (isset($output[$key]) && is_string($output[$key]) && filter_var($output[$key], FILTER_VALIDATE_URL)) {
-                        $result['videoUrl'] = $output[$key];
-                        break;
-                    }
+                // Extract path from URL to check if file exists
+                $urlPath = parse_url($cachedVideoUrl, PHP_URL_PATH);
+                $filePath = public_path(ltrim($urlPath, '/'));
+
+                if (file_exists($filePath)) {
+                    $result['videoUrl'] = $cachedVideoUrl;
+                    \Log::info('🎬 Multitalk video file found', [
+                        'taskId' => $taskId,
+                        'videoUrl' => $cachedVideoUrl,
+                        'fileSize' => filesize($filePath),
+                    ]);
+
+                    // Clear the cache entry
+                    \Illuminate\Support\Facades\Cache::forget("multitalk_video_url:{$taskId}");
+                } else {
+                    \Log::warning('🎬 Multitalk job completed but video file not found', [
+                        'taskId' => $taskId,
+                        'expectedPath' => $filePath,
+                    ]);
                 }
-
-                // Check for error in output
-                if (!isset($result['videoUrl']) && isset($output['error'])) {
-                    $result['error'] = is_string($output['error']) ? $output['error'] : json_encode($output['error']);
-                    $result['status'] = 'failed';
-                    $result['success'] = false;
-                }
-
-                // Check for message that might indicate failure
-                if (!isset($result['videoUrl']) && isset($output['message'])) {
-                    $result['error'] = $output['message'];
-                }
-            } elseif (is_string($output) && filter_var($output, FILTER_VALIDATE_URL)) {
-                $result['videoUrl'] = $output;
             }
 
-            // If completed but no video URL found, log warning with full output
-            if ($normalizedStatus === 'completed' && !isset($result['videoUrl'])) {
-                \Log::warning('🎬 Multitalk completed but no video URL in output', [
+            // Also check output from RunPod as fallback
+            if (!isset($result['videoUrl']) && isset($status['output'])) {
+                $output = $status['output'];
+
+                // Log raw output for debugging
+                \Log::info('🎬 Multitalk raw output', [
                     'taskId' => $taskId,
-                    'fullOutput' => $status['output'],
+                    'outputType' => gettype($output),
+                    'output' => is_array($output) ? $output : substr((string)$output, 0, 500),
                 ]);
+
+                // Try multiple possible output formats
+                if (is_array($output)) {
+                    // Check common URL keys
+                    $urlKeys = ['video_url', 'videoUrl', 'url', 'video', 'result'];
+                    foreach ($urlKeys as $key) {
+                        if (isset($output[$key]) && is_string($output[$key]) && filter_var($output[$key], FILTER_VALIDATE_URL)) {
+                            $result['videoUrl'] = $output[$key];
+                            break;
+                        }
+                    }
+
+                    // Check for error in output
+                    if (!isset($result['videoUrl']) && isset($output['error'])) {
+                        $result['error'] = is_string($output['error']) ? $output['error'] : json_encode($output['error']);
+                        $result['status'] = 'failed';
+                        $result['success'] = false;
+                    }
+
+                    // Check for message that might indicate failure
+                    if (!isset($result['videoUrl']) && isset($output['message'])) {
+                        $result['error'] = $output['message'];
+                    }
+                } elseif (is_string($output) && filter_var($output, FILTER_VALIDATE_URL)) {
+                    $result['videoUrl'] = $output;
+                }
+            }
+
+            // If completed but no video URL found, log warning
+            if ($normalizedStatus === 'completed' && !isset($result['videoUrl'])) {
+                \Log::warning('🎬 Multitalk completed but no video URL found', [
+                    'taskId' => $taskId,
+                    'hadCachedUrl' => !empty($cachedVideoUrl),
+                    'fullOutput' => $status['output'] ?? null,
+                ]);
+                $result['error'] = 'Video generation completed but video file not found. Upload may have failed.';
             }
         }
 

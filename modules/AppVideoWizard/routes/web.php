@@ -9,7 +9,24 @@ use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
 |--------------------------------------------------------------------------
 */
 
-// Public route to serve wizard videos (no auth required)
+// RunPod video upload route is defined in api.php (no CSRF protection)
+
+// Public route to serve wizard videos by project ID only (for Multitalk uploads)
+Route::get('/wizard-videos/{projectId}/{filename}', function ($projectId, $filename) {
+    $path = public_path("wizard-videos/{$projectId}/{$filename}");
+
+    if (!file_exists($path)) {
+        abort(404, 'Video not found');
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'video/mp4',
+        'Content-Disposition' => 'inline',
+        'Accept-Ranges' => 'bytes',
+    ]);
+})->where('filename', '.*\.mp4$')->name('wizard-video.serve-simple');
+
+// Public route to serve wizard videos with userId (legacy format)
 // This is needed because cPanel/nginx routes everything through PHP
 Route::get('/wizard-videos/{userId}/{projectId}/{filename}', function ($userId, $projectId, $filename) {
     $path = public_path("wizard-videos/{$userId}/{$projectId}/{$filename}");

@@ -11,9 +11,112 @@ use Modules\AppVideoWizard\Services\ConceptService;
 use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\VoiceoverService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
 
 class AppVideoWizardController extends Controller
 {
+    /**
+     * Generate a signed upload URL for RunPod video uploads.
+     * Used internally by AnimationService.
+     */
+    public static function generateVideoUploadUrl(int $projectId, string $filename): array
+    {
+        // Generate a secure token
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = now()->addHours(2); // 2 hours should be enough for video generation
+
+        // Store token data in cache
+        $tokenData = [
+            'project_id' => $projectId,
+            'filename' => $filename,
+            'expires_at' => $expiresAt->timestamp,
+        ];
+        Cache::put("runpod_upload_token:{$token}", $tokenData, $expiresAt);
+
+        // Build the upload URL
+        $uploadUrl = url("/api/runpod/video-upload/{$token}");
+
+        // Build the final video URL (where the video will be accessible after upload)
+        $videoPath = "wizard-videos/{$projectId}/{$filename}";
+        $videoUrl = url($videoPath);
+
+        return [
+            'upload_url' => $uploadUrl,
+            'video_url' => $videoUrl,
+            'token' => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Handle video upload from RunPod worker.
+     * This endpoint receives the generated video via PUT request.
+     */
+    public function runpodVideoUpload(Request $request, string $token)
+    {
+        Log::info('📥 RunPod video upload request received', ['token' => substr($token, 0, 16) . '...']);
+
+        // Validate token
+        $tokenData = Cache::get("runpod_upload_token:{$token}");
+
+        if (!$tokenData) {
+            Log::warning('📥 Invalid or expired upload token', ['token' => substr($token, 0, 16)]);
+            return response()->json(['error' => 'Invalid or expired upload token'], 401);
+        }
+
+        // Check expiration
+        if (time() > $tokenData['expires_at']) {
+            Cache::forget("runpod_upload_token:{$token}");
+            Log::warning('📥 Upload token expired');
+            return response()->json(['error' => 'Upload token expired'], 401);
+        }
+
+        try {
+            // Get the raw video data from request body
+            $videoContent = $request->getContent();
+
+            if (empty($videoContent)) {
+                Log::error('📥 No video content received');
+                return response()->json(['error' => 'No video content received'], 400);
+            }
+
+            Log::info('📥 Received video content', ['size' => strlen($videoContent)]);
+
+            // Create directory if needed
+            $projectId = $tokenData['project_id'];
+            $filename = $tokenData['filename'];
+            $directory = public_path("wizard-videos/{$projectId}");
+
+            if (!File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+
+            // Save the video file
+            $filePath = "{$directory}/{$filename}";
+            File::put($filePath, $videoContent);
+
+            // Invalidate the token (one-time use)
+            Cache::forget("runpod_upload_token:{$token}");
+
+            Log::info('📥 Video saved successfully', [
+                'path' => $filePath,
+                'size' => strlen($videoContent),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Video uploaded successfully',
+                'path' => $filePath,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('📥 Video upload failed', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Display the video wizard.
      */
