@@ -24,7 +24,8 @@
       "Bash(C:xamppphpphp.exe artisan db:seed --class=\"Modules\\\\AppVideoWizard\\\\Database\\\\Seeders\\\\VwSettingSeeder\")",
       "Bash(dir \"C:\\\\laragon\\\\bin\\\\php\" /b)",
       "Bash(echo:*)",
-      "WebFetch(domain:screencraft.org)"
+      "WebFetch(domain:screencraft.org)",
+      "WebFetch(domain:artime.ai)"
     ]
   }
 }
