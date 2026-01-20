@@ -287,9 +287,36 @@ window.multiShotVideoPolling = function() {
                                 <div class="msm-collage-image" x-data="{ selectedRegion: null }">
                                     @php
                                         $hasRegionImages = !empty($currentCollage['regionImages']) && count($currentCollage['regionImages']) > 0;
+                                        $pageStatus = $currentCollage['status'] ?? 'ready';
+                                        $isPagePending = $pageStatus === 'pending';
+                                        $isPageGenerating = $pageStatus === 'generating';
                                     @endphp
 
-                                    @if($hasRegionImages)
+                                    @if($isPagePending)
+                                        {{-- Page not yet generated - show Generate button --}}
+                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; background: rgba(0,0,0,0.2); border-radius: 8px; gap: 12px;">
+                                            <div style="text-align: center; color: #9ca3af;">
+                                                <p style="font-size: 0.875rem;">{{ __('Page :page not generated yet', ['page' => $currentPage + 1]) }}</p>
+                                                <p style="font-size: 0.75rem; margin-top: 4px;">{{ __('Shots') }} {{ min($currentShots) + 1 }}-{{ max($currentShots) + 1 }}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                wire:click="generateCollagePage({{ $multiShotSceneIndex }}, {{ $currentPage }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="generateCollagePage"
+                                                class="msm-gen-btn"
+                                                style="padding: 8px 16px; font-size: 0.875rem;">
+                                                <span wire:loading.remove wire:target="generateCollagePage">🖼️ {{ __('Generate Page') }}</span>
+                                                <span wire:loading wire:target="generateCollagePage">⏳ {{ __('Generating...') }}</span>
+                                            </button>
+                                        </div>
+                                    @elseif($isPageGenerating)
+                                        {{-- Page is currently generating --}}
+                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; background: rgba(0,0,0,0.2); border-radius: 8px; gap: 12px;">
+                                            <div class="msm-spinner pink" style="width: 32px; height: 32px;"></div>
+                                            <p style="color: #ec4899; font-size: 0.875rem;">{{ __('Generating page :page...', ['page' => $currentPage + 1]) }}</p>
+                                        </div>
+                                    @elseif($hasRegionImages)
                                         {{-- NEW: Display 4 separate images in a 2x2 grid --}}
                                         <div class="msm-region-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; aspect-ratio: 1;">
                                             @for($r = 0; $r < 4; $r++)

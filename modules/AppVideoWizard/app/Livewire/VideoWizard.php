@@ -20397,9 +20397,23 @@ PROMPT;
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
-                    // Generate 4 SEPARATE images for each collage page (not a single grid)
-                    // Each image is a complete, properly-framed shot with consistency data
+                    // Generate 4 SEPARATE images for the FIRST PAGE ONLY (not all pages at once)
+                    // This prevents memory exhaustion and timeout issues
+                    // Additional pages can be generated on-demand via generateCollagePage()
+                    $maxPagesToGenerate = 1; // Only generate first page (4 images) by default
+                    $pagesGenerated = 0;
+
                     foreach ($this->sceneCollages[$sceneIndex]['collages'] as $pageIdx => &$collageData) {
+                        // Stop after generating max pages to prevent resource exhaustion
+                        if ($pagesGenerated >= $maxPagesToGenerate) {
+                            // Mark remaining pages as 'pending' - user can generate them manually
+                            $collageData['status'] = 'pending';
+                            Log::info('VideoWizard: Skipping collage page (will generate on demand)', [
+                                'sceneIndex' => $sceneIndex,
+                                'pageIndex' => $pageIdx,
+                            ]);
+                            continue;
+                        }
                         $pageShots = [];
                         $shotIndicesForPage = [];
                         foreach ($collageData['shots'] as $regionIdx => $shotIdx) {
@@ -20611,18 +20625,24 @@ PROMPT;
                             'regionCount' => count($collageData['regionImages']),
                             'allReady' => $allRegionsReady,
                         ]);
+
+                        $pagesGenerated++;
                     }
                     unset($collageData);
 
-                    // Check overall status
-                    $allReady = true;
-                    foreach ($this->sceneCollages[$sceneIndex]['collages'] as $collageData) {
-                        if ($collageData['status'] !== 'ready') {
-                            $allReady = false;
-                            break;
-                        }
+                    // Check overall status - only check FIRST PAGE for initial readiness
+                    // Other pages are pending and will be generated on-demand
+                    $firstPageStatus = $this->sceneCollages[$sceneIndex]['collages'][0]['status'] ?? 'pending';
+                    $firstPageReady = ($firstPageStatus === 'ready');
+                    $this->sceneCollages[$sceneIndex]['status'] = $firstPageReady ? 'ready' : 'processing';
+
+                    // Notify user if there are more pages to generate
+                    $totalPages = $this->sceneCollages[$sceneIndex]['totalPages'] ?? 1;
+                    if ($totalPages > 1 && $firstPageReady) {
+                        $this->dispatch('generation-status', [
+                            'message' => "Generated first 4 shots. " . ($totalPages - 1) . " more page(s) available - click 'Generate Page' to create them."
+                        ]);
                     }
-                    $this->sceneCollages[$sceneIndex]['status'] = $allReady ? 'ready' : 'processing';
 
                     // If collage is ready synchronously, extract quadrants to shots immediately
                     if ($allReady) {
@@ -20651,6 +20671,236 @@ PROMPT;
             ]);
         } finally {
             $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate images for a specific collage page on demand.
+     * Called when user wants to generate additional pages beyond the first 4 shots.
+     */
+    public function generateCollagePage(int $sceneIndex, int $pageIndex): void
+    {
+        if (!isset($this->sceneCollages[$sceneIndex])) {
+            $this->error = __('Collage not initialized for this scene');
+            return;
+        }
+
+        $collageData = &$this->sceneCollages[$sceneIndex]['collages'][$pageIndex] ?? null;
+        if (!$collageData) {
+            $this->error = __('Collage page not found');
+            return;
+        }
+
+        // Check if already generated
+        if ($collageData['status'] === 'ready' || $collageData['status'] === 'processing') {
+            return;
+        }
+
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        $shots = $decomposed['shots'] ?? [];
+
+        if (empty($shots)) {
+            $this->error = __('No shots found for this scene');
+            return;
+        }
+
+        $this->isLoading = true;
+        $collageData['status'] = 'generating';
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+            $scene = $this->script['scenes'][$sceneIndex] ?? [];
+            $project = WizardProject::find($this->projectId);
+
+            if (!$project) {
+                throw new \Exception('Project not found');
+            }
+
+            // Get shots for this page
+            $pageShots = [];
+            $shotIndicesForPage = [];
+            foreach ($collageData['shots'] as $regionIdx => $shotIdx) {
+                $shot = $shots[$shotIdx] ?? null;
+                if ($shot) {
+                    $pageShots[$regionIdx] = $shot;
+                    $shotIndicesForPage[$regionIdx] = $shotIdx;
+                }
+            }
+
+            $sceneDescription = $scene['visualDescription'] ?? $scene['narration'] ?? 'a cinematic scene';
+            if (is_array($sceneDescription)) {
+                $sceneDescription = implode(' ', array_filter($sceneDescription));
+            }
+
+            // Build consistency context
+            $consistencyContext = $this->buildCollageConsistencyContext($sceneIndex);
+
+            // Get location type
+            $locationType = 'INTERIOR';
+            $locationName = '';
+            $sceneDNA = $this->sceneMemory['sceneDNA']['scenes'][$sceneIndex] ?? null;
+            if ($sceneDNA && isset($sceneDNA['location'])) {
+                $locationType = strtoupper($sceneDNA['location']['type'] ?? 'INTERIOR');
+                $locationName = $sceneDNA['location']['name'] ?? '';
+            }
+
+            // Framing instructions
+            $framingInstructions = [
+                'establishing' => 'ULTRA-WIDE establishing shot showing the entire environment.',
+                'wide' => 'WIDE SHOT showing the full scene with characters fully visible.',
+                'medium' => 'MEDIUM SHOT framing the main subject from waist up. FACE CLEARLY VISIBLE.',
+                'medium-close' => 'MEDIUM CLOSE-UP framing from chest up. FACE CLEARLY VISIBLE.',
+                'close-up' => 'CLOSE-UP with CHARACTER FACE filling most of the frame.',
+                'extreme-close-up' => 'EXTREME CLOSE-UP focusing on CHARACTER FACE.',
+                'reaction' => 'REACTION SHOT capturing emotional response on FACE.',
+                'detail' => 'DETAIL SHOT with CHARACTER FACE OR UPPER BODY visible.',
+                'over-shoulder' => 'OVER-THE-SHOULDER shot with facing character FACE visible.',
+                'pov' => 'POV shot showing what the character sees.',
+                'insert' => 'INSERT SHOT with CHARACTER visible.',
+            ];
+
+            $collageData['regionImages'] = [];
+            $allRegionsReady = true;
+            $hasAsyncJobs = false;
+
+            // Generate each shot image
+            foreach ($pageShots as $regionIdx => $shot) {
+                $shotType = $shot['type'] ?? 'medium';
+                if (is_array($shotType)) {
+                    $shotType = $shotType['type'] ?? 'medium';
+                }
+                $shotDesc = $shot['imagePrompt'] ?? $shot['prompt'] ?? $shot['description'] ?? $sceneDescription;
+                if (is_array($shotDesc)) {
+                    $shotDesc = implode(' ', array_filter(array_map(fn($v) => is_string($v) ? $v : '', $shotDesc)));
+                }
+                $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
+                $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
+
+                // Build environment constraint
+                $environmentConstraint = ($locationType === 'EXTERIOR' || $locationType === 'OUTDOOR')
+                    ? "MANDATORY: OUTDOOR environment only. NO buildings interior."
+                    : "MANDATORY: INDOOR environment only. NO outdoor scenes.";
+
+                // Build the shot prompt
+                $shotPrompt = "{$framing}\n\nSCENE: {$shotDesc}\n\n{$environmentConstraint}";
+                if (!empty($consistencyContext['characters'])) {
+                    $shotPrompt .= "\n\nCHARACTERS: " . $consistencyContext['characters'];
+                }
+                if (!empty($consistencyContext['location'])) {
+                    $shotPrompt .= "\n\nLOCATION: " . $consistencyContext['location'];
+                }
+
+                // Generate the image
+                $result = $imageService->generateSceneImage($project, [
+                    'id' => "collage_{$sceneIndex}_page_{$pageIndex}_region_{$regionIdx}",
+                    'visualDescription' => $shotPrompt,
+                ], [
+                    'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                    'sceneIndex' => $sceneIndex,
+                    'teamId' => session('current_team_id', 0),
+                    'sceneMemory' => $this->sceneMemory,
+                    'storyboard' => $this->storyboard,
+                    'useCascade' => true,
+                ]);
+
+                if ($result['success'] && !empty($result['imageUrl'])) {
+                    $collageData['regionImages'][$regionIdx] = [
+                        'imageUrl' => $result['imageUrl'],
+                        'status' => 'ready',
+                        'shotType' => $shotType,
+                        'shotIndex' => $shotIndex,
+                    ];
+                } elseif (!empty($result['processingJobId'])) {
+                    $collageData['regionImages'][$regionIdx] = [
+                        'imageUrl' => null,
+                        'status' => 'processing',
+                        'jobId' => $result['processingJobId'],
+                        'shotType' => $shotType,
+                        'shotIndex' => $shotIndex,
+                    ];
+                    $allRegionsReady = false;
+                    $hasAsyncJobs = true;
+                } else {
+                    $collageData['regionImages'][$regionIdx] = [
+                        'imageUrl' => null,
+                        'status' => 'error',
+                        'error' => $result['error'] ?? 'Unknown error',
+                        'shotType' => $shotType,
+                        'shotIndex' => $shotIndex,
+                    ];
+                    $allRegionsReady = false;
+                }
+            }
+
+            // Set page status
+            if ($allRegionsReady) {
+                $collageData['status'] = 'ready';
+                $collageData['previewUrl'] = $collageData['regionImages'][0]['imageUrl'] ?? null;
+                // Extract to shots immediately
+                $this->extractCollagePageToShots($sceneIndex, $pageIndex);
+            } elseif ($hasAsyncJobs) {
+                $collageData['status'] = 'processing';
+            } else {
+                $collageData['status'] = 'error';
+            }
+
+            $this->saveProject();
+
+            Log::info('VideoWizard: Generated collage page on demand', [
+                'sceneIndex' => $sceneIndex,
+                'pageIndex' => $pageIndex,
+                'regionCount' => count($collageData['regionImages']),
+                'status' => $collageData['status'],
+            ]);
+
+        } catch (\Exception $e) {
+            $collageData['status'] = 'error';
+            $this->error = __('Failed to generate collage page: ') . $e->getMessage();
+            Log::error('VideoWizard: Collage page generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'pageIndex' => $pageIndex,
+                'error' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Extract a specific collage page's regions to shots.
+     */
+    protected function extractCollagePageToShots(int $sceneIndex, int $pageIndex): void
+    {
+        $collageData = $this->sceneCollages[$sceneIndex]['collages'][$pageIndex] ?? null;
+        if (!$collageData || empty($collageData['regionImages'])) {
+            return;
+        }
+
+        foreach ($collageData['regionImages'] as $regionIdx => $regionData) {
+            if (empty($regionData['imageUrl'])) {
+                continue;
+            }
+
+            $shotIdx = $regionData['shotIndex'] ?? ($collageData['shots'][$regionIdx] ?? null);
+            if ($shotIdx === null) {
+                continue;
+            }
+
+            // Update the shot with the region image
+            if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageUrl'] = $regionData['imageUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['imageStatus'] = 'ready';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['fromCollageRegion'] = [
+                    'pageIndex' => $pageIndex,
+                    'regionIndex' => $regionIdx,
+                ];
+
+                // Track source
+                $this->sceneCollages[$sceneIndex]['shotSources'][$shotIdx] = [
+                    'pageIndex' => $pageIndex,
+                    'regionIndex' => $regionIdx,
+                ];
+            }
         }
     }
 
