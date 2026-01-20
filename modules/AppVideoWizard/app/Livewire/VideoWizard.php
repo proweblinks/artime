@@ -3769,6 +3769,54 @@ class VideoWizard extends Component
     }
 
     /**
+     * Update scene speech type.
+     * Speech type determines if character lips move on screen (lip-sync):
+     * - narrator: External voiceover (NO lip-sync)
+     * - internal: Character's inner thoughts (NO lip-sync)
+     * - monologue: Character speaks aloud to self (lip-sync REQUIRED)
+     * - dialogue: Characters talk to each other (lip-sync REQUIRED)
+     *
+     * @param int $sceneIndex Scene index
+     * @param string $speechType Speech type (narrator, internal, monologue, dialogue)
+     */
+    public function updateSceneSpeechType(int $sceneIndex, string $speechType): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        // Validate speech type
+        $validTypes = ['narrator', 'internal', 'monologue', 'dialogue'];
+        if (!in_array($speechType, $validTypes, true)) {
+            $speechType = 'narrator'; // Default to narrator if invalid
+        }
+
+        // Initialize voiceover structure if needed
+        if (!isset($this->script['scenes'][$sceneIndex]['voiceover'])) {
+            $this->script['scenes'][$sceneIndex]['voiceover'] = [
+                'enabled' => true,
+                'text' => '',
+                'voiceId' => null,
+                'status' => 'pending',
+            ];
+        }
+
+        // Set speech type in voiceover structure
+        $this->script['scenes'][$sceneIndex]['voiceover']['speechType'] = $speechType;
+
+        // Also set at scene level for backward compatibility
+        $this->script['scenes'][$sceneIndex]['speechType'] = $speechType;
+
+        $this->saveProject();
+
+        Log::info('VideoWizard: Updated scene speech type', [
+            'sceneIndex' => $sceneIndex,
+            'speechType' => $speechType,
+            'needsLipSync' => in_array($speechType, ['monologue', 'dialogue'], true),
+        ]);
+    }
+
+    /**
      * Regenerate a single scene.
      * Phase 3: Uses context-aware regeneration when Story Bible is present.
      */
@@ -4151,6 +4199,12 @@ class VideoWizard extends Component
 
     /**
      * Sanitize voiceover structure.
+     *
+     * Speech types:
+     * - 'narrator': External voiceover describing the scene (NO lip-sync)
+     * - 'internal': Character's inner thoughts, heard but not spoken (NO lip-sync)
+     * - 'monologue': Character speaking aloud to themselves (lip-sync REQUIRED)
+     * - 'dialogue': Characters speaking to each other (lip-sync REQUIRED)
      */
     protected function sanitizeVoiceover($voiceover): array
     {
@@ -4158,11 +4212,22 @@ class VideoWizard extends Component
             $voiceover = [];
         }
 
+        // Validate speechType
+        $validSpeechTypes = ['narrator', 'internal', 'monologue', 'dialogue'];
+        $speechType = $voiceover['speechType'] ?? 'narrator';
+        if (!in_array($speechType, $validSpeechTypes)) {
+            $speechType = 'narrator';
+        }
+
         return [
             'enabled' => (bool)($voiceover['enabled'] ?? true),
             'text' => $this->ensureString($voiceover['text'] ?? null, ''),
             'voiceId' => $voiceover['voiceId'] ?? null,
             'status' => $this->ensureString($voiceover['status'] ?? null, 'pending'),
+            // NEW: Speech type for determining lip-sync requirements
+            'speechType' => $speechType,
+            // NEW: Character who is speaking (for monologue/dialogue)
+            'speakingCharacter' => $voiceover['speakingCharacter'] ?? null,
         ];
     }
 
@@ -15931,7 +15996,10 @@ PROMPT;
 
         // PHASE 6: Apply story beats to enhance shots with unique content
         // This gives each shot a unique visual description instead of sharing the same one
-        $shots = $this->applyStoryBeatsToShots($shots, $storyBeats, $visualDescription);
+        // Check scene speechType to determine if dialogue should trigger lip-sync
+        $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $sceneNeedsLipSync = in_array($speechType, ['monologue', 'dialogue'], true);
+        $shots = $this->applyStoryBeatsToShots($shots, $storyBeats, $visualDescription, $sceneNeedsLipSync);
 
         // Detect and fix similar adjacent shots (redundancy prevention)
         $shots = $this->detectAndFixSimilarShots($shots, 0.7);
@@ -16341,9 +16409,10 @@ PROMPT;
      * @param array $shots Basic shots from DynamicShotEngine
      * @param array|null $storyBeats AI-generated story beats
      * @param string $baseVisualDescription Fallback visual description
+     * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
      * @return array Enhanced shots with unique content
      */
-    protected function applyStoryBeatsToShots(array $shots, ?array $storyBeats, string $baseVisualDescription): array
+    protected function applyStoryBeatsToShots(array $shots, ?array $storyBeats, string $baseVisualDescription, bool $sceneNeedsLipSync = false): array
     {
         if (empty($storyBeats) || empty($storyBeats['beats'])) {
             // Fallback: add basic variety if no story beats
@@ -16372,7 +16441,7 @@ PROMPT;
 
             if ($beatShot) {
                 // Merge AI story content with engine timing/type
-                $enhancedShots[] = $this->mergeStoryBeatWithEngineShot($engineShot, $beatShot, $continuity, $i);
+                $enhancedShots[] = $this->mergeStoryBeatWithEngineShot($engineShot, $beatShot, $continuity, $i, $sceneNeedsLipSync);
                 $beatIndex++;
             } else {
                 // No more beat shots, use fallback
@@ -16383,7 +16452,7 @@ PROMPT;
         // If we have more beat shots than engine shots, add extras
         while ($beatIndex < count($beatShots)) {
             $beatShot = $beatShots[$beatIndex];
-            $extraShot = $this->createShotFromBeat($beatShot, $continuity, count($enhancedShots));
+            $extraShot = $this->createShotFromBeat($beatShot, $continuity, count($enhancedShots), $sceneNeedsLipSync);
             $enhancedShots[] = $extraShot;
             $beatIndex++;
         }
@@ -16393,8 +16462,15 @@ PROMPT;
 
     /**
      * Merge AI story beat content with engine shot structure.
+     *
+     * @param array $engineShot Base shot from DynamicShotEngine
+     * @param array $beatShot AI-generated story beat
+     * @param array $continuity Continuity notes
+     * @param int $index Shot index
+     * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
+     * @return array Merged shot
      */
-    protected function mergeStoryBeatWithEngineShot(array $engineShot, array $beatShot, array $continuity, int $index): array
+    protected function mergeStoryBeatWithEngineShot(array $engineShot, array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false): array
     {
         // Build unique visual description for this shot
         $uniqueVisual = $beatShot['uniqueVisualDescription'] ?? '';
@@ -16426,9 +16502,11 @@ PROMPT;
         $engineShot['emotion'] = $beatShot['emotion'] ?? '';
 
         // Dialogue for Multitalk
+        // Only set needsLipSync if scene's speechType is monologue/dialogue
+        // (narrator/internal voiceover = no lip movement even with dialogue text)
         if (!empty($beatShot['dialogue'])) {
             $engineShot['dialogue'] = $beatShot['dialogue'];
-            $engineShot['needsLipSync'] = true;
+            $engineShot['needsLipSync'] = $sceneNeedsLipSync;
             $engineShot['monologue'] = $beatShot['dialogue'];
         }
 
@@ -16594,8 +16672,14 @@ PROMPT;
 
     /**
      * Create a new shot structure from a story beat.
+     *
+     * @param array $beatShot AI-generated story beat
+     * @param array $continuity Continuity notes
+     * @param int $index Shot index
+     * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
+     * @return array New shot structure
      */
-    protected function createShotFromBeat(array $beatShot, array $continuity, int $index): array
+    protected function createShotFromBeat(array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false): array
     {
         $shotType = $beatShot['shotType'] ?? 'medium';
         $duration = $this->getClipDuration();
@@ -16612,7 +16696,9 @@ PROMPT;
             'subjectAction' => $beatShot['action'] ?? '',
             'emotion' => $beatShot['emotion'] ?? '',
             'dialogue' => $beatShot['dialogue'] ?? null,
-            'needsLipSync' => !empty($beatShot['dialogue']),
+            // Only set needsLipSync if scene's speechType is monologue/dialogue
+            // (narrator/internal voiceover = no lip movement even with dialogue text)
+            'needsLipSync' => $sceneNeedsLipSync && !empty($beatShot['dialogue']),
             'eyeline' => $beatShot['eyeline'] ?? null,
             'beatType' => $beatShot['beatType'] ?? 'narrative',
             'imageUrl' => null,
@@ -17406,7 +17492,10 @@ PROMPT;
 
         // Get scene emotional beat if available
         $emotionalBeat = $scene['emotionalBeat'] ?? $scene['mood'] ?? null;
-        $hasDialogue = !empty($scene['dialogue']) || !empty($scene['narration']);
+        // Use speechType to determine if scene has actual dialogue/monologue (requires lip-sync)
+        // narrator/internal = NO lip-sync, monologue/dialogue = lip-sync required
+        $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $hasDialogue = in_array($speechType, ['monologue', 'dialogue'], true);
         $pacing = $this->content['pacing'] ?? 'balanced';
 
         // PROFESSIONAL SHOT SEQUENCING PATTERNS
@@ -19500,6 +19589,12 @@ PROMPT;
             return;
         }
 
+        // Check speechType to determine if lip-sync should be applied
+        // narrator/internal = NO lip-sync (voiceover only)
+        // monologue/dialogue = lip-sync required (character speaks on screen)
+        $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $sceneNeedsLipSync = in_array($speechType, ['monologue', 'dialogue'], true);
+
         // Parse dialogue
         $segments = $this->parseSceneDialogue($narration);
         if (empty($segments)) {
@@ -19528,7 +19623,11 @@ PROMPT;
                 if (!$seg['isNarrator']) {
                     $shotDialogue .= ($shotDialogue ? ' ' : '') . $seg['text'];
                     $shotSpeakers[$seg['speaker']] = true;
-                    $needsLipSync = true;
+                    // Only set needsLipSync if scene speechType requires it
+                    // (monologue/dialogue = character lips move, narrator/internal = no lip movement)
+                    if ($sceneNeedsLipSync) {
+                        $needsLipSync = true;
+                    }
                 }
             }
 
@@ -22241,7 +22340,7 @@ PROMPT;
     {
         if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex])) {
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['selectedShot'] = $shotIndex;
-            $this->saveProject();
+            // Note: Removed saveProject() - selecting a shot is a UI state change, not a data modification
         }
     }
 

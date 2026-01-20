@@ -37,6 +37,7 @@
          totalShots: {{ $consecutiveReadyCount }},
          shots: {{ json_encode($consecutiveShots) }},
          isPlaying: false,
+         previewTab: '{{ $hasVideo ? 'video' : 'image' }}',
 
          init() {
              if (this.autoPlayEnabled && this.totalShots > 0) {
@@ -117,17 +118,21 @@
 
         {{-- Content Area (scrollable) --}}
         <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
-            {{-- Tab Buttons --}}
+            {{-- Tab Buttons (Alpine.js for instant switching, no server round-trip) --}}
             @if($hasVideo)
                 <div style="display: flex; gap: 0.4rem; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); flex-shrink: 0;">
                     <button type="button"
-                            wire:click="switchShotPreviewTab('image')"
-                            style="padding: 0.35rem 0.75rem; background: {{ $shotPreviewTab === 'image' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $shotPreviewTab === 'image' ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.4rem; color: {{ $shotPreviewTab === 'image' ? 'white' : 'rgba(255,255,255,0.7)' }}; cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                            @click="previewTab = 'image'"
+                            :style="previewTab === 'image'
+                                ? 'padding: 0.35rem 0.75rem; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
+                                : 'padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
                         🖼️ {{ __('Image') }}
                     </button>
                     <button type="button"
-                            wire:click="switchShotPreviewTab('video')"
-                            style="padding: 0.35rem 0.75rem; background: {{ $shotPreviewTab === 'video' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.05)' }}; border: 1px solid {{ $shotPreviewTab === 'video' ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.4rem; color: {{ $shotPreviewTab === 'video' ? 'white' : 'rgba(255,255,255,0.7)' }}; cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                            @click="previewTab = 'video'"
+                            :style="previewTab === 'video'
+                                ? 'padding: 0.35rem 0.75rem; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
+                                : 'padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
                         🎬 {{ __('Video') }}
                     </button>
                 </div>
@@ -135,8 +140,9 @@
 
             {{-- Preview Container --}}
             <div style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; background: rgba(0,0,0,0.3); min-height: 200px; max-height: 45vh; position: relative; flex-shrink: 0;">
-                {{-- Image Preview --}}
-                <div style="display: {{ $shotPreviewTab === 'image' || !$hasVideo ? 'flex' : 'none' }}; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                {{-- Image Preview (Alpine.js controlled visibility) --}}
+                <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
+                     style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                     @if($hasImage)
                         <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotPreviewShotIndex + 1 }}" style="max-width: 100%; max-height: 42vh; object-fit: contain; border-radius: 0.4rem; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
                     @else
@@ -147,9 +153,10 @@
                     @endif
                 </div>
 
-                {{-- Video Preview --}}
+                {{-- Video Preview (Alpine.js controlled visibility) --}}
                 @if($hasVideo)
-                    <div style="display: {{ $shotPreviewTab === 'video' ? 'flex' : 'none' }}; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                    <div x-show="previewTab === 'video'"
+                         style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                         <video
                             src="{{ $shot['videoUrl'] }}"
                             controls

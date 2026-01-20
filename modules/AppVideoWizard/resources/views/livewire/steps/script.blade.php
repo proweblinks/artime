@@ -934,6 +934,46 @@
         color: rgba(255, 255, 255, 0.6);
     }
 
+    /* Speech Type Selector - determines if character lips move on screen */
+    .vw-script-step .vw-speech-type-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(139, 92, 246, 0.08);
+        border-radius: 0.5rem;
+        border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .vw-script-step .vw-speech-type-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+    }
+
+    .vw-script-step .vw-speech-type-select {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        color: white;
+        font-size: 0.8rem;
+        cursor: pointer;
+        min-width: 140px;
+    }
+
+    .vw-script-step .vw-speech-type-select:focus {
+        border-color: rgba(139, 92, 246, 0.5);
+        outline: none;
+    }
+
+    .vw-script-step .vw-speech-type-hint {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-left: auto;
+    }
+
     /* Narrative Structure Intelligence Styles */
     .vw-script-step .vw-narrative-section {
         background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%);
@@ -2251,6 +2291,15 @@
                         </div>
 
                         {{-- Narration/Voiceover Section --}}
+                        @php
+                            $currentSpeechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+                            $speechTypeOptions = [
+                                'narrator' => ['label' => '🎙️ Narrator', 'desc' => 'External voiceover (no lip movement)'],
+                                'internal' => ['label' => '💭 Internal', 'desc' => 'Character thoughts (no lip movement)'],
+                                'monologue' => ['label' => '🗣️ Monologue', 'desc' => 'Character speaks aloud (lips move)'],
+                                'dialogue' => ['label' => '💬 Dialogue', 'desc' => 'Characters talking (lips move)'],
+                            ];
+                        @endphp
                         <div class="vw-scene-section">
                             <div class="vw-scene-section-header">
                                 <span class="vw-scene-section-label">🎙️ {{ __('Voiceover') }}</span>
@@ -2278,6 +2327,26 @@
                                     🎵 {{ __('Music/ambient only - no voiceover for this scene') }}
                                 </div>
                             @else
+                                {{-- Speech Type Selector --}}
+                                <div class="vw-speech-type-row">
+                                    <span class="vw-speech-type-label">{{ __('Speech Type') }}:</span>
+                                    <select class="vw-speech-type-select"
+                                            wire:change="updateSceneSpeechType({{ $index }}, $event.target.value)"
+                                            title="{{ $speechTypeOptions[$currentSpeechType]['desc'] ?? '' }}">
+                                        @foreach($speechTypeOptions as $typeKey => $typeInfo)
+                                            <option value="{{ $typeKey }}" {{ $currentSpeechType === $typeKey ? 'selected' : '' }}>
+                                                {{ $typeInfo['label'] }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <span class="vw-speech-type-hint">
+                                        @if(in_array($currentSpeechType, ['monologue', 'dialogue']))
+                                            👄 {{ __('Lip-sync will be applied') }}
+                                        @else
+                                            🎙️ {{ __('Voiceover only (no lip-sync)') }}
+                                        @endif
+                                    </span>
+                                </div>
                                 <textarea class="vw-scene-textarea"
                                           placeholder="{{ __('Voiceover text for this scene...') }}"
                                           wire:blur="updateSceneNarration({{ $index }}, $event.target.value)">{{ $safeNarration }}</textarea>

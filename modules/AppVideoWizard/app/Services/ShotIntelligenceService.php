@@ -326,7 +326,7 @@ class ShotIntelligenceService
             'mood' => $scene['mood'] ?? $context['mood'] ?? 'neutral',
             'genre' => $context['genre'] ?? 'general',
             'pacing' => $context['pacing'] ?? 'balanced',
-            'has_dialogue' => !empty($scene['dialogue']) || $this->detectDialogue($scene['narration'] ?? '') ? 'yes' : 'no',
+            'has_dialogue' => $this->needsLipSync($scene) ? 'yes' : 'no',
             'characters' => implode(', ', $context['characters'] ?? []),
             'available_shot_types' => $this->getAvailableShotTypesForPrompt(),
             // Phase 4 & 5: Scene type and coverage pattern for enhanced prompts
@@ -880,9 +880,9 @@ class ShotIntelligenceService
             $type = 'close-up';
         }
 
-        // Check if this shot might have dialogue
-        $hasDialogue = $this->detectDialogue($scene['narration'] ?? '');
-        $needsLipSync = $hasDialogue && $position > 0.4; // Dialogue more likely in middle/end shots
+        // Check if this scene requires lip-sync (uses speechType, not pattern matching)
+        // Only monologue/dialogue speechTypes require lip-sync, not narrator voiceovers
+        $needsLipSync = $this->needsLipSync($scene);
 
         // Get optimal duration based on shot type
         $model = $needsLipSync ? 'multitalk' : 'minimax';
@@ -925,7 +925,51 @@ class ShotIntelligenceService
     }
 
     /**
-     * Detect if narration contains dialogue (speaking characters).
+     * Determine if a scene requires lip-sync animation.
+     *
+     * This checks the voiceover speechType which explicitly indicates whether
+     * the audio is narrator voiceover (no lip-sync) or character speech (lip-sync).
+     *
+     * Speech types requiring lip-sync:
+     * - 'monologue': Character speaking aloud to themselves
+     * - 'dialogue': Characters speaking to each other
+     *
+     * Speech types NOT requiring lip-sync:
+     * - 'narrator': External narrator describing the scene
+     * - 'internal': Character's inner thoughts (voiceover)
+     *
+     * @param array $scene Scene data with voiceover structure
+     * @return bool True if lip-sync animation is needed
+     */
+    public function needsLipSync(array $scene): bool
+    {
+        // Check speechType from voiceover structure (new system)
+        $speechType = $scene['voiceover']['speechType'] ?? null;
+
+        if ($speechType !== null) {
+            // Only monologue and dialogue require lip-sync
+            return in_array($speechType, ['monologue', 'dialogue'], true);
+        }
+
+        // Fallback: Check if speechType is set at scene level
+        $sceneSpeechType = $scene['speechType'] ?? null;
+        if ($sceneSpeechType !== null) {
+            return in_array($sceneSpeechType, ['monologue', 'dialogue'], true);
+        }
+
+        // Legacy fallback: Use pattern matching on narration (for old scripts)
+        // This maintains backward compatibility but defaults to NO lip-sync
+        // to avoid incorrectly applying lip-sync to narrator voiceovers
+        return false; // Default to no lip-sync for legacy scripts
+    }
+
+    /**
+     * Detect if narration contains dialogue indicators (speaking characters).
+     *
+     * DEPRECATED: This method uses pattern matching which can incorrectly detect
+     * narrator voiceover as dialogue. Use needsLipSync() with speechType instead.
+     *
+     * @deprecated Use needsLipSync() with voiceover.speechType instead
      */
     protected function detectDialogue(string $narration): bool
     {

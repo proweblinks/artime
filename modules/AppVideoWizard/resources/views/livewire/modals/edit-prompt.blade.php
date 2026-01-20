@@ -71,7 +71,7 @@
                 {{-- Edit Prompt Textarea --}}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Visual Description / Image Prompt') }}</label>
-                    <textarea wire:model="editPromptText"
+                    <textarea wire:model.blur="editPromptText"
                               placeholder="{{ __('Describe what you want to see in this scene...') }}"
                               style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
                 </div>
@@ -90,7 +90,7 @@
                     </p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
                         {{-- Enhancement Style Selector --}}
-                        <select wire:model="expanderStyle"
+                        <select wire:model.change="expanderStyle"
                                 style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
                             <option value="cinematic">🎬 {{ __('Cinematic') }}</option>
                             <option value="action">⚡ {{ __('Action') }}</option>
@@ -136,7 +136,7 @@
                         </label>
                         {{-- Scene Selector --}}
                         @if($useReferenceScene)
-                        <select wire:model="referenceSceneIndex"
+                        <select wire:model.change="referenceSceneIndex"
                                 style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
                             <option value="">{{ __('Select reference scene...') }}</option>
                             @for($i = 0; $i < $editPromptSceneIndex; $i++)
@@ -200,7 +200,7 @@
                 {{-- Narration --}}
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Narration / Voiceover Text') }}</label>
-                    <textarea wire:model="editSceneNarration"
+                    <textarea wire:model.blur="editSceneNarration"
                               placeholder="{{ __('Enter the narration or dialogue for this scene...') }}"
                               style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 150px; resize: vertical;"></textarea>
                     <p style="color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: 0.35rem;">

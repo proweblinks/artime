@@ -94,6 +94,15 @@ window.multiShotVideoPolling = function() {
                     $aiReasoning = $firstShot['aiReasoning'] ?? '';
                     $hasVariableDurations = count(array_unique(array_column($decomposed['shots'], 'duration'))) > 1;
                     $lipSyncCount = collect($decomposed['shots'])->filter(fn($s) => $s['needsLipSync'] ?? false)->count();
+                    // Speech type determines if character lips move on screen
+                    $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+                    $speechTypeLabels = [
+                        'narrator' => ['label' => '🎙️ Narrator', 'class' => 'msm-speech-narrator', 'desc' => 'External voiceover (no lip movement)'],
+                        'internal' => ['label' => '💭 Internal', 'class' => 'msm-speech-internal', 'desc' => 'Character thoughts (no lip movement)'],
+                        'monologue' => ['label' => '🗣️ Monologue', 'class' => 'msm-speech-monologue', 'desc' => 'Character speaks aloud (lips move)'],
+                        'dialogue' => ['label' => '💬 Dialogue', 'class' => 'msm-speech-dialogue', 'desc' => 'Characters talking (lips move)'],
+                    ];
+                    $speechInfo = $speechTypeLabels[$speechType] ?? $speechTypeLabels['narrator'];
                 @endphp
                 <div class="msm-stats">
                     <span>📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}</span>
@@ -106,8 +115,10 @@ window.multiShotVideoPolling = function() {
                     @if($hasVariableDurations)
                         <span class="msm-var-badge">⏱️ {{ __('Variable') }}</span>
                     @endif
+                    {{-- Speech Type Badge - shows whether lips move --}}
+                    <span class="msm-speech-badge {{ $speechInfo['class'] }}" title="{{ $speechInfo['desc'] }}">{{ $speechInfo['label'] }}</span>
                     @if($lipSyncCount > 0)
-                        <span class="msm-lipsync-badge">💬 {{ $lipSyncCount }} {{ __('lip-sync') }}</span>
+                        <span class="msm-lipsync-badge">👄 {{ $lipSyncCount }} {{ __('lip-sync') }}</span>
                     @endif
                 </div>
                 @if($isAiGenerated && $aiReasoning)
@@ -508,9 +519,10 @@ window.multiShotVideoPolling = function() {
                                         $audioGenerating = ($shot['audioStatus'] ?? '') === 'generating';
                                     @endphp
                                     <div class="msm-shot-meta">
-                                        @if($needsLipSync)<span class="msm-badge-lipsync" title="{{ __('AI recommends lip-sync') }}">👄</span>@endif
+                                        @if($needsLipSync)<span class="msm-badge-lipsync" title="{{ __('Lip-sync: Character speaks on screen (lips will move via MultiTalk)') }}">👄</span>@endif
                                         @if($aiRecommended)<span class="msm-badge-ai" title="{{ __('AI recommended') }}">🤖</span>@endif
-                                        @if($hasDialogue)<span class="msm-badge-dialog">💬</span>@endif
+                                        @if($hasDialogue && !$needsLipSync)<span class="msm-badge-voiceover" title="{{ __('Voiceover only: Text spoken off-screen (no lip movement)') }}">🎙️</span>@endif
+                                        @if($hasDialogue && $needsLipSync)<span class="msm-badge-dialog" title="{{ __('Has dialogue text') }}">💬</span>@endif
                                         @if($hasAudioReady)<span class="msm-badge-audio" title="{{ __('Voiceover ready') }}">🎤</span>@endif
                                         @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
@@ -621,14 +633,14 @@ window.multiShotVideoPolling = function() {
                                                 <button wire:click.stop="openFrameCaptureModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-capture-btn">🎯→{{ $shotIndex + 2 }}</button>
                                             @endif
                                             {{-- Re-Animate Button --}}
-                                            <button wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-reanimate-btn {{ $wrongModel ? 'msm-needs-reanimate' : '' }}" title="{{ $wrongModel ? __('Shot has dialogue - should use Multitalk') : __('Re-animate with different model') }}">
+                                            <button wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-reanimate-btn {{ $wrongModel ? 'msm-needs-reanimate' : '' }}" title="{{ $wrongModel ? __('Needs lip-sync - should use MultiTalk') : __('Re-animate with different model') }}">
                                                 🔄
                                             </button>
                                         </div>
                                         {{-- Warning if animated with wrong model --}}
                                         @if($wrongModel)
                                             <div class="msm-wrong-model-hint">
-                                                ⚠️ {{ __('Has dialogue, used') }} {{ ucfirst($usedModel) }}
+                                                ⚠️ {{ __('Needs lip-sync, used') }} {{ ucfirst($usedModel) }}
                                             </div>
                                         @endif
                                     @elseif($hasImage && !$isGenVid)
@@ -865,7 +877,7 @@ window.multiShotVideoPolling = function() {
 
                     @if($needsLipSync && !$hasAudio)
                         <div class="msm-lipsync-hint">
-                            💡 {{ __('This shot has dialogue - Multitalk recommended') }}
+                            💡 {{ __('Character speaks on-screen - generate voiceover for MultiTalk lip-sync') }}
                         </div>
                     @endif
                 @endif
@@ -1124,6 +1136,7 @@ window.multiShotVideoPolling = function() {
 .msm-shot-type { color: rgba(255,255,255,0.65); font-size: 0.75rem; font-weight: 500; }
 .msm-shot-meta { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; }
 .msm-badge-dialog { background: linear-gradient(135deg, rgba(251,191,36,0.45), rgba(245,158,11,0.35)); color: #fcd34d; padding: 0.15rem 0.35rem; border-radius: 5px; font-size: 0.65rem; font-weight: 600; }
+.msm-badge-voiceover { background: linear-gradient(135deg, rgba(100,116,139,0.45), rgba(71,85,105,0.35)); color: #94a3b8; padding: 0.15rem 0.35rem; border-radius: 5px; font-size: 0.65rem; font-weight: 600; }
 .msm-dur { font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 5px; }
 .msm-dur.green { color: #4ade80; background: rgba(34,197,94,0.15); }
 .msm-dur.yellow { color: #fde047; background: rgba(234,179,8,0.15); }
@@ -1283,6 +1296,12 @@ window.multiShotVideoPolling = function() {
 .msm-ai-badge { background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(6,182,212,0.3)); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; cursor: help; }
 .msm-var-badge { background: rgba(139,92,246,0.25); color: #a78bfa; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; }
 .msm-lipsync-badge { background: rgba(251,191,36,0.25); color: #fbbf24; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; }
+/* Speech Type Badges - indicates whether character lips move on screen */
+.msm-speech-badge { padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600; cursor: help; }
+.msm-speech-narrator { background: rgba(100,116,139,0.3); color: #94a3b8; } /* Slate - external voiceover, no lip-sync */
+.msm-speech-internal { background: rgba(168,85,247,0.25); color: #c084fc; } /* Purple - thoughts, no lip-sync */
+.msm-speech-monologue { background: rgba(236,72,153,0.25); color: #f472b6; } /* Pink - speaking aloud, NEEDS lip-sync */
+.msm-speech-dialogue { background: rgba(59,130,246,0.25); color: #60a5fa; } /* Blue - conversation, NEEDS lip-sync */
 .msm-ai-reasoning { font-size: 0.7rem; color: rgba(255,255,255,0.6); background: rgba(16,185,129,0.1); padding: 0.35rem 0.6rem; border-radius: 0.35rem; margin-top: 0.5rem; border-left: 3px solid rgba(16,185,129,0.5); cursor: help; }
 
 /* Shot Card Enhanced Badges */

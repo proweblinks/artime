@@ -596,6 +596,15 @@ CONTENT DEPTH: {$contentDepth}
 - NO placeholder text like "transition" or "more to come"
 - Every scene must advance the narrative
 
+=== VOICEOVER SPEECH TYPES (CRITICAL FOR LIP-SYNC) ===
+speechType determines whether character's lips move on screen:
+- "narrator": External narrator describes scene (NO lip movement)
+- "internal": Character's inner thoughts heard as voiceover (NO lip movement)
+- "monologue": Character speaks OUT LOUD to self (lips MOVE - set speakingCharacter)
+- "dialogue": Characters talk to each other (lips MOVE - set speakingCharacter)
+
+DEFAULT: Use "narrator" unless the script clearly shows a character speaking aloud.
+
 === JSON FORMAT ===
 Respond with ONLY valid JSON (no markdown, no explanation):
 {
@@ -606,7 +615,11 @@ Respond with ONLY valid JSON (no markdown, no explanation):
       "narration": "Full narrator script for this scene (~{$wordsPerScene} words)",
       "visualDescription": "Detailed visual description for AI image generation (50-100 words)",
       "mood": "Scene emotional tone (one word: inspiring, dramatic, peaceful, exciting, etc.)",
-      "transition": "cut"
+      "transition": "cut",
+      "voiceover": {
+        "speechType": "narrator",
+        "speakingCharacter": null
+      }
     }
   ]
 }
@@ -2593,6 +2606,12 @@ JSON;
 
     /**
      * Sanitize voiceover structure.
+     *
+     * Speech types:
+     * - 'narrator': External voiceover describing the scene (NO lip-sync)
+     * - 'internal': Character's inner thoughts, heard but not spoken (NO lip-sync)
+     * - 'monologue': Character speaking aloud to themselves (lip-sync REQUIRED)
+     * - 'dialogue': Characters speaking to each other (lip-sync REQUIRED)
      */
     protected function sanitizeVoiceover($voiceover): array
     {
@@ -2600,11 +2619,22 @@ JSON;
             $voiceover = [];
         }
 
+        // Validate speechType
+        $validSpeechTypes = ['narrator', 'internal', 'monologue', 'dialogue'];
+        $speechType = $voiceover['speechType'] ?? 'narrator';
+        if (!in_array($speechType, $validSpeechTypes)) {
+            $speechType = 'narrator';
+        }
+
         return [
             'enabled' => (bool)($voiceover['enabled'] ?? true),
             'text' => $this->ensureString($voiceover['text'] ?? null, ''),
             'voiceId' => $voiceover['voiceId'] ?? null,
             'status' => $this->ensureString($voiceover['status'] ?? null, 'pending'),
+            // NEW: Speech type for determining lip-sync requirements
+            'speechType' => $speechType,
+            // NEW: Character who is speaking (for monologue/dialogue)
+            'speakingCharacter' => $voiceover['speakingCharacter'] ?? null,
         ];
     }
 
@@ -2707,6 +2737,12 @@ Generate a new version of this scene with:
 - New visual description for AI image generation
 - Maintain connection to the overall topic
 
+VOICEOVER SPEECH TYPES (IMPORTANT):
+- "narrator": External narrator describing the scene (character's lips do NOT move)
+- "internal": Character's inner thoughts heard as voiceover (character's lips do NOT move)
+- "monologue": Character speaking ALOUD to themselves (character's lips MUST move)
+- "dialogue": Characters speaking to each other (character's lips MUST move)
+
 RESPOND WITH ONLY THIS JSON (no markdown):
 {
   "id": "{$existingScene['id']}",
@@ -2718,7 +2754,9 @@ RESPOND WITH ONLY THIS JSON (no markdown):
     "enabled": true,
     "text": "",
     "voiceId": null,
-    "status": "pending"
+    "status": "pending",
+    "speechType": "narrator",
+    "speakingCharacter": null
   },
   "duration": {$existingScene['duration']},
   "mood": "cinematic",
@@ -2791,6 +2829,18 @@ Generate a completely new version of this scene that:
 5. Maintains the established visual style and tone
 6. Keeps the same approximate duration
 
+VOICEOVER SPEECH TYPES (CRITICAL FOR LIP-SYNC):
+- "narrator": External narrator describing the scene (character's lips do NOT move)
+- "internal": Character's inner thoughts heard as voiceover (character's lips do NOT move)
+- "monologue": Character speaking ALOUD to themselves (character's lips MUST move)
+- "dialogue": Characters speaking to each other (character's lips MUST move)
+
+Set speechType based on WHO is speaking:
+- If a narrator describes the scene → "narrator"
+- If we hear a character's thoughts → "internal"
+- If a character speaks OUT LOUD alone → "monologue" (include speakingCharacter)
+- If characters talk to each other → "dialogue" (include speakingCharacter)
+
 RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
 {
   "id": "{$existingScene['id']}",
@@ -2802,7 +2852,9 @@ RESPOND WITH ONLY THIS JSON (no markdown, no explanation):
     "enabled": true,
     "text": "",
     "voiceId": null,
-    "status": "pending"
+    "status": "pending",
+    "speechType": "narrator",
+    "speakingCharacter": null
   },
   "duration": {$existingScene['duration']},
   "mood": "cinematic",
