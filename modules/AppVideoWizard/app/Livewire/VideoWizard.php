@@ -18908,6 +18908,76 @@ PROMPT;
     }
 
     /**
+     * Extract narrative context for a shot to create cinematic, action-focused prompts.
+     * Prevents "posed photo" look by emphasizing story moment and character action.
+     */
+    protected function extractNarrativeContextForShot(
+        int $shotIndex,
+        int $totalShots,
+        string $narration,
+        string $mood,
+        string $shotType
+    ): string {
+        // Define action verbs based on shot position in scene
+        $positionActions = [
+            'opening' => ['enters', 'arrives at', 'discovers', 'approaches', 'begins to'],
+            'middle' => ['engages with', 'reacts to', 'confronts', 'discusses', 'struggles with'],
+            'climax' => ['realizes', 'decides', 'fights', 'reveals', 'transforms'],
+            'closing' => ['departs', 'reflects on', 'concludes', 'embraces', 'accepts'],
+        ];
+
+        // Determine position in story beat
+        $position = 'middle';
+        if ($shotIndex === 0) {
+            $position = 'opening';
+        } elseif ($shotIndex === $totalShots - 1) {
+            $position = 'closing';
+        } elseif ($shotIndex >= ($totalShots * 0.6)) {
+            $position = 'climax';
+        }
+
+        // Shot-type specific action suggestions
+        $shotTypeActions = [
+            'establishing' => 'Characters are present in this environment, going about their business.',
+            'wide' => 'Characters move through the space with purpose.',
+            'medium' => 'Character is engaged in conversation or focused activity.',
+            'medium-close' => 'Character shows clear emotional expression while speaking or listening.',
+            'close-up' => 'Intense emotional moment - character processing a realization or feeling.',
+            'reaction' => 'Character reacts to something said or revealed - genuine surprise, concern, or understanding.',
+            'over-shoulder' => 'Two characters in conversation, the facing character expressing themselves.',
+        ];
+
+        $actionHint = $shotTypeActions[$shotType] ?? 'Character is in motion, engaged in the story.';
+
+        // Extract emotional context from mood
+        $emotionContext = '';
+        if (!empty($mood)) {
+            $emotionContext = "EMOTIONAL TONE: {$mood}. Characters should embody this feeling through body language and expression. ";
+        }
+
+        // Extract key action from narration if available
+        $narrativeHint = '';
+        if (!empty($narration)) {
+            // Get a portion of narration relevant to this shot
+            $sentences = preg_split('/(?<=[.!?])\s+/', trim($narration), -1, PREG_SPLIT_NO_EMPTY);
+            $sentenceCount = count($sentences);
+            if ($sentenceCount > 0) {
+                $sentencesPerShot = max(1, (int) ceil($sentenceCount / $totalShots));
+                $start = $shotIndex * $sentencesPerShot;
+                if ($start < $sentenceCount) {
+                    $relevantText = implode(' ', array_slice($sentences, $start, min(2, $sentenceCount - $start)));
+                    $narrativeHint = "STORY CONTEXT: {$relevantText} ";
+                }
+            }
+        }
+
+        return "ACTION: {$actionHint} " .
+            $emotionContext .
+            $narrativeHint .
+            "POSITION IN SCENE: {$position} moment. ";
+    }
+
+    /**
      * Get dialogue portion for a specific shot.
      * Distributes scene narration across shots.
      */
@@ -20506,36 +20576,54 @@ PROMPT;
                             $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
 
                             // Build a complete prompt for this individual shot
-                            // CRITICAL: Environment and location constraints FIRST to prevent spatial confusion
+                            // CRITICAL: Cinematic ACTION, not posed photos!
+
+                            // Get narrative context from scene
+                            $sceneNarration = $scene['narration'] ?? '';
+                            $sceneMood = $scene['mood'] ?? $scene['emotionalBeat'] ?? '';
+                            $sceneTitle = $scene['title'] ?? '';
+
+                            // Extract action context based on shot position
+                            $narrativeContext = $this->extractNarrativeContextForShot(
+                                $shotIndex,
+                                count($shots),
+                                $sceneNarration,
+                                $sceneMood,
+                                $shotType
+                            );
+
                             $environmentConstraint = $locationType === 'EXTERIOR'
-                                ? "MANDATORY ENVIRONMENT: OUTDOOR/EXTERIOR scene. All elements must be outdoors. NO indoor furniture, NO bathroom fixtures, NO interior walls."
-                                : "MANDATORY ENVIRONMENT: INDOOR/INTERIOR scene. All elements must be indoors. Appropriate interior setting with walls, ceiling, indoor lighting.";
+                                ? "OUTDOOR/EXTERIOR scene. NO indoor elements."
+                                : "INDOOR/INTERIOR scene. NO outdoor elements.";
 
                             $locationConstraint = '';
                             if (!empty($consistencyContext['location'])) {
-                                $locationConstraint = "SPECIFIC LOCATION: {$consistencyContext['location']}. ";
+                                $locationConstraint = "LOCATION: {$consistencyContext['location']}. ";
                             } elseif (!empty($locationName)) {
-                                $locationConstraint = "SPECIFIC LOCATION: {$locationName}. ";
+                                $locationConstraint = "LOCATION: {$locationName}. ";
                             }
 
-                            // Build prompt with ENVIRONMENT FIRST, then location, then scene details
-                            $shotPrompt = "{$environmentConstraint} " .
-                                "{$locationConstraint}" .
-                                "Create a single, complete, professionally composed {$shotType} shot. " .
-                                "FRAMING: {$framing} " .
-                                "SCENE CONTENT: {$shotDesc} " .
-                                "STYLE: Professional {$style} cinematography with {$style} color grading. ";
+                            // Build CINEMATIC prompt - emphasizing action and story moment
+                            $shotPrompt = "CINEMATIC FILM STILL - NOT a posed photograph. " .
+                                "This is a freeze-frame from a movie scene in progress. " .
+                                "{$framing} " .
+                                "{$environmentConstraint} {$locationConstraint}" .
+                                "STORY MOMENT: {$shotDesc} " .
+                                "{$narrativeContext} " .
+                                "STYLE: {$style} cinematography. ";
 
                             // Add character consistency
                             if (!empty($consistencyContext['characters'])) {
                                 $shotPrompt .= "CHARACTERS: {$consistencyContext['characters']} ";
                             }
-                            // Add visual style
-                            if (!empty($consistencyContext['style'])) {
-                                $shotPrompt .= "VISUAL STYLE: {$consistencyContext['style']} ";
-                            }
 
-                            $shotPrompt .= "CRITICAL: Respect the {$locationType} environment constraint. This must be a COMPLETE, properly framed image - not a crop or portion of a larger image.";
+                            // CRITICAL: Anti-posed-photo instructions
+                            $shotPrompt .= "CRITICAL REQUIREMENTS: " .
+                                "1) Characters must be CAUGHT IN ACTION - mid-gesture, mid-conversation, mid-movement. " .
+                                "2) NO characters looking directly at camera. NO posed photographs. NO newspaper-style portraits. " .
+                                "3) This is a CINEMATIC MOMENT - natural, candid, dynamic. " .
+                                "4) Characters should be DOING something, not standing still. " .
+                                "5) Capture genuine emotion and movement like a real film frame.";
 
                             $result = $imageService->generateSceneImage($project, [
                                 'id' => "collage_{$sceneIndex}_page_{$pageIdx}_region_{$regionIdx}",
@@ -20763,6 +20851,10 @@ PROMPT;
             $allRegionsReady = true;
             $hasAsyncJobs = false;
 
+            // Get scene narrative context
+            $sceneNarration = $scene['narration'] ?? '';
+            $sceneMood = $scene['mood'] ?? $scene['emotionalBeat'] ?? '';
+
             // Generate each shot image
             foreach ($pageShots as $regionIdx => $shot) {
                 $shotType = $shot['type'] ?? 'medium';
@@ -20776,19 +20868,38 @@ PROMPT;
                 $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
                 $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
 
+                // Extract narrative context for cinematic shots
+                $narrativeContext = $this->extractNarrativeContextForShot(
+                    $shotIndex,
+                    count($shots),
+                    $sceneNarration,
+                    $sceneMood,
+                    $shotType
+                );
+
                 // Build environment constraint
                 $environmentConstraint = ($locationType === 'EXTERIOR' || $locationType === 'OUTDOOR')
-                    ? "MANDATORY: OUTDOOR environment only. NO buildings interior."
-                    : "MANDATORY: INDOOR environment only. NO outdoor scenes.";
+                    ? "OUTDOOR scene. NO indoor elements."
+                    : "INDOOR scene. NO outdoor elements.";
 
-                // Build the shot prompt
-                $shotPrompt = "{$framing}\n\nSCENE: {$shotDesc}\n\n{$environmentConstraint}";
+                // Build CINEMATIC shot prompt - not posed photos!
+                $shotPrompt = "CINEMATIC FILM STILL - NOT a posed photograph. " .
+                    "Freeze-frame from a movie scene in progress. " .
+                    "{$framing} " .
+                    "{$environmentConstraint} " .
+                    "STORY MOMENT: {$shotDesc} " .
+                    "{$narrativeContext} ";
+
                 if (!empty($consistencyContext['characters'])) {
-                    $shotPrompt .= "\n\nCHARACTERS: " . $consistencyContext['characters'];
+                    $shotPrompt .= "CHARACTERS: " . $consistencyContext['characters'] . " ";
                 }
                 if (!empty($consistencyContext['location'])) {
-                    $shotPrompt .= "\n\nLOCATION: " . $consistencyContext['location'];
+                    $shotPrompt .= "LOCATION: " . $consistencyContext['location'] . " ";
                 }
+
+                // Anti-posed-photo instructions
+                $shotPrompt .= "CRITICAL: Characters caught in action - mid-gesture, mid-conversation. " .
+                    "NO looking at camera. NO posed photographs. Natural, cinematic, dynamic.";
 
                 // Generate the image
                 $result = $imageService->generateSceneImage($project, [
