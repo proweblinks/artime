@@ -19322,6 +19322,9 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
 
+            // Reset regenerate options UI after successful generation
+            $this->showVoiceRegenerateOptions = false;
+
             $this->saveProject();
 
             Log::info('Shot voiceover generated successfully', [

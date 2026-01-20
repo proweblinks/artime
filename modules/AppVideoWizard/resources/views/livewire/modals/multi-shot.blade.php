@@ -697,7 +697,7 @@ window.multiShotVideoPolling = function() {
                             @if($selShot['audioDuration'] ?? null)
                                 <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
                             @endif
-                            <button wire:click="toggleVoiceRegenerateOptions" class="msm-btn-regen-small" title="{{ __('Regenerate with different voice') }}">
+                            <button type="button" wire:click.stop.prevent="toggleVoiceRegenerateOptions" class="msm-btn-regen-small" title="{{ __('Regenerate with different voice') }}">
                                 🔄 {{ __('Regenerate') }}
                             </button>
                         </div>
@@ -706,13 +706,13 @@ window.multiShotVideoPolling = function() {
                         <div class="msm-audio-setup msm-audio-regenerate">
                             <div class="msm-regen-header">
                                 <span class="msm-regen-title">🔄 {{ __('Regenerate Voiceover') }}</span>
-                                <button wire:click="toggleVoiceRegenerateOptions" class="msm-btn-cancel-small">✕</button>
+                                <button type="button" wire:click.stop.prevent="toggleVoiceRegenerateOptions" class="msm-btn-cancel-small">✕</button>
                             </div>
 
                             {{-- Voice Selection --}}
                             <div class="msm-voice-select">
                                 <label>{{ __('Voice') }}:</label>
-                                <select wire:model="shotVoiceSelection" class="msm-voice-dropdown">
+                                <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
                                     <option value="alloy">Alloy ({{ __('Neutral') }})</option>
                                     <option value="echo">Echo ({{ __('Male') }})</option>
                                     <option value="fable">Fable ({{ __('Storytelling') }})</option>
@@ -725,14 +725,15 @@ window.multiShotVideoPolling = function() {
                             {{-- Monologue Preview/Edit --}}
                             <div class="msm-monologue-edit">
                                 <label>{{ __('Dialogue/Monologue') }}:</label>
-                                <textarea wire:model.lazy="shotMonologueEdit"
+                                <textarea wire:model.blur="shotMonologueEdit"
                                           class="msm-monologue-textarea"
                                           rows="2"
                                           placeholder="{{ __('Leave empty to keep existing text') }}"></textarea>
                             </div>
 
                             {{-- Regenerate Voice Button --}}
-                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                            <button type="button"
+                                    wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
                                     wire:loading.attr="disabled"
                                     wire:target="generateShotVoiceover"
                                     class="msm-btn msm-btn-voice msm-btn-regen">
@@ -758,7 +759,7 @@ window.multiShotVideoPolling = function() {
                             {{-- Voice Selection --}}
                             <div class="msm-voice-select">
                                 <label>{{ __('Voice') }}:</label>
-                                <select wire:model="shotVoiceSelection" class="msm-voice-dropdown">
+                                <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
                                     <option value="alloy">Alloy ({{ __('Neutral') }})</option>
                                     <option value="echo">Echo ({{ __('Male') }})</option>
                                     <option value="fable">Fable ({{ __('Storytelling') }})</option>
@@ -771,14 +772,15 @@ window.multiShotVideoPolling = function() {
                             {{-- Monologue Preview/Edit --}}
                             <div class="msm-monologue-edit">
                                 <label>{{ __('Dialogue/Monologue') }}:</label>
-                                <textarea wire:model.lazy="shotMonologueEdit"
+                                <textarea wire:model.blur="shotMonologueEdit"
                                           class="msm-monologue-textarea"
                                           rows="2"
                                           placeholder="{{ __('Leave empty to auto-generate from scene context') }}"></textarea>
                             </div>
 
                             {{-- Generate Voice Button --}}
-                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                            <button type="button"
+                                    wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
                                     wire:loading.attr="disabled"
                                     wire:target="generateShotVoiceover"
                                     class="msm-btn msm-btn-voice">
@@ -812,11 +814,11 @@ window.multiShotVideoPolling = function() {
 
             {{-- Generate Animation Button --}}
             @if($curModel === 'multitalk' && !$hasAudio)
-                <button disabled class="msm-gen-anim-btn msm-btn-disabled">
+                <button type="button" disabled class="msm-gen-anim-btn msm-btn-disabled">
                     🎬 {{ __('Generate voice first to use Multitalk') }}
                 </button>
             @else
-                <button wire:click="confirmVideoModelAndGenerate" wire:loading.attr="disabled" class="msm-gen-anim-btn">
+                <button type="button" wire:click.stop.prevent="confirmVideoModelAndGenerate" wire:loading.attr="disabled" class="msm-gen-anim-btn">
                     <span wire:loading.remove>🎬 {{ __('Generate Animation') }}</span>
                     <span wire:loading>⏳</span>
                 </button>
