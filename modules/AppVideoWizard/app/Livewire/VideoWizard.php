@@ -1703,155 +1703,8 @@ class VideoWizard extends Component
             $this->recalculateVoiceStatus();
         }
 
-        // BUG FIX: Repair any stuck 'generating' states where URL exists but status wasn't updated
-        $this->repairStuckReferenceImageStatus();
-
         // Initialize save hash to prevent redundant save after loading
         $this->lastSaveHash = $this->computeSaveHash();
-    }
-
-    /**
-     * Repair stuck referenceImageStatus states and missing base64 data.
-     * BUG FIX: When base64 fetch failed silently (returned false without throwing),
-     * the status would remain 'generating' even though the URL exists.
-     * This method fixes existing data on load AND fetches missing base64 for face consistency.
-     */
-    protected function repairStuckReferenceImageStatus(): void
-    {
-        $repaired = false;
-
-        // Fix Character Bible characters
-        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
-        foreach ($characters as $idx => $char) {
-            $hasUrl = !empty($char['referenceImage']);
-            $hasBase64 = !empty($char['referenceImageBase64']);
-            $isStuck = ($char['referenceImageStatus'] ?? '') === 'generating';
-            $isReady = ($char['referenceImageStatus'] ?? '') === 'ready';
-
-            // Case 1: Status stuck at 'generating' but URL exists
-            if ($hasUrl && $isStuck) {
-                $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageStatus'] = 'ready';
-                Log::info('Repaired stuck character referenceImageStatus', [
-                    'characterIndex' => $idx,
-                    'characterName' => $char['name'] ?? 'Unknown',
-                ]);
-                $repaired = true;
-            }
-
-            // Case 2: URL exists but base64 is missing - try to fetch it for face consistency
-            if ($hasUrl && !$hasBase64) {
-                try {
-                    $imageContent = $this->fetchUrlContent($char['referenceImage']);
-                    if ($imageContent !== false) {
-                        $base64Data = base64_encode($imageContent);
-                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
-
-                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageBase64'] = $base64Data;
-                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageMimeType'] = $mimeType;
-                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageStatus'] = 'ready';
-
-                        Log::info('Repaired missing character base64 data', [
-                            'characterIndex' => $idx,
-                            'characterName' => $char['name'] ?? 'Unknown',
-                            'base64Length' => strlen($base64Data),
-                        ]);
-                        $repaired = true;
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Could not fetch character portrait for repair', [
-                        'characterIndex' => $idx,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-        }
-
-        // Fix Location Bible locations
-        $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
-        foreach ($locations as $idx => $loc) {
-            $hasUrl = !empty($loc['referenceImage']);
-            $hasBase64 = !empty($loc['referenceImageBase64']);
-            $isStuck = ($loc['referenceImageStatus'] ?? '') === 'generating';
-
-            // Case 1: Status stuck
-            if ($hasUrl && $isStuck) {
-                $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageStatus'] = 'ready';
-                Log::info('Repaired stuck location referenceImageStatus', [
-                    'locationIndex' => $idx,
-                    'locationName' => $loc['name'] ?? 'Unknown',
-                ]);
-                $repaired = true;
-            }
-
-            // Case 2: URL exists but base64 missing
-            if ($hasUrl && !$hasBase64) {
-                try {
-                    $imageContent = $this->fetchUrlContent($loc['referenceImage']);
-                    if ($imageContent !== false) {
-                        $base64Data = base64_encode($imageContent);
-                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
-
-                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageBase64'] = $base64Data;
-                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageMimeType'] = $mimeType;
-                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageStatus'] = 'ready';
-
-                        Log::info('Repaired missing location base64 data', [
-                            'locationIndex' => $idx,
-                            'locationName' => $loc['name'] ?? 'Unknown',
-                            'base64Length' => strlen($base64Data),
-                        ]);
-                        $repaired = true;
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Could not fetch location image for repair', [
-                        'locationIndex' => $idx,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-        }
-
-        // Fix Style Bible
-        $styleBible = $this->sceneMemory['styleBible'] ?? [];
-        $hasUrl = !empty($styleBible['referenceImage']);
-        $hasBase64 = !empty($styleBible['referenceImageBase64']);
-        $isStuck = ($styleBible['referenceImageStatus'] ?? '') === 'generating';
-
-        if ($hasUrl && $isStuck) {
-            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
-            Log::info('Repaired stuck styleBible referenceImageStatus');
-            $repaired = true;
-        }
-
-        if ($hasUrl && !$hasBase64) {
-            try {
-                $imageContent = $this->fetchUrlContent($styleBible['referenceImage']);
-                if ($imageContent !== false) {
-                    $base64Data = base64_encode($imageContent);
-                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                    $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
-
-                    $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
-                    $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
-                    $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
-
-                    Log::info('Repaired missing styleBible base64 data', [
-                        'base64Length' => strlen($base64Data),
-                    ]);
-                    $repaired = true;
-                }
-            } catch (\Exception $e) {
-                Log::warning('Could not fetch style reference for repair', ['error' => $e->getMessage()]);
-            }
-        }
-
-        // Save if any repairs were made
-        if ($repaired) {
-            $this->saveProject();
-            Log::info('Saved project after repairing reference image data');
-        }
     }
 
     /**
@@ -12410,11 +12263,22 @@ PROMPT;
                 // Check if we had existing data for this character (to preserve user settings)
                 $existing = $existingDataMap[$lowerName] ?? null;
 
+                // PROTECTION: If user has manually modified scenes, NEVER overwrite them
+                $userModifiedScenes = $existing['userModifiedScenes'] ?? false;
+                $existingScenes = $existing['scenes'] ?? $existing['appliedScenes'] ?? [];
+                $hasExistingScenes = !empty($existingScenes);
+
+                // Determine which scenes to use:
+                // 1. If userModifiedScenes flag is set, always use existing
+                // 2. If existing has scenes (even without flag), preserve them for backward compatibility
+                // 3. Otherwise use auto-detected scenes
+                $finalScenes = ($userModifiedScenes || $hasExistingScenes)
+                    ? $existingScenes
+                    : $detectedScenes;
+
                 // Convert Story Bible character to Character Bible format
                 // Preserve existing ID or generate new one for portrait generation
                 $characterId = $existing['id'] ?? $bibleChar['id'] ?? ('char_' . time() . '_' . $idx);
-                // Support both field names for backward compatibility
-                $existingScenes = $existing['scenes'] ?? $existing['appliedScenes'] ?? [];
                 $characterBibleFormat = [
                     'id' => $characterId,
                     'name' => $name,
@@ -12422,12 +12286,17 @@ PROMPT;
                     'traits' => $bibleChar['traits'] ?? [],
                     'role' => $bibleChar['role'] ?? 'supporting',
                     'arc' => $bibleChar['arc'] ?? '',
-                    // Use existing scene assignments if user has set them, otherwise auto-detected
-                    'scenes' => (!empty($existingScenes)) ? $existingScenes : $detectedScenes,
+                    // PROTECTED: Scene assignments with user modification tracking
+                    'scenes' => $finalScenes,
+                    'userModifiedScenes' => $userModifiedScenes, // Preserve the flag
                     // Preserve user's reference image, or use Story Bible's
                     'referenceImage' => $existing['referenceImage'] ?? $bibleChar['referenceImage'] ?? '',
                     'referenceImageSource' => $existing['referenceImageSource'] ?? (!empty($bibleChar['referenceImage']) ? 'story-bible' : ''),
+                    'referenceImageStatus' => $existing['referenceImageStatus'] ?? 'none',
+                    'referenceImageBase64' => $existing['referenceImageBase64'] ?? '',
+                    'referenceImageMimeType' => $existing['referenceImageMimeType'] ?? '',
                     // Preserve DNA fields from existing, or initialize empty
+                    'characterDNA' => $existing['characterDNA'] ?? '',
                     'hair' => (!empty($existing['hair']['color'])) ? $existing['hair'] : ['color' => '', 'style' => '', 'length' => '', 'texture' => ''],
                     'wardrobe' => (!empty($existing['wardrobe']['outfit'])) ? $existing['wardrobe'] : ['outfit' => '', 'colors' => '', 'style' => '', 'footwear' => ''],
                     'makeup' => (!empty($existing['makeup']['style'])) ? $existing['makeup'] : ['style' => '', 'details' => ''],
@@ -12507,81 +12376,143 @@ PROMPT;
                 $sceneExplicitLocations[$idx] = strtolower(trim($scene['location'] ?? ''));
             }
 
-            // STEP 3: Add Story Bible locations with auto-detected scene assignments
-            // IMPROVED ALGORITHM: Priority-based matching with lower character threshold
-            $syncedLocations = [];
+            // STEP 3: SCORED MATCHING ALGORITHM
+            // Instead of "first match wins", compute scores for all location-scene pairs
+            // Then assign each scene to its BEST matching location
+
+            // Build location data with search terms
+            $locationSearchData = [];
             foreach ($storyBibleLocations as $idx => $bibleLoc) {
                 $name = $bibleLoc['name'] ?? '';
                 if (empty($name)) continue;
 
                 $lowerName = strtolower($name);
-                $detectedScenes = [];
 
-                // Build search terms with improved matching
-                // Primary: full location name
+                // Build search terms
                 $searchTermsFull = [$lowerName];
-
-                // Secondary: significant name parts (4+ chars instead of 6+ for better matching)
                 $nameParts = preg_split('/[\s\-_]+/', $lowerName);
                 $searchTermsParts = [];
+                $commonExclusions = ['the', 'and', 'with', 'from', 'into', 'area', 'place', 'room', 'space'];
                 foreach ($nameParts as $part) {
-                    // Use 4+ chars to match common locations like "room", "beach", "park"
-                    // Exclude very common words that could over-match
-                    $commonExclusions = ['the', 'and', 'with', 'from', 'into', 'area', 'place'];
                     if (strlen($part) >= 4 && !in_array($part, $commonExclusions)) {
                         $searchTermsParts[] = $part;
                     }
                 }
 
-                foreach ($sceneTexts as $sceneIdx => $text) {
-                    $matched = false;
+                $locationSearchData[$idx] = [
+                    'name' => $name,
+                    'lowerName' => $lowerName,
+                    'fullTerms' => $searchTermsFull,
+                    'partTerms' => $searchTermsParts,
+                    'bibleLoc' => $bibleLoc,
+                ];
+            }
 
-                    // PRIORITY 1: Exact or partial match in scene's explicit location field
-                    $explicitLoc = $sceneExplicitLocations[$sceneIdx] ?? '';
+            // Compute match scores for ALL location-scene pairs
+            // Score: 100 = explicit field exact match, 80 = explicit field partial, 50 = full name in text, 20 = part match
+            $matchScores = []; // sceneIdx => [locIdx => score]
+            foreach ($sceneTexts as $sceneIdx => $text) {
+                $matchScores[$sceneIdx] = [];
+                $explicitLoc = $sceneExplicitLocations[$sceneIdx] ?? '';
+
+                foreach ($locationSearchData as $locIdx => $locData) {
+                    $score = 0;
+                    $lowerName = $locData['lowerName'];
+
+                    // PRIORITY 1: Explicit location field match (highest score)
                     if (!empty($explicitLoc)) {
-                        // Check if location name appears in scene's location field
-                        if (strpos($explicitLoc, $lowerName) !== false || strpos($lowerName, $explicitLoc) !== false) {
-                            $detectedScenes[] = $sceneIdx;
-                            $matched = true;
-                        }
-                        // Also check significant name parts against explicit location
-                        if (!$matched) {
-                            foreach ($searchTermsParts as $term) {
+                        if ($explicitLoc === $lowerName || strpos($explicitLoc, $lowerName) !== false) {
+                            $score = 100; // Exact match in explicit field
+                        } elseif (strpos($lowerName, $explicitLoc) !== false) {
+                            $score = max($score, 80); // Partial match
+                        } else {
+                            // Check parts against explicit location
+                            foreach ($locData['partTerms'] as $term) {
                                 if (strpos($explicitLoc, $term) !== false) {
-                                    $detectedScenes[] = $sceneIdx;
-                                    $matched = true;
+                                    $score = max($score, 70);
                                     break;
                                 }
                             }
                         }
                     }
 
-                    // PRIORITY 2: Full name match in scene text
-                    if (!$matched) {
-                        foreach ($searchTermsFull as $term) {
+                    // PRIORITY 2: Full name in scene text (if no explicit match)
+                    if ($score < 50) {
+                        foreach ($locData['fullTerms'] as $term) {
                             if (strpos($text, $term) !== false) {
-                                $detectedScenes[] = $sceneIdx;
-                                $matched = true;
+                                $score = max($score, 50);
                                 break;
                             }
                         }
                     }
 
-                    // PRIORITY 3: Significant parts match (4+ chars)
-                    if (!$matched && !empty($searchTermsParts)) {
-                        foreach ($searchTermsParts as $term) {
+                    // PRIORITY 3: Part match in scene text (lowest score)
+                    if ($score < 20 && !empty($locData['partTerms'])) {
+                        foreach ($locData['partTerms'] as $term) {
                             if (strpos($text, $term) !== false) {
-                                $detectedScenes[] = $sceneIdx;
+                                $score = max($score, 20);
                                 break;
                             }
                         }
                     }
+
+                    if ($score > 0) {
+                        $matchScores[$sceneIdx][$locIdx] = $score;
+                    }
                 }
+            }
+
+            // ASSIGN SCENES TO BEST MATCHING LOCATION
+            // Each scene goes to the location with the highest score for that scene
+            $sceneAssignments = []; // locIdx => [sceneIdx, ...]
+            foreach ($locationSearchData as $locIdx => $locData) {
+                $sceneAssignments[$locIdx] = [];
+            }
+
+            foreach ($matchScores as $sceneIdx => $locScores) {
+                if (empty($locScores)) continue;
+
+                // Find the best matching location for this scene
+                $bestLocIdx = null;
+                $bestScore = 0;
+                foreach ($locScores as $locIdx => $score) {
+                    if ($score > $bestScore) {
+                        $bestScore = $score;
+                        $bestLocIdx = $locIdx;
+                    }
+                }
+
+                if ($bestLocIdx !== null) {
+                    $sceneAssignments[$bestLocIdx][] = $sceneIdx;
+                }
+            }
+
+            // Build synced locations with computed assignments
+            $syncedLocations = [];
+            foreach ($storyBibleLocations as $idx => $bibleLoc) {
+                $name = $bibleLoc['name'] ?? '';
+                if (empty($name)) continue;
+
+                $lowerName = strtolower($name);
+                $detectedScenes = $sceneAssignments[$idx] ?? [];
                 $detectedScenes = array_values(array_unique($detectedScenes));
                 sort($detectedScenes);
 
                 // Check if we had existing data for this location (to preserve user settings)
                 $existing = $existingDataMap[$lowerName] ?? null;
+
+                // PROTECTION: If user has manually modified scenes, NEVER overwrite them
+                // Check for userModifiedScenes flag OR if existing has non-empty scenes
+                $userModifiedScenes = $existing['userModifiedScenes'] ?? false;
+                $hasExistingScenes = !empty($existing['scenes']);
+
+                // Determine which scenes to use:
+                // 1. If userModifiedScenes flag is set, always use existing
+                // 2. If existing has scenes (even without flag), preserve them for backward compatibility
+                // 3. Otherwise use auto-detected scenes
+                $finalScenes = ($userModifiedScenes || $hasExistingScenes)
+                    ? ($existing['scenes'] ?? [])
+                    : $detectedScenes;
 
                 // Convert Story Bible location to Location Bible format
                 // NOTE: Use 'scenes' field (consistent with toggleLocationScene) not 'appliedScenes'
@@ -12598,12 +12529,15 @@ PROMPT;
                     'mood' => $bibleLoc['mood'] ?? '',
                     'lightingStyle' => $bibleLoc['lightingStyle'] ?? '',
                     'keyElements' => $bibleLoc['keyElements'] ?? [],
-                    // Use existing scene assignments if user has set them, otherwise auto-detected
-                    'scenes' => (!empty($existing['scenes'])) ? $existing['scenes'] : $detectedScenes,
+                    // PROTECTED: Scene assignments with user modification tracking
+                    'scenes' => $finalScenes,
+                    'userModifiedScenes' => $userModifiedScenes, // Preserve the flag
                     // Preserve user's reference image, or use Story Bible's
                     'referenceImage' => $existing['referenceImage'] ?? $bibleLoc['referenceImage'] ?? '',
                     'referenceImageSource' => $existing['referenceImageSource'] ?? (!empty($bibleLoc['referenceImage']) ? 'story-bible' : ''),
                     'referenceImageStatus' => $existing['referenceImageStatus'] ?? (!empty($bibleLoc['referenceImage']) ? 'ready' : 'none'),
+                    'referenceImageBase64' => $existing['referenceImageBase64'] ?? '',
+                    'referenceImageMimeType' => $existing['referenceImageMimeType'] ?? '',
                     'syncedFromStoryBible' => true,
                 ];
 
@@ -12830,6 +12764,9 @@ PROMPT;
         // Remove legacy field if present (migrating to new field name)
         unset($this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes']);
 
+        // PROTECTION: Mark this character's scenes as user-modified so sync won't overwrite
+        $this->sceneMemory['characterBible']['characters'][$charIndex]['userModifiedScenes'] = true;
+
         // PHASE 4: Invalidate lookup cache since scene assignments changed
         $this->invalidateSceneLookupCaches();
 
@@ -12845,6 +12782,8 @@ PROMPT;
         $this->sceneMemory['characterBible']['characters'][$charIndex]['scenes'] = range(0, $sceneCount - 1);
         // Remove legacy field if present (migrating to new field name)
         unset($this->sceneMemory['characterBible']['characters'][$charIndex]['appliedScenes']);
+        // PROTECTION: Mark as user-modified so sync won't overwrite
+        $this->sceneMemory['characterBible']['characters'][$charIndex]['userModifiedScenes'] = true;
 
         // PHASE 4: Invalidate lookup cache since scene assignments changed
         $this->invalidateSceneLookupCaches();
@@ -13089,22 +13028,14 @@ PROMPT;
 
                         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
                         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
 
                         Log::info('Character portrait generated with base64', [
                             'characterIndex' => $index,
                             'base64Length' => strlen($base64Data),
                             'mimeType' => $mimeType,
                         ]);
-                    } else {
-                        // BUG FIX: Log when base64 fetch fails silently (returns false)
-                        Log::warning('Base64 fetch returned false - URL exists but could not fetch content', [
-                            'characterIndex' => $index,
-                            'imageUrl' => $imageUrl,
-                        ]);
                     }
-                    // CRITICAL: Always mark as ready once we have a valid URL
-                    // Base64 is an enhancement for face consistency, but URL alone allows DNA extraction
-                    $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
                 } catch (\Exception $fetchError) {
                     Log::warning('Could not fetch image as base64', ['error' => $fetchError->getMessage()]);
                     // Still mark as ready even if base64 fetch failed
@@ -14245,6 +14176,9 @@ EOT;
         sort($scenes);
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = $scenes;
 
+        // PROTECTION: Mark this location's scenes as user-modified so sync won't overwrite
+        $this->sceneMemory['locationBible']['locations'][$locIndex]['userModifiedScenes'] = true;
+
         // PHASE 4: Invalidate lookup cache since scene assignments changed
         $this->invalidateSceneLookupCaches();
 
@@ -14269,11 +14203,15 @@ EOT;
         foreach ($this->sceneMemory['locationBible']['locations'] as $idx => &$otherLoc) {
             if ($idx !== $locIndex) {
                 $otherLoc['scenes'] = [];
+                // PROTECTION: Mark as user-modified since we explicitly cleared it
+                $otherLoc['userModifiedScenes'] = true;
             }
         }
         unset($otherLoc);
 
         $this->sceneMemory['locationBible']['locations'][$locIndex]['scenes'] = range(0, $sceneCount - 1);
+        // PROTECTION: Mark as user-modified so sync won't overwrite
+        $this->sceneMemory['locationBible']['locations'][$locIndex]['userModifiedScenes'] = true;
 
         // PHASE 4: Invalidate lookup cache since scene assignments changed
         $this->invalidateSceneLookupCaches();
