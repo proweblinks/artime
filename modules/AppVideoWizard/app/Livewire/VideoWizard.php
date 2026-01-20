@@ -1703,8 +1703,155 @@ class VideoWizard extends Component
             $this->recalculateVoiceStatus();
         }
 
+        // BUG FIX: Repair any stuck 'generating' states where URL exists but status wasn't updated
+        $this->repairStuckReferenceImageStatus();
+
         // Initialize save hash to prevent redundant save after loading
         $this->lastSaveHash = $this->computeSaveHash();
+    }
+
+    /**
+     * Repair stuck referenceImageStatus states and missing base64 data.
+     * BUG FIX: When base64 fetch failed silently (returned false without throwing),
+     * the status would remain 'generating' even though the URL exists.
+     * This method fixes existing data on load AND fetches missing base64 for face consistency.
+     */
+    protected function repairStuckReferenceImageStatus(): void
+    {
+        $repaired = false;
+
+        // Fix Character Bible characters
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        foreach ($characters as $idx => $char) {
+            $hasUrl = !empty($char['referenceImage']);
+            $hasBase64 = !empty($char['referenceImageBase64']);
+            $isStuck = ($char['referenceImageStatus'] ?? '') === 'generating';
+            $isReady = ($char['referenceImageStatus'] ?? '') === 'ready';
+
+            // Case 1: Status stuck at 'generating' but URL exists
+            if ($hasUrl && $isStuck) {
+                $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageStatus'] = 'ready';
+                Log::info('Repaired stuck character referenceImageStatus', [
+                    'characterIndex' => $idx,
+                    'characterName' => $char['name'] ?? 'Unknown',
+                ]);
+                $repaired = true;
+            }
+
+            // Case 2: URL exists but base64 is missing - try to fetch it for face consistency
+            if ($hasUrl && !$hasBase64) {
+                try {
+                    $imageContent = $this->fetchUrlContent($char['referenceImage']);
+                    if ($imageContent !== false) {
+                        $base64Data = base64_encode($imageContent);
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageBase64'] = $base64Data;
+                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['characterBible']['characters'][$idx]['referenceImageStatus'] = 'ready';
+
+                        Log::info('Repaired missing character base64 data', [
+                            'characterIndex' => $idx,
+                            'characterName' => $char['name'] ?? 'Unknown',
+                            'base64Length' => strlen($base64Data),
+                        ]);
+                        $repaired = true;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Could not fetch character portrait for repair', [
+                        'characterIndex' => $idx,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // Fix Location Bible locations
+        $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+        foreach ($locations as $idx => $loc) {
+            $hasUrl = !empty($loc['referenceImage']);
+            $hasBase64 = !empty($loc['referenceImageBase64']);
+            $isStuck = ($loc['referenceImageStatus'] ?? '') === 'generating';
+
+            // Case 1: Status stuck
+            if ($hasUrl && $isStuck) {
+                $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageStatus'] = 'ready';
+                Log::info('Repaired stuck location referenceImageStatus', [
+                    'locationIndex' => $idx,
+                    'locationName' => $loc['name'] ?? 'Unknown',
+                ]);
+                $repaired = true;
+            }
+
+            // Case 2: URL exists but base64 missing
+            if ($hasUrl && !$hasBase64) {
+                try {
+                    $imageContent = $this->fetchUrlContent($loc['referenceImage']);
+                    if ($imageContent !== false) {
+                        $base64Data = base64_encode($imageContent);
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageBase64'] = $base64Data;
+                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageMimeType'] = $mimeType;
+                        $this->sceneMemory['locationBible']['locations'][$idx]['referenceImageStatus'] = 'ready';
+
+                        Log::info('Repaired missing location base64 data', [
+                            'locationIndex' => $idx,
+                            'locationName' => $loc['name'] ?? 'Unknown',
+                            'base64Length' => strlen($base64Data),
+                        ]);
+                        $repaired = true;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Could not fetch location image for repair', [
+                        'locationIndex' => $idx,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // Fix Style Bible
+        $styleBible = $this->sceneMemory['styleBible'] ?? [];
+        $hasUrl = !empty($styleBible['referenceImage']);
+        $hasBase64 = !empty($styleBible['referenceImageBase64']);
+        $isStuck = ($styleBible['referenceImageStatus'] ?? '') === 'generating';
+
+        if ($hasUrl && $isStuck) {
+            $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
+            Log::info('Repaired stuck styleBible referenceImageStatus');
+            $repaired = true;
+        }
+
+        if ($hasUrl && !$hasBase64) {
+            try {
+                $imageContent = $this->fetchUrlContent($styleBible['referenceImage']);
+                if ($imageContent !== false) {
+                    $base64Data = base64_encode($imageContent);
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($imageContent) ?: 'image/png';
+
+                    $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
+                    $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
+                    $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
+
+                    Log::info('Repaired missing styleBible base64 data', [
+                        'base64Length' => strlen($base64Data),
+                    ]);
+                    $repaired = true;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Could not fetch style reference for repair', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Save if any repairs were made
+        if ($repaired) {
+            $this->saveProject();
+            Log::info('Saved project after repairing reference image data');
+        }
     }
 
     /**
@@ -12942,14 +13089,22 @@ PROMPT;
 
                         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageBase64'] = $base64Data;
                         $this->sceneMemory['characterBible']['characters'][$index]['referenceImageMimeType'] = $mimeType;
-                        $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
 
                         Log::info('Character portrait generated with base64', [
                             'characterIndex' => $index,
                             'base64Length' => strlen($base64Data),
                             'mimeType' => $mimeType,
                         ]);
+                    } else {
+                        // BUG FIX: Log when base64 fetch fails silently (returns false)
+                        Log::warning('Base64 fetch returned false - URL exists but could not fetch content', [
+                            'characterIndex' => $index,
+                            'imageUrl' => $imageUrl,
+                        ]);
                     }
+                    // CRITICAL: Always mark as ready once we have a valid URL
+                    // Base64 is an enhancement for face consistency, but URL alone allows DNA extraction
+                    $this->sceneMemory['characterBible']['characters'][$index]['referenceImageStatus'] = 'ready';
                 } catch (\Exception $fetchError) {
                     Log::warning('Could not fetch image as base64', ['error' => $fetchError->getMessage()]);
                     // Still mark as ready even if base64 fetch failed
@@ -13490,7 +13645,7 @@ PROMPT;
 
                 // Fetch image as base64 for style consistency in scene generation
                 try {
-                    $imageContent = file_get_contents($imageUrl);
+                    $imageContent = $this->fetchUrlContent($imageUrl);
                     if ($imageContent !== false) {
                         $base64Data = base64_encode($imageContent);
                         // Detect MIME type from image content
@@ -13499,13 +13654,19 @@ PROMPT;
 
                         $this->sceneMemory['styleBible']['referenceImageBase64'] = $base64Data;
                         $this->sceneMemory['styleBible']['referenceImageMimeType'] = $mimeType;
-                        $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
 
                         Log::info('Style Bible reference generated with base64', [
                             'base64Length' => strlen($base64Data),
                             'mimeType' => $mimeType,
                         ]);
+                    } else {
+                        // BUG FIX: Log when base64 fetch fails silently (returns false)
+                        Log::warning('Base64 fetch returned false for style reference - URL exists but could not fetch content', [
+                            'imageUrl' => $imageUrl,
+                        ]);
                     }
+                    // CRITICAL: Always mark as ready once we have a valid URL
+                    $this->sceneMemory['styleBible']['referenceImageStatus'] = 'ready';
                 } catch (\Exception $fetchError) {
                     Log::warning('Could not fetch style reference as base64', ['error' => $fetchError->getMessage()]);
                     // Still mark as ready even if base64 fetch failed
@@ -14322,7 +14483,7 @@ EOT;
 
                 // Fetch image as base64 for location consistency in scene generation
                 try {
-                    $imageContent = file_get_contents($imageUrl);
+                    $imageContent = $this->fetchUrlContent($imageUrl);
                     if ($imageContent !== false) {
                         $base64Data = base64_encode($imageContent);
                         // Detect MIME type from image content
@@ -14331,14 +14492,21 @@ EOT;
 
                         $this->sceneMemory['locationBible']['locations'][$index]['referenceImageBase64'] = $base64Data;
                         $this->sceneMemory['locationBible']['locations'][$index]['referenceImageMimeType'] = $mimeType;
-                        $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
 
                         Log::info('Location reference generated with base64', [
                             'locationIndex' => $index,
                             'base64Length' => strlen($base64Data),
                             'mimeType' => $mimeType,
                         ]);
+                    } else {
+                        // BUG FIX: Log when base64 fetch fails silently (returns false)
+                        Log::warning('Base64 fetch returned false for location - URL exists but could not fetch content', [
+                            'locationIndex' => $index,
+                            'imageUrl' => $imageUrl,
+                        ]);
                     }
+                    // CRITICAL: Always mark as ready once we have a valid URL
+                    $this->sceneMemory['locationBible']['locations'][$index]['referenceImageStatus'] = 'ready';
                 } catch (\Exception $fetchError) {
                     Log::warning('Could not fetch location image as base64', ['error' => $fetchError->getMessage()]);
                     // Still mark as ready even if base64 fetch failed
