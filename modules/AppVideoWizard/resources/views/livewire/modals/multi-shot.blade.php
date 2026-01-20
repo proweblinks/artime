@@ -735,14 +735,21 @@ window.multiShotVideoPolling = function() {
 
                             {{-- Voice Selection --}}
                             <div class="msm-voice-select">
-                                <label>{{ __('Voice') }}:</label>
+                                <label>
+                                    {{ __('Voice') }}
+                                    @if($activeTtsProvider === 'kokoro')
+                                        <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                    @else
+                                        <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                    @endif
+                                </label>
                                 <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
-                                    <option value="alloy">Alloy ({{ __('Neutral') }})</option>
-                                    <option value="echo">Echo ({{ __('Male') }})</option>
-                                    <option value="fable">Fable ({{ __('Storytelling') }})</option>
-                                    <option value="onyx">Onyx ({{ __('Deep Male') }})</option>
-                                    <option value="nova">Nova ({{ __('Female') }})</option>
-                                    <option value="shimmer">Shimmer ({{ __('Bright Female') }})</option>
+                                    @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                        <option value="{{ $voiceId }}">
+                                            {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                            ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
 
@@ -782,14 +789,21 @@ window.multiShotVideoPolling = function() {
 
                             {{-- Voice Selection --}}
                             <div class="msm-voice-select">
-                                <label>{{ __('Voice') }}:</label>
+                                <label>
+                                    {{ __('Voice') }}
+                                    @if($activeTtsProvider === 'kokoro')
+                                        <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                    @else
+                                        <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                    @endif
+                                </label>
                                 <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
-                                    <option value="alloy">Alloy ({{ __('Neutral') }})</option>
-                                    <option value="echo">Echo ({{ __('Male') }})</option>
-                                    <option value="fable">Fable ({{ __('Storytelling') }})</option>
-                                    <option value="onyx">Onyx ({{ __('Deep Male') }})</option>
-                                    <option value="nova">Nova ({{ __('Female') }})</option>
-                                    <option value="shimmer">Shimmer ({{ __('Bright Female') }})</option>
+                                    @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                        <option value="{{ $voiceId }}">
+                                            {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                            ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
 
@@ -1204,7 +1218,10 @@ window.multiShotVideoPolling = function() {
 .msm-audio-setup { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); }
 .msm-audio-hint { display: block; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-bottom: 0.75rem; }
 .msm-voice-select { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
-.msm-voice-select label { color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; white-space: nowrap; }
+.msm-voice-select label { color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
+.msm-provider-badge { font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.msm-provider-kokoro { background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3)); border: 1px solid rgba(236,72,153,0.5); color: #f472b6; }
+.msm-provider-openai { background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; }
 .msm-voice-dropdown { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 0.5rem 0.75rem; color: white; font-size: 0.85rem; cursor: pointer; }
 .msm-voice-dropdown:focus { border-color: rgba(139,92,246,0.5); outline: none; }
 .msm-monologue-edit { margin-bottom: 0.75rem; }

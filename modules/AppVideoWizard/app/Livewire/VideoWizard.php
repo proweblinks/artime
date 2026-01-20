@@ -11,6 +11,7 @@ use Modules\AppVideoWizard\Services\ConceptService;
 use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\VoiceoverService;
+use Modules\AppVideoWizard\Services\KokoroTtsService;
 use Modules\AppVideoWizard\Services\StockMediaService;
 use Modules\AppVideoWizard\Services\CharacterExtractionService;
 use Modules\AppVideoWizard\Services\LocationExtractionService;
@@ -966,9 +967,11 @@ class VideoWizard extends Component
     public int $videoModelSelectorSceneIndex = 0;
     public int $videoModelSelectorShotIndex = 0;
     public bool $preConfigureWaitingShots = false;
-    public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk
+    public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk (or Kokoro equivalent)
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
     public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
+    public string $activeTtsProvider = 'openai'; // Active TTS provider: openai, kokoro
+    public array $availableTtsVoices = []; // Dynamically loaded from VoiceoverService
 
     // Upscale Modal state
     public bool $showUpscaleModal = false;
@@ -1294,16 +1297,53 @@ class VideoWizard extends Component
             // Default to AI mode (0) instead of manual shot count
             $this->multiShotCount = 0;
 
+            // Load TTS provider and available voices
+            $this->loadTtsSettings();
+
             // Log that settings were loaded (helpful for debugging)
             Log::debug('VideoWizard: Dynamic settings loaded', [
                 'defaultShotCount' => $this->multiShotMode['defaultShotCount'],
                 'autoDecompose' => $this->multiShotMode['autoDecompose'],
+                'ttsProvider' => $this->activeTtsProvider,
             ]);
         } catch (\Throwable $e) {
             // If VwSetting table doesn't exist yet, use defaults
             Log::warning('VideoWizard: Could not load dynamic settings, using defaults', [
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Load TTS provider settings and available voices.
+     */
+    protected function loadTtsSettings(): void
+    {
+        try {
+            $voiceoverService = app(VoiceoverService::class);
+            $this->activeTtsProvider = $voiceoverService->getActiveProvider();
+            $this->availableTtsVoices = $voiceoverService->getAvailableVoices();
+
+            // Update default voice selection based on provider
+            if ($this->activeTtsProvider === 'kokoro') {
+                // If current selection is an OpenAI voice, map it to Kokoro
+                $kokoroService = app(KokoroTtsService::class);
+                if (isset($this->availableTtsVoices[$this->shotVoiceSelection]) === false) {
+                    $this->shotVoiceSelection = $kokoroService->mapOpenAIVoice($this->shotVoiceSelection);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback to OpenAI voices
+            $this->activeTtsProvider = 'openai';
+            $this->availableTtsVoices = [
+                'alloy' => ['name' => 'Alloy', 'gender' => 'neutral', 'style' => 'versatile'],
+                'echo' => ['name' => 'Echo', 'gender' => 'male', 'style' => 'warm'],
+                'fable' => ['name' => 'Fable', 'gender' => 'neutral', 'style' => 'storytelling'],
+                'onyx' => ['name' => 'Onyx', 'gender' => 'male', 'style' => 'deep'],
+                'nova' => ['name' => 'Nova', 'gender' => 'female', 'style' => 'friendly'],
+                'shimmer' => ['name' => 'Shimmer', 'gender' => 'female', 'style' => 'bright'],
+            ];
+            Log::warning('VideoWizard: Could not load TTS settings', ['error' => $e->getMessage()]);
         }
     }
 

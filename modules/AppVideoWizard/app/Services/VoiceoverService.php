@@ -3,17 +3,19 @@
 namespace Modules\AppVideoWizard\Services;
 
 use App\Facades\AI;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Models\WizardAsset;
+use Modules\AppVideoWizard\Models\VwSetting;
 
 class VoiceoverService
 {
     /**
-     * Available voices.
+     * Available OpenAI voices.
      */
-    protected array $voices = [
+    protected array $openaiVoices = [
         'alloy' => ['name' => 'Alloy', 'gender' => 'neutral', 'style' => 'versatile'],
         'echo' => ['name' => 'Echo', 'gender' => 'male', 'style' => 'warm'],
         'fable' => ['name' => 'Fable', 'gender' => 'neutral', 'style' => 'storytelling'],
@@ -21,6 +23,49 @@ class VoiceoverService
         'nova' => ['name' => 'Nova', 'gender' => 'female', 'style' => 'friendly'],
         'shimmer' => ['name' => 'Shimmer', 'gender' => 'female', 'style' => 'bright'],
     ];
+
+    /**
+     * Alias for backwards compatibility.
+     */
+    protected array $voices = [];
+
+    /**
+     * Kokoro TTS service instance.
+     */
+    protected ?KokoroTtsService $kokoroService = null;
+
+    public function __construct()
+    {
+        $this->voices = $this->openaiVoices;
+    }
+
+    /**
+     * Get the configured TTS provider.
+     */
+    protected function getProvider(): string
+    {
+        $setting = VwSetting::where('slug', 'ai_voiceover_provider')->first();
+        return $setting?->value ?? 'openai';
+    }
+
+    /**
+     * Get the Kokoro TTS service instance.
+     */
+    protected function getKokoroService(): KokoroTtsService
+    {
+        if ($this->kokoroService === null) {
+            $this->kokoroService = app(KokoroTtsService::class);
+        }
+        return $this->kokoroService;
+    }
+
+    /**
+     * Check if Kokoro TTS is the active provider and configured.
+     */
+    public function isKokoroActive(): bool
+    {
+        return $this->getProvider() === 'kokoro' && $this->getKokoroService()->isConfigured();
+    }
 
     /**
      * Generate voiceover for a scene.
@@ -31,11 +76,99 @@ class VoiceoverService
         $voice = $options['voice'] ?? 'nova';
         $speed = $options['speed'] ?? 1.0;
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
+        $forceProvider = $options['provider'] ?? null; // Allow forcing a specific provider
 
         if (empty($narration)) {
             throw new \Exception('No narration text provided');
         }
 
+        // Determine which provider to use
+        $provider = $forceProvider ?? $this->getProvider();
+
+        Log::info('VoiceoverService: Generating voiceover', [
+            'project_id' => $project->id,
+            'scene_id' => $scene['id'] ?? 'unknown',
+            'provider' => $provider,
+            'voice' => $voice,
+        ]);
+
+        // Use Kokoro TTS if configured and selected
+        if ($provider === 'kokoro' && $this->getKokoroService()->isConfigured()) {
+            return $this->generateWithKokoro($project, $scene, $narration, $voice, $speed, $options);
+        }
+
+        // Fallback to OpenAI TTS
+        return $this->generateWithOpenAI($project, $scene, $narration, $voice, $speed, $teamId, $options);
+    }
+
+    /**
+     * Generate voiceover using Kokoro TTS.
+     */
+    protected function generateWithKokoro(WizardProject $project, array $scene, string $narration, string $voice, float $speed, array $options = []): array
+    {
+        $kokoroService = $this->getKokoroService();
+
+        // Map voice if it's an OpenAI voice
+        $kokoroVoice = $voice;
+        if (isset($this->openaiVoices[$voice])) {
+            $kokoroVoice = $kokoroService->mapOpenAIVoice($voice);
+        }
+
+        Log::info('VoiceoverService: Using Kokoro TTS', [
+            'original_voice' => $voice,
+            'kokoro_voice' => $kokoroVoice,
+        ]);
+
+        $result = $kokoroService->generateSpeech($narration, $kokoroVoice, $project->id, [
+            'max_wait' => 120,
+            'poll_interval' => 2,
+        ]);
+
+        if (!$result['success']) {
+            throw new \Exception($result['error'] ?? 'Kokoro TTS generation failed');
+        }
+
+        $wordCount = str_word_count($narration);
+        $estimatedDuration = $result['duration'] ?? (($wordCount / 150) * 60 / $speed);
+
+        // Create asset record
+        $asset = WizardAsset::create([
+            'project_id' => $project->id,
+            'user_id' => $project->user_id,
+            'type' => WizardAsset::TYPE_VOICEOVER,
+            'name' => ($scene['title'] ?? $scene['id']) . ' - Voiceover (Kokoro)',
+            'path' => $result['audioPath'],
+            'url' => $result['audioUrl'],
+            'mime_type' => 'audio/flac',
+            'scene_index' => $options['sceneIndex'] ?? null,
+            'scene_id' => $scene['id'],
+            'metadata' => [
+                'voice' => $kokoroVoice,
+                'voiceConfig' => $result['voiceConfig'],
+                'speed' => $speed,
+                'narration' => $narration,
+                'wordCount' => $wordCount,
+                'estimatedDuration' => $estimatedDuration,
+                'provider' => 'kokoro',
+                'jobId' => $result['jobId'] ?? null,
+            ],
+        ]);
+
+        return [
+            'success' => true,
+            'audioUrl' => $asset->url,
+            'assetId' => $asset->id,
+            'duration' => $estimatedDuration,
+            'voice' => $kokoroVoice,
+            'provider' => 'kokoro',
+        ];
+    }
+
+    /**
+     * Generate voiceover using OpenAI TTS.
+     */
+    protected function generateWithOpenAI(WizardProject $project, array $scene, string $narration, string $voice, float $speed, $teamId, array $options = []): array
+    {
         // Generate audio using OpenAI TTS
         $result = AI::process($narration, 'speech', [
             'voice' => $voice,
@@ -77,6 +210,7 @@ class VoiceoverService
                 'narration' => $narration,
                 'wordCount' => $wordCount,
                 'estimatedDuration' => $estimatedDuration,
+                'provider' => 'openai',
             ],
         ]);
 
@@ -86,6 +220,7 @@ class VoiceoverService
             'assetId' => $asset->id,
             'duration' => $estimatedDuration,
             'voice' => $voice,
+            'provider' => 'openai',
         ];
     }
 
@@ -125,9 +260,37 @@ class VoiceoverService
     /**
      * Get available voices.
      */
-    public function getAvailableVoices(): array
+    /**
+     * Get available voices based on the configured provider.
+     */
+    public function getAvailableVoices(?string $provider = null): array
     {
-        return $this->voices;
+        $provider = $provider ?? $this->getProvider();
+
+        if ($provider === 'kokoro' && $this->getKokoroService()->isConfigured()) {
+            return $this->getKokoroService()->getAvailableVoices();
+        }
+
+        return $this->openaiVoices;
+    }
+
+    /**
+     * Get all voices for all providers (for UI that shows both).
+     */
+    public function getAllVoices(): array
+    {
+        return [
+            'kokoro' => $this->getKokoroService()->getAvailableVoices(),
+            'openai' => $this->openaiVoices,
+        ];
+    }
+
+    /**
+     * Get the current active provider name.
+     */
+    public function getActiveProvider(): string
+    {
+        return $this->getProvider();
     }
 
     /**
@@ -135,7 +298,9 @@ class VoiceoverService
      */
     public function previewVoice(string $voice, string $sampleText = null, array $options = []): string
     {
-        $text = $sampleText ?? 'This is a preview of the ' . ($this->voices[$voice]['name'] ?? $voice) . ' voice.';
+        $provider = $this->getProvider();
+        $voices = $this->getAvailableVoices($provider);
+        $text = $sampleText ?? 'This is a preview of the ' . ($voices[$voice]['name'] ?? $voice) . ' voice.';
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
 
         $result = AI::process($text, 'speech', [
@@ -259,14 +424,19 @@ class VoiceoverService
      * @param string $speakerName The character/speaker name
      * @param array $characterBible The Character Bible data
      * @param string $narratorVoice Default voice for narrator
-     * @return string Voice ID (alloy, echo, fable, onyx, nova, shimmer)
+     * @return string Voice ID for the active provider
      */
     public function getVoiceForSpeaker(string $speakerName, array $characterBible = [], string $narratorVoice = 'fable'): string
     {
         $speakerUpper = strtoupper(trim($speakerName));
+        $provider = $this->getProvider();
+        $isKokoro = $provider === 'kokoro' && $this->getKokoroService()->isConfigured();
 
         // Narrator uses designated narrator voice
         if ($speakerUpper === 'NARRATOR') {
+            if ($isKokoro) {
+                return $this->getKokoroService()->mapOpenAIVoice($narratorVoice);
+            }
             return $narratorVoice;
         }
 
@@ -275,27 +445,40 @@ class VoiceoverService
         foreach ($characters as $char) {
             $charName = strtoupper(trim($char['name'] ?? ''));
             if ($charName === $speakerUpper) {
-                // Check for configured voice
+                // Check for configured voice (may have provider-specific voice ID)
                 if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) {
-                    return $char['voice']['id'];
+                    $voiceId = $char['voice']['id'];
+                    // Map to Kokoro if needed
+                    if ($isKokoro && isset($this->openaiVoices[$voiceId])) {
+                        return $this->getKokoroService()->mapOpenAIVoice($voiceId);
+                    }
+                    return $voiceId;
                 }
                 // Legacy string voice
                 if (is_string($char['voice'] ?? null) && !empty($char['voice'])) {
-                    return $char['voice'];
+                    $voiceId = $char['voice'];
+                    if ($isKokoro && isset($this->openaiVoices[$voiceId])) {
+                        return $this->getKokoroService()->mapOpenAIVoice($voiceId);
+                    }
+                    return $voiceId;
                 }
                 // Determine by gender
                 $gender = strtolower($char['gender'] ?? $char['voice']['gender'] ?? '');
                 if (str_contains($gender, 'female') || str_contains($gender, 'woman')) {
-                    return 'nova';
+                    return $isKokoro ? 'af_nicole' : 'nova';
                 } elseif (str_contains($gender, 'male') || str_contains($gender, 'man')) {
-                    return 'onyx';
+                    return $isKokoro ? 'am_michael' : 'onyx';
                 }
             }
         }
 
         // Fallback: use speaker name hash to assign consistent voice
         $hash = crc32($speakerUpper);
-        $characterVoices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
+        if ($isKokoro) {
+            $characterVoices = ['am_michael', 'am_adam', 'af_nicole', 'af_bella', 'bm_lewis'];
+        } else {
+            $characterVoices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
+        }
         return $characterVoices[$hash % count($characterVoices)];
     }
 

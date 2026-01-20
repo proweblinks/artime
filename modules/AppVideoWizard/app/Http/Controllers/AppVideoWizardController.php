@@ -122,6 +122,109 @@ class AppVideoWizardController extends Controller
     }
 
     /**
+     * Generate a signed upload URL for Kokoro TTS audio uploads.
+     * Used internally by KokoroTtsService.
+     */
+    public static function generateAudioUploadUrl(int $projectId, string $filename): array
+    {
+        // Generate a secure token
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = now()->addHours(1); // 1 hour for audio generation
+
+        // Store token data in cache
+        $tokenData = [
+            'project_id' => $projectId,
+            'filename' => $filename,
+            'type' => 'audio',
+            'expires_at' => $expiresAt->timestamp,
+        ];
+        Cache::put("runpod_audio_upload_token:{$token}", $tokenData, $expiresAt);
+
+        // Build the upload URL
+        $baseUrl = rtrim(config('app.url'), '/');
+        $uploadUrl = "{$baseUrl}/api/runpod/audio-upload/{$token}";
+
+        // Build the final audio URL (where the audio will be accessible after upload)
+        // IMPORTANT: On cPanel hosting, web root is public_html but Laravel public is at public_html/public
+        $audioPath = "public/wizard-audio/{$projectId}/{$filename}";
+        $audioUrl = "{$baseUrl}/{$audioPath}";
+
+        return [
+            'upload_url' => $uploadUrl,
+            'audio_url' => $audioUrl,
+            'token' => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Handle audio upload from RunPod Kokoro TTS worker.
+     * This endpoint receives the generated audio via PUT request.
+     */
+    public function runpodAudioUpload(Request $request, string $token)
+    {
+        Log::info('🎤 RunPod audio upload request received', ['token' => substr($token, 0, 16) . '...']);
+
+        // Validate token
+        $tokenData = Cache::get("runpod_audio_upload_token:{$token}");
+
+        if (!$tokenData) {
+            Log::warning('🎤 Invalid or expired audio upload token', ['token' => substr($token, 0, 16)]);
+            return response()->json(['error' => 'Invalid or expired upload token'], 401);
+        }
+
+        // Check expiration
+        if (time() > $tokenData['expires_at']) {
+            Cache::forget("runpod_audio_upload_token:{$token}");
+            Log::warning('🎤 Audio upload token expired');
+            return response()->json(['error' => 'Upload token expired'], 401);
+        }
+
+        try {
+            // Get the raw audio data from request body
+            $audioContent = $request->getContent();
+
+            if (empty($audioContent)) {
+                Log::error('🎤 No audio content received');
+                return response()->json(['error' => 'No audio content received'], 400);
+            }
+
+            Log::info('🎤 Received audio content', ['size' => strlen($audioContent)]);
+
+            // Create directory if needed
+            $projectId = $tokenData['project_id'];
+            $filename = $tokenData['filename'];
+            $directory = public_path("wizard-audio/{$projectId}");
+
+            if (!File::isDirectory($directory)) {
+                File::makeDirectory($directory, 0755, true);
+            }
+
+            // Save the audio file
+            $filePath = "{$directory}/{$filename}";
+            File::put($filePath, $audioContent);
+
+            // Invalidate the token (one-time use)
+            Cache::forget("runpod_audio_upload_token:{$token}");
+
+            Log::info('🎤 Audio saved successfully', [
+                'path' => $filePath,
+                'size' => strlen($audioContent),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Audio uploaded successfully',
+                'path' => $filePath,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('🎤 Audio upload failed', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Display the video wizard.
      */
     public function index(Request $request)
