@@ -690,13 +690,59 @@ window.multiShotVideoPolling = function() {
                 </div>
 
                 @if($mtAvail)
-                    @if($hasAudio)
-                        {{-- Audio Ready --}}
+                    @if($hasAudio && !$showVoiceRegenerateOptions)
+                        {{-- Audio Ready - Show status with regenerate option --}}
                         <div class="msm-audio-ready">
                             <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
                             @if($selShot['audioDuration'] ?? null)
                                 <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
                             @endif
+                            <button wire:click="toggleVoiceRegenerateOptions" class="msm-btn-regen-small" title="{{ __('Regenerate with different voice') }}">
+                                🔄 {{ __('Regenerate') }}
+                            </button>
+                        </div>
+                    @elseif($hasAudio && $showVoiceRegenerateOptions)
+                        {{-- Audio Regenerate Mode - Show voice options --}}
+                        <div class="msm-audio-setup msm-audio-regenerate">
+                            <div class="msm-regen-header">
+                                <span class="msm-regen-title">🔄 {{ __('Regenerate Voiceover') }}</span>
+                                <button wire:click="toggleVoiceRegenerateOptions" class="msm-btn-cancel-small">✕</button>
+                            </div>
+
+                            {{-- Voice Selection --}}
+                            <div class="msm-voice-select">
+                                <label>{{ __('Voice') }}:</label>
+                                <select wire:model="shotVoiceSelection" class="msm-voice-dropdown">
+                                    <option value="alloy">Alloy ({{ __('Neutral') }})</option>
+                                    <option value="echo">Echo ({{ __('Male') }})</option>
+                                    <option value="fable">Fable ({{ __('Storytelling') }})</option>
+                                    <option value="onyx">Onyx ({{ __('Deep Male') }})</option>
+                                    <option value="nova">Nova ({{ __('Female') }})</option>
+                                    <option value="shimmer">Shimmer ({{ __('Bright Female') }})</option>
+                                </select>
+                            </div>
+
+                            {{-- Monologue Preview/Edit --}}
+                            <div class="msm-monologue-edit">
+                                <label>{{ __('Dialogue/Monologue') }}:</label>
+                                <textarea wire:model.lazy="shotMonologueEdit"
+                                          class="msm-monologue-textarea"
+                                          rows="2"
+                                          placeholder="{{ __('Leave empty to keep existing text') }}"></textarea>
+                            </div>
+
+                            {{-- Regenerate Voice Button --}}
+                            <button wire:click="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="generateShotVoiceover"
+                                    class="msm-btn msm-btn-voice msm-btn-regen">
+                                <span wire:loading.remove wire:target="generateShotVoiceover">
+                                    🎤 {{ __('Regenerate Voice') }}
+                                </span>
+                                <span wire:loading wire:target="generateShotVoiceover">
+                                    ⏳ {{ __('Generating...') }}
+                                </span>
+                            </button>
                         </div>
                     @elseif($audioGenerating)
                         {{-- Audio Generating --}}
@@ -1103,10 +1149,19 @@ window.multiShotVideoPolling = function() {
 .msm-model-multitalk { flex-direction: column; align-items: stretch; }
 .msm-model-header-row { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; width: 100%; }
 .msm-badge-lip { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600; margin-left: 0.5rem; }
-.msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); }
+.msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); flex-wrap: wrap; }
 .msm-audio-status { font-size: 0.85rem; font-weight: 500; }
 .msm-status-ready { color: #10b981; }
-.msm-audio-duration { color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-left: auto; }
+.msm-audio-duration { color: rgba(255,255,255,0.6); font-size: 0.8rem; }
+.msm-btn-regen-small { margin-left: auto; padding: 0.35rem 0.6rem; background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); border-radius: 6px; color: #fbbf24; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+.msm-btn-regen-small:hover { background: rgba(251,191,36,0.3); transform: translateY(-1px); }
+.msm-audio-regenerate { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); border-radius: 8px; padding: 0.75rem; }
+.msm-regen-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.msm-regen-title { color: #fbbf24; font-size: 0.9rem; font-weight: 600; }
+.msm-btn-cancel-small { padding: 0.25rem 0.5rem; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; color: #ef4444; font-size: 0.75rem; cursor: pointer; }
+.msm-btn-cancel-small:hover { background: rgba(239,68,68,0.3); }
+.msm-btn-regen { background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(245,158,11,0.25)) !important; border-color: rgba(251,191,36,0.5) !important; }
+.msm-btn-regen:hover { background: linear-gradient(135deg, rgba(251,191,36,0.4), rgba(245,158,11,0.35)) !important; box-shadow: 0 4px 15px rgba(251,191,36,0.25) !important; }
 .msm-audio-generating { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(139,92,246,0.12); border-radius: 8px; border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; font-size: 0.85rem; }
 .msm-spinner-small { width: 16px; height: 16px; border: 2px solid rgba(139,92,246,0.3); border-top-color: #8b5cf6; border-radius: 50%; animation: msm-spin 0.8s linear infinite; }
 .msm-audio-setup { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); }

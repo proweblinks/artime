@@ -968,6 +968,7 @@ class VideoWizard extends Component
     public bool $preConfigureWaitingShots = false;
     public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
+    public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
 
     // Upscale Modal state
     public bool $showUpscaleModal = false;
@@ -22342,6 +22343,9 @@ PROMPT;
         // Initialize monologue text if available
         $this->shotMonologueEdit = $shot['monologue'] ?? '';
 
+        // Reset regenerate options
+        $this->showVoiceRegenerateOptions = false;
+
         $this->showVideoModelSelector = true;
     }
 
@@ -22352,6 +22356,29 @@ PROMPT;
     {
         $this->showVideoModelSelector = false;
         $this->shotMonologueEdit = '';
+        $this->showVoiceRegenerateOptions = false;
+    }
+
+    /**
+     * Toggle voice regenerate options visibility.
+     * Used when audio already exists but user wants to regenerate with different voice.
+     */
+    public function toggleVoiceRegenerateOptions(): void
+    {
+        $this->showVoiceRegenerateOptions = !$this->showVoiceRegenerateOptions;
+
+        // If showing options, pre-fill voice with character's default
+        if ($this->showVoiceRegenerateOptions) {
+            $sceneIndex = $this->videoModelSelectorSceneIndex;
+            $shotIndex = $this->videoModelSelectorShotIndex;
+            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
+
+            // Load existing monologue for editing
+            $this->shotMonologueEdit = $shot['monologue'] ?? '';
+
+            // Set voice to character's default (using the fixed gender inference)
+            $this->shotVoiceSelection = $this->getCharacterVoice($sceneIndex, $shotIndex);
+        }
     }
 
     /**
