@@ -35,8 +35,10 @@ class AppVideoWizardController extends Controller
         ];
         Cache::put("runpod_upload_token:{$token}", $tokenData, $expiresAt);
 
-        // Build the upload URL
-        $uploadUrl = url("/api/runpod/video-upload/{$token}");
+        // Build the upload URL - use config('app.url') to ensure correct HTTPS URL
+        // The url() helper can fail on servers behind proxies/load balancers
+        $baseUrl = rtrim(config('app.url'), '/');
+        $uploadUrl = "{$baseUrl}/api/runpod/video-upload/{$token}";
 
         // Build the final video URL (where the video will be accessible after upload)
         $videoPath = "wizard-videos/{$projectId}/{$filename}";
