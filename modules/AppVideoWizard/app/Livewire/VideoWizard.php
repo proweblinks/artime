@@ -12462,8 +12462,27 @@ PROMPT;
                 }
             }
 
+            // PROTECTION STEP: Collect scenes that are in user-modified locations
+            // These scenes should be EXCLUDED from auto-detection for OTHER locations
+            $protectedScenes = []; // sceneIdx => locationName (lowercase)
+            foreach ($existingLocations as $loc) {
+                if (!empty($loc['userModifiedScenes']) && !empty($loc['scenes'])) {
+                    $locNameLower = strtolower($loc['name'] ?? '');
+                    foreach ($loc['scenes'] as $sceneIdx) {
+                        $protectedScenes[$sceneIdx] = $locNameLower;
+                    }
+                }
+            }
+
+            if (!empty($protectedScenes)) {
+                Log::debug('LocationBible: Protected scenes from user modifications', [
+                    'protectedScenes' => $protectedScenes,
+                ]);
+            }
+
             // ASSIGN SCENES TO BEST MATCHING LOCATION
             // Each scene goes to the location with the highest score for that scene
+            // EXCEPT: Protected scenes are only assigned to their owning location
             $sceneAssignments = []; // locIdx => [sceneIdx, ...]
             foreach ($locationSearchData as $locIdx => $locData) {
                 $sceneAssignments[$locIdx] = [];
@@ -12472,7 +12491,20 @@ PROMPT;
             foreach ($matchScores as $sceneIdx => $locScores) {
                 if (empty($locScores)) continue;
 
-                // Find the best matching location for this scene
+                // Check if this scene is protected (user-modified in another location)
+                if (isset($protectedScenes[$sceneIdx])) {
+                    // This scene is protected - only assign to its owning location
+                    $ownerLocName = $protectedScenes[$sceneIdx];
+                    foreach ($locationSearchData as $locIdx => $locData) {
+                        if (strtolower($locData['name']) === $ownerLocName) {
+                            $sceneAssignments[$locIdx][] = $sceneIdx;
+                            break;
+                        }
+                    }
+                    continue; // Skip auto-detection for this scene
+                }
+
+                // Find the best matching location for this scene (normal auto-detection)
                 $bestLocIdx = null;
                 $bestScore = 0;
                 foreach ($locScores as $locIdx => $score) {
