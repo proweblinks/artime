@@ -15236,6 +15236,11 @@ PROMPT;
             'reasoning' => $analysis['reasoning'] ?? '',
         ]);
 
+        // PHASE 6: AI Story Beat Decomposition
+        // Get characters for this scene from Character Bible
+        $sceneCharacters = $this->getCharactersForScene($sceneIndex);
+        $storyBeats = $this->decomposeSceneIntoStoryBeats($scene, $sceneIndex, $sceneCharacters);
+
         // Convert engine analysis to shot structures with full prompts
         $shots = [];
         foreach ($analysis['shots'] as $i => $engineShot) {
@@ -15276,7 +15281,7 @@ PROMPT;
                 'purpose' => $shotType['purpose'],
                 'lens' => $shotType['lens'] ?? '50mm',
 
-                // Prompts for generation
+                // Prompts for generation (will be enhanced by story beats)
                 'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
                 'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
                 'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
@@ -15328,6 +15333,784 @@ PROMPT;
                 ],
             ];
         }
+
+        // PHASE 6: Apply story beats to enhance shots with unique content
+        // This gives each shot a unique visual description instead of sharing the same one
+        $shots = $this->applyStoryBeatsToShots($shots, $storyBeats, $visualDescription);
+
+        // Detect and fix similar adjacent shots (redundancy prevention)
+        $shots = $this->detectAndFixSimilarShots($shots, 0.7);
+
+        // Validate shot purposes for logical progression
+        $shots = $this->validateShotPurposes($shots);
+
+        Log::info('VideoWizard: Story beats applied to shots', [
+            'scene_id' => $sceneId,
+            'shot_count' => count($shots),
+            'has_story_beats' => !empty($storyBeats),
+            'dialogue_shots' => count(array_filter($shots, fn($s) => !empty($s['dialogue']))),
+        ]);
+
+        return $shots;
+    }
+
+    // =========================================================================
+    // PHASE 6: AI-DRIVEN STORY BEAT DECOMPOSITION
+    // =========================================================================
+
+    /**
+     * Decompose scene into story beats using AI for cinematic storytelling.
+     *
+     * This function implements the patterns from SHOT_CONTINUITY_IMPROVEMENT_PLAN.md:
+     * - Action-Reaction beat patterns
+     * - Shot/reverse shot for dialogue
+     * - Insert shots for object reveals
+     * - Character emotion progression
+     *
+     * @param array $scene Scene data
+     * @param int $sceneIndex Scene index
+     * @param array $characters Characters in the scene
+     * @return array|null Story beats or null if AI call fails
+     */
+    protected function decomposeSceneIntoStoryBeats(array $scene, int $sceneIndex, array $characters = []): ?array
+    {
+        try {
+            $geminiService = app(\App\Services\GeminiService::class);
+
+            // Build character list for the prompt
+            $characterList = '';
+            if (!empty($characters)) {
+                $charNames = array_column($characters, 'name');
+                $characterList = "CHARACTERS IN SCENE:\n" . implode(', ', $charNames);
+            }
+
+            // Get scene content
+            $narration = $scene['narration'] ?? '';
+            $visual = $scene['visualDescription'] ?? $scene['visual'] ?? '';
+            $mood = $scene['mood'] ?? 'neutral';
+
+            // Build the enhanced decomposition prompt
+            $prompt = $this->buildStoryBeatDecompositionPrompt($narration, $visual, $mood, $characterList);
+
+            // Call AI for story beat decomposition
+            $result = $geminiService->generateText(
+                $prompt,
+                4000, // max tokens
+                1,
+                'text',
+                ['temperature' => 0.7]
+            );
+
+            if (!$result['success'] || empty($result['result'])) {
+                Log::warning('Story beat decomposition failed', ['error' => $result['error'] ?? 'Empty result']);
+                return null;
+            }
+
+            // Parse AI response
+            $responseText = is_array($result['result']) ? $result['result'][0] : $result['result'];
+
+            // Extract JSON from response
+            $jsonMatch = [];
+            if (preg_match('/```json\s*(.*?)\s*```/s', $responseText, $jsonMatch)) {
+                $jsonStr = $jsonMatch[1];
+            } else {
+                // Try to find JSON directly
+                $jsonStr = $responseText;
+            }
+
+            $beats = json_decode($jsonStr, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::warning('Failed to parse story beats JSON', ['response' => substr($responseText, 0, 500)]);
+                return null;
+            }
+
+            Log::info('Story beat decomposition complete', [
+                'sceneIndex' => $sceneIndex,
+                'beatCount' => count($beats['beats'] ?? []),
+                'totalShots' => array_sum(array_map(fn($b) => count($b['shots'] ?? []), $beats['beats'] ?? [])),
+            ]);
+
+            return $beats;
+
+        } catch (\Exception $e) {
+            Log::error('Story beat decomposition error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Build the enhanced story beat decomposition prompt.
+     * Implements the cinematic patterns from our research.
+     */
+    protected function buildStoryBeatDecompositionPrompt(string $narration, string $visual, string $mood, string $characterList): string
+    {
+        return <<<PROMPT
+You are a professional cinematographer decomposing a scene into shots using cinematic storytelling patterns.
+
+SCENE DESCRIPTION:
+{$narration}
+
+VISUAL DESCRIPTION:
+{$visual}
+
+MOOD: {$mood}
+
+{$characterList}
+
+DECOMPOSITION RULES:
+
+1. **BEAT STRUCTURE**: Identify 3-5 story beats. Each beat is a unit of story progression:
+   - opening_image: Set the scene (1 shot)
+   - inciting_beat: Something disrupts status quo (1-2 shots)
+   - rising_action: Tension builds (2-3 shots)
+   - turning_point: Major shift (1-2 shots)
+   - resolution_beat: New status quo (1 shot)
+
+2. **ACTION-REACTION PATTERN**: For EVERY significant action:
+   - ACTION shot: Character performs action
+   - INSERT shot: If object involved (close-up of hands/object)
+   - REACTION shot: Other character's response
+   Example: "pulls out amulet" → Action (hand reaching) → Insert (amulet close-up) → Reaction (surprised face)
+
+3. **DIALOGUE (SHOT/REVERSE SHOT)**:
+   - Speaker A: medium shot, looking screen-right
+   - Listener B: close-up reaction
+   - Speaker B: medium shot, looking screen-left
+   - Maintain 180-degree rule throughout
+
+4. **SHOT VARIETY**: Each shot must be VISUALLY DISTINCT:
+   - Different shot type (establishing → wide → medium → close-up)
+   - Different subject (Character A → Object → Character B)
+   - Different camera angle or movement
+   - NO two consecutive shots of same character with same framing
+
+5. **CAMERA MOVEMENTS** (use precise terms):
+   - static: No movement
+   - push_in: Camera moves toward subject slowly
+   - pull_out: Camera moves away revealing environment
+   - pan_left/pan_right: Horizontal rotation
+   - tracking: Camera follows moving subject
+   - orbit_cw/orbit_ccw: Camera circles subject
+
+OUTPUT FORMAT (JSON only, no other text):
+```json
+{
+  "beats": [
+    {
+      "type": "opening_image|inciting_beat|rising_action|turning_point|resolution_beat",
+      "purpose": "Why this beat exists in the story",
+      "shots": [
+        {
+          "shotNumber": 1,
+          "shotType": "establishing|wide|medium|medium-close|close-up|extreme-close-up|insert|reaction|over-shoulder|two-shot",
+          "subject": "Who/what is the focus (be specific: 'Zoran', 'amulet in hand', 'Nila's face')",
+          "action": "Specific action happening (verb-based: 'reaches into pocket', 'eyes widen')",
+          "uniqueVisualDescription": "Complete visual description UNIQUE to this shot only",
+          "cameraMovement": "static|push_in|pull_out|pan_left|pan_right|tracking|orbit_cw",
+          "emotion": "Character's emotional state if applicable",
+          "dialogue": "Exact dialogue if character speaks (null if silent)",
+          "eyeline": "screen-left|screen-right|camera (for dialogue continuity)"
+        }
+      ]
+    }
+  ],
+  "continuityNotes": {
+    "screenDirection": "Overall movement direction (e.g., 'left-to-right')",
+    "lightingConsistency": "Lighting setup (e.g., 'golden hour, backlit')",
+    "colorPalette": "Color scheme (e.g., 'warm amber tones')"
+  }
+}
+```
+
+CRITICAL REQUIREMENTS:
+- Each shot MUST have a uniqueVisualDescription that is DIFFERENT from other shots
+- NEVER generate two consecutive shots with same subject AND same shot type
+- If dialogue exists, ALWAYS use shot/reverse shot pattern
+- If object is revealed/used, ALWAYS include insert shot
+- Flag dialogue shots clearly for lip-sync processing
+PROMPT;
+    }
+
+    /**
+     * Apply story beats to shot generation.
+     * Enhances the basic shot structure with AI-generated story beats.
+     *
+     * @param array $shots Basic shots from DynamicShotEngine
+     * @param array|null $storyBeats AI-generated story beats
+     * @param string $baseVisualDescription Fallback visual description
+     * @return array Enhanced shots with unique content
+     */
+    protected function applyStoryBeatsToShots(array $shots, ?array $storyBeats, string $baseVisualDescription): array
+    {
+        if (empty($storyBeats) || empty($storyBeats['beats'])) {
+            // Fallback: add basic variety if no story beats
+            return $this->addBasicShotVariety($shots, $baseVisualDescription);
+        }
+
+        // Flatten story beats into individual shots
+        $beatShots = [];
+        foreach ($storyBeats['beats'] as $beat) {
+            foreach ($beat['shots'] ?? [] as $shot) {
+                $shot['beatType'] = $beat['type'];
+                $shot['beatPurpose'] = $beat['purpose'];
+                $beatShots[] = $shot;
+            }
+        }
+
+        // Get continuity notes
+        $continuity = $storyBeats['continuityNotes'] ?? [];
+
+        // Map beat shots to engine shots
+        $enhancedShots = [];
+        $beatIndex = 0;
+
+        foreach ($shots as $i => $engineShot) {
+            $beatShot = $beatShots[$beatIndex] ?? null;
+
+            if ($beatShot) {
+                // Merge AI story content with engine timing/type
+                $enhancedShots[] = $this->mergeStoryBeatWithEngineShot($engineShot, $beatShot, $continuity, $i);
+                $beatIndex++;
+            } else {
+                // No more beat shots, use fallback
+                $enhancedShots[] = $this->addFallbackShotContent($engineShot, $baseVisualDescription, $i);
+            }
+        }
+
+        // If we have more beat shots than engine shots, add extras
+        while ($beatIndex < count($beatShots)) {
+            $beatShot = $beatShots[$beatIndex];
+            $extraShot = $this->createShotFromBeat($beatShot, $continuity, count($enhancedShots));
+            $enhancedShots[] = $extraShot;
+            $beatIndex++;
+        }
+
+        return $enhancedShots;
+    }
+
+    /**
+     * Merge AI story beat content with engine shot structure.
+     */
+    protected function mergeStoryBeatWithEngineShot(array $engineShot, array $beatShot, array $continuity, int $index): array
+    {
+        // Build unique visual description for this shot
+        $uniqueVisual = $beatShot['uniqueVisualDescription'] ?? '';
+        if (empty($uniqueVisual)) {
+            // Construct from beat shot components
+            $uniqueVisual = $this->constructVisualFromBeatShot($beatShot);
+        }
+
+        // Add continuity anchors
+        if (!empty($continuity['lightingConsistency'])) {
+            $uniqueVisual .= '. ' . $continuity['lightingConsistency'];
+        }
+        if (!empty($continuity['colorPalette'])) {
+            $uniqueVisual .= '. ' . $continuity['colorPalette'];
+        }
+
+        // Override with story beat data
+        $engineShot['type'] = $beatShot['shotType'] ?? $engineShot['type'];
+        $engineShot['shotType'] = $beatShot['shotType'] ?? $engineShot['shotType'];
+        $engineShot['subject'] = $beatShot['subject'] ?? '';
+        $engineShot['subjectAction'] = $beatShot['action'] ?? '';
+        $engineShot['uniqueVisualDescription'] = $uniqueVisual;
+        $engineShot['description'] = $uniqueVisual; // Main prompt source
+
+        // Camera movement from beat or fallback
+        $engineShot['cameraMovement'] = $beatShot['cameraMovement'] ?? $engineShot['cameraMovement'] ?? 'static';
+
+        // Emotion for video prompt
+        $engineShot['emotion'] = $beatShot['emotion'] ?? '';
+
+        // Dialogue for Multitalk
+        if (!empty($beatShot['dialogue'])) {
+            $engineShot['dialogue'] = $beatShot['dialogue'];
+            $engineShot['needsLipSync'] = true;
+            $engineShot['monologue'] = $beatShot['dialogue'];
+        }
+
+        // Eyeline for continuity
+        $engineShot['eyeline'] = $beatShot['eyeline'] ?? null;
+
+        // Story context
+        $engineShot['beatType'] = $beatShot['beatType'] ?? 'narrative';
+        $engineShot['beatPurpose'] = $beatShot['beatPurpose'] ?? '';
+
+        // Rebuild prompts with unique content
+        $engineShot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($engineShot);
+        $engineShot['prompt'] = $engineShot['imagePrompt'];
+
+        // Video prompt with story action
+        $shotContext = [
+            'index' => $index,
+            'purpose' => $engineShot['beatType'],
+            'isChained' => $index > 0,
+            'subjectAction' => $beatShot['action'] ?? '',
+            'subject' => $beatShot['subject'] ?? '',
+            'emotion' => $beatShot['emotion'] ?? '',
+            'narration' => '',
+        ];
+        $engineShot['videoPrompt'] = $this->getMotionDescriptionForShot(
+            $engineShot['type'],
+            $engineShot['cameraMovement'],
+            $uniqueVisual,
+            $shotContext
+        );
+        $engineShot['narrativeBeat']['motionDescription'] = $engineShot['videoPrompt'];
+
+        return $engineShot;
+    }
+
+    /**
+     * Construct visual description from beat shot components.
+     */
+    protected function constructVisualFromBeatShot(array $beatShot): string
+    {
+        $parts = [];
+
+        // Shot type framing
+        $shotType = $beatShot['shotType'] ?? 'medium';
+        $parts[] = $this->getHollywoodShotDescription($shotType);
+
+        // Subject
+        if (!empty($beatShot['subject'])) {
+            $parts[] = $beatShot['subject'];
+        }
+
+        // Action
+        if (!empty($beatShot['action'])) {
+            $parts[] = $beatShot['action'];
+        }
+
+        // Emotion context
+        if (!empty($beatShot['emotion'])) {
+            $parts[] = "expressing {$beatShot['emotion']}";
+        }
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Build enhanced image prompt from shot data with unique content.
+     */
+    protected function buildEnhancedShotImagePrompt(array $shot): string
+    {
+        $parts = [];
+
+        // 1. Shot type description
+        $shotType = $shot['type'] ?? 'medium';
+        $parts[] = $this->getHollywoodShotDescription($shotType);
+
+        // 2. Unique visual description (MOST IMPORTANT)
+        if (!empty($shot['uniqueVisualDescription'])) {
+            $parts[] = $shot['uniqueVisualDescription'];
+        } elseif (!empty($shot['description'])) {
+            $parts[] = $shot['description'];
+        }
+
+        // 3. Subject and action
+        if (!empty($shot['subject']) && !empty($shot['subjectAction'])) {
+            $parts[] = "{$shot['subject']} {$shot['subjectAction']}";
+        }
+
+        // 4. Lens
+        $lens = $shot['lens'] ?? $this->getDefaultLensForShot($shotType);
+        if ($lens) {
+            $parts[] = $lens;
+        }
+
+        // 5. Style and lighting from Style Bible
+        if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
+            $parts[] = $this->sceneMemory['styleBible']['style'];
+        }
+
+        // 6. Cinematic quality
+        $parts[] = 'cinematic lighting, shallow depth of field';
+
+        return implode('. ', array_filter($parts));
+    }
+
+    /**
+     * Add basic variety to shots when AI decomposition fails.
+     * Ensures each shot is visually distinct even without AI story beats.
+     */
+    protected function addBasicShotVariety(array $shots, string $baseVisualDescription): array
+    {
+        $characterMatch = [];
+        $hasCharacter = preg_match('/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:walks|stands|looks|sits|moves)/i', $baseVisualDescription, $characterMatch);
+        $characterName = $hasCharacter ? $characterMatch[1] : 'the subject';
+
+        $varietyActions = [
+            'establishing' => "Wide view establishing the scene environment and atmosphere",
+            'wide' => "{$characterName} enters the frame, full body visible in the environment",
+            'medium' => "{$characterName} from waist up, focused expression, engaged in the moment",
+            'medium-close' => "Tighter frame on {$characterName}, emotional nuance visible",
+            'close-up' => "{$characterName}'s face fills frame, eyes conveying inner state",
+            'reaction' => "{$characterName} reacts, subtle shift in expression",
+            'detail' => "Key detail or object relevant to the scene",
+        ];
+
+        foreach ($shots as $i => &$shot) {
+            $type = $shot['type'] ?? 'medium';
+            $varietyDesc = $varietyActions[$type] ?? $varietyActions['medium'];
+
+            // Make each shot more unique by adding position context
+            if ($i === 0) {
+                $varietyDesc .= '. Opening moment of the scene.';
+            } elseif ($i === count($shots) - 1) {
+                $varietyDesc .= '. Scene conclusion.';
+            } else {
+                $varietyDesc .= '. Scene progresses.';
+            }
+
+            $shot['uniqueVisualDescription'] = $varietyDesc;
+            $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt(array_merge($shot, [
+                'uniqueVisualDescription' => $varietyDesc,
+                'description' => $varietyDesc . ' ' . $baseVisualDescription,
+            ]));
+            $shot['prompt'] = $shot['imagePrompt'];
+        }
+
+        return $shots;
+    }
+
+    /**
+     * Add fallback content to a shot when no beat data exists.
+     */
+    protected function addFallbackShotContent(array $shot, string $baseVisual, int $index): array
+    {
+        $shotType = $shot['type'] ?? 'medium';
+        $fallbackDesc = $this->getHollywoodShotDescription($shotType) . '. ' . $baseVisual;
+
+        $shot['uniqueVisualDescription'] = $fallbackDesc;
+        $shot['imagePrompt'] = $this->buildShotPrompt($baseVisual, ['type' => $shotType], $index);
+        $shot['prompt'] = $shot['imagePrompt'];
+
+        return $shot;
+    }
+
+    /**
+     * Create a new shot structure from a story beat.
+     */
+    protected function createShotFromBeat(array $beatShot, array $continuity, int $index): array
+    {
+        $shotType = $beatShot['shotType'] ?? 'medium';
+        $duration = $this->getClipDuration();
+
+        $shot = [
+            'id' => "shot-extra-{$index}",
+            'index' => $index,
+            'type' => $shotType,
+            'shotType' => $shotType,
+            'duration' => $duration,
+            'selectedDuration' => $duration,
+            'cameraMovement' => $beatShot['cameraMovement'] ?? 'static',
+            'subject' => $beatShot['subject'] ?? '',
+            'subjectAction' => $beatShot['action'] ?? '',
+            'emotion' => $beatShot['emotion'] ?? '',
+            'dialogue' => $beatShot['dialogue'] ?? null,
+            'needsLipSync' => !empty($beatShot['dialogue']),
+            'eyeline' => $beatShot['eyeline'] ?? null,
+            'beatType' => $beatShot['beatType'] ?? 'narrative',
+            'imageUrl' => null,
+            'imageStatus' => 'pending',
+            'videoUrl' => null,
+            'videoStatus' => 'pending',
+            'selectedVideoModel' => 'minimax',
+        ];
+
+        // Build visual description
+        $uniqueVisual = $beatShot['uniqueVisualDescription'] ?? $this->constructVisualFromBeatShot($beatShot);
+        if (!empty($continuity['lightingConsistency'])) {
+            $uniqueVisual .= '. ' . $continuity['lightingConsistency'];
+        }
+
+        $shot['uniqueVisualDescription'] = $uniqueVisual;
+        $shot['description'] = $uniqueVisual;
+        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot);
+        $shot['prompt'] = $shot['imagePrompt'];
+
+        // Video prompt
+        $shotContext = [
+            'index' => $index,
+            'purpose' => $shot['beatType'],
+            'isChained' => $index > 0,
+            'subjectAction' => $beatShot['action'] ?? '',
+        ];
+        $shot['videoPrompt'] = $this->getMotionDescriptionForShot($shotType, $shot['cameraMovement'], $uniqueVisual, $shotContext);
+        $shot['narrativeBeat'] = ['motionDescription' => $shot['videoPrompt']];
+
+        return $shot;
+    }
+
+    // =========================================================================
+    // SHOT SIMILARITY DETECTION & VARIETY VALIDATION
+    // =========================================================================
+
+    /**
+     * Detect similar adjacent shots and fix them to ensure visual variety.
+     * Returns shots with redundancy issues fixed.
+     *
+     * Similarity is calculated based on:
+     * - Same shot type (30% weight)
+     * - Same subject (30% weight)
+     * - Same camera movement (20% weight)
+     * - Similar action keywords (20% weight)
+     *
+     * @param array $shots Array of shot structures
+     * @param float $threshold Similarity threshold (0-1). Shots above this are considered redundant.
+     * @return array Fixed shots with redundancy resolved
+     */
+    protected function detectAndFixSimilarShots(array $shots, float $threshold = 0.7): array
+    {
+        if (count($shots) < 2) {
+            return $shots;
+        }
+
+        $fixedShots = [$shots[0]]; // First shot is always kept
+
+        for ($i = 1; $i < count($shots); $i++) {
+            $currentShot = $shots[$i];
+            $previousShot = $fixedShots[count($fixedShots) - 1];
+
+            $similarity = $this->calculateShotSimilarity($previousShot, $currentShot);
+
+            if ($similarity >= $threshold) {
+                // Shots are too similar - differentiate the current shot
+                Log::info('Shot similarity detected', [
+                    'shotIndex' => $i,
+                    'similarity' => round($similarity, 2),
+                    'previousType' => $previousShot['type'] ?? 'unknown',
+                    'currentType' => $currentShot['type'] ?? 'unknown',
+                ]);
+
+                $currentShot = $this->differentiateShotFromPrevious($currentShot, $previousShot, $i);
+            }
+
+            $fixedShots[] = $currentShot;
+        }
+
+        return $fixedShots;
+    }
+
+    /**
+     * Calculate similarity score between two shots (0-1).
+     */
+    protected function calculateShotSimilarity(array $shotA, array $shotB): float
+    {
+        $score = 0;
+
+        // Same shot type (30% weight)
+        $typeA = $shotA['type'] ?? $shotA['shotType'] ?? '';
+        $typeB = $shotB['type'] ?? $shotB['shotType'] ?? '';
+        if ($typeA === $typeB) {
+            $score += 0.3;
+        }
+
+        // Same subject focus (30% weight)
+        $subjectA = strtolower($shotA['subject'] ?? '');
+        $subjectB = strtolower($shotB['subject'] ?? '');
+        if (!empty($subjectA) && !empty($subjectB)) {
+            // Check if subjects reference same character
+            similar_text($subjectA, $subjectB, $subjectPercent);
+            $score += 0.3 * ($subjectPercent / 100);
+        } elseif (empty($subjectA) && empty($subjectB)) {
+            // Both have no subject specified - likely similar
+            $score += 0.2;
+        }
+
+        // Same camera movement (20% weight)
+        $cameraA = $shotA['cameraMovement'] ?? 'static';
+        $cameraB = $shotB['cameraMovement'] ?? 'static';
+        if ($cameraA === $cameraB) {
+            $score += 0.2;
+        }
+
+        // Similar actions (20% weight)
+        $actionA = strtolower($shotA['subjectAction'] ?? $shotA['action'] ?? '');
+        $actionB = strtolower($shotB['subjectAction'] ?? $shotB['action'] ?? '');
+        if (!empty($actionA) && !empty($actionB)) {
+            similar_text($actionA, $actionB, $actionPercent);
+            $score += 0.2 * ($actionPercent / 100);
+        }
+
+        return min(1.0, $score);
+    }
+
+    /**
+     * Differentiate a shot from its predecessor to avoid redundancy.
+     */
+    protected function differentiateShotFromPrevious(array $shot, array $previousShot, int $index): array
+    {
+        // 1. Change shot type if same
+        $previousType = $previousShot['type'] ?? 'medium';
+        $currentType = $shot['type'] ?? 'medium';
+
+        if ($previousType === $currentType) {
+            $shot['type'] = $this->getAlternativeShotType($currentType, $index);
+            $shot['shotType'] = $shot['type'];
+        }
+
+        // 2. Change camera movement if same
+        $previousCamera = $previousShot['cameraMovement'] ?? 'static';
+        $currentCamera = $shot['cameraMovement'] ?? 'static';
+
+        if ($previousCamera === $currentCamera) {
+            $shot['cameraMovement'] = $this->getAlternativeCameraMovement($currentCamera);
+        }
+
+        // 3. Enhance description to be more distinct
+        if (!empty($shot['uniqueVisualDescription'])) {
+            $shot['uniqueVisualDescription'] = $this->enhanceDescriptionForVariety(
+                $shot['uniqueVisualDescription'],
+                $previousShot['uniqueVisualDescription'] ?? '',
+                $shot['type']
+            );
+        }
+
+        // 4. Rebuild prompts with new settings
+        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot);
+        $shot['prompt'] = $shot['imagePrompt'];
+
+        // 5. Rebuild video prompt
+        $shotContext = [
+            'index' => $index,
+            'purpose' => $shot['beatType'] ?? 'narrative',
+            'isChained' => true,
+            'subjectAction' => $shot['subjectAction'] ?? '',
+        ];
+        $shot['videoPrompt'] = $this->getMotionDescriptionForShot(
+            $shot['type'],
+            $shot['cameraMovement'],
+            $shot['uniqueVisualDescription'] ?? $shot['description'] ?? '',
+            $shotContext
+        );
+
+        return $shot;
+    }
+
+    /**
+     * Get an alternative shot type to avoid redundancy.
+     */
+    protected function getAlternativeShotType(string $currentType, int $index): string
+    {
+        // Shot type progression alternatives
+        $alternatives = [
+            'establishing' => 'wide',
+            'wide' => 'medium',
+            'medium' => 'close-up',
+            'medium-close' => 'close-up',
+            'close-up' => 'medium',
+            'extreme-close-up' => 'close-up',
+            'reaction' => 'medium-close',
+            'insert' => 'close-up',
+            'detail' => 'medium',
+        ];
+
+        // Use index to vary the pattern
+        if ($index % 2 === 0) {
+            return $alternatives[$currentType] ?? 'medium';
+        }
+
+        // Reverse direction for odd indices
+        $reverseAlternatives = [
+            'wide' => 'establishing',
+            'medium' => 'wide',
+            'close-up' => 'medium-close',
+            'medium-close' => 'medium',
+        ];
+
+        return $reverseAlternatives[$currentType] ?? $alternatives[$currentType] ?? 'medium';
+    }
+
+    /**
+     * Get an alternative camera movement to avoid redundancy.
+     */
+    protected function getAlternativeCameraMovement(string $currentMovement): string
+    {
+        $alternatives = [
+            'static' => 'push_in',
+            'push_in' => 'static',
+            'pull_out' => 'push_in',
+            'pan_left' => 'pan_right',
+            'pan_right' => 'pan_left',
+            'tracking' => 'static',
+            'orbit_cw' => 'orbit_ccw',
+            'orbit_ccw' => 'push_in',
+        ];
+
+        return $alternatives[$currentMovement] ?? 'static';
+    }
+
+    /**
+     * Enhance a description to be more visually distinct.
+     */
+    protected function enhanceDescriptionForVariety(string $currentDesc, string $previousDesc, string $shotType): string
+    {
+        // Add shot-type specific emphasis
+        $typeEmphasis = [
+            'wide' => 'Full environment visible, showing complete spatial context.',
+            'medium' => 'Balanced framing capturing gesture and expression.',
+            'medium-close' => 'Tighter framing emphasizing emotional nuance.',
+            'close-up' => 'Intimate close-up revealing subtle facial expressions.',
+            'reaction' => 'Capturing immediate emotional response.',
+            'insert' => 'Focused detail shot highlighting key element.',
+        ];
+
+        $emphasis = $typeEmphasis[$shotType] ?? '';
+
+        // If descriptions are similar, add distinguishing context
+        similar_text($currentDesc, $previousDesc, $percent);
+        if ($percent > 60 && !empty($emphasis)) {
+            return $emphasis . ' ' . $currentDesc;
+        }
+
+        return $currentDesc;
+    }
+
+    /**
+     * Validate shot purposes to ensure variety and logical progression.
+     *
+     * @param array $shots Array of shots
+     * @return array Validated shots with purposes checked/fixed
+     */
+    protected function validateShotPurposes(array $shots): array
+    {
+        // Track purpose counts
+        $purposeCounts = [
+            'establishing' => 0,
+            'introduction' => 0,
+            'action' => 0,
+            'reaction' => 0,
+            'transition' => 0,
+            'climax' => 0,
+            'resolution' => 0,
+        ];
+
+        foreach ($shots as &$shot) {
+            $purpose = $shot['purpose'] ?? $shot['beatType'] ?? 'action';
+
+            // Only one establishing shot per scene
+            if ($purpose === 'establishing') {
+                if ($purposeCounts['establishing'] > 0) {
+                    // Change to introduction or action
+                    $shot['purpose'] = 'introduction';
+                    $purpose = 'introduction';
+                }
+            }
+
+            // Track count
+            if (isset($purposeCounts[$purpose])) {
+                $purposeCounts[$purpose]++;
+            }
+        }
+
+        // Log validation results
+        Log::debug('Shot purpose validation complete', [
+            'shot_count' => count($shots),
+            'purpose_distribution' => $purposeCounts,
+        ]);
 
         return $shots;
     }

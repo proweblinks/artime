@@ -23,7 +23,8 @@
       "Bash(Select-String -Pattern \"story|bible|character|location|error\" -SimpleMatch)",
       "Bash(C:xamppphpphp.exe artisan db:seed --class=\"Modules\\\\AppVideoWizard\\\\Database\\\\Seeders\\\\VwSettingSeeder\")",
       "Bash(dir \"C:\\\\laragon\\\\bin\\\\php\" /b)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:screencraft.org)"
     ]
   }
 }
