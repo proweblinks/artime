@@ -15877,9 +15877,9 @@ PROMPT;
                 'lens' => $shotType['lens'] ?? '50mm',
 
                 // Prompts for generation (will be enhanced by story beats)
-                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, null),
                 'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
-                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, null),
 
                 // Image state
                 'imageUrl' => null,
@@ -17023,9 +17023,11 @@ PROMPT;
                 'lens' => $shotType['lens'],
 
                 // Prompts for generation
-                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                // CRITICAL: Pass AI-generated unique action for visual variety per shot
+                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, $aiShot['subjectAction'] ?? null),
                 'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
-                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, $aiShot['subjectAction'] ?? null),
+                'subjectAction' => $aiShot['subjectAction'] ?? null, // Store for reference
 
                 // Image state
                 'imageUrl' => null,
@@ -17137,9 +17139,9 @@ PROMPT;
                 'lens' => $shotType['lens'] ?? 'standard 50mm',
 
                 // Prompts for generation
-                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'imagePrompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, null),
                 'videoPrompt' => $this->getMotionDescriptionForShot($shotType['type'], $cameraMovement, $visualDescription, $shotContext),
-                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i),
+                'prompt' => $this->buildShotPrompt($visualDescription, $shotType, $i, null),
 
                 // Image state
                 'imageUrl' => null,
@@ -17606,18 +17608,30 @@ PROMPT;
      *
      * Optimal length: 50-100 words (2-4 sentences)
      */
-    protected function buildShotPrompt(string $baseDescription, array $shotType, int $index): string
+    protected function buildShotPrompt(string $baseDescription, array $shotType, int $index, ?string $shotAction = null): string
     {
         $parts = [];
 
-        // 1. CAMERA SHOT - Professional shot description (establishes visual frame)
-        $shotDescription = $this->getHollywoodShotDescription($shotType['type']);
-        $parts[] = $shotDescription;
+        // CRITICAL: CINEMATIC REQUIREMENT FIRST - prevents posed stock photos
+        $parts[] = "CINEMATIC FILM STILL from a movie in progress - NOT a posed photograph";
 
-        // 2. SUBJECT + ACTION (CRITICAL - this is what AI video models need most)
-        // Enhance the base description with Hollywood-quality verb-based action
-        $enhancedSubject = $this->enhanceSubjectDescription($baseDescription, $shotType);
-        $parts[] = $enhancedSubject;
+        // 1. CAMERA SHOT - EXPLICIT framing with SPECIFIC composition instructions
+        $explicitFraming = $this->getExplicitFramingInstruction($shotType['type'], $index);
+        $parts[] = $explicitFraming;
+
+        // 2. SUBJECT + ACTION - Use shot-specific action if available, otherwise enhance base
+        // CRITICAL: Each shot needs UNIQUE visual content
+        if (!empty($shotAction)) {
+            // Use the AI-generated unique action for this specific shot
+            $parts[] = $shotAction;
+        } else {
+            // Fallback: enhance base description but this is NOT ideal
+            $enhancedSubject = $this->enhanceSubjectDescription($baseDescription, $shotType);
+            $parts[] = $enhancedSubject;
+        }
+
+        // 3. ANTI-POSED INSTRUCTION - Characters must be in natural action
+        $parts[] = "Characters CAUGHT IN ACTION - mid-gesture, mid-movement, NOT looking at camera";
 
         // 3. LENS specification (critical for cinematic quality)
         if (!empty($shotType['lens'])) {
@@ -17701,6 +17715,84 @@ PROMPT;
         ];
 
         return $descriptions[$shotType] ?? "{$shotType} shot with professional framing";
+    }
+
+    /**
+     * Get EXPLICIT framing instructions that AI image models will follow.
+     * These are specific, measurable composition instructions.
+     */
+    protected function getExplicitFramingInstruction(string $shotType, int $shotIndex): string
+    {
+        // CRITICAL: These instructions must be EXPLICIT and SPECIFIC about:
+        // 1. Camera distance from subject
+        // 2. What percentage of frame the subject fills
+        // 3. Where camera is positioned relative to subject
+        // 4. What MUST be visible vs what can be cropped
+
+        $instructions = [
+            'establishing' => "ULTRA-WIDE ESTABLISHING SHOT: Camera positioned FAR AWAY showing the ENTIRE ENVIRONMENT. " .
+                "Characters appear SMALL (less than 20% of frame height) in the vast landscape/setting. " .
+                "The LOCATION is the star - buildings, terrain, atmosphere dominate. " .
+                "Camera angle: HIGH or AERIAL view looking DOWN at the scene. 24mm ultra-wide lens perspective.",
+
+            'extreme-wide' => "EXTREME WIDE SHOT: Full environment visible with characters at SMALL scale. " .
+                "Subjects fill only 30% of frame height maximum. Camera positioned at DISTANCE. " .
+                "Show complete spatial context - where characters are in relation to surroundings.",
+
+            'wide' => "WIDE SHOT: Characters shown HEAD TO TOE (full body visible). " .
+                "Subjects fill about 50-60% of frame height. Significant environment visible around them. " .
+                "Camera at EYE LEVEL, positioned back enough to show full figures plus surrounding context.",
+
+            'medium-wide' => "MEDIUM-WIDE SHOT: Characters visible from KNEES UP (3/4 body shot). " .
+                "Subjects fill about 70% of frame height. Some environment visible. " .
+                "35mm lens perspective, camera at eye level.",
+
+            'medium' => "MEDIUM SHOT: Characters framed from WAIST UP (half-body shot). " .
+                "Subjects fill about 80% of frame height. Face clearly visible with some body language. " .
+                "50mm lens perspective, conversational distance, camera at eye level.",
+
+            'medium-close' => "MEDIUM CLOSE-UP: Characters framed from CHEST UP. " .
+                "Face and upper body fill frame. Shallow depth of field, background slightly blurred. " .
+                "85mm portrait lens perspective. Intimate but not too close.",
+
+            'close-up' => "CLOSE-UP: Character's FACE fills the frame. Head and shoulders only. " .
+                "Eyes at top third of frame (rule of thirds). Background completely blurred. " .
+                "100mm lens perspective. Emotional detail visible - subtle facial expressions.",
+
+            'extreme-close-up' => "EXTREME CLOSE-UP: Single feature (EYES, mouth, hands) fills frame. " .
+                "Macro-style framing. Abstract background. Maximum emotional/visual impact. " .
+                "Focus on specific detail that tells the story.",
+
+            'reaction' => "REACTION SHOT: Character's FACE showing emotional response. " .
+                "Close framing on face, similar to close-up. Capture the CHANGE in expression. " .
+                "Character is REACTING to something off-screen.",
+
+            'detail' => "DETAIL/INSERT SHOT: Focus on specific object or action detail. " .
+                "Character interacting with the detail - hands, object, or environmental element. " .
+                "Tight framing, shallow depth of field highlighting the important element.",
+
+            'over-shoulder' => "OVER-THE-SHOULDER SHOT: One character's shoulder/back of head in foreground (blurred). " .
+                "Another character's FACE in focus in background. Creates conversational depth. " .
+                "The in-focus character should be positioned at intersection of rule-of-thirds lines.",
+
+            'pov' => "POINT-OF-VIEW SHOT: Show exactly what the character SEES. First-person perspective. " .
+                "No character visible - we ARE the character looking at the scene. " .
+                "Include hands/body edges at frame edges if character is interacting.",
+
+            'two-shot' => "TWO-SHOT: Both characters visible in frame, balanced composition. " .
+                "Characters positioned with proper lead room. Both faces visible. " .
+                "Medium to medium-wide framing to include both subjects.",
+
+            'low-angle' => "LOW ANGLE SHOT: Camera positioned BELOW subject, looking UP. " .
+                "Subject appears powerful, dominant, or imposing. Sky or ceiling visible behind. " .
+                "Creates sense of authority or threat.",
+
+            'high-angle' => "HIGH ANGLE SHOT: Camera positioned ABOVE subject, looking DOWN. " .
+                "Subject appears smaller, vulnerable, or observed. " .
+                "Ground or floor visible, creates sense of being watched or diminished.",
+        ];
+
+        return $instructions[$shotType] ?? "Professional {$shotType} framing with proper composition";
     }
 
     /**
@@ -20674,23 +20766,8 @@ PROMPT;
                             $locationType = strtoupper($locationType);
                         }
 
-                        // Professional framing instructions for each shot type
-                        // ANIMATABILITY-AWARE FRAMING INSTRUCTIONS
-                        // All shot types must produce content suitable for video animation
-                        // CRITICAL: Detail/insert shots must include CHARACTER with FACE visible
-                        $framingInstructions = [
-                            'establishing' => 'ULTRA-WIDE establishing shot showing the entire environment and atmosphere. Characters may appear small in the distance. Emphasize the location, scale, and mood of the scene. Deep focus, everything sharp.',
-                            'wide' => 'WIDE SHOT showing the full scene environment with characters FULLY VISIBLE (head to toe). Establish spatial relationships. Deep focus with clear background detail. CHARACTER MUST BE COMPLETE - no cropping of body.',
-                            'medium' => 'MEDIUM SHOT framing the main subject from approximately waist up. CHARACTER FACE MUST BE CLEARLY VISIBLE. Balanced composition showing the character in context with some background visible. Natural conversational framing.',
-                            'medium-close' => 'MEDIUM CLOSE-UP framing the subject from chest up. CHARACTER FACE MUST BE CLEARLY VISIBLE. More intimate framing that captures emotion while maintaining some environmental context. Soft background blur.',
-                            'close-up' => 'CLOSE-UP with the CHARACTER FACE filling most of the frame. Shallow depth of field with beautifully blurred background. Focus on eyes and emotional expression. Intimate and powerful. FACE MUST BE THE PRIMARY FOCUS.',
-                            'extreme-close-up' => 'EXTREME CLOSE-UP focusing on the CHARACTER FACE - specifically eyes and expression. NOT hands or objects alone. Macro-style framing of facial features. Abstract or heavily blurred background. Maximum emotional impact through FACIAL expression.',
-                            'reaction' => 'REACTION SHOT capturing emotional response. Tight framing on the CHARACTER FACE showing clear expression. The viewer should feel what the character feels. FACE MUST BE VISIBLE.',
-                            'detail' => 'DETAIL SHOT showing a CHARACTER interacting with an important element. CHARACTER FACE OR UPPER BODY MUST BE VISIBLE alongside the detail. NOT hands-only or objects-only. Show the character\'s expression or body while highlighting the important element. Soft background blur.',
-                            'over-shoulder' => 'OVER-THE-SHOULDER shot showing one character from behind with another CHARACTER FACE in focus. Creates depth and connection. The facing character\'s FACE MUST BE CLEARLY VISIBLE.',
-                            'pov' => 'POV (Point of View) shot showing exactly what the character sees. First-person perspective. Immersive framing. If characters are visible in the POV, their FACES should be shown.',
-                            'insert' => 'INSERT SHOT showing a CHARACTER with an important detail or object. CHARACTER FACE OR UPPER BODY MUST BE VISIBLE. NOT objects-only or hands-only. The character should be interacting with or reacting to the insert element.',
-                        ];
+                        // Professional framing instructions - use the explicit framing method
+                        // These instructions are EXPLICIT about camera distance, subject size, and composition
 
                         $collageData['status'] = 'generating';
                         $collageData['regionImages'] = []; // Store individual images for each region
@@ -20711,7 +20788,8 @@ PROMPT;
                                 }, $shotDesc)));
                             }
                             $shotDesc = $shotDesc ?: 'a cinematic scene';
-                            $framing = $framingInstructions[$shotType] ?? $framingInstructions['medium'];
+                            // Use explicit framing instructions for proper shot composition
+                            $framing = $this->getExplicitFramingInstruction($shotType, $regionIdx);
                             $shotIndex = $shotIndicesForPage[$regionIdx] ?? $regionIdx;
 
                             // Build a complete prompt for this individual shot
@@ -20742,13 +20820,23 @@ PROMPT;
                                 $locationConstraint = "LOCATION: {$locationName}. ";
                             }
 
+                            // Get the shot's unique action if available (critical for visual variety)
+                            $shotAction = $shot['subjectAction'] ?? null;
+
                             // Build CINEMATIC prompt - emphasizing action and story moment
-                            $shotPrompt = "CINEMATIC FILM STILL - NOT a posed photograph. " .
-                                "This is a freeze-frame from a movie scene in progress. " .
-                                "{$framing} " .
-                                "{$environmentConstraint} {$locationConstraint}" .
-                                "STORY MOMENT: {$shotDesc} " .
-                                "{$narrativeContext} " .
+                            // CRITICAL: Put framing FIRST so AI models prioritize it
+                            $shotPrompt = "{$framing} " .
+                                "CINEMATIC FILM STILL - freeze-frame from a movie in progress, NOT a posed photograph. " .
+                                "{$environmentConstraint} {$locationConstraint}";
+
+                            // Add unique action if available, otherwise use description
+                            if (!empty($shotAction)) {
+                                $shotPrompt .= "ACTION: {$shotAction} ";
+                            } else {
+                                $shotPrompt .= "STORY MOMENT: {$shotDesc} ";
+                            }
+
+                            $shotPrompt .= "{$narrativeContext} " .
                                 "STYLE: {$style} cinematography. ";
 
                             // Add character consistency

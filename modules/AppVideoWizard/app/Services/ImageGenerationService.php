@@ -107,9 +107,11 @@ class ImageGenerationService
         $visualStyle = $project->storyboard['visualStyle'] ?? null;
 
         // SceneMemory contains Bible data (Character, Location, Style references)
-        // It can be stored in multiple locations depending on when it was saved
+        // Priority 1: Use sceneMemory from options (passed by collage generation for live data)
+        // Priority 2: Fall back to project's stored data
         $contentConfig = $project->content_config ?? [];
-        $sceneMemory = $contentConfig['sceneMemory']
+        $sceneMemory = $options['sceneMemory']
+            ?? $contentConfig['sceneMemory']
             ?? $project->storyboard['sceneMemory']
             ?? null;
 
