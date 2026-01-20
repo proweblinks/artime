@@ -408,6 +408,18 @@
                         <small class="text-muted">{{ __('Endpoint ID for Multitalk lip-sync video generation.') }}</small>
                     </div>
 
+                    {{-- Kokoro TTS Endpoint --}}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <span class="badge bg-success me-2">Audio</span>
+                            {{ __('Kokoro TTS (Text-to-Speech)') }}
+                        </label>
+                        <input type="text" class="form-control" name="runpod_kokoro_tts_endpoint"
+                               value="{{ get_option('runpod_kokoro_tts_endpoint', '') }}"
+                               placeholder="{{ __('e.g., pzi4079jucgobi') }}">
+                        <small class="text-muted">{{ __('Endpoint ID for Kokoro TTS high-quality voice generation. Used for narration in Video Wizard.') }}</small>
+                    </div>
+
                     {{-- Generic GPU Endpoint (future use) --}}
                     <div class="mb-0">
                         <label class="form-label">

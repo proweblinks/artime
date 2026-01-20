@@ -6,7 +6,6 @@ use App\Services\RunPodService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\AppVideoWizard\Http\Controllers\AppVideoWizardController;
-use Modules\AppVideoWizard\Models\VwSetting;
 
 class KokoroTtsService
 {
@@ -48,8 +47,8 @@ class KokoroTtsService
      */
     protected function loadEndpoint(): void
     {
-        $setting = VwSetting::where('slug', 'api_runpod_kokoro_tts_endpoint')->first();
-        $endpointUrl = $setting?->value ?? '';
+        // Use get_option() to read from main admin settings (options table)
+        $endpointUrl = get_option('runpod_kokoro_tts_endpoint', '');
 
         if (!empty($endpointUrl)) {
             // Extract endpoint ID from URL like "https://api.runpod.ai/v2/{id}" or just "{id}"
