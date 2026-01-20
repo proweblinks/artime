@@ -235,7 +235,7 @@ class AnimationService
             // Audio embedding settings
             'embeds_audio_scale' => $options['embeds_audio_scale'] ?? 1.0,
             'embeds_cfg_audio_scale' => $options['embeds_cfg_audio_scale'] ?? 2.0,
-            'embeds_multi_audio_type' => $options['embeds_multi_audio_type'] ?? 'average',
+            'embeds_multi_audio_type' => $options['embeds_multi_audio_type'] ?? 'add',
             'embeds_normalize_loudness' => $options['embeds_normalize_loudness'] ?? true,
 
             // Generation settings
