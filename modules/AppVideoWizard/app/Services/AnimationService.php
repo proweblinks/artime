@@ -359,11 +359,47 @@ class AnimationService
         ];
 
         if ($normalizedStatus === 'completed' && isset($status['output'])) {
-            // RunPod output typically contains the video URL
-            if (is_array($status['output']) && isset($status['output']['video_url'])) {
-                $result['videoUrl'] = $status['output']['video_url'];
-            } elseif (is_string($status['output'])) {
-                $result['videoUrl'] = $status['output'];
+            $output = $status['output'];
+
+            // Log raw output for debugging
+            \Log::info('🎬 Multitalk raw output', [
+                'taskId' => $taskId,
+                'outputType' => gettype($output),
+                'output' => is_array($output) ? $output : substr((string)$output, 0, 500),
+            ]);
+
+            // Try multiple possible output formats
+            if (is_array($output)) {
+                // Check common URL keys
+                $urlKeys = ['video_url', 'videoUrl', 'url', 'video', 'result'];
+                foreach ($urlKeys as $key) {
+                    if (isset($output[$key]) && is_string($output[$key]) && filter_var($output[$key], FILTER_VALIDATE_URL)) {
+                        $result['videoUrl'] = $output[$key];
+                        break;
+                    }
+                }
+
+                // Check for error in output
+                if (!isset($result['videoUrl']) && isset($output['error'])) {
+                    $result['error'] = is_string($output['error']) ? $output['error'] : json_encode($output['error']);
+                    $result['status'] = 'failed';
+                    $result['success'] = false;
+                }
+
+                // Check for message that might indicate failure
+                if (!isset($result['videoUrl']) && isset($output['message'])) {
+                    $result['error'] = $output['message'];
+                }
+            } elseif (is_string($output) && filter_var($output, FILTER_VALIDATE_URL)) {
+                $result['videoUrl'] = $output;
+            }
+
+            // If completed but no video URL found, log warning with full output
+            if ($normalizedStatus === 'completed' && !isset($result['videoUrl'])) {
+                \Log::warning('🎬 Multitalk completed but no video URL in output', [
+                    'taskId' => $taskId,
+                    'fullOutput' => $status['output'],
+                ]);
             }
         }
 
