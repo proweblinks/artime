@@ -684,6 +684,35 @@
         margin: 0;
     }
 
+    /* Empty State with background image from shots */
+    .vw-scene-empty.has-bg-image {
+        border: none;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .vw-scene-empty.has-bg-image .vw-scene-empty-text {
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .vw-scene-empty.has-bg-image .vw-scene-empty-btn {
+        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.ai {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.5)) !important;
+    }
+
+    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.stock {
+        background: rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .vw-scene-empty.has-bg-image .vw-scene-empty-btn.collage {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.4), rgba(139, 92, 246, 0.4)) !important;
+    }
+
     .vw-scene-empty-text {
         color: rgba(255, 255, 255, 0.6);
         font-size: 1rem;
@@ -1541,10 +1570,10 @@
                             </div>
                         @endif
 
-                        {{-- Chain Processed Indicator - Below scene number if chain is ready --}}
+                        {{-- MAIN Badge - Below scene number when chain data is ready --}}
                         @if($hasChainData && ($storyboard['promptChain']['enabled'] ?? true))
-                            <div style="position: absolute; top: 3rem; left: 0.75rem; background: rgba(251,191,36,0.9); color: #1a1a1a; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
-                                ⛓️ {{ __('CHAIN') }}
+                            <div style="position: absolute; top: 3rem; left: {{ $imageUrl ? '5rem' : '0.75rem' }}; background: rgba(236,72,153,0.9); color: white; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
+                                {{ __('MAIN') }}
                             </div>
                         @endif
 
@@ -1695,6 +1724,18 @@
                                 </div>
                             @else
                                 {{-- Empty/Pending State --}}
+                                @php
+                                    // Find background image from decomposed shots if available
+                                    $emptyStateBgImage = null;
+                                    if ($hasMultiShot && !empty($decomposed['shots'])) {
+                                        foreach ($decomposed['shots'] as $bgShot) {
+                                            if (!empty($bgShot['imageUrl']) && ($bgShot['imageStatus'] ?? $bgShot['status'] ?? '') === 'ready') {
+                                                $emptyStateBgImage = $bgShot['imageUrl'];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                @endphp
                                 {{-- Show loading spinner while generating (wire:loading targets this specific scene) --}}
                                 <div class="vw-scene-generating"
                                      wire:loading
@@ -1703,9 +1744,10 @@
                                     <div class="vw-spinner"></div>
                                     <span class="vw-generating-text">{{ __('Generating...') }}</span>
                                 </div>
-                                <div class="vw-scene-empty"
+                                <div class="vw-scene-empty {{ $emptyStateBgImage ? 'has-bg-image' : '' }}"
                                      wire:loading.remove
-                                     wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                     wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                     @if($emptyStateBgImage) style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('{{ $emptyStateBgImage }}'); background-size: cover; background-position: center; border: none;" @endif>
                                     <div class="vw-scene-empty-text">{{ __('Choose image source:') }}</div>
                                     <div class="vw-scene-empty-buttons">
                                         <button type="button"

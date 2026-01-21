@@ -199,16 +199,16 @@
             <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     {{-- Image Prompt --}}
-                    <div>
-                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 0.15rem;">🖼️ {{ __('IMAGE PROMPT') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7); line-height: 1.3; max-height: 45px; overflow-y: auto;">
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
+                        <div style="font-size: 0.6rem; color: rgba(16, 185, 129, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🖼️ {{ __('IMAGE PROMPT') }}</div>
+                        <div style="font-size: 0.7rem; color: rgba(167, 243, 208, 0.95); line-height: 1.3; max-height: 50px; overflow-y: auto;">
                             {{ $shot['prompt'] ?? $shot['imagePrompt'] ?? __('No prompt') }}
                         </div>
                     </div>
                     {{-- Video Prompt --}}
-                    <div>
-                        <div style="font-size: 0.6rem; color: rgba(6, 182, 212, 0.8); margin-bottom: 0.15rem;">🎬 {{ __('VIDEO PROMPT') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(103, 232, 249, 0.9); line-height: 1.3; max-height: 45px; overflow-y: auto;">
+                    <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
+                        <div style="font-size: 0.6rem; color: rgba(6, 182, 212, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🎬 {{ __('VIDEO PROMPT') }}</div>
+                        <div style="font-size: 0.7rem; color: rgba(103, 232, 249, 0.95); line-height: 1.3; max-height: 50px; overflow-y: auto;">
                             {{ $shot['videoPrompt'] ?? $shot['narrativeBeat']['motionDescription'] ?? __('Action prompt will be generated') }}
                         </div>
                     </div>
