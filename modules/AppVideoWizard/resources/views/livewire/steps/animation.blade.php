@@ -1857,7 +1857,7 @@
                         </div>
 
                         {{-- Main Preview Container --}}
-                        <div class="vw-preview-container" id="preview-container-{{ $selectedIndex }}" x-data="videoPlayer{{ $selectedIndex }}()">
+                        <div class="vw-preview-container" id="preview-container-{{ $selectedIndex }}" x-data="videoPlayerComponent()">
                             @if($selectedVideoUrl)
                                 {{-- Enhanced Video Player --}}
                                 <div class="vw-video-player" :class="{ 'controls-visible': showControls }"
@@ -2398,7 +2398,7 @@
 
     {{-- Alpine.js Video Player Component --}}
     <script>
-        function videoPlayer{{ $selectedIndex }}() {
+        function videoPlayerComponent() {
             return {
                 isPlaying: false,
                 isLooping: false,
