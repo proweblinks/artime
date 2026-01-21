@@ -8681,8 +8681,14 @@ PROMPT;
         // Calculate offset for pagination
         $offset = ($this->projectManagerPage - 1) * $this->projectManagerPerPage;
 
-        // Get paginated projects
-        $projects = $query->skip($offset)->take($this->projectManagerPerPage)->get();
+        // Get paginated projects - select only needed columns to avoid memory issues
+        // CRITICAL: Excludes multiShotMode which contains large image/video data
+        $projects = $query->select([
+            'id', 'name', 'platform', 'status', 'target_duration',
+            'script', 'concept', 'storyboard', 'animation', 'assembly', // Needed for step progress
+            'created_at', 'updated_at'
+            // Explicitly NOT selecting: multiShotMode, finalVideo (large data)
+        ])->skip($offset)->take($this->projectManagerPerPage)->get();
 
         $this->projectManagerProjects = $projects->map(function ($project) {
             // Calculate step progress (1-7 steps)
@@ -8704,17 +8710,17 @@ PROMPT;
 
     /**
      * Calculate status counts for filter tabs.
+     * Uses database-level counting to avoid memory exhaustion.
      */
     protected function calculateStatusCounts($query): void
     {
-        // Get all projects to count statuses
-        $allProjects = $query->get();
-
+        // Use database-level counting instead of loading all records into memory
+        // This prevents memory exhaustion when projects have large JSON data
         $this->projectManagerStatusCounts = [
-            'all' => $allProjects->count(),
-            'draft' => $allProjects->where('status', 'draft')->count(),
-            'in_progress' => $allProjects->where('status', 'in_progress')->count(),
-            'complete' => $allProjects->where('status', 'complete')->count(),
+            'all' => (clone $query)->count(),
+            'draft' => (clone $query)->where('status', 'draft')->count(),
+            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
+            'complete' => (clone $query)->where('status', 'complete')->count(),
         ];
     }
 
