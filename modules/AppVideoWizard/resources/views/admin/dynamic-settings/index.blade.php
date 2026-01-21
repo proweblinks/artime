@@ -31,19 +31,26 @@
     font-size: 0.7rem;
 }
 /* Settings card improvements */
+.card-body .col-md-6 {
+    margin-bottom: 1.5rem !important;
+}
 .card-body .col-md-6 > .border {
     background: #fff;
     border-color: #e5e7eb !important;
+    padding: 1rem !important;
 }
 .card-body .col-md-6 .form-label {
     font-weight: 600;
     font-size: 0.875rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
     word-break: break-word;
+    line-height: 1.3;
 }
-.card-body .col-md-6 .text-muted.small {
+.card-body .col-md-6 p.text-muted.small {
     font-size: 0.8rem;
-    line-height: 1.4;
+    line-height: 1.5;
+    margin-bottom: 0.75rem !important;
+    color: #6b7280 !important;
 }
 /* Fix input text overflow */
 .card-body .form-control,
@@ -51,12 +58,35 @@
     font-size: 0.875rem;
 }
 .card-body textarea.form-control {
-    min-height: 80px;
+    min-height: 60px;
+    resize: vertical;
+    line-height: 1.5;
 }
 /* Input group text size */
 .card-body .input-group-text {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
+}
+/* Help text spacing */
+.card-body small.text-muted {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+/* Checkbox switch alignment */
+.card-body .form-check.form-switch {
+    padding-top: 0.25rem;
+}
+/* Setting card specific */
+.setting-card {
+    display: flex;
+    flex-direction: column;
+}
+.setting-card .form-control:last-of-type,
+.setting-card .form-select:last-of-type,
+.setting-card .form-check:last-of-type {
+    margin-bottom: 0;
 }
 </style>
 @endpush
@@ -205,8 +235,8 @@
                             <div class="card-body">
                                 <div class="row">
                                     @foreach($settingsByCategory[$categorySlug] as $setting)
-                                        <div class="col-md-6 mb-4">
-                                            <div class="border rounded p-3 h-100 {{ $setting->is_system ? 'bg-light' : '' }}">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="border rounded p-3 h-100 setting-card {{ $setting->is_system ? 'bg-light' : '' }}">
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                                     <label class="form-label fw-bold mb-0" for="setting-{{ $setting->slug }}">
                                                         @if($setting->icon)
@@ -222,7 +252,7 @@
                                                 </div>
 
                                                 @if($setting->description)
-                                                    <p class="text-muted small mb-2">{{ $setting->description }}</p>
+                                                    <p class="text-muted small mb-3">{{ $setting->description }}</p>
                                                 @endif
 
                                                 @php
@@ -336,6 +366,16 @@
                                                                       rows="4"
                                                                       placeholder="{{ $setting->input_placeholder }}">{{ json_encode($currentValue, JSON_PRETTY_PRINT) }}</textarea>
                                                             <small class="text-muted">{{ __('JSON format') }}</small>
+                                                        @elseif(is_string($currentValue) && (strlen($currentValue) > 40 || str_contains($currentValue, ',')))
+                                                            {{-- Long text or comma-separated values - show as textarea --}}
+                                                            <textarea class="form-control"
+                                                                      id="setting-{{ $setting->slug }}"
+                                                                      name="settings[{{ $setting->slug }}]"
+                                                                      rows="2"
+                                                                      placeholder="{{ $setting->input_placeholder }}">{{ $currentValue }}</textarea>
+                                                            @if(str_contains($currentValue ?? '', ','))
+                                                                <small class="text-muted">{{ __('Comma-separated list') }}</small>
+                                                            @endif
                                                         @else
                                                             <input type="text"
                                                                    class="form-control"
