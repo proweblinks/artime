@@ -25,7 +25,11 @@ return new class extends Migration
             'cinematic_intelligence',
             'motion_intelligence',
             'shot_continuity',
-            'scene_detection'
+            'scene_detection',
+            'automation',
+            'character_enrichment',
+            'narrative_beats',
+            'shot_progression'
         ) NOT NULL DEFAULT 'general'");
     }
 
@@ -47,7 +51,11 @@ return new class extends Migration
             'production_intelligence',
             'cinematic_intelligence',
             'motion_intelligence',
-            'shot_continuity'
+            'shot_continuity',
+            'automation',
+            'character_enrichment',
+            'narrative_beats',
+            'shot_progression'
         ) NOT NULL DEFAULT 'general'");
     }
 };
