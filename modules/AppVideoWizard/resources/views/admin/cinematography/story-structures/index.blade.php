@@ -117,10 +117,12 @@
                                 <div class="mb-3">
                                     <label class="form-label">{{ __('Act Distribution') }}</label>
                                     <div class="progress progress-lg mb-2" style="height: 24px;">
-                                        @foreach($actDist as $act => $percent)
+                                        @foreach($actDist as $act => $percentData)
                                             @php
                                                 $colors = ['act1' => 'primary', 'act2' => 'success', 'act3' => 'danger'];
                                                 $labels = ['act1' => 'Act 1', 'act2' => 'Act 2', 'act3' => 'Act 3'];
+                                                // Handle both scalar values and array structures
+                                                $percent = is_array($percentData) ? ($percentData['percentage'] ?? $percentData['percent'] ?? 0) : $percentData;
                                             @endphp
                                             <div class="progress-bar bg-{{ $colors[$act] ?? 'secondary' }}" style="width: {{ $percent }}%">
                                                 <span class="small">{{ $labels[$act] ?? $act }}: {{ $percent }}%</span>
@@ -150,12 +152,13 @@
                             @php
                                 $pacingCurve = is_string($structure->pacing_curve) ? json_decode($structure->pacing_curve, true) : $structure->pacing_curve;
                             @endphp
-                            @if(!empty($pacingCurve))
+                            @if(!empty($pacingCurve) && is_array($pacingCurve))
                                 <div class="mb-0">
                                     <label class="form-label">{{ __('Pacing Curve') }}</label>
                                     <div class="d-flex justify-content-between align-items-end" style="height: 50px;">
                                         @foreach($pacingCurve as $point)
-                                            <div class="bg-primary rounded" style="width: 8%; height: {{ $point * 100 }}%; min-height: 4px;"></div>
+                                            @php $pointValue = is_numeric($point) ? $point : 0; @endphp
+                                            <div class="bg-primary rounded" style="width: 8%; height: {{ $pointValue * 100 }}%; min-height: 4px;"></div>
                                         @endforeach
                                     </div>
                                     <div class="d-flex justify-content-between mt-1">
