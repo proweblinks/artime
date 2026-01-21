@@ -827,4 +827,243 @@ class DynamicShotEngine
         $context['pacing'] = $newPacing;
         return $this->analyzeScene($scene, $context);
     }
+
+    // =========================================================================
+    // HOLLYWOOD-INFORMED: EMOTION-DRIVEN SHOT SELECTION
+    // =========================================================================
+
+    /**
+     * Select shot type based on emotional intensity.
+     * Higher emotion = tighter framing (close-up at climax)
+     *
+     * Based on Hollywood cinematography analysis (Moon Knight 359 frames):
+     * - Frame 285 (Pyramids): intensity 0.2 → Extreme Wide
+     * - Frame 25 (Two-shot): intensity 0.45 → Medium
+     * - Frame 115 (Reaction): intensity 0.7 → MCU
+     * - Frame 45 (XCU profile): intensity 0.9 → XCU
+     *
+     * @param float $intensity Emotional intensity (0-1)
+     * @param int $index Shot index in sequence
+     * @param int $totalShots Total shots in sequence
+     * @param string|null $sceneType Optional scene type for context
+     * @return string Shot type name
+     */
+    public function selectShotTypeForEmotion(float $intensity, int $index, int $totalShots, ?string $sceneType = null): string
+    {
+        // First shot always establishing (unless very short)
+        if ($index === 0 && $totalShots > 2) {
+            return 'establishing';
+        }
+
+        // Last shot should be character-centric for animation
+        // ANIMATABILITY-AWARE: End on shots that animate well (face visible)
+        if ($index === $totalShots - 1) {
+            return $intensity > 0.6 ? 'close-up' : 'medium';
+        }
+
+        // Intensity-based selection (from Hollywood analysis)
+        if ($intensity >= 0.85) {
+            return 'extreme-close-up';  // XCU for peak moments (Frame 45)
+        }
+        if ($intensity >= 0.7) {
+            return 'close-up';  // CU for high emotion (Frame 115)
+        }
+        if ($intensity >= 0.55) {
+            return 'medium-close';  // MCU for engagement
+        }
+        if ($intensity >= 0.4) {
+            return 'medium';  // Standard dialogue (Frame 25)
+        }
+        if ($intensity >= 0.25) {
+            return 'wide';  // Context shots
+        }
+
+        return 'establishing';  // Location/scale (Frame 285)
+    }
+
+    /**
+     * Apply emotion-driven shot types to an existing shot array.
+     * Updates shot types based on emotional intensity arc.
+     *
+     * @param array $shots Existing shots array
+     * @param array $emotionalArc Array of intensity values (0-1) per shot
+     * @param string|null $sceneType Optional scene type for context
+     * @return array Updated shots with emotion-driven types
+     */
+    public function applyEmotionDrivenShotTypes(array $shots, array $emotionalArc, ?string $sceneType = null): array
+    {
+        $totalShots = count($shots);
+
+        foreach ($shots as $i => &$shot) {
+            $intensity = $emotionalArc[$i] ?? 0.5;
+
+            // Select shot type based on emotion
+            $emotionType = $this->selectShotTypeForEmotion($intensity, $i, $totalShots, $sceneType);
+
+            // Only override if the shot doesn't already have a specific type set
+            // This respects any manual overrides while filling in gaps
+            if (empty($shot['type']) || $shot['type'] === 'medium') {
+                $shot['type'] = $emotionType;
+                $shot['shotType'] = $emotionType;
+            }
+
+            // Store the emotional intensity for reference
+            $shot['emotionalIntensity'] = $intensity;
+            $shot['emotionDerivedType'] = $emotionType;
+        }
+
+        Log::debug('DynamicShotEngine: Applied emotion-driven shot types', [
+            'totalShots' => $totalShots,
+            'emotionalArc' => $emotionalArc,
+        ]);
+
+        return $shots;
+    }
+
+    // =========================================================================
+    // HOLLYWOOD-INFORMED: DIALOGUE COVERAGE PATTERNS
+    // =========================================================================
+
+    /**
+     * Hollywood dialogue pattern: Shot/Reverse Shot
+     * For two-character dialogue scenes.
+     *
+     * Standard pattern: Two-shot → OTS A → OTS B → CU reaction
+     *
+     * @param array $shots Existing shots array
+     * @param array $characters Characters in the dialogue (minimum 2)
+     * @return array Updated shots with dialogue coverage pattern
+     */
+    public function applyDialogueCoveragePattern(array $shots, array $characters): array
+    {
+        // Need at least 2 characters and 3 shots for dialogue pattern
+        if (count($characters) < 2 || count($shots) < 3) {
+            return $shots;
+        }
+
+        $totalShots = count($shots);
+        $charA = $characters[0]['name'] ?? 'Character A';
+        $charB = $characters[1]['name'] ?? 'Character B';
+
+        // Hollywood standard dialogue pattern
+        $dialoguePattern = [
+            0 => [
+                'type' => 'wide',
+                'purpose' => 'two-shot',
+                'focus' => 'both',
+                'description' => "Two-shot establishing {$charA} and {$charB} in conversation",
+            ],
+            1 => [
+                'type' => 'medium',
+                'purpose' => 'over-the-shoulder',
+                'focus' => $charA,
+                'description' => "Over-the-shoulder on {$charA} speaking",
+            ],
+            2 => [
+                'type' => 'medium',
+                'purpose' => 'over-the-shoulder',
+                'focus' => $charB,
+                'description' => "Reverse OTS on {$charB} responding",
+            ],
+            3 => [
+                'type' => 'close-up',
+                'purpose' => 'emphasis',
+                'focus' => 'speaker',
+                'description' => "Close-up for key line delivery",
+            ],
+            4 => [
+                'type' => 'reaction',
+                'purpose' => 'reaction',
+                'focus' => 'listener',
+                'description' => "Reaction shot capturing response",
+            ],
+        ];
+
+        // Apply pattern to shots (cycling through if more shots than pattern)
+        foreach ($shots as $i => &$shot) {
+            $patternIndex = $i % count($dialoguePattern);
+            $pattern = $dialoguePattern[$patternIndex];
+
+            // Store dialogue pattern data
+            $shot['dialoguePattern'] = [
+                'purpose' => $pattern['purpose'],
+                'focus' => $pattern['focus'],
+            ];
+
+            // Update type based on pattern
+            if (empty($shot['type']) || $shot['type'] === 'medium') {
+                $shot['type'] = $pattern['type'];
+                $shot['shotType'] = $pattern['type'];
+            }
+
+            // Enhance description with dialogue context if needed
+            if (empty($shot['dialogueContext'])) {
+                $shot['dialogueContext'] = $pattern['description'];
+            }
+        }
+
+        Log::debug('DynamicShotEngine: Applied dialogue coverage pattern', [
+            'totalShots' => $totalShots,
+            'characters' => [$charA, $charB],
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * Detect if a scene should use dialogue coverage pattern.
+     *
+     * @param array $analysis Scene analysis data
+     * @return bool True if dialogue pattern is recommended
+     */
+    public function shouldUseDialoguePattern(array $analysis): bool
+    {
+        // Check for high dialogue density
+        $dialogueDensity = $analysis['dialogueDensity'] ?? 0;
+        $characterCount = $analysis['characterCount'] ?? 0;
+        $sceneType = $analysis['sceneType'] ?? 'default';
+
+        // Dialogue pattern works best for:
+        // - Scenes with dialogue density > 40%
+        // - Exactly 2-3 characters
+        // - Scene type is dialogue or conversation
+        return ($dialogueDensity > 40 || $sceneType === 'dialogue')
+            && $characterCount >= 2
+            && $characterCount <= 3;
+    }
+
+    /**
+     * Generate shot sequence with emotional arc and dialogue patterns combined.
+     * This is the main entry point for Hollywood-informed shot generation.
+     *
+     * @param array $scene Scene data
+     * @param array $context Additional context (characters, emotional arc, etc.)
+     * @return array Enhanced shots with Hollywood patterns applied
+     */
+    public function generateHollywoodShotSequence(array $scene, array $context = []): array
+    {
+        // First, do the standard analysis
+        $result = $this->analyzeScene($scene, $context);
+        $shots = $result['shots'] ?? [];
+
+        // Apply emotional arc if provided
+        $emotionalArc = $context['emotionalArc'] ?? [];
+        if (!empty($emotionalArc) && count($emotionalArc) === count($shots)) {
+            $shots = $this->applyEmotionDrivenShotTypes($shots, $emotionalArc, $result['analysis']['sceneType'] ?? null);
+        }
+
+        // Apply dialogue pattern if appropriate
+        $characters = $context['characters'] ?? [];
+        if (count($characters) >= 2 && $this->shouldUseDialoguePattern($result['analysis'] ?? [])) {
+            $shots = $this->applyDialogueCoveragePattern($shots, $characters);
+        }
+
+        $result['shots'] = $shots;
+        $result['hollywoodPatterns'] = [
+            'emotionalArc' => !empty($emotionalArc),
+            'dialogueCoverage' => count($characters) >= 2 && $this->shouldUseDialoguePattern($result['analysis'] ?? []),
+        ];
+
+        return $result;
+    }
 }

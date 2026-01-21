@@ -16252,81 +16252,194 @@ PROMPT;
      */
     protected function decomposeSceneIntoStoryBeats(array $scene, int $sceneIndex, array $characters = []): ?array
     {
-        try {
-            $geminiService = app(\App\Services\GeminiService::class);
+        // HOLLYWOOD-INFORMED: Retry with exponential backoff for reliability
+        $maxAttempts = 3;
+        $attempt = 0;
+        $geminiService = app(\App\Services\GeminiService::class);
 
-            // Build character list for the prompt
-            $characterList = '';
-            if (!empty($characters)) {
-                $charNames = array_column($characters, 'name');
-                $characterList = "CHARACTERS IN SCENE:\n" . implode(', ', $charNames);
-            }
-
-            // Get scene content
-            $narration = $scene['narration'] ?? '';
-            $visual = $scene['visualDescription'] ?? $scene['visual'] ?? '';
-            $mood = $scene['mood'] ?? 'neutral';
-
-            // PHASE 6: Detect applicable cinematic patterns from Story Bible
-            $applicablePatterns = $this->detectApplicablePatterns($scene, $sceneIndex);
-            $patternInstructions = $this->buildPatternInstructions($applicablePatterns);
-            $cinematographyRules = $this->getCinematographyRules();
-
-            // Build the enhanced decomposition prompt with patterns
-            $prompt = $this->buildStoryBeatDecompositionPrompt(
-                $narration,
-                $visual,
-                $mood,
-                $characterList,
-                $patternInstructions,
-                $cinematographyRules
-            );
-
-            // Call AI for story beat decomposition
-            $result = $geminiService->generateText(
-                $prompt,
-                4000, // max tokens
-                1,
-                'text',
-                ['temperature' => 0.7]
-            );
-
-            if (!$result['success'] || empty($result['result'])) {
-                Log::warning('Story beat decomposition failed', ['error' => $result['error'] ?? 'Empty result']);
-                return null;
-            }
-
-            // Parse AI response
-            $responseText = is_array($result['result']) ? $result['result'][0] : $result['result'];
-
-            // Extract JSON from response
-            $jsonMatch = [];
-            if (preg_match('/```json\s*(.*?)\s*```/s', $responseText, $jsonMatch)) {
-                $jsonStr = $jsonMatch[1];
-            } else {
-                // Try to find JSON directly
-                $jsonStr = $responseText;
-            }
-
-            $beats = json_decode($jsonStr, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::warning('Failed to parse story beats JSON', ['response' => substr($responseText, 0, 500)]);
-                return null;
-            }
-
-            Log::info('Story beat decomposition complete', [
-                'sceneIndex' => $sceneIndex,
-                'beatCount' => count($beats['beats'] ?? []),
-                'totalShots' => array_sum(array_map(fn($b) => count($b['shots'] ?? []), $beats['beats'] ?? [])),
-            ]);
-
-            return $beats;
-
-        } catch (\Exception $e) {
-            Log::error('Story beat decomposition error', ['error' => $e->getMessage()]);
-            return null;
+        // Build character list for the prompt (once, reuse for retries)
+        $characterList = '';
+        if (!empty($characters)) {
+            $charNames = array_column($characters, 'name');
+            $characterList = "CHARACTERS IN SCENE:\n" . implode(', ', $charNames);
         }
+
+        // Get scene content
+        $narration = $scene['narration'] ?? '';
+        $visual = $scene['visualDescription'] ?? $scene['visual'] ?? '';
+        $mood = $scene['mood'] ?? 'neutral';
+
+        // PHASE 6: Detect applicable cinematic patterns from Story Bible
+        $applicablePatterns = $this->detectApplicablePatterns($scene, $sceneIndex);
+        $patternInstructions = $this->buildPatternInstructions($applicablePatterns);
+        $cinematographyRules = $this->getCinematographyRules();
+
+        // Build the enhanced decomposition prompt with patterns
+        $prompt = $this->buildStoryBeatDecompositionPrompt(
+            $narration,
+            $visual,
+            $mood,
+            $characterList,
+            $patternInstructions,
+            $cinematographyRules
+        );
+
+        while ($attempt < $maxAttempts) {
+            $attempt++;
+
+            try {
+                // Call AI for story beat decomposition
+                // Increase temperature slightly on retries for more variation
+                $temperature = 0.7 + (($attempt - 1) * 0.1);
+
+                $result = $geminiService->generateText(
+                    $prompt,
+                    4000, // max tokens
+                    1,
+                    'text',
+                    ['temperature' => min(0.9, $temperature)]
+                );
+
+                if (!$result['success'] || empty($result['result'])) {
+                    Log::warning('Story beat decomposition attempt failed', [
+                        'attempt' => $attempt,
+                        'error' => $result['error'] ?? 'Empty result',
+                    ]);
+
+                    // Continue to retry
+                    if ($attempt < $maxAttempts) {
+                        usleep(500000 * $attempt); // 0.5s, 1s, 1.5s backoff
+                    }
+                    continue;
+                }
+
+                // Parse AI response
+                $responseText = is_array($result['result']) ? $result['result'][0] : $result['result'];
+
+                // Extract JSON from response
+                $jsonMatch = [];
+                if (preg_match('/```json\s*(.*?)\s*```/s', $responseText, $jsonMatch)) {
+                    $jsonStr = $jsonMatch[1];
+                } else {
+                    // Try to find JSON directly
+                    $jsonStr = $responseText;
+                }
+
+                $beats = json_decode($jsonStr, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::warning('Failed to parse story beats JSON', [
+                        'attempt' => $attempt,
+                        'response' => substr($responseText, 0, 500),
+                    ]);
+
+                    // Continue to retry
+                    if ($attempt < $maxAttempts) {
+                        usleep(500000 * $attempt);
+                    }
+                    continue;
+                }
+
+                // Validate quality - ensure unique descriptions (Hollywood standard)
+                $totalShots = array_sum(array_map(fn($b) => count($b['shots'] ?? []), $beats['beats'] ?? []));
+                if (!$this->validateStoryBeatQuality($beats, $totalShots)) {
+                    Log::warning('Story beat quality validation failed, retrying', [
+                        'attempt' => $attempt,
+                        'totalShots' => $totalShots,
+                    ]);
+
+                    // Continue to retry
+                    if ($attempt < $maxAttempts) {
+                        usleep(500000 * $attempt);
+                    }
+                    continue;
+                }
+
+                Log::info('Story beat decomposition complete', [
+                    'sceneIndex' => $sceneIndex,
+                    'beatCount' => count($beats['beats'] ?? []),
+                    'totalShots' => $totalShots,
+                    'attempt' => $attempt,
+                ]);
+
+                return $beats;
+
+            } catch (\Exception $e) {
+                Log::warning('Story beat decomposition attempt exception', [
+                    'attempt' => $attempt,
+                    'error' => $e->getMessage(),
+                ]);
+
+                // Continue to retry
+                if ($attempt < $maxAttempts) {
+                    usleep(500000 * $attempt);
+                }
+            }
+        }
+
+        Log::error('All story beat attempts failed, will use moment-based fallback', [
+            'sceneIndex' => $sceneIndex,
+            'attempts' => $maxAttempts,
+        ]);
+        return null;
+    }
+
+    /**
+     * Validate that story beats have unique descriptions (not duplicates).
+     * Hollywood standard: EVERY shot must be visually distinct.
+     *
+     * @param array|null $beats Parsed story beats
+     * @param int $expectedCount Expected number of shots
+     * @return bool True if quality passes, false otherwise
+     */
+    protected function validateStoryBeatQuality(?array $beats, int $expectedCount): bool
+    {
+        if (empty($beats) || empty($beats['beats'])) {
+            return false;
+        }
+
+        $descriptions = [];
+        $shotCount = 0;
+
+        foreach ($beats['beats'] as $beat) {
+            foreach ($beat['shots'] ?? [] as $shot) {
+                $shotCount++;
+                $desc = $shot['uniqueVisualDescription'] ?? $shot['description'] ?? '';
+
+                // Skip empty descriptions
+                if (empty($desc)) {
+                    continue;
+                }
+
+                // Check for duplicates (allowing minor variations)
+                foreach ($descriptions as $existingDesc) {
+                    // Calculate similarity
+                    similar_text(strtolower($desc), strtolower($existingDesc), $percent);
+                    if ($percent > 85) { // More than 85% similar = likely duplicate
+                        Log::debug('Story beat quality: Found similar descriptions', [
+                            'new' => substr($desc, 0, 50),
+                            'existing' => substr($existingDesc, 0, 50),
+                            'similarity' => $percent,
+                        ]);
+                        return false; // Hollywood violation - duplicate description!
+                    }
+                }
+
+                $descriptions[] = $desc;
+            }
+        }
+
+        // Ensure we got enough unique shots (at least 50% of expected)
+        $uniqueCount = count($descriptions);
+        if ($expectedCount > 0 && $uniqueCount < $expectedCount * 0.5) {
+            Log::debug('Story beat quality: Not enough unique descriptions', [
+                'uniqueCount' => $uniqueCount,
+                'expectedCount' => $expectedCount,
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -16654,6 +16767,9 @@ PROMPT;
      * Add basic variety to shots when AI decomposition fails.
      * Ensures each shot is visually distinct even without AI story beats.
      *
+     * HOLLYWOOD-INFORMED: Uses NarrativeMomentService for intelligent decomposition.
+     * Each shot gets a UNIQUE moment from the narration (not same action repeated).
+     *
      * @param array $shots The shots to enhance
      * @param string $baseVisualDescription Base visual description
      * @param array $sceneContext Scene context for story-aware prompts
@@ -16665,10 +16781,37 @@ PROMPT;
         $hasCharacter = preg_match('/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:walks|stands|looks|sits|moves)/i', $baseVisualDescription, $characterMatch);
         $characterName = $hasCharacter ? $characterMatch[1] : 'the subject';
 
-        // Try to extract actual story action from narration
-        $extractedAction = $this->extractActualStoryAction($baseVisualDescription, $sceneContext);
-        $hasStoryAction = !empty($extractedAction);
+        // NEW: Use NarrativeMomentService for intelligent decomposition (Hollywood pattern)
+        $narration = $sceneContext['narration'] ?? $baseVisualDescription;
+        $moments = null;
+        $emotionalArc = null;
 
+        try {
+            $momentService = app(\Modules\AppVideoWizard\Services\NarrativeMomentService::class);
+
+            // Get scene characters for context
+            $sceneCharacters = $this->getCharactersForScene($sceneContext['sceneIndex'] ?? 0);
+            $characterNames = array_map(fn($c) => $c['name'] ?? '', $sceneCharacters);
+
+            // Decompose into UNIQUE moments per shot (Hollywood pattern)
+            $moments = $momentService->decomposeNarrationIntoMoments($narration, count($shots), [
+                'characters' => $characterNames,
+                'mood' => $sceneContext['mood'] ?? 'neutral',
+            ]);
+            $emotionalArc = $momentService->extractEmotionalArc($moments);
+
+            Log::debug('VideoWizard: Narrative moment decomposition', [
+                'shotCount' => count($shots),
+                'momentCount' => count($moments),
+                'emotionalArc' => $emotionalArc,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Moment decomposition failed, using fallback', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback variety actions (used when moment decomposition fails)
         $varietyActions = [
             'establishing' => "Wide view establishing the scene environment and atmosphere",
             'wide' => "{$characterName} enters the frame, full body visible in the environment",
@@ -16680,27 +16823,57 @@ PROMPT;
         ];
 
         foreach ($shots as $i => &$shot) {
-            $type = $shot['type'] ?? 'medium';
+            $moment = $moments[$i] ?? null;
+            $intensity = $emotionalArc[$i] ?? 0.5;
 
-            // Use extracted story action if available, otherwise generic variety
-            if ($hasStoryAction && in_array($type, ['medium', 'medium-close', 'close-up'])) {
-                $varietyDesc = $this->buildEnhancedStoryAction($extractedAction, $type, $sceneContext);
+            if ($moment && !empty($moment['visualDescription'])) {
+                // Select shot type based on emotional intensity (Hollywood rule)
+                $recommendedType = $this->selectShotTypeForIntensity($intensity, $i, count($shots));
+
+                // Use recommended type unless shot already has a specific type set
+                if (empty($shot['type']) || $shot['type'] === 'medium') {
+                    $shot['type'] = $recommendedType;
+                    $shot['shotType'] = $recommendedType;
+                }
+
+                // Build UNIQUE description from this shot's moment
+                $varietyDesc = $this->buildMomentBasedDescription(
+                    $moment,
+                    $shot['type'],
+                    $sceneContext,
+                    $characterName
+                );
+
+                // Store emotional intensity for later use
+                $shot['emotionalIntensity'] = $intensity;
+                $shot['emotion'] = $moment['emotion'] ?? '';
             } else {
-                $varietyDesc = $varietyActions[$type] ?? $varietyActions['medium'];
-            }
+                // Existing fallback logic
+                $type = $shot['type'] ?? 'medium';
 
-            // Make each shot more unique by adding position context
-            if ($i === 0) {
-                $varietyDesc .= '. Opening moment of the scene.';
-            } elseif ($i === count($shots) - 1) {
-                $varietyDesc .= '. Scene conclusion.';
-            } else {
-                $varietyDesc .= '. Scene progresses.';
-            }
+                // Try to extract actual story action from narration
+                $extractedAction = $this->extractActualStoryAction($baseVisualDescription, $sceneContext);
+                $hasStoryAction = !empty($extractedAction);
 
-            // Add emotional context from scene mood
-            if (!empty($sceneContext['mood'])) {
-                $varietyDesc .= " Conveying {$sceneContext['mood']} emotion.";
+                if ($hasStoryAction && in_array($type, ['medium', 'medium-close', 'close-up'])) {
+                    $varietyDesc = $this->buildEnhancedStoryAction($extractedAction, $type, $sceneContext);
+                } else {
+                    $varietyDesc = $varietyActions[$type] ?? $varietyActions['medium'];
+                }
+
+                // Make each shot more unique by adding position context
+                if ($i === 0) {
+                    $varietyDesc .= '. Opening moment of the scene.';
+                } elseif ($i === count($shots) - 1) {
+                    $varietyDesc .= '. Scene conclusion.';
+                } else {
+                    $varietyDesc .= '. Scene progresses.';
+                }
+
+                // Add emotional context from scene mood
+                if (!empty($sceneContext['mood'])) {
+                    $varietyDesc .= " Conveying {$sceneContext['mood']} emotion.";
+                }
             }
 
             $shot['uniqueVisualDescription'] = $varietyDesc;
@@ -16712,6 +16885,97 @@ PROMPT;
         }
 
         return $shots;
+    }
+
+    /**
+     * Hollywood rule: Tighter framing for higher emotional intensity.
+     * Based on Moon Knight analysis:
+     * - Frame 285 (Pyramids): intensity 0.2 → Extreme Wide
+     * - Frame 25 (Two-shot): intensity 0.45 → Medium
+     * - Frame 115 (Reaction): intensity 0.7 → MCU
+     * - Frame 45 (XCU profile): intensity 0.9 → XCU
+     */
+    protected function selectShotTypeForIntensity(float $intensity, int $index, int $total): string
+    {
+        // First shot always establishing (unless very short scene)
+        if ($index === 0 && $total > 2) {
+            return 'establishing';
+        }
+
+        // Last shot should be character-centric for animation
+        if ($index === $total - 1) {
+            return $intensity > 0.6 ? 'close-up' : 'medium';
+        }
+
+        // Intensity-based selection (from Hollywood analysis)
+        if ($intensity >= 0.85) {
+            return 'extreme-close-up';
+        }
+        if ($intensity >= 0.7) {
+            return 'close-up';
+        }
+        if ($intensity >= 0.55) {
+            return 'medium-close';
+        }
+        if ($intensity >= 0.4) {
+            return 'medium';
+        }
+        if ($intensity >= 0.25) {
+            return 'wide';
+        }
+
+        return 'establishing';
+    }
+
+    /**
+     * Build unique visual description from a narrative moment.
+     * Each shot gets a DIFFERENT description based on its moment in the story.
+     */
+    protected function buildMomentBasedDescription(array $moment, string $shotType, array $sceneContext, string $fallbackCharacter = 'the subject'): string
+    {
+        $subject = $moment['subject'] ?? $fallbackCharacter;
+        $action = $moment['action'] ?? '';
+        $emotion = $moment['emotion'] ?? '';
+        $visualDesc = $moment['visualDescription'] ?? $action;
+
+        // Shot type specific framing
+        $framingPrefix = match ($shotType) {
+            'establishing', 'extreme-wide' => "Wide establishing view:",
+            'wide' => "Full shot showing",
+            'medium' => "Medium shot of",
+            'medium-close' => "Medium close-up on",
+            'close-up' => "Close-up capturing",
+            'extreme-close-up' => "Extreme close-up on",
+            'reaction' => "Reaction shot:",
+            default => "Shot of",
+        };
+
+        // Build the description
+        $description = "{$framingPrefix} {$visualDesc}";
+
+        // Add emotional context if available
+        if (!empty($emotion) && !in_array($emotion, ['focus', 'neutral'])) {
+            $emotionContext = match ($emotion) {
+                'anticipation' => 'sense of anticipation building',
+                'recognition' => 'moment of recognition',
+                'urgency' => 'urgent energy',
+                'tension' => 'underlying tension',
+                'fear' => 'fear evident',
+                'determination' => 'determined expression',
+                'realization' => 'dawning realization',
+                'confrontation' => 'confrontational stance',
+                'revelation' => 'moment of revelation',
+                default => "{$emotion} visible",
+            };
+            $description .= ", {$emotionContext}";
+        }
+
+        // Add scene mood context
+        if (!empty($sceneContext['mood']) && $sceneContext['mood'] !== $emotion) {
+            $description .= ". Overall mood: {$sceneContext['mood']}";
+        }
+
+        return $description;
     }
 
     /**
@@ -22313,6 +22577,10 @@ PROMPT;
                 'sceneIndex' => $sceneIndex,
                 'collageUrl' => $firstPage['previewUrl'],
             ]);
+
+            // NEW: Extract character portraits from collage for consistency
+            // This ensures same face across all shots (Hollywood standard)
+            $this->extractCharacterPortraitsFromCollage($sceneIndex, $firstPage['previewUrl']);
         }
 
         // Get decomposed shots
@@ -22464,6 +22732,187 @@ PROMPT;
 
         // Keep collage data so modal can still display it for manual region selection
         // User can regenerate collage or clear it manually if needed
+    }
+
+    /**
+     * Extract character portraits from collage to ensure consistency across shots.
+     * Uses SmartReferenceService to analyze and extract faces.
+     *
+     * Hollywood Standard: Same actor recognizable in EVERY frame
+     * - Face features consistent
+     * - Costume continuity
+     * - Makeup/injury continuity
+     *
+     * @param int $sceneIndex Scene index
+     * @param string $collageUrl URL of the collage image
+     */
+    protected function extractCharacterPortraitsFromCollage(int $sceneIndex, string $collageUrl): void
+    {
+        try {
+            $smartRef = app(SmartReferenceService::class);
+            $characterBible = $this->sceneMemory['characterBible'] ?? [];
+
+            // Get characters expected in this scene
+            $sceneCharacters = $this->getCharactersForScene($sceneIndex);
+            if (empty($sceneCharacters)) {
+                Log::debug('VideoWizard: No characters for scene, skipping portrait extraction', [
+                    'sceneIndex' => $sceneIndex,
+                ]);
+                return;
+            }
+
+            // Fetch collage as base64
+            $imageBase64 = $this->fetchImageAsBase64($collageUrl);
+            if (!$imageBase64) {
+                Log::warning('VideoWizard: Could not fetch collage for portrait extraction', [
+                    'collageUrl' => $collageUrl,
+                ]);
+                return;
+            }
+
+            $portraitsExtracted = 0;
+
+            foreach ($sceneCharacters as $charIndex => $charData) {
+                // Find the character's index in the Bible
+                $bibleCharIndex = $this->findCharacterIndexInBible($charData['name'] ?? '');
+                if ($bibleCharIndex === null) {
+                    continue;
+                }
+
+                // Skip if character already has a high-quality portrait
+                $existingPortrait = $this->sceneMemory['characterBible']['characters'][$bibleCharIndex] ?? [];
+                if (!empty($existingPortrait['referenceImageBase64']) &&
+                    ($existingPortrait['referenceImageStatus'] ?? '') === 'ready') {
+                    Log::debug('VideoWizard: Character already has portrait, skipping', [
+                        'characterName' => $charData['name'] ?? 'Unknown',
+                    ]);
+                    continue;
+                }
+
+                // Analyze scene for this character
+                $analysis = $smartRef->analyzeSceneForCharacters($imageBase64, [
+                    'characters' => [$charData],
+                ]);
+
+                if ($analysis['success'] && !empty($analysis['detectedCharacters'])) {
+                    $detected = $analysis['detectedCharacters'][0];
+
+                    // Extract isolated portrait
+                    $portrait = $smartRef->extractCharacterPortrait(
+                        $imageBase64,
+                        $detected,
+                        $charData
+                    );
+
+                    if ($portrait['success']) {
+                        // Update Character Bible with reference
+                        $this->sceneMemory['characterBible']['characters'][$bibleCharIndex]['referenceImageBase64'] = $portrait['base64'];
+                        $this->sceneMemory['characterBible']['characters'][$bibleCharIndex]['referenceImageMimeType'] = $portrait['mimeType'] ?? 'image/png';
+                        $this->sceneMemory['characterBible']['characters'][$bibleCharIndex]['referenceImageStatus'] = 'ready';
+                        $this->sceneMemory['characterBible']['characters'][$bibleCharIndex]['referenceFromCollage'] = true;
+                        $this->sceneMemory['characterBible']['characters'][$bibleCharIndex]['referenceCollageScene'] = $sceneIndex;
+
+                        $portraitsExtracted++;
+
+                        Log::info('VideoWizard: Extracted character portrait from collage', [
+                            'sceneIndex' => $sceneIndex,
+                            'characterName' => $charData['name'] ?? 'Unknown',
+                            'bibleIndex' => $bibleCharIndex,
+                        ]);
+                    } else {
+                        Log::debug('VideoWizard: Portrait extraction failed for character', [
+                            'characterName' => $charData['name'] ?? 'Unknown',
+                            'error' => $portrait['error'] ?? 'Unknown error',
+                        ]);
+                    }
+                } else {
+                    Log::debug('VideoWizard: Character not detected in collage', [
+                        'characterName' => $charData['name'] ?? 'Unknown',
+                        'analysisError' => $analysis['error'] ?? 'Not detected',
+                    ]);
+                }
+            }
+
+            if ($portraitsExtracted > 0) {
+                Log::info('VideoWizard: Character portrait extraction complete', [
+                    'sceneIndex' => $sceneIndex,
+                    'portraitsExtracted' => $portraitsExtracted,
+                    'totalCharacters' => count($sceneCharacters),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: Portrait extraction failed', [
+                'sceneIndex' => $sceneIndex,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Fetch an image URL and convert to base64.
+     *
+     * @param string $imageUrl URL of the image
+     * @return string|null Base64 encoded image data or null on failure
+     */
+    protected function fetchImageAsBase64(string $imageUrl): ?string
+    {
+        try {
+            // Handle local URLs (from /files/ or /storage/)
+            if (strpos($imageUrl, '/files/') !== false || strpos($imageUrl, '/storage/') !== false) {
+                // Extract relative path
+                $relativePath = preg_replace('#^.*/files/#', '', $imageUrl);
+                $relativePath = preg_replace('#^.*/storage/#', '', $relativePath);
+
+                // Try to read from public storage
+                if (\Storage::disk('public')->exists($relativePath)) {
+                    $contents = \Storage::disk('public')->get($relativePath);
+                    if ($contents) {
+                        return base64_encode($contents);
+                    }
+                }
+            }
+
+            // Fetch from URL using HTTP client
+            $client = new \GuzzleHttp\Client(['timeout' => 30, 'verify' => false]);
+            $response = $client->get($imageUrl);
+
+            if ($response->getStatusCode() === 200) {
+                return base64_encode($response->getBody()->getContents());
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Failed to fetch image as base64', [
+                'url' => $imageUrl,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Find the index of a character in the Character Bible by name.
+     *
+     * @param string $characterName Character name to find
+     * @return int|null Index in the Bible or null if not found
+     */
+    protected function findCharacterIndexInBible(string $characterName): ?int
+    {
+        if (empty($characterName)) {
+            return null;
+        }
+
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        $nameLower = strtolower(trim($characterName));
+
+        foreach ($characters as $index => $char) {
+            $charName = strtolower(trim($char['name'] ?? ''));
+            if ($charName === $nameLower) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     /**

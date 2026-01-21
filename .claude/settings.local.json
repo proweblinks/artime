@@ -26,7 +26,9 @@
       "Bash(echo:*)",
       "WebFetch(domain:screencraft.org)",
       "WebFetch(domain:artime.ai)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(dir:*)"
     ]
   }
 }
