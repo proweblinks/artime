@@ -25,7 +25,8 @@
       "Bash(dir \"C:\\\\laragon\\\\bin\\\\php\" /b)",
       "Bash(echo:*)",
       "WebFetch(domain:screencraft.org)",
-      "WebFetch(domain:artime.ai)"
+      "WebFetch(domain:artime.ai)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }
