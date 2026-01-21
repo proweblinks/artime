@@ -217,7 +217,7 @@
     </div>
 
     <!-- Sample Preview -->
-    @if($samples['genre'])
+    @if(!empty($samples['genre']))
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white">
             <h6 class="mb-0"><i class="fa fa-eye me-2"></i>{{ __('Sample Prompt Preview') }}</h6>

@@ -163,7 +163,10 @@ document.querySelectorAll('.prompt-toggle').forEach(toggle => {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
             }
-        }).then(r => r.json()).catch(e => {
+        }).then(r => {
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        }).catch(e => {
             this.checked = !this.checked;
             alert('Failed to toggle status');
         });

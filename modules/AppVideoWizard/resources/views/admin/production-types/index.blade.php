@@ -187,7 +187,10 @@ document.querySelectorAll('.type-toggle').forEach(btn => {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Accept': 'application/json'
             }
-        }).then(r => r.json()).then(data => {
+        }).then(r => {
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        }).then(data => {
             location.reload();
         }).catch(e => {
             alert('Failed to toggle status');

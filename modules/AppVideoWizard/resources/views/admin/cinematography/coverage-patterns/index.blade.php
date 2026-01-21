@@ -192,7 +192,7 @@
                                         <span class="badge bg-light text-dark border">{{ ucwords(str_replace('-', ' ', $shot)) }}</span>
                                     @endforeach
                                     @if(count($pattern->shot_sequence ?? []) > 4)
-                                        <span class="badge bg-light text-muted">+{{ count($pattern->shot_sequence) - 4 }}</span>
+                                        <span class="badge bg-light text-muted">+{{ count($pattern->shot_sequence ?? []) - 4 }}</span>
                                     @endif
                                 </div>
                             </td>

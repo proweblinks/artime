@@ -97,7 +97,7 @@
         <!-- Category Tabs -->
         <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
             @foreach($categories as $categorySlug => $categoryName)
-                @if($settingsByCategory[$categorySlug]->count() > 0)
+                @if(isset($settingsByCategory[$categorySlug]) && $settingsByCategory[$categorySlug]->count() > 0)
                     <li class="nav-item" role="presentation">
                         <button class="nav-link {{ $loop->first ? 'active' : '' }}"
                                 id="tab-{{ $categorySlug }}"
@@ -117,7 +117,7 @@
         <!-- Tab Content -->
         <div class="tab-content" id="settingsTabContent">
             @foreach($categories as $categorySlug => $categoryName)
-                @if($settingsByCategory[$categorySlug]->count() > 0)
+                @if(isset($settingsByCategory[$categorySlug]) && $settingsByCategory[$categorySlug]->count() > 0)
                     <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
                          id="content-{{ $categorySlug }}"
                          role="tabpanel">
