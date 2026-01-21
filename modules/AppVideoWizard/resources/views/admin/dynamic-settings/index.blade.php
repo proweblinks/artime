@@ -220,59 +220,49 @@
 }
 
 /* ========================================
-   SETTING CARD - Modern Design
+   SETTING CARD - Clear Section Design
    ======================================== */
 .setting-card {
     background: #ffffff;
-    border: 2px solid var(--vw-border);
-    border-radius: 14px;
-    padding: 20px !important;
+    border: 1px solid var(--vw-border);
+    border-radius: 12px;
+    padding: 0 !important;
     height: 100%;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-    position: relative;
     overflow: hidden;
-}
-.setting-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(180deg, var(--vw-primary), var(--vw-secondary));
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .setting-card:hover {
     border-color: var(--vw-primary-light);
-    box-shadow: var(--vw-shadow-lg);
-    transform: translateY(-2px);
-}
-.setting-card:hover::before {
-    opacity: 1;
+    box-shadow: var(--vw-shadow);
 }
 .setting-card.bg-light {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
     border-style: dashed;
-}
-.setting-card.bg-light::before {
-    background: linear-gradient(180deg, var(--vw-gray), #94a3b8);
+    border-color: #cbd5e1;
 }
 
 /* ========================================
-   SETTING HEADER (Title + Icon)
+   SETTING HEADER - Colored Top Bar
    ======================================== */
 .setting-card .setting-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid var(--vw-border);
+}
+.setting-card:hover .setting-header {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+}
+.setting-card.bg-light .setting-header {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 .setting-card .form-label {
     font-weight: 600;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     margin-bottom: 0;
     line-height: 1.4;
     color: var(--vw-dark);
@@ -281,10 +271,18 @@
     gap: 8px;
 }
 .setting-card .form-label i {
-    color: var(--vw-primary);
-    font-size: 1rem;
-    width: 20px;
-    text-align: center;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--vw-primary), var(--vw-secondary));
+    color: white;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+.setting-card.bg-light .form-label i {
+    background: linear-gradient(135deg, var(--vw-gray), #94a3b8);
 }
 .setting-card .form-label .badge {
     font-size: 0.625rem;
@@ -292,45 +290,79 @@
     font-weight: 600;
     border-radius: 6px;
     background: linear-gradient(135deg, var(--vw-gray), #94a3b8);
+    color: white;
 }
 
 /* ========================================
-   DESCRIPTION TEXT
+   SETTING BODY - Main Content Area
+   ======================================== */
+.setting-card .setting-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   DESCRIPTION TEXT - Boxed Style
    ======================================== */
 .setting-card .setting-description {
     font-size: 0.8125rem;
     line-height: 1.6;
     color: var(--vw-gray);
-    margin-bottom: 16px;
-    padding-left: 28px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid var(--vw-primary-light);
 }
 
 /* ========================================
-   INPUT FIELDS - Modern Styling
+   INPUT CONTAINER - Visual Grouping
+   ======================================== */
+.setting-card .input-container {
+    background: #ffffff;
+    border: 1px solid var(--vw-border);
+    border-radius: 8px;
+    padding: 12px;
+}
+.setting-card .input-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--vw-gray);
+    margin-bottom: 8px;
+}
+
+/* ========================================
+   INPUT FIELDS - Clean Styling
    ======================================== */
 .setting-card .form-control,
 .setting-card .form-select {
-    height: 44px;
-    padding: 10px 14px;
+    height: 42px;
+    padding: 10px 12px;
     font-size: 0.875rem;
-    border: 2px solid var(--vw-border);
-    border-radius: 10px;
+    border: 1px solid var(--vw-border);
+    border-radius: 8px;
     background-color: #fff;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
 }
 .setting-card .form-control:hover,
 .setting-card .form-select:hover {
     border-color: var(--vw-primary-light);
+    background-color: #fafbff;
 }
 .setting-card .form-control:focus,
 .setting-card .form-select:focus {
     border-color: var(--vw-primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     background-color: #fff;
 }
 .setting-card textarea.form-control {
     height: auto;
-    min-height: 72px;
+    min-height: 68px;
     resize: vertical;
     line-height: 1.5;
 }
@@ -343,44 +375,47 @@
 .setting-card .input-group .form-control {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    border-right: none;
 }
 .setting-card .input-group-text {
-    height: 44px;
-    padding: 10px 14px;
+    height: 42px;
+    padding: 10px 12px;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--vw-primary);
-    background: linear-gradient(135deg, #e0e7ff, #ede9fe);
-    border: 2px solid var(--vw-border);
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    border: 1px solid var(--vw-border);
     border-left: none;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 8px 8px 0;
     display: flex;
     align-items: center;
     white-space: nowrap;
 }
 
 /* ========================================
-   TOGGLE SWITCH - Modern Design
+   TOGGLE SWITCH - Boxed Design
    ======================================== */
 .setting-card .form-check.form-switch {
-    padding-left: 3.5rem;
+    padding: 12px 14px 12px 60px;
     min-height: 44px;
     display: flex;
     align-items: center;
     margin: 0;
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-    border-radius: 10px;
-    padding-right: 14px;
+    background: linear-gradient(135deg, #fef2f2, #fce7f3);
+    border: 1px solid #fecdd3;
+    border-radius: 8px;
+}
+.setting-card .form-check.form-switch:has(.form-check-input:checked) {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border-color: #a7f3d0;
 }
 .setting-card .form-check-input {
-    width: 50px;
-    height: 26px;
-    margin-left: -3.5rem;
+    width: 44px;
+    height: 24px;
+    margin-left: -46px;
     margin-top: 0;
     cursor: pointer;
-    border: 2px solid var(--vw-border);
-    background-color: #e2e8f0;
+    border: 1px solid #fca5a5;
+    background-color: #fecaca;
     transition: all 0.25s ease;
 }
 .setting-card .form-check-input:checked {
@@ -388,90 +423,152 @@
     border-color: var(--vw-success);
 }
 .setting-card .form-check-input:focus {
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 .setting-card .form-check-label {
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--vw-dark);
     cursor: pointer;
-    padding-left: 12px;
-    line-height: 26px;
 }
 
 /* ========================================
-   SELECT / DROPDOWN - Modern
+   SELECT / DROPDOWN
    ======================================== */
 .setting-card .form-select {
-    padding-right: 40px;
-    background-position: right 14px center;
-    background-size: 14px;
+    padding-right: 36px;
+    background-position: right 12px center;
+    background-size: 12px;
     cursor: pointer;
 }
 
 /* ========================================
-   HELP TEXT - Modern
+   INPUT HINT - Inline format indicator
+   ======================================== */
+.setting-card .input-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #7c3aed;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    border-radius: 4px;
+}
+.setting-card .input-hint i {
+    font-size: 0.625rem;
+}
+
+/* ========================================
+   STATUS BADGE - API Key status etc.
+   ======================================== */
+.setting-card .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 6px;
+}
+.setting-card .status-badge i {
+    font-size: 0.875rem;
+}
+.setting-card .status-badge.status-success {
+    color: #065f46;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: 1px solid #6ee7b7;
+}
+.setting-card .status-badge.status-warning {
+    color: #92400e;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 1px solid #fcd34d;
+}
+
+/* ========================================
+   SETTING FOOTER - Info Section
+   ======================================== */
+.setting-card .setting-footer {
+    margin-top: auto;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-top: 1px solid var(--vw-border);
+}
+
+/* ========================================
+   HELP TEXT - In Footer
    ======================================== */
 .setting-card .setting-help {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 8px 12px;
+    gap: 8px;
     font-size: 0.75rem;
     line-height: 1.5;
     color: var(--vw-gray);
-    background: #f8fafc;
-    border-radius: 8px;
-    border-left: 3px solid var(--vw-info);
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
 }
 .setting-card .setting-help i {
     color: var(--vw-info);
-    margin-top: 1px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 .setting-card .setting-help.text-success {
     color: var(--vw-success) !important;
-    background: #ecfdf5;
-    border-left-color: var(--vw-success);
 }
 .setting-card .setting-help.text-success i {
     color: var(--vw-success);
 }
 .setting-card .setting-help.text-warning {
     color: var(--vw-warning) !important;
-    background: #fffbeb;
-    border-left-color: var(--vw-warning);
 }
 .setting-card .setting-help.text-warning i {
     color: var(--vw-warning);
+}
+
+/* Divider between help items */
+.setting-card .setting-footer .setting-help + .setting-help,
+.setting-card .setting-footer .setting-help + .setting-default,
+.setting-card .setting-footer .setting-default + .setting-help {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
 }
 
 /* Default value indicator */
 .setting-card .setting-default {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 10px 12px;
+    gap: 8px;
     font-size: 0.75rem;
-    line-height: 1.4;
-    color: #92400e;
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border-radius: 8px;
-    border: 1px solid #fcd34d;
+    line-height: 1.5;
+    color: #b45309;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
 }
 .setting-card .setting-default i {
     color: #d97706;
-    margin-top: 1px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 /* ========================================
    PASSWORD INPUT SPECIAL
    ======================================== */
 .setting-card .input-group .btn-outline-secondary {
-    border: 2px solid var(--vw-border);
+    border: 1px solid var(--vw-border);
     border-left: none;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 8px 8px 0;
     background: #f8fafc;
     color: var(--vw-gray);
     transition: all 0.2s ease;
@@ -516,8 +613,11 @@
     .settings-row > .col-md-6 {
         margin-bottom: 16px !important;
     }
-    .setting-card {
-        padding: 16px !important;
+    .setting-card .setting-body {
+        padding: 12px;
+    }
+    .setting-card .setting-footer {
+        padding: 10px 12px;
     }
     .category-card-header {
         padding: 1rem;
@@ -688,10 +788,13 @@
                                     @foreach($settingsByCategory[$categorySlug] as $setting)
                                         <div class="col-md-6">
                                             <div class="setting-card {{ $setting->is_system ? 'bg-light' : '' }}">
+                                                {{-- HEADER SECTION --}}
                                                 <div class="setting-header">
                                                     <label class="form-label" for="setting-{{ $setting->slug }}">
                                                         @if($setting->icon)
                                                             <i class="{{ $setting->icon }}"></i>
+                                                        @else
+                                                            <i class="fa fa-sliders"></i>
                                                         @endif
                                                         {{ $setting->name }}
                                                         @if($setting->is_system)
@@ -702,15 +805,17 @@
                                                     </label>
                                                 </div>
 
-                                                @if($setting->description)
-                                                    <p class="setting-description">{{ $setting->description }}</p>
-                                                @endif
+                                                {{-- BODY SECTION --}}
+                                                <div class="setting-body">
+                                                    @if($setting->description)
+                                                        <p class="setting-description">{{ $setting->description }}</p>
+                                                    @endif
 
-                                                @php
-                                                    $currentValue = $setting->getTypedValue() ?? $setting->getTypedDefaultValue();
-                                                @endphp
+                                                    @php
+                                                        $currentValue = $setting->getTypedValue() ?? $setting->getTypedDefaultValue();
+                                                    @endphp
 
-                                                {{-- Input based on type --}}
+                                                    {{-- Input based on type --}}
                                                 @switch($setting->input_type)
                                                     @case('checkbox')
                                                         <div class="form-check form-switch">
@@ -779,12 +884,12 @@
                                                             </button>
                                                         </div>
                                                         @if($currentValue)
-                                                            <small class="setting-help text-success">
+                                                            <small class="status-badge status-success">
                                                                 <i class="fa fa-check-circle"></i>
                                                                 {{ __('API key is configured') }}
                                                             </small>
                                                         @else
-                                                            <small class="setting-help text-warning">
+                                                            <small class="status-badge status-warning">
                                                                 <i class="fa fa-exclamation-triangle"></i>
                                                                 {{ __('Not configured') }}
                                                             </small>
@@ -805,7 +910,7 @@
                                                                   name="settings[{{ $setting->slug }}]"
                                                                   rows="3"
                                                                   placeholder="{{ $setting->input_placeholder }}">{{ is_array($currentValue) ? json_encode($currentValue, JSON_PRETTY_PRINT) : $currentValue }}</textarea>
-                                                        <small class="setting-help">{{ __('Enter valid JSON') }}</small>
+                                                        <small class="input-hint"><i class="fa fa-code"></i> {{ __('Enter valid JSON') }}</small>
                                                         @break
 
                                                     @default
@@ -816,7 +921,7 @@
                                                                       name="settings[{{ $setting->slug }}]"
                                                                       rows="4"
                                                                       placeholder="{{ $setting->input_placeholder }}">{{ json_encode($currentValue, JSON_PRETTY_PRINT) }}</textarea>
-                                                            <small class="setting-help">{{ __('JSON format') }}</small>
+                                                            <small class="input-hint"><i class="fa fa-code"></i> {{ __('JSON format') }}</small>
                                                         @elseif(is_string($currentValue) && (strlen($currentValue) > 40 || str_contains($currentValue, ',')))
                                                             {{-- Long text or comma-separated values - show as textarea --}}
                                                             <textarea class="form-control"
@@ -825,7 +930,7 @@
                                                                       rows="2"
                                                                       placeholder="{{ $setting->input_placeholder }}">{{ $currentValue }}</textarea>
                                                             @if(str_contains($currentValue ?? '', ','))
-                                                                <small class="setting-help">{{ __('Comma-separated list') }}</small>
+                                                                <small class="input-hint"><i class="fa fa-list"></i> {{ __('Comma-separated list') }}</small>
                                                             @endif
                                                         @else
                                                             <input type="text"
@@ -836,19 +941,25 @@
                                                                    placeholder="{{ $setting->input_placeholder }}">
                                                         @endif
                                                 @endswitch
+                                                </div>{{-- End .setting-body --}}
 
-                                                @if($setting->input_help)
-                                                    <small class="setting-help">
-                                                        <i class="fa fa-info-circle"></i>
-                                                        {{ $setting->input_help }}
-                                                    </small>
-                                                @endif
+                                                {{-- FOOTER SECTION - Only show if has help or default info --}}
+                                                @if($setting->input_help || ($setting->default_value && $setting->value !== $setting->default_value))
+                                                <div class="setting-footer">
+                                                    @if($setting->input_help)
+                                                        <small class="setting-help">
+                                                            <i class="fa fa-info-circle"></i>
+                                                            <span>{{ $setting->input_help }}</span>
+                                                        </small>
+                                                    @endif
 
-                                                @if($setting->default_value && $setting->value !== $setting->default_value)
-                                                    <small class="setting-default">
-                                                        <i class="fa fa-exclamation-triangle"></i>
-                                                        {{ __('Default:') }} {{ is_array($setting->getTypedDefaultValue()) ? json_encode($setting->getTypedDefaultValue()) : $setting->getTypedDefaultValue() }}
-                                                    </small>
+                                                    @if($setting->default_value && $setting->value !== $setting->default_value)
+                                                        <small class="setting-default">
+                                                            <i class="fa fa-exclamation-triangle"></i>
+                                                            <span>{{ __('Default:') }} {{ is_array($setting->getTypedDefaultValue()) ? json_encode($setting->getTypedDefaultValue()) : $setting->getTypedDefaultValue() }}</span>
+                                                        </small>
+                                                    @endif
+                                                </div>
                                                 @endif
                                             </div>
                                         </div>
