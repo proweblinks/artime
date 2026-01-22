@@ -4982,6 +4982,55 @@ class VideoWizard extends Component
         }
     }
 
+    /**
+     * Migrate legacy characterIntelligence data to segment-based system.
+     * Called on project load for backward compatibility.
+     *
+     * @deprecated Phase 1.5 - characterIntelligence replaced with automatic speech flow
+     */
+    protected function migrateCharacterIntelligence(): void
+    {
+        // Check if migration is needed
+        $hasLegacyData = !empty($this->characterIntelligence['narrationStyle'])
+            && $this->characterIntelligence['narrationStyle'] !== 'voiceover';
+
+        $hasScenesWithoutSegments = false;
+        foreach ($this->script['scenes'] ?? [] as $scene) {
+            if (!empty($scene['narration']) && empty($scene['speechSegments'])) {
+                $hasScenesWithoutSegments = true;
+                break;
+            }
+        }
+
+        if (!$hasLegacyData && !$hasScenesWithoutSegments) {
+            return; // No migration needed
+        }
+
+        Log::info('VideoWizard: Migrating legacy characterIntelligence', [
+            'project_id' => $this->projectId,
+            'narrationStyle' => $this->characterIntelligence['narrationStyle'] ?? 'unknown',
+        ]);
+
+        // Parse scenes that don't have segments yet
+        if ($hasScenesWithoutSegments) {
+            $this->parseScriptIntoSegments();
+        }
+
+        // Reset characterIntelligence to defaults (data is now in segments)
+        $this->characterIntelligence = array_merge($this->characterIntelligence, [
+            'migrated' => true,
+            'migratedAt' => now()->toISOString(),
+        ]);
+
+        // Save migration state
+        $this->saveProject();
+
+        $this->dispatch('vw-debug', [
+            'action' => 'character-intelligence-migrated',
+            'message' => 'Legacy character intelligence migrated to speech segments',
+        ]);
+    }
+
     // =========================================================================
     // AUTOMATIC SPEECH SEGMENT PARSING (Phase 1.5)
     // =========================================================================
