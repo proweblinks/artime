@@ -15,38 +15,53 @@
 
 ---
 
-## Milestone 1.5: Automatic Speech Flow System <-- NEXT
+## Milestone 1.5: Automatic Speech Flow System -- COMPLETE
 **Target:** Remove Character Intelligence bottleneck, connect Speech Segments to Character Bible for automatic flow
-**Status:** Planned
-**Plans:** 4 plans in 3 waves
+**Status:** Complete (2026-01-23)
+**Plans:** 4 plans in 3 waves -- ALL COMPLETE
 
 **Goal:** Automatic, effortless, Hollywood-quality output from button clicks. Script is auto-parsed into speech segments, speakers are auto-linked to Character Bible, and data flows through to video generation without manual intervention.
 
 Plans:
-- [ ] 1.5-01-PLAN.md -- Auto-parse script into segments after AI generation
-- [ ] 1.5-02-PLAN.md -- Replace Character Intelligence UI with Detection Summary
-- [ ] 1.5-03-PLAN.md -- Backward compatibility for characterIntelligence
-- [ ] 1.5-04-PLAN.md -- Ensure segment data flows to shots/video generation
+- [x] 1.5-01-PLAN.md -- Auto-parse script into segments after AI generation
+- [x] 1.5-02-PLAN.md -- Replace Character Intelligence UI with Detection Summary
+- [x] 1.5-03-PLAN.md -- Backward compatibility for characterIntelligence
+- [x] 1.5-04-PLAN.md -- Ensure segment data flows to shots/video generation
 
-| Wave | Plans | Focus |
-|------|-------|-------|
-| 1 | 1.5-01 | Core auto-parsing infrastructure |
-| 2 | 1.5-02, 1.5-03 | UI replacement + backward compatibility |
-| 3 | 1.5-04 | End-to-end data flow verification |
+| Wave | Plans | Focus | Status |
+|------|-------|-------|--------|
+| 1 | 1.5-01 | Core auto-parsing infrastructure | Done |
+| 2 | 1.5-02, 1.5-03 | UI replacement + backward compatibility | Done |
+| 3 | 1.5-04 | End-to-end data flow verification | Done |
 
 ---
 
-## Milestone 2: Narrative Intelligence
+## Milestone 2: Narrative Intelligence <-- CURRENT
 **Target:** Each shot captures unique moment with emotional arc
-**Status:** Not Started
+**Status:** Planned (2026-01-23)
+**Plans:** 3 plans in 2 waves
 
-| Task | Status | Priority |
-|------|--------|----------|
-| Create NarrativeMomentService | Pending | HIGH |
-| Decompose narration into moments | Pending | HIGH |
-| Extract emotional intensity | Pending | HIGH |
-| Map intensity to shot types | Pending | MEDIUM |
-| Unique descriptions per shot | Pending | HIGH |
+**Goal:** Integrate existing NarrativeMomentService (711 lines, 80% complete) into shot generation workflow. Each shot gets a unique narrative moment with emotional intensity mapping to shot type.
+
+**Key Finding:** NarrativeMomentService already exists with AI-first decomposition, 47 action-emotion mappings, and Hollywood-standard intensity-to-shot-type mapping. Phase 2 is INTEGRATION, not implementation.
+
+Plans:
+- [ ] 02-01-PLAN.md -- Wire NarrativeMomentService into ShotIntelligenceService
+- [ ] 02-02-PLAN.md -- Enhance AI prompt with narrative moments
+- [ ] 02-03-PLAN.md -- Add action uniqueness validation
+
+| Wave | Plans | Focus |
+|------|-------|-------|
+| 1 | 02-01 | Service dependency injection |
+| 2 | 02-02, 02-03 | Prompt enhancement + deduplication (parallel) |
+
+**Hollywood-Informed Intensity Mapping:**
+- 0.85-1.0: Extreme close-up (peak emotional)
+- 0.7-0.85: Close-up (high emotion)
+- 0.55-0.7: Medium close-up
+- 0.4-0.55: Medium (dialogue)
+- 0.25-0.4: Wide (context)
+- 0.0-0.25: Establishing
 
 ---
 
@@ -106,14 +121,14 @@ Plans:
 
 ```
 Milestone 1:   ████████░░ 80%
-Milestone 1.5: ░░░░░░░░░░  0% (4 plans ready)
-Milestone 2:   ░░░░░░░░░░  0%
+Milestone 1.5: ██████████ 100% COMPLETE
+Milestone 2:   █░░░░░░░░░ 10% PLANNED
 Milestone 3:   ░░░░░░░░░░  0%
 Milestone 4:   ░░░░░░░░░░  0%
 Milestone 5:   ░░░░░░░░░░  0%
 Milestone 6:   ░░░░░░░░░░  0%
 ─────────────────────────
-Overall:       █░░░░░░░░░ 13%
+Overall:       ██░░░░░░░░ 28%
 ```
 
 ---
