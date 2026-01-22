@@ -615,13 +615,20 @@ class VideoWizard extends Component
         'targetAudience' => '',
     ];
 
-    // Step 2: Character Intelligence (affects script generation)
+    /**
+     * Step 2: Character Intelligence (affects script generation)
+     *
+     * @deprecated Phase 1.5 - Replaced with automatic speech flow.
+     * Kept for backward compatibility with old projects.
+     * New system uses speechSegments array per scene instead.
+     */
     public array $characterIntelligence = [
         'enabled' => true,
         'narrationStyle' => 'voiceover', // voiceover, dialogue, narrator, none
         'characterCount' => 4,
         'suggestedCount' => 4,
         'characters' => [], // Will be populated after script generation
+        'migrated' => false, // Phase 1.5: Set to true after migration
     ];
 
     // Step 3: Script
@@ -5469,26 +5476,29 @@ class VideoWizard extends Component
 
     /**
      * Update Character Intelligence settings.
+     *
+     * @deprecated Phase 1.5 - Character Intelligence UI removed.
+     * Settings are now auto-detected from speech segments.
+     * This method kept for backward compatibility but has no effect.
      */
     public function updateCharacterIntelligence(string $field, $value): void
     {
-        if (in_array($field, ['enabled', 'narrationStyle', 'characterCount'])) {
-            // Cast values to proper types
-            if ($field === 'enabled') {
-                $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
-            } elseif ($field === 'characterCount') {
-                $value = (int) $value;
-            }
-
-            $this->characterIntelligence[$field] = $value;
-
-            // Recalculate suggested character count based on production type
-            if ($field === 'narrationStyle' || $field === 'enabled') {
-                $this->characterIntelligence['suggestedCount'] = $this->calculateSuggestedCharacterCount();
-            }
-
-            $this->saveProject();
+        // Log deprecation warning (development only)
+        if (config('app.debug')) {
+            Log::warning('VideoWizard: updateCharacterIntelligence is deprecated (Phase 1.5)', [
+                'field' => $field,
+                'value' => $value,
+            ]);
         }
+
+        // Keep the property update for backward compatibility
+        // (old UI elements might still call this)
+        if (isset($this->characterIntelligence[$field])) {
+            $this->characterIntelligence[$field] = $value;
+        }
+
+        // Note: This no longer affects script generation.
+        // Speech segments are auto-parsed and control speech type per segment.
     }
 
     /**
