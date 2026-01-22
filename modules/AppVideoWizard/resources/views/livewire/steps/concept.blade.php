@@ -551,7 +551,10 @@
         background: rgba(139, 92, 246, 0.05);
     }
 
-    /* Character Intelligence CSS removed in Phase 1.5 - now uses Detection Summary */
+    /* Detection Summary Panel (Phase 1.5) */
+    .vw-concept-step .detection-summary-panel {
+        animation: vw-fade-in 0.3s ease-out;
+    }
 
     .vw-concept-step .vw-loading-opacity {
         opacity: 0.6;
