@@ -22305,6 +22305,7 @@ PROMPT;
             ]);
 
             // Generate at proper aspect ratio with the reference as a direct style reference
+            // CRITICAL: Also pass sceneMemory for Character Bible face consistency
             $result = $imageService->generateSceneImage(
                 $project,
                 $modifiedScene,
@@ -22320,6 +22321,11 @@ PROMPT;
                         'mimeType' => $referenceMimeType,
                         'styleDescription' => "Match this exact visual composition, character poses, lighting, and atmosphere. This is a reference from a collage that needs to be regenerated at proper 16:9 cinematic aspect ratio.",
                     ] : null,
+                    // CRITICAL: Pass sceneMemory for Reference Cascade face consistency (Character Bible)
+                    // This ensures the character's face DNA is used from the Character Bible
+                    'sceneMemory' => $this->sceneMemory,
+                    'storyboard' => $this->storyboard,
+                    'useCascade' => true,
                 ]
             );
 

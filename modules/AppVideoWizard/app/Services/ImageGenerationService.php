@@ -1196,19 +1196,32 @@ class ImageGenerationService
     {
         $sections = [];
 
-        // Identity anchors for characters
+        // Identity anchors for characters - NOW WITH FULL CHARACTER DNA
+        // This is CRITICAL for face consistency across shots (Hollywood standard)
         $characterCount = count($references['characters']);
         if ($characterCount > 0) {
             $charNames = array_map(fn($c) => $c['characterName'], $references['characters']);
 
+            // Build Character DNA for EACH character (detailed hair, wardrobe, accessories)
+            // This ensures same face, same hair, same clothing consistency
+            $characterDNAs = [];
+            foreach ($references['characters'] as $idx => $character) {
+                $dna = $this->buildCharacterDNAForPrompt($character);
+                if (!empty($dna)) {
+                    $characterDNAs[] = "=== CHARACTER " . ($idx + 1) . ": {$character['characterName']} (reference image " . ($idx + 1) . ") ===\n{$dna}";
+                }
+            }
+
             if ($characterCount === 1) {
-                $sections[] = "IDENTITY ANCHOR: The person in reference image 1 is {$charNames[0]}. " .
-                    "Maintain EXACT appearance - same face, same hair, same clothing throughout.";
+                $sections[] = "IDENTITY ANCHOR: The person in reference image 1 is {$charNames[0]}.\n" .
+                    "Generate THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT appearance.\n\n" .
+                    (!empty($characterDNAs) ? $characterDNAs[0] : "Maintain EXACT appearance - same face, same hair, same clothing throughout.");
             } else {
                 $charList = implode(', ', array_map(fn($n, $i) => "reference image " . ($i + 1) . " is {$n}", $charNames, array_keys($charNames)));
-                $sections[] = "IDENTITY ANCHORS: {$charList}. " .
-                    "Each character must maintain their EXACT appearance from their reference - same face, same hair, same clothing. " .
-                    "Do NOT swap or blend character appearances.";
+                $sections[] = "IDENTITY ANCHORS: {$charList}.\n" .
+                    "Generate THESE EXACT SAME PEOPLE (not similar people, THE SAME people) with their EXACT appearances.\n" .
+                    "Do NOT swap or blend character appearances.\n\n" .
+                    (!empty($characterDNAs) ? implode("\n\n", $characterDNAs) : "Each character must maintain their EXACT appearance from their reference.");
             }
         }
 
@@ -1247,7 +1260,13 @@ class ImageGenerationService
             "- Professional cinematography lighting\n" .
             "- Sharp focus with cinematic depth of field\n\n";
 
-        $enhancedPrompt .= "OUTPUT: Generate a single high-quality image that preserves ALL referenced identities exactly.";
+        $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
+            "- The character's FACE must be IDENTICAL to the reference image\n" .
+            "- Same facial structure, same eyes, same nose, same mouth, same jawline\n" .
+            "- Same skin tone, same complexion, same facial proportions\n" .
+            "- This is the SAME PERSON, not a similar-looking person\n\n";
+
+        $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT facial features, hair, and clothing from the reference.";
 
         return $enhancedPrompt;
     }
