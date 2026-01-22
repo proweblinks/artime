@@ -22300,6 +22300,211 @@ PROMPT;
     }
 
     /**
+     * Determine if a shot requires lip-sync based on its speech segments.
+     *
+     * For segment-aware lip-sync routing, shots can check their inherited
+     * speechSegments to determine if they need Multitalk vs MiniMax.
+     *
+     * @param array $shot Shot data with potential speechSegments
+     * @return bool True if shot needs lip-sync animation
+     */
+    protected function shotRequiresLipSync(array $shot): bool
+    {
+        // First check shot-level speechSegments (if inherited from scene)
+        $segments = $shot['speechSegments'] ?? $shot['voiceover']['speechSegments'] ?? [];
+
+        if (!empty($segments)) {
+            // Check if any segment needs lip-sync
+            foreach ($segments as $segment) {
+                $needsLipSync = $segment['needsLipSync'] ?? false;
+                if ($needsLipSync) {
+                    return true;
+                }
+                // Also check segment type
+                $segmentType = $segment['type'] ?? 'narrator';
+                if (in_array($segmentType, ['monologue', 'dialogue'], true)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Check shot-level needsLipSync flag (set during decomposition)
+        if (isset($shot['needsLipSync'])) {
+            return (bool) $shot['needsLipSync'];
+        }
+
+        // Fallback to speechType check
+        $speechType = $shot['speechType'] ?? $shot['voiceover']['speechType'] ?? 'narrator';
+        return in_array($speechType, ['monologue', 'dialogue'], true);
+    }
+
+    /**
+     * Get speech segments for a shot, inheriting from scene if not set.
+     *
+     * @param int $sceneIndex Scene index
+     * @param int $shotIndex Shot index
+     * @return array Speech segments for this shot
+     */
+    protected function getShotSpeechSegments(int $sceneIndex, int $shotIndex): array
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot) {
+            return [];
+        }
+
+        // Check shot-level segments first
+        if (!empty($shot['speechSegments'])) {
+            return $shot['speechSegments'];
+        }
+
+        // Inherit from scene
+        $scene = $this->script['scenes'][$sceneIndex] ?? null;
+        if ($scene) {
+            return $scene['speechSegments'] ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * Verify automatic speech flow from script to shots.
+     * Returns diagnostic information about the speech segment pipeline.
+     *
+     * This method provides visibility into the speech flow system:
+     * - Scenes with speechSegments populated
+     * - Segments linked to Character Bible
+     * - Shots inheriting segment data
+     * - Video generation routing (Multitalk vs MiniMax)
+     *
+     * @return array Diagnostic data for debugging and verification
+     */
+    public function verifySpeechFlow(): array
+    {
+        $diagnostics = [
+            'scenes' => [],
+            'shots' => [],
+            'issues' => [],
+            'summary' => [
+                'totalScenes' => 0,
+                'scenesWithSegments' => 0,
+                'totalSegments' => 0,
+                'segmentsNeedingLipSync' => 0,
+                'charactersLinked' => 0,
+                'charactersUnlinked' => 0,
+                'totalShots' => 0,
+                'shotsNeedingLipSync' => 0,
+            ],
+        ];
+
+        // Analyze scenes
+        foreach ($this->script['scenes'] ?? [] as $idx => $scene) {
+            $diagnostics['summary']['totalScenes']++;
+
+            $segments = $scene['speechSegments'] ?? [];
+            $sceneData = [
+                'index' => $idx,
+                'title' => $scene['title'] ?? "Scene {$idx}",
+                'hasSegments' => !empty($segments),
+                'segmentCount' => count($segments),
+                'speechType' => $scene['speechType'] ?? 'unknown',
+                'needsLipSync' => $this->sceneNeedsLipSync($scene),
+                'segments' => [],
+            ];
+
+            if (!empty($segments)) {
+                $diagnostics['summary']['scenesWithSegments']++;
+
+                foreach ($segments as $segIndex => $segment) {
+                    $diagnostics['summary']['totalSegments']++;
+
+                    $segData = [
+                        'index' => $segIndex,
+                        'type' => $segment['type'] ?? 'unknown',
+                        'speaker' => $segment['speaker'] ?? null,
+                        'characterId' => $segment['characterId'] ?? null,
+                        'voiceId' => $segment['voiceId'] ?? null,
+                        'needsLipSync' => $segment['needsLipSync'] ?? false,
+                        'hasText' => !empty($segment['text']),
+                        'textLength' => strlen($segment['text'] ?? ''),
+                    ];
+
+                    if ($segData['needsLipSync']) {
+                        $diagnostics['summary']['segmentsNeedingLipSync']++;
+                    }
+
+                    if (!empty($segData['characterId'])) {
+                        $diagnostics['summary']['charactersLinked']++;
+                    } elseif (!empty($segData['speaker'])) {
+                        $diagnostics['summary']['charactersUnlinked']++;
+                        $diagnostics['issues'][] = [
+                            'type' => 'unlinked_speaker',
+                            'scene' => $idx,
+                            'segment' => $segIndex,
+                            'speaker' => $segData['speaker'],
+                            'message' => "Scene {$idx}: Speaker '{$segData['speaker']}' not linked to Character Bible",
+                        ];
+                    }
+
+                    $sceneData['segments'][] = $segData;
+                }
+            } else {
+                // Scene has no segments - check if it should
+                if (!empty($scene['narration'])) {
+                    $diagnostics['issues'][] = [
+                        'type' => 'missing_segments',
+                        'scene' => $idx,
+                        'message' => "Scene {$idx}: Has narration but no speechSegments - needs parsing",
+                    ];
+                }
+            }
+
+            $diagnostics['scenes'][] = $sceneData;
+        }
+
+        // Analyze shots (if decomposed)
+        foreach ($this->multiShotMode['decomposedScenes'] ?? [] as $sceneIdx => $decomposed) {
+            $shots = $decomposed['shots'] ?? [];
+            foreach ($shots as $shotIdx => $shot) {
+                $diagnostics['summary']['totalShots']++;
+
+                $shotData = [
+                    'sceneIndex' => $sceneIdx,
+                    'shotIndex' => $shotIdx,
+                    'id' => $shot['id'] ?? "shot-{$sceneIdx}-{$shotIdx}",
+                    'needsLipSync' => $shot['needsLipSync'] ?? false,
+                    'selectedVideoModel' => $shot['selectedVideoModel'] ?? 'minimax',
+                    'hasDialogue' => !empty($shot['dialogue']),
+                    'hasMonologue' => !empty($shot['monologue']),
+                    'hasAudio' => !empty($shot['audioUrl']),
+                    'speechSegments' => $this->getShotSpeechSegments($sceneIdx, $shotIdx),
+                ];
+
+                if ($shotData['needsLipSync']) {
+                    $diagnostics['summary']['shotsNeedingLipSync']++;
+                }
+
+                // Check for routing issues
+                if ($shotData['needsLipSync'] && $shotData['selectedVideoModel'] !== 'multitalk') {
+                    $diagnostics['issues'][] = [
+                        'type' => 'model_mismatch',
+                        'scene' => $sceneIdx,
+                        'shot' => $shotIdx,
+                        'message' => "Shot {$sceneIdx}-{$shotIdx}: Needs lip-sync but model is '{$shotData['selectedVideoModel']}', should be 'multitalk'",
+                    ];
+                }
+
+                $diagnostics['shots'][] = $shotData;
+            }
+        }
+
+        // Log summary
+        Log::info('VideoWizard: Speech flow verification', $diagnostics['summary']);
+
+        return $diagnostics;
+    }
+
+    /**
      * Generate image for a specific shot.
      * Implements Hollywood-style frame chain:
      * - Shot 1: Uses scene's main image (auto-sync)
