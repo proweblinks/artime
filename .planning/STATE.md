@@ -1,23 +1,29 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-23
-> Session: Milestone 1.5 - Automatic Speech Flow System
+> Session: Milestone 1.5 - Automatic Speech Flow System COMPLETE
 
 ---
 
 ## Current Position
 
-**Phase:** 1.5 of ongoing (Automatic Speech Flow)
-**Plan:** 03 of 4 (in phase)
-**Status:** Plan 03 complete
+**Phase:** 1.5 of ongoing (Automatic Speech Flow) - COMPLETE
+**Plan:** 04 of 4 (in phase)
+**Status:** Phase 1.5 complete
 
-**Progress:** [#######---] 75% of Phase 1.5
+**Progress:** [##########] 100% of Phase 1.5
 
 ---
 
 ## Current Focus
 
-**Milestone 1.5: Automatic Speech Flow System** - Remove Character Intelligence bottleneck, connect Speech Segments to Character Bible for automatic flow.
+**Milestone 1.5: Automatic Speech Flow System** - COMPLETE
+
+All 4 plans successfully executed:
+1. Automatic Speech Segment Parsing
+2. Detection Summary UI
+3. characterIntelligence Backward Compatibility
+4. Segment Data Flow to Shots
 
 See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementation decisions.
 
@@ -32,6 +38,19 @@ The system should be sophisticated and automatically updated based on previous s
 ---
 
 ## Completed This Session
+
+### Plan 1.5-04: Segment Data Flow to Shots (COMPLETE)
+**Summary:** End-to-end segment data flow from script to video generation with diagnostic verification
+
+**Tasks:**
+1. [x] Verify ShotIntelligenceService uses speechSegments (verified existing code)
+2. [x] Ensure shots inherit segment data (added shotRequiresLipSync, getShotSpeechSegments)
+3. [x] Add end-to-end flow verification (added verifySpeechFlow diagnostic method)
+
+**Commits:**
+- `7219bca` - feat(1.5-04): add shot-level segment support and speech flow verification
+
+**SUMMARY:** `.planning/phases/1.5-automatic-speech-flow/1.5-04-SUMMARY.md`
 
 ### Plan 1.5-03: characterIntelligence Backward Compatibility (COMPLETE)
 **Summary:** Legacy characterIntelligence migration with deprecation warnings and automatic segment parsing on load
@@ -105,6 +124,8 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-23 | Voice Status Indicators | Green=assigned, Yellow=needs voice | Clear visual feedback |
 | 2026-01-23 | Migration Trigger | Trigger on both project load and component hydration | Catch all entry points |
 | 2026-01-23 | Deprecation Style | Keep methods functional but log warnings in debug mode | Backward compatibility without noise |
+| 2026-01-23 | Segment Inheritance | Shots inherit segments from scene via getShotSpeechSegments | Consistent data flow |
+| 2026-01-23 | Diagnostic Method | verifySpeechFlow is public for debugging/admin tools | Pipeline visibility |
 
 ---
 
@@ -113,7 +134,9 @@ The system should be sophisticated and automatically updated based on previous s
 1. ~~**Plan 01:** Automatic Speech Segment Parsing~~ COMPLETE
 2. ~~**Plan 02:** Detection Summary UI~~ COMPLETE
 3. ~~**Plan 03:** characterIntelligence backward compatibility~~ COMPLETE
-4. **Plan 04:** Ensure segment data flows to shots correctly
+4. ~~**Plan 04:** Ensure segment data flows to shots correctly~~ COMPLETE
+
+**PHASE 1.5 COMPLETE - Ready for next milestone**
 
 ---
 
@@ -130,9 +153,11 @@ None currently
 | `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` | Implementation decisions | Created |
 | `.planning/phases/1.5-automatic-speech-flow/1.5-01-SUMMARY.md` | Plan 01 summary | Created |
 | `.planning/phases/1.5-automatic-speech-flow/1.5-02-SUMMARY.md` | Plan 02 summary | Created |
-| `.planning/phases/1.5-automatic-speech-flow/1.5-03-SUMMARY.md` | Plan 03 summary | **Created** |
+| `.planning/phases/1.5-automatic-speech-flow/1.5-03-SUMMARY.md` | Plan 03 summary | Created |
+| `.planning/phases/1.5-automatic-speech-flow/1.5-04-SUMMARY.md` | Plan 04 summary | **Created** |
 | `views/livewire/steps/concept.blade.php` | Detection Summary UI | Updated |
-| `Livewire/VideoWizard.php` | Migration + auto-parsing | **Updated** |
+| `Livewire/VideoWizard.php` | All speech flow methods | **Updated** |
+| `Services/ShotIntelligenceService.php` | Segment-aware lip-sync | Verified |
 | `Services/SpeechSegmentParser.php` | Auto-parsing service | Exists |
 
 ---
@@ -140,10 +165,10 @@ None currently
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 1.5-03-PLAN.md (characterIntelligence Backward Compatibility)
-**Resume file:** None - Plan 03 complete, ready for Plan 04
+**Stopped at:** Completed 1.5-04-PLAN.md (Segment Data Flow to Shots)
+**Resume file:** None - Phase 1.5 complete
 
 ---
 
-*Session: Automatic Speech Flow System*
+*Session: Automatic Speech Flow System - COMPLETE*
 *Phase: 1.5*
