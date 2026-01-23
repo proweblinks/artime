@@ -172,14 +172,122 @@
                     </div>
                 </div>
 
-                {{-- Speech Segments Section (Phase 8) --}}
+                {{-- Speech Segments Section --}}
                 <div style="margin-bottom: 1.5rem;">
                     <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         Speech Segments
+                        @if(!empty($scene['speechSegments']))
+                            <span style="opacity: 0.6; font-weight: normal; font-size: 0.7rem; text-transform: none; margin-left: 0.5rem;">({{ count($scene['speechSegments']) }} segments)</span>
+                        @endif
                     </h4>
-                    <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.75rem;">
-                        Speech segment display coming in Phase 8
-                    </div>
+
+                    @php
+                        $speechSegments = $scene['speechSegments'] ?? [];
+                        $characterBible = $sceneMemory['characterBible']['characters'] ?? [];
+
+                        // Type configuration matching storyboard patterns
+                        $typeConfig = [
+                            'narrator' => ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'label' => 'NARRATOR', 'lipSync' => false],
+                            'dialogue' => ['icon' => '💬', 'color' => 'rgba(16, 185, 129, 0.4)', 'label' => 'DIALOGUE', 'lipSync' => true],
+                            'internal' => ['icon' => '💭', 'color' => 'rgba(168, 85, 247, 0.4)', 'label' => 'INTERNAL', 'lipSync' => false],
+                            'monologue' => ['icon' => '🗣️', 'color' => 'rgba(251, 191, 36, 0.4)', 'label' => 'MONOLOGUE', 'lipSync' => true],
+                        ];
+                    @endphp
+
+                    @if(!empty($speechSegments))
+                        <div style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.25rem;">
+                            @foreach($speechSegments as $index => $segment)
+                                @php
+                                    $segType = $segment['type'] ?? 'narrator';
+                                    $typeData = $typeConfig[$segType] ?? $typeConfig['narrator'];
+                                    $needsLipSync = $typeData['lipSync'];
+
+                                    // Duration estimation (150 WPM)
+                                    $wordCount = str_word_count($segment['text'] ?? '');
+                                    $estDuration = $segment['duration'] ?? round(($wordCount / 150) * 60, 1);
+                                    $durationDisplay = $estDuration >= 60
+                                        ? sprintf('%d:%02d', floor($estDuration / 60), $estDuration % 60)
+                                        : round($estDuration, 1) . 's';
+
+                                    // Character Bible matching (SPCH-07)
+                                    $speaker = $segment['speaker'] ?? null;
+                                    $matchedChar = null;
+                                    if ($speaker && !empty($characterBible)) {
+                                        $speakerUpper = strtoupper($speaker);
+                                        foreach ($characterBible as $char) {
+                                            $charName = strtoupper($char['name'] ?? '');
+                                            if ($charName === $speakerUpper || str_contains($charName, $speakerUpper) || str_contains($speakerUpper, $charName)) {
+                                                $matchedChar = $char;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $typeData['color'] }}; border-radius: 0 0.375rem 0.375rem 0;">
+                                    {{-- Header: Type badge, Speaker, Lip-sync, Duration --}}
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                                        {{-- Type icon (SPCH-03) --}}
+                                        <span style="font-size: 1rem;">{{ $typeData['icon'] }}</span>
+
+                                        {{-- Type label (SPCH-02) --}}
+                                        <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: {{ $typeData['color'] }}; border-radius: 0.25rem;">
+                                            {{ $typeData['label'] }}
+                                        </span>
+
+                                        {{-- Speaker name in purple (SPCH-04) with character indicator (SPCH-07) --}}
+                                        @if($speaker)
+                                            <span style="color: #c4b5fd; font-size: 0.75rem; font-weight: 600;">{{ $speaker }}</span>
+                                            @if($matchedChar)
+                                                <span title="{{ __('Character exists in Bible') }}" style="font-size: 0.65rem; color: #10b981;">👤</span>
+                                            @endif
+                                        @endif
+
+                                        {{-- Spacer --}}
+                                        <span style="flex: 1;"></span>
+
+                                        {{-- Lip-sync indicator (SPCH-05) --}}
+                                        <span style="font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-weight: 500;
+                                            {{ $needsLipSync
+                                                ? 'background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3);'
+                                                : 'background: rgba(100,116,139,0.15); color: rgba(255,255,255,0.5); border: 1px solid rgba(100,116,139,0.2);'
+                                            }}">
+                                            LIP-SYNC: {{ $needsLipSync ? 'YES' : 'NO' }}
+                                        </span>
+
+                                        {{-- Duration (SPCH-06) --}}
+                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5);" title="{{ __('Estimated duration at 150 WPM') }}">
+                                            ⏱️ {{ $durationDisplay }}
+                                        </span>
+                                    </div>
+
+                                    {{-- Full text content - no truncation (SPCH-01) --}}
+                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+                                        {{ $segment['text'] ?? '' }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @elseif(!empty($scene['narration']))
+                        {{-- Legacy narration fallback --}}
+                        <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.4); border-radius: 0 0.375rem 0.375rem 0;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="font-size: 1rem;">🎙️</span>
+                                <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.25rem;">NARRATOR</span>
+                                <span style="flex: 1;"></span>
+                                <span style="font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-weight: 500; background: rgba(100,116,139,0.15); color: rgba(255,255,255,0.5); border: 1px solid rgba(100,116,139,0.2);">
+                                    LIP-SYNC: NO
+                                </span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+                                {{ $scene['narration'] }}
+                            </div>
+                        </div>
+                    @else
+                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+                            {{ __('No speech segments for this scene') }}
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Prompts Section (Phase 9) --}}
