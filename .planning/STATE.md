@@ -8,10 +8,10 @@
 ## Current Position
 
 **Phase:** 3 of ongoing (Hollywood Production System)
-**Plan:** 04 of 7 (in phase)
+**Plan:** 07 of 7 (in phase)
 **Status:** In Progress
 
-**Progress:** [######----] 71% of Phase 3 (5/7 plans complete - 01, 02, 03, 04, 05)
+**Progress:** [########--] 86% of Phase 3 (6/7 plans complete - 01, 02, 03, 04, 05, 07)
 
 ---
 
@@ -28,7 +28,7 @@ Plans:
 4. ~~Auto-Proceed Pipeline~~ COMPLETE
 5. ~~Smart Retry Logic for Batch Generation~~ COMPLETE
 6. (pending) Batch Generation Progress UI
-7. (pending) Final Integration
+7. ~~Smart Defaults from Concept~~ COMPLETE
 
 ---
 
@@ -42,24 +42,31 @@ The system should be sophisticated and automatically updated based on previous s
 
 ## Completed This Session
 
-### Plan 03-04: Auto-Proceed Pipeline (COMPLETE)
-**Summary:** Auto-proceed functionality with progress tracking that flows script -> storyboard -> animation -> assembly automatically when enabled
+### Plan 03-07: Smart Defaults from Concept (COMPLETE)
+**Summary:** Smart defaults auto-configure Step 1 settings (platform, duration, pacing) by analyzing concept keywords with optional AI enhancement
 
 **Tasks:**
-1. [x] Add auto-proceed property (autoProceedEnabled = false)
-2. [x] Add auto-proceed after script generation (goToStep 4, dispatch event)
-3. [x] Add auto-proceed after storyboard completion (goToStep 5, dispatch event)
-4. [x] Add auto-proceed after animation completion (goToStep 6, notify success)
-5. [x] Add overall progress indicator property (getOverallProgressProperty)
+1. [x] Add concept analysis method (analyzeConceptForDefaults)
+2. [x] Add auto-apply suggestions trigger method (applySuggestedSettings)
+3. [x] Hook into concept update flow
+4. [x] Add AI-enhanced concept analysis option (analyzeConceptWithAI)
+
+**Commits:**
+- `9acd783` - feat(03-07): add smart defaults from concept analysis
+
+**SUMMARY:** `.planning/phases/03-hollywood-production-system/03-07-SUMMARY.md`
+
+---
+
+## Previous Plans in Phase 3
+
+### Plan 03-04: Auto-Proceed Pipeline (COMPLETE)
+**Summary:** Auto-proceed functionality with progress tracking that flows script -> storyboard -> animation -> assembly automatically when enabled
 
 **Commits:**
 - `ebc8159` - feat(03-04): add auto-proceed pipeline for wizard steps
 
 **SUMMARY:** `.planning/phases/03-hollywood-production-system/03-04-SUMMARY.md`
-
----
-
-## Previous Plans in Phase 3
 
 ### Plan 03-05: Smart Retry Logic for Batch Generation (COMPLETE)
 **Summary:** Automatic retry with exponential backoff for batch image and video generation, with progress tracking
@@ -123,6 +130,10 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Smart Defaults | Keyword-first, AI-optional | Fast response for common cases, AI for complex concepts |
+| 2026-01-23 | Overwrite Default | false by default | Respect user's manual configuration choices |
+| 2026-01-23 | Platform Aspect Ratio | Auto-set based on platform | TikTok/Instagram = 9:16, YouTube/LinkedIn = 16:9 |
+| 2026-01-23 | Duration Heuristic | Word count based | < 20 words = 30s, < 50 = 60s, < 100 = 120s, 100+ = 180s |
 | 2026-01-23 | Auto-proceed Default | Disabled by default (false) | Users may want manual control; enable explicitly |
 | 2026-01-23 | Progress Weights | Script 20%, Storyboard 40%, Animation 30%, Assembly 10% | Reflects actual processing time per stage |
 | 2026-01-23 | Event Pattern | Use dispatch() + #[On()] for auto-proceed | Allows async handling and decoupling |
@@ -140,7 +151,15 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 ## Phase 3 Progress - What Was Built
 
-### Plan 03-04: Auto-Proceed Pipeline (NEW)
+### Plan 03-07: Smart Defaults from Concept (NEW)
+1. **Concept Analysis:** `analyzeConceptForDefaults()` with keyword patterns
+2. **Apply Suggestions:** `applySuggestedSettings()` with overwrite control
+3. **Manual Refresh:** `refreshSuggestedSettings()` for UI trigger
+4. **AI Enhancement:** `analyzeConceptWithAI()` using GeminiService
+5. **JSON Extraction:** `extractJsonFromResponse()` for AI response parsing
+6. **Integration Hook:** Auto-suggest in `enhanceConcept()` method
+
+### Plan 03-04: Auto-Proceed Pipeline
 1. **Auto-Proceed Property:** `autoProceedEnabled = false`
 2. **Script -> Storyboard:** After generateScript(), goToStep(4), dispatch event
 3. **Storyboard -> Animation:** When allScenesHaveImages(), goToStep(5), dispatch event
@@ -169,16 +188,14 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 1. **VwSettingSeeder:** Added hollywood_shot_sequences_enabled, emotional_arc_shot_mapping_enabled
 2. **Runtime Initialization:** ensureHollywoodSettingsExist() creates settings if missing
 
-### Key Methods Added (03-04)
+### Key Methods Added (03-07)
 **VideoWizard.php:**
-- `$autoProceedEnabled` - Property for auto-proceed toggle
-- `handleAutoProceedStoryboard()` - Event listener for storyboard auto-start
-- `handleAutoProceedAnimation()` - Event listener for animation auto-start
-- `allScenesHaveImages()` - Check image completion
-- `allScenesHaveVideos()` - Check video completion
-- `getOverallProgressProperty()` - Computed progress percentage
-- `calculateStoryboardProgress()` - Helper for image progress
-- `calculateAnimationProgress()` - Helper for video progress
+- `$suggestedSettings` - Property for storing analysis results
+- `analyzeConceptForDefaults()` - Keyword-based setting detection
+- `applySuggestedSettings()` - Apply suggestions to wizard properties
+- `refreshSuggestedSettings()` - Manual UI refresh trigger
+- `analyzeConceptWithAI()` - AI-enhanced analysis option
+- `extractJsonFromResponse()` - Parse AI JSON responses
 
 ---
 
@@ -207,9 +224,10 @@ None currently
 | `.planning/phases/03-hollywood-production-system/03-01-SUMMARY.md` | Plan 01 summary | Created |
 | `.planning/phases/03-hollywood-production-system/03-02-SUMMARY.md` | Plan 02 summary | Created |
 | `.planning/phases/03-hollywood-production-system/03-03-SUMMARY.md` | Plan 03 summary | Created |
-| `.planning/phases/03-hollywood-production-system/03-04-SUMMARY.md` | Plan 04 summary | **Created** |
+| `.planning/phases/03-hollywood-production-system/03-04-SUMMARY.md` | Plan 04 summary | Created |
 | `.planning/phases/03-hollywood-production-system/03-05-SUMMARY.md` | Plan 05 summary | Created |
-| `Livewire/VideoWizard.php` | Hollywood + auto-proceed + retry | **Updated** |
+| `.planning/phases/03-hollywood-production-system/03-07-SUMMARY.md` | Plan 07 summary | **Created** |
+| `Livewire/VideoWizard.php` | Hollywood + auto-proceed + retry + smart defaults | **Updated** |
 | `Services/NarrativeMomentService.php` | Narrative decomposition | Updated |
 | `database/seeders/VwSettingSeeder.php` | Hollywood settings | Updated |
 
@@ -218,11 +236,11 @@ None currently
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 03-04-PLAN.md (Auto-Proceed Pipeline)
+**Stopped at:** Completed 03-07-PLAN.md (Smart Defaults from Concept)
 **Resume file:** None
-**Phase 3 Status:** IN PROGRESS (5/7 plans complete)
+**Phase 3 Status:** IN PROGRESS (6/7 plans complete)
 
 ---
 
 *Session: Phase 3 - Hollywood Production System*
-*Plan 03-04 COMPLETE - Auto-proceed pipeline with progress tracking*
+*Plan 03-07 COMPLETE - Smart defaults from concept analysis with AI enhancement*
