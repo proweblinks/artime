@@ -8,10 +8,10 @@
 ## Current Position
 
 **Phase:** 6 of ongoing (UI/UX Polish)
-**Plan:** 01 of ? (in phase) - IN PROGRESS
+**Plan:** 02 of 4 (in phase) - COMPLETE
 **Status:** In Progress
 
-**Progress:** [#] Phase 6 (1/? plans complete - 06-01)
+**Progress:** [##] Phase 6 (2/4 plans complete - 06-01, 06-02)
 
 ---
 
@@ -23,6 +23,9 @@ Improve user experience with better context visibility and visual feedback.
 
 Plans:
 1. ~~Dialogue Display on Scene Cards~~ COMPLETE
+2. ~~Shot Type Badges~~ COMPLETE
+3. Emotional Arc Visualization (next)
+4. Scene Timeline Improvements
 
 ---
 
@@ -35,6 +38,20 @@ The system should be sophisticated and automatically updated based on previous s
 ---
 
 ## Completed This Session
+
+### Plan 06-02: Shot Type Badges (COMPLETE)
+**Summary:** Color-coded shot type badges (XCU/CU/MCU/MED/WIDE/EST) with climax indicator and camera movement icons
+
+**Tasks:**
+1. [x] Define shot type badge styles (CSS for 11 badge types)
+2. [x] Create badge helper component (getShotTypeBadgeClass, getShotTypeLabel, getCameraMovementIcon)
+3. [x] Add shot type badges to multi-shot modal (type, purpose, movement, climax)
+4. [x] Add shot count badges to main scene cards (Enhanced Multi-Shot Summary)
+
+**Commits:**
+- `88a2da8` - feat(06-01): add dialogue display to scene cards and multi-shot modal (includes 06-02 work)
+
+**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md`
 
 ### Plan 06-01: Dialogue Display on Scene Cards (COMPLETE)
 **Summary:** Dialogue and narration text displayed on scene cards with speaker names in purple
@@ -112,6 +129,9 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Shot Badge Colors | Red->Orange->Amber->Green->Blue gradient | Intuitive: warm=tight/emotional, cool=establishing |
+| 2026-01-23 | Climax Badge | Purple-pink gradient with border | Makes climax shots visually distinct |
+| 2026-01-23 | Helper Guards | function_exists() wrapper | Prevents redeclaration when templates share functions |
 | 2026-01-23 | Dialogue Styling | Blue border-left with purple speaker names | Consistent color scheme, visually distinct from prompts |
 | 2026-01-23 | Arc Properties | Public Livewire properties | Required for blade template access |
 | 2026-01-23 | Color System | Blue/Amber/Red/Purple gradient | Visual intensity communication |
@@ -133,6 +153,12 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 3. **Multi-Shot Modal:** Per-shot dialogue with speaker names
 4. **Lip Sync Indicator:** Badge for shots needing lip sync
 
+### Plan 06-02: Shot Type Badges
+1. **CSS Classes:** 11 badge classes (xcu, cu, mcu, med, wide, est, ots, reaction, two-shot, movement, climax)
+2. **Helper Functions:** getShotTypeBadgeClass(), getShotTypeLabel(), getCameraMovementIcon()
+3. **Multi-Shot Modal:** Shot type, purpose, movement, and climax badges per card
+4. **Scene Cards:** Enhanced Multi-Shot Summary with shot type counts
+
 ---
 
 ## Blockers
@@ -147,19 +173,22 @@ None currently
 |------|---------|--------|
 | `.planning/phases/06-ui-ux-polish/06-01-PLAN.md` | Dialogue display plan | Executed |
 | `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md` | Plan 01 summary | Created |
-| `storyboard.blade.php` | Scene card dialogue display | Updated (06-01) |
-| `multi-shot.blade.php` | Shot dialogue display | Updated (06-01) |
+| `.planning/phases/06-ui-ux-polish/06-02-PLAN.md` | Shot type badges plan | Executed |
+| `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md` | Plan 02 summary | Created |
+| `storyboard.blade.php` | Scene card UI | Updated (06-01, 06-02) |
+| `multi-shot.blade.php` | Shot UI with badges | Updated (06-01, 06-02) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 06-01-PLAN.md
+**Stopped at:** Completed 06-02-PLAN.md
 **Resume file:** None
-**Phase 6 Status:** IN PROGRESS (1/? plans)
+**Phase 6 Status:** IN PROGRESS (2/4 plans)
 
 ---
 
 *Session: Phase 6 - UI/UX Polish*
 *Plan 06-01 COMPLETE - Dialogue display on scene cards*
+*Plan 06-02 COMPLETE - Shot type badges*
