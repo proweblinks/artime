@@ -17,40 +17,36 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** 7 (Scene Text Inspector)
-**Phase:** 8 Complete
-**Plan:** 08-01 Complete (1/1 plans)
-**Status:** Phase 8 complete, ready for Phase 9
+**Phase:** 9 Complete
+**Plan:** 09-01 Complete (1/1 plans)
+**Status:** Phase 9 complete, ready for Phase 10
 
 ```
 Phase 7:  ██████████ 100% VERIFIED
 Phase 8:  ██████████ 100% COMPLETE
-Phase 9:  ░░░░░░░░░░ 0% (Pending)
+Phase 9:  ██████████ 100% COMPLETE
 Phase 10: ░░░░░░░░░░ 0% (Pending)
 ─────────────────────
-Overall:  █████░░░░░ 50%
+Overall:  ███████░░░ 75%
 ```
 
-**Last activity:** 2026-01-23 - Phase 8 complete (7/7 SPCH requirements satisfied)
+**Last activity:** 2026-01-23 - Phase 9 complete (6/6 PRMT requirements satisfied)
 
 ---
 
 ## Current Focus
 
-**Phase 9: Image/Video Prompts Display (Next)**
+**Phase 10: Mobile Responsiveness + Polish (Next)**
 
-Display full image and video prompts with copy-to-clipboard functionality.
+Final phase for Milestone 7 - mobile-specific UX improvements.
 
-**Requirements (8):**
-- PRMT-01: View FULL image prompt (not truncated)
-- PRMT-02: View FULL video prompt (not truncated)
-- PRMT-03: One-tap copy to clipboard
-- PRMT-04: Visual copy confirmation
-- PRMT-05: Copy success notification
-- PRMT-06: Section headers for prompts
-- PRMT-07: Character count display
-- PRMT-08: iOS clipboard fallback
+**Requirements:**
+- Mobile fullscreen layout
+- Thumb-friendly controls
+- iOS scroll lock handling
+- Visual consistency polish
 
-**Next action:** Plan Phase 9 or run `/gsd:execute-phase 9`
+**Next action:** Plan Phase 10 or run `/gsd:execute-phase 10`
 
 ---
 
@@ -74,6 +70,8 @@ The system should be sophisticated and automatically updated based on previous s
 - Type label accuracy: 100% (dynamic based on segment composition) VERIFIED
 - Modal open time: <100ms (target <300ms) VERIFIED
 - Full text visibility: 100% for speech segments (SPCH-01 complete) VERIFIED
+- Full prompt visibility: 100% for image/video prompts (PRMT-01/02 complete) VERIFIED
+- Copy functionality: Working with iOS fallback (PRMT-03/04 complete) VERIFIED
 
 ---
 
@@ -100,6 +98,9 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-23 | Type config pattern | Use $typeConfig array for speech segment display | Consistent with storyboard patterns, centralized maintenance |
 | 2026-01-23 | Duration estimation | 150 WPM for speech duration calculation | Industry standard for speaking rate |
 | 2026-01-23 | Character matching | Case-insensitive with str_contains for fuzzy match | Handles variations in speaker name formatting |
+| 2026-01-23 | JSON encoding for prompts | Use json_encode() for data-prompt attributes | Safely handles special characters in prompts |
+| 2026-01-23 | Per-button copy state | Each copy button has own Alpine.js x-data state | Independent feedback for image and video prompt copies |
+| 2026-01-23 | Video prompt fallback | Fall back to narrativeBeat.motionDescription | Some shots have motion description but no explicit video prompt |
 
 ### Known Issues
 
@@ -109,7 +110,7 @@ The system should be sophisticated and automatically updated based on previous s
 | No modal inspector | HIGH - Users cannot view full scene content | Phase 7 (MODL-01 to MODL-04) | FIXED (07-02) |
 | No metadata visibility | MEDIUM - Users cannot inspect scene details | Phase 7 (META-01 to META-06) | FIXED (07-03) |
 | Text truncation - Speech | HIGH - Users cannot see full speech segments | Phase 8 (SPCH-01) | FIXED (08-01) |
-| Text truncation - Prompts | HIGH - Users cannot see full prompts | Phase 9 (PRMT-01/02) | Pending |
+| Text truncation - Prompts | HIGH - Users cannot see full prompts | Phase 9 (PRMT-01/02) | FIXED (09-01) |
 
 ### Research Insights
 
@@ -173,9 +174,12 @@ The system should be sophisticated and automatically updated based on previous s
 - [x] Add segment duration and character indicators - 08-01 complete
 - [x] All 7 SPCH requirements satisfied
 
-### Upcoming (Phase 9)
-- [ ] Display full image/video prompts
-- [ ] Implement copy-to-clipboard with fallback
+### Completed (Phase 9) COMPLETE
+- [x] Display full image/video prompts - 09-01 complete
+- [x] Implement copy-to-clipboard with iOS fallback - 09-01 complete
+- [x] Shot type badges with abbreviations - 09-01 complete
+- [x] Camera movement indicators with icons - 09-01 complete
+- [x] All 6 PRMT requirements satisfied
 
 ### Future (Phase 10)
 - [ ] Mobile responsive design with iOS scroll lock
@@ -202,6 +206,7 @@ None currently.
 | `.planning/phases/07-foundation-modal-shell-scene-card-fixes-metadata/07-02-SUMMARY.md` | Scene Text Inspector modal shell | Complete (2026-01-23) |
 | `.planning/phases/07-foundation-modal-shell-scene-card-fixes-metadata/07-03-SUMMARY.md` | Scene metadata display with 6 badge types | Complete (2026-01-23) |
 | `.planning/phases/08-speech-segments-display/08-01-SUMMARY.md` | Speech segments display | Complete (2026-01-23) |
+| `.planning/phases/09-prompts-display-copy-to-clipboard/09-01-SUMMARY.md` | Prompts display + copy-to-clipboard | Complete (2026-01-23) |
 | `modules/AppVideoWizard/resources/views/livewire/modals/scene-text-inspector.blade.php` | Inspector modal template | Updated (2026-01-23) |
 
 ---
@@ -209,20 +214,21 @@ None currently.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Phase 8 complete (08-01)
-**Resume command:** `/gsd:plan-phase 9` or `/gsd:execute-phase 9`
-**Milestone 7 status:** 50% (2 of 4 phases complete)
+**Stopped at:** Phase 9 complete (09-01)
+**Resume command:** `/gsd:plan-phase 10` or `/gsd:execute-phase 10`
+**Milestone 7 status:** 75% (3 of 4 phases complete)
 
 **Context preserved:**
 - Phase 7 complete and verified: 14/14 requirements satisfied
 - Phase 8 complete: 7/7 SPCH requirements satisfied
-- Speech segments now display without truncation
-- Type icons, labels, speakers, lip-sync, duration all working
-- Character Bible matching implemented
-- Legacy narration fallback for backward compatibility
-- Next: Phase 9 - Image/Video Prompts Display
+- Phase 9 complete: 6/6 PRMT requirements satisfied
+- Full prompts now display without truncation
+- Copy-to-clipboard works with iOS Safari fallback
+- Shot type badges (EWS, WS, MS, MCU, CU, etc.) displayed
+- Camera movement indicators with emoji icons
+- Next: Phase 10 - Mobile Responsiveness + Polish
 
 ---
 
 *Session: Milestone 7 - Scene Text Inspector*
-*Phase 8 complete, ready for Phase 9*
+*Phase 9 complete, ready for Phase 10*
