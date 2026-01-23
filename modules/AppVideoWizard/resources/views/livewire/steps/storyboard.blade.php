@@ -1885,6 +1885,37 @@ function getCameraMovementIcon($movement) {
                                         </span>
                                     @endforeach
                                 </div>
+
+                                {{-- PHASE 6: Scene Intensity Indicator --}}
+                                @php
+                                    $sceneShots = $decomposed['shots'];
+                                    $sceneAvgIntensity = collect($sceneShots)->avg('emotionalIntensity') ?? 0.5;
+                                    $sceneHasClimax = collect($sceneShots)->contains('isClimax', true);
+                                    $sceneIntensityClass = $sceneHasClimax ? 'climax' : ($sceneAvgIntensity >= 0.7 ? 'high' : ($sceneAvgIntensity >= 0.4 ? 'medium' : 'low'));
+                                @endphp
+
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.35rem;
+                                    margin-top: 0.35rem;
+                                    padding-top: 0.35rem;
+                                    border-top: 1px solid rgba(255,255,255,0.15);
+                                ">
+                                    <div class="vw-intensity-bar" style="flex: 1;" title="{{ __('Scene Intensity') }}: {{ round($sceneAvgIntensity * 100) }}%">
+                                        <div class="vw-intensity-fill vw-intensity-{{ $sceneIntensityClass }}" style="width: {{ round($sceneAvgIntensity * 100) }}%;"></div>
+                                    </div>
+
+                                    @if($sceneHasClimax)
+                                        <span class="vw-shot-badge vw-shot-badge-climax" style="font-size: 0.5rem;">
+                                            {{ __('CLIMAX') }}
+                                        </span>
+                                    @endif
+
+                                    <span style="font-size: 0.55rem; color: rgba(255,255,255,0.5);">
+                                        {{ round($sceneAvgIntensity * 100) }}%
+                                    </span>
+                                </div>
                             </div>
                         @endif
 
