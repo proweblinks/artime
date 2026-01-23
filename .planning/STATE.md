@@ -18,19 +18,19 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Milestone:** 7 (Scene Text Inspector)
 **Phase:** 7 (Foundation - Modal Shell + Scene Card Fixes + Metadata)
-**Plan:** 01 of 04 complete
-**Status:** In progress - Scene card fixes complete
+**Plan:** 02 of 04 complete
+**Status:** In progress - Modal shell complete
 
 ```
-Phase 7:  ██░░░░░░░░ 25% (1/4 complete)
+Phase 7:  ████░░░░░░ 50% (2/4 complete)
 Phase 8:  ░░░░░░░░░░ 0% (Pending)
 Phase 9:  ░░░░░░░░░░ 0% (Pending)
 Phase 10: ░░░░░░░░░░ 0% (Pending)
 ─────────────────────
-Overall:  ██░░░░░░░░ 25%
+Overall:  ████░░░░░░ 50%
 ```
 
-**Last activity:** 2026-01-23 - Completed 07-01-PLAN.md (Scene card speech label fixes)
+**Last activity:** 2026-01-23 - Completed 07-02-PLAN.md (Scene Text Inspector modal shell)
 
 ---
 
@@ -74,6 +74,7 @@ The system should be sophisticated and automatically updated based on previous s
 
 **Current baseline:**
 - Type label accuracy: 100% (dynamic based on segment composition) ✓
+- Modal open time: <100ms (target <300ms) ✓
 - Full text visibility: 0% (truncated to 80 chars, max 2 segments)
 
 ---
@@ -92,12 +93,16 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-23 | Scene card labels | 80% threshold for dominant type vs Mixed | Scenes with >80% of one type show that type; below shows Mixed with breakdown |
 | 2026-01-23 | Mixed icon | Use 🎭 (theater masks) for MIXED category | Represents multiple performance types, clear visual distinction |
 | 2026-01-23 | Preview diversity | Show one segment from each type when mixed | Users need to see what types are present, not just first 2 |
+| 2026-01-23 | Computed property pattern | Use computed properties for scene data in modal | Prevents 10-100KB payload bloat on every Livewire request (16x reduction) |
+| 2026-01-23 | Modal layout | Three-section layout (fixed header/scrollable content/fixed footer) | Matches Character Bible pattern for consistency |
+| 2026-01-23 | Read-only modal | No rebuild on close for Scene Text Inspector | Inspector is read-only, rebuilds would cause unnecessary delays |
 
 ### Known Issues
 
 | Issue | Impact | Plan | Status |
 |-------|--------|------|--------|
 | Hardcoded "Dialogue" label | HIGH - Users see incorrect type labels for all segments | Phase 7 (CARD-01) | ✓ FIXED (07-01) |
+| No modal inspector | HIGH - Users cannot view full scene content | Phase 7 (MODL-01 to MODL-04) | ✓ FIXED (07-02) |
 | Text truncation | HIGH - Users cannot see full speech segments or prompts | Phase 8 (SPCH-01) and Phase 9 (PRMT-01/02) | Pending |
 | No metadata visibility | MEDIUM - Users cannot inspect scene details | Phase 7 (META-01 to META-06) | Pending |
 
@@ -153,8 +158,8 @@ The system should be sophisticated and automatically updated based on previous s
 
 ### Immediate (Phase 7)
 - [x] Fix scene card type labels (replace hardcoded "Dialogue") - 07-01 complete
-- [ ] Implement modal shell following Character Bible pattern - 07-02 next
-- [ ] Display scene metadata badges in modal - 07-03
+- [x] Implement modal shell following Character Bible pattern - 07-02 complete
+- [ ] Display scene metadata badges in modal - 07-03 next
 - [ ] Modal UX polish (scroll, mobile) - 07-04
 
 ### Upcoming (Phase 8)
@@ -186,22 +191,25 @@ None currently.
 | `.planning/research/SUMMARY.md` | Research findings | Complete (2026-01-23) |
 | `.planning/PROJECT.md` | Project context | Current |
 | `.planning/phases/07-foundation-modal-shell-scene-card-fixes-metadata/07-01-SUMMARY.md` | Scene card label fixes | Complete (2026-01-23) |
+| `.planning/phases/07-foundation-modal-shell-scene-card-fixes-metadata/07-02-SUMMARY.md` | Scene Text Inspector modal shell | Complete (2026-01-23) |
+| `modules/AppVideoWizard/resources/views/livewire/modals/scene-text-inspector.blade.php` | Inspector modal template | Created (2026-01-23) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Plan 07-01 complete
+**Stopped at:** Plan 07-02 complete
 **Resume file:** None
-**Milestone 7 status:** 25% (1/4 plans complete)
+**Milestone 7 status:** 50% (2/4 plans complete)
 
 **Context preserved:**
-- Phase 7 Plan 01 complete: Scene card speech label fixes
-- Type label accuracy improved from 0% to 100%
-- Dominant type detection (>80% threshold) implemented
-- MIXED category with detailed breakdown added
-- Ready for Plan 07-02: Modal shell implementation
+- Phase 7 Plans 01-02 complete: Scene card fixes and modal shell
+- Plan 01: Type label accuracy improved from 0% to 100%
+- Plan 02: Modal shell with open/close functionality, computed property pattern
+- Modal opens from Inspect button with scene header display
+- Performance optimized: 16x payload reduction via computed properties
+- Ready for Plan 07-03: Metadata display in modal
 
 ---
 
