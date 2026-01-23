@@ -97,17 +97,37 @@ window.multiShotVideoPolling = function() {
     if (!function_exists('getCameraMovementIcon')) {
         function getCameraMovementIcon($movement) {
             $icons = [
-                'push-in' => '→●',
-                'pull-out' => '●→',
-                'pan-left' => '←',
-                'pan-right' => '→',
-                'tilt-up' => '↑',
-                'tilt-down' => '↓',
-                'static' => '●',
-                'slow-push' => '→',
+                'push-in' => '->',
+                'pull-out' => '<-',
+                'pan-left' => '<',
+                'pan-right' => '>',
+                'tilt-up' => '^',
+                'tilt-down' => 'v',
+                'static' => 'o',
+                'slow-push' => '->',
                 'slight-drift' => '~',
+                'dolly' => '=',
             ];
             return $icons[strtolower($movement ?? '')] ?? '';
+        }
+    }
+
+    // PHASE 6: Enhanced camera movement SVG paths
+    if (!function_exists('getCameraMovementSvgPath')) {
+        function getCameraMovementSvgPath($movement) {
+            $paths = [
+                'push-in' => '<path d="M5 12h14M12 5l7 7-7 7"/>',
+                'pull-out' => '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+                'pan-left' => '<path d="M19 12H5M5 12l7-7M5 12l7 7"/>',
+                'pan-right' => '<path d="M5 12h14M19 12l-7-7M19 12l-7 7"/>',
+                'tilt-up' => '<path d="M12 19V5M5 12l7-7 7 7"/>',
+                'tilt-down' => '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+                'static' => '<circle cx="12" cy="12" r="3"/>',
+                'slow-push' => '<path d="M5 12h14M12 5l7 7-7 7" stroke-dasharray="4 2"/>',
+                'slight-drift' => '<path d="M5 12c4-2 10 2 14 0"/>',
+                'dolly' => '<path d="M5 12h14"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/>',
+            ];
+            return $paths[strtolower($movement ?? '')] ?? $paths['static'];
         }
     }
 
@@ -276,6 +296,77 @@ window.multiShotVideoPolling = function() {
                 </div>
             </main>
         @else
+            {{-- PHASE 6: Enhanced Progress Summary --}}
+            @php
+                $shots = $decomposed['shots'] ?? [];
+                $totalShots = count($shots);
+                $imagesReadyCount = collect($shots)->filter(fn($s) => ($s['status'] ?? '') === 'ready' && !empty($s['imageUrl']))->count();
+                $imagesGeneratingCount = collect($shots)->filter(fn($s) => ($s['status'] ?? '') === 'generating')->count();
+                $videosReadyCount = collect($shots)->filter(fn($s) => ($s['videoStatus'] ?? '') === 'ready' && !empty($s['videoUrl']))->count();
+                $videosNeeded = collect($shots)->filter(fn($s) => $s['needsLipSync'] ?? false)->count();
+                $avgIntensity = $totalShots > 0 ? (collect($shots)->avg('emotionalIntensity') ?? 0.5) : 0.5;
+            @endphp
+
+            <div style="
+                display: flex;
+                gap: 0.75rem;
+                padding: 0.5rem 1rem;
+                background: rgba(255, 255, 255, 0.05);
+                border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+                font-size: 0.7rem;
+                flex-wrap: wrap;
+                align-items: center;
+            ">
+                {{-- Image Progress --}}
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <div class="vw-mini-progress">
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <circle class="vw-mini-progress-bg" cx="8" cy="8" r="6"/>
+                            <circle class="vw-mini-progress-fill" cx="8" cy="8" r="6"
+                                stroke="{{ $imagesReadyCount === $totalShots ? '#22C55E' : '#3B82F6' }}"
+                                stroke-dasharray="{{ 2 * 3.14159 * 6 }}"
+                                stroke-dashoffset="{{ 2 * 3.14159 * 6 * (1 - ($totalShots > 0 ? $imagesReadyCount / $totalShots : 0)) }}"/>
+                        </svg>
+                    </div>
+                    <span style="color: rgba(255,255,255,0.7);">{{ __('Images') }}:</span>
+                    <span style="color: {{ $imagesReadyCount === $totalShots ? '#22C55E' : '#fff' }}; font-weight: 600;">
+                        {{ $imagesReadyCount }}/{{ $totalShots }}
+                    </span>
+                    @if($imagesGeneratingCount > 0)
+                        <span class="vw-status-badge vw-status-generating" style="font-size: 0.5rem;">
+                            {{ $imagesGeneratingCount }} {{ __('generating') }}
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Video Progress (if lip-sync needed) --}}
+                @if($videosNeeded > 0)
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <div class="vw-mini-progress">
+                            <svg width="16" height="16" viewBox="0 0 16 16">
+                                <circle class="vw-mini-progress-bg" cx="8" cy="8" r="6"/>
+                                <circle class="vw-mini-progress-fill" cx="8" cy="8" r="6"
+                                    stroke="{{ $videosReadyCount === $videosNeeded ? '#22C55E' : '#06B6D4' }}"
+                                    stroke-dasharray="{{ 2 * 3.14159 * 6 }}"
+                                    stroke-dashoffset="{{ 2 * 3.14159 * 6 * (1 - ($videosNeeded > 0 ? $videosReadyCount / $videosNeeded : 0)) }}"/>
+                            </svg>
+                        </div>
+                        <span style="color: rgba(255,255,255,0.7);">{{ __('Videos') }}:</span>
+                        <span style="color: {{ $videosReadyCount === $videosNeeded ? '#22C55E' : '#fff' }}; font-weight: 600;">
+                            {{ $videosReadyCount }}/{{ $videosNeeded }}
+                        </span>
+                    </div>
+                @endif
+
+                {{-- Average Intensity --}}
+                <div style="display: flex; align-items: center; gap: 0.35rem; margin-left: auto;">
+                    <span style="color: rgba(255,255,255,0.5);">{{ __('Avg Intensity') }}:</span>
+                    <span style="color: {{ $avgIntensity >= 0.7 ? '#EF4444' : ($avgIntensity >= 0.4 ? '#F59E0B' : '#3B82F6') }}; font-weight: 600;">
+                        {{ round($avgIntensity * 100) }}%
+                    </span>
+                </div>
+            </div>
+
             {{-- DECOMPOSED VIEW - Split Panel with Resizable Divider --}}
             <main class="msm-split-panel"
                   x-data="{
@@ -716,11 +807,21 @@ window.multiShotVideoPolling = function() {
                                         </span>
                                     @endif
 
-                                    {{-- Camera Movement --}}
-                                    @if(!empty($shot['cameraMovement']) && $shot['cameraMovement'] !== 'static')
-                                        <span class="vw-shot-badge vw-shot-badge-movement" title="{{ $shot['cameraMovement'] }}">
-                                            {{ getCameraMovementIcon($shot['cameraMovement']) }} {{ strtoupper(substr($shot['cameraMovement'], 0, 4)) }}
-                                        </span>
+                                    {{-- PHASE 6: Camera Movement with Icons --}}
+                                    @if(!empty($shot['cameraMovement']) || !empty($shot['suggestedMovement']))
+                                        @php
+                                            $movement = $shot['cameraMovement'] ?? $shot['suggestedMovement'] ?? 'static';
+                                        @endphp
+                                        @if($movement !== 'static')
+                                            <div class="vw-shot-badge vw-shot-badge-movement"
+                                                 title="{{ ucwords(str_replace('-', ' ', $movement)) }}"
+                                                 style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    {!! getCameraMovementSvgPath($movement) !!}
+                                                </svg>
+                                                <span>{{ strtoupper(Str::limit(str_replace('-', '', $movement), 4, '')) }}</span>
+                                            </div>
+                                        @endif
                                     @endif
 
                                     {{-- Climax Indicator --}}
@@ -771,6 +872,67 @@ window.multiShotVideoPolling = function() {
                                         <span>{{ __('Lip Sync') }}</span>
                                     </div>
                                 @endif
+
+                                {{-- PHASE 6: Shot Status and Intensity --}}
+                                <div style="display: flex; align-items: center; gap: 0.35rem; margin: 0.25rem 0.5rem;">
+                                    {{-- Image Status --}}
+                                    @php
+                                        $imgStatus = $shot['status'] ?? 'pending';
+                                        $vidStatus = $shot['videoStatus'] ?? 'pending';
+                                    @endphp
+
+                                    <div class="vw-status-badge vw-status-{{ $imgStatus }}">
+                                        @if($imgStatus === 'pending')
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="12" r="10"/>
+                                            </svg>
+                                        @elseif($imgStatus === 'generating')
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                            </svg>
+                                        @elseif($imgStatus === 'ready')
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <polyline points="20 6 9 17 4 12"/>
+                                            </svg>
+                                        @else
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        @endif
+                                        IMG
+                                    </div>
+
+                                    {{-- Video Status (if applicable) --}}
+                                    @if(!empty($shot['needsLipSync']) || $vidStatus !== 'pending')
+                                        <div class="vw-status-badge vw-status-{{ $vidStatus === 'processing' ? 'generating' : $vidStatus }}">
+                                            @if($vidStatus === 'ready')
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                    <polyline points="20 6 9 17 4 12"/>
+                                                </svg>
+                                            @elseif(in_array($vidStatus, ['generating', 'processing']))
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83"/>
+                                                </svg>
+                                            @else
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                                                    <circle cx="12" cy="12" r="10"/>
+                                                </svg>
+                                            @endif
+                                            VID
+                                        </div>
+                                    @endif
+                                </div>
+
+                                {{-- Intensity Bar --}}
+                                @php
+                                    $intensity = $shot['emotionalIntensity'] ?? 0.5;
+                                    $isClimaxShot = $shot['isClimax'] ?? false;
+                                    $intensityClass = $isClimaxShot ? 'climax' : ($intensity >= 0.7 ? 'high' : ($intensity >= 0.4 ? 'medium' : 'low'));
+                                    $intensityPercent = round($intensity * 100);
+                                @endphp
+                                <div class="vw-intensity-bar" style="margin: 0 0.5rem 0.35rem 0.5rem;" title="Intensity: {{ $intensityPercent }}%">
+                                    <div class="vw-intensity-fill vw-intensity-{{ $intensityClass }}" style="width: {{ $intensityPercent }}%;"></div>
+                                </div>
 
                                 <div class="msm-shot-preview" wire:click.stop="openShotPreviewModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})">
                                     @if($hasImage)
