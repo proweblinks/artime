@@ -8,24 +8,24 @@
 ## Current Position
 
 **Phase:** 6 of ongoing (UI/UX Polish)
-**Plan:** 02 of 4 (in phase) - COMPLETE
-**Status:** In Progress
+**Plan:** 04 of 4 (in phase) - COMPLETE
+**Status:** Phase Complete
 
-**Progress:** [##] Phase 6 (2/4 plans complete - 06-01, 06-02)
+**Progress:** [####] Phase 6 (4/4 plans complete - 06-01, 06-02, 06-03, 06-04)
 
 ---
 
 ## Current Focus
 
-**Phase 6: UI/UX Polish** - IN PROGRESS
+**Phase 6: UI/UX Polish** - COMPLETE
 
 Improve user experience with better context visibility and visual feedback.
 
 Plans:
 1. ~~Dialogue Display on Scene Cards~~ COMPLETE
 2. ~~Shot Type Badges~~ COMPLETE
-3. Emotional Arc Visualization (next)
-4. Scene Timeline Improvements
+3. ~~Emotional Arc Visualization~~ COMPLETE
+4. ~~Scene Timeline Improvements~~ COMPLETE
 
 ---
 
@@ -38,6 +38,29 @@ The system should be sophisticated and automatically updated based on previous s
 ---
 
 ## Completed This Session
+
+### Plan 06-04: Scene Timeline Improvements (COMPLETE)
+**Summary:** Final UI polish with speaker names in animation, arc template selector, camera movement SVG icons, and visual consistency CSS
+
+**Tasks:**
+1. [x] Add speaker names to animation step (purple/gray for voice status)
+2. [x] Add arc template selector to storyboard (6 templates + summary)
+3. [x] Add camera movement SVG icons (10 movement types)
+4. [x] Add visual consistency improvements (CSS hover effects, transitions, focus states)
+
+**Commits:**
+- `31dc278` - feat(06-04): add speaker names to animation step
+- `aa0913c` - feat(06-04): add arc template selector to storyboard
+- `f6f5f75` - feat(06-04): add camera movement icons to multi-shot modal
+- `8009380` - feat(06-04): add visual consistency improvements (CSS)
+
+**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-04-SUMMARY.md`
+
+### Plan 06-03: Emotional Arc Visualization (COMPLETE)
+**Summary:** Enhanced progress indicators with status badges and intensity visualization
+
+**Commits:**
+- `5f02319` - feat(06-03): add enhanced progress indicators with status badges and intensity visualization
 
 ### Plan 06-02: Shot Type Badges (COMPLETE)
 **Summary:** Color-coded shot type badges (XCU/CU/MCU/MED/WIDE/EST) with climax indicator and camera movement icons
@@ -129,6 +152,9 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Speaker Voice Indicator | Purple for voice assigned, gray for unassigned | Consistent with app color scheme, immediate status visibility |
+| 2026-01-23 | Arc Selector Location | Above scene stats bar | Visible without scrolling, logically grouped |
+| 2026-01-23 | SVG Camera Icons | Inline SVG paths in helper function | Crisp rendering, consistent with other icons |
 | 2026-01-23 | Shot Badge Colors | Red->Orange->Amber->Green->Blue gradient | Intuitive: warm=tight/emotional, cool=establishing |
 | 2026-01-23 | Climax Badge | Purple-pink gradient with border | Makes climax shots visually distinct |
 | 2026-01-23 | Helper Guards | function_exists() wrapper | Prevents redeclaration when templates share functions |
@@ -159,6 +185,17 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 3. **Multi-Shot Modal:** Shot type, purpose, movement, and climax badges per card
 4. **Scene Cards:** Enhanced Multi-Shot Summary with shot type counts
 
+### Plan 06-03: Emotional Arc Visualization
+1. **Status Badges:** Pending/Generating/Complete/Error states
+2. **Intensity Bars:** Visual intensity with color gradient
+3. **Progress Indicators:** Mini progress rings
+
+### Plan 06-04: Scene Timeline Improvements
+1. **Speaker Names:** Animation step shows speakers with voice status
+2. **Arc Template Selector:** Dropdown with 6 templates and summary stats
+3. **Camera Movement Icons:** SVG icons for 10 movement types
+4. **Visual Consistency:** CSS hover effects, transitions, focus states, scrollbars
+
 ---
 
 ## Blockers
@@ -175,20 +212,23 @@ None currently
 | `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md` | Plan 01 summary | Created |
 | `.planning/phases/06-ui-ux-polish/06-02-PLAN.md` | Shot type badges plan | Executed |
 | `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md` | Plan 02 summary | Created |
-| `storyboard.blade.php` | Scene card UI | Updated (06-01, 06-02) |
-| `multi-shot.blade.php` | Shot UI with badges | Updated (06-01, 06-02) |
+| `.planning/phases/06-ui-ux-polish/06-03-PLAN.md` | Emotional arc visualization plan | Executed |
+| `.planning/phases/06-ui-ux-polish/06-04-PLAN.md` | Scene timeline improvements plan | Executed |
+| `.planning/phases/06-ui-ux-polish/06-04-SUMMARY.md` | Plan 04 summary | Created |
+| `animation.blade.php` | Animation step UI | Updated (06-04) |
+| `storyboard.blade.php` | Scene card UI | Updated (06-01, 06-02, 06-04) |
+| `multi-shot.blade.php` | Shot UI with badges | Updated (06-01, 06-02, 06-04) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 06-02-PLAN.md
+**Stopped at:** Completed 06-04-PLAN.md
 **Resume file:** None
-**Phase 6 Status:** IN PROGRESS (2/4 plans)
+**Phase 6 Status:** COMPLETE (4/4 plans)
 
 ---
 
-*Session: Phase 6 - UI/UX Polish*
-*Plan 06-01 COMPLETE - Dialogue display on scene cards*
-*Plan 06-02 COMPLETE - Shot type badges*
+*Session: Phase 6 - UI/UX Polish COMPLETE*
+*All 4 plans executed successfully*
