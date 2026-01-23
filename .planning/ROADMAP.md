@@ -1,294 +1,174 @@
 # Video Wizard Development Roadmap
 
-## Milestone 1: Stability & Bug Fixes -- COMPLETE
-**Target:** Eliminate critical bugs, establish stable baseline
-**Status:** Complete (2026-01-23)
+## Milestone 7: Scene Text Inspector
 
-| Task | Status | Priority |
-|------|--------|----------|
-| Fix dialogue parsing by speaker | Done | P0 |
-| Fix needsLipSync on all dialogue shots | Done | P0 |
-| Fix Collage Preview empty state | Done | P0 |
-| Remove duplicate methods | Done | P0 |
-| Add AI retry logic | Done (M3) | P1 |
-| Fix error handling | Done (M3) | P1 |
-
-**Note:** AI retry logic and error handling were implemented as part of Milestone 3 (03-05):
-- ✅ `generateImageWithRetry()` and `generateVideoWithRetry()` with exponential backoff (2s→4s→8s)
-- ✅ `$generationRetryCount`, `$maxRetryAttempts = 3`, `$generationStatus` tracking
-- ✅ 153+ try-catch blocks around AI calls with `$this->error` user feedback
-- ✅ Livewire notifications and structured logging
+**Target:** Full transparency into scene text, prompts, and metadata
+**Status:** In Progress (2026-01-23)
+**Total requirements:** 28 (5 categories)
 
 ---
 
-## Milestone 1.5: Automatic Speech Flow System -- COMPLETE
-**Target:** Remove Character Intelligence bottleneck, connect Speech Segments to Character Bible for automatic flow
-**Status:** Complete (2026-01-23)
-**Plans:** 4 plans in 3 waves -- ALL COMPLETE
+## Overview
 
-**Goal:** Automatic, effortless, Hollywood-quality output from button clicks. Script is auto-parsed into speech segments, speakers are auto-linked to Character Bible, and data flows through to video generation without manual intervention.
+Scene Text Inspector provides complete visibility into all scene text content currently truncated in the storyboard view. Users can inspect full speech segments (with correct type labels and icons), complete AI prompts (image/video), scene metadata (duration, transitions, characters), and copy prompts to clipboard. This milestone fixes the hardcoded "Dialogue" label bug and enables users to see all generated content transparently.
 
-Plans:
-- [x] 1.5-01-PLAN.md -- Auto-parse script into segments after AI generation
-- [x] 1.5-02-PLAN.md -- Replace Character Intelligence UI with Detection Summary
-- [x] 1.5-03-PLAN.md -- Backward compatibility for characterIntelligence
-- [x] 1.5-04-PLAN.md -- Ensure segment data flows to shots/video generation
+The implementation follows established modal patterns from Character Bible and Location Bible modals, with critical attention to Livewire performance pitfalls (payload bloat, re-render cascades) and mobile UX requirements. Research validates this as a 6-8 hour implementation with zero new dependencies.
 
 ---
 
-## Milestone 2: Narrative Intelligence -- COMPLETE
-**Target:** Each shot captures unique moment with emotional arc
-**Status:** Complete (2026-01-23)
-**Plans:** 3 plans in 2 waves -- ALL COMPLETE
+## Phase 7: Foundation - Modal Shell + Scene Card Fixes + Metadata
 
-**Goal:** Integrate existing NarrativeMomentService into shot generation workflow. Each shot gets a unique narrative moment with emotional intensity mapping to shot type.
+**Goal:** Users can open a working inspector modal and see scene metadata correctly displayed
 
-Plans:
-- [x] 02-01-PLAN.md -- Wire NarrativeMomentService into ShotIntelligenceService
-- [x] 02-02-PLAN.md -- Enhance AI prompt with narrative moments
-- [x] 02-03-PLAN.md -- Add action uniqueness validation
+**Dependencies:** None (starts new milestone)
 
----
+**Requirements:**
+- MODL-01: User can open inspector from scene card
+- MODL-02: Modal shows scene number and title
+- MODL-03: Modal content is scrollable for long scenes
+- MODL-04: Modal has close button
+- CARD-01: Scene card shows dynamic label based on segment types present
+- CARD-02: Scene card shows type-specific icons for segments
+- CARD-03: Scene card indicates "click to view all" when truncated
+- META-01: User can view scene duration
+- META-02: User can view scene transition type
+- META-03: User can view scene location
+- META-04: User can view characters present in scene
+- META-05: User can view emotional intensity indicator
+- META-06: Climax scenes show climax badge
 
-## Milestone 3: Hollywood Production System -- COMPLETE
-**Target:** Production-ready Hollywood-quality cinematography that ACTUALLY WORKS
-**Status:** Complete (2026-01-23)
-**Plans:** 7 plans in 4 waves -- ALL COMPLETE
+**Success Criteria:**
+1. User clicks Inspect button (magnifying glass icon) on scene card and modal opens immediately
+2. Modal displays correct scene number and title in header with close button (X and ESC key work)
+3. Scene card shows accurate segment type summary (not hardcoded "Dialogue") with type-specific icons matching segment content
+4. Modal displays scene metadata badges including duration, transition, location, characters, and intensity with climax badge for climax scenes
+5. Modal content scrolls smoothly for long scenes without body scroll behind modal
 
-**Goal:** Transform Video Wizard into a production-ready system where all Hollywood cinematography features work properly, the UX is smooth and professional, and users get amazing results with minimal effort.
-
-**Critical Finding (FIXED):** Hollywood cinematography code EXISTED but was NOT BEING CALLED:
-- ✅ `generateHollywoodShotSequence()` now invoked in all scene decomposition
-- ✅ Emotion-driven shot types now applied
-- ✅ Dialogue coverage patterns now active
-- ✅ NarrativeMomentService returns real moments (no more placeholders)
-
-Plans:
-- [x] 03-01-PLAN.md -- Activate Hollywood Shot Sequences (replace analyzeScene → generateHollywoodShotSequence)
-- [x] 03-02-PLAN.md -- Fix NarrativeMomentService Placeholders (meaningful moment extraction)
-- [x] 03-03-PLAN.md -- Enable Hollywood Settings by Default (seeder + runtime init)
-- [x] 03-04-PLAN.md -- Auto-Proceed Through Steps (Script → Storyboard → Animation → Assembly)
-- [x] 03-05-PLAN.md -- Batch Generation Smart Retry (exponential backoff, status tracking)
-- [x] 03-06-PLAN.md -- Character Consistency Enforcement (reference images, portraits)
-- [x] 03-07-PLAN.md -- Smart Defaults from Concept (AI-assisted setting suggestions)
-
-### Wave 1: Fix Critical Broken Integrations ✅
-
-**Phase 3: Activate Hollywood Shot Sequences** ✅
-- ✅ `generateHollywoodShotSequence()` now called at lines 16806, 22741
-- ✅ Emotional arc extracted via NarrativeMomentService and passed to DynamicShotEngine
-- ✅ Characters from characterBible passed for dialogue coverage patterns
-
-**Phase 4: Fix NarrativeMomentService Placeholders** ✅
-- ✅ New `generateMeaningfulMomentsFromNarration()` extracts real actions from text
-- ✅ New `generateNarrativeArcMoments()` fallback uses Hollywood arc (setup→climax→resolution)
-- ✅ No more "continues the scene" or "the subject" placeholders
-
-### Wave 2: Enable Disabled Features ✅
-
-**Phase 5: Enable Shot Progression + Cinematic Intelligence** ✅
-- ✅ Hollywood settings seeded: shot_progression_enabled, cinematic_intelligence_enabled, etc.
-- ✅ Runtime initialization in `ensureHollywoodSettingsExist()` creates settings if missing
-- ✅ All Hollywood features ON by default
-
-### Wave 3: Smooth UX & Automation ✅
-
-**Phase 7: Auto-Proceed Through Steps** ✅
-- ✅ `$autoProceedEnabled` property added (default false)
-- ✅ Script → auto-proceed to Storyboard + start batch images
-- ✅ Storyboard complete → auto-proceed to Animation + start batch videos
-- ✅ Animation complete → auto-proceed to Assembly with success notification
-- ✅ `getOverallProgressProperty()` provides pipeline percentage (Script 20%, Storyboard 40%, Animation 30%, Assembly 10%)
-
-**Phase 8: Batch Generation Improvements** ✅
-- ✅ `generateImageWithRetry()` and `generateVideoWithRetry()` with exponential backoff (2s, 4s, 8s)
-- ✅ `$generationRetryCount`, `$maxRetryAttempts = 3`, `$generationStatus` tracking
-- ✅ `getBatchGenerationStatus()` returns pending/generating/complete/failed counts
-- ✅ `retryAllFailed()` resets and retries all failed items
-
-### Wave 4: Quality & Consistency ✅
-
-**Phase 9: Character Consistency Enforcement** ✅
-- ✅ `getCharacterReferenceImages()` extracts character data per scene
-- ✅ `buildCharacterConsistencyPrompt()` adds character descriptions to prompts
-- ✅ `generateCharacterPortraits()` creates reference portraits from Character Bible
-- ✅ Character references passed to ALL image generation calls
-
-**Phase 10: Smart Defaults from Concept** ✅
-- ✅ `analyzeConceptForDefaults()` keyword-based analysis (platform, duration, type, etc.)
-- ✅ `analyzeConceptWithAI()` AI-enhanced analysis via GeminiService
-- ✅ `applySuggestedSettings()` auto-fills Step 1 configuration
-- ✅ Concept update triggers automatic setting suggestions
-
-| Wave | Plans | Focus | Status |
-|------|-------|-------|--------|
-| 1 | 03-01, 03-02 | Fix critical broken integrations | ✅ Complete |
-| 2 | 03-03 | Enable disabled features | ✅ Complete |
-| 3 | 03-04, 03-05 | Smooth UX & automation | ✅ Complete |
-| 4 | 03-06, 03-07 | Quality & consistency | ✅ Complete |
-
-**Success Metrics:**
-| Metric | Target | Status |
-|--------|--------|--------|
-| Hollywood patterns applied | 100% | ✅ 100% |
-| Narrative moments unique | 100% | ✅ 100% |
-| Auto-proceed enabled | Yes | ✅ Yes |
-| Character consistency | 100% | ✅ Implemented |
-| One-click generation | Yes | ✅ Yes |
+**Estimated time:** 2 hours
 
 ---
 
-## Milestone 4: Dialogue Scene Excellence -- COMPLETE
-**Target:** Hollywood-style Shot/Reverse Shot coverage
-**Status:** Complete (2026-01-23)
-**Plans:** 4 plans in 2 waves -- ALL COMPLETE
+## Phase 8: Speech Segments Display
 
-**Goal:** Professional dialogue cinematography with proper spatial continuity, over-the-shoulder depth, intelligent reactions, and coverage validation.
+**Goal:** Users can view all speech segments with correct type labels, icons, and speaker attribution
 
-Plans:
-- [x] 04-01-PLAN.md -- Spatial Continuity Tracking (180-degree rule, eye-lines, reverse shot pairing)
-- [x] 04-02-PLAN.md -- OTS Shot Depth and Framing (foreground blur, shoulder reference, profile angles)
-- [x] 04-03-PLAN.md -- Intelligent Reaction Shot Generation (listener emotion, dramatic beats)
-- [x] 04-04-PLAN.md -- Coverage Completeness Validation (shot variety, auto-fix, balance)
+**Dependencies:** Phase 7 (requires modal shell)
 
-### Wave 1: Foundation (04-01, 04-02) ✅
-- ✅ 180-degree rule with `$axisLockSide` property
-- ✅ `calculateSpatialData()` for camera position, eye-line, subject position
-- ✅ `pairReverseShots()` links alternating speaker shots with `pairId`
-- ✅ `buildOTSData()` with foreground shoulder, blur, profile angle
-- ✅ `buildOTSPrompt()` for Hollywood-style OTS framing
-- ✅ `shouldUseOTS()` for intelligent OTS detection
+**Requirements:**
+- SPCH-01: User can view ALL speech segments for a scene (not truncated)
+- SPCH-02: Each segment shows correct type label (NARRATOR/DIALOGUE/INTERNAL/MONOLOGUE)
+- SPCH-03: Each segment shows type-specific icon (microphone/speech bubble/thought bubble/speaking)
+- SPCH-04: Each segment shows speaker name (if applicable)
+- SPCH-05: Each segment shows lip-sync indicator (YES for dialogue/monologue, NO for narrator/internal)
+- SPCH-06: Each segment shows estimated duration
+- SPCH-07: Speaker matched to Character Bible shows character indicator
 
-### Wave 2: Intelligence (04-03, 04-04) ✅
-- ✅ `analyzeListenerEmotion()` detects emotion from dialogue content
-- ✅ `shouldInsertReaction()` places reactions at dramatic beats
-- ✅ `buildReactionShot()` creates emotion-aware reaction shots
-- ✅ `$coverageRequirements` defines Hollywood minimums
-- ✅ `analyzeCoverage()` identifies gaps in coverage
-- ✅ `fixCoverageIssues()` auto-inserts missing shots
+**Success Criteria:**
+1. Modal displays complete speech segment list with no truncation, showing full text content with proper line wrapping
+2. Each segment displays correct type badge (NARRATOR/DIALOGUE/INTERNAL/MONOLOGUE) with matching icon (microphone, speech bubble, thought bubble, speaking)
+3. Dialogue and monologue segments show speaker name in purple with lip-sync badge showing YES/NO
+4. Each segment displays estimated duration and character indicator when speaker exists in Character Bible
+5. Scrollable segment list handles 10+ segments smoothly without layout issues
 
-| Wave | Plans | Focus | Status |
-|------|-------|-------|--------|
-| 1 | 04-01, 04-02 | Spatial continuity, OTS depth | ✅ Complete |
-| 2 | 04-03, 04-04 | Reaction intelligence, coverage validation | ✅ Complete |
-
-**Success Metrics:**
-| Metric | Target | Status |
-|--------|--------|--------|
-| 180-degree rule enforced | 100% | ✅ 100% |
-| OTS shots have depth specs | 100% | ✅ 100% |
-| Reactions at dramatic beats | Yes | ✅ Yes |
-| Coverage validation active | Yes | ✅ Yes |
+**Estimated time:** 2 hours
 
 ---
 
-## Milestone 5: Emotional Arc System -- COMPLETE
-**Target:** Intensity-driven cinematography
-**Status:** Complete (2026-01-23)
-**Plans:** 4 plans in 2 waves -- ALL COMPLETE
+## Phase 9: Prompts Display + Copy-to-Clipboard
 
-**Goal:** Transform raw emotional intensity into Hollywood-quality shot sequences with intelligent climax detection, curve smoothing, and template-based pacing.
+**Goal:** Users can view full prompts and copy them to clipboard with visual feedback
 
-Plans:
-- [x] 05-01-PLAN.md -- Intelligent Climax Detection (content analysis, peak detection)
-- [x] 05-02-PLAN.md -- Intensity Curve Enhancement (smoothing, arc templates)
-- [x] 05-03-PLAN.md -- Arc Data Exposure (Livewire properties, UI helpers)
-- [x] 05-04-PLAN.md -- Enhanced Shot Mapping (climax-aware types, camera movement)
+**Dependencies:** Phase 8 (requires content structure)
 
-### Wave 1: Backend Intelligence (05-01, 05-02) ✅
-- ✅ `CLIMAX_KEYWORDS` and `RESOLUTION_KEYWORDS` for content analysis
-- ✅ `detectIntensityPeaks()` finds local maxima in intensity array
-- ✅ `detectClimaxFromContent()` replaces fixed 70% rule
-- ✅ `smoothIntensityCurve()` with weighted moving average
-- ✅ `ARC_TEMPLATES` with 6 genre-specific curves (hollywood, action, drama, thriller, comedy, documentary)
-- ✅ `blendWithArcTemplate()` combines content intensity with template
+**Requirements:**
+- PRMT-01: User can view full image prompt (not truncated)
+- PRMT-02: User can view full video prompt (not truncated)
+- PRMT-03: User can copy image prompt to clipboard with one click
+- PRMT-04: User can copy video prompt to clipboard with one click
+- PRMT-05: Shot type badge displayed with prompt
+- PRMT-06: Camera movement indicator displayed
 
-### Wave 2: Integration & Mapping (05-03, 05-04) ✅
-- ✅ `$emotionalArcData` Livewire property for UI access
-- ✅ `updateEmotionalArcData()` syncs arc with storyboard
-- ✅ `getIntensityDisplayData()` provides color-coded intensity indicators
-- ✅ `selectShotTypeWithClimaxAwareness()` gives climax tight framing
-- ✅ `getCameraMovementForIntensity()` suggests movement based on intensity
-- ✅ `applySmoothedIntensityToShots()` updates shot types from processed arc
+**Success Criteria:**
+1. Modal displays complete image prompt and video prompt in separate collapsible sections with full text visible
+2. Each prompt section has copy button that copies text to clipboard and shows immediate visual feedback (button text changes or toast notification)
+3. Copy functionality works reliably across modern browsers including iOS Safari with execCommand fallback
+4. Prompt sections display shot type badge (XCU, CU, MCU, etc.) and camera movement indicator with icons
+5. User can copy individual prompts or speech segments independently
 
-| Wave | Plans | Focus | Status |
-|------|-------|-------|--------|
-| 1 | 05-01, 05-02 | Backend intelligence | ✅ Complete |
-| 2 | 05-03, 05-04 | Integration & mapping | ✅ Complete |
-
-**Success Metrics:**
-| Metric | Target | Status |
-|--------|--------|--------|
-| Climax from content analysis | Yes | ✅ Yes |
-| Intensity smoothing active | Yes | ✅ Yes |
-| Arc templates available | 6+ | ✅ 6 templates |
-| Climax shots get tight framing | Yes | ✅ Yes |
+**Estimated time:** 2-3 hours
 
 ---
 
-## Milestone 6: UI/UX Polish -- COMPLETE
-**Target:** Professional, intuitive interface
-**Status:** Complete (2026-01-23)
-**Plans:** 4 plans in 2 waves -- ALL COMPLETE
+## Phase 10: Mobile Responsiveness + Polish
 
-**Goal:** Polish the user interface with dialogue visibility, shot type indicators, progress feedback, and visual consistency for a professional experience.
+**Goal:** Users have excellent experience on mobile devices with professional visual consistency
 
-Plans:
-- [x] 06-01-PLAN.md -- Dialogue Text Display (scene cards, multi-shot modal, speaker names)
-- [x] 06-02-PLAN.md -- Shot Type Badges (color-coded badges, camera movement, climax indicator)
-- [x] 06-03-PLAN.md -- Enhanced Progress Indicators (per-shot status, intensity bars, progress rings)
-- [x] 06-04-PLAN.md -- UI Polish & Refinements (speaker names in animation, arc selector, camera icons)
+**Dependencies:** Phase 9 (requires all features complete)
 
-### Wave 1: Content Visibility (06-01, 06-02) ✅
-- ✅ `.vw-scene-dialogue` styled section with blue border
-- ✅ Speaker names in purple (`.vw-dialogue-speaker`)
-- ✅ Lip sync indicator for dialogue shots
-- ✅ Shot type badges (XCU, CU, MCU, MED, WIDE, EST)
-- ✅ Color gradient: red (tight) → blue (wide)
-- ✅ Purpose badges (OTS, REACT, 2-SHOT)
-- ✅ Climax badge with gradient
+**Requirements:**
+- MODL-05: Modal works on mobile (responsive)
 
-### Wave 2: Progress & Polish (06-03, 06-04) ✅
-- ✅ Status badges (pending, generating, ready, error) with pulse animation
-- ✅ Per-shot IMG/VID status with SVG icons
-- ✅ Intensity bars with color levels (low, medium, high, climax)
-- ✅ Mini progress rings in header
-- ✅ Scene intensity indicator with climax badge
-- ✅ Speaker names in animation step with voice status
-- ✅ Arc template selector (6 templates)
-- ✅ Camera movement icons (push-in, pull-out, pan, tilt, static, dolly)
-- ✅ Visual consistency CSS (hover effects, transitions, focus states)
+**Success Criteria:**
+1. Modal displays fullscreen on mobile devices (under 768px) and centered box on desktop
+2. Close button positioned in bottom-right thumb zone on mobile for one-handed operation
+3. Body scroll locked on iOS Safari when modal open (no background scrolling)
+4. Modal styling matches existing Character Bible and Location Bible modals (consistent colors, spacing, typography)
+5. All interactive elements (copy buttons, close button, collapsible sections) work smoothly on touch devices
 
-| Wave | Plans | Focus | Status |
-|------|-------|-------|--------|
-| 1 | 06-01, 06-02 | Content visibility | ✅ Complete |
-| 2 | 06-03, 06-04 | Progress & polish | ✅ Complete |
-
-**Success Metrics:**
-| Metric | Target | Status |
-|--------|--------|--------|
-| Dialogue visible on cards | Yes | ✅ Yes |
-| Shot type badges | Yes | ✅ Yes |
-| Per-shot status indicators | Yes | ✅ Yes |
-| Intensity visualization | Yes | ✅ Yes |
-| Arc template selector | Yes | ✅ Yes |
-| Camera movement icons | Yes | ✅ Yes |
+**Estimated time:** 1-2 hours
 
 ---
 
-## Progress Overview
+## Progress Tracking
+
+| Phase | Status | Requirements | Success Criteria |
+|-------|--------|--------------|------------------|
+| Phase 7: Foundation | Pending | MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06 (14) | 5 criteria |
+| Phase 8: Speech Segments | Pending | SPCH-01 to SPCH-07 (7) | 5 criteria |
+| Phase 9: Prompts + Copy | Pending | PRMT-01 to PRMT-06 (6) | 5 criteria |
+| Phase 10: Mobile + Polish | Pending | MODL-05 (1) | 5 criteria |
+
+**Overall Progress:**
 
 ```
-Milestone 1:   ██████████ 100% COMPLETE
-Milestone 1.5: ██████████ 100% COMPLETE
-Milestone 2:   ██████████ 100% COMPLETE
-Milestone 3:   ██████████ 100% COMPLETE
-Milestone 4:   ██████████ 100% COMPLETE
-Milestone 5:   ██████████ 100% COMPLETE
-Milestone 6:   ██████████ 100% COMPLETE
-─────────────────────────
-Overall:       ██████████ 100%
+Phase 7:  ░░░░░░░░░░ 0%
+Phase 8:  ░░░░░░░░░░ 0%
+Phase 9:  ░░░░░░░░░░ 0%
+Phase 10: ░░░░░░░░░░ 0%
+─────────────────────
+Overall:  ░░░░░░░░░░ 0%
 ```
+
+**Coverage:** 28/28 requirements mapped (100%)
+
+---
+
+## Research Validation
+
+Research confirms:
+- Zero new dependencies (Laravel 10 + Livewire 3 + Alpine.js sufficient)
+- Clipboard API validated in existing timeline component
+- Modal patterns established in Character Bible, Location Bible, Scene DNA modals
+- Critical pitfalls identified: payload bloat, re-render cascades, clipboard reliability, mobile UX
+
+**Implementation guidance:**
+- Use computed properties for scene data (not public properties) to avoid payload bloat
+- Apply wire:ignore on storyboard content to prevent re-render cascades
+- Implement native Clipboard API with execCommand fallback
+- Mobile-first design with fullscreen on mobile, thumb-friendly close button
+- Test on actual iPhone for iOS Safari scroll lock validation
+
+---
+
+## Success Metrics
+
+| Metric | Target | Current |
+|--------|--------|---------|
+| Requirements coverage | 100% | 100% |
+| Modal open time | <300ms | TBD |
+| Copy success rate | >98% | TBD |
+| Mobile usability | Thumb-friendly | TBD |
+| Type label accuracy | 100% | 0% (hardcoded) |
 
 ---
 
@@ -296,8 +176,9 @@ Overall:       ██████████ 100%
 
 **"Automatic, effortless, Hollywood-quality output from button clicks."**
 
-The system should be sophisticated and automatically updated based on previous steps in the wizard. Users click buttons and perform complete actions without effort.
+Full transparency into generated content maintains trust and enables users to understand and reproduce AI outputs. The inspector provides complete visibility without requiring users to dig through code or logs.
 
 ---
 
-*Last Updated: 2026-01-23 (All Milestones Complete)*
+*Milestone 7 roadmap created: 2026-01-23*
+*Ready for phase planning: Phase 7*

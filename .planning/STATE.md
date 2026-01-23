@@ -17,25 +17,42 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** 7 (Scene Text Inspector)
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
+**Phase:** 7 (Foundation - Modal Shell + Scene Card Fixes + Metadata)
+**Plan:** Not started
+**Status:** Roadmap created, ready for planning
 
-**Last activity:** 2026-01-23 — Milestone 7 started
+```
+Phase 7:  ░░░░░░░░░░ 0% (Pending)
+Phase 8:  ░░░░░░░░░░ 0% (Pending)
+Phase 9:  ░░░░░░░░░░ 0% (Pending)
+Phase 10: ░░░░░░░░░░ 0% (Pending)
+─────────────────────
+Overall:  ░░░░░░░░░░ 0%
+```
+
+**Last activity:** 2026-01-23 - Milestone 7 roadmap created
 
 ---
 
 ## Current Focus
 
-**Phase 6: UI/UX Polish** - COMPLETE
+**Phase 7: Foundation - Modal Shell + Scene Card Fixes + Metadata**
 
-Improve user experience with better context visibility and visual feedback.
+Establish working inspector modal with scene metadata display and fix scene card type labels.
 
-Plans:
-1. ~~Dialogue Display on Scene Cards~~ COMPLETE
-2. ~~Shot Type Badges~~ COMPLETE
-3. ~~Emotional Arc Visualization~~ COMPLETE
-4. ~~Scene Timeline Improvements~~ COMPLETE
+**Requirements (14):**
+- MODL-01 to MODL-04: Modal UX (open, header, scroll, close)
+- CARD-01 to CARD-03: Scene card fixes (dynamic labels, icons, truncation indicator)
+- META-01 to META-06: Metadata display (duration, transition, location, characters, intensity, climax)
+
+**Success Criteria:**
+1. Inspect button opens modal immediately
+2. Modal shows scene number/title with working close button
+3. Scene card shows accurate segment type summary
+4. Modal displays scene metadata badges
+5. Modal content scrolls smoothly
+
+**Next action:** Run `/gsd:plan-phase 7`
 
 ---
 
@@ -47,173 +64,113 @@ The system should be sophisticated and automatically updated based on previous s
 
 ---
 
-## Completed This Session
+## Performance Metrics
 
-### Plan 06-04: Scene Timeline Improvements (COMPLETE)
-**Summary:** Final UI polish with speaker names in animation, arc template selector, camera movement SVG icons, and visual consistency CSS
+**Target metrics for Milestone 7:**
+- Modal open time: <300ms
+- Copy success rate: >98%
+- Type label accuracy: 100%
+- Mobile usability: Thumb-friendly
 
-**Tasks:**
-1. [x] Add speaker names to animation step (purple/gray for voice status)
-2. [x] Add arc template selector to storyboard (6 templates + summary)
-3. [x] Add camera movement SVG icons (10 movement types)
-4. [x] Add visual consistency improvements (CSS hover effects, transitions, focus states)
-
-**Commits:**
-- `31dc278` - feat(06-04): add speaker names to animation step
-- `aa0913c` - feat(06-04): add arc template selector to storyboard
-- `f6f5f75` - feat(06-04): add camera movement icons to multi-shot modal
-- `8009380` - feat(06-04): add visual consistency improvements (CSS)
-
-**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-04-SUMMARY.md`
-
-### Plan 06-03: Emotional Arc Visualization (COMPLETE)
-**Summary:** Enhanced progress indicators with status badges and intensity visualization
-
-**Commits:**
-- `5f02319` - feat(06-03): add enhanced progress indicators with status badges and intensity visualization
-
-### Plan 06-02: Shot Type Badges (COMPLETE)
-**Summary:** Color-coded shot type badges (XCU/CU/MCU/MED/WIDE/EST) with climax indicator and camera movement icons
-
-**Tasks:**
-1. [x] Define shot type badge styles (CSS for 11 badge types)
-2. [x] Create badge helper component (getShotTypeBadgeClass, getShotTypeLabel, getCameraMovementIcon)
-3. [x] Add shot type badges to multi-shot modal (type, purpose, movement, climax)
-4. [x] Add shot count badges to main scene cards (Enhanced Multi-Shot Summary)
-
-**Commits:**
-- `88a2da8` - feat(06-01): add dialogue display to scene cards and multi-shot modal (includes 06-02 work)
-
-**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md`
-
-### Plan 06-01: Dialogue Display on Scene Cards (COMPLETE)
-**Summary:** Dialogue and narration text displayed on scene cards with speaker names in purple
-
-**Tasks:**
-1. [x] Add dialogue section to storyboard scene cards (speechSegments or narration)
-2. [x] Add dialogue to multi-shot modal shot cards
-3. [x] Add CSS classes for dialogue styling
-4. [x] Update scene card to use CSS classes
-
-**Commits:**
-- `88a2da8` - feat(06-01): add dialogue display to scene cards and multi-shot modal
-
-**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md`
+**Current baseline:**
+- Type label accuracy: 0% (hardcoded "Dialogue" for all)
+- Full text visibility: 0% (truncated to 80 chars, max 2 segments)
 
 ---
 
-## Previous Phases (Complete)
+## Accumulated Context
 
-### Phase 5: Emotional Arc System - COMPLETE
+### Decisions Made
 
-All 4 plans successfully executed:
-1. Climax Detection
-2. Intensity Curve Smoothing
-3. Shot-to-Beat Mapping
-4. Arc-Aware Shot Composition
+| Date | Area | Decision | Rationale |
+|------|------|----------|-----------|
+| 2026-01-23 | Phase structure | 4 phases: Foundation → Speech → Prompts → Mobile | Sequential build matching research recommendations |
+| 2026-01-23 | Modal pattern | Follow Character Bible/Location Bible patterns | Consistency with existing modals |
+| 2026-01-23 | Performance | Use computed properties, wire:ignore | Avoid payload bloat and re-render cascades |
+| 2026-01-23 | Clipboard | Native API + execCommand fallback | Cross-browser reliability including iOS Safari |
+| 2026-01-23 | Mobile UX | Fullscreen on mobile, thumb-zone close button | One-handed operation |
 
-See: `.planning/phases/05-emotional-arc-system/` for summaries.
+### Known Issues
 
-### Phase 4: Dialogue Scene Excellence - COMPLETE
+| Issue | Impact | Plan |
+|-------|--------|------|
+| Hardcoded "Dialogue" label | HIGH - Users see incorrect type labels for all segments | Fixed in Phase 7 (CARD-01) |
+| Text truncation | HIGH - Users cannot see full speech segments or prompts | Fixed in Phase 8 (SPCH-01) and Phase 9 (PRMT-01/02) |
+| No metadata visibility | MEDIUM - Users cannot inspect scene details | Fixed in Phase 7 (META-01 to META-06) |
 
-All 4 plans successfully executed:
-1. Spatial Continuity
-2. OTS Shot Depth and Framing
-3. Reaction Shot Variety
-4. Coverage Completeness Validation
+### Research Insights
 
-See: `.planning/phases/04-dialogue-scene-excellence/` for summaries.
+**Critical pitfalls identified:**
+1. **Payload bloat** - Full text in public properties creates 10-100KB requests causing 2-5 second delays
+2. **Re-render cascades** - Modal state changes trigger full 18k-line component re-render
+3. **Clipboard reliability** - Breaks after animations/confirmations without proper implementation
+4. **Mobile UX** - Desktop-designed modals fail on mobile without thumb-friendly design
 
-### Phase 3: Hollywood Production System - COMPLETE
-
-All 7 plans successfully executed:
-1. Activate Hollywood Shot Sequence
-2. Eliminate Placeholder Moments
-3. Enable Hollywood Features by Default
-4. Auto-Proceed Pipeline
-5. Smart Retry Logic for Batch Generation
-6. Character Visual Consistency
-7. Smart Defaults from Concept
-
-See: `.planning/phases/03-hollywood-production-system/` for summaries.
-
-### Phase 2: Narrative Intelligence - COMPLETE
-
-All 3 plans successfully executed:
-1. Wire NarrativeMomentService into ShotIntelligenceService
-2. Enhance buildAnalysisPrompt with narrative moments
-3. Map narrative moments to shot recommendations
-
-See: `.planning/phases/02-narrative-intelligence/` for summaries.
-
-### Milestone 1.5: Automatic Speech Flow System - COMPLETE
-
-All 4 plans successfully executed:
-1. Automatic Speech Segment Parsing
-2. Detection Summary UI
-3. characterIntelligence Backward Compatibility
-4. Segment Data Flow to Shots
-
-See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementation decisions.
+**Mitigation strategies:**
+- Use computed properties for scene data (not public properties)
+- Apply wire:ignore on storyboard content
+- Implement native Clipboard API with execCommand fallback
+- Mobile-first design with fullscreen layout and bottom-right close button
 
 ---
 
-## Decisions Made
+## Previous Milestones (Complete)
 
-| Date | Area | Decision | Context |
-|------|------|----------|---------|
-| 2026-01-23 | Speaker Voice Indicator | Purple for voice assigned, gray for unassigned | Consistent with app color scheme, immediate status visibility |
-| 2026-01-23 | Arc Selector Location | Above scene stats bar | Visible without scrolling, logically grouped |
-| 2026-01-23 | SVG Camera Icons | Inline SVG paths in helper function | Crisp rendering, consistent with other icons |
-| 2026-01-23 | Shot Badge Colors | Red->Orange->Amber->Green->Blue gradient | Intuitive: warm=tight/emotional, cool=establishing |
-| 2026-01-23 | Climax Badge | Purple-pink gradient with border | Makes climax shots visually distinct |
-| 2026-01-23 | Helper Guards | function_exists() wrapper | Prevents redeclaration when templates share functions |
-| 2026-01-23 | Dialogue Styling | Blue border-left with purple speaker names | Consistent color scheme, visually distinct from prompts |
-| 2026-01-23 | Arc Properties | Public Livewire properties | Required for blade template access |
-| 2026-01-23 | Color System | Blue/Amber/Red/Purple gradient | Visual intensity communication |
-| 2026-01-23 | Threshold Order | Descending for first-match selection | Tighter shots have higher thresholds |
-| 2026-01-23 | Climax Framing | Always close-up or XCU | Maximum emotional impact at peak |
-| 2026-01-23 | Special Types | Preserve establishing, two-shot, reaction | Serve specific purposes regardless of intensity |
-| 2026-01-23 | Smoothing Algorithm | Weighted moving average | More responsive than simple average, respects local peaks |
-| 2026-01-23 | Template Blend | 40% template weight | Preserves content emotion while ensuring cinematic structure |
-| 2026-01-23 | Peak Preservation | Restore peaks > 0.8 if smoothed too much | Climax moments should not be smoothed away |
-| 2026-01-23 | Arc Templates | 6 genres (hollywood, action, drama, thriller, comedy, documentary) | Cover common narrative styles |
+### Milestone 6: UI/UX Polish - COMPLETE
+**Status:** 100% complete (4/4 plans)
+**Outcome:** Professional interface with dialogue visibility, shot badges, progress indicators, and visual consistency
+
+### Milestone 5: Emotional Arc System - COMPLETE
+**Status:** 100% complete (4/4 plans)
+**Outcome:** Intensity-driven cinematography with climax detection and arc templates
+
+### Milestone 4: Dialogue Scene Excellence - COMPLETE
+**Status:** 100% complete (4/4 plans)
+**Outcome:** Hollywood shot/reverse shot coverage with 180-degree rule and reaction shots
+
+### Milestone 3: Hollywood Production System - COMPLETE
+**Status:** 100% complete (7/7 plans)
+**Outcome:** Production-ready Hollywood cinematography with auto-proceed and smart retry
+
+### Milestone 2: Narrative Intelligence - COMPLETE
+**Status:** 100% complete (3/3 plans)
+**Outcome:** Unique narrative moments per shot with emotional arc mapping
+
+### Milestone 1.5: Automatic Speech Flow - COMPLETE
+**Status:** 100% complete (4/4 plans)
+**Outcome:** Auto-parsed speech segments with Character Bible integration
+
+### Milestone 1: Stability & Bug Fixes - COMPLETE
+**Status:** 100% complete
+**Outcome:** Stable baseline with dialogue parsing, needsLipSync, and error handling
 
 ---
 
-## Phase 6 Progress - What Was Built
+## Todos
 
-### Plan 06-01: Dialogue Display on Scene Cards
-1. **CSS Classes:** vw-scene-dialogue, vw-dialogue-speaker, vw-dialogue-text, vw-dialogue-more
-2. **Scene Cards:** Dialogue section showing speechSegments or narration
-3. **Multi-Shot Modal:** Per-shot dialogue with speaker names
-4. **Lip Sync Indicator:** Badge for shots needing lip sync
+### Immediate (Phase 7)
+- [ ] Create Phase 7 plan with `/gsd:plan-phase 7`
+- [ ] Implement modal shell following Character Bible pattern
+- [ ] Fix scene card type labels (replace hardcoded "Dialogue")
+- [ ] Add Inspect button to scene cards
+- [ ] Display scene metadata badges in modal
 
-### Plan 06-02: Shot Type Badges
-1. **CSS Classes:** 11 badge classes (xcu, cu, mcu, med, wide, est, ots, reaction, two-shot, movement, climax)
-2. **Helper Functions:** getShotTypeBadgeClass(), getShotTypeLabel(), getCameraMovementIcon()
-3. **Multi-Shot Modal:** Shot type, purpose, movement, and climax badges per card
-4. **Scene Cards:** Enhanced Multi-Shot Summary with shot type counts
+### Upcoming (Phase 8)
+- [ ] Display full speech segments with type badges
+- [ ] Show speaker names and lip-sync indicators
+- [ ] Add segment duration and character indicators
 
-### Plan 06-03: Emotional Arc Visualization
-1. **Status Badges:** Pending/Generating/Complete/Error states with pulse animation
-2. **Intensity Bars:** Visual intensity with color gradient (low/medium/high/climax)
-3. **Progress Indicators:** Mini progress rings with SVG stroke animation
-4. **Per-Shot Status:** IMG and VID status badges on each shot card
-5. **Enhanced Summary:** Header with image/video counts and generating indicator
-6. **Scene Intensity:** Intensity bar on main scene cards with climax badge
-
-### Plan 06-04: Scene Timeline Improvements
-1. **Speaker Names:** Animation step shows speakers with voice status
-2. **Arc Template Selector:** Dropdown with 6 templates and summary stats
-3. **Camera Movement Icons:** SVG icons for 10 movement types
-4. **Visual Consistency:** CSS hover effects, transitions, focus states, scrollbars
+### Future (Phase 9-10)
+- [ ] Display full image/video prompts
+- [ ] Implement copy-to-clipboard with fallback
+- [ ] Mobile responsive design with iOS scroll lock
+- [ ] Visual consistency polish
 
 ---
 
 ## Blockers
 
-None currently
+None currently.
 
 ---
 
@@ -221,28 +178,28 @@ None currently
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `.planning/phases/06-ui-ux-polish/06-01-PLAN.md` | Dialogue display plan | Executed |
-| `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md` | Plan 01 summary | Created |
-| `.planning/phases/06-ui-ux-polish/06-02-PLAN.md` | Shot type badges plan | Executed |
-| `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md` | Plan 02 summary | Created |
-| `.planning/phases/06-ui-ux-polish/06-03-PLAN.md` | Emotional arc visualization plan | Executed |
-| `.planning/phases/06-ui-ux-polish/06-03-SUMMARY.md` | Plan 03 summary | Created |
-| `.planning/phases/06-ui-ux-polish/06-04-PLAN.md` | Scene timeline improvements plan | Executed |
-| `.planning/phases/06-ui-ux-polish/06-04-SUMMARY.md` | Plan 04 summary | Created |
-| `animation.blade.php` | Animation step UI | Updated (06-04) |
-| `storyboard.blade.php` | Scene card UI | Updated (06-01, 06-02, 06-04) |
-| `multi-shot.blade.php` | Shot UI with badges | Updated (06-01, 06-02, 06-04) |
+| `.planning/ROADMAP.md` | Milestone 7 roadmap | Created (2026-01-23) |
+| `.planning/STATE.md` | Current state tracking | Updated (2026-01-23) |
+| `.planning/REQUIREMENTS.md` | 28 requirements defined | Updated (2026-01-23) |
+| `.planning/research/SUMMARY.md` | Research findings | Complete (2026-01-23) |
+| `.planning/PROJECT.md` | Project context | Current |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 06-04-PLAN.md
-**Resume file:** None
-**Phase 6 Status:** COMPLETE (4/4 plans)
+**Stopped at:** Roadmap creation complete
+**Resume command:** `/gsd:plan-phase 7`
+**Milestone 7 status:** 0% (4 phases planned)
+
+**Context preserved:**
+- Roadmap defines 4 sequential phases
+- All 28 requirements mapped to phases
+- Research findings documented
+- Critical pitfalls identified with mitigation strategies
 
 ---
 
-*Session: Phase 6 - UI/UX Polish COMPLETE*
-*All 4 plans executed successfully*
+*Session: Milestone 7 - Scene Text Inspector*
+*Roadmap created, ready for Phase 7 planning*

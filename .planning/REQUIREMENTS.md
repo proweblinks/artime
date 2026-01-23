@@ -76,19 +76,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SPCH-01 | Phase 7 | Pending |
-| SPCH-02 | Phase 7 | Pending |
-| SPCH-03 | Phase 7 | Pending |
-| SPCH-04 | Phase 7 | Pending |
-| SPCH-05 | Phase 7 | Pending |
-| SPCH-06 | Phase 7 | Pending |
-| SPCH-07 | Phase 7 | Pending |
-| PRMT-01 | Phase 7 | Pending |
-| PRMT-02 | Phase 7 | Pending |
-| PRMT-03 | Phase 7 | Pending |
-| PRMT-04 | Phase 7 | Pending |
-| PRMT-05 | Phase 7 | Pending |
-| PRMT-06 | Phase 7 | Pending |
+| SPCH-01 | Phase 8 | Pending |
+| SPCH-02 | Phase 8 | Pending |
+| SPCH-03 | Phase 8 | Pending |
+| SPCH-04 | Phase 8 | Pending |
+| SPCH-05 | Phase 8 | Pending |
+| SPCH-06 | Phase 8 | Pending |
+| SPCH-07 | Phase 8 | Pending |
+| PRMT-01 | Phase 9 | Pending |
+| PRMT-02 | Phase 9 | Pending |
+| PRMT-03 | Phase 9 | Pending |
+| PRMT-04 | Phase 9 | Pending |
+| PRMT-05 | Phase 9 | Pending |
+| PRMT-06 | Phase 9 | Pending |
 | META-01 | Phase 7 | Pending |
 | META-02 | Phase 7 | Pending |
 | META-03 | Phase 7 | Pending |
@@ -99,16 +99,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MODL-02 | Phase 7 | Pending |
 | MODL-03 | Phase 7 | Pending |
 | MODL-04 | Phase 7 | Pending |
-| MODL-05 | Phase 7 | Pending |
+| MODL-05 | Phase 10 | Pending |
 | CARD-01 | Phase 7 | Pending |
 | CARD-02 | Phase 7 | Pending |
 | CARD-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
-- Mapped to phases: 28
-- Unmapped: 0 ✓
+- Mapped to phases: 28 (100%)
+- Unmapped: 0
+
+**Phase distribution:**
+- Phase 7 (Foundation): 14 requirements (MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06)
+- Phase 8 (Speech Segments): 7 requirements (SPCH-01 to SPCH-07)
+- Phase 9 (Prompts + Copy): 6 requirements (PRMT-01 to PRMT-06)
+- Phase 10 (Mobile + Polish): 1 requirement (MODL-05)
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after initial definition*
+*Last updated: 2026-01-23 after roadmap creation*
