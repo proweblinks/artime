@@ -8,16 +8,16 @@
 ## Current Position
 
 **Phase:** 3 of ongoing (Hollywood Production System)
-**Plan:** 07 of 7 (in phase)
+**Plan:** 06 of 7 (in phase) - COMPLETE
 **Status:** In Progress
 
-**Progress:** [########--] 86% of Phase 3 (6/7 plans complete - 01, 02, 03, 04, 05, 07)
+**Progress:** [##########] 100% of Phase 3 (7/7 plans complete - 01, 02, 03, 04, 05, 06, 07)
 
 ---
 
 ## Current Focus
 
-**Phase 3: Hollywood Production System** - IN PROGRESS
+**Phase 3: Hollywood Production System** - COMPLETE
 
 Enhance the production pipeline with Hollywood-standard moment extraction and shot generation.
 
@@ -27,7 +27,7 @@ Plans:
 3. ~~Enable Hollywood Features by Default~~ COMPLETE
 4. ~~Auto-Proceed Pipeline~~ COMPLETE
 5. ~~Smart Retry Logic for Batch Generation~~ COMPLETE
-6. (pending) Batch Generation Progress UI
+6. ~~Character Visual Consistency~~ COMPLETE
 7. ~~Smart Defaults from Concept~~ COMPLETE
 
 ---
@@ -42,23 +42,31 @@ The system should be sophisticated and automatically updated based on previous s
 
 ## Completed This Session
 
-### Plan 03-07: Smart Defaults from Concept (COMPLETE)
-**Summary:** Smart defaults auto-configure Step 1 settings (platform, duration, pacing) by analyzing concept keywords with optional AI enhancement
+### Plan 03-06: Character Visual Consistency (COMPLETE)
+**Summary:** Character visual consistency enforcement via reference extraction, consistency prompts, and auto-portrait generation on storyboard entry
 
 **Tasks:**
-1. [x] Add concept analysis method (analyzeConceptForDefaults)
-2. [x] Add auto-apply suggestions trigger method (applySuggestedSettings)
-3. [x] Hook into concept update flow
-4. [x] Add AI-enhanced concept analysis option (analyzeConceptWithAI)
+1. [x] Add method to extract character reference images (getCharacterReferenceImages)
+2. [x] Integrate references into image generation (getCharacterConsistencyOptions)
+3. [x] Add method to generate/store character portraits (generateCharacterPortraits)
+4. [x] Add property to track portrait generation (characterPortraitsGenerated)
+
+**Commits:**
+- `e09a684` - feat(03-06): add character visual consistency enforcement
+
+**SUMMARY:** `.planning/phases/03-hollywood-production-system/03-06-SUMMARY.md`
+
+---
+
+## Previous Plans in Phase 3
+
+### Plan 03-07: Smart Defaults from Concept (COMPLETE)
+**Summary:** Smart defaults auto-configure Step 1 settings (platform, duration, pacing) by analyzing concept keywords with optional AI enhancement
 
 **Commits:**
 - `9acd783` - feat(03-07): add smart defaults from concept analysis
 
 **SUMMARY:** `.planning/phases/03-hollywood-production-system/03-07-SUMMARY.md`
-
----
-
-## Previous Plans in Phase 3
 
 ### Plan 03-04: Auto-Proceed Pipeline (COMPLETE)
 **Summary:** Auto-proceed functionality with progress tracking that flows script -> storyboard -> animation -> assembly automatically when enabled
@@ -130,6 +138,9 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Character Reference | Use sceneMemory['characterBible'] structure | Existing data structure has all needed fields |
+| 2026-01-23 | Portrait Trigger | Event dispatch on storyboard step entry | Non-blocking async portrait generation |
+| 2026-01-23 | Portrait Tracking | Save in content_config | Persists across sessions |
 | 2026-01-23 | Smart Defaults | Keyword-first, AI-optional | Fast response for common cases, AI for complex concepts |
 | 2026-01-23 | Overwrite Default | false by default | Respect user's manual configuration choices |
 | 2026-01-23 | Platform Aspect Ratio | Auto-set based on platform | TikTok/Instagram = 9:16, YouTube/LinkedIn = 16:9 |
@@ -151,7 +162,16 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 ## Phase 3 Progress - What Was Built
 
-### Plan 03-07: Smart Defaults from Concept (NEW)
+### Plan 03-06: Character Visual Consistency (NEW)
+1. **Reference Extraction:** `getCharacterReferenceImages()` per scene
+2. **Consistency Options:** `getCharacterConsistencyOptions()` combines refs + prompt
+3. **Consistency Prompt:** `buildCharacterConsistencyPrompt()` for image generation
+4. **Portrait Generation:** `generateCharacterPortraits()` batch generation
+5. **Event Handler:** `handleGenerateCharacterPortraits()` for async trigger
+6. **Tracking Property:** `$characterPortraitsGenerated` with persistence
+7. **Integration:** All image generation methods now include character options
+
+### Plan 03-07: Smart Defaults from Concept
 1. **Concept Analysis:** `analyzeConceptForDefaults()` with keyword patterns
 2. **Apply Suggestions:** `applySuggestedSettings()` with overwrite control
 3. **Manual Refresh:** `refreshSuggestedSettings()` for UI trigger
@@ -188,15 +208,6 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 1. **VwSettingSeeder:** Added hollywood_shot_sequences_enabled, emotional_arc_shot_mapping_enabled
 2. **Runtime Initialization:** ensureHollywoodSettingsExist() creates settings if missing
 
-### Key Methods Added (03-07)
-**VideoWizard.php:**
-- `$suggestedSettings` - Property for storing analysis results
-- `analyzeConceptForDefaults()` - Keyword-based setting detection
-- `applySuggestedSettings()` - Apply suggestions to wizard properties
-- `refreshSuggestedSettings()` - Manual UI refresh trigger
-- `analyzeConceptWithAI()` - AI-enhanced analysis option
-- `extractJsonFromResponse()` - Parse AI JSON responses
-
 ---
 
 ## Hollywood Settings Overview
@@ -226,8 +237,9 @@ None currently
 | `.planning/phases/03-hollywood-production-system/03-03-SUMMARY.md` | Plan 03 summary | Created |
 | `.planning/phases/03-hollywood-production-system/03-04-SUMMARY.md` | Plan 04 summary | Created |
 | `.planning/phases/03-hollywood-production-system/03-05-SUMMARY.md` | Plan 05 summary | Created |
-| `.planning/phases/03-hollywood-production-system/03-07-SUMMARY.md` | Plan 07 summary | **Created** |
-| `Livewire/VideoWizard.php` | Hollywood + auto-proceed + retry + smart defaults | **Updated** |
+| `.planning/phases/03-hollywood-production-system/03-06-SUMMARY.md` | Plan 06 summary | **Created** |
+| `.planning/phases/03-hollywood-production-system/03-07-SUMMARY.md` | Plan 07 summary | Created |
+| `Livewire/VideoWizard.php` | Hollywood + auto-proceed + retry + smart defaults + character consistency | **Updated** |
 | `Services/NarrativeMomentService.php` | Narrative decomposition | Updated |
 | `database/seeders/VwSettingSeeder.php` | Hollywood settings | Updated |
 
@@ -236,11 +248,12 @@ None currently
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 03-07-PLAN.md (Smart Defaults from Concept)
+**Stopped at:** Completed 03-06-PLAN.md (Character Visual Consistency)
 **Resume file:** None
-**Phase 3 Status:** IN PROGRESS (6/7 plans complete)
+**Phase 3 Status:** COMPLETE (7/7 plans complete)
 
 ---
 
 *Session: Phase 3 - Hollywood Production System*
-*Plan 03-07 COMPLETE - Smart defaults from concept analysis with AI enhancement*
+*Plan 03-06 COMPLETE - Character visual consistency enforcement*
+*PHASE 3 COMPLETE - All 7 plans executed successfully*
