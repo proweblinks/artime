@@ -186,9 +186,12 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 4. **Scene Cards:** Enhanced Multi-Shot Summary with shot type counts
 
 ### Plan 06-03: Emotional Arc Visualization
-1. **Status Badges:** Pending/Generating/Complete/Error states
-2. **Intensity Bars:** Visual intensity with color gradient
-3. **Progress Indicators:** Mini progress rings
+1. **Status Badges:** Pending/Generating/Complete/Error states with pulse animation
+2. **Intensity Bars:** Visual intensity with color gradient (low/medium/high/climax)
+3. **Progress Indicators:** Mini progress rings with SVG stroke animation
+4. **Per-Shot Status:** IMG and VID status badges on each shot card
+5. **Enhanced Summary:** Header with image/video counts and generating indicator
+6. **Scene Intensity:** Intensity bar on main scene cards with climax badge
 
 ### Plan 06-04: Scene Timeline Improvements
 1. **Speaker Names:** Animation step shows speakers with voice status
@@ -213,6 +216,7 @@ None currently
 | `.planning/phases/06-ui-ux-polish/06-02-PLAN.md` | Shot type badges plan | Executed |
 | `.planning/phases/06-ui-ux-polish/06-02-SUMMARY.md` | Plan 02 summary | Created |
 | `.planning/phases/06-ui-ux-polish/06-03-PLAN.md` | Emotional arc visualization plan | Executed |
+| `.planning/phases/06-ui-ux-polish/06-03-SUMMARY.md` | Plan 03 summary | Created |
 | `.planning/phases/06-ui-ux-polish/06-04-PLAN.md` | Scene timeline improvements plan | Executed |
 | `.planning/phases/06-ui-ux-polish/06-04-SUMMARY.md` | Plan 04 summary | Created |
 | `animation.blade.php` | Animation step UI | Updated (06-04) |
