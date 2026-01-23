@@ -477,6 +477,70 @@ class DialogueSceneDecomposerService
     }
 
     /**
+     * PHASE 13 CAM-03: Analyze speaker's emotional state from dialogue text.
+     * Returns emotion and intensity for per-speaker shot selection.
+     *
+     * Emotion detection priority:
+     * 1. High-intensity (0.75+): angry, fearful, loving
+     * 2. Medium-intensity (0.5-0.7): remorseful, excited, pleading
+     * 3. Low-intensity (0.3-0.5): contemplative, sad
+     * 4. Default: neutral (0.5)
+     *
+     * @param string $dialogueText The speaker's dialogue text
+     * @return array ['emotion' => string, 'intensity' => float]
+     */
+    protected function analyzeSpeakerEmotion(string $dialogueText): array
+    {
+        $text = strtolower($dialogueText);
+
+        // High-intensity emotions (0.75+)
+        // Angry: yelling, screaming, hate, rage
+        if (preg_match('/\b(yell|scream|hate|kill|furious|rage)\b/', $text) || substr_count($text, '!') >= 2) {
+            return ['emotion' => 'angry', 'intensity' => 0.8];
+        }
+
+        // Fearful: scared, terrified, please don't
+        if (preg_match('/\b(afraid|scared|terrified|help me)\b/', $text) || preg_match("/please don'?t/", $text)) {
+            return ['emotion' => 'fearful', 'intensity' => 0.75];
+        }
+
+        // Loving: declarations of love
+        if (preg_match('/\b(love|adore|marry|forever)\b/', $text)) {
+            return ['emotion' => 'loving', 'intensity' => 0.75];
+        }
+
+        // Medium-intensity emotions (0.5-0.7)
+        // Remorseful: apologies
+        if (preg_match('/\b(sorry|regret|forgive|apologize)\b/', $text)) {
+            return ['emotion' => 'remorseful', 'intensity' => 0.6];
+        }
+
+        // Excited: positive exclamations
+        if (preg_match('/\b(amazing|incredible|finally)\b/', $text) || preg_match('/yes!/i', $text)) {
+            return ['emotion' => 'excited', 'intensity' => 0.65];
+        }
+
+        // Pleading: begging, urgency
+        if (preg_match('/\b(please|beg|need|must)\b/', $text)) {
+            return ['emotion' => 'pleading', 'intensity' => 0.55];
+        }
+
+        // Low-intensity emotions (0.3-0.5)
+        // Contemplative: thinking
+        if (preg_match('/\b(think|consider|wonder|perhaps)\b/', $text)) {
+            return ['emotion' => 'contemplative', 'intensity' => 0.4];
+        }
+
+        // Sad: trailing off
+        if (str_contains($text, '...')) {
+            return ['emotion' => 'sad', 'intensity' => 0.35];
+        }
+
+        // Default: neutral
+        return ['emotion' => 'neutral', 'intensity' => 0.5];
+    }
+
+    /**
      * PHASE 4: Calculate camera position for dialogue shot.
      * Maintains 180-degree rule - camera stays on same side of axis.
      *
