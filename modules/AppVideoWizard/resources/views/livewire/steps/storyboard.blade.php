@@ -1567,6 +1567,366 @@
         border-color: rgba(239, 68, 68, 0.4);
         color: #f87171;
     }
+
+    /* ========================================
+       PHASE 2: UI UPGRADE - Bento Grid Layout
+       ======================================== */
+
+    .vw-bento-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .vw-bento-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .vw-bento-card:hover {
+        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .vw-bento-card.span-3 { grid-column: span 3; }
+    .vw-bento-card.span-4 { grid-column: span 4; }
+    .vw-bento-card.span-6 { grid-column: span 6; }
+    .vw-bento-card.span-8 { grid-column: span 8; }
+    .vw-bento-card.span-12 { grid-column: span 12; }
+
+    @media (max-width: 1200px) {
+        .vw-bento-card.span-3 { grid-column: span 6; }
+        .vw-bento-card.span-4 { grid-column: span 6; }
+    }
+
+    @media (max-width: 768px) {
+        .vw-bento-grid {
+            grid-template-columns: 1fr;
+        }
+        .vw-bento-card.span-3,
+        .vw-bento-card.span-4,
+        .vw-bento-card.span-6,
+        .vw-bento-card.span-8 {
+            grid-column: span 1;
+        }
+    }
+
+    .vw-bento-stat {
+        text-align: center;
+    }
+
+    .vw-bento-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .vw-bento-stat-label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .vw-bento-stat.purple .vw-bento-stat-value { color: #a78bfa; }
+    .vw-bento-stat.cyan .vw-bento-stat-value { color: #22d3ee; }
+    .vw-bento-stat.green .vw-bento-stat-value { color: #34d399; }
+    .vw-bento-stat.amber .vw-bento-stat-value { color: #fbbf24; }
+
+    /* ========================================
+       PHASE 2: UI UPGRADE - Collapsible Panels
+       ======================================== */
+
+    .vw-collapsible-section {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .vw-collapsible-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        user-select: none;
+    }
+
+    .vw-collapsible-header:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .vw-collapsible-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .vw-collapsible-title-icon {
+        font-size: 1rem;
+    }
+
+    .vw-collapsible-badges {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vw-collapsible-chevron {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.5);
+        transition: transform 0.2s ease;
+    }
+
+    .vw-collapsible-chevron.open {
+        transform: rotate(180deg);
+    }
+
+    .vw-collapsible-content {
+        padding: 0 1rem 1rem;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .vw-collapsible-content.open {
+        max-height: 1000px;
+        padding: 0 1rem 1rem;
+    }
+
+    /* ========================================
+       PHASE 2: UI UPGRADE - Bible Previews
+       ======================================== */
+
+    .vw-bible-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .vw-bible-preview-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .vw-bible-preview-card:hover {
+        border-color: rgba(139, 92, 246, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .vw-bible-preview-image {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .vw-bible-preview-placeholder {
+        width: 100%;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(139, 92, 246, 0.1);
+        font-size: 2rem;
+    }
+
+    .vw-bible-preview-info {
+        padding: 0.5rem;
+    }
+
+    .vw-bible-preview-name {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .vw-bible-preview-tag {
+        font-size: 0.6rem;
+        color: rgba(139, 92, 246, 0.8);
+        margin-top: 0.15rem;
+    }
+
+    .vw-bible-add-card {
+        background: rgba(139, 92, 246, 0.05);
+        border: 2px dashed rgba(139, 92, 246, 0.3);
+        border-radius: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 120px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .vw-bible-add-card:hover {
+        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    .vw-bible-add-icon {
+        font-size: 1.5rem;
+        color: rgba(139, 92, 246, 0.6);
+        margin-bottom: 0.25rem;
+    }
+
+    .vw-bible-add-text {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========================================
+       PHASE 2: UI UPGRADE - Side Panel
+       ======================================== */
+
+    .vw-layout-with-panel {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .vw-main-content {
+        flex: 1;
+        overflow-y: auto;
+        transition: margin-right 0.3s ease;
+    }
+
+    .vw-main-content.panel-open {
+        margin-right: 320px;
+    }
+
+    .vw-side-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 320px;
+        background: rgba(15, 15, 28, 0.98);
+        border-left: 1px solid rgba(139, 92, 246, 0.2);
+        backdrop-filter: blur(12px);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .vw-side-panel.open {
+        transform: translateX(0);
+    }
+
+    .vw-side-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-side-panel-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .vw-side-panel-close {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.35rem;
+        border: none;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .vw-side-panel-close:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+    }
+
+    .vw-side-panel-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .vw-side-panel-section {
+        margin-bottom: 1.25rem;
+    }
+
+    .vw-side-panel-label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-side-panel-preview {
+        width: 100%;
+        aspect-ratio: 16/9;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+        margin-bottom: 1rem;
+    }
+
+    .vw-side-panel-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* ========================================
+       PHASE 2: UI UPGRADE - @ Mention Hint
+       ======================================== */
+
+    .vw-mention-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.5rem;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.35rem;
+        font-size: 0.65rem;
+        font-family: monospace;
+        color: #a78bfa;
+    }
+
+    .vw-mention-hint-label {
+        color: rgba(255, 255, 255, 0.5);
+        margin-right: 0.25rem;
+    }
 </style>
 
 @php
@@ -1624,7 +1984,29 @@ function getCameraMovementIcon($movement) {
     selectedModel: '{{ $storyboard['imageModel'] ?? 'nanobanana' }}',
     viewMode: 'grid',
     selectedCard: null,
-    isGenerating: false
+    isGenerating: false,
+    // Phase 2: Collapsible sections
+    sections: {
+        videoModel: false,
+        visualStyle: true,
+        sceneMemory: true
+    },
+    // Phase 2: Side panel
+    sidePanel: {
+        open: false,
+        type: null,
+        sceneIndex: null
+    },
+    openSidePanel(type, sceneIndex = null) {
+        this.sidePanel.open = true;
+        this.sidePanel.type = type;
+        this.sidePanel.sceneIndex = sceneIndex;
+    },
+    closeSidePanel() {
+        this.sidePanel.open = false;
+        this.sidePanel.type = null;
+        this.sidePanel.sceneIndex = null;
+    }
 }">
     {{-- Top Header Bar --}}
     <div class="vw-storyboard-topbar">
@@ -1847,98 +2229,117 @@ function getCameraMovementIcon($movement) {
 
             {{-- Scrollable Content --}}
             <div class="vw-storyboard-content">
-                {{-- Multi-Shot Stats (only when enabled) --}}
-                @if($multiShotMode['enabled'])
-                    @php
-                        $shotStats = $this->getShotStatistics();
-                        $clipDuration = $this->getClipDuration();
-                        $sceneTiming = $script['timing'] ?? ['sceneDuration' => 35, 'pacing' => 'balanced'];
-                    @endphp
-                    <div style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-                            {{-- Stats --}}
-                            <div style="display: flex; gap: 1.5rem; align-items: center;">
-                                <div style="text-align: center;">
-                                    <div style="font-size: 1.25rem; font-weight: 700; color: #8b5cf6;">{{ $shotStats['totalScenes'] }}</div>
-                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Scenes') }}</div>
-                                </div>
-                                <span style="color: rgba(255,255,255,0.3);">→</span>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 1.25rem; font-weight: 700; color: #06b6d4;">{{ $shotStats['decomposedScenes'] }}</div>
-                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Decomposed') }}</div>
-                                </div>
-                                <span style="color: rgba(255,255,255,0.3);">→</span>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">{{ $shotStats['totalShots'] }}</div>
-                                    <div style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ __('Shots') }}</div>
-                                </div>
-                            </div>
-
-                            {{-- Progress Bars --}}
-                            <div style="display: flex; gap: 1.5rem;">
-                                <div style="min-width: 120px;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🖼️ {{ __('Images') }}</span>
-                                        <span style="font-size: 0.65rem; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
-                                    </div>
-                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
-                                        <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e);"></div>
-                                    </div>
-                                </div>
-                                <div style="min-width: 120px;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-                                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">🎬 {{ __('Videos') }}</span>
-                                        <span style="font-size: 0.65rem; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
-                                    </div>
-                                    <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
-                                        <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee);"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Timing Info --}}
-                            <div style="display: flex; gap: 0.75rem; padding: 0.4rem 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
-                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.7);">⏱️ {{ $sceneTiming['sceneDuration'] }}s/scene</span>
-                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.7);">🎞️ {{ $clipDuration }}s/clip</span>
-                            </div>
+                {{-- Phase 2: Bento Grid Stats Dashboard --}}
+                @php
+                    $shotStats = $multiShotMode['enabled'] ? $this->getShotStatistics() : null;
+                    $clipDuration = $multiShotMode['enabled'] ? $this->getClipDuration() : 0;
+                    $sceneTiming = $script['timing'] ?? ['sceneDuration' => 35, 'pacing' => 'balanced'];
+                    $imagesReadyCount = count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl'])));
+                    $totalScenesCount = count($script['scenes'] ?? []);
+                @endphp
+                <div class="vw-bento-grid">
+                    {{-- Stats Cards --}}
+                    <div class="vw-bento-card span-3">
+                        <div class="vw-bento-stat purple">
+                            <div class="vw-bento-stat-value">{{ $totalScenesCount }}</div>
+                            <div class="vw-bento-stat-label">{{ __('Scenes') }}</div>
                         </div>
                     </div>
-                @endif
+                    @if($multiShotMode['enabled'] && $shotStats)
+                    <div class="vw-bento-card span-3">
+                        <div class="vw-bento-stat cyan">
+                            <div class="vw-bento-stat-value">{{ $shotStats['decomposedScenes'] }}</div>
+                            <div class="vw-bento-stat-label">{{ __('Decomposed') }}</div>
+                        </div>
+                    </div>
+                    <div class="vw-bento-card span-3">
+                        <div class="vw-bento-stat green">
+                            <div class="vw-bento-stat-value">{{ $shotStats['totalShots'] }}</div>
+                            <div class="vw-bento-stat-label">{{ __('Total Shots') }}</div>
+                        </div>
+                    </div>
+                    @else
+                    <div class="vw-bento-card span-3">
+                        <div class="vw-bento-stat green">
+                            <div class="vw-bento-stat-value">{{ $imagesReadyCount }}/{{ $totalScenesCount }}</div>
+                            <div class="vw-bento-stat-label">{{ __('Images') }}</div>
+                        </div>
+                    </div>
+                    @endif
+                    <div class="vw-bento-card span-3">
+                        <div class="vw-bento-stat amber">
+                            <div class="vw-bento-stat-value">{{ $sceneTiming['sceneDuration'] }}s</div>
+                            <div class="vw-bento-stat-label">{{ __('Per Scene') }}</div>
+                        </div>
+                    </div>
 
-            {{-- Video Model Selector (Coming Soon) --}}
-            <div class="vw-section" style="opacity: 0.6;">
-                <div class="vw-section-header">
-                    <div class="vw-section-label">
-                        <span>🎬</span>
+                    @if($multiShotMode['enabled'] && $shotStats)
+                    {{-- Progress Cards (Multi-shot mode) --}}
+                    <div class="vw-bento-card span-6">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.35rem;">
+                                🖼️ {{ __('Images Generated') }}
+                            </span>
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
+                        </div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e); border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <div class="vw-bento-card span-6">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.35rem;">
+                                🎬 {{ __('Videos Generated') }}
+                            </span>
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
+                        </div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee); border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+
+            {{-- Phase 2: Collapsible Video Model Section --}}
+            <div class="vw-collapsible-section" style="opacity: 0.7;">
+                <div class="vw-collapsible-header" @click="sections.videoModel = !sections.videoModel">
+                    <div class="vw-collapsible-title">
+                        <span class="vw-collapsible-title-icon">🎬</span>
                         <span>{{ __('Video Model') }}</span>
                     </div>
-                    <span style="font-size: 0.55rem; padding: 0.15rem 0.5rem; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); border-radius: 0.5rem; color: #a5b4fc;">
-                        {{ __('COMING SOON') }}
-                    </span>
+                    <div class="vw-collapsible-badges">
+                        <span style="font-size: 0.55rem; padding: 0.15rem 0.5rem; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); border-radius: 0.5rem; color: #a5b4fc;">
+                            {{ __('COMING SOON') }}
+                        </span>
+                        <div class="vw-collapsible-chevron" :class="{ 'open': sections.videoModel }">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
-                <div class="vw-model-buttons" style="pointer-events: none;">
-                    @php
-                        $videoModels = [
-                            'minimax' => ['name' => 'Minimax', 'cost' => 5, 'desc' => 'Fast video generation, 5-10s clips'],
-                            'multitalk' => ['name' => 'Multitalk', 'cost' => 8, 'desc' => 'Lip-sync & dialogue, character animation'],
-                            'kling' => ['name' => 'Kling AI', 'cost' => 10, 'desc' => 'High-quality cinematic motion'],
-                        ];
-                        $selectedVideoModel = $storyboard['videoModel'] ?? 'minimax';
-                    @endphp
-                    @foreach($videoModels as $modelId => $model)
-                        <button type="button"
-                                class="vw-model-btn {{ $selectedVideoModel === $modelId ? 'selected' : '' }}"
-                                style="opacity: 0.5; cursor: not-allowed;"
-                                disabled
-                                title="{{ $model['desc'] }}">
-                            <span class="vw-model-btn-name">{{ $model['name'] }}</span>
-                            <span class="vw-model-btn-cost">{{ $model['cost'] }} {{ __('tokens') }}</span>
-                        </button>
-                    @endforeach
+                <div class="vw-collapsible-content" :class="{ 'open': sections.videoModel }">
+                    <div class="vw-model-buttons" style="pointer-events: none; margin-top: 0.5rem;">
+                        @php
+                            $videoModels = [
+                                'minimax' => ['name' => 'Minimax', 'cost' => 5, 'desc' => 'Fast video generation', 'time' => '~8s'],
+                                'multitalk' => ['name' => 'Multitalk', 'cost' => 8, 'desc' => 'Lip-sync & dialogue', 'time' => '~12s'],
+                                'kling' => ['name' => 'Kling AI', 'cost' => 10, 'desc' => 'Cinematic quality', 'time' => '~15s'],
+                            ];
+                            $selectedVideoModel = $storyboard['videoModel'] ?? 'minimax';
+                        @endphp
+                        @foreach($videoModels as $modelId => $model)
+                            <div style="flex: 1; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; text-align: center; {{ $selectedVideoModel === $modelId ? 'border-color: rgba(139,92,246,0.5); background: rgba(139,92,246,0.1);' : '' }}">
+                                <div style="font-weight: 600; color: {{ $selectedVideoModel === $modelId ? 'white' : 'rgba(255,255,255,0.7)' }}; font-size: 0.85rem;">{{ $model['name'] }}</div>
+                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">{{ $model['cost'] }} {{ __('tokens') }} • {{ $model['time'] }}</div>
+                                <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-top: 0.35rem;">{{ $model['desc'] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p style="color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: 0.75rem; font-style: italic;">
+                        💡 {{ __('Video generation will animate your scenes with motion and optional lip-sync.') }}
+                    </p>
                 </div>
-                <p class="vw-model-description" style="color: rgba(255,255,255,0.4);">
-                    💡 {{ __('Video generation will animate your scenes with motion and optional lip-sync.') }}
-                </p>
             </div>
 
             {{-- Visual Style Controls --}}
@@ -1961,203 +2362,283 @@ function getCameraMovementIcon($movement) {
                     $activeStyleParts[] = ucfirst(str_replace('-', ' ', $storyboard['visualStyle']['composition'])) . ' shot';
                 }
             @endphp
-            <div class="vw-section">
-                <div class="vw-section-header">
-                    <div class="vw-section-label">
-                        <span>🎬</span>
+            {{-- Phase 2: Collapsible Visual Style Section --}}
+            <div class="vw-collapsible-section">
+                <div class="vw-collapsible-header" @click="sections.visualStyle = !sections.visualStyle">
+                    <div class="vw-collapsible-title">
+                        <span class="vw-collapsible-title-icon">🎨</span>
                         <span>{{ __('Visual Style') }}</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="vw-collapsible-badges">
                         @if($hasActiveStyles)
                             <span style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.5rem; color: #6ee7b7;">
-                                ✓ {{ __('Connected') }}
+                                ✓ {{ __('Active') }}
                             </span>
                         @endif
                         <span class="vw-badge vw-badge-pro">PRO</span>
+                        <div class="vw-collapsible-chevron" :class="{ 'open': sections.visualStyle }">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
                     </div>
                 </div>
-                {{-- Active Style Preview --}}
-                @if($hasActiveStyles)
-                    <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1)); border: 1px solid rgba(16,185,129,0.2); border-radius: 0.5rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
-                            <span style="font-size: 0.65rem; color: #6ee7b7; font-weight: 600;">🔗 {{ __('Active Style Profile') }}</span>
+                <div class="vw-collapsible-content" :class="{ 'open': sections.visualStyle }">
+                    {{-- Active Style Preview --}}
+                    @if($hasActiveStyles)
+                        <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(6,182,212,0.1)); border: 1px solid rgba(16,185,129,0.2); border-radius: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                                <span style="font-size: 0.65rem; color: #6ee7b7; font-weight: 600;">🔗 {{ __('Active Style Profile') }}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
+                                {{ implode(' • ', $activeStyleParts) }}
+                            </div>
                         </div>
-                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
-                            {{ implode(' • ', $activeStyleParts) }}
+                    @endif
+                    <div class="vw-style-grid">
+                        {{-- Mood --}}
+                        <div class="vw-style-select-wrapper">
+                            <span class="vw-style-select-label">{{ __('Mood') }}</span>
+                            <select class="vw-style-select" wire:model.change="storyboard.visualStyle.mood">
+                                <option value="">{{ __('Auto') }}</option>
+                                <option value="epic">{{ __('Epic') }}</option>
+                                <option value="intimate">{{ __('Intimate') }}</option>
+                                <option value="mysterious">{{ __('Mysterious') }}</option>
+                                <option value="energetic">{{ __('Energetic') }}</option>
+                                <option value="contemplative">{{ __('Contemplative') }}</option>
+                                <option value="tense">{{ __('Tense') }}</option>
+                                <option value="hopeful">{{ __('Hopeful') }}</option>
+                                <option value="professional">{{ __('Professional') }}</option>
+                            </select>
                         </div>
-                        <div style="margin-top: 0.35rem; font-size: 0.55rem; color: rgba(255,255,255,0.4);">
-                            → {{ __('Applied to all AI-generated images via Layer 4 in Prompt Chain') }}
+                        {{-- Lighting --}}
+                        <div class="vw-style-select-wrapper">
+                            <span class="vw-style-select-label">{{ __('Lighting') }}</span>
+                            <select class="vw-style-select" wire:model.change="storyboard.visualStyle.lighting">
+                                <option value="">{{ __('Auto') }}</option>
+                                <option value="natural">{{ __('Natural') }}</option>
+                                <option value="golden-hour">{{ __('Golden Hour') }}</option>
+                                <option value="blue-hour">{{ __('Blue Hour') }}</option>
+                                <option value="high-key">{{ __('High Key') }}</option>
+                                <option value="low-key">{{ __('Low Key/Noir') }}</option>
+                                <option value="neon">{{ __('Neon') }}</option>
+                            </select>
+                        </div>
+                        {{-- Colors --}}
+                        <div class="vw-style-select-wrapper">
+                            <span class="vw-style-select-label">{{ __('Colors') }}</span>
+                            <select class="vw-style-select" wire:model.change="storyboard.visualStyle.colorPalette">
+                                <option value="">{{ __('Auto') }}</option>
+                                <option value="teal-orange">{{ __('Teal/Orange') }}</option>
+                                <option value="warm-tones">{{ __('Warm Tones') }}</option>
+                                <option value="cool-tones">{{ __('Cool Tones') }}</option>
+                                <option value="desaturated">{{ __('Desaturated') }}</option>
+                                <option value="vibrant">{{ __('Vibrant') }}</option>
+                                <option value="pastel">{{ __('Pastel') }}</option>
+                            </select>
+                        </div>
+                        {{-- Shot --}}
+                        <div class="vw-style-select-wrapper">
+                            <span class="vw-style-select-label">{{ __('Shot') }}</span>
+                            <select class="vw-style-select" wire:model.change="storyboard.visualStyle.composition">
+                                <option value="">{{ __('Auto') }}</option>
+                                <option value="wide">{{ __('Wide') }}</option>
+                                <option value="medium">{{ __('Medium') }}</option>
+                                <option value="close-up">{{ __('Close-up') }}</option>
+                                <option value="extreme-close-up">{{ __('Extreme CU') }}</option>
+                                <option value="low-angle">{{ __('Low Angle') }}</option>
+                                <option value="birds-eye">{{ __("Bird's Eye") }}</option>
+                            </select>
                         </div>
                     </div>
-                @endif
-                <div class="vw-style-grid">
-                    {{-- Mood --}}
-                    <div class="vw-style-select-wrapper">
-                        <span class="vw-style-select-label">{{ __('Mood') }}</span>
-                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.mood">
-                            <option value="">{{ __('Auto') }}</option>
-                            <option value="epic">{{ __('Epic') }}</option>
-                            <option value="intimate">{{ __('Intimate') }}</option>
-                            <option value="mysterious">{{ __('Mysterious') }}</option>
-                            <option value="energetic">{{ __('Energetic') }}</option>
-                            <option value="contemplative">{{ __('Contemplative') }}</option>
-                            <option value="tense">{{ __('Tense') }}</option>
-                            <option value="hopeful">{{ __('Hopeful') }}</option>
-                            <option value="professional">{{ __('Professional') }}</option>
-                        </select>
-                    </div>
-                    {{-- Lighting --}}
-                    <div class="vw-style-select-wrapper">
-                        <span class="vw-style-select-label">{{ __('Lighting') }}</span>
-                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.lighting">
-                            <option value="">{{ __('Auto') }}</option>
-                            <option value="natural">{{ __('Natural') }}</option>
-                            <option value="golden-hour">{{ __('Golden Hour') }}</option>
-                            <option value="blue-hour">{{ __('Blue Hour') }}</option>
-                            <option value="high-key">{{ __('High Key') }}</option>
-                            <option value="low-key">{{ __('Low Key/Noir') }}</option>
-                            <option value="neon">{{ __('Neon') }}</option>
-                        </select>
-                    </div>
-                    {{-- Colors --}}
-                    <div class="vw-style-select-wrapper">
-                        <span class="vw-style-select-label">{{ __('Colors') }}</span>
-                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.colorPalette">
-                            <option value="">{{ __('Auto') }}</option>
-                            <option value="teal-orange">{{ __('Teal/Orange') }}</option>
-                            <option value="warm-tones">{{ __('Warm Tones') }}</option>
-                            <option value="cool-tones">{{ __('Cool Tones') }}</option>
-                            <option value="desaturated">{{ __('Desaturated') }}</option>
-                            <option value="vibrant">{{ __('Vibrant') }}</option>
-                            <option value="pastel">{{ __('Pastel') }}</option>
-                        </select>
-                    </div>
-                    {{-- Shot --}}
-                    <div class="vw-style-select-wrapper">
-                        <span class="vw-style-select-label">{{ __('Shot') }}</span>
-                        <select class="vw-style-select" wire:model.change="storyboard.visualStyle.composition">
-                            <option value="">{{ __('Auto') }}</option>
-                            <option value="wide">{{ __('Wide') }}</option>
-                            <option value="medium">{{ __('Medium') }}</option>
-                            <option value="close-up">{{ __('Close-up') }}</option>
-                            <option value="extreme-close-up">{{ __('Extreme CU') }}</option>
-                            <option value="low-angle">{{ __('Low Angle') }}</option>
-                            <option value="birds-eye">{{ __("Bird's Eye") }}</option>
-                        </select>
-                    </div>
+                    <p class="vw-style-hint">
+                        💡 {{ __('"Auto" uses genre-appropriate defaults based on your content settings') }}
+                    </p>
                 </div>
-                <p class="vw-style-hint">
-                    💡 {{ __('"Auto" uses genre-appropriate defaults based on your content settings') }}
-                </p>
             </div>
 
-            {{-- Scene Memory Section --}}
-            <div class="vw-section">
-                <div class="vw-section-header">
-                    <div class="vw-section-label">
-                        <span>🧠</span>
+            {{-- Phase 2: Collapsible Scene Memory Section with Visual Previews --}}
+            @php
+                $characters = $sceneMemory['characterBible']['characters'] ?? [];
+                $locations = $sceneMemory['locationBible']['locations'] ?? [];
+                $continuityIssueCount = count($sceneMemory['sceneDNA']['continuityIssues'] ?? []);
+                $totalBibleItems = count($characters) + count($locations);
+            @endphp
+            <div class="vw-collapsible-section">
+                <div class="vw-collapsible-header" @click="sections.sceneMemory = !sections.sceneMemory">
+                    <div class="vw-collapsible-title">
+                        <span class="vw-collapsible-title-icon">🧠</span>
                         <span>{{ __('Scene Memory') }}</span>
                     </div>
-                    <span class="vw-badge vw-badge-new">NEW</span>
+                    <div class="vw-collapsible-badges">
+                        @if($totalBibleItems > 0)
+                            <span style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.5rem; color: #6ee7b7;">
+                                {{ $totalBibleItems }} {{ __('items') }}
+                            </span>
+                        @endif
+                        @if($continuityIssueCount > 0)
+                            <span style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(249,115,22,0.2); border: 1px solid rgba(249,115,22,0.4); border-radius: 0.5rem; color: #fb923c;">
+                                {{ $continuityIssueCount }} {{ __('issues') }}
+                            </span>
+                        @endif
+                        <span class="vw-badge vw-badge-new">NEW</span>
+                        <div class="vw-collapsible-chevron" :class="{ 'open': sections.sceneMemory }">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
-                <p class="vw-style-hint" style="margin-top: 0; margin-bottom: 0.75rem;">
-                    {{ __('Visual consistency with Style, Character & Location Bibles') }}
-                </p>
-                <div class="vw-memory-grid">
-                    {{-- Style Bible - Managed via Scene DNA --}}
-                    <div class="vw-memory-card" style="opacity: 0.6;">
-                        <div class="vw-memory-icon">🎨</div>
-                        <div class="vw-memory-content">
-                            <div class="vw-memory-title">{{ __('Style Bible') }}</div>
-                            <div class="vw-memory-desc">{{ __('Managed via Scene DNA') }}</div>
-                        </div>
-                        <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal('style')" wire:loading.attr="disabled" wire:target="openSceneDNAModal" style="font-size: 0.6rem;">
-                                <span wire:loading.remove wire:target="openSceneDNAModal">{{ __('Scene DNA') }} →</span>
-                                <span wire:loading wire:target="openSceneDNAModal">...</span>
-                            </button>
-                            <input type="checkbox"
-                                   class="vw-memory-checkbox"
-                                   wire:model.live="sceneMemory.styleBible.enabled"
-                                   title="{{ __('Enable Style Bible') }}">
-                        </div>
-                    </div>
+                <div class="vw-collapsible-content" :class="{ 'open': sections.sceneMemory }">
+                    <p style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 1rem;">
+                        {{ __('Visual consistency with Style, Character & Location Bibles') }}
+                    </p>
 
-                    {{-- Character Bible --}}
-                    <div class="vw-memory-card">
-                        <div class="vw-memory-icon">👤</div>
-                        <div class="vw-memory-content">
-                            <div class="vw-memory-title">{{ __('Character Bible') }}</div>
-                            <div class="vw-memory-desc">{{ __('Consistent faces') }}</div>
-                        </div>
-                        <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openCharacterBibleModal" wire:loading.attr="disabled" wire:target="openCharacterBibleModal">
-                                <span wire:loading.remove wire:target="openCharacterBibleModal">{{ __('Edit') }}</span>
-                                <span wire:loading wire:target="openCharacterBibleModal">...</span>
+                    {{-- Characters Section with Visual Previews --}}
+                    <div style="margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: white; display: flex; align-items: center; gap: 0.35rem;">
+                                👤 {{ __('Characters') }}
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">({{ count($characters) }})</span>
+                            </span>
+                            <button type="button"
+                                    wire:click="openCharacterBibleModal"
+                                    style="font-size: 0.65rem; color: #a78bfa; cursor: pointer; background: none; border: none;">
+                                + {{ __('Add') }}
                             </button>
-                            <input type="checkbox"
-                                   class="vw-memory-checkbox"
-                                   wire:model.live="sceneMemory.characterBible.enabled"
-                                   title="{{ __('Enable Character Bible') }}">
                         </div>
-                    </div>
-
-                    {{-- Location Bible --}}
-                    <div class="vw-memory-card">
-                        <div class="vw-memory-icon">📍</div>
-                        <div class="vw-memory-content">
-                            <div class="vw-memory-title">{{ __('Location Bible') }}</div>
-                            <div class="vw-memory-desc">{{ __('Consistent environments') }}</div>
+                        <div class="vw-bible-preview-grid">
+                            @forelse($characters as $charIndex => $character)
+                                <div class="vw-bible-preview-card" wire:click="openCharacterBibleModal" title="{{ $character['name'] ?? __('Character') }}">
+                                    @if(!empty($character['referenceImage']))
+                                        <img src="{{ $character['referenceImage'] }}" alt="{{ $character['name'] ?? '' }}" class="vw-bible-preview-image" loading="lazy">
+                                    @else
+                                        <div class="vw-bible-preview-placeholder">👤</div>
+                                    @endif
+                                    <div class="vw-bible-preview-info">
+                                        <div class="vw-bible-preview-name">{{ $character['name'] ?? __('Character') . ' ' . ($charIndex + 1) }}</div>
+                                        <div class="vw-bible-preview-tag">@{{ Str::slug($character['name'] ?? 'char' . ($charIndex + 1)) }}</div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="vw-bible-add-card" wire:click="openCharacterBibleModal">
+                                    <span class="vw-bible-add-icon">👤</span>
+                                    <span class="vw-bible-add-text">{{ __('Add Character') }}</span>
+                                </div>
+                            @endforelse
+                            @if(count($characters) > 0)
+                                <div class="vw-bible-add-card" wire:click="openCharacterBibleModal">
+                                    <span class="vw-bible-add-icon">+</span>
+                                    <span class="vw-bible-add-text">{{ __('Add More') }}</span>
+                                </div>
+                            @endif
                         </div>
-                        <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openLocationBibleModal" wire:loading.attr="disabled" wire:target="openLocationBibleModal">
-                                <span wire:loading.remove wire:target="openLocationBibleModal">{{ __('Edit') }}</span>
-                                <span wire:loading wire:target="openLocationBibleModal">...</span>
-                            </button>
-                            <input type="checkbox"
-                                   class="vw-memory-checkbox"
-                                   wire:model.live="sceneMemory.locationBible.enabled"
-                                   title="{{ __('Enable Location Bible') }}">
-                        </div>
-                    </div>
-
-                    {{-- Scene DNA - Unified Bible View (Always Enabled) --}}
-                    @php
-                        $continuityIssueCount = count($sceneMemory['sceneDNA']['continuityIssues'] ?? []);
-                    @endphp
-                    <div class="vw-memory-card" style="background: linear-gradient(135deg, rgba(6,182,212,0.08), rgba(139,92,246,0.08)); border-color: rgba(6,182,212,0.3);">
-                        <div class="vw-memory-icon" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2));">&#x1F9EC;</div>
-                        <div class="vw-memory-content">
-                            <div class="vw-memory-title" style="display: flex; align-items: center; gap: 0.35rem;">
-                                {{ __('Scene DNA') }}
-                                <span style="font-size: 0.55rem; color: #10b981;">&#x2713;</span>
+                        @if(count($characters) > 0)
+                            <div style="margin-top: 0.5rem;">
+                                <span class="vw-mention-hint">
+                                    <span class="vw-mention-hint-label">{{ __('Use in prompts:') }}</span>
+                                    @foreach(array_slice($characters, 0, 2) as $char)
+                                        @{{ Str::slug($char['name'] ?? 'character') }}
+                                    @endforeach
+                                    @if(count($characters) > 2)
+                                        <span style="color: rgba(255,255,255,0.4);">+{{ count($characters) - 2 }}</span>
+                                    @endif
+                                </span>
                             </div>
-                            <div class="vw-memory-desc">
-                                {{ __('Unified Bible data') }}
-                                @if($continuityIssueCount > 0)
-                                    <span style="color: #f97316; margin-left: 0.25rem;">{{ $continuityIssueCount }} {{ __('issues') }}</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="vw-memory-actions">
-                            <button type="button" class="vw-edit-btn" wire:click="openSceneDNAModal" wire:loading.attr="disabled" wire:target="openSceneDNAModal" style="background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border-color: rgba(6,182,212,0.4);">
-                                <span wire:loading.remove wire:target="openSceneDNAModal">{{ __('View') }}</span>
-                                <span wire:loading wire:target="openSceneDNAModal">...</span>
+                        @endif
+                    </div>
+
+                    {{-- Locations Section with Visual Previews --}}
+                    <div style="margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: white; display: flex; align-items: center; gap: 0.35rem;">
+                                📍 {{ __('Locations') }}
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">({{ count($locations) }})</span>
+                            </span>
+                            <button type="button"
+                                    wire:click="openLocationBibleModal"
+                                    style="font-size: 0.65rem; color: #a78bfa; cursor: pointer; background: none; border: none;">
+                                + {{ __('Add') }}
                             </button>
                         </div>
+                        <div class="vw-bible-preview-grid">
+                            @forelse($locations as $locIndex => $location)
+                                <div class="vw-bible-preview-card" wire:click="openLocationBibleModal" title="{{ $location['name'] ?? __('Location') }}">
+                                    @if(!empty($location['referenceImage']))
+                                        <img src="{{ $location['referenceImage'] }}" alt="{{ $location['name'] ?? '' }}" class="vw-bible-preview-image" loading="lazy">
+                                    @else
+                                        <div class="vw-bible-preview-placeholder">📍</div>
+                                    @endif
+                                    <div class="vw-bible-preview-info">
+                                        <div class="vw-bible-preview-name">{{ $location['name'] ?? __('Location') . ' ' . ($locIndex + 1) }}</div>
+                                        <div class="vw-bible-preview-tag">@{{ Str::slug($location['name'] ?? 'location' . ($locIndex + 1)) }}</div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="vw-bible-add-card" wire:click="openLocationBibleModal">
+                                    <span class="vw-bible-add-icon">📍</span>
+                                    <span class="vw-bible-add-text">{{ __('Add Location') }}</span>
+                                </div>
+                            @endforelse
+                            @if(count($locations) > 0)
+                                <div class="vw-bible-add-card" wire:click="openLocationBibleModal">
+                                    <span class="vw-bible-add-icon">+</span>
+                                    <span class="vw-bible-add-text">{{ __('Add More') }}</span>
+                                </div>
+                            @endif
+                        </div>
+                        @if(count($locations) > 0)
+                            <div style="margin-top: 0.5rem;">
+                                <span class="vw-mention-hint">
+                                    <span class="vw-mention-hint-label">{{ __('Use in prompts:') }}</span>
+                                    @foreach(array_slice($locations, 0, 2) as $loc)
+                                        @{{ Str::slug($loc['name'] ?? 'location') }}
+                                    @endforeach
+                                    @if(count($locations) > 2)
+                                        <span style="color: rgba(255,255,255,0.4);">+{{ count($locations) - 2 }}</span>
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
                     </div>
-                </div>
 
-                {{-- Auto-Generation Progress Indicator --}}
-                @if($this->hasAutoGenerationInProgress())
-                <div class="flex items-center gap-2 px-3 py-2 mt-3 bg-amber-500/20 border border-amber-500/30 rounded-lg" wire:poll.2s>
-                    <svg class="animate-spin h-4 w-4 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="text-sm text-amber-400">{{ __('Auto-generating references...') }}</span>
+                    {{-- Scene DNA Status --}}
+                    <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(6,182,212,0.08), rgba(139,92,246,0.08)); border: 1px solid rgba(6,182,212,0.2); border-radius: 0.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1rem;">🧬</span>
+                                <div>
+                                    <div style="font-size: 0.8rem; font-weight: 600; color: white;">{{ __('Scene DNA') }}</div>
+                                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                        {{ count($characters) }} {{ __('characters') }} • {{ count($locations) }} {{ __('locations') }} {{ __('synced') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    wire:click="openSceneDNAModal"
+                                    wire:loading.attr="disabled"
+                                    style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.35rem; color: white; cursor: pointer; font-size: 0.7rem;">
+                                {{ __('View DNA') }}
+                            </button>
+                        </div>
+                        @if($continuityIssueCount > 0)
+                            <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <span style="font-size: 0.65rem; color: #fb923c;">
+                                    ⚠️ {{ $continuityIssueCount }} {{ __('continuity issues detected') }} -
+                                    <button type="button" wire:click="openSceneDNAModal" style="color: #fb923c; text-decoration: underline; cursor: pointer; background: none; border: none; font-size: 0.65rem;">{{ __('Review') }}</button>
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Auto-Generation Progress Indicator --}}
+                    @if($this->hasAutoGenerationInProgress())
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; margin-top: 0.75rem; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 0.5rem;" wire:poll.2s>
+                        <div class="vw-spinner" style="width: 1rem; height: 1rem; border-width: 2px; border-color: rgba(251,191,36,0.3); border-top-color: #fbbf24;"></div>
+                        <span style="font-size: 0.7rem; color: #fbbf24;">{{ __('Auto-generating references...') }}</span>
+                    </div>
+                    @endif
                 </div>
-                @endif
             </div>
 
             {{-- Technical Specs Section (Expandable) --}}
@@ -3376,6 +3857,97 @@ function getCameraMovementIcon($movement) {
             </div> {{-- Close vw-storyboard-content --}}
         </div> {{-- Close vw-storyboard-main --}}
     @endif
+
+    {{-- Phase 2: Contextual Side Panel --}}
+    <div class="vw-side-panel"
+         :class="{ 'open': sidePanel.open }"
+         x-show="sidePanel.open"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="transform translate-x-full"
+         x-transition:enter-end="transform translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="transform translate-x-0"
+         x-transition:leave-end="transform translate-x-full"
+         @keydown.escape.window="closeSidePanel()"
+         x-cloak>
+        <div class="vw-side-panel-header">
+            <span class="vw-side-panel-title" x-text="sidePanel.type === 'scene' ? '{{ __('Scene Properties') }}' : '{{ __('Properties') }}'"></span>
+            <button type="button" class="vw-side-panel-close" @click="closeSidePanel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="vw-side-panel-content">
+            {{-- Scene Properties Panel --}}
+            <template x-if="sidePanel.type === 'scene' && sidePanel.sceneIndex !== null">
+                <div>
+                    @php
+                        // Get scene data for side panel (will be updated via Alpine)
+                        $panelSceneIndex = 0;
+                        $panelScene = $script['scenes'][$panelSceneIndex] ?? null;
+                        $panelStoryboardScene = $storyboard['scenes'][$panelSceneIndex] ?? null;
+                    @endphp
+                    <div class="vw-side-panel-section">
+                        <div class="vw-side-panel-label">{{ __('Preview') }}</div>
+                        <div class="vw-side-panel-preview">
+                            <template x-if="$wire.storyboard?.scenes?.[sidePanel.sceneIndex]?.imageUrl">
+                                <img :src="$wire.storyboard?.scenes?.[sidePanel.sceneIndex]?.imageUrl" alt="Scene preview">
+                            </template>
+                            <template x-if="!$wire.storyboard?.scenes?.[sidePanel.sceneIndex]?.imageUrl">
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.4);">
+                                    {{ __('No image yet') }}
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="vw-side-panel-section">
+                        <div class="vw-side-panel-label">{{ __('Scene Info') }}</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; font-weight: 700; color: #a78bfa;" x-text="'#' + (sidePanel.sceneIndex + 1)"></span>
+                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7);" x-text="$wire.script?.scenes?.[sidePanel.sceneIndex]?.title || '{{ __('Scene') }}'"></span>
+                        </div>
+                    </div>
+
+                    <div class="vw-side-panel-section">
+                        <div class="vw-side-panel-label">{{ __('Duration') }}</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="number"
+                                   min="1"
+                                   max="60"
+                                   style="width: 80px; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.85rem;"
+                                   :value="$wire.script?.scenes?.[sidePanel.sceneIndex]?.duration || 8"
+                                   @change="$wire.set(`script.scenes.${sidePanel.sceneIndex}.duration`, $event.target.value)">
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">{{ __('seconds') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="vw-side-panel-section">
+                        <div class="vw-side-panel-label">{{ __('Quick Actions') }}</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button type="button"
+                                    @click="$wire.openAIEditModal(sidePanel.sceneIndex)"
+                                    style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(236,72,153,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                ✨ {{ __('Edit with AI') }}
+                            </button>
+                            <button type="button"
+                                    @click="$wire.generateImage(sidePanel.sceneIndex, $wire.script?.scenes?.[sidePanel.sceneIndex]?.id)"
+                                    style="width: 100%; padding: 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                🔄 {{ __('Regenerate') }}
+                            </button>
+                            <button type="button"
+                                    @click="$wire.openMultiShotModal(sidePanel.sceneIndex)"
+                                    style="width: 100%; padding: 0.6rem; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                ✂️ {{ __('Multi-shot Decompose') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
 
     {{-- Stock Media Browser Modal --}}
     @include('appvideowizard::livewire.modals.stock-browser')
