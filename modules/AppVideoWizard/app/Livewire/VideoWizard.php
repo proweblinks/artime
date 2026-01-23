@@ -23009,6 +23009,22 @@ PROMPT;
         }
 
         // ═══════════════════════════════════════════════════════════════════
+        // SPEECH SEGMENTS: Distribute speechSegments to shots
+        // Each shot gets its portion of the scene's speech for lip-sync decisions
+        // ═══════════════════════════════════════════════════════════════════
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+        $speechSegments = $scene['speechSegments'] ?? [];
+
+        if (!empty($speechSegments)) {
+            $this->distributeSpeechSegmentsToShots($sceneIndex, $speechSegments, count($shots));
+            Log::info('Distributed speech segments to shots', [
+                'sceneIndex' => $sceneIndex,
+                'segmentCount' => count($speechSegments),
+                'shotCount' => count($shots),
+            ]);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
         // DIALOGUE NARRATION STYLE: Distribute dialogue segments to shots
         // When user selected "Dialogue" style, parse speaker lines and assign
         // ═══════════════════════════════════════════════════════════════════
@@ -23078,6 +23094,79 @@ PROMPT;
                 'totalShots' => count($shots),
             ]);
         }
+    }
+
+    /**
+     * Distribute speech segments to shots proportionally.
+     * Each shot gets its portion of the scene's speechSegments array.
+     * Sets needsLipSync=true on shots with dialogue or monologue segments.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $speechSegments Scene's speech segments array
+     * @param int $shotCount Number of shots in the scene
+     */
+    protected function distributeSpeechSegmentsToShots(int $sceneIndex, array $speechSegments, int $shotCount): void
+    {
+        if (empty($speechSegments) || $shotCount <= 0) {
+            return;
+        }
+
+        // Types that require lip-sync (character's lips move on screen)
+        $lipSyncTypes = ['dialogue', 'monologue'];
+
+        $segmentCount = count($speechSegments);
+        $segmentsPerShot = max(1, ceil($segmentCount / $shotCount));
+        $segmentIndex = 0;
+
+        for ($shotIdx = 0; $shotIdx < $shotCount; $shotIdx++) {
+            $shotSegments = [];
+            $needsLipSync = false;
+            $shotDialogue = '';
+            $speakers = [];
+
+            // Collect segments for this shot
+            for ($i = 0; $i < $segmentsPerShot && $segmentIndex < $segmentCount; $i++, $segmentIndex++) {
+                $segment = $speechSegments[$segmentIndex];
+                $shotSegments[] = $segment;
+
+                $segType = strtolower($segment['type'] ?? 'narrator');
+
+                // Check if this segment requires lip-sync
+                if (in_array($segType, $lipSyncTypes)) {
+                    $needsLipSync = true;
+                    $shotDialogue .= ($shotDialogue ? ' ' : '') . ($segment['text'] ?? '');
+                    if (!empty($segment['speaker'])) {
+                        $speakers[$segment['speaker']] = true;
+                    }
+                }
+            }
+
+            // Update shot with speech segment data
+            if (!empty($shotSegments)) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['speechSegments'] = $shotSegments;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['needsLipSync'] = $needsLipSync;
+
+                if ($needsLipSync) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['dialogue'] = $shotDialogue;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['speakingCharacters'] = array_keys($speakers);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = 'multitalk';
+
+                    // Assign voice from first speaking character
+                    $firstSpeaker = array_keys($speakers)[0] ?? null;
+                    if ($firstSpeaker) {
+                        $voice = $this->getVoiceForCharacterName($firstSpeaker);
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['voiceId'] = $voice;
+                    }
+                }
+            }
+        }
+
+        Log::debug('Speech segments distributed to shots', [
+            'sceneIndex' => $sceneIndex,
+            'totalSegments' => $segmentCount,
+            'shotCount' => $shotCount,
+            'segmentsPerShot' => $segmentsPerShot,
+        ]);
     }
 
     /**

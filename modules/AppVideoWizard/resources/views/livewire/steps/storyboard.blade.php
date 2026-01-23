@@ -2397,6 +2397,8 @@ function getCameraMovementIcon($movement) {
                                         $isFromScene = $shot['fromSceneImage'] ?? false;
                                         $shotType = ucfirst($shot['type'] ?? 'shot');
                                         $shotDuration = $shot['duration'] ?? 10;
+                                        $shotNeedsLipSync = $shot['needsLipSync'] ?? false;
+                                        $shotSpeechSegments = $shot['speechSegments'] ?? [];
                                         $shotTypeIcons = [
                                             'establishing' => '🏔️',
                                             'medium' => '👤',
@@ -2456,6 +2458,17 @@ function getCameraMovementIcon($movement) {
                                             <div style="position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); color: white; padding: 0.05rem 0.2rem; border-radius: 0.1rem; font-size: 0.45rem;">
                                                 {{ $shotDuration }}s
                                             </div>
+
+                                            {{-- Lip-Sync Indicator (bottom-left) --}}
+                                            @if($shotNeedsLipSync)
+                                                <div style="position: absolute; bottom: 2px; left: 2px; background: rgba(251,191,36,0.9); color: white; padding: 0.05rem 0.15rem; border-radius: 0.1rem; font-size: 0.4rem;" title="{{ __('Lip-sync required') }}">
+                                                    👄
+                                                </div>
+                                            @elseif(!empty($shotSpeechSegments))
+                                                <div style="position: absolute; bottom: 2px; left: 2px; background: rgba(100,116,139,0.8); color: white; padding: 0.05rem 0.15rem; border-radius: 0.1rem; font-size: 0.4rem;" title="{{ __('Has speech (no lip-sync)') }}">
+                                                    🎙️
+                                                </div>
+                                            @endif
                                         </div>
 
                                         {{-- Shot Status Bar --}}
