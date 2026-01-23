@@ -1,31 +1,28 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-23
-> Session: Phase 5 - Emotional Arc System
+> Session: Phase 6 - UI/UX Polish
 
 ---
 
 ## Current Position
 
-**Phase:** 5 of ongoing (Emotional Arc System)
-**Plan:** 04 of 4 (in phase) - ALL COMPLETE
-**Status:** Phase Complete
+**Phase:** 6 of ongoing (UI/UX Polish)
+**Plan:** 01 of ? (in phase) - IN PROGRESS
+**Status:** In Progress
 
-**Progress:** [##########] Phase 5 (4/4 plans complete - 05-01, 05-02, 05-03, 05-04)
+**Progress:** [#] Phase 6 (1/? plans complete - 06-01)
 
 ---
 
 ## Current Focus
 
-**Phase 5: Emotional Arc System** - COMPLETE
+**Phase 6: UI/UX Polish** - IN PROGRESS
 
-Build intelligent emotional arc detection and intensity curve processing for cinematic storytelling.
+Improve user experience with better context visibility and visual feedback.
 
 Plans:
-1. ~~Climax Detection~~ COMPLETE
-2. ~~Intensity Curve Smoothing~~ COMPLETE
-3. ~~Shot-to-Beat Mapping~~ COMPLETE
-4. ~~Arc-Aware Shot Composition~~ COMPLETE
+1. ~~Dialogue Display on Scene Cards~~ COMPLETE
 
 ---
 
@@ -39,62 +36,33 @@ The system should be sophisticated and automatically updated based on previous s
 
 ## Completed This Session
 
-### Plan 05-03: Shot-to-Beat Mapping (COMPLETE)
-**Summary:** Exposed emotional arc data to UI with intensity indicators and template selection
+### Plan 06-01: Dialogue Display on Scene Cards (COMPLETE)
+**Summary:** Dialogue and narration text displayed on scene cards with speaker names in purple
 
 **Tasks:**
-1. [x] Add emotional arc Livewire properties ($emotionalArcData, $arcTemplate, $arcTemplates)
-2. [x] Add arc update methods (updateEmotionalArcData, setArcTemplate, applyArcTemplateToShots)
-3. [x] Integrate arc updates into script generation and project loading
-4. [x] Add display helper methods (getIntensityDisplayData, getArcSummary)
+1. [x] Add dialogue section to storyboard scene cards (speechSegments or narration)
+2. [x] Add dialogue to multi-shot modal shot cards
+3. [x] Add CSS classes for dialogue styling
+4. [x] Update scene card to use CSS classes
 
 **Commits:**
-- `aa181a7` - feat(05-03): expose emotional arc data in VideoWizard Livewire component
+- `88a2da8` - feat(06-01): add dialogue display to scene cards and multi-shot modal
 
-**SUMMARY:** `.planning/phases/05-emotional-arc-system/05-03-SUMMARY.md`
-
-### Plan 05-04: Arc-Aware Shot Composition (COMPLETE)
-**Summary:** Configurable intensity thresholds with climax-aware shot selection
-
-**Tasks:**
-1. [x] Add configurable intensity thresholds ($intensityThresholds, $templateThresholdAdjustments)
-2. [x] Add climax-aware shot type selection (selectShotTypeWithClimaxAwareness, getCameraMovementForIntensity)
-3. [x] Add smoothed intensity application method (applySmoothedIntensityToShots, getShotTypeTightness)
-4. [x] Integrate into generateHollywoodShotSequence
-
-**Commits:**
-- `eabe4c8` - feat(05-04): add arc-aware shot composition with climax awareness
-
-**SUMMARY:** `.planning/phases/05-emotional-arc-system/05-04-SUMMARY.md`
-
----
-
-## Previous Plans (Phase 5)
-
-### Plan 05-02: Intensity Curve Smoothing (COMPLETE)
-**Summary:** Smooth intensity curves with genre-specific arc templates for cinematic pacing
-
-**Features Added:**
-- smoothIntensityCurve() method
-- exponentialSmooth() method
-- ARC_TEMPLATES constant
-- blendWithArcTemplate() method
-- getProcessedIntensityCurve() method
-
-### Plan 05-01: Climax Detection (COMPLETE)
-**Summary:** Intelligent climax detection using content analysis and peak detection
-
-**Features Added:**
-- CLIMAX_KEYWORDS constant
-- RESOLUTION_KEYWORDS constant
-- analyzeClimaxIndicators() method
-- detectIntensityPeaks() method
-- identifyPrimaryClimax() method
-- detectClimaxFromContent() method
+**SUMMARY:** `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md`
 
 ---
 
 ## Previous Phases (Complete)
+
+### Phase 5: Emotional Arc System - COMPLETE
+
+All 4 plans successfully executed:
+1. Climax Detection
+2. Intensity Curve Smoothing
+3. Shot-to-Beat Mapping
+4. Arc-Aware Shot Composition
+
+See: `.planning/phases/05-emotional-arc-system/` for summaries.
 
 ### Phase 4: Dialogue Scene Excellence - COMPLETE
 
@@ -144,6 +112,7 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Dialogue Styling | Blue border-left with purple speaker names | Consistent color scheme, visually distinct from prompts |
 | 2026-01-23 | Arc Properties | Public Livewire properties | Required for blade template access |
 | 2026-01-23 | Color System | Blue/Amber/Red/Purple gradient | Visual intensity communication |
 | 2026-01-23 | Threshold Order | Descending for first-match selection | Tighter shots have higher thresholds |
@@ -156,57 +125,13 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 ---
 
-## Phase 5 Progress - What Was Built
+## Phase 6 Progress - What Was Built
 
-### Plan 05-01: Climax Detection
-1. **Climax Keywords:** CLIMAX_KEYWORDS constant for peak detection
-2. **Resolution Keywords:** RESOLUTION_KEYWORDS for falling action
-3. **Content Analysis:** analyzeClimaxIndicators() scores text for climax likelihood
-4. **Peak Detection:** detectIntensityPeaks() finds local maxima
-5. **Primary Climax:** identifyPrimaryClimax() combines content + intensity
-6. **Detection Entry:** detectClimaxFromContent() main entry point
-
-### Plan 05-02: Intensity Curve Smoothing
-1. **Moving Average:** smoothIntensityCurve() with weighted neighbors
-2. **Exponential:** exponentialSmooth() for gradual transitions
-3. **Arc Templates:** ARC_TEMPLATES with 6 genre-specific curves
-4. **Interpolation:** getArcTargetIntensity() for template lookup
-5. **Blending:** blendWithArcTemplate() combines actual + template
-6. **Processing:** getProcessedIntensityCurve() main entry point
-7. **Enhanced Arc:** extractEmotionalArc() now returns smoothed values
-
-### Plan 05-03: Shot-to-Beat Mapping (UI Exposure)
-1. **Properties:** $emotionalArcData, $arcTemplate, $arcTemplates
-2. **Update Method:** updateEmotionalArcData() computes arc from scenes
-3. **Template Setter:** setArcTemplate() with auto-recalculation
-4. **Shot Application:** applyArcTemplateToShots() updates intensities
-5. **Event Listener:** refresh-emotional-arc Livewire event
-6. **Display Helper:** getIntensityDisplayData() for color-coded bars
-7. **Summary Helper:** getArcSummary() for dashboard stats
-8. **Integration:** Called in generateScript, loadProject, batch completion
-
-### Plan 05-04: Arc-Aware Shot Composition
-1. **Thresholds:** $intensityThresholds property for shot selection
-2. **Adjustments:** $templateThresholdAdjustments for genre-specific tuning
-3. **Threshold Lookup:** getAdjustedThresholds() for template-based values
-4. **Climax Selection:** selectShotTypeWithClimaxAwareness() for peak framing
-5. **Camera Movement:** getCameraMovementForIntensity() suggestions
-6. **Application:** applySmoothedIntensityToShots() main integration
-7. **Tightness:** getShotTypeTightness() for shot type ranking
-8. **Integration:** Enhanced generateHollywoodShotSequence()
-
----
-
-## Arc Template Structure
-
-| Template | Character | Climax Position |
-|----------|-----------|-----------------|
-| hollywood | Standard 3-act | 70% |
-| action | Multiple peaks | 80% |
-| drama | Slow build | 75% |
-| thriller | Sustained tension | 75% |
-| comedy | Lighter tone | 70% |
-| documentary | Flat/even | N/A |
+### Plan 06-01: Dialogue Display on Scene Cards
+1. **CSS Classes:** vw-scene-dialogue, vw-dialogue-speaker, vw-dialogue-text, vw-dialogue-more
+2. **Scene Cards:** Dialogue section showing speechSegments or narration
+3. **Multi-Shot Modal:** Per-shot dialogue with speaker names
+4. **Lip Sync Indicator:** Badge for shots needing lip sync
 
 ---
 
@@ -220,29 +145,21 @@ None currently
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `.planning/phases/05-emotional-arc-system/05-01-PLAN.md` | Climax detection plan | Executed |
-| `.planning/phases/05-emotional-arc-system/05-02-PLAN.md` | Intensity smoothing plan | Executed |
-| `.planning/phases/05-emotional-arc-system/05-03-PLAN.md` | Shot-to-beat mapping plan | **Executed** |
-| `.planning/phases/05-emotional-arc-system/05-03-SUMMARY.md` | Plan 03 summary | **Created** |
-| `.planning/phases/05-emotional-arc-system/05-04-PLAN.md` | Arc-aware shot composition plan | Executed |
-| `.planning/phases/05-emotional-arc-system/05-04-SUMMARY.md` | Plan 04 summary | Created |
-| `Services/NarrativeMomentService.php` | Emotional arc processing | Updated (05-01, 05-02) |
-| `Services/DynamicShotEngine.php` | Arc-aware shot composition | Updated (05-04) |
-| `Livewire/VideoWizard.php` | UI arc data exposure | **Updated (05-03)** |
+| `.planning/phases/06-ui-ux-polish/06-01-PLAN.md` | Dialogue display plan | Executed |
+| `.planning/phases/06-ui-ux-polish/06-01-SUMMARY.md` | Plan 01 summary | Created |
+| `storyboard.blade.php` | Scene card dialogue display | Updated (06-01) |
+| `multi-shot.blade.php` | Shot dialogue display | Updated (06-01) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 05-03-PLAN.md
+**Stopped at:** Completed 06-01-PLAN.md
 **Resume file:** None
-**Phase 5 Status:** COMPLETE (4/4 plans)
+**Phase 6 Status:** IN PROGRESS (1/? plans)
 
 ---
 
-*Session: Phase 5 - Emotional Arc System*
-*Plan 05-01 COMPLETE - Climax detection*
-*Plan 05-02 COMPLETE - Intensity curve smoothing*
-*Plan 05-03 COMPLETE - Shot-to-beat mapping (UI exposure)*
-*Plan 05-04 COMPLETE - Arc-aware shot composition*
+*Session: Phase 6 - UI/UX Polish*
+*Plan 06-01 COMPLETE - Dialogue display on scene cards*
