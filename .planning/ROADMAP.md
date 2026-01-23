@@ -220,16 +220,53 @@ Plans:
 
 ---
 
-## Milestone 6: UI/UX Polish
+## Milestone 6: UI/UX Polish -- COMPLETE
 **Target:** Professional, intuitive interface
-**Status:** Not Started
+**Status:** Complete (2026-01-23)
+**Plans:** 4 plans in 2 waves -- ALL COMPLETE
 
-| Task | Status | Priority |
-|------|--------|----------|
-| Dialogue text in shot cards | Pending | MEDIUM |
-| Shot type badges | Pending | LOW |
-| Progress indicators | Pending | MEDIUM |
-| Live preview updates | Pending | LOW |
+**Goal:** Polish the user interface with dialogue visibility, shot type indicators, progress feedback, and visual consistency for a professional experience.
+
+Plans:
+- [x] 06-01-PLAN.md -- Dialogue Text Display (scene cards, multi-shot modal, speaker names)
+- [x] 06-02-PLAN.md -- Shot Type Badges (color-coded badges, camera movement, climax indicator)
+- [x] 06-03-PLAN.md -- Enhanced Progress Indicators (per-shot status, intensity bars, progress rings)
+- [x] 06-04-PLAN.md -- UI Polish & Refinements (speaker names in animation, arc selector, camera icons)
+
+### Wave 1: Content Visibility (06-01, 06-02) ✅
+- ✅ `.vw-scene-dialogue` styled section with blue border
+- ✅ Speaker names in purple (`.vw-dialogue-speaker`)
+- ✅ Lip sync indicator for dialogue shots
+- ✅ Shot type badges (XCU, CU, MCU, MED, WIDE, EST)
+- ✅ Color gradient: red (tight) → blue (wide)
+- ✅ Purpose badges (OTS, REACT, 2-SHOT)
+- ✅ Climax badge with gradient
+
+### Wave 2: Progress & Polish (06-03, 06-04) ✅
+- ✅ Status badges (pending, generating, ready, error) with pulse animation
+- ✅ Per-shot IMG/VID status with SVG icons
+- ✅ Intensity bars with color levels (low, medium, high, climax)
+- ✅ Mini progress rings in header
+- ✅ Scene intensity indicator with climax badge
+- ✅ Speaker names in animation step with voice status
+- ✅ Arc template selector (6 templates)
+- ✅ Camera movement icons (push-in, pull-out, pan, tilt, static, dolly)
+- ✅ Visual consistency CSS (hover effects, transitions, focus states)
+
+| Wave | Plans | Focus | Status |
+|------|-------|-------|--------|
+| 1 | 06-01, 06-02 | Content visibility | ✅ Complete |
+| 2 | 06-03, 06-04 | Progress & polish | ✅ Complete |
+
+**Success Metrics:**
+| Metric | Target | Status |
+|--------|--------|--------|
+| Dialogue visible on cards | Yes | ✅ Yes |
+| Shot type badges | Yes | ✅ Yes |
+| Per-shot status indicators | Yes | ✅ Yes |
+| Intensity visualization | Yes | ✅ Yes |
+| Arc template selector | Yes | ✅ Yes |
+| Camera movement icons | Yes | ✅ Yes |
 
 ---
 
@@ -242,9 +279,9 @@ Milestone 2:   ██████████ 100% COMPLETE
 Milestone 3:   ██████████ 100% COMPLETE
 Milestone 4:   ██████████ 100% COMPLETE
 Milestone 5:   ██████████ 100% COMPLETE
-Milestone 6:   ░░░░░░░░░░  0%
+Milestone 6:   ██████████ 100% COMPLETE
 ─────────────────────────
-Overall:       ██████████ 95%
+Overall:       ██████████ 100%
 ```
 
 ---
@@ -257,4 +294,4 @@ The system should be sophisticated and automatically updated based on previous s
 
 ---
 
-*Last Updated: 2026-01-23 (Milestone 5 Completed)*
+*Last Updated: 2026-01-23 (Milestone 6 Completed)*
