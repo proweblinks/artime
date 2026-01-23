@@ -16761,15 +16761,56 @@ PROMPT;
         // Build context for dynamic analysis
         $context = $this->buildDecompositionContext($sceneIndex, $scene);
 
-        // Use DynamicShotEngine for content-driven shot calculation
+        // Use DynamicShotEngine for Hollywood-standard shot sequencing
+        // PHASE 3: Activate Hollywood patterns (emotional arc + dialogue coverage)
         $engine = new DynamicShotEngine();
-        $analysis = $engine->analyzeScene($scene, $context);
 
-        Log::info('VideoWizard: DynamicShotEngine analysis complete', [
+        // Ensure emotional arc is available from NarrativeMomentService
+        if (empty($context['emotionalArc'])) {
+            $narration = $scene['narration'] ?? $scene['visualDescription'] ?? '';
+            if (!empty($narration)) {
+                try {
+                    $geminiService = app(\App\Services\GeminiService::class);
+                    $momentService = new \Modules\AppVideoWizard\Services\NarrativeMomentService($geminiService);
+                    $moments = $momentService->decomposeNarrationIntoMoments(
+                        $narration,
+                        $context['shotCount'] ?? 5,
+                        ['mood' => $scene['mood'] ?? 'neutral']
+                    );
+                    if (!empty($moments)) {
+                        $context['emotionalArc'] = $momentService->extractEmotionalArc($moments);
+                        $context['narrativeMoments'] = $moments;
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: Failed to extract emotional arc', [
+                        'scene_id' => $sceneId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // Ensure characters are passed for dialogue coverage patterns
+        if (empty($context['characters']) && !empty($this->sceneMemory['characterBible']['characters'])) {
+            // Find characters in this scene
+            $sceneCharacters = [];
+            foreach ($this->sceneMemory['characterBible']['characters'] as $character) {
+                if (in_array($sceneIndex, $character['scenes'] ?? [])) {
+                    $sceneCharacters[] = $character;
+                }
+            }
+            $context['characters'] = $sceneCharacters;
+        }
+
+        // Generate Hollywood-standard shot sequence with emotional arc and dialogue patterns
+        $analysis = $engine->generateHollywoodShotSequence($scene, $context);
+
+        Log::info('VideoWizard: Hollywood shot sequence generated', [
             'scene_id' => $sceneId,
             'shot_count' => $analysis['shotCount'],
-            'scene_type' => $analysis['analysis']['sceneType'] ?? 'unknown',
-            'reasoning' => $analysis['reasoning'] ?? '',
+            'hollywood_patterns' => $analysis['hollywoodPatterns'] ?? [],
+            'emotional_arc' => !empty($context['emotionalArc']),
+            'dialogue_coverage' => count($context['characters'] ?? []) >= 2,
         ]);
 
         // PHASE 6: AI Story Beat Decomposition
@@ -22657,10 +22698,47 @@ PROMPT;
             // Use consistent scene duration default (35s matches script timing default)
             $sceneDuration = $scene['duration'] ?? ($this->script['timing']['sceneDuration'] ?? 35);
 
-            // Use DynamicShotEngine for content-driven shot calculation
+            // Use DynamicShotEngine for Hollywood-standard shot calculation
+            // PHASE 3: Activate Hollywood patterns consistently
             $engine = new DynamicShotEngine();
             $context = $this->buildDecompositionContext($sceneIndex, $scene);
-            $analysis = $engine->analyzeScene($scene, $context);
+
+            // Ensure emotional arc for Hollywood patterns
+            if (empty($context['emotionalArc'])) {
+                $narration = $scene['narration'] ?? $scene['visualDescription'] ?? '';
+                if (!empty($narration)) {
+                    try {
+                        $geminiService = app(\App\Services\GeminiService::class);
+                        $momentService = new \Modules\AppVideoWizard\Services\NarrativeMomentService($geminiService);
+                        $moments = $momentService->decomposeNarrationIntoMoments(
+                            $narration,
+                            $context['shotCount'] ?? 5,
+                            ['mood' => $scene['mood'] ?? 'neutral']
+                        );
+                        if (!empty($moments)) {
+                            $context['emotionalArc'] = $momentService->extractEmotionalArc($moments);
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('VideoWizard: Failed to extract emotional arc for collage', [
+                            'scene_index' => $sceneIndex,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            // Include scene characters for dialogue patterns
+            if (empty($context['characters']) && !empty($this->sceneMemory['characterBible']['characters'])) {
+                $sceneCharacters = [];
+                foreach ($this->sceneMemory['characterBible']['characters'] as $character) {
+                    if (in_array($sceneIndex, $character['scenes'] ?? [])) {
+                        $sceneCharacters[] = $character;
+                    }
+                }
+                $context['characters'] = $sceneCharacters;
+            }
+
+            $analysis = $engine->generateHollywoodShotSequence($scene, $context);
 
             // Get shot count from DynamicShotEngine analysis
             $calculatedShotCount = $analysis['shotCount'] ?? 5;
