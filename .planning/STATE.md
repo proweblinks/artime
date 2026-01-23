@@ -1,30 +1,30 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-23
-> Session: Phase 2 - Narrative Intelligence
+> Session: Phase 3 - Hollywood Production System
 
 ---
 
 ## Current Position
 
-**Phase:** 2 of ongoing (Narrative Intelligence)
-**Plan:** 03 of 3 (in phase)
-**Status:** Phase complete
+**Phase:** 3 of ongoing (Hollywood Production System)
+**Plan:** 02 of 3 (in phase)
+**Status:** In progress
 
-**Progress:** [##########] 100% of Phase 2
+**Progress:** [######----] 60% of Phase 3 (Plans 01-02 complete)
 
 ---
 
 ## Current Focus
 
-**Phase 2: Narrative Intelligence** - COMPLETE
+**Phase 3: Hollywood Production System** - IN PROGRESS
 
-Wire NarrativeMomentService into the shot generation pipeline for Hollywood-standard narrative decomposition.
+Enhance the production pipeline with Hollywood-standard moment extraction and shot generation.
 
 Plans:
-1. ~~Wire NarrativeMomentService into ShotIntelligenceService~~ COMPLETE
-2. ~~Enhance buildAnalysisPrompt with narrative moments~~ COMPLETE
-3. ~~Map narrative moments to shot recommendations~~ COMPLETE
+1. ~~TBD (previous plan)~~ COMPLETE
+2. ~~Eliminate Placeholder Moments~~ COMPLETE
+3. Shot Generation Integration (next)
 
 ---
 
@@ -38,45 +38,33 @@ The system should be sophisticated and automatically updated based on previous s
 
 ## Completed This Session
 
-### Plan 02-03: Action Uniqueness Validation (COMPLETE)
-**Summary:** Automatic action deduplication with progression markers plus uniqueness validation scoring
+### Plan 03-02: Eliminate Placeholder Moments (COMPLETE)
+**Summary:** Two-tier fallback system (narration analysis + narrative arc) that NEVER returns useless "continues the scene" placeholders
 
 **Tasks:**
-1. [x] Add action deduplication to NarrativeMomentService
-2. [x] Add action uniqueness validation to ShotIntelligenceService
+1. [x] Replace placeholder generation with meaningful moment extraction
+2. [x] Add generateMeaningfulMomentsFromNarration method
+3. [x] Add generateNarrativeArcMoments fallback
 
 **Commits:**
-- `0c43f1f` - feat(02-03): add action deduplication to NarrativeMomentService
-- `1d5e047` - feat(02-03): add action uniqueness validation to ShotIntelligenceService
+- `2d9508b` - feat(03-02): eliminate placeholder moments with meaningful extraction
 
-**SUMMARY:** `.planning/phases/02-narrative-intelligence/02-03-SUMMARY.md`
-
-### Plan 02-02: Enhance buildAnalysisPrompt (COMPLETE)
-**Summary:** AI prompt enhanced with narrative moments, emotional arc, and shot type suggestions
-
-**Tasks:**
-1. [x] Add narrative moment formatting method
-2. [x] Integrate narrative moments into buildAnalysisPrompt
-3. [x] Update shot count to align with moment count
-
-**Commits:**
-- `d63ab64` - feat(02-02): pass narrative moment count to parseAIResponse
-
-**SUMMARY:** `.planning/phases/02-narrative-intelligence/02-02-SUMMARY.md`
-
-### Plan 02-01: Wire NarrativeMomentService (COMPLETE)
-**Summary:** NarrativeMomentService injected into ShotIntelligenceService with analyzeScene() integration
-
-**Commits:**
-- `2cf8dc9` - feat(02-01): wire NarrativeMomentService into ShotIntelligenceService
-
-**SUMMARY:** `.planning/phases/02-narrative-intelligence/02-01-SUMMARY.md`
+**SUMMARY:** `.planning/phases/03-hollywood-production-system/03-02-SUMMARY.md`
 
 ---
 
-## Previous Session (Complete)
+## Previous Sessions (Complete)
 
-**Milestone 1.5: Automatic Speech Flow System** - COMPLETE
+### Phase 2: Narrative Intelligence - COMPLETE
+
+All 3 plans successfully executed:
+1. Wire NarrativeMomentService into ShotIntelligenceService
+2. Enhance buildAnalysisPrompt with narrative moments
+3. Map narrative moments to shot recommendations
+
+See: `.planning/phases/02-narrative-intelligence/` for summaries.
+
+### Milestone 1.5: Automatic Speech Flow System - COMPLETE
 
 All 4 plans successfully executed:
 1. Automatic Speech Segment Parsing
@@ -92,6 +80,9 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Fallback Strategy | Two-tier fallback (narration analysis -> narrative arc) | Ensures meaningful output even when AI and rule-based extraction fail |
+| 2026-01-23 | Subject Naming | Use 'the character' or 'the protagonist' instead of 'the subject' | More meaningful and consistent terminology for shot generation |
+| 2026-01-23 | Arc Structure | Standard narrative arc (setup->rising->climax->falling->resolution) | Hollywood-standard story structure ensures dramatic progression |
 | 2026-01-23 | Deduplication Timing | After interpolation | Interpolation may duplicate moments when expanding |
 | 2026-01-23 | Verb Window Size | 2-verb sliding window | Allows same verb after 2+ gap |
 | 2026-01-23 | Similarity Detection | Verb + synonym groups | More comprehensive than exact match |
@@ -111,21 +102,24 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 ---
 
-## Phase 2 Complete - What Was Built
+## Phase 3 Progress - What Was Built
 
-### Narrative Intelligence Pipeline
-1. **Moment Decomposition:** Narration automatically decomposed into distinct micro-moments
-2. **Emotional Arc:** Intensity values (0-1) extracted for cinematography mapping
-3. **Prompt Enhancement:** AI prompts include moment-by-moment guidance
-4. **Action Deduplication:** Progression markers prevent duplicate verbs
-5. **Uniqueness Validation:** Scores (0-100%) and issues for quality assurance
+### Plan 03-02: Meaningful Moment Fallback
+1. **Two-Tier Fallback:** generateMeaningfulMomentsFromNarration -> generateNarrativeArcMoments
+2. **Action Extraction:** Priority-ordered verb extraction from ACTION_EMOTION_MAP
+3. **Subject Extraction:** Character context and pronoun pattern matching
+4. **Narrative Arc:** Setup->Rising->Climax->Falling->Resolution structure
+5. **Intensity Calculation:** Phase-based and emotion-based intensity
 
-### Key Methods Added
-- `NarrativeMomentService::deduplicateActions()`
-- `NarrativeMomentService::areActionsSimilar()`
-- `ShotIntelligenceService::validateActionUniqueness()`
-- `ShotIntelligenceService::formatNarrativeMomentsForPrompt()`
-- `ShotIntelligenceService::getShotTypeFromIntensity()`
+### Key Methods Added (03-02)
+- `NarrativeMomentService::generateMeaningfulMomentsFromNarration()`
+- `NarrativeMomentService::extractActionFromText()`
+- `NarrativeMomentService::extractSubjectFromChunk()`
+- `NarrativeMomentService::summarizeChunk()`
+- `NarrativeMomentService::extractFirstActionFromNarration()`
+- `NarrativeMomentService::generateNarrativeArcMoments()`
+- `NarrativeMomentService::calculateArcIntensity()`
+- `NarrativeMomentService::calculateIntensityFromEmotion()`
 
 ---
 
@@ -139,10 +133,7 @@ None currently
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `.planning/phases/02-narrative-intelligence/02-03-SUMMARY.md` | Plan 03 summary | **Created** |
-| `.planning/phases/02-narrative-intelligence/02-02-SUMMARY.md` | Plan 02 summary | Created |
-| `.planning/phases/02-narrative-intelligence/02-01-SUMMARY.md` | Plan 01 summary | Created |
-| `Services/ShotIntelligenceService.php` | Narrative integration | **Updated** |
+| `.planning/phases/03-hollywood-production-system/03-02-SUMMARY.md` | Plan 02 summary | **Created** |
 | `Services/NarrativeMomentService.php` | Narrative decomposition | **Updated** |
 
 ---
@@ -150,11 +141,11 @@ None currently
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 02-03-PLAN.md (Action Uniqueness Validation)
+**Stopped at:** Completed 03-02-PLAN.md (Eliminate Placeholder Moments)
 **Resume file:** None
-**Phase 2 Status:** COMPLETE
+**Phase 3 Status:** IN PROGRESS (2/3 plans complete)
 
 ---
 
-*Session: Phase 2 - Narrative Intelligence*
-*Phase 2 COMPLETE - All 3 plans executed*
+*Session: Phase 3 - Hollywood Production System*
+*Plan 03-02 COMPLETE - Meaningful moment extraction implemented*
