@@ -1449,6 +1449,31 @@ class DialogueSceneDecomposerService
     }
 
     /**
+     * PHASE 14: Get numeric shot size for jump cut detection and scale change validation.
+     *
+     * Maps shot types to numeric scale values (1=tightest, 5=widest).
+     * This mirrors ShotContinuityService.getShotSize() logic to avoid cross-service
+     * dependency in the shot generation flow.
+     *
+     * Used by validateAndFixTransitions() to detect same-scale consecutive shots
+     * and ensure cinematically appropriate scale changes between shots.
+     *
+     * @param string $type Shot type (e.g., 'close-up', 'medium', 'wide')
+     * @return int Numeric scale value (1-5)
+     */
+    protected function getShotSizeForType(string $type): int
+    {
+        return match ($type) {
+            'extreme-close-up', 'close-up' => 1,
+            'medium-close-up', 'medium-close', 'medium' => 2,
+            'over-the-shoulder', 'medium-wide' => 3,
+            'wide', 'two-shot' => 4,
+            'extreme-wide', 'establishing' => 5,
+            default => 2, // Default to medium scale for unknown types
+        };
+    }
+
+    /**
      * Build visual prompt addition for speaking character.
      */
     protected function buildSpeakingVisualPrompt(
