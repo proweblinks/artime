@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** 8 (Cinematic Shot Architecture)
-**Phase:** 12 (Shot/Reverse-Shot Patterns) - COMPLETE
-**Plan:** 02 of 02 complete
-**Status:** Phase 12 complete, ready for Phase 13
+**Phase:** 13 (Dynamic Camera Intelligence) - IN PROGRESS
+**Plan:** 01 of 01 complete
+**Status:** Phase 13 Plan 01 complete
 
 ```
 Phase 11: ██████████ 100% (2/2 plans complete)
 Phase 12: ██████████ 100% (2/2 plans complete)
-Phase 13: ░░░░░░░░░░ 0%
+Phase 13: ██████████ 100% (1/1 plans complete)
 Phase 14: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  █████░░░░░ 50% (4/8 plans)
+Overall:  ███████░░░ 63% (5/8 plans)
 ```
 
-**Last activity:** 2026-01-23 - Completed 12-02-PLAN.md (Quality Validation Integration)
+**Last activity:** 2026-01-23 - Completed 13-01-PLAN.md (Dynamic Camera Intelligence)
 
 ---
 
@@ -47,6 +47,11 @@ Transform scene decomposition so every shot is purposeful, speech-driven, and ci
 **Phase 12 Complete:** Shot/Reverse-Shot Patterns
 - Plan 12-01: Validation methods for 180-degree rule, single-character constraint, character alternation
 - Plan 12-02: Quality validation integration with pairing ratio, axis consistency, debug logging
+
+**Phase 13 Complete:** Dynamic Camera Intelligence
+- Plan 13-01: Position-enforced shot selection with per-speaker emotion analysis
+
+Now executing Phase 13: Dynamic Camera Intelligence
 
 ---
 
@@ -77,6 +82,9 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-23 | Constraint enforcement | Convert two-shots to wide | FLOW-02 model constraint must be enforced |
 | 2026-01-23 | Alternation threshold | 3+ consecutive triggers warning | 2 consecutive common, 3+ likely missing variety |
 | 2026-01-23 | Validation logging | Log warning for needs-review quality | Non-blocking - logs issues without halting |
+| 2026-01-23 | Position-first shots | Position rules take priority over intensity | Opening never close-up, climax always tight |
+| 2026-01-23 | Emotion adjustment | +0.15 intensity for angry/fearful emotions | High-intensity emotions drive tighter framing |
+| 2026-01-23 | Backward compat | Optional third parameter for emotion | Existing callers continue to work |
 
 ### Research Insights
 
@@ -98,6 +106,13 @@ The system should be sophisticated and automatically updated based on previous s
 - `validateShotReversePatternQuality()` comprehensive quality assessment in VideoWizard
 - `logShotReverseSequence()` debug logging for pattern analysis
 
+**Dynamic camera intelligence added (Phase 13):**
+- `analyzeSpeakerEmotion()` detects 9 emotions from dialogue keywords
+- `selectShotTypeForIntensity()` enhanced with position-first switch statement
+- Opening scenes use wide framing (never close-up)
+- Climax scenes use tight framing (always close-up or tighter)
+- Speaker emotion stored on shot for downstream use
+
 ### Known Issues
 
 | Issue | Impact | Plan | Status |
@@ -107,6 +122,30 @@ The system should be sophisticated and automatically updated based on previous s
 | Internal thought handling | LOW - Needs voiceover flag | M8 (CSA-04) | FIXED (Plan 11-02) |
 | Multi-character in single shot | HIGH - Model can't render | M8 (CSA-03) | FIXED (Plan 12-01) |
 | No quality assessment | MEDIUM - Can't track pattern health | M8 | FIXED (Plan 12-02) |
+| No emotion-driven shots | MEDIUM - Camera doesn't respond to dialogue | M8 (CAM-03) | FIXED (Plan 13-01) |
+
+---
+
+## Phase 13 Summary - COMPLETE
+
+**Dynamic Camera Intelligence** - Complete
+
+### Plan 13-01: Position-Enforced Shot Selection with Emotion Analysis - COMPLETE
+**Key accomplishments:**
+- analyzeSpeakerEmotion() for per-speaker emotion detection (9 emotions)
+- selectShotTypeForIntensity() enhanced with position-first switch statement
+- Opening position: establishing, wide, or medium (never close-up)
+- Climax position: close-up or extreme-close-up (always tight framing)
+- Speaker emotion integrated into enhanceShotsWithDialoguePatterns()
+- Debug logging for camera intelligence decisions
+
+**Commits:**
+- `b2630d9` feat(13-01): add speaker emotion analysis method (CAM-03)
+- `9973853` feat(13-01): enhance selectShotTypeForIntensity with position enforcement (CAM-02, CAM-04)
+- `d7dbb48` feat(13-01): integrate speaker emotion into shot enhancement loop (CAM-01, CAM-03)
+
+**Files modified:**
+- DialogueSceneDecomposerService.php (+135 lines)
 
 ---
 
@@ -223,17 +262,17 @@ None currently.
 | `.planning/PROJECT.md` | Project context | Updated (2026-01-23) |
 | `.planning/STATE.md` | Current state tracking | Updated (2026-01-23) |
 | `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 12) |
-| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposition | Modified (Plan 12-01) |
-| `modules/AppVideoWizard/app/Services/DynamicShotEngine.php` | Shot count/type | Target for Phase 13 |
+| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposition | Modified (Plan 13-01) |
+| `modules/AppVideoWizard/app/Services/DynamicShotEngine.php` | Shot count/type | Target for Phase 14 |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 12-02-PLAN.md (Quality Validation Integration)
-**Resume file:** .planning/phases/12-shot-reverse-shot-patterns/12-02-SUMMARY.md
-**Next step:** Execute Phase 13 (if exists)
+**Stopped at:** Completed 13-01-PLAN.md (Dynamic Camera Intelligence)
+**Resume file:** .planning/phases/13-dynamic-camera-intelligence/13-01-SUMMARY.md
+**Next step:** Execute Phase 14 (if exists)
 
 ---
 
