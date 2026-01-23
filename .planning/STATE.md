@@ -17,26 +17,26 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 **Milestone:** 8 (Cinematic Shot Architecture)
-**Phase:** 14 (Cinematic Flow & Action Scenes) - IN PROGRESS
-**Plan:** 01 of 02 complete
-**Status:** Plan 14-01 complete, ready for Plan 14-02
+**Phase:** 14 (Cinematic Flow & Action Scenes) - COMPLETE
+**Plan:** 02 of 02 complete
+**Status:** Phase 14 complete, Milestone 8 complete
 
 ```
 Phase 11: ██████████ 100% (2/2 plans complete)
 Phase 12: ██████████ 100% (2/2 plans complete)
 Phase 13: ██████████ 100% (1/1 plans complete)
-Phase 14: █████░░░░░ 50% (1/2 plans complete)
+Phase 14: ██████████ 100% (2/2 plans complete)
 ─────────────────────
-Overall:  ████████░░ 75% (6/8 plans)
+Overall:  ██████████ 100% (8/8 plans)
 ```
 
-**Last activity:** 2026-01-23 - Completed 14-01-PLAN.md (Transition Validation)
+**Last activity:** 2026-01-23 - Completed 14-02-PLAN.md (Action Scene Decomposition)
 
 ---
 
 ## Current Focus
 
-**Milestone 8: Cinematic Shot Architecture**
+**Milestone 8: Cinematic Shot Architecture - COMPLETE**
 
 Transform scene decomposition so every shot is purposeful, speech-driven, and cinematically connected.
 
@@ -51,9 +51,9 @@ Transform scene decomposition so every shot is purposeful, speech-driven, and ci
 **Phase 13 Complete:** Dynamic Camera Intelligence
 - Plan 13-01: Position-enforced shot selection with per-speaker emotion analysis
 
-**Phase 14 In Progress:** Cinematic Flow & Action Scenes
-- Plan 14-01: Transition validation for jump cut detection (FLOW-03) - COMPLETE
-- Plan 14-02: Action scene pacing - PENDING
+**Phase 14 Complete:** Cinematic Flow & Action Scenes
+- Plan 14-01: Transition validation for jump cut detection (FLOW-03)
+- Plan 14-02: Action scene decomposition with coverage patterns and visual continuity
 
 ---
 
@@ -89,6 +89,10 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-23 | Backward compat | Optional third parameter for emotion | Existing callers continue to work |
 | 2026-01-23 | Scale adjustment | Prefer stepping OUT (wider) over IN | Wider shots feel less jarring than tighter |
 | 2026-01-23 | Local scale mapping | Use local getShotSizeForType in DialogueSceneDecomposerService | Avoid cross-service dependency in shot flow |
+| 2026-01-23 | Action pattern source | Use ShotContinuityService.getCoveragePattern('action') | Single source of truth for coverage patterns |
+| 2026-01-23 | Action type mapping | 'tracking' -> 'medium' with movement, 'insert' -> 'extreme-close-up' | Action patterns map to existing dialogueShotTypes |
+| 2026-01-23 | Visual continuity | Attach sceneContext and visualContinuityApplied flag | Non-invasive metadata for downstream prompt builders |
+| 2026-01-23 | Mixed scene handling | Mixed scenes use speech-driven path | Full hybrid interleaving deferred to future enhancement |
 
 ### Research Insights
 
@@ -117,12 +121,18 @@ The system should be sophisticated and automatically updated based on previous s
 - Climax scenes use tight framing (always close-up or tighter)
 - Speaker emotion stored on shot for downstream use
 
-**Transition validation added (Phase 14):**
+**Transition validation added (Phase 14-01):**
 - `getShotSizeForType()` maps shot types to numeric scale (1-5)
 - `validateAndFixTransitions()` detects jump cuts and same-scale transitions
 - `getWiderShotType()` and `getTighterShotType()` for scale adjustment
 - Non-blocking validation: logs warnings but doesn't halt video generation
 - `scaleAdjusted=true` flag on modified shots for debugging
+
+**Action scene decomposition added (Phase 14-02):**
+- `decomposeActionScene()` creates shots from action beats using Hollywood coverage pattern
+- `SceneTypeDetectorService` integration for scene routing
+- `ensureVisualContinuity()` attaches location/time/weather metadata to all shots
+- Action scenes cycle through: establishing -> wide -> medium -> tracking -> close-up -> insert
 
 ### Known Issues
 
@@ -135,12 +145,13 @@ The system should be sophisticated and automatically updated based on previous s
 | No quality assessment | MEDIUM - Can't track pattern health | M8 | FIXED (Plan 12-02) |
 | No emotion-driven shots | MEDIUM - Camera doesn't respond to dialogue | M8 (CAM-03) | FIXED (Plan 13-01) |
 | Jump cuts between shots | MEDIUM - Jarring visual transitions | M8 (FLOW-03) | FIXED (Plan 14-01) |
+| Action scenes lack variety | MEDIUM - All action shots same type | M8 (SCNE-02) | FIXED (Plan 14-02) |
 
 ---
 
-## Phase 14 Summary - IN PROGRESS
+## Phase 14 Summary - COMPLETE
 
-**Cinematic Flow & Action Scenes** - In Progress
+**Cinematic Flow & Action Scenes** - Complete
 
 ### Plan 14-01: Transition Validation (FLOW-03) - COMPLETE
 **Key accomplishments:**
@@ -158,7 +169,21 @@ The system should be sophisticated and automatically updated based on previous s
 **Files modified:**
 - DialogueSceneDecomposerService.php (+162 lines)
 
-### Plan 14-02: Action Scene Pacing - PENDING
+### Plan 14-02: Action Scene Decomposition (SCNE-02) - COMPLETE
+**Key accomplishments:**
+- decomposeActionScene() for non-dialogue scenes using ShotContinuityService
+- SceneTypeDetectorService integration for scene type routing
+- extractActionBeats() splits narration into shot-worthy action chunks
+- ensureVisualContinuity() attaches location/time/weather metadata
+- Visual continuity applied in both dialogue and action paths
+
+**Commits:**
+- `9c25919` feat(14-02): add decomposeActionScene method for action scene coverage (SCNE-02)
+- `c65259a` feat(14-02): add scene type detection and routing in VideoWizard
+
+**Files modified:**
+- DialogueSceneDecomposerService.php (+456 lines)
+- VideoWizard.php (+57 lines)
 
 ---
 
@@ -297,20 +322,22 @@ None currently.
 |------|---------|--------|
 | `.planning/PROJECT.md` | Project context | Updated (2026-01-23) |
 | `.planning/STATE.md` | Current state tracking | Updated (2026-01-23) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 12) |
-| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposition | Modified (Plan 14-01) |
-| `modules/AppVideoWizard/app/Services/DynamicShotEngine.php` | Shot count/type | Target for Plan 14-02 |
+| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Plan 14-02) |
+| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposition | Modified (Plan 14-02) |
+| `modules/AppVideoWizard/app/Services/SceneTypeDetectorService.php` | Scene type detection | Integrated (Plan 14-02) |
+| `modules/AppVideoWizard/app/Services/ShotContinuityService.php` | Coverage patterns | Used (Plan 14-02) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-01-PLAN.md (Transition Validation)
-**Resume file:** .planning/phases/14-cinematic-flow-action-scenes/14-01-SUMMARY.md
-**Next step:** Execute Plan 14-02 (Action Scene Pacing)
+**Stopped at:** Completed 14-02-PLAN.md (Action Scene Decomposition)
+**Resume file:** .planning/phases/14-cinematic-flow-action-scenes/14-02-SUMMARY.md
+**Next step:** Milestone 8 complete - ready for next milestone
 
 ---
 
 *Session: Milestone 8 - Cinematic Shot Architecture*
 *Milestone started: 2026-01-23*
+*Milestone completed: 2026-01-23*
