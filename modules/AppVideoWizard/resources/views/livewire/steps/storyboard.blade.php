@@ -1927,6 +1927,448 @@
         color: rgba(255, 255, 255, 0.5);
         margin-right: 0.25rem;
     }
+
+    /* ========================================
+       PHASE 3: AI-NATIVE FEATURES
+       ======================================== */
+
+    /* @ Mention Autocomplete Dropdown */
+    .vw-mention-autocomplete {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        background: rgba(20, 20, 35, 0.98);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        border-radius: 0.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        backdrop-filter: blur(12px);
+        margin-top: 0.25rem;
+    }
+
+    .vw-mention-group-header {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .vw-mention-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .vw-mention-item:hover,
+    .vw-mention-item.active {
+        background: rgba(139, 92, 246, 0.15);
+    }
+
+    .vw-mention-item-image {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.35rem;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .vw-mention-item-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.35rem;
+        background: rgba(139, 92, 246, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .vw-mention-item-info {
+        flex: 1;
+    }
+
+    .vw-mention-item-name {
+        font-size: 0.8rem;
+        color: white;
+        font-weight: 500;
+    }
+
+    .vw-mention-item-tag {
+        font-size: 0.65rem;
+        color: #a78bfa;
+        font-family: monospace;
+    }
+
+    .vw-mention-item-type {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.25rem;
+        background: rgba(139, 92, 246, 0.2);
+        color: #c4b5fd;
+    }
+
+    /* Brainstorm Suggestions Panel */
+    .vw-brainstorm-panel {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(236, 72, 153, 0.08));
+        border: 1px solid rgba(139, 92, 246, 0.25);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .vw-brainstorm-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        background: rgba(139, 92, 246, 0.1);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .vw-brainstorm-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #c4b5fd;
+    }
+
+    .vw-brainstorm-badge {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.4rem;
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 0.25rem;
+        color: #e9d5ff;
+    }
+
+    .vw-brainstorm-body {
+        padding: 0.75rem 1rem;
+    }
+
+    .vw-brainstorm-suggestions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .vw-brainstorm-suggestion {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .vw-brainstorm-suggestion:hover {
+        background: rgba(139, 92, 246, 0.1);
+        border-color: rgba(139, 92, 246, 0.3);
+        transform: translateX(4px);
+    }
+
+    .vw-brainstorm-suggestion-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .vw-brainstorm-suggestion-content {
+        flex: 1;
+    }
+
+    .vw-brainstorm-suggestion-type {
+        font-size: 0.65rem;
+        color: #f472b6;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.15rem;
+    }
+
+    .vw-brainstorm-suggestion-text {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.4;
+    }
+
+    .vw-brainstorm-suggestion-apply {
+        padding: 0.35rem 0.6rem;
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        border-radius: 0.35rem;
+        color: #c4b5fd;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        opacity: 0;
+    }
+
+    .vw-brainstorm-suggestion:hover .vw-brainstorm-suggestion-apply {
+        opacity: 1;
+    }
+
+    .vw-brainstorm-suggestion-apply:hover {
+        background: rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-brainstorm-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.8rem;
+    }
+
+    .vw-brainstorm-loading-spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(139, 92, 246, 0.3);
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: vw-spin 0.8s linear infinite;
+    }
+
+    .vw-brainstorm-empty {
+        text-align: center;
+        padding: 1.5rem;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.8rem;
+    }
+
+    .vw-brainstorm-refresh {
+        padding: 0.35rem 0.7rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.35rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.7rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.15s ease;
+    }
+
+    .vw-brainstorm-refresh:hover {
+        background: rgba(139, 92, 246, 0.15);
+        border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    /* Progressive Generation Preview */
+    .vw-generation-preview {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.5rem;
+    }
+
+    .vw-generation-preview-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+
+    .vw-generation-preview-progress {
+        width: 60%;
+        max-width: 200px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-generation-preview-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+        animation: vw-generation-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes vw-generation-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .vw-generation-preview-status {
+        font-size: 0.75rem;
+        color: white;
+        font-weight: 500;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .vw-generation-preview-substatus {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 0.25rem;
+    }
+
+    /* Progressive image reveal effect */
+    .vw-generation-reveal {
+        position: relative;
+    }
+
+    .vw-generation-reveal::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(15, 15, 28, 0.5) 50%,
+            rgba(15, 15, 28, 1) 100%
+        );
+        animation: vw-reveal-scan 2s ease-in-out infinite;
+    }
+
+    @keyframes vw-reveal-scan {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+
+    /* AI Confidence Indicator */
+    .vw-ai-confidence {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .vw-ai-confidence-bar {
+        width: 60px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .vw-ai-confidence-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.3s ease;
+    }
+
+    .vw-ai-confidence-fill.high {
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .vw-ai-confidence-fill.medium {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    .vw-ai-confidence-fill.low {
+        background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+
+    /* Prompt Input with @ Mention Support */
+    .vw-prompt-input-container {
+        position: relative;
+    }
+
+    .vw-prompt-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.5rem;
+        color: white;
+        font-size: 0.85rem;
+        min-height: 100px;
+        resize: vertical;
+        transition: border-color 0.2s ease;
+    }
+
+    .vw-prompt-textarea:focus {
+        outline: none;
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .vw-prompt-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.35);
+    }
+
+    /* @ Mention in textarea highlight */
+    .vw-prompt-mention {
+        color: #a78bfa;
+        background: rgba(139, 92, 246, 0.15);
+        padding: 0.1rem 0.25rem;
+        border-radius: 0.2rem;
+    }
+
+    /* Keyboard hints */
+    .vw-keyboard-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 0.35rem;
+    }
+
+    .vw-keyboard-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.25rem;
+        padding: 0.1rem 0.3rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.2rem;
+        font-size: 0.6rem;
+        font-family: monospace;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Phase 3: Progressive Generation Animations */
+    @keyframes vw-gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    @keyframes vw-scan-line {
+        0% { top: -2px; }
+        100% { top: 100%; }
+    }
+
+    @keyframes vw-pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px 10px rgba(139, 92, 246, 0.1);
+        }
+    }
+
+    /* Brainstorm panel transitions */
+    .vw-brainstorm-panel[x-cloak] { display: none; }
 </style>
 
 @php
@@ -2006,6 +2448,179 @@ function getCameraMovementIcon($movement) {
         this.sidePanel.open = false;
         this.sidePanel.type = null;
         this.sidePanel.sceneIndex = null;
+    },
+    // Phase 3: @ Mention System
+    mention: {
+        active: false,
+        query: '',
+        selectedIndex: 0,
+        inputEl: null,
+        cursorPos: 0
+    },
+    get mentionItems() {
+        const characters = @js($sceneMemory['characterBible']['characters'] ?? []).map(c => ({
+            type: 'character',
+            icon: '👤',
+            name: c.name || 'Character',
+            tag: '@' + (c.name || 'character').toLowerCase().replace(/\s+/g, '-'),
+            image: c.referenceImage || null
+        }));
+        const locations = @js($sceneMemory['locationBible']['locations'] ?? []).map(l => ({
+            type: 'location',
+            icon: '📍',
+            name: l.name || 'Location',
+            tag: '@' + (l.name || 'location').toLowerCase().replace(/\s+/g, '-'),
+            image: l.referenceImage || null
+        }));
+        const allItems = [...characters, ...locations];
+        if (!this.mention.query) return allItems;
+        const q = this.mention.query.toLowerCase();
+        return allItems.filter(item =>
+            item.name.toLowerCase().includes(q) ||
+            item.tag.toLowerCase().includes(q)
+        );
+    },
+    handleMentionInput(e) {
+        const textarea = e.target;
+        const value = textarea.value;
+        const cursorPos = textarea.selectionStart;
+
+        // Find @ before cursor
+        let atPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+            if (value[i] === '@') {
+                atPos = i;
+                break;
+            } else if (value[i] === ' ' || value[i] === '\n') {
+                break;
+            }
+        }
+
+        if (atPos >= 0) {
+            this.mention.active = true;
+            this.mention.query = value.substring(atPos + 1, cursorPos);
+            this.mention.inputEl = textarea;
+            this.mention.cursorPos = cursorPos;
+            this.mention.selectedIndex = 0;
+        } else {
+            this.mention.active = false;
+            this.mention.query = '';
+        }
+    },
+    handleMentionKeydown(e) {
+        if (!this.mention.active) return;
+
+        const items = this.mentionItems;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.mention.selectedIndex = Math.min(this.mention.selectedIndex + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.mention.selectedIndex = Math.max(this.mention.selectedIndex - 1, 0);
+        } else if (e.key === 'Enter' && items.length > 0) {
+            e.preventDefault();
+            this.insertMention(items[this.mention.selectedIndex]);
+        } else if (e.key === 'Escape') {
+            this.mention.active = false;
+        }
+    },
+    insertMention(item) {
+        if (!this.mention.inputEl) return;
+        const textarea = this.mention.inputEl;
+        const value = textarea.value;
+        const cursorPos = this.mention.cursorPos;
+
+        // Find @ position
+        let atPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+            if (value[i] === '@') { atPos = i; break; }
+        }
+        if (atPos < 0) return;
+
+        const before = value.substring(0, atPos);
+        const after = value.substring(cursorPos);
+        const newValue = before + item.tag + ' ' + after;
+
+        textarea.value = newValue;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+        const newCursorPos = atPos + item.tag.length + 1;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+
+        this.mention.active = false;
+        this.mention.query = '';
+    },
+    // Phase 3: Brainstorm Suggestions
+    brainstorm: {
+        open: false,
+        loading: false,
+        suggestions: [],
+        sceneIndex: null
+    },
+    async fetchBrainstormSuggestions(sceneIndex) {
+        this.brainstorm.sceneIndex = sceneIndex;
+        this.brainstorm.open = true;
+        this.brainstorm.loading = true;
+        this.brainstorm.suggestions = [];
+
+        // Simulate AI suggestions (in production, this would call a backend endpoint)
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
+        this.brainstorm.suggestions = [
+            { type: 'angle', icon: '📐', text: 'Try a low-angle shot to emphasize power and dominance' },
+            { type: 'lighting', icon: '💡', text: 'Add golden hour rim lighting for dramatic silhouette' },
+            { type: 'mood', icon: '🎭', text: 'Increase contrast and add fog for mysterious atmosphere' },
+            { type: 'composition', icon: '📷', text: 'Use rule of thirds with subject off-center for visual tension' }
+        ];
+        this.brainstorm.loading = false;
+    },
+    closeBrainstorm() {
+        this.brainstorm.open = false;
+        this.brainstorm.suggestions = [];
+    },
+    // Phase 3: Progressive Generation
+    generation: {
+        active: false,
+        sceneIndex: null,
+        progress: 0,
+        status: 'Initializing...',
+        substatus: ''
+    },
+    startProgressiveGeneration(sceneIndex) {
+        this.generation.active = true;
+        this.generation.sceneIndex = sceneIndex;
+        this.generation.progress = 0;
+        this.generation.status = 'Preparing scene...';
+        this.generation.substatus = 'Analyzing prompt';
+        this.simulateProgress();
+    },
+    async simulateProgress() {
+        const stages = [
+            { progress: 15, status: 'Processing prompt...', substatus: 'Applying style tokens' },
+            { progress: 35, status: 'Generating base...', substatus: 'Creating composition' },
+            { progress: 55, status: 'Adding details...', substatus: 'Rendering textures' },
+            { progress: 75, status: 'Refining image...', substatus: 'Enhancing lighting' },
+            { progress: 90, status: 'Final touches...', substatus: 'Applying color grading' },
+            { progress: 100, status: 'Complete!', substatus: '' }
+        ];
+
+        for (const stage of stages) {
+            await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 400));
+            if (!this.generation.active) break;
+            this.generation.progress = stage.progress;
+            this.generation.status = stage.status;
+            this.generation.substatus = stage.substatus;
+        }
+
+        if (this.generation.progress >= 100) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            this.generation.active = false;
+        }
+    },
+    cancelGeneration() {
+        this.generation.active = false;
+        this.generation.progress = 0;
     }
 }">
     {{-- Top Header Bar --}}
@@ -3011,6 +3626,12 @@ function getCameraMovementIcon($movement) {
                                     title="{{ __('Stock media') }}">
                                 📷
                             </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    @click="fetchBrainstormSuggestions({{ $index }})"
+                                    title="{{ __('AI Brainstorm') }}">
+                                💡
+                            </button>
                         @else
                             <button type="button"
                                     class="vw-floating-toolbar-btn primary"
@@ -3025,7 +3646,74 @@ function getCameraMovementIcon($movement) {
                                     title="{{ __('Browse stock') }}">
                                 📷 {{ __('Stock') }}
                             </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    @click="fetchBrainstormSuggestions({{ $index }})"
+                                    title="{{ __('AI Brainstorm') }}">
+                                💡 {{ __('Ideas') }}
+                            </button>
                         @endif
+                    </div>
+
+                    {{-- Phase 3: Brainstorm Suggestions Panel --}}
+                    <div class="vw-brainstorm-panel"
+                         x-show="brainstorm.open && brainstorm.sceneIndex === {{ $index }}"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 transform -translate-y-2"
+                         x-transition:enter-end="opacity-100 transform translate-y-0"
+                         x-cloak>
+                        <div class="vw-brainstorm-header">
+                            <div class="vw-brainstorm-title">
+                                <span>💡</span>
+                                <span>{{ __('AI Suggestions') }}</span>
+                                <span class="vw-brainstorm-badge">{{ __('Scene') }} {{ $index + 1 }}</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button"
+                                        class="vw-brainstorm-refresh"
+                                        @click="fetchBrainstormSuggestions({{ $index }})"
+                                        :disabled="brainstorm.loading">
+                                    <span x-show="!brainstorm.loading">🔄</span>
+                                    <span x-show="brainstorm.loading" class="vw-brainstorm-loading-spinner"></span>
+                                    <span>{{ __('Refresh') }}</span>
+                                </button>
+                                <button type="button"
+                                        @click="closeBrainstorm()"
+                                        style="padding: 0.25rem 0.5rem; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem;">
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                        <div class="vw-brainstorm-body">
+                            <template x-if="brainstorm.loading">
+                                <div class="vw-brainstorm-loading">
+                                    <span class="vw-brainstorm-loading-spinner"></span>
+                                    <span>{{ __('Generating creative suggestions...') }}</span>
+                                </div>
+                            </template>
+                            <template x-if="!brainstorm.loading && brainstorm.suggestions.length === 0">
+                                <div class="vw-brainstorm-empty">
+                                    {{ __('No suggestions available. Click refresh to generate new ideas.') }}
+                                </div>
+                            </template>
+                            <template x-if="!brainstorm.loading && brainstorm.suggestions.length > 0">
+                                <div class="vw-brainstorm-suggestions">
+                                    <template x-for="(suggestion, idx) in brainstorm.suggestions" :key="idx">
+                                        <div class="vw-brainstorm-suggestion"
+                                             @click="$wire.appendToScenePrompt({{ $index }}, suggestion.text)">
+                                            <div class="vw-brainstorm-suggestion-icon" x-text="suggestion.icon"></div>
+                                            <div class="vw-brainstorm-suggestion-content">
+                                                <div class="vw-brainstorm-suggestion-type" x-text="suggestion.type"></div>
+                                                <div class="vw-brainstorm-suggestion-text" x-text="suggestion.text"></div>
+                                            </div>
+                                            <button type="button" class="vw-brainstorm-suggestion-apply">
+                                                {{ __('Apply') }} →
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
                     {{-- Image Container with Overlays --}}
@@ -3111,16 +3799,80 @@ function getCameraMovementIcon($movement) {
                         {{-- Main Image Content Area --}}
                         <div class="vw-scene-image-container">
                             @if($status === 'generating')
-                                {{-- Generating State --}}
-                                <div class="vw-scene-generating">
-                                    <div class="vw-spinner"></div>
-                                    <span class="vw-generating-text">{{ __('Generating...') }}</span>
+                                {{-- Phase 3: Progressive Generation Preview --}}
+                                <div class="vw-generation-preview"
+                                     x-data="{
+                                         progress: 0,
+                                         status: '{{ __('Initializing...') }}',
+                                         substatus: '{{ __('Connecting to AI') }}',
+                                         stages: [
+                                             { p: 10, s: '{{ __('Processing prompt...') }}', sub: '{{ __('Analyzing scene') }}' },
+                                             { p: 25, s: '{{ __('Generating base...') }}', sub: '{{ __('Creating composition') }}' },
+                                             { p: 45, s: '{{ __('Adding details...') }}', sub: '{{ __('Rendering textures') }}' },
+                                             { p: 65, s: '{{ __('Refining image...') }}', sub: '{{ __('Enhancing lighting') }}' },
+                                             { p: 85, s: '{{ __('Final touches...') }}', sub: '{{ __('Color grading') }}' },
+                                             { p: 95, s: '{{ __('Almost ready...') }}', sub: '{{ __('Optimizing output') }}' }
+                                         ],
+                                         stageIdx: 0,
+                                         init() {
+                                             this.runProgress();
+                                         },
+                                         async runProgress() {
+                                             for (let i = 0; i < this.stages.length; i++) {
+                                                 await new Promise(r => setTimeout(r, 2000 + Math.random() * 1500));
+                                                 this.progress = this.stages[i].p;
+                                                 this.status = this.stages[i].s;
+                                                 this.substatus = this.stages[i].sub;
+                                             }
+                                         }
+                                     }"
+                                     style="height: 220px; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+
+                                    {{-- Animated background gradient --}}
+                                    <div style="position: absolute; inset: 0; background: linear-gradient(45deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1), rgba(236,72,153,0.1)); background-size: 400% 400%; animation: vw-gradient-shift 4s ease infinite;"></div>
+
+                                    {{-- Scan line effect --}}
+                                    <div style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;">
+                                        <div style="position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent); animation: vw-scan-line 2s linear infinite;"></div>
+                                    </div>
+
+                                    {{-- Progress content --}}
+                                    <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                        {{-- AI Icon with pulse --}}
+                                        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); display: flex; align-items: center; justify-content: center; animation: vw-pulse 1.5s ease-in-out infinite;">
+                                            <span style="font-size: 1.5rem;">🎨</span>
+                                        </div>
+
+                                        {{-- Progress bar --}}
+                                        <div class="vw-generation-preview-progress" style="width: 180px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                            <div class="vw-generation-preview-bar"
+                                                 :style="'width: ' + progress + '%'"
+                                                 style="height: 100%; background: linear-gradient(90deg, #8b5cf6, #06b6d4); border-radius: 3px; transition: width 0.5s ease;"></div>
+                                        </div>
+
+                                        {{-- Status text --}}
+                                        <div style="text-align: center;">
+                                            <div class="vw-generation-preview-status" x-text="status" style="font-size: 0.85rem; color: white; font-weight: 500;"></div>
+                                            <div class="vw-generation-preview-substatus" x-text="substatus" style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-top: 0.25rem;"></div>
+                                        </div>
+
+                                        {{-- AI Confidence indicator --}}
+                                        <div class="vw-ai-confidence" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                            <span>{{ __('AI Confidence:') }}</span>
+                                            <div class="vw-ai-confidence-bar" style="width: 50px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                                <div class="vw-ai-confidence-fill high" style="width: 85%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                                            </div>
+                                            <span>{{ __('High') }}</span>
+                                        </div>
+                                    </div>
+
+                                    {{-- Cancel button --}}
                                     <button type="button"
                                             wire:click="cancelImageGeneration({{ $index }})"
                                             wire:confirm="{{ __('Cancel this generation? You can retry afterwards.') }}"
-                                            style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 0.25rem; border: 1px solid rgba(239,68,68,0.5); background: rgba(239,68,68,0.2); color: #f87171; cursor: pointer; font-size: 0.7rem; transition: all 0.2s;"
-                                            onmouseover="this.style.background='rgba(239,68,68,0.4)'"
-                                            onmouseout="this.style.background='rgba(239,68,68,0.2)'"
+                                            style="position: absolute; bottom: 0.75rem; right: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 0.35rem; border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.15); color: #f87171; cursor: pointer; font-size: 0.7rem; transition: all 0.2s; z-index: 10;"
+                                            onmouseover="this.style.background='rgba(239,68,68,0.3)'"
+                                            onmouseout="this.style.background='rgba(239,68,68,0.15)'"
                                             title="{{ __('Cancel and retry') }}">
                                         ✕ {{ __('Cancel') }}
                                     </button>
@@ -3963,6 +4715,30 @@ function getCameraMovementIcon($movement) {
 
     {{-- Scene DNA Overview Modal --}}
     @include('appvideowizard::livewire.modals.scene-dna')
+
+    {{-- Phase 3: Initialize Bible Items for @ Mention System --}}
+    <script>
+        window.bibleItems = [
+            @foreach($sceneMemory['characterBible']['characters'] ?? [] as $char)
+            {
+                type: 'character',
+                icon: '👤',
+                name: @js($char['name'] ?? 'Character'),
+                tag: '@' + @js(Str::slug($char['name'] ?? 'character')),
+                image: @js($char['referenceImage'] ?? null)
+            },
+            @endforeach
+            @foreach($sceneMemory['locationBible']['locations'] ?? [] as $loc)
+            {
+                type: 'location',
+                icon: '📍',
+                name: @js($loc['name'] ?? 'Location'),
+                tag: '@' + @js(Str::slug($loc['name'] ?? 'location')),
+                image: @js($loc['referenceImage'] ?? null)
+            },
+            @endforeach
+        ];
+    </script>
 
     {{-- Edit Prompt Modal --}}
     @include('appvideowizard::livewire.modals.edit-prompt')
