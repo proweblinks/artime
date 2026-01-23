@@ -1125,6 +1125,448 @@
         border-color: rgba(139, 92, 246, 0.5);
         background: rgba(0, 0, 0, 0.4);
     }
+
+    /* ========================================
+       PHASE 1: UI UPGRADE - Skeleton Loading
+       ======================================== */
+
+    @keyframes vw-shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+
+    .vw-skeleton {
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
+        background-size: 200% 100%;
+        animation: vw-shimmer 1.5s ease-in-out infinite;
+        border-radius: 0.5rem;
+    }
+
+    .vw-skeleton-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .vw-skeleton-image {
+        aspect-ratio: 16/9;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
+        background-size: 200% 100%;
+        animation: vw-shimmer 1.5s ease-in-out infinite;
+    }
+
+    .vw-skeleton-content {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .vw-skeleton-line {
+        height: 0.75rem;
+        border-radius: 0.25rem;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            rgba(255, 255, 255, 0.05) 100%
+        );
+        background-size: 200% 100%;
+        animation: vw-shimmer 1.5s ease-in-out infinite;
+    }
+
+    .vw-skeleton-line.short {
+        width: 60%;
+    }
+
+    .vw-skeleton-line.medium {
+        width: 80%;
+    }
+
+    /* ========================================
+       PHASE 1: UI UPGRADE - Floating Toolbar
+       ======================================== */
+
+    .vw-scene-card {
+        position: relative;
+    }
+
+    .vw-floating-toolbar {
+        position: absolute;
+        bottom: calc(100% + 0.5rem);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(20, 20, 35, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        border-radius: 0.75rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        z-index: 100;
+        white-space: nowrap;
+    }
+
+    .vw-scene-card:hover .vw-floating-toolbar,
+    .vw-scene-card.selected .vw-floating-toolbar {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .vw-floating-toolbar-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 0.5rem;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.9);
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+    }
+
+    .vw-floating-toolbar-btn:hover {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    .vw-floating-toolbar-btn.primary {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.3));
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .vw-floating-toolbar-btn.primary:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.5));
+    }
+
+    .vw-floating-toolbar-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+
+    .vw-floating-toolbar-divider {
+        width: 1px;
+        height: 1.25rem;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 0 0.25rem;
+    }
+
+    /* ========================================
+       PHASE 1: UI UPGRADE - View Mode Toggle
+       ======================================== */
+
+    .vw-view-mode-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+    }
+
+    .vw-view-mode-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.35rem;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.15s ease;
+    }
+
+    .vw-view-mode-btn:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-view-mode-btn.active {
+        background: rgba(139, 92, 246, 0.25);
+        color: white;
+        font-weight: 500;
+    }
+
+    /* Timeline View Styles */
+    .vw-timeline-view {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem 0;
+    }
+
+    .vw-timeline-header {
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-timeline-ruler {
+        display: flex;
+        flex: 1;
+        margin-left: 1rem;
+    }
+
+    .vw-timeline-ruler span {
+        flex: 1;
+        text-align: center;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        padding-left: 0.5rem;
+    }
+
+    .vw-timeline-row {
+        display: flex;
+        align-items: stretch;
+        min-height: 80px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: background 0.2s;
+    }
+
+    .vw-timeline-row:hover {
+        background: rgba(139, 92, 246, 0.05);
+    }
+
+    .vw-timeline-scene-info {
+        width: 120px;
+        flex-shrink: 0;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.25rem;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .vw-timeline-scene-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .vw-timeline-scene-duration {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .vw-timeline-shots {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.5rem;
+        overflow-x: auto;
+    }
+
+    .vw-timeline-shot {
+        flex-shrink: 0;
+        height: 60px;
+        border-radius: 0.35rem;
+        overflow: hidden;
+        border: 2px solid transparent;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .vw-timeline-shot:hover {
+        border-color: rgba(139, 92, 246, 0.6);
+        transform: scale(1.05);
+        z-index: 10;
+    }
+
+    .vw-timeline-shot img {
+        height: 100%;
+        width: auto;
+        min-width: 80px;
+        max-width: 160px;
+        object-fit: cover;
+    }
+
+    .vw-timeline-shot-duration {
+        position: absolute;
+        bottom: 0.25rem;
+        right: 0.25rem;
+        padding: 0.15rem 0.35rem;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 0.25rem;
+        font-size: 0.6rem;
+        color: white;
+    }
+
+    .vw-timeline-shot.pending {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        min-width: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .vw-timeline-shot.generating {
+        background: rgba(139, 92, 246, 0.1);
+        border: 2px solid rgba(139, 92, 246, 0.4);
+        min-width: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ========================================
+       PHASE 1: UI UPGRADE - Enhanced Progress
+       ======================================== */
+
+    .vw-enhanced-progress {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+        background: rgba(139, 92, 246, 0.08);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .vw-progress-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .vw-progress-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .vw-progress-title .generating-dot {
+        width: 8px;
+        height: 8px;
+        background: #8b5cf6;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+    }
+
+    .vw-progress-stats {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .vw-progress-bar-container {
+        position: relative;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .vw-progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        position: relative;
+    }
+
+    .vw-progress-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.3) 50%,
+            transparent 100%
+        );
+        animation: vw-shimmer 1.5s ease-in-out infinite;
+        background-size: 200% 100%;
+    }
+
+    .vw-progress-details {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .vw-progress-step {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .vw-progress-step .step-icon {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(139, 92, 246, 0.5);
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: vw-spin 0.8s linear infinite;
+    }
+
+    .vw-progress-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .vw-progress-action-btn {
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.35rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        font-size: 0.7rem;
+        transition: all 0.15s;
+    }
+
+    .vw-progress-action-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .vw-progress-action-btn.cancel:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
 </style>
 
 @php
@@ -1177,7 +1619,13 @@ function getCameraMovementIcon($movement) {
 }
 @endphp
 
-<div class="vw-storyboard-fullscreen" x-data="{ showSettings: true, selectedModel: '{{ $storyboard['imageModel'] ?? 'nanobanana' }}' }">
+<div class="vw-storyboard-fullscreen" x-data="{
+    showSettings: true,
+    selectedModel: '{{ $storyboard['imageModel'] ?? 'nanobanana' }}',
+    viewMode: 'grid',
+    selectedCard: null,
+    isGenerating: false
+}">
     {{-- Top Header Bar --}}
     <div class="vw-storyboard-topbar">
         {{-- Brand --}}
@@ -1213,6 +1661,35 @@ function getCameraMovementIcon($movement) {
 
         {{-- Header Actions --}}
         <div class="vw-storyboard-actions">
+            {{-- View Mode Toggle --}}
+            <div class="vw-view-mode-toggle">
+                <button type="button"
+                        class="vw-view-mode-btn"
+                        :class="{ 'active': viewMode === 'grid' }"
+                        @click="viewMode = 'grid'"
+                        title="{{ __('Grid View') }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>{{ __('Grid') }}</span>
+                </button>
+                <button type="button"
+                        class="vw-view-mode-btn"
+                        :class="{ 'active': viewMode === 'timeline' }"
+                        @click="viewMode = 'timeline'"
+                        title="{{ __('Timeline View') }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                    <span>{{ __('Timeline') }}</span>
+                </button>
+            </div>
+
             {{-- Settings Toggle --}}
             <button type="button"
                     class="vw-settings-toggle"
@@ -1313,6 +1790,57 @@ function getCameraMovementIcon($movement) {
                                 <div style="position: absolute; top: 2px; left: {{ $multiShotMode['enabled'] ? '22px' : '2px' }}; width: 16px; height: 16px; background: {{ $multiShotMode['enabled'] ? '#8b5cf6' : 'white' }}; border-radius: 50%; transition: all 0.2s;"></div>
                             </div>
                         </label>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Enhanced Progress Indicator (shows during batch generation) --}}
+            @php
+                $generatingScenes = collect($storyboard['scenes'] ?? [])->filter(fn($s) => ($s['status'] ?? '') === 'generating');
+                $isGeneratingBatch = $generatingScenes->count() > 0;
+                $totalToGenerate = count($script['scenes'] ?? []);
+                $completedGeneration = collect($storyboard['scenes'] ?? [])->filter(fn($s) => !empty($s['imageUrl']))->count();
+                $progressPercent = $totalToGenerate > 0 ? round(($completedGeneration / $totalToGenerate) * 100) : 0;
+            @endphp
+            <div class="vw-enhanced-progress"
+                 x-show="$wire.isGenerating || {{ $isGeneratingBatch ? 'true' : 'false' }}"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 style="{{ $isGeneratingBatch ? '' : 'display: none;' }}">
+                <div class="vw-progress-header">
+                    <div class="vw-progress-title">
+                        <span class="generating-dot"></span>
+                        <span>{{ __('Generating Images') }}</span>
+                    </div>
+                    <div class="vw-progress-stats">
+                        <span>{{ $completedGeneration }}/{{ $totalToGenerate }} {{ __('complete') }}</span>
+                        <span>•</span>
+                        <span>~{{ max(1, ($totalToGenerate - $completedGeneration) * 8) }}s {{ __('remaining') }}</span>
+                    </div>
+                </div>
+                <div class="vw-progress-bar-container">
+                    <div class="vw-progress-bar-fill" style="width: {{ $progressPercent }}%;"></div>
+                </div>
+                <div class="vw-progress-details">
+                    <div class="vw-progress-step">
+                        @if($generatingScenes->count() > 0)
+                            <span class="step-icon"></span>
+                            <span>{{ __('Generating Scene') }} {{ $generatingScenes->keys()->first() + 1 }}...</span>
+                        @else
+                            <span>{{ __('Waiting to start...') }}</span>
+                        @endif
+                    </div>
+                    <div class="vw-progress-actions">
+                        <button type="button"
+                                class="vw-progress-action-btn cancel"
+                                wire:click="cancelAllGenerations"
+                                title="{{ __('Cancel all') }}">
+                            ✕ {{ __('Cancel') }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1929,8 +2457,28 @@ function getCameraMovementIcon($movement) {
                 </div>
             @endif
 
-            {{-- Storyboard Grid - Using Paginated Scenes --}}
-            <div class="vw-storyboard-grid">
+            {{-- Skeleton Loading Grid (shows during initial load) --}}
+            <div class="vw-storyboard-grid"
+                 wire:loading.flex
+                 wire:target="goToStoryboardPage,previousStoryboardPage,nextStoryboardPage"
+                 style="display: none;">
+                @for($i = 0; $i < 6; $i++)
+                <div class="vw-skeleton-card">
+                    <div class="vw-skeleton-image"></div>
+                    <div class="vw-skeleton-content">
+                        <div class="vw-skeleton-line medium"></div>
+                        <div class="vw-skeleton-line short"></div>
+                    </div>
+                </div>
+                @endfor
+            </div>
+
+            {{-- Storyboard Grid - Using Paginated Scenes (Grid View) --}}
+            <div class="vw-storyboard-grid"
+                 x-show="viewMode === 'grid'"
+                 x-transition
+                 wire:loading.remove
+                 wire:target="goToStoryboardPage,previousStoryboardPage,nextStoryboardPage">
             @foreach($paginatedData['scenes'] as $localIndex => $scene)
                 @php
                     // Get the actual index in the full scenes array
@@ -1947,6 +2495,58 @@ function getCameraMovementIcon($movement) {
                     $hasChainData = isset($storyboard['promptChain']['scenes'][$index]) && ($storyboard['promptChain']['status'] ?? '') === 'ready';
                 @endphp
                 <div class="vw-scene-card" wire:key="scene-card-{{ $index }}">
+                    {{-- Floating Toolbar (appears on hover) --}}
+                    <div class="vw-floating-toolbar">
+                        @if($imageUrl)
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn primary"
+                                    wire:click="openAIEditModal({{ $index }})"
+                                    title="{{ __('Edit with AI') }}">
+                                ✨ {{ __('Edit') }}
+                            </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                    wire:loading.attr="disabled"
+                                    title="{{ __('Regenerate') }}">
+                                🔄 {{ __('Regen') }}
+                            </button>
+                            <div class="vw-floating-toolbar-divider"></div>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="openUpscaleModal({{ $index }})"
+                                    title="{{ __('Upscale') }}">
+                                ⬆️
+                            </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="openMultiShotModal({{ $index }})"
+                                    title="{{ __('Multi-shot') }}">
+                                ✂️
+                            </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="openStockBrowser({{ $index }})"
+                                    title="{{ __('Stock media') }}">
+                                📷
+                            </button>
+                        @else
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn primary"
+                                    wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                    wire:loading.attr="disabled"
+                                    title="{{ __('Generate with AI') }}">
+                                🎨 {{ __('Generate') }}
+                            </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="openStockBrowser({{ $index }})"
+                                    title="{{ __('Browse stock') }}">
+                                📷 {{ __('Stock') }}
+                            </button>
+                        @endif
+                    </div>
+
                     {{-- Image Container with Overlays --}}
                     <div style="position: relative;">
                         {{-- Scene Number Badge - Always visible, top-left --}}
@@ -2689,6 +3289,90 @@ function getCameraMovementIcon($movement) {
                 </div>
             @endforeach
             </div>
+
+            {{-- Timeline View --}}
+            <div class="vw-timeline-view" x-show="viewMode === 'timeline'" x-transition x-cloak>
+                {{-- Timeline Header with Ruler --}}
+                <div class="vw-timeline-header">
+                    <span style="width: 120px;">{{ __('Scene') }}</span>
+                    <div class="vw-timeline-ruler">
+                        <span>0s</span>
+                        <span>5s</span>
+                        <span>10s</span>
+                        <span>15s</span>
+                        <span>20s</span>
+                    </div>
+                </div>
+
+                {{-- Timeline Rows --}}
+                @foreach($paginatedData['scenes'] as $localIndex => $scene)
+                    @php
+                        $index = $paginatedData['indices'][$localIndex] ?? $localIndex;
+                        $storyboardScene = $storyboard['scenes'][$index] ?? null;
+                        $imageUrl = $storyboardScene['imageUrl'] ?? null;
+                        $status = $storyboardScene['status'] ?? 'pending';
+                        $hasMultiShot = isset($multiShotMode['decomposedScenes'][$index]);
+                        $decomposed = $hasMultiShot ? $multiShotMode['decomposedScenes'][$index] : null;
+                        $sceneDuration = $scene['duration'] ?? 8;
+                    @endphp
+                    <div class="vw-timeline-row" wire:key="timeline-row-{{ $index }}">
+                        <div class="vw-timeline-scene-info">
+                            <div class="vw-timeline-scene-label">{{ __('Scene') }} {{ $index + 1 }}</div>
+                            <div class="vw-timeline-scene-duration">{{ $sceneDuration }}s</div>
+                        </div>
+                        <div class="vw-timeline-shots">
+                            @if($hasMultiShot && !empty($decomposed['shots']))
+                                @foreach($decomposed['shots'] as $shotIndex => $shot)
+                                    @php
+                                        $shotImageUrl = $shot['imageUrl'] ?? null;
+                                        $shotStatus = $shot['imageStatus'] ?? $shot['status'] ?? 'pending';
+                                        $shotDuration = $shot['duration'] ?? 3;
+                                    @endphp
+                                    @if($shotStatus === 'generating')
+                                        <div class="vw-timeline-shot generating" style="width: {{ max(80, $shotDuration * 20) }}px;" title="{{ __('Generating...') }}">
+                                            <div class="vw-spinner" style="width: 1.5rem; height: 1.5rem; border-width: 2px;"></div>
+                                        </div>
+                                    @elseif($shotImageUrl)
+                                        <div class="vw-timeline-shot"
+                                             style="width: {{ max(80, $shotDuration * 20) }}px;"
+                                             wire:click="$dispatch('open-multi-shot-modal', { sceneIndex: {{ $index }} })"
+                                             title="{{ __('Shot') }} {{ $shotIndex + 1 }}: {{ $shot['type'] ?? 'medium' }}">
+                                            <img src="{{ $shotImageUrl }}" alt="Shot {{ $shotIndex + 1 }}" loading="lazy">
+                                            <span class="vw-timeline-shot-duration">{{ $shotDuration }}s</span>
+                                        </div>
+                                    @else
+                                        <div class="vw-timeline-shot pending" style="width: {{ max(80, $shotDuration * 20) }}px;" title="{{ __('Pending') }}">
+                                            <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">{{ $shotIndex + 1 }}</span>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            @else
+                                {{-- Single shot for scene --}}
+                                @if($status === 'generating')
+                                    <div class="vw-timeline-shot generating" style="width: {{ max(80, $sceneDuration * 10) }}px;" title="{{ __('Generating...') }}">
+                                        <div class="vw-spinner" style="width: 1.5rem; height: 1.5rem; border-width: 2px;"></div>
+                                    </div>
+                                @elseif($imageUrl)
+                                    <div class="vw-timeline-shot"
+                                         style="width: {{ max(80, $sceneDuration * 10) }}px;"
+                                         wire:click="openAIEditModal({{ $index }})"
+                                         title="{{ __('Scene') }} {{ $index + 1 }}">
+                                        <img src="{{ $imageUrl }}" alt="Scene {{ $index + 1 }}" loading="lazy">
+                                        <span class="vw-timeline-shot-duration">{{ $sceneDuration }}s</span>
+                                    </div>
+                                @else
+                                    <div class="vw-timeline-shot pending" style="width: {{ max(80, $sceneDuration * 10) }}px;"
+                                         wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                         title="{{ __('Click to generate') }}">
+                                        <span style="font-size: 1.2rem;">🎨</span>
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
             </div> {{-- Close vw-storyboard-content --}}
         </div> {{-- Close vw-storyboard-main --}}
     @endif
