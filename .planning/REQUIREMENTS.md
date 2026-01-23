@@ -16,10 +16,10 @@ Requirements for Milestone 8. Each maps to roadmap phases.
 
 ### Shot Pattern & Flow
 
-- [ ] **FLOW-01**: Shot/reverse-shot pattern for 2-character conversations
-- [ ] **FLOW-02**: Single character visible per shot (model constraint enforced)
+- [x] **FLOW-01**: Shot/reverse-shot pattern for 2-character conversations ✓
+- [x] **FLOW-02**: Single character visible per shot (model constraint enforced) ✓
 - [ ] **FLOW-03**: Shots build cinematically on each other (no jarring cuts)
-- [ ] **FLOW-04**: Alternating character shots in dialogue sequences
+- [x] **FLOW-04**: Alternating character shots in dialogue sequences ✓
 
 ### Camera Selection
 
@@ -33,7 +33,7 @@ Requirements for Milestone 8. Each maps to roadmap phases.
 - [x] **SCNE-01**: No artificial limit on shots per scene (10+ if speech demands) ✓
 - [ ] **SCNE-02**: Non-dialogue scenes get improved action decomposition
 - [ ] **SCNE-03**: Mixed scenes (dialogue + action) handled smoothly
-- [ ] **SCNE-04**: Scene maintains 180-degree rule throughout
+- [x] **SCNE-04**: Scene maintains 180-degree rule throughout ✓
 
 ## Future Requirements
 
@@ -72,10 +72,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CSA-03 | Phase 11 | ✓ Complete |
 | CSA-04 | Phase 11 | ✓ Complete |
 | SCNE-01 | Phase 11 | ✓ Complete |
-| FLOW-01 | Phase 12 | Pending |
-| FLOW-02 | Phase 12 | Pending |
-| FLOW-04 | Phase 12 | Pending |
-| SCNE-04 | Phase 12 | Pending |
+| FLOW-01 | Phase 12 | ✓ Complete |
+| FLOW-02 | Phase 12 | ✓ Complete |
+| FLOW-04 | Phase 12 | ✓ Complete |
+| SCNE-04 | Phase 12 | ✓ Complete |
 | CAM-01 | Phase 13 | Pending |
 | CAM-02 | Phase 13 | Pending |
 | CAM-03 | Phase 13 | Pending |
@@ -97,4 +97,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 — Phase 11 complete (5/16 requirements)*
+*Last updated: 2026-01-23 — Phase 12 complete (9/16 requirements)*

@@ -67,19 +67,19 @@ Plans:
 
 ---
 
-## Phase 12: Shot/Reverse-Shot Patterns
+## Phase 12: Shot/Reverse-Shot Patterns ✓ COMPLETE
 
 **Goal:** Validate and enforce proper Hollywood conversation coverage with alternating characters
 
-**Status:** Planned (2026-01-23)
+**Status:** Complete (2026-01-23)
 
 **Dependencies:** Phase 11 (requires shots to exist from speech)
 
-**Plans:** 2 plans
+**Plans:** 2 plans (2/2 complete)
 
 Plans:
-- [ ] 12-01-PLAN.md - Add validation methods to DialogueSceneDecomposerService (180-degree rule, single-character constraint, character alternation)
-- [ ] 12-02-PLAN.md - Integrate validation into VideoWizard flow with quality reporting
+- [x] 12-01-PLAN.md — Add validation methods to DialogueSceneDecomposerService (180-degree rule, single-character constraint, character alternation)
+- [x] 12-02-PLAN.md — Integrate validation into VideoWizard flow with quality reporting
 
 **Requirements:**
 - FLOW-01: Shot/reverse-shot pattern for 2-character conversations
@@ -178,20 +178,20 @@ Sequential execution required.
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
-| Phase 11: Speech-Driven | Complete | CSA-01 to CSA-04, SCNE-01 (5) | 5/5 |
-| Phase 12: Shot/Reverse-Shot | Planned | FLOW-01, FLOW-02, FLOW-04, SCNE-04 (4) | 0/4 |
-| Phase 13: Camera Intelligence | Pending | CAM-01 to CAM-04 (4) | 0/4 |
-| Phase 14: Flow & Action | Pending | FLOW-03, SCNE-02, SCNE-03 (3) | 0/3 |
+| Phase 11: Speech-Driven | ✓ Complete | CSA-01 to CSA-04, SCNE-01 (5) | 5/5 |
+| Phase 12: Shot/Reverse-Shot | ✓ Complete | FLOW-01, FLOW-02, FLOW-04, SCNE-04 (4) | 4/4 |
+| Phase 13: Camera Intelligence | ○ Pending | CAM-01 to CAM-04 (4) | 0/4 |
+| Phase 14: Flow & Action | ○ Pending | FLOW-03, SCNE-02, SCNE-03 (3) | 0/3 |
 
 **Overall Progress:**
 
 ```
-Phase 11: ********** 100%
-Phase 12: ---------- 0%
-Phase 13: ---------- 0%
-Phase 14: ---------- 0%
----------------------
-Overall:  **-------- 25%
+Phase 11: ██████████ 100% ✓
+Phase 12: ██████████ 100% ✓
+Phase 13: ░░░░░░░░░░ 0%
+Phase 14: ░░░░░░░░░░ 0%
+─────────────────────
+Overall:  █████░░░░░ 50%
 ```
 
 **Coverage:** 16/16 requirements mapped (100%)
