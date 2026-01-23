@@ -23142,6 +23142,31 @@ PROMPT;
         }
 
         // ═══════════════════════════════════════════════════════════════════
+        // PHASE 11-02: NARRATOR & INTERNAL THOUGHT OVERLAY
+        // After shots are created/distributed, overlay narrator and internal thought
+        // segments as voiceover metadata (they don't create visual shots)
+        // ═══════════════════════════════════════════════════════════════════
+        if (!empty($speechSegments)) {
+            // Re-read shots after potential distribution
+            $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+
+            // If no dialogue/monologue shots exist, create base visual shots for narrator
+            if (empty($shots)) {
+                $shots = $this->createBaseVisualShotsForNarrator($sceneIndex, $scene);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] = $shots;
+            }
+
+            // Overlay narrator segments across shots (voiceover, not dedicated visual shots)
+            $shots = $this->overlayNarratorSegments($sceneIndex, $shots, $speechSegments);
+
+            // Mark internal thought segments as voiceover (no lip-sync)
+            $shots = $this->markInternalThoughtAsVoiceover($sceneIndex, $shots, $speechSegments);
+
+            // Update stored shots with overlay metadata
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] = $shots;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
         // DIALOGUE NARRATION STYLE: Distribute dialogue segments to shots
         // When user selected "Dialogue" style, parse speaker lines and assign
         // ═══════════════════════════════════════════════════════════════════
@@ -23293,7 +23318,9 @@ PROMPT;
     /**
      * Create shots FROM speech segments (1:1 mapping for dialogue/monologue).
      * Each dialogue or monologue segment becomes its own shot.
-     * Narrator and internal thought segments are skipped (handled separately in Plan 02).
+     *
+     * IMPORTANT: Narrator and internal thought segments are SKIPPED here.
+     * They are handled separately as voiceover overlays (Plan 11-02).
      *
      * PHASE 11: This is the correct approach - speech CREATES shots, not distributed TO them.
      * - 5 dialogue segments = 5 shots
@@ -23302,18 +23329,27 @@ PROMPT;
      *
      * @param int $sceneIndex Scene index
      * @param array $speechSegments Scene's speech segments array
-     * @return array Array of created shots with 1:1 segment mapping
+     * @return array Array of created shots (dialogue/monologue only)
      */
     protected function createShotsFromSpeechSegments(int $sceneIndex, array $speechSegments): array
     {
         $shots = [];
         $lipSyncTypes = ['dialogue', 'monologue'];
+        $skippedCount = 0;
 
         foreach ($speechSegments as $segmentIndex => $segment) {
             $segType = strtolower($segment['type'] ?? 'narrator');
 
-            // Skip narrator and internal thought (handled in Plan 02)
+            // ONLY dialogue and monologue create visual shots
+            // Narrator and internal thought are handled as voiceover overlays (Plan 11-02)
             if (!in_array($segType, $lipSyncTypes)) {
+                Log::debug('Skipping non-visual segment in shot creation', [
+                    'sceneIndex' => $sceneIndex,
+                    'segmentIndex' => $segmentIndex,
+                    'type' => $segType,
+                    'reason' => 'Narrator and internal thought handled as voiceover overlays',
+                ]);
+                $skippedCount++;
                 continue;
             }
 
@@ -23349,9 +23385,25 @@ PROMPT;
             'sceneIndex' => $sceneIndex,
             'totalSegments' => count($speechSegments),
             'lipSyncSegments' => count($shots),
+            'skippedNarratorInternal' => $skippedCount,
             'shotsCreated' => count($shots),
             'ratio' => '1:1',
         ]);
+
+        // Validation: Ensure no narrator/internal accidentally became primary shot segment
+        foreach ($shots as $shot) {
+            $primarySegment = $shot['speechSegments'][0] ?? null;
+            if ($primarySegment) {
+                $type = strtolower($primarySegment['type'] ?? '');
+                if (in_array($type, ['narrator', 'internal'])) {
+                    Log::error('INVALID: Visual shot created from non-visual segment', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotId' => $shot['id'] ?? 'unknown',
+                        'segmentType' => $type,
+                    ]);
+                }
+            }
+        }
 
         return $shots;
     }
@@ -23369,6 +23421,233 @@ PROMPT;
         // 2.5 words per second + 1 second buffer for natural pacing
         $duration = ceil($wordCount / 2.5) + 1;
         return max(3, (int) $duration); // Minimum 3 seconds
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // NARRATOR & INTERNAL THOUGHT OVERLAY SYSTEM (Plan 11-02)
+    // Narrator segments overlay across multiple shots (not dedicated shots)
+    // Internal thought segments flagged as voiceover-only (no visual shot)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Overlay narrator segments across existing shots as voiceover metadata.
+     * Narrator segments don't create visual shots - they span multiple shots.
+     *
+     * SPEECH SEGMENT PROCESSING ORDER:
+     * 1. Dialogue/Monologue → Create visual shots with lip-sync (1:1 mapping)
+     * 2. Narrator → Overlay as voiceover across shots (no dedicated visual)
+     * 3. Internal Thought → Overlay as voiceover across shots (no lip-sync)
+     *
+     * Result: Only dialogue/monologue segments create visual shots.
+     * Narrator and internal are voiceover-only tracks.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $shots Existing shots (from dialogue/monologue/action)
+     * @param array $speechSegments All speech segments for the scene
+     * @return array Shots with narrator overlays added
+     */
+    protected function overlayNarratorSegments(int $sceneIndex, array $shots, array $speechSegments): array
+    {
+        if (empty($shots) || empty($speechSegments)) {
+            return $shots;
+        }
+
+        // Extract narrator segments
+        $narratorSegments = array_values(array_filter($speechSegments, function($seg) {
+            return strtolower($seg['type'] ?? '') === 'narrator';
+        }));
+
+        if (empty($narratorSegments)) {
+            Log::debug('No narrator segments to overlay', ['sceneIndex' => $sceneIndex]);
+            return $shots;
+        }
+
+        // Distribute narrator segments across shots
+        $shotCount = count($shots);
+        $narratorCount = count($narratorSegments);
+
+        // Strategy: Distribute evenly, allowing multiple narrator segments per shot
+        $narratorIndex = 0;
+        $narratorsPerShot = max(1, ceil($narratorCount / $shotCount));
+
+        foreach ($shots as $shotIdx => $shot) {
+            $shotNarrators = [];
+
+            // Collect narrator segments for this shot
+            for ($i = 0; $i < $narratorsPerShot && $narratorIndex < $narratorCount; $i++, $narratorIndex++) {
+                $shotNarrators[] = $narratorSegments[$narratorIndex];
+            }
+
+            // Add as overlay metadata (not primary speech)
+            if (!empty($shotNarrators)) {
+                $shots[$shotIdx]['narratorOverlay'] = $shotNarrators;
+                $shots[$shotIdx]['hasNarratorVoiceover'] = true;
+
+                // Combine narrator text for voiceover generation (separate from dialogue)
+                $narratorText = implode(' ', array_column($shotNarrators, 'text'));
+                $shots[$shotIdx]['narratorText'] = $narratorText;
+
+                Log::debug('Added narrator overlay to shot', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIdx,
+                    'narratorCount' => count($shotNarrators),
+                ]);
+            }
+        }
+
+        Log::info('Distributed narrator segments as overlays', [
+            'sceneIndex' => $sceneIndex,
+            'narratorSegments' => $narratorCount,
+            'shotsWithNarrator' => count(array_filter($shots, fn($s) => !empty($s['narratorOverlay']))),
+            'strategy' => 'overlay (not dedicated shots)',
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * Handle narrator-only scenes by creating base visual shots.
+     * Narrator overlays require visual shots to play over.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $scene Scene data
+     * @return array Base visual shots for narrator overlay
+     */
+    protected function createBaseVisualShotsForNarrator(int $sceneIndex, array $scene): array
+    {
+        // Use scene duration to determine shot count, 3-5 visual shots based on content
+        // These are "silent" visual shots that narrator will play over
+        $sceneDuration = $scene['duration'] ?? 10;
+        $shotCount = max(3, min(5, ceil($sceneDuration / 3))); // 3-5 shots, ~3s each
+
+        $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
+        $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
+
+        $shots = [];
+        for ($i = 0; $i < $shotCount; $i++) {
+            $shotType = $this->selectShotTypeForNarrator($i, $shotCount);
+
+            $shots[] = [
+                'id' => "shot-{$sceneId}-narrator-{$i}",
+                'sceneId' => $sceneId,
+                'index' => $i,
+                'type' => $shotType,
+                'shotType' => $shotType,
+                'duration' => 3,
+                'needsLipSync' => false, // No character speaking on-screen
+                'visualOnly' => true, // Flag for visual-only shot
+                'sceneContext' => $scene['description'] ?? $visualDescription,
+                'imagePrompt' => $visualDescription,
+                'videoPrompt' => "Gentle, cinematic movement. {$visualDescription}",
+                'imageStatus' => 'pending',
+                'videoStatus' => 'pending',
+                'selectedVideoModel' => 'minimax', // No lip-sync needed
+            ];
+        }
+
+        Log::info('Created base visual shots for narrator-only scene', [
+            'sceneIndex' => $sceneIndex,
+            'shotCount' => $shotCount,
+            'strategy' => 'visual-only shots for narrator overlay',
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * Select appropriate shot type for narrator-only scene progression.
+     * Creates visual variety for scenes without dialogue.
+     *
+     * @param int $shotIndex Current shot index
+     * @param int $totalShots Total number of shots
+     * @return string Shot type
+     */
+    protected function selectShotTypeForNarrator(int $shotIndex, int $totalShots): string
+    {
+        // First shot: establishing context
+        if ($shotIndex === 0) {
+            return 'establishing';
+        }
+
+        // Last shot: return to medium for closure
+        if ($shotIndex === $totalShots - 1) {
+            return 'medium';
+        }
+
+        // Middle shots: variety
+        $middleTypes = ['wide', 'medium', 'medium-close'];
+        return $middleTypes[array_rand($middleTypes)];
+    }
+
+    /**
+     * Mark internal thought segments as voiceover-only (no visual shot).
+     * Internal thoughts are character thinking - audio only, no lip movement.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $shots Existing shots
+     * @param array $speechSegments All speech segments for the scene
+     * @return array Shots with internal thought voiceover flags
+     */
+    protected function markInternalThoughtAsVoiceover(int $sceneIndex, array $shots, array $speechSegments): array
+    {
+        if (empty($shots) || empty($speechSegments)) {
+            return $shots;
+        }
+
+        // Extract internal thought segments
+        $internalSegments = array_values(array_filter($speechSegments, function($seg) {
+            return strtolower($seg['type'] ?? '') === 'internal';
+        }));
+
+        if (empty($internalSegments)) {
+            return $shots;
+        }
+
+        // Distribute internal thoughts across shots (similar to narrator)
+        $shotCount = count($shots);
+        $internalCount = count($internalSegments);
+        $internalIndex = 0;
+        $internalsPerShot = max(1, ceil($internalCount / $shotCount));
+
+        foreach ($shots as $shotIdx => $shot) {
+            $shotInternals = [];
+
+            for ($i = 0; $i < $internalsPerShot && $internalIndex < $internalCount; $i++, $internalIndex++) {
+                $shotInternals[] = $internalSegments[$internalIndex];
+            }
+
+            if (!empty($shotInternals)) {
+                $shots[$shotIdx]['internalThoughtOverlay'] = $shotInternals;
+                $shots[$shotIdx]['hasInternalVoiceover'] = true;
+
+                // Combine internal thought text for voiceover (separate track from dialogue)
+                $internalText = implode(' ', array_column($shotInternals, 'text'));
+                $shots[$shotIdx]['internalThoughtText'] = $internalText;
+
+                // Get speaker for voice selection
+                $speaker = $shotInternals[0]['speaker'] ?? null;
+                if ($speaker) {
+                    $shots[$shotIdx]['internalThoughtSpeaker'] = $speaker;
+                    $shots[$shotIdx]['internalVoiceId'] = $this->getVoiceForCharacterName($speaker);
+                }
+
+                Log::debug('Added internal thought voiceover to shot', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIdx,
+                    'internalCount' => count($shotInternals),
+                    'speaker' => $speaker,
+                ]);
+            }
+        }
+
+        Log::info('Distributed internal thought segments as voiceover', [
+            'sceneIndex' => $sceneIndex,
+            'internalSegments' => $internalCount,
+            'shotsWithInternal' => count(array_filter($shots, fn($s) => !empty($s['internalThoughtOverlay']))),
+            'voiceoverOnly' => true,
+        ]);
+
+        return $shots;
     }
 
     /**
