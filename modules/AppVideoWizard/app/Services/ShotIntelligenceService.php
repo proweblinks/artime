@@ -236,7 +236,8 @@ class ShotIntelligenceService
             }
 
             // Parse and validate AI response
-            $analysis = $this->parseAIResponse($aiResponse['response'], $scene, $minShots, $maxShots);
+            $narrativeMomentCount = !empty($narrativeMoments) ? count($narrativeMoments) : null;
+            $analysis = $this->parseAIResponse($aiResponse['response'], $scene, $minShots, $maxShots, $narrativeMomentCount);
 
             // PHASE 1: Add camera movements to each shot
             $analysis = $this->addCameraMovements($analysis, $scene, $context);
