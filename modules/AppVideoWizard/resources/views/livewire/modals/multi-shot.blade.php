@@ -918,60 +918,39 @@ window.multiShotVideoPolling = function() {
                                         @endif
                                     </div>
 
-                                    {{-- Text Content --}}
+                                    {{-- Text Content - Compact --}}
                                     <div class="msm-shot-text-content" style="
                                         background: {{ $needsLipSync ? 'rgba(236, 72, 153, 0.1)' : ($shotNarration ? 'rgba(100, 116, 139, 0.1)' : 'rgba(139, 92, 246, 0.1)') }};
-                                        border-left: 3px solid {{ $needsLipSync ? 'rgba(236, 72, 153, 0.6)' : ($shotNarration ? 'rgba(100, 116, 139, 0.5)' : 'rgba(139, 92, 246, 0.5)') }};
-                                        padding: 0.5rem 0.75rem;
-                                        margin: 0.25rem 0.75rem 0.5rem;
-                                        border-radius: 0 8px 8px 0;
-                                        font-size: 0.85rem;
+                                        border-left: 2px solid {{ $needsLipSync ? 'rgba(236, 72, 153, 0.6)' : ($shotNarration ? 'rgba(100, 116, 139, 0.5)' : 'rgba(139, 92, 246, 0.5)') }};
+                                        padding: 0.25rem 0.5rem;
+                                        margin: 0 0.5rem 0.35rem;
+                                        border-radius: 0 4px 4px 0;
+                                        font-size: 0.7rem;
                                     ">
-                                        <span style="color: rgba(255,255,255,0.9); line-height: 1.4;">
+                                        <span style="color: rgba(255,255,255,0.85); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                             @if($shotDialogue || $shotMonologue)
-                                                "{{ Str::limit($shotDialogue ?? $shotMonologue, 80) }}"
+                                                "{{ Str::limit($shotDialogue ?? $shotMonologue, 60) }}"
                                             @elseif($shotNarration)
-                                                {{ Str::limit($shotNarration, 80) }}
+                                                {{ Str::limit($shotNarration, 60) }}
                                             @endif
                                         </span>
                                     </div>
                                 @elseif(!empty($shot['needsLipSync']))
-                                    {{-- Lip-sync indicator without text --}}
-                                    <div style="
-                                        display: inline-flex;
-                                        align-items: center;
-                                        gap: 0.35rem;
-                                        background: rgba(236, 72, 153, 0.2);
-                                        padding: 0.3rem 0.6rem;
-                                        border-radius: 6px;
-                                        font-size: 0.8rem;
-                                        color: #f472b6;
-                                        margin: 0.4rem 0.75rem;
-                                        font-weight: 500;
-                                    ">
+                                    {{-- Lip-sync indicator without text - Compact --}}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem; background: rgba(236, 72, 153, 0.2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: #f472b6; margin: 0.2rem 0.5rem; font-weight: 500;">
                                         <span>👄</span>
-                                        <span>{{ __('Lip Sync Required') }}</span>
+                                        <span>{{ __('Lip Sync') }}</span>
                                     </div>
                                 @else
-                                    {{-- Silent shot indicator --}}
-                                    <div style="
-                                        display: inline-flex;
-                                        align-items: center;
-                                        gap: 0.35rem;
-                                        background: rgba(100, 116, 139, 0.15);
-                                        padding: 0.25rem 0.5rem;
-                                        border-radius: 6px;
-                                        font-size: 0.75rem;
-                                        color: rgba(148, 163, 184, 0.8);
-                                        margin: 0.4rem 0.75rem;
-                                    ">
+                                    {{-- Silent shot indicator - Compact --}}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem; background: rgba(100, 116, 139, 0.15); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: rgba(148, 163, 184, 0.8); margin: 0.2rem 0.5rem;">
                                         <span>🔇</span>
-                                        <span>{{ $shot['type'] === 'establishing' ? __('Establishing') : ($shot['type'] === 'reaction' ? __('Reaction') : __('Silent')) }}</span>
+                                        <span>{{ __('Silent') }}</span>
                                     </div>
                                 @endif
 
-                                {{-- PHASE 6: Shot Status and Intensity --}}
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.4rem 0.75rem;">
+                                {{-- PHASE 6: Shot Status and Intensity - Compact --}}
+                                <div style="display: flex; align-items: center; gap: 0.35rem; margin: 0.2rem 0.5rem;">
                                     {{-- Image Status --}}
                                     @php
                                         $imgStatus = $shot['status'] ?? 'pending';
@@ -1755,18 +1734,16 @@ window.multiShotVideoPolling = function() {
     box-shadow: 0 2px 10px rgba(139, 92, 246, 0.5);
 }
 
-/* Shot Card - Modern Glass Card - CAROUSEL OPTIMIZED */
+/* Shot Card - Modern Glass Card - COMPACT NO-SCROLL */
 .msm-shot-card {
-    flex: 0 0 400px;
-    min-width: 360px;
-    max-width: 450px;
+    flex: 0 0 340px;
+    min-width: 300px;
+    max-width: 380px;
     height: fit-content;
-    max-height: calc(100vh - 300px);
-    overflow-y: auto;
     background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     border: 2px solid rgba(255,255,255,0.12);
-    border-radius: 20px;
-    overflow-x: hidden;
+    border-radius: 16px;
+    overflow: hidden;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     scroll-snap-align: center;
@@ -1795,22 +1772,22 @@ window.multiShotVideoPolling = function() {
     transform: scale(1.02);
 }
 
-.msm-shot-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.25)); border-bottom: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap; }
-.msm-shot-num { background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(168,85,247,0.6)); color: #fff; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 1rem; font-weight: 700; box-shadow: 0 3px 10px rgba(139,92,246,0.4); min-width: 32px; text-align: center; }
-.msm-shot-type { color: rgba(255,255,255,0.85); font-size: 0.95rem; font-weight: 600; }
-.msm-shot-meta { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.msm-badge-dialog { background: linear-gradient(135deg, rgba(251,191,36,0.5), rgba(245,158,11,0.4)); color: #fcd34d; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-.msm-badge-voiceover { background: linear-gradient(135deg, rgba(100,116,139,0.5), rgba(71,85,105,0.4)); color: #cbd5e1; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-.msm-dur { font-size: 0.95rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 6px; }
+.msm-shot-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.25)); border-bottom: 1px solid rgba(255,255,255,0.08); }
+.msm-shot-num { background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(168,85,247,0.6)); color: #fff; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(139,92,246,0.4); min-width: 24px; text-align: center; }
+.msm-shot-type { color: rgba(255,255,255,0.85); font-size: 0.8rem; font-weight: 600; }
+.msm-shot-meta { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; }
+.msm-badge-dialog { background: linear-gradient(135deg, rgba(251,191,36,0.5), rgba(245,158,11,0.4)); color: #fcd34d; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.msm-badge-voiceover { background: linear-gradient(135deg, rgba(100,116,139,0.5), rgba(71,85,105,0.4)); color: #cbd5e1; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.msm-dur { font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; }
 .msm-dur.green { color: #4ade80; background: rgba(34,197,94,0.2); }
 .msm-dur.yellow { color: #fde047; background: rgba(234,179,8,0.2); }
 .msm-dur.blue { color: #60a5fa; background: rgba(59,130,246,0.2); }
+.msm-monologue-indicator { display: none; } /* Hide long monologue text in header */
 
 .msm-shot-preview {
     position: relative;
-    flex: 1;
-    min-height: 180px;
-    max-height: 280px;
+    min-height: 120px;
+    max-height: 160px;
     background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(10,10,20,0.4));
     display: flex;
     align-items: center;
@@ -1821,12 +1798,12 @@ window.multiShotVideoPolling = function() {
 }
 .msm-shot-preview img { width: 100%; height: 100%; object-fit: cover; }
 .msm-shot-preview img.dimmed { filter: brightness(0.35); }
-.msm-shot-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,40,0.5)); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.25s ease; backdrop-filter: blur(3px); flex-direction: column; gap: 0.5rem; }
+.msm-shot-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,40,0.5)); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.25s ease; backdrop-filter: blur(3px); flex-direction: column; gap: 0.3rem; }
 .msm-shot-preview:hover .msm-shot-overlay { opacity: 1; }
-.msm-shot-overlay span { font-size: 2.5rem; filter: drop-shadow(0 3px 10px rgba(0,0,0,0.6)); }
-.msm-shot-overlay small { font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 500; }
-.msm-shot-icons { position: absolute; bottom: 0.6rem; right: 0.6rem; display: flex; gap: 0.4rem; }
-.msm-icon-img, .msm-icon-vid { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
+.msm-shot-overlay span { font-size: 1.8rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+.msm-shot-overlay small { font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500; }
+.msm-shot-icons { position: absolute; bottom: 0.4rem; right: 0.4rem; display: flex; gap: 0.3rem; }
+.msm-icon-img, .msm-icon-vid { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 .msm-icon-img { background: linear-gradient(135deg, #10b981, #059669); }
 .msm-icon-vid { background: linear-gradient(135deg, #06b6d4, #0284c7); }
 
@@ -1840,24 +1817,24 @@ window.multiShotVideoPolling = function() {
 .msm-vid-progress { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
 .msm-vid-progress span { color: #67e8f9; font-size: 1rem; font-weight: 600; margin-top: 0.75rem; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
 
-.msm-shot-controls { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.2)); }
-.msm-dur-btns { display: flex; gap: 0.4rem; }
-.msm-dur-btns button { flex: 1; padding: 0.55rem 0.5rem; font-size: 0.85rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.2s ease; }
-.msm-dur-btns button:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+.msm-shot-controls { padding: 0.5rem 0.65rem; display: flex; flex-direction: column; gap: 0.4rem; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.2)); }
+.msm-dur-btns { display: flex; gap: 0.25rem; }
+.msm-dur-btns button { flex: 1; padding: 0.35rem 0.3rem; font-size: 0.75rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.2s ease; }
+.msm-dur-btns button:hover { background: rgba(255,255,255,0.12); }
 .msm-dur-btns button.active { font-weight: 700; }
-.msm-dur-btns button.active.green { background: linear-gradient(135deg, rgba(34,197,94,0.45), rgba(22,163,74,0.35)); border-color: rgba(34,197,94,0.7); color: #4ade80; box-shadow: 0 2px 10px rgba(34,197,94,0.25); }
-.msm-dur-btns button.active.yellow { background: linear-gradient(135deg, rgba(234,179,8,0.45), rgba(202,138,4,0.35)); border-color: rgba(234,179,8,0.7); color: #fde047; box-shadow: 0 2px 10px rgba(234,179,8,0.25); }
-.msm-dur-btns button.active.blue { background: linear-gradient(135deg, rgba(59,130,246,0.45), rgba(37,99,235,0.35)); border-color: rgba(59,130,246,0.7); color: #60a5fa; box-shadow: 0 2px 10px rgba(59,130,246,0.25); }
+.msm-dur-btns button.active.green { background: linear-gradient(135deg, rgba(34,197,94,0.45), rgba(22,163,74,0.35)); border-color: rgba(34,197,94,0.7); color: #4ade80; }
+.msm-dur-btns button.active.yellow { background: linear-gradient(135deg, rgba(234,179,8,0.45), rgba(202,138,4,0.35)); border-color: rgba(234,179,8,0.7); color: #fde047; }
+.msm-dur-btns button.active.blue { background: linear-gradient(135deg, rgba(59,130,246,0.45), rgba(37,99,235,0.35)); border-color: rgba(59,130,246,0.7); color: #60a5fa; }
 
-.msm-action-row { display: flex; gap: 0.5rem; }
-.msm-play-btn { flex: 1; padding: 0.65rem; background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.35)); border: 1px solid rgba(16,185,129,0.6); border-radius: 10px; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-play-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(16,185,129,0.3); }
-.msm-capture-btn { padding: 0.65rem 0.85rem; background: rgba(16,185,129,0.3); border: 1px solid rgba(16,185,129,0.5); border-radius: 10px; color: #fff; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; }
-.msm-capture-btn:hover { background: rgba(16,185,129,0.4); transform: translateY(-1px); }
-.msm-animate-btn { flex: 1; padding: 0.65rem; background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(59,130,246,0.35)); border: 1px solid rgba(6,182,212,0.6); border-radius: 10px; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-animate-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6,182,212,0.35); }
-.msm-face-btn { flex: 1; padding: 0.65rem; background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(251,191,36,0.3)); border: 1px solid rgba(245,158,11,0.6); border-radius: 10px; color: #fbbf24; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-face-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,158,11,0.35); background: linear-gradient(135deg, rgba(245,158,11,0.45), rgba(251,191,36,0.4)); }
+.msm-action-row { display: flex; gap: 0.25rem; }
+.msm-play-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.35)); border: 1px solid rgba(16,185,129,0.6); border-radius: 6px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-play-btn:hover { box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+.msm-capture-btn { padding: 0.4rem 0.5rem; background: rgba(16,185,129,0.3); border: 1px solid rgba(16,185,129,0.5); border-radius: 6px; color: #fff; font-size: 0.7rem; cursor: pointer; transition: all 0.2s ease; }
+.msm-capture-btn:hover { background: rgba(16,185,129,0.4); }
+.msm-animate-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(59,130,246,0.35)); border: 1px solid rgba(6,182,212,0.6); border-radius: 6px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-animate-btn:hover { box-shadow: 0 4px 12px rgba(6,182,212,0.35); }
+.msm-face-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(251,191,36,0.3)); border: 1px solid rgba(245,158,11,0.6); border-radius: 6px; color: #fbbf24; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-face-btn:hover { box-shadow: 0 4px 12px rgba(245,158,11,0.35); background: linear-gradient(135deg, rgba(245,158,11,0.45), rgba(251,191,36,0.4)); }
 
 .msm-render-status { text-align: center; padding: 0.65rem; background: rgba(6,182,212,0.12); border-radius: 8px; position: relative; }
 .msm-render-status span { font-size: 0.85rem; color: #67e8f9; font-weight: 600; }
@@ -2018,13 +1995,14 @@ window.multiShotVideoPolling = function() {
 .msm-monologue-indicator { padding: 0.35rem 0.75rem; background: rgba(236,72,153,0.12); border-top: 1px solid rgba(236,72,153,0.2); }
 
 /* Speech Type Badges for Shot Cards */
+.msm-speech-badge-row { padding: 0.15rem 0.5rem !important; }
 .msm-speech-type-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    gap: 0.15rem;
+    padding: 0.12rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -2061,12 +2039,12 @@ window.multiShotVideoPolling = function() {
 
 /* Responsive Adjustments - Carousel Mode */
 @media (max-width: 1400px) {
-    .msm-shot-card { flex: 0 0 380px; min-width: 340px; max-width: 420px; }
+    .msm-shot-card { flex: 0 0 320px; min-width: 280px; max-width: 360px; }
 }
 
 @media (max-width: 1100px) {
-    .msm-shot-card { flex: 0 0 350px; min-width: 320px; max-width: 380px; }
-    .msm-shot-preview { min-height: 160px; max-height: 240px; }
+    .msm-shot-card { flex: 0 0 300px; min-width: 260px; max-width: 340px; }
+    .msm-shot-preview { min-height: 100px; max-height: 140px; }
     .msm-carousel-container { padding: 0 3rem; }
 }
 
@@ -2074,39 +2052,40 @@ window.multiShotVideoPolling = function() {
     .msm-split-panel { grid-template-columns: 1fr !important; grid-template-rows: auto auto 1fr; }
     .msm-collage-panel { max-height: 40vh; border-bottom: 1px solid rgba(139,92,246,0.25); }
     .msm-resize-handle { display: none; }
-    .msm-shot-card { flex: 0 0 320px; min-width: 300px; max-width: 360px; }
-    .msm-shot-preview { min-height: 140px; max-height: 200px; }
+    .msm-shot-card { flex: 0 0 280px; min-width: 250px; max-width: 320px; }
+    .msm-shot-preview { min-height: 90px; max-height: 120px; }
     .msm-carousel-container { padding: 0 2.5rem; }
-    .msm-carousel-nav { width: 40px; height: 40px; font-size: 1.2rem; }
+    .msm-carousel-nav { width: 36px; height: 36px; font-size: 1rem; }
     .msm-carousel-nav.prev { left: 0.25rem; }
     .msm-carousel-nav.next { right: 0.25rem; }
-    .msm-shot-info { flex-direction: column; gap: 0.35rem; align-items: flex-start; }
+    .msm-shot-info { flex-direction: column; gap: 0.25rem; align-items: flex-start; }
     .msm-camera { max-width: 100%; }
-    .msm-action-bar { padding: 0.75rem 1rem; gap: 0.5rem; flex-wrap: wrap; }
-    .msm-action-btn { padding: 0.5rem 0.85rem; font-size: 0.8rem; }
+    .msm-action-bar { padding: 0.5rem 0.65rem; gap: 0.35rem; flex-wrap: wrap; }
+    .msm-action-btn { padding: 0.35rem 0.5rem; font-size: 0.7rem; }
 }
 
 @media (max-width: 600px) {
-    .msm-shot-card { flex: 0 0 calc(100vw - 5rem); min-width: 280px; max-width: 360px; }
-    .msm-shot-card:first-child { margin-left: 1rem; }
-    .msm-shot-card:last-child { margin-right: 1rem; }
-    .msm-carousel-container { padding: 0 2rem; }
-    .msm-carousel-nav { width: 36px; height: 36px; }
-    .msm-carousel-nav.prev { left: 0.15rem; }
-    .msm-carousel-nav.next { right: 0.15rem; }
-    .msm-shot-header { padding: 0.65rem 0.75rem; }
-    .msm-shot-num { font-size: 0.9rem; padding: 0.25rem 0.6rem; }
-    .msm-shot-type { font-size: 0.85rem; }
-    .msm-shot-controls { padding: 0.75rem; }
-    .msm-timeline { height: 40px; margin: 0.75rem 1rem; }
-    .msm-timeline-seg { font-size: 0.8rem; }
-    .msm-carousel-indicators { gap: 0.35rem; padding: 0.5rem 0; }
-    .msm-carousel-dot { width: 8px; height: 8px; }
-    .msm-carousel-dot.active { width: 22px; }
+    .msm-shot-card { flex: 0 0 calc(100vw - 4rem); min-width: 240px; max-width: 320px; }
+    .msm-shot-card:first-child { margin-left: 0.75rem; }
+    .msm-shot-card:last-child { margin-right: 0.75rem; }
+    .msm-carousel-container { padding: 0 1.5rem; }
+    .msm-carousel-nav { width: 32px; height: 32px; }
+    .msm-carousel-nav.prev { left: 0.1rem; }
+    .msm-carousel-nav.next { right: 0.1rem; }
+    .msm-shot-header { padding: 0.4rem 0.5rem; }
+    .msm-shot-num { font-size: 0.75rem; padding: 0.15rem 0.4rem; }
+    .msm-shot-type { font-size: 0.7rem; }
+    .msm-shot-controls { padding: 0.4rem 0.5rem; }
+    .msm-timeline { height: 36px; margin: 0.5rem 0.75rem; }
+    .msm-timeline-seg { font-size: 0.7rem; }
+    .msm-carousel-indicators { gap: 0.25rem; padding: 0.4rem 0; }
+    .msm-carousel-dot { width: 6px; height: 6px; }
+    .msm-carousel-dot.active { width: 18px; }
 }
 
 /* PHASE 6: Shot Type Badges - ENHANCED */
-.vw-shot-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+.vw-shot-badge { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.vw-shot-badges { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0.2rem 0.5rem !important; }
 .vw-shot-badge-xcu { background: rgba(239, 68, 68, 0.3); color: #f87171; }
 .vw-shot-badge-cu { background: rgba(249, 115, 22, 0.3); color: #fb923c; }
 .vw-shot-badge-mcu { background: rgba(245, 158, 11, 0.3); color: #fbbf24; }
