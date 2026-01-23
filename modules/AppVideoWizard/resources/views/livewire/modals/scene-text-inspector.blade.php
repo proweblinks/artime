@@ -39,9 +39,34 @@
         {{-- Content --}}
         <div style="flex: 1; overflow-y: auto; padding: 1rem;">
             @if($scene)
-                {{-- Metadata section will be added in Plan 03 --}}
-                <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.6);">
-                    Metadata display coming in Plan 03
+                {{-- Metadata Section --}}
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                        Scene Metadata
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+                        {{-- Metadata badges will be added in tasks 2 and 3 --}}
+                    </div>
+                </div>
+
+                {{-- Speech Segments Section (Phase 8) --}}
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                        Speech Segments
+                    </h4>
+                    <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.75rem;">
+                        Speech segment display coming in Phase 8
+                    </div>
+                </div>
+
+                {{-- Prompts Section (Phase 9) --}}
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                        Prompts
+                    </h4>
+                    <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.75rem;">
+                        Prompt display coming in Phase 9
+                    </div>
                 </div>
             @else
                 <div style="padding: 2rem; text-align: center; color: rgba(255,255,255,0.4);">
