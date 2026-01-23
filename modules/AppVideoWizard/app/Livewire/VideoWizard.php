@@ -17984,16 +17984,70 @@ PROMPT;
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
         // ═══════════════════════════════════════════════════════════════════════════════
-        // DIALOGUE SCENE DETECTION - Shot/Reverse Shot Pattern
-        // If scene contains multi-character dialogue, use Hollywood dialogue decomposition
-        // Each character gets their own shot with their dialogue line for Multitalk lip-sync
+        // PHASE 11: SPEECH-DRIVEN SHOT CREATION (1:1 mapping)
+        // If scene has speechSegments with dialogue/monologue, CREATE shots from them directly.
+        // This is the PRIMARY path for dialogue scenes - each segment = one shot.
+        // No artificial limits: 5 segments = 5 shots, 12 segments = 12 shots.
         // ═══════════════════════════════════════════════════════════════════════════════
+        $speechSegments = $scene['speechSegments'] ?? [];
         $dialogueDecomposer = app(\Modules\AppVideoWizard\App\Services\DialogueSceneDecomposerService::class);
 
-        if ($dialogueDecomposer->isDialogueScene($scene)) {
-            Log::info('VideoWizard: Detected dialogue scene, using Shot/Reverse Shot decomposition', [
+        // Check if scene has lip-sync segments (dialogue or monologue)
+        $lipSyncSegments = array_filter($speechSegments, function ($seg) {
+            return in_array(strtolower($seg['type'] ?? ''), ['dialogue', 'monologue']);
+        });
+
+        if (!empty($lipSyncSegments)) {
+            Log::info('VideoWizard: Speech-driven shot creation (1:1 mapping)', [
                 'scene_id' => $sceneId,
                 'scene_index' => $sceneIndex,
+                'total_segments' => count($speechSegments),
+                'lip_sync_segments' => count($lipSyncSegments),
+            ]);
+
+            // Create shots FROM speech segments (1:1 mapping)
+            $shotsFromSpeech = $this->createShotsFromSpeechSegments($sceneIndex, $speechSegments);
+
+            if (!empty($shotsFromSpeech)) {
+                // Get Character Bible for voice/character mapping
+                $characterBible = $this->sceneMemory['characterBible'] ?? [];
+
+                // Enhance with DialogueSceneDecomposerService patterns (shot types, camera positions)
+                $enhancedShots = $dialogueDecomposer->enhanceShotsWithDialoguePatterns(
+                    $shotsFromSpeech,
+                    $scene,
+                    $characterBible
+                );
+
+                // Convert to standard shot format
+                $shots = $this->convertDialogueShotsToStandardFormat(
+                    $enhancedShots,
+                    $sceneId,
+                    $scene,
+                    $visualDescription
+                );
+
+                Log::info('VideoWizard: Speech-driven shots created', [
+                    'scene_id' => $sceneId,
+                    'shots_created' => count($shots),
+                    'ratio' => '1:1',
+                    'path' => 'speech-driven',
+                ]);
+
+                return $shots;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // FALLBACK: DIALOGUE SCENE DETECTION - Shot/Reverse Shot Pattern
+        // If no speechSegments but scene has multi-character dialogue in narration,
+        // use Hollywood dialogue decomposition based on parsed exchanges.
+        // ═══════════════════════════════════════════════════════════════════════════════
+        if ($dialogueDecomposer->isDialogueScene($scene)) {
+            Log::info('VideoWizard: Detected dialogue scene (fallback), using Shot/Reverse Shot decomposition', [
+                'scene_id' => $sceneId,
+                'scene_index' => $sceneIndex,
+                'path' => 'exchange-based',
             ]);
 
             // Get Character Bible for voice/character mapping
@@ -18016,7 +18070,7 @@ PROMPT;
 
                 // Log summary
                 $summary = $dialogueDecomposer->getDecompositionSummary($dialogueShots);
-                Log::info('VideoWizard: Dialogue scene decomposed', [
+                Log::info('VideoWizard: Dialogue scene decomposed (fallback)', [
                     'scene_id' => $sceneId,
                     'total_shots' => $summary['totalShots'],
                     'speaking_shots' => $summary['speakingShots'],
@@ -23058,18 +23112,32 @@ PROMPT;
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // SPEECH SEGMENTS: Distribute speechSegments to shots
-        // Each shot gets its portion of the scene's speech for lip-sync decisions
+        // PHASE 11: Skip proportional distribution if shots already have 1:1 segments
+        // Speech-driven shots (created by createShotsFromSpeechSegments) already have
+        // their speechSegments attached. Only use legacy distribution for non-speech shots.
         // ═══════════════════════════════════════════════════════════════════
         $scene = $this->script['scenes'][$sceneIndex] ?? [];
         $speechSegments = $scene['speechSegments'] ?? [];
 
-        if (!empty($speechSegments)) {
+        // Check if shots already have speech segments attached (speech-driven path)
+        $firstShot = $shots[0] ?? [];
+        $alreadyHasSpeechSegments = !empty($firstShot['speechSegments']);
+
+        if (!empty($speechSegments) && !$alreadyHasSpeechSegments) {
+            // DEPRECATED: Legacy proportional distribution (fallback only)
+            // This path should only be used for scenes without speech-driven decomposition
             $this->distributeSpeechSegmentsToShots($sceneIndex, $speechSegments, count($shots));
-            Log::info('Distributed speech segments to shots', [
+            Log::info('Distributed speech segments to shots (legacy fallback)', [
                 'sceneIndex' => $sceneIndex,
                 'segmentCount' => count($speechSegments),
                 'shotCount' => count($shots),
+                'path' => 'proportional-legacy',
+            ]);
+        } elseif ($alreadyHasSpeechSegments) {
+            Log::info('Shots already have speech segments (1:1 mapping)', [
+                'sceneIndex' => $sceneIndex,
+                'shotCount' => count($shots),
+                'path' => 'speech-driven',
             ]);
         }
 
@@ -23146,10 +23214,14 @@ PROMPT;
     }
 
     /**
+     * DEPRECATED: Use createShotsFromSpeechSegments() instead.
+     * Speech segments should CREATE shots (1:1 mapping), not be distributed proportionally TO existing shots.
+     *
      * Distribute speech segments to shots proportionally.
      * Each shot gets its portion of the scene's speechSegments array.
      * Sets needsLipSync=true on shots with dialogue or monologue segments.
      *
+     * @deprecated Phase 11 - Use createShotsFromSpeechSegments() for 1:1 speech-to-shot mapping
      * @param int $sceneIndex Scene index
      * @param array $speechSegments Scene's speech segments array
      * @param int $shotCount Number of shots in the scene
@@ -23216,6 +23288,87 @@ PROMPT;
             'shotCount' => $shotCount,
             'segmentsPerShot' => $segmentsPerShot,
         ]);
+    }
+
+    /**
+     * Create shots FROM speech segments (1:1 mapping for dialogue/monologue).
+     * Each dialogue or monologue segment becomes its own shot.
+     * Narrator and internal thought segments are skipped (handled separately in Plan 02).
+     *
+     * PHASE 11: This is the correct approach - speech CREATES shots, not distributed TO them.
+     * - 5 dialogue segments = 5 shots
+     * - 12 speech segments = 12 shots (no artificial cap)
+     * - Each shot has exactly one speaking character
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $speechSegments Scene's speech segments array
+     * @return array Array of created shots with 1:1 segment mapping
+     */
+    protected function createShotsFromSpeechSegments(int $sceneIndex, array $speechSegments): array
+    {
+        $shots = [];
+        $lipSyncTypes = ['dialogue', 'monologue'];
+
+        foreach ($speechSegments as $segmentIndex => $segment) {
+            $segType = strtolower($segment['type'] ?? 'narrator');
+
+            // Skip narrator and internal thought (handled in Plan 02)
+            if (!in_array($segType, $lipSyncTypes)) {
+                continue;
+            }
+
+            $speaker = $segment['speaker'] ?? 'Unknown';
+            $text = $segment['text'] ?? '';
+
+            // Create one shot for this segment (1:1 mapping)
+            $shot = [
+                'id' => uniqid('shot_'),
+                'speechSegments' => [$segment], // Single segment per shot
+                'needsLipSync' => true,
+                'dialogue' => $text,
+                'monologue' => $text,
+                'speakingCharacter' => $speaker,
+                'speakingCharacters' => [$speaker],
+                'selectedVideoModel' => 'multitalk',
+                'type' => 'dialogue', // Will be refined by DialogueSceneDecomposerService
+                'purpose' => 'dialogue',
+                'segmentIndex' => $segmentIndex,
+                'duration' => $this->calculateDurationFromText($text),
+            ];
+
+            // Assign voice from character
+            if (!empty($speaker)) {
+                $voice = $this->getVoiceForCharacterName($speaker);
+                $shot['voiceId'] = $voice;
+            }
+
+            $shots[] = $shot;
+        }
+
+        Log::info('Created shots from speech segments (1:1 mapping)', [
+            'sceneIndex' => $sceneIndex,
+            'totalSegments' => count($speechSegments),
+            'lipSyncSegments' => count($shots),
+            'shotsCreated' => count($shots),
+            'ratio' => '1:1',
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * Calculate shot duration based on text length.
+     * Speaking rate: ~150 words per minute = ~2.5 words per second.
+     *
+     * @param string $text Dialogue text
+     * @return int Duration in seconds (minimum 3s for natural pacing)
+     */
+    protected function calculateDurationFromText(string $text): int
+    {
+        $wordCount = str_word_count($text);
+        // 2.5 words per second + 1 second buffer for natural pacing
+        $duration = ceil($wordCount / 2.5) + 1;
+        return max(3, (int) $duration); // Minimum 3 seconds
     }
 
     /**
