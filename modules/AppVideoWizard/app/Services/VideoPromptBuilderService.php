@@ -896,9 +896,9 @@ class VideoPromptBuilderService
             $parts[] = $genrePreset->color_grade;
         }
 
-        // Depth of field (essential for cinematic)
+        // Depth of field (moderate keeps background visible while maintaining focus)
         if (empty($context['depthOfField']) || $context['depthOfField'] !== 'deep') {
-            $parts[] = 'shallow depth of field';
+            $parts[] = 'moderate depth of field with visible environment';
         }
 
         // Film characteristics

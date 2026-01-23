@@ -41,7 +41,7 @@ Requirements for Milestone 7. Each maps to roadmap phases.
 - [x] **MODL-02**: Modal shows scene number and title ✓
 - [x] **MODL-03**: Modal content is scrollable for long scenes ✓
 - [x] **MODL-04**: Modal has close button ✓
-- [ ] **MODL-05**: Modal works on mobile (responsive)
+- [x] **MODL-05**: Modal works on mobile (responsive) ✓
 
 ### Scene Card Fixes
 
@@ -99,7 +99,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MODL-02 | Phase 7 | Complete |
 | MODL-03 | Phase 7 | Complete |
 | MODL-04 | Phase 7 | Complete |
-| MODL-05 | Phase 10 | Pending |
+| MODL-05 | Phase 10 | Complete |
 | CARD-01 | Phase 7 | Complete |
 | CARD-02 | Phase 7 | Complete |
 | CARD-03 | Phase 7 | Complete |
@@ -117,4 +117,5 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after Phase 9 completion (27 requirements complete)*
+*Last updated: 2026-01-23 after Phase 10 completion (28/28 requirements complete)*
+*Milestone 7 complete: 2026-01-23*

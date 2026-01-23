@@ -19163,8 +19163,8 @@ PROMPT;
             $parts[] = $this->sceneMemory['styleBible']['style'];
         }
 
-        // 6. Cinematic quality
-        $parts[] = 'cinematic lighting, shallow depth of field';
+        // 6. Cinematic quality (moderate DOF keeps background figures visible)
+        $parts[] = 'cinematic lighting, moderate depth of field with sharp environmental details';
 
         return implode('. ', array_filter($parts));
     }
@@ -20604,8 +20604,8 @@ PROMPT;
             $specs[] = $genrePreset['style'];
         }
 
-        // Cinematic quality markers (brief)
-        $specs[] = 'shallow depth of field';
+        // Cinematic quality markers (moderate DOF keeps background visible)
+        $specs[] = 'moderate depth of field';
 
         return implode(', ', $specs);
     }

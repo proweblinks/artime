@@ -1365,8 +1365,8 @@ class DialogueSceneDecomposerService
             $prompt[] = "with {$shot['expression']} expression";
         }
 
-        // Depth of field
-        $prompt[] = 'shallow depth of field';
+        // Depth of field (moderate to keep background speaker visible)
+        $prompt[] = 'moderate depth of field with visible background figures';
         $prompt[] = 'cinematic lighting';
 
         // Dialogue context
