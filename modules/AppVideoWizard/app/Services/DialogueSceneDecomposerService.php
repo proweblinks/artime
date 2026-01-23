@@ -2340,6 +2340,10 @@ class DialogueSceneDecomposerService
         // Calculate durations
         $shots = $this->calculateShotDurations($shots);
 
+        // Phase 14: Validate and fix transitions (FLOW-03)
+        // This runs LAST after all shot type assignments to make minimal adjustments
+        $shots = $this->validateAndFixTransitions($shots);
+
         Log::info('DialogueSceneDecomposer: Enhanced shots with dialogue patterns', [
             'total_shots' => count($shots),
             'speakers' => $speakers,
