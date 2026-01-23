@@ -80,7 +80,11 @@ Plans:
 
 **Goal:** Users can view full prompts and copy them to clipboard with visual feedback
 
+**Status:** Planned (2026-01-23)
+
 **Dependencies:** Phase 8 (requires content structure)
+
+**Plans:** 1 plan
 
 **Requirements:**
 - PRMT-01: User can view full image prompt (not truncated)
@@ -98,6 +102,9 @@ Plans:
 5. User can copy individual prompts or speech segments independently
 
 **Estimated time:** 2-3 hours
+
+Plans:
+- [ ] 09-01-PLAN.md — Prompts display with copy-to-clipboard (computed property update, prompts section, copy buttons with iOS fallback)
 
 ---
 
@@ -127,7 +134,7 @@ Plans:
 |-------|--------|--------------|------------------|
 | Phase 7: Foundation | ✓ Complete | MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06 (14) | 5/5 verified |
 | Phase 8: Speech Segments | ✓ Complete | SPCH-01 to SPCH-07 (7) | 5/5 verified |
-| Phase 9: Prompts + Copy | Pending | PRMT-01 to PRMT-06 (6) | 5 criteria |
+| Phase 9: Prompts + Copy | Planned | PRMT-01 to PRMT-06 (6) | 5 criteria |
 | Phase 10: Mobile + Polish | Pending | MODL-05 (1) | 5 criteria |
 
 **Overall Progress:**
@@ -135,7 +142,7 @@ Plans:
 ```
 Phase 7:  ██████████ 100% ✓
 Phase 8:  ██████████ 100% ✓
-Phase 9:  ░░░░░░░░░░ 0%
+Phase 9:  ░░░░░░░░░░ 0% (planned)
 Phase 10: ░░░░░░░░░░ 0%
 ─────────────────────
 Overall:  █████░░░░░ 50%
@@ -183,4 +190,4 @@ Full transparency into generated content maintains trust and enables users to un
 ---
 
 *Milestone 7 roadmap created: 2026-01-23*
-*Phase 8 planned: 2026-01-23*
+*Phase 9 planned: 2026-01-23*
