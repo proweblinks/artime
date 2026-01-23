@@ -942,6 +942,88 @@
         font-size: 0.65rem;
         font-style: italic;
     }
+
+    /* ========================================
+       PHASE 6: Status Badges
+       ======================================== */
+    .vw-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.15rem 0.35rem;
+        border-radius: 0.2rem;
+        font-size: 0.55rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .vw-status-pending {
+        background: rgba(168, 162, 158, 0.2);
+        color: rgba(168, 162, 158, 0.9);
+    }
+
+    .vw-status-generating {
+        background: rgba(245, 158, 11, 0.2);
+        color: rgba(245, 158, 11, 0.95);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .vw-status-complete,
+    .vw-status-ready {
+        background: rgba(34, 197, 94, 0.2);
+        color: rgba(34, 197, 94, 0.95);
+    }
+
+    .vw-status-error {
+        background: rgba(239, 68, 68, 0.2);
+        color: rgba(239, 68, 68, 0.95);
+    }
+
+    /* Intensity Bar */
+    .vw-intensity-bar {
+        height: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1.5px;
+        overflow: hidden;
+        margin: 0.25rem 0;
+    }
+
+    .vw-intensity-fill {
+        height: 100%;
+        border-radius: 1.5px;
+        transition: width 0.3s ease;
+    }
+
+    .vw-intensity-low { background: rgba(59, 130, 246, 0.8); }
+    .vw-intensity-medium { background: rgba(245, 158, 11, 0.8); }
+    .vw-intensity-high { background: rgba(239, 68, 68, 0.8); }
+    .vw-intensity-climax {
+        background: linear-gradient(90deg, rgba(139, 92, 246, 0.9), rgba(236, 72, 153, 0.9));
+    }
+
+    /* Mini Progress Ring */
+    .vw-mini-progress {
+        width: 16px;
+        height: 16px;
+        position: relative;
+    }
+
+    .vw-mini-progress svg {
+        transform: rotate(-90deg);
+    }
+
+    .vw-mini-progress-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-width: 2;
+    }
+
+    .vw-mini-progress-fill {
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.3s ease;
+    }
 </style>
 
 @php
@@ -1606,6 +1688,71 @@ function getCameraMovementIcon($movement) {
                     </div>
                 </div>
             </div>
+
+            {{-- PHASE 6: Arc Template Selector --}}
+            @if(!empty($emotionalArcData['values']))
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 0.75rem;
+                    background: rgba(139, 92, 246, 0.1);
+                    border-radius: 0.5rem;
+                    margin-bottom: 0.75rem;
+                    border: 1px solid rgba(139, 92, 246, 0.2);
+                ">
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 0.25rem;
+                        color: rgba(139, 92, 246, 0.9);
+                        font-size: 0.7rem;
+                    ">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <span style="font-weight: 600;">{{ __('Emotional Arc') }}:</span>
+                    </div>
+
+                    <select
+                        wire:model.live="arcTemplate"
+                        wire:change="setArcTemplate($event.target.value)"
+                        style="
+                            background: rgba(0, 0, 0, 0.3);
+                            border: 1px solid rgba(139, 92, 246, 0.3);
+                            color: #fff;
+                            padding: 0.25rem 0.5rem;
+                            border-radius: 0.25rem;
+                            font-size: 0.7rem;
+                            cursor: pointer;
+                        "
+                    >
+                        @foreach($arcTemplates as $key => $label)
+                            <option value="{{ $key }}" {{ $arcTemplate === $key ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    {{-- Arc Summary --}}
+                    @php
+                        $arcSummary = $this->getArcSummary();
+                    @endphp
+                    @if($arcSummary['hasData'] ?? false)
+                        <div style="
+                            display: flex;
+                            gap: 0.75rem;
+                            margin-left: auto;
+                            font-size: 0.65rem;
+                            color: rgba(255,255,255,0.6);
+                        ">
+                            <span>{{ __('Shots') }}: {{ $arcSummary['shotCount'] ?? 0 }}</span>
+                            <span>{{ __('Peak') }}: {{ $arcSummary['peakIntensity'] ?? '0%' }}</span>
+                            <span>{{ __('Climax') }}: {{ $arcSummary['climaxScene'] ?? 'N/A' }}</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             {{-- Scene Stats Bar --}}
             @php
