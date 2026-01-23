@@ -195,6 +195,98 @@
                 </div>
             </div>
 
+            {{-- Speech/Text Content Section --}}
+            @php
+                $hasDialogue = !empty($shot['dialogue']);
+                $hasMonologue = !empty($shot['monologue']);
+                $hasNarration = !empty($shot['narration']);
+                $hasVisualContext = !empty($shot['visualContext']);
+                $speechIndicator = $shot['speechIndicator'] ?? null;
+                $speechType = $shot['speechType'] ?? 'narrator';
+                $speakingCharacter = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
+                $needsLipSync = $shot['needsLipSync'] ?? false;
+                $hasAudioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+
+                // Determine what content to show
+                $showSpeechSection = $hasDialogue || $hasMonologue || $hasNarration || $hasVisualContext;
+            @endphp
+
+            @if($showSpeechSection)
+            <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(139, 92, 246, 0.08)); border-top: 1px solid rgba(236, 72, 153, 0.2); flex-shrink: 0;">
+                {{-- Section Header --}}
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    @if($hasDialogue || $hasMonologue)
+                        @if($needsLipSync)
+                            <span style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                                💬 {{ __('DIALOGUE') }} ({{ __('Lip-Sync') }})
+                            </span>
+                        @else
+                            <span style="background: rgba(139, 92, 246, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #c4b5fd;">
+                                🗣️ {{ __('MONOLOGUE') }}
+                            </span>
+                        @endif
+                        @if($speakingCharacter)
+                            <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">
+                                {{ $speakingCharacter }}
+                            </span>
+                        @endif
+                        @if($hasAudioReady)
+                            <span style="background: rgba(16, 185, 129, 0.3); padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; color: #34d399;">
+                                🎤 {{ __('Audio Ready') }}
+                            </span>
+                        @endif
+                    @elseif($hasNarration)
+                        <span style="background: rgba(100, 116, 139, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #94a3b8;">
+                            🎙️ {{ __('NARRATOR') }}
+                        </span>
+                    @elseif($hasVisualContext)
+                        <span style="background: rgba(59, 130, 246, 0.2); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #93c5fd;">
+                            👁️ {{ __('VISUAL') }}
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Content Box --}}
+                <div style="background: rgba(0,0,0,0.3); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
+                    @if($hasDialogue || $hasMonologue)
+                        <p style="color: rgba(255,255,255,0.95); font-size: 0.95rem; line-height: 1.5; margin: 0; font-style: italic;">
+                            "{{ $shot['dialogue'] ?? $shot['monologue'] }}"
+                        </p>
+                    @elseif($hasNarration)
+                        <p style="color: rgba(255,255,255,0.85); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                            {{ $shot['narration'] }}
+                        </p>
+                    @elseif($hasVisualContext)
+                        <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; line-height: 1.4; margin: 0;">
+                            {{ $shot['visualContext'] }}
+                        </p>
+                    @endif
+                </div>
+
+                {{-- Speech Type Info --}}
+                @if($speechType && $speechType !== 'narrator')
+                    <div style="margin-top: 0.5rem; font-size: 0.7rem; color: rgba(255,255,255,0.5);">
+                        {{ __('Speech Type') }}: <span style="color: rgba(255,255,255,0.7);">{{ ucfirst($speechType) }}</span>
+                        @if($shot['partOfVoiceover'] ?? false)
+                            • <span style="color: #94a3b8;">{{ __('Part of scene voiceover') }}</span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+            @else
+            {{-- No speech content - show silent shot indicator --}}
+            <div style="padding: 0.5rem 0.75rem; background: rgba(100, 116, 139, 0.1); border-top: 1px solid rgba(100, 116, 139, 0.2); flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="background: rgba(100, 116, 139, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; color: #94a3b8;">
+                        🔇 {{ __('SILENT SHOT') }}
+                    </span>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                        {{ $shot['type'] === 'establishing' ? __('Establishing shot - sets the scene') : ($shot['type'] === 'reaction' ? __('Reaction shot - visual response') : __('No dialogue or narration')) }}
+                    </span>
+                </div>
+            </div>
+            @endif
+
             {{-- Prompts Section (compact) --}}
             <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">

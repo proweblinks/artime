@@ -893,45 +893,80 @@ window.multiShotVideoPolling = function() {
                                     @endif
                                 </div>
 
-                                {{-- PHASE 6: Shot Dialogue Display --}}
-                                @if(!empty($shot['dialogue']))
-                                    <div class="msm-shot-dialogue" style="
-                                        background: rgba(59, 130, 246, 0.12);
-                                        border-left: 3px solid rgba(59, 130, 246, 0.6);
+                                {{-- PHASE 6: Shot Speech/Text Display --}}
+                                @php
+                                    $shotDialogue = $shot['dialogue'] ?? null;
+                                    $shotMonologue = $shot['monologue'] ?? null;
+                                    $shotNarration = $shot['narration'] ?? null;
+                                    $shotSpeaker = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
+                                    $shotSpeechIndicator = $shot['speechIndicator'] ?? null;
+                                    $shotHasText = !empty($shotDialogue) || !empty($shotMonologue) || !empty($shotNarration);
+                                @endphp
+
+                                @if($shotHasText)
+                                    {{-- Speech Type Badge --}}
+                                    <div class="msm-speech-badge-row" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem;">
+                                        @if($needsLipSync && ($shotDialogue || $shotMonologue))
+                                            <span class="msm-speech-type-badge dialogue">💬 {{ __('Dialogue') }}</span>
+                                        @elseif($shotMonologue || $shotDialogue)
+                                            <span class="msm-speech-type-badge monologue">🗣️ {{ __('Monologue') }}</span>
+                                        @elseif($shotNarration)
+                                            <span class="msm-speech-type-badge narrator">🎙️ {{ __('Narrator') }}</span>
+                                        @endif
+                                        @if($shotSpeaker)
+                                            <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">{{ $shotSpeaker }}</span>
+                                        @endif
+                                    </div>
+
+                                    {{-- Text Content --}}
+                                    <div class="msm-shot-text-content" style="
+                                        background: {{ $needsLipSync ? 'rgba(236, 72, 153, 0.1)' : ($shotNarration ? 'rgba(100, 116, 139, 0.1)' : 'rgba(139, 92, 246, 0.1)') }};
+                                        border-left: 3px solid {{ $needsLipSync ? 'rgba(236, 72, 153, 0.6)' : ($shotNarration ? 'rgba(100, 116, 139, 0.5)' : 'rgba(139, 92, 246, 0.5)') }};
                                         padding: 0.5rem 0.75rem;
-                                        margin: 0.5rem 0.75rem;
-                                        border-radius: 0 6px 6px 0;
+                                        margin: 0.25rem 0.75rem 0.5rem;
+                                        border-radius: 0 8px 8px 0;
                                         font-size: 0.85rem;
                                     ">
-                                        @if(!empty($shot['speakingCharacter']))
-                                            <span style="
-                                                color: rgba(139, 92, 246, 0.95);
-                                                font-weight: 600;
-                                                font-size: 0.8rem;
-                                            ">{{ $shot['speakingCharacter'] }}:</span>
-                                        @endif
-                                        <span style="color: rgba(255,255,255,0.9);">
-                                            {{ Str::limit($shot['dialogue'], 80) }}
+                                        <span style="color: rgba(255,255,255,0.9); line-height: 1.4;">
+                                            @if($shotDialogue || $shotMonologue)
+                                                "{{ Str::limit($shotDialogue ?? $shotMonologue, 80) }}"
+                                            @elseif($shotNarration)
+                                                {{ Str::limit($shotNarration, 80) }}
+                                            @endif
                                         </span>
                                     </div>
                                 @elseif(!empty($shot['needsLipSync']))
+                                    {{-- Lip-sync indicator without text --}}
                                     <div style="
                                         display: inline-flex;
                                         align-items: center;
                                         gap: 0.35rem;
-                                        background: rgba(139, 92, 246, 0.25);
+                                        background: rgba(236, 72, 153, 0.2);
                                         padding: 0.3rem 0.6rem;
                                         border-radius: 6px;
                                         font-size: 0.8rem;
-                                        color: rgba(139, 92, 246, 0.95);
+                                        color: #f472b6;
                                         margin: 0.4rem 0.75rem;
                                         font-weight: 500;
                                     ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                        </svg>
-                                        <span>{{ __('Lip Sync') }}</span>
+                                        <span>👄</span>
+                                        <span>{{ __('Lip Sync Required') }}</span>
+                                    </div>
+                                @else
+                                    {{-- Silent shot indicator --}}
+                                    <div style="
+                                        display: inline-flex;
+                                        align-items: center;
+                                        gap: 0.35rem;
+                                        background: rgba(100, 116, 139, 0.15);
+                                        padding: 0.25rem 0.5rem;
+                                        border-radius: 6px;
+                                        font-size: 0.75rem;
+                                        color: rgba(148, 163, 184, 0.8);
+                                        margin: 0.4rem 0.75rem;
+                                    ">
+                                        <span>🔇</span>
+                                        <span>{{ $shot['type'] === 'establishing' ? __('Establishing') : ($shot['type'] === 'reaction' ? __('Reaction') : __('Silent')) }}</span>
                                     </div>
                                 @endif
 
@@ -1980,6 +2015,39 @@ window.multiShotVideoPolling = function() {
 .msm-badge-audio-gen { background: rgba(139,92,246,0.35); color: #a78bfa; padding: 0.2rem 0.4rem; border-radius: 5px; font-size: 0.75rem; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 .msm-monologue-indicator { padding: 0.35rem 0.75rem; background: rgba(236,72,153,0.12); border-top: 1px solid rgba(236,72,153,0.2); }
+
+/* Speech Type Badges for Shot Cards */
+.msm-speech-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.msm-speech-type-badge.dialogue {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(139, 92, 246, 0.3));
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.4);
+}
+.msm-speech-type-badge.monologue {
+    background: rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.msm-speech-type-badge.narrator {
+    background: rgba(100, 116, 139, 0.25);
+    color: #94a3b8;
+    border: 1px solid rgba(100, 116, 139, 0.4);
+}
+.msm-speech-type-badge.silent {
+    background: rgba(100, 116, 139, 0.15);
+    color: rgba(148, 163, 184, 0.7);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
 .msm-monologue-preview { color: rgba(236,72,153,0.9); font-size: 0.75rem; font-style: italic; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Re-Animate Button */

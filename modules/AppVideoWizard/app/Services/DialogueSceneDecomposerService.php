@@ -138,24 +138,34 @@ class DialogueSceneDecomposerService
      * Supports formats:
      * - "SPEAKER: dialogue text"
      * - "SPEAKER NAME: dialogue text"
-     * - [NARRATOR] narrator text (excluded from dialogue)
+     * - [NARRATOR] narrator text (captured separately)
      *
      * @param string $narration The scene narration
-     * @return array Array of ['speaker' => string, 'text' => string, 'isNarrator' => bool]
+     * @return array Array of ['exchanges' => array, 'narratorSegments' => array]
      */
     public function parseDialogueExchanges(string $narration): array
     {
         $exchanges = [];
+        $narratorSegments = [];
         $lines = preg_split('/\n+/', trim($narration));
 
-        foreach ($lines as $line) {
+        foreach ($lines as $lineIndex => $line) {
             $line = trim($line);
             if (empty($line)) {
                 continue;
             }
 
-            // Skip narrator tags
-            if (preg_match('/^\[NARRATOR\]/i', $line)) {
+            // Capture narrator tags - don't skip them anymore
+            if (preg_match('/^\[NARRATOR\]\s*(.*)$/i', $line, $narratorMatch)) {
+                $narratorText = trim($narratorMatch[1]);
+                if (!empty($narratorText)) {
+                    $narratorSegments[] = [
+                        'text' => $narratorText,
+                        'position' => count($exchanges), // Position relative to dialogue
+                        'lineIndex' => $lineIndex,
+                        'type' => 'narrator',
+                    ];
+                }
                 continue;
             }
 
@@ -169,8 +179,16 @@ class DialogueSceneDecomposerService
                 $speaker = trim($matches[1]);
                 $text = trim($matches[2]);
 
-                // Skip if it's narrator
+                // Capture narrator as speaker too
                 if (strtoupper($speaker) === 'NARRATOR') {
+                    if (!empty($text)) {
+                        $narratorSegments[] = [
+                            'text' => $text,
+                            'position' => count($exchanges),
+                            'lineIndex' => $lineIndex,
+                            'type' => 'narrator',
+                        ];
+                    }
                     continue;
                 }
 
@@ -185,7 +203,41 @@ class DialogueSceneDecomposerService
             }
         }
 
-        return $exchanges;
+        return [
+            'exchanges' => $exchanges,
+            'narratorSegments' => $narratorSegments,
+        ];
+    }
+
+    /**
+     * Extract scene-level voiceover/narration text.
+     * This captures the overall scene narration that should be distributed across shots.
+     *
+     * @param array $scene The scene data
+     * @return array Narrator info with text and speechType
+     */
+    public function extractSceneNarration(array $scene): array
+    {
+        // Check for voiceover configuration
+        $voiceover = $scene['voiceover'] ?? [];
+        $speechType = $voiceover['speechType'] ?? $scene['speechType'] ?? 'narrator';
+
+        // Get voiceover text if available
+        $voiceoverText = $voiceover['text'] ?? null;
+
+        // Get visual description as fallback
+        $visualDescription = $scene['visualDescription'] ?? '';
+
+        // Get scene narration field
+        $sceneNarration = $scene['narration'] ?? '';
+
+        return [
+            'speechType' => $speechType,
+            'voiceoverText' => $voiceoverText,
+            'visualDescription' => $visualDescription,
+            'narration' => $sceneNarration,
+            'hasVoiceover' => !empty($voiceoverText),
+        ];
     }
 
     /**
@@ -199,7 +251,20 @@ class DialogueSceneDecomposerService
     public function decomposeDialogueScene(array $scene, array $characterBible = [], array $options = []): array
     {
         $narration = $scene['narration'] ?? '';
-        $exchanges = $this->parseDialogueExchanges($narration);
+        $parseResult = $this->parseDialogueExchanges($narration);
+
+        // Handle both old and new return format for backwards compatibility
+        if (isset($parseResult['exchanges'])) {
+            $exchanges = $parseResult['exchanges'];
+            $narratorSegments = $parseResult['narratorSegments'] ?? [];
+        } else {
+            // Old format (just exchanges array)
+            $exchanges = $parseResult;
+            $narratorSegments = [];
+        }
+
+        // Extract scene-level narration info
+        $sceneNarrationInfo = $this->extractSceneNarration($scene);
 
         if (empty($exchanges)) {
             Log::warning('DialogueDecomposer: No dialogue exchanges found', [
@@ -325,6 +390,98 @@ class DialogueSceneDecomposerService
             'shotCount' => count($shots),
             'speakingShots' => count(array_filter($shots, fn($s) => $s['useMultitalk'] ?? false)),
             'pairCount' => count(array_filter($shots, fn($s) => !empty($s['spatial']['pairId'] ?? null))),
+        ]);
+
+        // Distribute narrator segments and scene narration to shots
+        $shots = $this->distributeNarrationToShots($shots, $narratorSegments, $sceneNarrationInfo);
+
+        return $shots;
+    }
+
+    /**
+     * Distribute narrator segments and scene-level narration to shots.
+     * This ensures every shot has proper speech/text indication.
+     *
+     * @param array $shots The shots array
+     * @param array $narratorSegments Parsed narrator segments
+     * @param array $sceneNarrationInfo Scene-level narration info
+     * @return array Shots with narration distributed
+     */
+    protected function distributeNarrationToShots(array $shots, array $narratorSegments, array $sceneNarrationInfo): array
+    {
+        $totalShots = count($shots);
+        if ($totalShots === 0) {
+            return $shots;
+        }
+
+        $speechType = $sceneNarrationInfo['speechType'] ?? 'narrator';
+        $voiceoverText = $sceneNarrationInfo['voiceoverText'] ?? null;
+        $visualDescription = $sceneNarrationInfo['visualDescription'] ?? '';
+
+        // Distribute narrator segments to their corresponding positions
+        foreach ($narratorSegments as $segment) {
+            $position = $segment['position'] ?? 0;
+            // Find the closest shot to this position
+            $targetShotIndex = min($position, $totalShots - 1);
+
+            if (isset($shots[$targetShotIndex])) {
+                // Append to existing narration or create new
+                $existingNarration = $shots[$targetShotIndex]['narration'] ?? '';
+                $shots[$targetShotIndex]['narration'] = trim($existingNarration . ' ' . $segment['text']);
+                $shots[$targetShotIndex]['hasNarratorText'] = true;
+            }
+        }
+
+        // For shots without dialogue, monologue, or narration, add scene context
+        foreach ($shots as $idx => &$shot) {
+            // Add speech type info to all shots
+            $shot['speechType'] = $speechType;
+
+            // Determine what text type this shot has
+            $hasDialogue = !empty($shot['dialogue']);
+            $hasMonologue = !empty($shot['monologue']);
+            $hasNarration = !empty($shot['narration']);
+            $hasNarratorText = $shot['hasNarratorText'] ?? false;
+
+            // Calculate speech indicator
+            if ($hasDialogue || $hasMonologue) {
+                $shot['speechIndicator'] = $shot['needsLipSync'] ?? false ? 'dialogue' : 'monologue';
+            } elseif ($hasNarration || $hasNarratorText) {
+                $shot['speechIndicator'] = 'narrator';
+            } elseif ($speechType === 'narrator' && $voiceoverText) {
+                // This shot is part of a narrator scene - mark it
+                $shot['speechIndicator'] = 'narrator';
+                $shot['partOfVoiceover'] = true;
+            } else {
+                // Silent shot (establishing, reaction, etc.)
+                $shot['speechIndicator'] = 'silent';
+            }
+
+            // For first shot, add voiceover text if scene has it and shot has no dialogue
+            if ($idx === 0 && $voiceoverText && !$hasDialogue && !$hasMonologue && !$hasNarration) {
+                $shot['narration'] = $voiceoverText;
+                $shot['hasNarratorText'] = true;
+                $shot['speechIndicator'] = 'narrator';
+            }
+
+            // Add visual description snippet to shots without any text
+            if (!$hasDialogue && !$hasMonologue && !$hasNarration && !empty($visualDescription)) {
+                // Only add a portion of visual description based on shot position
+                $descWords = explode(' ', $visualDescription);
+                $wordsPerShot = max(5, intval(count($descWords) / max(1, $totalShots)));
+                $startWord = $idx * $wordsPerShot;
+                $shotDescWords = array_slice($descWords, $startWord, $wordsPerShot);
+                if (!empty($shotDescWords)) {
+                    $shot['visualContext'] = implode(' ', $shotDescWords);
+                }
+            }
+        }
+
+        Log::debug('DialogueDecomposer: Distributed narration to shots', [
+            'totalShots' => $totalShots,
+            'narratorSegments' => count($narratorSegments),
+            'speechType' => $speechType,
+            'hasVoiceover' => !empty($voiceoverText),
         ]);
 
         return $shots;
