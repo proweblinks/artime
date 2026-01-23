@@ -197,6 +197,17 @@ class ShotIntelligenceService
                                 'moment_count' => count($narrativeMoments),
                                 'arc' => $emotionalArc,
                             ]);
+
+                            // Validate action uniqueness
+                            $uniquenessValidation = $this->validateActionUniqueness($narrativeMoments);
+                            if (!$uniquenessValidation['valid']) {
+                                Log::warning('ShotIntelligenceService: Action uniqueness issues detected', [
+                                    'scene_id' => $scene['id'] ?? 'unknown',
+                                    'issues' => count($uniquenessValidation['issues']),
+                                    'score' => $uniquenessValidation['uniquenessScore'],
+                                ]);
+                            }
+                            $context['actionUniquenessValidation'] = $uniquenessValidation;
                         }
                     } catch (\Throwable $e) {
                         Log::warning('ShotIntelligenceService: Narrative decomposition failed', [
@@ -243,6 +254,11 @@ class ShotIntelligenceService
             if (!empty($narrativeMoments)) {
                 $analysis['narrativeMoments'] = $narrativeMoments;
                 $analysis['emotionalArc'] = $emotionalArc;
+
+                // Add action uniqueness validation result
+                if (!empty($uniquenessValidation)) {
+                    $analysis['actionUniqueness'] = $uniquenessValidation;
+                }
             }
 
             // Add scene type detection results
@@ -384,6 +400,22 @@ class ShotIntelligenceService
         $sceneType = $context['sceneType'] ?? 'dialogue';
         $shotCountGuidance = $this->getSceneTypeShotGuidance($sceneType);
 
+        // PHASE 2: Format narrative moments if available
+        $narrativeMomentsText = '';
+        $emotionalArcText = 'Not available';
+        if (!empty($context['narrativeMoments'])) {
+            $narrativeMomentsText = $this->formatNarrativeMomentsForPrompt($context['narrativeMoments']);
+
+            // Update target shot count to match moment count for consistency
+            $momentCount = count($context['narrativeMoments']);
+            if ($momentCount > 0) {
+                $shotCountGuidance = "REQUIRED: Generate exactly {$momentCount} shots to match the {$momentCount} narrative moments provided.";
+            }
+        }
+        if (!empty($context['emotionalArc'])) {
+            $emotionalArcText = $this->formatEmotionalArcForPrompt($context['emotionalArc']);
+        }
+
         $variables = [
             'scene_description' => $scene['visualDescription'] ?? $scene['visual'] ?? '',
             'narration' => $scene['narration'] ?? '',
@@ -403,6 +435,9 @@ class ShotIntelligenceService
             'shot_count_guidance' => $shotCountGuidance,
             'tension_curve' => $context['tensionCurve'] ?? 'balanced',
             'emotional_journey' => $context['emotionalJourney'] ?? 'hopeful-path',
+            // Phase 2: Narrative moment context
+            'narrative_moments' => $narrativeMomentsText,
+            'emotional_arc_visualization' => $emotionalArcText,
         ];
 
         // Replace template variables
@@ -494,6 +529,111 @@ class ShotIntelligenceService
         ];
 
         return $defaults[$sceneType] ?? 'RECOMMENDED: 3-8 shots based on content complexity.';
+    }
+
+    /**
+     * Format narrative moments for AI prompt.
+     * Creates detailed shot guidance based on pre-decomposed narrative moments.
+     *
+     * @param array $narrativeMoments Array of moment objects from NarrativeMomentService
+     * @return string Formatted moment descriptions for AI prompt
+     */
+    protected function formatNarrativeMomentsForPrompt(array $narrativeMoments): string
+    {
+        if (empty($narrativeMoments)) {
+            return '';
+        }
+
+        $lines = [];
+        $lines[] = 'NARRATIVE MOMENTS (CRITICAL - Use these exact moments for each shot):';
+        $lines[] = '';
+
+        foreach ($narrativeMoments as $index => $moment) {
+            $shotNum = $index + 1;
+            $action = $moment['action'] ?? 'continues';
+            $emotion = $moment['emotion'] ?? 'focus';
+            $intensity = $moment['intensity'] ?? 0.5;
+            $subject = $moment['subject'] ?? 'the subject';
+
+            // Get suggested shot type based on intensity
+            $suggestedType = $this->getShotTypeFromIntensity($intensity, $index, count($narrativeMoments));
+
+            $lines[] = sprintf(
+                "Shot %d: ACTION=\"%s\" | EMOTION=%s | INTENSITY=%.0f%% | SUGGESTED=%s",
+                $shotNum,
+                $action,
+                $emotion,
+                $intensity * 100,
+                $suggestedType
+            );
+
+            // Add visual description if available
+            if (!empty($moment['visualDescription'])) {
+                $lines[] = sprintf("         VISUAL: %s", $moment['visualDescription']);
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = 'IMPORTANT: Each shot MUST use its assigned ACTION. Do NOT reuse actions between shots.';
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Get shot type suggestion based on emotional intensity.
+     * Maps intensity to shot type following Hollywood cinematography standards.
+     *
+     * @param float $intensity Emotional intensity (0-1)
+     * @param int $index Shot index
+     * @param int $total Total shots
+     * @return string Suggested shot type
+     */
+    protected function getShotTypeFromIntensity(float $intensity, int $index, int $total): string
+    {
+        // First shot: establishing (unless very short sequence)
+        if ($index === 0 && $total > 2) {
+            return 'establishing';
+        }
+
+        // Last shot: character-centric
+        if ($index === $total - 1) {
+            return $intensity > 0.6 ? 'close-up' : 'medium';
+        }
+
+        // Intensity-based (Hollywood analysis):
+        // 0.85-1.0: Extreme close-up (peak emotional)
+        // 0.7-0.85: Close-up (high emotion)
+        // 0.55-0.7: Medium close-up
+        // 0.4-0.55: Medium (dialogue, standard)
+        // 0.25-0.4: Wide (context)
+        // 0.0-0.25: Establishing (location)
+        if ($intensity >= 0.85) return 'extreme-close-up';
+        if ($intensity >= 0.7) return 'close-up';
+        if ($intensity >= 0.55) return 'medium-close';
+        if ($intensity >= 0.4) return 'medium';
+        if ($intensity >= 0.25) return 'wide';
+        return 'establishing';
+    }
+
+    /**
+     * Format emotional arc for AI prompt.
+     * Shows intensity progression as percentages.
+     *
+     * @param array $emotionalArc Array of intensity values (0-1)
+     * @return string Formatted arc string
+     */
+    protected function formatEmotionalArcForPrompt(array $emotionalArc): string
+    {
+        if (empty($emotionalArc)) {
+            return 'Not available';
+        }
+
+        $percentages = array_map(
+            fn($i) => round($i * 100) . '%',
+            $emotionalArc
+        );
+
+        return implode(' -> ', $percentages);
     }
 
     /**
@@ -682,7 +822,7 @@ class ShotIntelligenceService
     /**
      * Parse AI response and validate shot breakdown.
      */
-    protected function parseAIResponse(string $response, array $scene, int $minShots, int $maxShots): array
+    protected function parseAIResponse(string $response, array $scene, int $minShots, int $maxShots, ?int $narrativeMomentCount = null): array
     {
         // Extract JSON from response (handle markdown code blocks)
         $jsonStr = $response;
@@ -701,7 +841,14 @@ class ShotIntelligenceService
 
         // Validate and normalize the response
         $shotCount = isset($data['shotCount']) ? (int) $data['shotCount'] : count($data['shots'] ?? []);
-        $shotCount = max($minShots, min($maxShots, $shotCount));
+
+        // PHASE 2: If narrative moments were provided, prefer that count
+        if ($narrativeMomentCount !== null && $narrativeMomentCount > 0) {
+            // Use moment count, but still respect min/max bounds
+            $shotCount = max($minShots, min($maxShots, $narrativeMomentCount));
+        } else {
+            $shotCount = max($minShots, min($maxShots, $shotCount));
+        }
 
         $shots = [];
         $totalDuration = 0;
@@ -1250,6 +1397,11 @@ SHOT COUNT GUIDANCE:
 
 {{narrative_beat_rules}}
 
+NARRATIVE MOMENT DECOMPOSITION (Phase 2 - Hollywood Standard):
+{{narrative_moments}}
+
+EMOTIONAL ARC: {{emotional_arc_visualization}}
+
 SCENE TYPE COVERAGE PATTERNS:
 - DIALOGUE: Master → Two-Shot → Over-Shoulder → Close-up → Reaction (build intimacy)
 - ACTION: Wide → Tracking → Medium → Close-up → Insert (maintain energy) - USE 5-12 SHOTS
@@ -1694,6 +1846,78 @@ Return ONLY valid JSON (no markdown, no explanation):
             'valid' => empty($issues),
             'enabled' => true,
             'issues' => $issues,
+        ];
+    }
+
+    /**
+     * Validate that narrative moments have unique actions.
+     * Returns issues if consecutive moments have similar actions.
+     *
+     * @param array $moments Array of narrative moment objects
+     * @return array Validation result with 'valid' boolean and 'issues' array
+     */
+    public function validateActionUniqueness(array $moments): array
+    {
+        $issues = [];
+
+        if (count($moments) <= 1) {
+            return [
+                'valid' => true,
+                'issues' => [],
+                'uniquenessScore' => 100,
+            ];
+        }
+
+        $previousAction = null;
+        $duplicateCount = 0;
+
+        foreach ($moments as $index => $moment) {
+            $currentAction = $moment['action'] ?? '';
+
+            if ($index > 0 && !empty($currentAction) && !empty($previousAction)) {
+                // Check using NarrativeMomentService if available
+                $isSimilar = false;
+                if ($this->narrativeMomentService) {
+                    $isSimilar = $this->narrativeMomentService->areActionsSimilar($currentAction, $previousAction);
+                } else {
+                    // Fallback: simple word comparison
+                    $words1 = array_filter(explode(' ', strtolower($currentAction)));
+                    $words2 = array_filter(explode(' ', strtolower($previousAction)));
+                    $overlap = count(array_intersect($words1, $words2));
+                    $isSimilar = $overlap >= 2 || ($words1[0] ?? '') === ($words2[0] ?? '');
+                }
+
+                if ($isSimilar) {
+                    $duplicateCount++;
+                    $issues[] = [
+                        'momentIndex' => $index,
+                        'type' => 'duplicate_action',
+                        'severity' => 'high',
+                        'message' => sprintf(
+                            'Moment %d action "%s" is similar to moment %d action "%s"',
+                            $index + 1,
+                            substr($currentAction, 0, 50),
+                            $index,
+                            substr($previousAction, 0, 50)
+                        ),
+                        'suggestion' => 'Each moment should have a unique action verb that progresses the narrative',
+                    ];
+                }
+            }
+
+            $previousAction = $currentAction;
+        }
+
+        // Calculate uniqueness score (100% = all unique, 0% = all duplicates)
+        $totalPairs = max(1, count($moments) - 1);
+        $uniquenessScore = round((1 - ($duplicateCount / $totalPairs)) * 100);
+
+        return [
+            'valid' => empty($issues),
+            'issues' => $issues,
+            'uniquenessScore' => $uniquenessScore,
+            'duplicateCount' => $duplicateCount,
+            'totalMoments' => count($moments),
         ];
     }
 }
