@@ -1,17 +1,27 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-23
-> Session: Phase 6 - UI/UX Polish
+> Session: Milestone 7 - Scene Text Inspector
+
+---
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-01-23)
+
+**Core value:** Automatic, effortless, Hollywood-quality output from button clicks
+**Current focus:** Milestone 7 - Scene Text Inspector
 
 ---
 
 ## Current Position
 
-**Phase:** 6 of ongoing (UI/UX Polish)
-**Plan:** 04 of 4 (in phase) - COMPLETE
-**Status:** Phase Complete
+**Milestone:** 7 (Scene Text Inspector)
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
 
-**Progress:** [####] Phase 6 (4/4 plans complete - 06-01, 06-02, 06-03, 06-04)
+**Last activity:** 2026-01-23 — Milestone 7 started
 
 ---
 
