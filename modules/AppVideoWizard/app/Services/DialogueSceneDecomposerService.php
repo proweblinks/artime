@@ -76,6 +76,40 @@ class DialogueSceneDecomposerService
     ];
 
     /**
+     * PHASE 4: Minimum coverage requirements for Hollywood-quality dialogue.
+     */
+    protected array $coverageRequirements = [
+        // Required shot types
+        'requiredTypes' => [
+            'establishing' => 1,      // At least 1 establishing/two-shot
+            'over-the-shoulder' => 2, // At least 2 OTS (one per character direction)
+            'close-up' => 1,          // At least 1 close-up for emphasis
+        ],
+
+        // Per-character minimums
+        'perCharacter' => [
+            'speakingShots' => 1,     // Each character needs at least 1 speaking shot
+            'coverage' => 0.3,        // Each character should have 30%+ of shots
+        ],
+
+        // Pattern requirements
+        'patterns' => [
+            'maxConsecutiveOTS' => 4, // Break up OTS with two-shot after 4
+            'minVariety' => 3,        // At least 3 different shot types
+        ],
+    ];
+
+    /**
+     * PHASE 4: Shot type categories for coverage analysis.
+     */
+    protected array $shotTypeCategories = [
+        'establishing' => ['establishing', 'two-shot', 'wide'],
+        'ots' => ['over-the-shoulder', 'medium'],
+        'closeup' => ['close-up', 'extreme-close-up', 'medium-close'],
+        'reaction' => ['reaction'],
+    ];
+
+    /**
      * Detect if a scene contains multi-character dialogue.
      *
      * @param array $scene The scene data
@@ -235,6 +269,36 @@ class DialogueSceneDecomposerService
             $shot['shotIndex'] = $idx;
             $shot['totalShots'] = count($shots);
         }
+
+        // PHASE 4: Validate and fix coverage
+        $characters = array_keys($characterLookup);
+        $coverageAnalysis = $this->analyzeCoverage($shots, $characters);
+
+        if (!empty($coverageAnalysis['issues'])) {
+            Log::info('DialogueSceneDecomposer: Coverage issues detected, applying fixes', [
+                'issue_count' => count($coverageAnalysis['issues']),
+                'issues' => array_column($coverageAnalysis['issues'], 'type'),
+            ]);
+
+            $shots = $this->fixCoverageIssues($shots, $coverageAnalysis, $characters, $characterLookup);
+
+            // Re-analyze to confirm fixes
+            $finalAnalysis = $this->analyzeCoverage($shots, $characters);
+
+            if (!empty($finalAnalysis['issues'])) {
+                Log::warning('DialogueSceneDecomposer: Some coverage issues remain after fixes', [
+                    'remaining_issues' => count($finalAnalysis['issues']),
+                ]);
+            }
+        }
+
+        // Log final coverage summary
+        Log::info('DialogueSceneDecomposer: Final coverage summary', [
+            'total_shots' => count($shots),
+            'by_category' => $coverageAnalysis['typeCategories'],
+            'by_character' => $coverageAnalysis['byCharacter'],
+            'unique_types' => count($coverageAnalysis['patterns']['uniqueTypes']),
+        ]);
 
         // PHASE 4: Enhanced logging with spatial continuity info
         Log::info('DialogueDecomposer: Generated shots with spatial continuity', [
@@ -492,6 +556,296 @@ class DialogueSceneDecomposerService
         }
 
         return $shots;
+    }
+
+    /**
+     * PHASE 4: Analyze coverage of generated shots.
+     *
+     * @param array $shots Array of generated shots
+     * @param array $characters Characters in the dialogue
+     * @return array Coverage analysis results
+     */
+    protected function analyzeCoverage(array $shots, array $characters): array
+    {
+        $analysis = [
+            'total' => count($shots),
+            'byType' => [],
+            'byCharacter' => [],
+            'typeCategories' => [
+                'establishing' => 0,
+                'ots' => 0,
+                'closeup' => 0,
+                'reaction' => 0,
+            ],
+            'patterns' => [
+                'consecutiveOTS' => 0,
+                'maxConsecutiveOTS' => 0,
+                'uniqueTypes' => [],
+            ],
+            'issues' => [],
+        ];
+
+        $currentOTSStreak = 0;
+
+        foreach ($shots as $shot) {
+            $type = $shot['type'] ?? 'unknown';
+            $speaker = $shot['speakingCharacter'] ?? $shot['reactionCharacter'] ?? null;
+
+            // Count by type
+            $analysis['byType'][$type] = ($analysis['byType'][$type] ?? 0) + 1;
+            $analysis['patterns']['uniqueTypes'][$type] = true;
+
+            // Count by category
+            foreach ($this->shotTypeCategories as $category => $types) {
+                if (in_array($type, $types)) {
+                    $analysis['typeCategories'][$category]++;
+                    break;
+                }
+            }
+
+            // Count by character
+            if ($speaker) {
+                $analysis['byCharacter'][$speaker] = ($analysis['byCharacter'][$speaker] ?? 0) + 1;
+            }
+
+            // Track OTS streaks
+            $isOTS = in_array($type, $this->shotTypeCategories['ots']);
+            if ($isOTS) {
+                $currentOTSStreak++;
+                $analysis['patterns']['maxConsecutiveOTS'] = max(
+                    $analysis['patterns']['maxConsecutiveOTS'],
+                    $currentOTSStreak
+                );
+            } else {
+                $currentOTSStreak = 0;
+            }
+        }
+
+        // Check requirements
+        foreach ($this->coverageRequirements['requiredTypes'] as $category => $minimum) {
+            $count = $analysis['typeCategories'][$category] ?? 0;
+            if ($count < $minimum) {
+                $analysis['issues'][] = [
+                    'type' => 'missing_type',
+                    'category' => $category,
+                    'required' => $minimum,
+                    'actual' => $count,
+                ];
+            }
+        }
+
+        // Check per-character coverage
+        foreach ($characters as $character) {
+            $charShots = $analysis['byCharacter'][$character] ?? 0;
+            $charCoverage = $analysis['total'] > 0 ? $charShots / $analysis['total'] : 0;
+
+            if ($charShots < $this->coverageRequirements['perCharacter']['speakingShots']) {
+                $analysis['issues'][] = [
+                    'type' => 'insufficient_character_coverage',
+                    'character' => $character,
+                    'shots' => $charShots,
+                ];
+            }
+
+            if ($charCoverage < $this->coverageRequirements['perCharacter']['coverage']) {
+                $analysis['issues'][] = [
+                    'type' => 'unbalanced_coverage',
+                    'character' => $character,
+                    'coverage' => round($charCoverage * 100) . '%',
+                ];
+            }
+        }
+
+        // Check OTS pattern
+        if ($analysis['patterns']['maxConsecutiveOTS'] > $this->coverageRequirements['patterns']['maxConsecutiveOTS']) {
+            $analysis['issues'][] = [
+                'type' => 'ots_monotony',
+                'consecutive' => $analysis['patterns']['maxConsecutiveOTS'],
+                'max_allowed' => $this->coverageRequirements['patterns']['maxConsecutiveOTS'],
+            ];
+        }
+
+        // Check variety
+        $uniqueTypes = count($analysis['patterns']['uniqueTypes']);
+        if ($uniqueTypes < $this->coverageRequirements['patterns']['minVariety']) {
+            $analysis['issues'][] = [
+                'type' => 'insufficient_variety',
+                'unique_types' => $uniqueTypes,
+                'required' => $this->coverageRequirements['patterns']['minVariety'],
+            ];
+        }
+
+        return $analysis;
+    }
+
+    /**
+     * PHASE 4: Fix coverage issues by inserting missing shots.
+     *
+     * @param array $shots Current shots array
+     * @param array $analysis Coverage analysis
+     * @param array $characters Characters in dialogue
+     * @param array $characterLookup Character data
+     * @return array Corrected shots array
+     */
+    protected function fixCoverageIssues(
+        array $shots,
+        array $analysis,
+        array $characters,
+        array $characterLookup
+    ): array {
+        foreach ($analysis['issues'] as $issue) {
+            switch ($issue['type']) {
+                case 'missing_type':
+                    $shots = $this->insertMissingShotType($shots, $issue, $characters, $characterLookup);
+                    break;
+
+                case 'ots_monotony':
+                    $shots = $this->insertTwoShotBreaks($shots);
+                    break;
+
+                // Other issues logged but not auto-fixed
+                default:
+                    Log::warning('DialogueSceneDecomposer: Coverage issue detected', $issue);
+            }
+        }
+
+        return $shots;
+    }
+
+    /**
+     * Insert a missing shot type at appropriate position.
+     */
+    protected function insertMissingShotType(
+        array $shots,
+        array $issue,
+        array $characters,
+        array $characterLookup
+    ): array {
+        $category = $issue['category'];
+
+        switch ($category) {
+            case 'establishing':
+                // Insert establishing shot at the beginning
+                $establishingShot = $this->buildEstablishingShot($characters, $characterLookup);
+                array_unshift($shots, $establishingShot);
+                Log::info('DialogueSceneDecomposer: Inserted missing establishing shot');
+                break;
+
+            case 'closeup':
+                // Insert close-up near the climax (60-70% through)
+                $insertPos = (int)(count($shots) * 0.65);
+                $closeupShot = $this->buildEmphasisCloseup($shots[$insertPos] ?? $shots[0], $characterLookup);
+                array_splice($shots, $insertPos, 0, [$closeupShot]);
+                Log::info('DialogueSceneDecomposer: Inserted missing close-up at position ' . $insertPos);
+                break;
+        }
+
+        return $shots;
+    }
+
+    /**
+     * Insert two-shot breaks to reduce OTS monotony.
+     */
+    protected function insertTwoShotBreaks(array $shots): array
+    {
+        $maxOTS = $this->coverageRequirements['patterns']['maxConsecutiveOTS'];
+        $result = [];
+        $otsCount = 0;
+
+        foreach ($shots as $shot) {
+            $isOTS = in_array($shot['type'] ?? '', $this->shotTypeCategories['ots']);
+
+            if ($isOTS) {
+                $otsCount++;
+
+                // Insert two-shot break after max consecutive OTS
+                if ($otsCount >= $maxOTS) {
+                    $result[] = $this->buildTwoShotBreak($shot);
+                    $otsCount = 0;
+                    Log::debug('DialogueSceneDecomposer: Inserted two-shot break for visual variety');
+                }
+            } else {
+                $otsCount = 0;
+            }
+
+            $result[] = $shot;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Build an establishing two-shot.
+     */
+    protected function buildEstablishingShot(array $characters, array $characterLookup): array
+    {
+        $charA = $characters[0] ?? 'Character A';
+        $charB = $characters[1] ?? 'Character B';
+
+        return [
+            'type' => 'two-shot',
+            'purpose' => 'establishing',
+            'speakingCharacter' => null,
+            'dialogue' => null,
+            'useMultitalk' => false,
+            'needsLipSync' => false,
+            'duration' => 3,
+            'emotionalIntensity' => 0.2,
+            'visualDescription' => "Wide two-shot establishing {$charA} and {$charB} in conversation, " .
+                "both characters visible, neutral staging, setting the scene for dialogue.",
+            'spatial' => [
+                'cameraPosition' => $this->axisLockSide,
+                'cameraAngle' => 'frontal',
+                'subjectPosition' => 'center',
+                'eyeLineDirection' => 'towards each other',
+            ],
+        ];
+    }
+
+    /**
+     * Build a brief two-shot break for visual variety.
+     */
+    protected function buildTwoShotBreak(array $contextShot): array
+    {
+        return [
+            'type' => 'two-shot',
+            'purpose' => 'breathing_room',
+            'speakingCharacter' => null,
+            'dialogue' => null,
+            'useMultitalk' => false,
+            'needsLipSync' => false,
+            'duration' => 2,
+            'emotionalIntensity' => $contextShot['emotionalIntensity'] ?? 0.5,
+            'visualDescription' => "Brief two-shot showing both characters, visual breathing room in the dialogue.",
+            'spatial' => [
+                'cameraPosition' => $this->axisLockSide,
+                'cameraAngle' => 'frontal',
+                'subjectPosition' => 'center',
+            ],
+        ];
+    }
+
+    /**
+     * Build an emphasis close-up for dramatic moment.
+     */
+    protected function buildEmphasisCloseup(array $referenceShot, array $characterLookup): array
+    {
+        $speaker = $referenceShot['speakingCharacter'] ?? array_keys($characterLookup)[0] ?? 'character';
+        $characterData = $characterLookup[$speaker] ?? [];
+
+        return [
+            'type' => 'close-up',
+            'purpose' => 'emphasis',
+            'speakingCharacter' => $speaker,
+            'dialogue' => null,
+            'useMultitalk' => false,
+            'needsLipSync' => false,
+            'duration' => 3,
+            'emotionalIntensity' => 0.8,
+            'visualDescription' => "Close-up of {$speaker} for emotional emphasis, " .
+                "intense expression, dramatic moment in conversation.",
+            'spatial' => $referenceShot['spatial'] ?? [],
+        ];
     }
 
     /**
