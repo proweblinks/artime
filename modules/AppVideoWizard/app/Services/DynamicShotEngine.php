@@ -41,6 +41,41 @@ class DynamicShotEngine
     ];
 
     /**
+     * PHASE 5: Intensity thresholds for shot type selection.
+     * Can be customized per template or globally.
+     */
+    protected array $intensityThresholds = [
+        'extreme-close-up' => 0.85,  // XCU for peak moments
+        'close-up' => 0.70,          // CU for high emotion
+        'medium-close' => 0.55,      // MCU for engagement
+        'medium' => 0.40,            // Standard shots
+        'wide' => 0.25,              // Context shots
+        'establishing' => 0.0,       // Opening/scale shots
+    ];
+
+    /**
+     * PHASE 5: Template-specific threshold adjustments.
+     */
+    protected array $templateThresholdAdjustments = [
+        'action' => [
+            'close-up' => -0.05,      // More close-ups in action
+            'extreme-close-up' => -0.05,
+        ],
+        'drama' => [
+            'close-up' => -0.10,      // Even more close-ups in drama
+            'medium' => -0.05,
+        ],
+        'comedy' => [
+            'wide' => -0.10,          // More wide shots in comedy
+            'close-up' => +0.10,      // Fewer close-ups
+        ],
+        'documentary' => [
+            'medium' => -0.15,        // More medium shots
+            'close-up' => +0.15,      // Fewer close-ups
+        ],
+    ];
+
+    /**
      * Scene type detector service
      */
     protected ?SceneTypeDetectorService $sceneTypeDetector = null;
@@ -51,6 +86,26 @@ class DynamicShotEngine
     public function __construct(?SceneTypeDetectorService $sceneTypeDetector = null)
     {
         $this->sceneTypeDetector = $sceneTypeDetector ?? new SceneTypeDetectorService();
+    }
+
+    /**
+     * PHASE 5: Get adjusted thresholds for a template.
+     *
+     * @param string $template Arc template name
+     * @return array Adjusted intensity thresholds
+     */
+    protected function getAdjustedThresholds(string $template = 'hollywood'): array
+    {
+        $thresholds = $this->intensityThresholds;
+        $adjustments = $this->templateThresholdAdjustments[$template] ?? [];
+
+        foreach ($adjustments as $shotType => $adjustment) {
+            if (isset($thresholds[$shotType])) {
+                $thresholds[$shotType] = max(0, min(1, $thresholds[$shotType] + $adjustment));
+            }
+        }
+
+        return $thresholds;
     }
 
     /**
@@ -829,6 +884,147 @@ class DynamicShotEngine
     }
 
     // =========================================================================
+    // PHASE 5: CLIMAX-AWARE SHOT SELECTION
+    // =========================================================================
+
+    /**
+     * PHASE 5: Select shot type with climax awareness.
+     *
+     * @param float $intensity Shot intensity (0-1)
+     * @param bool $isClimax Whether this is the detected climax
+     * @param string $template Arc template being used
+     * @return string Selected shot type
+     */
+    public function selectShotTypeWithClimaxAwareness(
+        float $intensity,
+        bool $isClimax = false,
+        string $template = 'hollywood'
+    ): string {
+        // Climax shots get special treatment
+        if ($isClimax) {
+            // Always use tight framing for climax
+            return $intensity >= 0.9 ? 'extreme-close-up' : 'close-up';
+        }
+
+        // Get template-adjusted thresholds
+        $thresholds = $this->getAdjustedThresholds($template);
+
+        // Select based on intensity
+        foreach ($thresholds as $shotType => $threshold) {
+            if ($intensity >= $threshold) {
+                return $shotType;
+            }
+        }
+
+        return 'establishing';
+    }
+
+    /**
+     * PHASE 5: Get camera movement suggestion based on intensity.
+     *
+     * @param float $intensity Shot intensity
+     * @param bool $isClimax Is climax shot
+     * @return string|null Suggested camera movement
+     */
+    public function getCameraMovementForIntensity(float $intensity, bool $isClimax = false): ?string
+    {
+        if ($isClimax) {
+            return 'push-in'; // Dramatic push toward climax
+        }
+
+        if ($intensity >= 0.75) {
+            return 'slow-push'; // Building tension
+        }
+
+        if ($intensity <= 0.3) {
+            return 'static'; // Calm moments are still
+        }
+
+        // Mid-intensity can have subtle movement
+        return rand(0, 1) ? 'slight-drift' : 'static';
+    }
+
+    /**
+     * PHASE 5: Apply smoothed intensity curve to shots.
+     * Updates shot types based on processed emotional arc.
+     *
+     * @param array $shots Array of shots to process
+     * @param array $smoothedIntensities Smoothed intensity values
+     * @param int|null $climaxIndex Index of detected climax
+     * @param string $template Arc template
+     * @return array Shots with updated types and intensities
+     */
+    public function applySmoothedIntensityToShots(
+        array $shots,
+        array $smoothedIntensities,
+        ?int $climaxIndex = null,
+        string $template = 'hollywood'
+    ): array {
+        $count = count($shots);
+
+        foreach ($shots as $i => &$shot) {
+            $intensity = $smoothedIntensities[$i] ?? $shot['emotionalIntensity'] ?? 0.5;
+            $isClimax = ($climaxIndex !== null && $i === $climaxIndex);
+
+            // Update intensity
+            $shot['emotionalIntensity'] = $intensity;
+            $shot['rawIntensity'] = $shot['rawIntensity'] ?? $intensity;
+            $shot['isClimax'] = $isClimax;
+
+            // Update shot type based on intensity (unless it's a special type)
+            $specialTypes = ['establishing', 'two-shot', 'reaction'];
+            $currentType = $shot['type'] ?? 'medium';
+
+            if (!in_array($currentType, $specialTypes)) {
+                $newType = $this->selectShotTypeWithClimaxAwareness($intensity, $isClimax, $template);
+
+                // Only upgrade (tighter) shot types, never downgrade during climax approach
+                if ($this->getShotTypeTightness($newType) >= $this->getShotTypeTightness($currentType) || !$isClimax) {
+                    $shot['type'] = $newType;
+                }
+            }
+
+            // Add camera movement suggestion
+            $shot['suggestedMovement'] = $this->getCameraMovementForIntensity($intensity, $isClimax);
+
+            // Add intensity metadata
+            $shot['intensityMeta'] = [
+                'template' => $template,
+                'smoothed' => true,
+                'climaxProximity' => $climaxIndex !== null
+                    ? 1 - abs($i - $climaxIndex) / max(1, $count)
+                    : 0,
+            ];
+        }
+
+        Log::debug('DynamicShotEngine: Applied smoothed intensity to shots', [
+            'shot_count' => $count,
+            'climax_index' => $climaxIndex,
+            'template' => $template,
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * PHASE 5: Get tightness ranking for shot type (higher = tighter).
+     */
+    protected function getShotTypeTightness(string $shotType): int
+    {
+        $rankings = [
+            'establishing' => 0,
+            'wide' => 1,
+            'two-shot' => 2,
+            'medium' => 3,
+            'medium-close' => 4,
+            'close-up' => 5,
+            'extreme-close-up' => 6,
+        ];
+
+        return $rankings[$shotType] ?? 3;
+    }
+
+    // =========================================================================
     // HOLLYWOOD-INFORMED: EMOTION-DRIVEN SHOT SELECTION
     // =========================================================================
 
@@ -1065,6 +1261,8 @@ class DynamicShotEngine
      * Generate shot sequence with emotional arc and dialogue patterns combined.
      * This is the main entry point for Hollywood-informed shot generation.
      *
+     * PHASE 5: Enhanced with smoothed intensity curves and climax awareness.
+     *
      * @param array $scene Scene data
      * @param array $context Additional context (characters, emotional arc, etc.)
      * @return array Enhanced shots with Hollywood patterns applied
@@ -1074,23 +1272,69 @@ class DynamicShotEngine
         // First, do the standard analysis
         $result = $this->analyzeScene($scene, $context);
         $shots = $result['shots'] ?? [];
+        $appliedPatterns = [];
+
+        // PHASE 5: Track climax index for enhanced arc processing
+        $climaxIndex = null;
 
         // Apply emotional arc if provided
         $emotionalArc = $context['emotionalArc'] ?? [];
-        if (!empty($emotionalArc) && count($emotionalArc) === count($shots)) {
-            $shots = $this->applyEmotionDrivenShotTypes($shots, $emotionalArc, $result['analysis']['sceneType'] ?? null);
+        if (!empty($emotionalArc)) {
+            // PHASE 5: Enhanced emotional arc processing
+            // Check if we have smoothed data
+            $smoothedValues = $emotionalArc['smoothed'] ?? $emotionalArc['values'] ?? $emotionalArc;
+            $template = $emotionalArc['template'] ?? 'hollywood';
+
+            // Get climax data if available
+            if (isset($emotionalArc['climax']['index'])) {
+                $climaxIndex = $emotionalArc['climax']['index'];
+            } elseif (isset($context['climaxData']['index'])) {
+                $climaxIndex = $context['climaxData']['index'];
+            }
+
+            // If we have smoothed values as an array, use enhanced processing
+            if (is_array($smoothedValues) && count($smoothedValues) > 0) {
+                // Apply smoothed intensities with climax awareness
+                $shots = $this->applySmoothedIntensityToShots(
+                    $shots,
+                    $smoothedValues,
+                    $climaxIndex,
+                    $template
+                );
+
+                Log::info('DynamicShotEngine: Applied enhanced emotional arc', [
+                    'template' => $template,
+                    'climax_index' => $climaxIndex,
+                    'smoothed' => isset($emotionalArc['smoothed']),
+                ]);
+            } elseif (is_array($emotionalArc) && count($emotionalArc) === count($shots)) {
+                // Fallback to legacy emotion-driven types (raw array of intensities)
+                $shots = $this->applyEmotionDrivenShotTypes($shots, $emotionalArc, $result['analysis']['sceneType'] ?? null);
+            }
+
+            $appliedPatterns['emotionalArc'] = true;
+            $appliedPatterns['smoothedArc'] = isset($emotionalArc['smoothed']);
+        } else {
+            $appliedPatterns['emotionalArc'] = false;
         }
 
         // Apply dialogue pattern if appropriate
         $characters = $context['characters'] ?? [];
         if (count($characters) >= 2 && $this->shouldUseDialoguePattern($result['analysis'] ?? [])) {
             $shots = $this->applyDialogueCoveragePattern($shots, $characters);
+            $appliedPatterns['dialogueCoverage'] = true;
+        } else {
+            $appliedPatterns['dialogueCoverage'] = false;
         }
 
         $result['shots'] = $shots;
-        $result['hollywoodPatterns'] = [
-            'emotionalArc' => !empty($emotionalArc),
-            'dialogueCoverage' => count($characters) >= 2 && $this->shouldUseDialoguePattern($result['analysis'] ?? []),
+        $result['hollywoodPatterns'] = $appliedPatterns;
+
+        // PHASE 5: Include arc metadata in result
+        $result['emotionalArc'] = [
+            'applied' => !empty($emotionalArc),
+            'template' => $emotionalArc['template'] ?? 'hollywood',
+            'climaxIndex' => $climaxIndex,
         ];
 
         return $result;
