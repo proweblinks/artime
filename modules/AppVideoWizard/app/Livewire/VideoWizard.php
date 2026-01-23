@@ -34,6 +34,7 @@ use Modules\AppVideoWizard\Services\SmartReferenceService;
 use Modules\AppVideoWizard\Services\CharacterLookService;
 use Modules\AppVideoWizard\Services\BibleOrderingService;
 use Modules\AppVideoWizard\Services\SpeechSegment;
+use Modules\AppVideoWizard\Services\NarrativeMomentService;
 use Modules\AppVideoWizard\Services as Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -1217,6 +1218,41 @@ class VideoWizard extends Component
      */
     protected bool $lookupCachesValid = false;
 
+    // =========================================================================
+    // PHASE 5: Emotional Arc System - UI Exposure
+    // Expose emotional arc data for visualization in blade templates
+    // =========================================================================
+
+    /**
+     * PHASE 5: Emotional arc data for visualization.
+     * Contains raw values, smoothed curve, template info, and climax detection.
+     */
+    public array $emotionalArcData = [
+        'values' => [],
+        'smoothed' => [],
+        'template' => 'hollywood',
+        'climax' => null,
+        'stats' => [],
+        'peaks' => [],
+    ];
+
+    /**
+     * PHASE 5: Selected arc template.
+     */
+    public string $arcTemplate = 'hollywood';
+
+    /**
+     * PHASE 5: Available arc templates for selection.
+     */
+    public array $arcTemplates = [
+        'hollywood' => 'Hollywood (Standard)',
+        'action' => 'Action (Multiple Peaks)',
+        'drama' => 'Drama (Slow Build)',
+        'thriller' => 'Thriller (Sustained Tension)',
+        'comedy' => 'Comedy (Lighter Tone)',
+        'documentary' => 'Documentary (Flat)',
+    ];
+
     /**
      * Get paginated scenes for storyboard display.
      * Returns only scenes for current page to optimize rendering.
@@ -1952,6 +1988,9 @@ class VideoWizard extends Component
         // Recalculate voice status if script exists
         if (!empty($this->script['scenes'])) {
             $this->recalculateVoiceStatus();
+
+            // PHASE 5: Initialize emotional arc data from loaded scenes
+            $this->updateEmotionalArcData();
         }
 
         // Initialize save hash to prevent redundant save after loading
@@ -3615,6 +3654,9 @@ PROMPT;
                 // Build detection summary for UI
                 $this->buildDetectionSummary();
 
+                // PHASE 5: Initialize emotional arc data from new script
+                $this->updateEmotionalArcData();
+
                 $this->dispatch('vw-debug', [
                     'action' => 'auto-parse-complete',
                     'message' => 'Script auto-parsed into speech segments',
@@ -4072,6 +4114,10 @@ PROMPT;
                 if ($this->scriptGeneration['currentBatch'] >= $this->scriptGeneration['totalBatches']) {
                     $this->scriptGeneration['status'] = 'complete';
                     $this->autoDetectCharacterIntelligence();
+
+                    // PHASE 5: Update emotional arc data after all scenes generated
+                    $this->updateEmotionalArcData();
+
                     $this->dispatch('progressive-generation-complete');
                     $this->dispatch('script-generated');
 
@@ -29381,6 +29427,235 @@ PROMPT;
 
     // =========================================================================
     // END PHASE 5: PERFORMANCE MONITORING & ASYNC JOB METHODS
+    // =========================================================================
+
+    // =========================================================================
+    // PHASE 5: EMOTIONAL ARC SYSTEM - UI EXPOSURE METHODS
+    // Methods for computing, updating, and displaying emotional arc data
+    // =========================================================================
+
+    /**
+     * PHASE 5: Update emotional arc data from current storyboard.
+     * Computes intensity values, applies smoothing, and detects climax.
+     */
+    public function updateEmotionalArcData(): void
+    {
+        $scenes = $this->script['scenes'] ?? [];
+
+        if (empty($scenes)) {
+            $this->emotionalArcData = [
+                'values' => [],
+                'smoothed' => [],
+                'template' => $this->arcTemplate,
+                'climax' => null,
+                'stats' => [],
+                'peaks' => [],
+            ];
+            return;
+        }
+
+        // Collect all shot intensities
+        $allIntensities = [];
+        $shotToSceneMap = [];
+
+        foreach ($scenes as $sceneIndex => $scene) {
+            $shots = $scene['shots'] ?? [];
+            foreach ($shots as $shotIndex => $shot) {
+                $key = "{$sceneIndex}_{$shotIndex}";
+                $allIntensities[$key] = $shot['emotionalIntensity'] ?? 0.5;
+                $shotToSceneMap[$key] = [
+                    'scene' => $sceneIndex,
+                    'shot' => $shotIndex,
+                ];
+            }
+        }
+
+        if (empty($allIntensities)) {
+            return;
+        }
+
+        try {
+            // Get NarrativeMomentService
+            $momentService = app(NarrativeMomentService::class);
+
+            // Convert to indexed array for processing
+            $rawValues = array_values($allIntensities);
+
+            // Get processed curve
+            $curveData = $momentService->getProcessedIntensityCurve(
+                array_map(fn($i) => ['intensity' => $i], $rawValues),
+                $this->arcTemplate
+            );
+
+            // Detect climax
+            $moments = array_map(fn($i) => ['intensity' => $i], $rawValues);
+            $climaxData = $momentService->detectClimaxFromContent($moments);
+
+            // Map climax index back to scene/shot
+            $keys = array_keys($allIntensities);
+            $climaxKey = $keys[$climaxData['index']] ?? null;
+            $climaxLocation = $climaxKey ? $shotToSceneMap[$climaxKey] : null;
+
+            $this->emotionalArcData = [
+                'values' => $curveData['raw'],
+                'smoothed' => $curveData['processed'],
+                'template' => $this->arcTemplate,
+                'climax' => [
+                    'index' => $climaxData['index'],
+                    'scene' => $climaxLocation['scene'] ?? null,
+                    'shot' => $climaxLocation['shot'] ?? null,
+                    'confidence' => $climaxData['confidence'],
+                    'method' => $climaxData['method'],
+                ],
+                'stats' => $curveData['stats'],
+                'peaks' => $climaxData['peaks'] ?? [],
+            ];
+
+            Log::debug('VideoWizard: Emotional arc data updated', [
+                'shot_count' => count($allIntensities),
+                'template' => $this->arcTemplate,
+                'climax_scene' => $climaxLocation['scene'] ?? 'none',
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Failed to update emotional arc data', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * PHASE 5: Change arc template and recalculate.
+     */
+    public function setArcTemplate(string $template): void
+    {
+        if (isset($this->arcTemplates[$template])) {
+            $this->arcTemplate = $template;
+            $this->updateEmotionalArcData();
+
+            // Reapply template to shots
+            $this->applyArcTemplateToShots();
+
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * PHASE 5: Apply arc template intensities to existing shots.
+     * Updates shot emotionalIntensity values based on smoothed curve.
+     */
+    protected function applyArcTemplateToShots(): void
+    {
+        if (empty($this->emotionalArcData['smoothed'])) {
+            return;
+        }
+
+        $smoothed = $this->emotionalArcData['smoothed'];
+        $index = 0;
+
+        $scenes = $this->script['scenes'] ?? [];
+        foreach ($scenes as $sceneIndex => $scene) {
+            $shots = $scene['shots'] ?? [];
+            foreach ($shots as $shotIndex => $shot) {
+                if (isset($smoothed[$index])) {
+                    $this->script['scenes'][$sceneIndex]['shots'][$shotIndex]['emotionalIntensity'] = $smoothed[$index];
+
+                    // Mark climax
+                    $this->script['scenes'][$sceneIndex]['shots'][$shotIndex]['isClimax'] = (
+                        ($this->emotionalArcData['climax']['scene'] ?? null) === $sceneIndex &&
+                        ($this->emotionalArcData['climax']['shot'] ?? null) === $shotIndex
+                    );
+                }
+                $index++;
+            }
+        }
+
+        Log::debug('VideoWizard: Applied arc template to shots', [
+            'template' => $this->arcTemplate,
+            'shots_updated' => $index,
+        ]);
+    }
+
+    /**
+     * PHASE 5: Livewire event listener for manual arc refresh.
+     */
+    #[On('refresh-emotional-arc')]
+    public function refreshEmotionalArc(): void
+    {
+        $this->updateEmotionalArcData();
+    }
+
+    /**
+     * PHASE 5: Get intensity display data for a shot.
+     *
+     * @param float $intensity Shot intensity (0-1)
+     * @param bool $isClimax Whether this is the climax shot
+     * @return array Display data for UI
+     */
+    public function getIntensityDisplayData(float $intensity, bool $isClimax = false): array
+    {
+        // Color gradient from blue (low) to red (high)
+        $colors = [
+            'low' => '#3B82F6',      // Blue - calm
+            'medium' => '#F59E0B',   // Amber - moderate
+            'high' => '#EF4444',     // Red - intense
+            'climax' => '#8B5CF6',   // Purple - peak
+        ];
+
+        // Determine color
+        if ($isClimax) {
+            $color = $colors['climax'];
+            $label = 'CLIMAX';
+        } elseif ($intensity >= 0.7) {
+            $color = $colors['high'];
+            $label = 'High';
+        } elseif ($intensity >= 0.4) {
+            $color = $colors['medium'];
+            $label = 'Medium';
+        } else {
+            $color = $colors['low'];
+            $label = 'Low';
+        }
+
+        // Percentage for width
+        $percentage = round($intensity * 100);
+
+        return [
+            'value' => round($intensity, 2),
+            'percentage' => $percentage,
+            'color' => $color,
+            'label' => $label,
+            'isClimax' => $isClimax,
+            'barWidth' => "{$percentage}%",
+        ];
+    }
+
+    /**
+     * PHASE 5: Get arc summary for display.
+     */
+    public function getArcSummary(): array
+    {
+        if (empty($this->emotionalArcData['values'])) {
+            return [
+                'hasData' => false,
+            ];
+        }
+
+        $stats = $this->emotionalArcData['stats'] ?? [];
+        $climax = $this->emotionalArcData['climax'] ?? [];
+
+        return [
+            'hasData' => true,
+            'template' => $this->arcTemplates[$this->arcTemplate] ?? $this->arcTemplate,
+            'shotCount' => count($this->emotionalArcData['values']),
+            'avgIntensity' => round(($stats['average'] ?? 0.5) * 100) . '%',
+            'peakIntensity' => round(($stats['max'] ?? 0.5) * 100) . '%',
+            'climaxScene' => isset($climax['scene']) ? 'Scene ' . ($climax['scene'] + 1) : 'Not detected',
+            'climaxConfidence' => round(($climax['confidence'] ?? 0) * 100) . '%',
+        ];
+    }
+
+    // =========================================================================
+    // END PHASE 5: EMOTIONAL ARC SYSTEM - UI EXPOSURE METHODS
     // =========================================================================
 
     /**
