@@ -1030,6 +1030,10 @@ class VideoWizard extends Component
     public int $editingLocationIndex = 0;
     public bool $isGeneratingLocationRef = false;
 
+    // Scene Text Inspector Modal
+    public bool $showSceneTextInspectorModal = false;
+    public ?int $inspectorSceneIndex = null;
+
     // Scene Overwrite Confirmation Modal
     public bool $showSceneOverwriteModal = false;
     public string $sceneOverwriteAction = 'replace'; // 'replace' or 'append'
@@ -1294,6 +1298,22 @@ class VideoWizard extends Component
             'showingTo' => min($offset + $this->storyboardPerPage, $totalScenes),
             'hasPrevious' => $currentPage > 1,
             'hasNext' => $currentPage < $totalPages,
+        ];
+    }
+
+    /**
+     * Get scene data for inspector (computed to avoid serialization).
+     * Uses computed property pattern to prevent 10-100KB payload on every request.
+     */
+    public function getInspectorSceneProperty(): ?array
+    {
+        if ($this->inspectorSceneIndex === null) {
+            return null;
+        }
+
+        return [
+            'script' => $this->script['scenes'][$this->inspectorSceneIndex] ?? null,
+            'storyboard' => $this->storyboard[$this->inspectorSceneIndex] ?? null,
         ];
     }
 
@@ -14998,6 +15018,32 @@ PROMPT;
         // Rebuild Scene DNA with validated data
         $this->buildSceneDNA();
         $this->saveProject();
+    }
+
+    /**
+     * Open Scene Text Inspector modal for specific scene.
+     * Called from storyboard scene card Inspect button.
+     */
+    public function openSceneTextInspector(int $sceneIndex): void
+    {
+        // Validate scene exists
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            $this->error = 'Scene not found';
+            return;
+        }
+
+        $this->inspectorSceneIndex = $sceneIndex;
+        $this->showSceneTextInspectorModal = true;
+    }
+
+    /**
+     * Close Scene Text Inspector modal.
+     * No rebuild needed - this is read-only inspection.
+     */
+    public function closeSceneTextInspector(): void
+    {
+        $this->showSceneTextInspectorModal = false;
+        $this->inspectorSceneIndex = null;
     }
 
     /**
