@@ -1245,8 +1245,11 @@ class DialogueSceneDecomposerService
         $speaker = $exchange['speaker'];
         $charData = $characterLookup[$speaker] ?? [];
 
-        // Select shot type based on emotional intensity
-        $shotType = $this->selectShotTypeForIntensity($emotionalIntensity, $position);
+        // PHASE 13 CAM-03: Analyze speaker emotion from dialogue
+        $speakerEmotion = $this->analyzeSpeakerEmotion($exchange['text'] ?? '');
+
+        // Select shot type based on emotional intensity and speaker emotion
+        $shotType = $this->selectShotTypeForIntensity($emotionalIntensity, $position, $speakerEmotion['emotion'] ?? null);
 
         // PHASE 4: Calculate spatial data for this shot
         $characters = array_slice($speakers, 0, 2); // First two characters
@@ -2097,12 +2100,27 @@ class DialogueSceneDecomposerService
             $speaker = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
             $charData = $characterLookup[$speaker] ?? [];
 
-            // Select shot type based on emotional intensity
-            $shotType = $this->selectShotTypeForIntensity($emotionalIntensity, $position);
+            // PHASE 13 CAM-03: Analyze speaker's emotion from their dialogue
+            $speakerEmotion = $this->analyzeSpeakerEmotion($shot['dialogue'] ?? $shot['monologue'] ?? '');
+
+            // Store the speaker emotion in the shot data
+            $shot['speakerEmotion'] = $speakerEmotion;
+
+            // Select shot type based on emotional intensity and speaker emotion
+            $shotType = $this->selectShotTypeForIntensity($emotionalIntensity, $position, $speakerEmotion['emotion'] ?? null);
 
             // Calculate spatial data for 180-degree rule
             $characters = array_slice($speakers, 0, 2);
             $spatial = $this->calculateSpatialData($speaker ?? '', $characters, $shotType);
+
+            // PHASE 13 debug logging
+            Log::debug('DialogueSceneDecomposer: PHASE 13 camera intelligence applied', [
+                'shot_index' => $index,
+                'position' => $position,
+                'speaker_emotion' => $speakerEmotion['emotion'] ?? 'neutral',
+                'intensity' => $emotionalIntensity,
+                'shot_type' => $shotType,
+            ]);
 
             // Enhance shot with dialogue pattern data
             $shot['type'] = $shotType;
