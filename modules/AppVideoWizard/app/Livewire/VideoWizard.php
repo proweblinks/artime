@@ -1937,6 +1937,11 @@ class VideoWizard extends Component
                 $this->content = array_merge($this->content, $config['content']);
             }
 
+            // PHASE 3: Restore character portrait generation tracking
+            if (isset($config['characterPortraitsGenerated'])) {
+                $this->characterPortraitsGenerated = $config['characterPortraitsGenerated'];
+            }
+
             // Migrate legacy characterIntelligence data if needed (Phase 1.5)
             if (!($this->characterIntelligence['migrated'] ?? false)) {
                 $this->migrateCharacterIntelligence();
@@ -1980,6 +1985,7 @@ class VideoWizard extends Component
             'sceneCollages' => $this->sceneCollages,
             'production' => $this->production,
             'content' => $this->content,
+            'characterPortraitsGenerated' => $this->characterPortraitsGenerated, // PHASE 3
         ];
 
         return md5(json_encode($data));
@@ -2112,6 +2118,8 @@ class VideoWizard extends Component
                     'scriptGeneration' => $this->scriptGeneration,
                     'production' => $this->production,
                     'content' => $this->content,
+                    // PHASE 3: Character portrait generation tracking
+                    'characterPortraitsGenerated' => $this->characterPortraitsGenerated,
                 ],
             ];
 
@@ -2199,12 +2207,50 @@ class VideoWizard extends Component
 
         try {
             $this->autoPopulateSceneMemory();
+
+            // PHASE 3: Auto-generate character portraits for consistency
+            // Only generate if not already done and characters exist in Bible
+            if (!$this->characterPortraitsGenerated) {
+                $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+                $hasCharactersNeedingPortraits = false;
+
+                foreach ($characters as $char) {
+                    if (empty($char['referenceImage']) && empty($char['referenceImageBase64'])) {
+                        $hasCharactersNeedingPortraits = true;
+                        break;
+                    }
+                }
+
+                if ($hasCharactersNeedingPortraits) {
+                    Log::info('VideoWizard: Triggering character portrait generation on storyboard entry');
+                    $this->dispatch('generate-character-portraits');
+                } else {
+                    // Mark as generated if all characters already have portraits
+                    $this->characterPortraitsGenerated = true;
+                }
+            }
         } catch (\Exception $e) {
             Log::warning('VideoWizard: Scene memory population failed', ['error' => $e->getMessage()]);
         } finally {
             $this->isTransitioning = false;
             $this->transitionMessage = null;
         }
+    }
+
+    /**
+     * PHASE 3: Handle character portrait generation event.
+     * Triggered when entering storyboard if portraits need generation.
+     */
+    #[On('generate-character-portraits')]
+    public function handleGenerateCharacterPortraits(): void
+    {
+        if ($this->characterPortraitsGenerated) {
+            Log::debug('VideoWizard: Character portraits already generated, skipping');
+            return;
+        }
+
+        Log::info('VideoWizard: Starting character portrait generation');
+        $this->generateCharacterPortraits();
     }
 
     /**
@@ -6192,7 +6238,11 @@ PROMPT;
             $this->saveProject();
 
             $imageService = app(ImageGenerationService::class);
-            $result = $imageService->generateSceneImage($project, $scene, [
+
+            // PHASE 3: Get character consistency options for visual consistency
+            $characterOptions = $this->getCharacterConsistencyOptions($sceneIndex);
+
+            $result = $imageService->generateSceneImage($project, $scene, array_merge([
                 'sceneIndex' => $sceneIndex,
                 'teamId' => session('current_team_id', 0),
                 'model' => $this->storyboard['imageModel'] ?? 'nanobanana', // Use UI-selected model
@@ -6200,7 +6250,7 @@ PROMPT;
                 'sceneMemory' => $this->sceneMemory,
                 'storyboard' => $this->storyboard,
                 'useCascade' => true,
-            ]);
+            ], $characterOptions));
 
             if ($result['async'] ?? false) {
                 // HiDream async job - update with job ID for polling
@@ -6322,7 +6372,10 @@ PROMPT;
                 $scene = $this->script['scenes'][$index];
 
                 try {
-                    $result = $imageService->generateSceneImage($project, $scene, [
+                    // PHASE 3: Get character consistency options for visual consistency
+                    $characterOptions = $this->getCharacterConsistencyOptions($index);
+
+                    $result = $imageService->generateSceneImage($project, $scene, array_merge([
                         'sceneIndex' => $index,
                         'teamId' => session('current_team_id', 0),
                         'model' => $this->storyboard['imageModel'] ?? 'nanobanana',
@@ -6330,7 +6383,7 @@ PROMPT;
                         'sceneMemory' => $this->sceneMemory,
                         'storyboard' => $this->storyboard,
                         'useCascade' => true,
-                    ]);
+                    ], $characterOptions));
 
                     if ($result['async'] ?? false) {
                         // HiDream async job - update with job ID
@@ -23717,10 +23770,13 @@ PROMPT;
                     // =================================================================
                     // PHASE 3: Pass shot context for duplicate prevention
                     // =================================================================
+                    // PHASE 3: Get character consistency options for visual consistency
+                    $characterOptions = $this->getCharacterConsistencyOptions($sceneIndex);
+
                     $result = $imageService->generateSceneImage($project, [
                         'id' => $shot['id'],
                         'visualDescription' => $enhancedPrompt,
-                    ], [
+                    ], array_merge([
                         'model' => $this->storyboard['imageModel'] ?? 'hidream',
                         'sceneIndex' => $sceneIndex,
                         // Shot-specific context for StructuredPromptBuilder
@@ -23734,7 +23790,7 @@ PROMPT;
                         'sceneMemory' => $this->sceneMemory,
                         'storyboard' => $this->storyboard,
                         'useCascade' => true,
-                    ]);
+                    ], $characterOptions));
 
                     if ($result['success']) {
                         if (isset($result['imageUrl'])) {
