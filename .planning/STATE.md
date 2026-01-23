@@ -30,7 +30,7 @@ Phase 14: ██████████ 100% (2/2 plans complete)
 Overall:  ██████████ 100% (8/8 plans)
 ```
 
-**Last activity:** 2026-01-23 - Completed 14-02-PLAN.md (Action Scene Decomposition)
+**Last activity:** 2026-01-23 - Phase 14 verified, Milestone 8 complete
 
 ---
 
@@ -332,9 +332,9 @@ None currently.
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 14-02-PLAN.md (Action Scene Decomposition)
-**Resume file:** .planning/phases/14-cinematic-flow-action-scenes/14-02-SUMMARY.md
-**Next step:** Milestone 8 complete - ready for next milestone
+**Stopped at:** Milestone 8 complete (Cinematic Shot Architecture)
+**Resume file:** .planning/phases/14-cinematic-flow-action-scenes/14-VERIFICATION.md
+**Next step:** Ready for /gsd:complete-milestone to archive M8
 
 ---
 
