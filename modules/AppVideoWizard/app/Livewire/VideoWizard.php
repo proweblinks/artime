@@ -66,6 +66,12 @@ class VideoWizard extends Component
     public ?string $productionType = null;
     public ?string $productionSubtype = null;
 
+    /**
+     * PHASE 3: Suggested settings from concept analysis.
+     * Populated when concept is analyzed to suggest optimal configuration.
+     */
+    public array $suggestedSettings = [];
+
     // Production Intelligence settings (auto-populated by ProductionIntelligenceService)
     public array $productionIntelligence = [
         'mainCharScenePercent' => 70,
@@ -1182,6 +1188,12 @@ class VideoWizard extends Component
      * Structure: ['scene_0' => 'generating', 'scene_0_shot_1' => 'failed', ...]
      */
     public array $generationStatus = [];
+
+    /**
+     * PHASE 3: Track whether character portraits have been generated.
+     * Prevents re-generating portraits on every step navigation.
+     */
+    public bool $characterPortraitsGenerated = false;
 
     // =========================================================================
     // PHASE 4: Algorithm Optimization - Cached Lookup Maps
@@ -2839,6 +2851,9 @@ class VideoWizard extends Component
                 ]
             ]);
 
+            // PHASE 3: Analyze and suggest settings based on concept
+            $this->applySuggestedSettings(false); // Don't overwrite user choices
+
             $this->dispatch('concept-enhanced');
 
             Log::info('VideoWizard: Concept enhancement completed', [
@@ -2929,6 +2944,315 @@ class VideoWizard extends Component
             'action' => 'dismiss-enhancement',
             'message' => 'Enhancement preview dismissed',
         ]);
+    }
+
+    /**
+     * PHASE 3: Analyze concept to suggest optimal settings.
+     * Returns suggested platform, duration, production type, etc.
+     *
+     * @param string $concept The concept text to analyze
+     * @return array Suggested settings
+     */
+    public function analyzeConceptForDefaults(string $concept): array
+    {
+        $concept = strtolower($concept);
+        $suggestions = [
+            'platform' => null,
+            'duration' => null,
+            'productionType' => null,
+            'aspectRatio' => null,
+            'pacing' => null,
+            'visualMode' => null,
+            'confidence' => [],
+        ];
+
+        // Platform detection
+        $platformPatterns = [
+            'tiktok' => ['tiktok', 'viral', 'trend', 'short form', 'quick', 'snappy', '15 second', '30 second', '60 second'],
+            'youtube' => ['youtube', 'tutorial', 'documentary', 'long form', 'in-depth', 'detailed', 'comprehensive', 'explainer'],
+            'instagram' => ['instagram', 'reel', 'story', 'aesthetic', 'lifestyle', 'fashion', 'beauty'],
+            'linkedin' => ['linkedin', 'professional', 'business', 'corporate', 'b2b', 'enterprise'],
+            'twitter' => ['twitter', 'x.com', 'breaking', 'news', 'announcement'],
+        ];
+
+        foreach ($platformPatterns as $platform => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($concept, $keyword) !== false) {
+                    $suggestions['platform'] = $platform;
+                    $suggestions['confidence']['platform'] = 'high';
+                    break 2;
+                }
+            }
+        }
+
+        // Duration detection based on content complexity
+        $durationIndicators = [
+            'short' => ['quick', 'brief', 'short', 'teaser', 'trailer', 'promo', '15', '30', '60'],
+            'medium' => ['story', 'narrative', 'explain', 'show', 'demonstrate', '2 minute', '3 minute'],
+            'long' => ['documentary', 'comprehensive', 'in-depth', 'detailed', 'full', 'complete', '5 minute', '10 minute'],
+        ];
+
+        $wordCount = str_word_count($concept);
+
+        // Word count heuristic
+        if ($wordCount < 20) {
+            $suggestions['duration'] = 30; // Short concept = short video
+        } elseif ($wordCount < 50) {
+            $suggestions['duration'] = 60;
+        } elseif ($wordCount < 100) {
+            $suggestions['duration'] = 120;
+        } else {
+            $suggestions['duration'] = 180; // Long concept = longer video
+        }
+
+        // Override with explicit indicators
+        foreach ($durationIndicators as $type => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($concept, $keyword) !== false) {
+                    if ($type === 'short') $suggestions['duration'] = 30;
+                    elseif ($type === 'medium') $suggestions['duration'] = 90;
+                    elseif ($type === 'long') $suggestions['duration'] = 180;
+                    $suggestions['confidence']['duration'] = 'high';
+                    break 2;
+                }
+            }
+        }
+
+        // Production type detection
+        $productionPatterns = [
+            'commercial' => ['ad', 'advertisement', 'commercial', 'product', 'brand', 'marketing', 'promo'],
+            'narrative' => ['story', 'film', 'movie', 'drama', 'narrative', 'character', 'plot'],
+            'documentary' => ['documentary', 'real', 'true', 'history', 'educational', 'informative'],
+            'music_video' => ['music', 'song', 'band', 'artist', 'concert', 'performance'],
+            'tutorial' => ['tutorial', 'how to', 'guide', 'learn', 'teach', 'step by step'],
+            'vlog' => ['vlog', 'day in', 'behind the scenes', 'personal', 'journey'],
+        ];
+
+        foreach ($productionPatterns as $type => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($concept, $keyword) !== false) {
+                    $suggestions['productionType'] = $type;
+                    $suggestions['confidence']['productionType'] = 'high';
+                    break 2;
+                }
+            }
+        }
+
+        // Visual mode detection
+        $visualPatterns = [
+            'cinematic-realistic' => ['realistic', 'cinematic', 'film', 'movie', 'photorealistic', 'real'],
+            'stylized-animation' => ['animated', 'cartoon', 'anime', 'illustration', 'stylized', '3d', '2d'],
+            'mixed-hybrid' => ['mixed', 'hybrid', 'both', 'combination'],
+        ];
+
+        foreach ($visualPatterns as $mode => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($concept, $keyword) !== false) {
+                    $suggestions['visualMode'] = $mode;
+                    $suggestions['confidence']['visualMode'] = 'high';
+                    break 2;
+                }
+            }
+        }
+
+        // Pacing detection
+        $pacingPatterns = [
+            'fast' => ['fast', 'quick', 'energetic', 'dynamic', 'action', 'exciting', 'intense'],
+            'contemplative' => ['slow', 'calm', 'peaceful', 'meditative', 'relaxing', 'gentle'],
+            'balanced' => ['balanced', 'moderate', 'normal'],
+        ];
+
+        foreach ($pacingPatterns as $pacing => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($concept, $keyword) !== false) {
+                    $suggestions['pacing'] = $pacing;
+                    $suggestions['confidence']['pacing'] = 'high';
+                    break 2;
+                }
+            }
+        }
+
+        // Set aspect ratio based on platform
+        if (!empty($suggestions['platform'])) {
+            $aspectRatioMap = [
+                'tiktok' => '9:16',
+                'instagram' => '9:16',
+                'youtube' => '16:9',
+                'linkedin' => '16:9',
+                'twitter' => '16:9',
+            ];
+            $suggestions['aspectRatio'] = $aspectRatioMap[$suggestions['platform']] ?? '16:9';
+        }
+
+        // Apply defaults for anything not detected
+        $suggestions['platform'] = $suggestions['platform'] ?? 'youtube';
+        $suggestions['duration'] = $suggestions['duration'] ?? 60;
+        $suggestions['productionType'] = $suggestions['productionType'] ?? 'narrative';
+        $suggestions['aspectRatio'] = $suggestions['aspectRatio'] ?? '16:9';
+        $suggestions['pacing'] = $suggestions['pacing'] ?? 'balanced';
+        $suggestions['visualMode'] = $suggestions['visualMode'] ?? 'cinematic-realistic';
+
+        Log::info('VideoWizard: Analyzed concept for defaults', [
+            'word_count' => $wordCount,
+            'suggestions' => $suggestions,
+        ]);
+
+        return $suggestions;
+    }
+
+    /**
+     * PHASE 3: Apply suggested settings from concept analysis.
+     * Called when user enters or updates concept in Step 2.
+     *
+     * @param bool $overwrite Whether to overwrite existing non-default values
+     */
+    public function applySuggestedSettings(bool $overwrite = false): void
+    {
+        $concept = $this->concept['rawInput'] ?? $this->concept['refinedConcept'] ?? '';
+
+        if (empty($concept)) {
+            return;
+        }
+
+        $suggestions = $this->analyzeConceptForDefaults($concept);
+
+        // Apply platform if not set or overwrite enabled
+        if ($overwrite || empty($this->platform) || $this->platform === 'youtube') {
+            $this->platform = $suggestions['platform'];
+        }
+
+        // Apply aspect ratio based on platform
+        if ($overwrite || empty($this->aspectRatio)) {
+            $this->aspectRatio = $suggestions['aspectRatio'];
+        }
+
+        // Apply duration if default or overwrite
+        if ($overwrite || empty($this->targetDuration) || $this->targetDuration === 60) {
+            $this->targetDuration = $suggestions['duration'];
+        }
+
+        // Apply production type
+        if ($overwrite || empty($this->productionType)) {
+            $this->productionType = $suggestions['productionType'];
+        }
+
+        // Apply visual mode
+        if ($overwrite || empty($this->content['visualMode'])) {
+            $this->content['visualMode'] = $suggestions['visualMode'];
+        }
+
+        // Apply pacing
+        if ($overwrite || empty($this->content['pacing']) || $this->content['pacing'] === 'balanced') {
+            $this->content['pacing'] = $suggestions['pacing'];
+        }
+
+        // Store suggestions for UI display
+        $this->suggestedSettings = $suggestions;
+
+        Log::info('VideoWizard: Applied suggested settings', [
+            'platform' => $this->platform,
+            'duration' => $this->targetDuration,
+            'productionType' => $this->productionType,
+        ]);
+    }
+
+    /**
+     * PHASE 3: Re-analyze concept and update suggestions.
+     * Called from UI when user wants to refresh suggestions.
+     */
+    public function refreshSuggestedSettings(): void
+    {
+        $this->applySuggestedSettings(true); // Overwrite with new suggestions
+
+        $this->dispatch('notify', [
+            'type' => 'info',
+            'message' => 'Settings updated based on your concept.',
+        ]);
+    }
+
+    /**
+     * PHASE 3: Use AI to analyze concept and suggest optimal settings.
+     * More accurate than keyword matching but requires API call.
+     */
+    public function analyzeConceptWithAI(): void
+    {
+        $concept = $this->concept['rawInput'] ?? $this->concept['refinedConcept'] ?? '';
+
+        if (empty($concept)) {
+            return;
+        }
+
+        try {
+            $geminiService = app(\App\Services\GeminiService::class);
+
+            $prompt = <<<PROMPT
+Analyze this video concept and suggest optimal production settings.
+
+CONCEPT:
+{$concept}
+
+Respond with ONLY a JSON object (no markdown, no explanation):
+{
+    "platform": "youtube|tiktok|instagram|linkedin|twitter",
+    "duration": <number in seconds, 15-600>,
+    "productionType": "commercial|narrative|documentary|music_video|tutorial|vlog",
+    "visualMode": "cinematic-realistic|stylized-animation|mixed-hybrid",
+    "pacing": "fast|balanced|contemplative",
+    "aspectRatio": "16:9|9:16|1:1|4:5",
+    "reasoning": "brief explanation of choices"
+}
+PROMPT;
+
+            $response = $geminiService->generateContent($prompt);
+            $json = $this->extractJsonFromResponse($response);
+
+            if (!empty($json)) {
+                $this->suggestedSettings = array_merge($this->suggestedSettings, $json);
+                $this->suggestedSettings['source'] = 'ai';
+                $this->suggestedSettings['confidence'] = ['overall' => 'high'];
+
+                // Apply the AI suggestions
+                $this->applySuggestedSettings(true);
+
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => 'AI analyzed your concept and updated settings.',
+                ]);
+
+                Log::info('VideoWizard: AI concept analysis complete', $json);
+            }
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: AI concept analysis failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fall back to keyword analysis
+            $this->applySuggestedSettings(true);
+        }
+    }
+
+    /**
+     * PHASE 3: Extract JSON from AI response that may contain markdown.
+     */
+    protected function extractJsonFromResponse(string $response): ?array
+    {
+        // Try direct parse
+        $decoded = json_decode($response, true);
+        if ($decoded !== null) {
+            return $decoded;
+        }
+
+        // Extract from markdown code block
+        if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/', $response, $matches)) {
+            return json_decode($matches[1], true);
+        }
+
+        // Extract bare JSON object
+        if (preg_match('/(\{[\s\S]*\})/', $response, $matches)) {
+            return json_decode($matches[1], true);
+        }
+
+        return null;
     }
 
     /**
@@ -7162,6 +7486,200 @@ class VideoWizard extends Component
         }
 
         Log::info('VideoWizard: Retrying all failed generations', ['type' => $type]);
+    }
+
+    // =========================================================================
+    // PHASE 3: Character Visual Consistency
+    // Enforce character appearance consistency across all generated images
+    // =========================================================================
+
+    /**
+     * PHASE 3: Get character reference images for a scene.
+     * Returns reference images for characters that appear in the given scene.
+     *
+     * @param int $sceneIndex Scene index
+     * @return array Character reference data for image generation
+     */
+    protected function getCharacterReferenceImages(int $sceneIndex): array
+    {
+        $references = [];
+
+        // Get characters from Character Bible
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+
+        if (empty($characters)) {
+            return [];
+        }
+
+        foreach ($characters as $character) {
+            // Check if character appears in this scene
+            $appearsInScene = in_array($sceneIndex, $character['scenes'] ?? []);
+
+            // Also check if character is mentioned in scene narration/description
+            $scene = $this->script['scenes'][$sceneIndex] ?? [];
+            $sceneText = strtolower(
+                ($scene['narration'] ?? '') . ' ' .
+                ($scene['visualDescription'] ?? '') . ' ' .
+                json_encode($scene['speechSegments'] ?? [])
+            );
+            $characterName = strtolower($character['name'] ?? '');
+            $mentionedInScene = !empty($characterName) && strpos($sceneText, $characterName) !== false;
+
+            if ($appearsInScene || $mentionedInScene) {
+                $ref = [
+                    'name' => $character['name'],
+                    'description' => $character['appearance'] ?? $character['description'] ?? '',
+                ];
+
+                // Add reference image if available
+                if (!empty($character['referenceImage'])) {
+                    $ref['referenceImageUrl'] = $character['referenceImage'];
+                }
+
+                // Add portrait/reference image base64 if available
+                if (!empty($character['referenceImageBase64'])) {
+                    $ref['referenceImageBase64'] = $character['referenceImageBase64'];
+                    $ref['referenceImageMimeType'] = $character['referenceImageMimeType'] ?? 'image/png';
+                }
+
+                // Add face reference if available (from NanoBanana Pro)
+                if (!empty($character['faceReferenceId'])) {
+                    $ref['faceReferenceId'] = $character['faceReferenceId'];
+                }
+
+                $references[] = $ref;
+            }
+        }
+
+        Log::debug('VideoWizard: Character references for scene', [
+            'scene_index' => $sceneIndex,
+            'character_count' => count($references),
+            'characters' => array_column($references, 'name'),
+        ]);
+
+        return $references;
+    }
+
+    /**
+     * PHASE 3: Build character consistency prompt for image generation.
+     * Creates a prompt addition that enforces character appearance consistency.
+     *
+     * @param array $characterReferences Character reference data from getCharacterReferenceImages()
+     * @return string Character consistency prompt to prepend to image prompts
+     */
+    protected function buildCharacterConsistencyPrompt(array $characterReferences): string
+    {
+        if (empty($characterReferences)) {
+            return '';
+        }
+
+        $characterPrompts = [];
+        foreach ($characterReferences as $ref) {
+            $name = $ref['name'] ?? '';
+            $desc = $ref['description'] ?? '';
+            if (!empty($name) && !empty($desc)) {
+                $characterPrompts[] = "{$name}: {$desc}";
+            }
+        }
+
+        if (empty($characterPrompts)) {
+            return '';
+        }
+
+        return "IMPORTANT - Maintain character consistency:\n" .
+            implode("\n", $characterPrompts);
+    }
+
+    /**
+     * PHASE 3: Generate character reference portraits.
+     * Creates consistent reference images for each character in the Character Bible.
+     * Called when entering storyboard step if portraits haven't been generated.
+     */
+    public function generateCharacterPortraits(): void
+    {
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+
+        if (empty($characters)) {
+            Log::info('VideoWizard: No characters in Bible, skipping portrait generation');
+            return;
+        }
+
+        $generated = 0;
+        $skipped = 0;
+
+        foreach ($characters as $index => $character) {
+            // Skip if portrait already exists (referenceImage or referenceImageBase64)
+            if (!empty($character['referenceImage']) || !empty($character['referenceImageBase64'])) {
+                $skipped++;
+                continue;
+            }
+
+            // Build portrait prompt from character description
+            $name = $character['name'] ?? 'Character';
+            $appearance = $character['appearance'] ?? $character['description'] ?? '';
+
+            if (empty($appearance)) {
+                Log::warning('VideoWizard: Character has no appearance description', ['name' => $name]);
+                continue;
+            }
+
+            try {
+                // Use existing generateCharacterPortrait method
+                $this->generateCharacterPortrait($index);
+                $generated++;
+
+                Log::info('VideoWizard: Generated character portrait', [
+                    'character' => $name,
+                    'index' => $index,
+                ]);
+
+                // Small delay to avoid rate limiting
+                usleep(500000); // 500ms
+
+            } catch (\Exception $e) {
+                Log::error('VideoWizard: Failed to generate character portrait', [
+                    'character' => $name,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->characterPortraitsGenerated = true;
+        $this->saveProject();
+
+        Log::info('VideoWizard: Character portrait generation complete', [
+            'generated' => $generated,
+            'skipped' => $skipped,
+            'total' => count($characters),
+        ]);
+    }
+
+    /**
+     * PHASE 3: Get character references with consistency options for image generation.
+     * Combines reference images and consistency prompt into options array.
+     *
+     * @param int $sceneIndex Scene index
+     * @return array Options to merge with image generation call
+     */
+    public function getCharacterConsistencyOptions(int $sceneIndex): array
+    {
+        $characterReferences = $this->getCharacterReferenceImages($sceneIndex);
+
+        if (empty($characterReferences)) {
+            return [];
+        }
+
+        $options = [
+            'characterReferences' => $characterReferences,
+        ];
+
+        // Build character consistency prompt addition
+        $consistencyPrompt = $this->buildCharacterConsistencyPrompt($characterReferences);
+        if (!empty($consistencyPrompt)) {
+            $options['characterConsistencyPrompt'] = $consistencyPrompt;
+        }
+
+        return $options;
     }
 
     /**
