@@ -1142,6 +1142,17 @@ class VideoWizard extends Component
         'configGenerated' => false,
     ];
 
+    // =========================================================================
+    // PHASE 3: Auto-Proceed Pipeline
+    // When enabled, completing one step automatically starts the next.
+    // =========================================================================
+
+    /**
+     * PHASE 3: Auto-proceed through wizard steps.
+     * When enabled, completing one step automatically starts the next.
+     */
+    public bool $autoProceedEnabled = false;
+
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
     public int $storyboardPerPage = 12;
@@ -1149,6 +1160,28 @@ class VideoWizard extends Component
     // Save debouncing
     protected int $saveDebounceMs = 500;
     protected ?string $lastSaveHash = null;
+
+    // =========================================================================
+    // PHASE 3: Smart Retry Logic for Batch Generation
+    // Automatic retry with exponential backoff for failed generations
+    // =========================================================================
+
+    /**
+     * PHASE 3: Track generation retry attempts per scene/shot.
+     * Structure: ['scene_0' => 1, 'scene_0_shot_1' => 2, ...]
+     */
+    protected array $generationRetryCount = [];
+
+    /**
+     * PHASE 3: Maximum retry attempts for failed generations.
+     */
+    protected int $maxRetryAttempts = 3;
+
+    /**
+     * PHASE 3: Track generation status per item.
+     * Structure: ['scene_0' => 'generating', 'scene_0_shot_1' => 'failed', ...]
+     */
+    public array $generationStatus = [];
 
     // =========================================================================
     // PHASE 4: Algorithm Optimization - Cached Lookup Maps
@@ -2052,6 +2085,41 @@ class VideoWizard extends Component
             $this->isTransitioning = false;
             $this->transitionMessage = null;
         }
+    }
+
+    /**
+     * PHASE 3: Handle auto-proceed to storyboard.
+     * Triggered after script generation when auto-proceed is enabled.
+     * Starts batch image generation automatically.
+     */
+    #[On('auto-proceed-storyboard')]
+    public function handleAutoProceedStoryboard(): void
+    {
+        if (!$this->autoProceedEnabled) {
+            return;
+        }
+
+        Log::info('VideoWizard: Auto-proceed storyboard - starting batch image generation');
+
+        // Wait a moment for Scene Memory to populate, then start batch generation
+        $this->dispatch('start-batch-image-generation');
+    }
+
+    /**
+     * PHASE 3: Handle auto-proceed to animation.
+     * Triggered after all storyboard images complete when auto-proceed is enabled.
+     */
+    #[On('auto-proceed-animation')]
+    public function handleAutoProceedAnimation(): void
+    {
+        if (!$this->autoProceedEnabled) {
+            return;
+        }
+
+        Log::info('VideoWizard: Auto-proceed animation - starting batch video generation');
+
+        // Start batch video generation
+        $this->dispatch('start-batch-video-generation');
     }
 
     /**
@@ -3140,6 +3208,17 @@ class VideoWizard extends Component
                 'duration_ms' => $durationMs,
                 'scenes_count' => count($this->script['scenes'] ?? []),
             ]);
+
+            // =====================================================================
+            // PHASE 3: Auto-proceed to storyboard if enabled
+            // =====================================================================
+            if ($this->autoProceedEnabled && !empty($this->script['scenes'])) {
+                Log::info('VideoWizard: Auto-proceeding to Storyboard step');
+                $this->goToStep(4); // Storyboard step
+
+                // Dispatch event to trigger auto-population of Scene Memory and batch generation
+                $this->dispatch('auto-proceed-storyboard');
+            }
 
         } catch (\Exception $e) {
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -6123,9 +6202,47 @@ class VideoWizard extends Component
                 'pendingJobs' => $pendingCount,
             ]);
 
+            // =====================================================================
+            // PHASE 3: Auto-proceed to animation if all images are done
+            // =====================================================================
+            if ($pendingCount === 0 && $this->autoProceedEnabled && $this->allScenesHaveImages()) {
+                Log::info('VideoWizard: Auto-proceeding to Animation step');
+                $this->goToStep(5); // Animation step
+
+                // Dispatch event to trigger batch video generation
+                $this->dispatch('auto-proceed-animation');
+            }
+
         } catch (\Exception $e) {
             \Log::error('Failed to poll image jobs: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * PHASE 3: Check if all scenes have generated images.
+     */
+    protected function allScenesHaveImages(): bool
+    {
+        if (empty($this->storyboard['scenes'])) {
+            return false;
+        }
+
+        foreach ($this->storyboard['scenes'] as $scene) {
+            // Check if scene has imageUrl OR all shots have images
+            if (empty($scene['imageUrl'])) {
+                $shots = $scene['shots'] ?? [];
+                if (empty($shots)) {
+                    return false;
+                }
+                foreach ($shots as $shot) {
+                    if (empty($shot['imageUrl'])) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -6294,6 +6411,20 @@ class VideoWizard extends Component
         if (!$hasVideoJobs) {
             \Log::info('📡 All video jobs complete - dispatching video-generation-complete');
             $this->dispatch('video-generation-complete');
+
+            // =====================================================================
+            // PHASE 3: Auto-proceed to assembly if all videos are done
+            // =====================================================================
+            if ($this->autoProceedEnabled && $this->allScenesHaveVideos()) {
+                Log::info('VideoWizard: Auto-proceeding to Assembly step');
+                $this->goToStep(6); // Assembly step
+
+                // Show notification that auto-generation is complete
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => 'Auto-generation complete! Review your video in Assembly.',
+                ]);
+            }
         }
 
         return [
@@ -6302,6 +6433,43 @@ class VideoWizard extends Component
             'remaining' => count($this->pendingJobs),
             'hasUpdates' => $hasUpdates,
         ];
+    }
+
+    /**
+     * PHASE 3: Check if all scenes have generated videos.
+     */
+    protected function allScenesHaveVideos(): bool
+    {
+        // Check multi-shot mode first (primary video storage)
+        $decomposedScenes = $this->multiShotMode['decomposedScenes'] ?? [];
+
+        if (!empty($decomposedScenes)) {
+            foreach ($decomposedScenes as $scene) {
+                $shots = $scene['shots'] ?? [];
+                if (empty($shots)) {
+                    return false;
+                }
+                foreach ($shots as $shot) {
+                    if (empty($shot['videoUrl'])) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Fallback: check animation array (legacy single-shot mode)
+        if (empty($this->animation['scenes'])) {
+            return false;
+        }
+
+        foreach ($this->animation['scenes'] as $scene) {
+            if (empty($scene['videoUrl'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -6610,6 +6778,282 @@ class VideoWizard extends Component
                 'message' => __('No scenes available for animation. Generate images first.')
             ]);
         }
+    }
+
+    // =========================================================================
+    // PHASE 3: Smart Retry Logic for Batch Generation
+    // Automatic retry with exponential backoff for failed generations
+    // =========================================================================
+
+    /**
+     * PHASE 3: Generate image with automatic retry on failure.
+     *
+     * @param int $sceneIndex Scene index
+     * @param int|null $shotIndex Shot index (null for single-shot mode)
+     * @param array $options Generation options
+     * @return bool True if generation succeeded or is in progress
+     */
+    protected function generateImageWithRetry(int $sceneIndex, ?int $shotIndex = null, array $options = []): bool
+    {
+        $itemKey = $shotIndex !== null
+            ? "scene_{$sceneIndex}_shot_{$shotIndex}"
+            : "scene_{$sceneIndex}";
+
+        $retryCount = $this->generationRetryCount[$itemKey] ?? 0;
+
+        if ($retryCount >= $this->maxRetryAttempts) {
+            Log::warning('VideoWizard: Max retries reached for image generation', [
+                'item' => $itemKey,
+                'attempts' => $retryCount,
+            ]);
+            $this->generationStatus[$itemKey] = 'failed_permanent';
+            return false;
+        }
+
+        try {
+            $this->generationStatus[$itemKey] = 'generating';
+            $this->generationRetryCount[$itemKey] = $retryCount + 1;
+
+            // Add exponential backoff delay if this is a retry
+            if ($retryCount > 0) {
+                $delay = pow(2, $retryCount) * 1000; // 2s, 4s, 8s
+                Log::info('VideoWizard: Retrying image generation with backoff', [
+                    'item' => $itemKey,
+                    'attempt' => $retryCount + 1,
+                    'delay_ms' => $delay,
+                ]);
+                usleep($delay * 1000); // Convert to microseconds
+            }
+
+            // Call the actual generation method
+            if ($shotIndex !== null) {
+                $this->generateShotImage($sceneIndex, $shotIndex);
+                $result = ($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] ?? '') !== 'error';
+            } else {
+                $this->generateSceneImage($sceneIndex);
+                $result = ($this->storyboard['scenes'][$sceneIndex]['imageStatus'] ?? '') !== 'error';
+            }
+
+            if ($result) {
+                $this->generationStatus[$itemKey] = 'complete';
+                return true;
+            }
+
+            // Generation returned false, schedule retry
+            $this->scheduleImageRetry($sceneIndex, $shotIndex, $options);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: Image generation failed', [
+                'item' => $itemKey,
+                'attempt' => $retryCount + 1,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->generationStatus[$itemKey] = 'failed';
+            $this->scheduleImageRetry($sceneIndex, $shotIndex, $options);
+            return false;
+        }
+    }
+
+    /**
+     * Schedule a retry for failed image generation.
+     */
+    protected function scheduleImageRetry(int $sceneIndex, ?int $shotIndex, array $options): void
+    {
+        $itemKey = $shotIndex !== null
+            ? "scene_{$sceneIndex}_shot_{$shotIndex}"
+            : "scene_{$sceneIndex}";
+
+        $retryCount = $this->generationRetryCount[$itemKey] ?? 0;
+
+        if ($retryCount < $this->maxRetryAttempts) {
+            // Dispatch event to retry after delay
+            $delay = pow(2, $retryCount) * 1000;
+            $this->dispatch('retry-image-generation', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'options' => $options,
+                'delay' => $delay,
+            ]);
+        }
+    }
+
+    /**
+     * PHASE 3: Generate video with automatic retry on failure.
+     *
+     * @param int $sceneIndex Scene index
+     * @param array $options Generation options
+     * @return bool True if generation succeeded or is in progress
+     */
+    protected function generateVideoWithRetry(int $sceneIndex, array $options = []): bool
+    {
+        $itemKey = "video_scene_{$sceneIndex}";
+
+        $retryCount = $this->generationRetryCount[$itemKey] ?? 0;
+
+        if ($retryCount >= $this->maxRetryAttempts) {
+            Log::warning('VideoWizard: Max retries reached for video generation', [
+                'item' => $itemKey,
+                'attempts' => $retryCount,
+            ]);
+            $this->generationStatus[$itemKey] = 'failed_permanent';
+            return false;
+        }
+
+        try {
+            $this->generationStatus[$itemKey] = 'generating';
+            $this->generationRetryCount[$itemKey] = $retryCount + 1;
+
+            // Add exponential backoff delay if this is a retry
+            if ($retryCount > 0) {
+                $delay = pow(2, $retryCount) * 1000;
+                Log::info('VideoWizard: Retrying video generation with backoff', [
+                    'item' => $itemKey,
+                    'attempt' => $retryCount + 1,
+                    'delay_ms' => $delay,
+                ]);
+                usleep($delay * 1000);
+            }
+
+            // Call the actual animation method
+            $this->animateScene($sceneIndex);
+            $result = ($this->animation['scenes'][$sceneIndex]['animationStatus'] ?? '') !== 'error';
+
+            if ($result) {
+                $this->generationStatus[$itemKey] = 'complete';
+                return true;
+            }
+
+            // Generation returned false, schedule retry
+            $this->scheduleVideoRetry($sceneIndex, $options);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: Video generation failed', [
+                'item' => $itemKey,
+                'attempt' => $retryCount + 1,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->generationStatus[$itemKey] = 'failed';
+            $this->scheduleVideoRetry($sceneIndex, $options);
+            return false;
+        }
+    }
+
+    /**
+     * Schedule a retry for failed video generation.
+     */
+    protected function scheduleVideoRetry(int $sceneIndex, array $options): void
+    {
+        $itemKey = "video_scene_{$sceneIndex}";
+
+        $retryCount = $this->generationRetryCount[$itemKey] ?? 0;
+
+        if ($retryCount < $this->maxRetryAttempts) {
+            $delay = pow(2, $retryCount) * 1000;
+            $this->dispatch('retry-video-generation', [
+                'sceneIndex' => $sceneIndex,
+                'options' => $options,
+                'delay' => $delay,
+            ]);
+        }
+    }
+
+    /**
+     * PHASE 3: Get summary of batch generation status.
+     *
+     * @param string $type 'images' or 'videos'
+     * @return array Status summary
+     */
+    public function getBatchGenerationStatus(string $type = 'images'): array
+    {
+        $summary = [
+            'total' => 0,
+            'pending' => 0,
+            'generating' => 0,
+            'complete' => 0,
+            'failed' => 0,
+            'failed_permanent' => 0,
+            'items' => [],
+        ];
+
+        $prefix = $type === 'videos' ? 'video_scene_' : 'scene_';
+
+        foreach ($this->generationStatus as $key => $status) {
+            if (strpos($key, $prefix) === 0 || ($type === 'images' && strpos($key, 'scene_') === 0 && strpos($key, 'video_') !== 0)) {
+                $summary['total']++;
+                $summary[$status] = ($summary[$status] ?? 0) + 1;
+                $summary['items'][$key] = [
+                    'status' => $status,
+                    'retries' => $this->generationRetryCount[$key] ?? 0,
+                ];
+            }
+        }
+
+        // Calculate pending (items not yet started)
+        if ($type === 'images') {
+            $scenes = $this->storyboard['scenes'] ?? [];
+            foreach ($scenes as $i => $scene) {
+                $shots = $this->multiShotMode['decomposedScenes'][$i]['shots'] ?? [];
+                if (empty($shots)) {
+                    $key = "scene_{$i}";
+                    if (!isset($this->generationStatus[$key])) {
+                        $summary['pending']++;
+                    }
+                } else {
+                    foreach ($shots as $j => $shot) {
+                        $key = "scene_{$i}_shot_{$j}";
+                        if (!isset($this->generationStatus[$key])) {
+                            $summary['pending']++;
+                        }
+                    }
+                }
+            }
+        } else {
+            $scenes = $this->animation['scenes'] ?? [];
+            foreach ($scenes as $i => $scene) {
+                $key = "video_scene_{$i}";
+                if (!isset($this->generationStatus[$key])) {
+                    $summary['pending']++;
+                }
+            }
+        }
+
+        $summary['total'] += $summary['pending'];
+        $summary['percentage'] = $summary['total'] > 0
+            ? round(($summary['complete'] / $summary['total']) * 100)
+            : 0;
+
+        return $summary;
+    }
+
+    /**
+     * PHASE 3: Retry all failed generations.
+     *
+     * @param string $type 'images' or 'videos'
+     */
+    public function retryAllFailed(string $type = 'images'): void
+    {
+        $prefix = $type === 'videos' ? 'video_scene_' : 'scene_';
+
+        foreach ($this->generationStatus as $key => $status) {
+            if ($status === 'failed' || $status === 'failed_permanent') {
+                // Reset retry count and status
+                $this->generationRetryCount[$key] = 0;
+                $this->generationStatus[$key] = 'pending';
+            }
+        }
+
+        // Trigger batch generation
+        if ($type === 'images') {
+            $this->dispatch('start-batch-image-generation');
+        } else {
+            $this->dispatch('start-batch-video-generation');
+        }
+
+        Log::info('VideoWizard: Retrying all failed generations', ['type' => $type]);
     }
 
     /**
