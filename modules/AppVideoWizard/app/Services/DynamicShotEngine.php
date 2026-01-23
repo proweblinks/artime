@@ -946,36 +946,60 @@ class DynamicShotEngine
         $charB = $characters[1]['name'] ?? 'Character B';
 
         // Hollywood standard dialogue pattern
+        // PHASE 4: Enhanced with OTS specifications for proper depth framing
         $dialoguePattern = [
             0 => [
                 'type' => 'wide',
                 'purpose' => 'two-shot',
                 'focus' => 'both',
                 'description' => "Two-shot establishing {$charA} and {$charB} in conversation",
+                // PHASE 4: No OTS data for establishing shots
             ],
             1 => [
                 'type' => 'medium',
                 'purpose' => 'over-the-shoulder',
                 'focus' => $charA,
-                'description' => "Over-the-shoulder on {$charA} speaking",
+                'description' => "Over-the-shoulder on {$charA}, {$charB}'s shoulder in foreground",
+                // PHASE 4: OTS specifications for proper Hollywood framing
+                'otsSpecs' => [
+                    'foregroundCharacter' => $charB,
+                    'foregroundShoulder' => 'right',
+                    'foregroundBlur' => true,
+                    'foregroundVisible' => 'shoulder and partial head',
+                    'focusCharacter' => $charA,
+                    'profileAngle' => 'left-three-quarter',
+                    'depthOfField' => 'shallow',
+                ],
             ],
             2 => [
                 'type' => 'medium',
                 'purpose' => 'over-the-shoulder',
                 'focus' => $charB,
-                'description' => "Reverse OTS on {$charB} responding",
+                'description' => "Reverse OTS on {$charB}, {$charA}'s shoulder in foreground",
+                // PHASE 4: Reverse OTS specifications (mirror of above)
+                'otsSpecs' => [
+                    'foregroundCharacter' => $charA,
+                    'foregroundShoulder' => 'left',
+                    'foregroundBlur' => true,
+                    'foregroundVisible' => 'shoulder and partial head',
+                    'focusCharacter' => $charB,
+                    'profileAngle' => 'right-three-quarter',
+                    'depthOfField' => 'shallow',
+                ],
             ],
             3 => [
                 'type' => 'close-up',
                 'purpose' => 'emphasis',
                 'focus' => 'speaker',
-                'description' => "Close-up for key line delivery",
+                'description' => "Close-up for emotional emphasis on speaker",
+                // PHASE 4: No OTS for close-ups
             ],
             4 => [
                 'type' => 'reaction',
                 'purpose' => 'reaction',
                 'focus' => 'listener',
-                'description' => "Reaction shot capturing response",
+                'description' => "Reaction shot of listener",
+                // PHASE 4: No OTS for reactions
             ],
         ];
 
@@ -999,6 +1023,11 @@ class DynamicShotEngine
             // Enhance description with dialogue context if needed
             if (empty($shot['dialogueContext'])) {
                 $shot['dialogueContext'] = $pattern['description'];
+            }
+
+            // PHASE 4: Include OTS specifications if present in pattern
+            if (!empty($pattern['otsSpecs'])) {
+                $shot['otsData'] = $pattern['otsSpecs'];
             }
         }
 

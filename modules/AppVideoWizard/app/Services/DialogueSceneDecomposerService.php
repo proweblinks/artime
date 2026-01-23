@@ -25,6 +25,12 @@ class DialogueSceneDecomposerService
     protected int $minDialogueExchanges = 2;
 
     /**
+     * PHASE 4: 180-degree rule - camera stays on one side of the action line.
+     * The axis is an imaginary line between the two characters.
+     */
+    protected string $axisLockSide = 'left';
+
+    /**
      * Shot types for dialogue scenes, ordered by emotional intensity.
      */
     protected array $dialogueShotTypes = [
@@ -191,14 +197,15 @@ class DialogueSceneDecomposerService
             $position = $this->calculateDialoguePosition($index, $totalExchanges);
             $emotionalIntensity = $this->calculateEmotionalIntensity($exchange, $position, $scene);
 
-            // Create the speaking shot
+            // Create the speaking shot with spatial data
             $shot = $this->createDialogueShot(
                 $exchange,
                 $index,
                 $emotionalIntensity,
                 $position,
                 $characterLookup,
-                $scene
+                $scene,
+                $speakers // PHASE 4: Pass speakers for spatial calculation
             );
 
             $shots[] = $shot;
@@ -220,16 +227,21 @@ class DialogueSceneDecomposerService
         // Calculate durations based on dialogue length
         $shots = $this->calculateShotDurations($shots);
 
+        // PHASE 4: Pair reverse shots for continuity validation
+        $shots = $this->pairReverseShots($shots);
+
         // Assign shot indices
         foreach ($shots as $idx => &$shot) {
             $shot['shotIndex'] = $idx;
             $shot['totalShots'] = count($shots);
         }
 
-        Log::info('DialogueDecomposer: Created dialogue shots', [
+        // PHASE 4: Enhanced logging with spatial continuity info
+        Log::info('DialogueDecomposer: Generated shots with spatial continuity', [
             'sceneId' => $scene['id'] ?? 'unknown',
             'shotCount' => count($shots),
             'speakingShots' => count(array_filter($shots, fn($s) => $s['useMultitalk'] ?? false)),
+            'pairCount' => count(array_filter($shots, fn($s) => !empty($s['spatial']['pairId'] ?? null))),
         ]);
 
         return $shots;
@@ -382,6 +394,107 @@ class DialogueSceneDecomposerService
     }
 
     /**
+     * PHASE 4: Calculate camera position for dialogue shot.
+     * Maintains 180-degree rule - camera stays on same side of axis.
+     *
+     * @param string $speakerName Current speaker
+     * @param array $characters Array of [characterA, characterB]
+     * @param string $shotType Type of shot (establishing, ots, close-up, etc.)
+     * @return array Spatial data for the shot
+     */
+    protected function calculateSpatialData(string $speakerName, array $characters, string $shotType): array
+    {
+        // Determine which character is speaking (A or B)
+        $isCharacterA = count($characters) >= 1 && strcasecmp($speakerName, $characters[0]) === 0;
+
+        // Camera position follows 180-degree rule
+        // When shooting Character A: camera is on left, A is screen-right, looks screen-left
+        // When shooting Character B: camera is on left, B is screen-left, looks screen-right
+
+        $spatial = [
+            'cameraPosition' => $this->axisLockSide, // Always same side (180-degree rule)
+            'cameraAngle' => $this->determineCameraAngle($shotType),
+            'subjectPosition' => $isCharacterA ? 'right' : 'left', // A=right, B=left
+            'eyeLineDirection' => $isCharacterA ? 'screen-left' : 'screen-right',
+            'lookingAt' => $isCharacterA && count($characters) >= 2 ? $characters[1] : ($characters[0] ?? null),
+            'reverseOf' => null, // Set later when pairing
+            'pairId' => null,    // Set later when pairing
+        ];
+
+        return $spatial;
+    }
+
+    /**
+     * PHASE 4: Determine camera angle based on shot type.
+     *
+     * @param string $shotType The shot type
+     * @return string Camera angle description
+     */
+    protected function determineCameraAngle(string $shotType): string
+    {
+        return match($shotType) {
+            'establishing', 'two-shot', 'wide' => 'frontal',
+            'over-the-shoulder' => 'three-quarter',
+            'medium', 'medium-close' => 'three-quarter',
+            'close-up', 'extreme-close-up' => 'profile',
+            default => 'three-quarter',
+        };
+    }
+
+    /**
+     * PHASE 4: Pair reverse shots in the dialogue sequence.
+     * Links shots that form shot/reverse-shot pairs.
+     *
+     * @param array $shots Array of shots to process
+     * @return array Shots with reverse pairing data
+     */
+    protected function pairReverseShots(array $shots): array
+    {
+        $pairCounter = 0;
+        $lastSpeakerShot = [];
+
+        foreach ($shots as $index => &$shot) {
+            // Skip non-dialogue shots (establishing, reaction without speaker)
+            if (empty($shot['speakingCharacter'])) {
+                continue;
+            }
+
+            $speaker = $shot['speakingCharacter'];
+
+            // Check if there's a previous shot from different speaker (reverse candidate)
+            foreach ($lastSpeakerShot as $prevSpeaker => $prevIndex) {
+                if ($prevSpeaker !== $speaker && $prevIndex !== null) {
+                    // This is a reverse of the previous speaker's shot
+                    $pairId = 'pair_' . $pairCounter;
+
+                    // Ensure spatial array exists
+                    if (!isset($shot['spatial'])) {
+                        $shot['spatial'] = [];
+                    }
+                    if (!isset($shots[$prevIndex]['spatial'])) {
+                        $shots[$prevIndex]['spatial'] = [];
+                    }
+
+                    // Link current shot to previous
+                    $shot['spatial']['reverseOf'] = $prevIndex;
+                    $shot['spatial']['pairId'] = $pairId;
+
+                    // Link previous shot to current
+                    $shots[$prevIndex]['spatial']['pairId'] = $pairId;
+
+                    $pairCounter++;
+                    break;
+                }
+            }
+
+            // Track this speaker's latest shot
+            $lastSpeakerShot[$speaker] = $index;
+        }
+
+        return $shots;
+    }
+
+    /**
      * Create establishing two-shot.
      */
     protected function createEstablishingShot(array $scene, array $speakers, array $characterLookup): array
@@ -409,6 +522,14 @@ class DialogueSceneDecomposerService
 
     /**
      * Create a dialogue shot for a speaking character.
+     *
+     * @param array $exchange The dialogue exchange data
+     * @param int $index Exchange index
+     * @param float $emotionalIntensity Emotional intensity value
+     * @param string $position Position in dialogue (opening, building, climax, resolution)
+     * @param array $characterLookup Character lookup data
+     * @param array $scene Scene data
+     * @param array $speakers Array of speaker names for spatial calculation
      */
     protected function createDialogueShot(
         array $exchange,
@@ -416,7 +537,8 @@ class DialogueSceneDecomposerService
         float $emotionalIntensity,
         string $position,
         array $characterLookup,
-        array $scene
+        array $scene,
+        array $speakers = []
     ): array {
         $speaker = $exchange['speaker'];
         $charData = $characterLookup[$speaker] ?? [];
@@ -424,10 +546,19 @@ class DialogueSceneDecomposerService
         // Select shot type based on emotional intensity
         $shotType = $this->selectShotTypeForIntensity($emotionalIntensity, $position);
 
+        // PHASE 4: Calculate spatial data for this shot
+        $characters = array_slice($speakers, 0, 2); // First two characters
+        $spatial = $this->calculateSpatialData(
+            $speaker,
+            $characters,
+            $shotType
+        );
+
         // Build visual description for the speaking character
         $visualPromptAddition = $this->buildSpeakingVisualPrompt($exchange, $shotType, $charData, $position);
 
-        return [
+        // Build shot data
+        $shot = [
             'type' => $shotType,
             'purpose' => 'dialogue',
             'speakingCharacter' => $speaker,
@@ -445,7 +576,79 @@ class DialogueSceneDecomposerService
             'wordCount' => $exchange['wordCount'] ?? str_word_count($exchange['text']),
             'needsLipSync' => true,
             'characterData' => $charData['characterData'] ?? null,
+            'spatial' => $spatial, // PHASE 4: Spatial continuity data
         ];
+
+        // Use spatial-aware prompt for enhanced visual description
+        $shot['spatialAwarePrompt'] = $this->buildSpatialAwarePrompt($shot, $charData['characterData'] ?? []);
+
+        // PHASE 4: Detect if this should be an OTS shot and enhance with OTS data
+        $isOTSShot = $this->shouldUseOTS($shotType, $emotionalIntensity, $index);
+
+        if ($isOTSShot) {
+            // Get the other character (listener) for OTS foreground
+            $listener = null;
+            foreach (array_keys($characterLookup) as $char) {
+                if (strcasecmp($char, $speaker) !== 0) {
+                    $listener = $char;
+                    break;
+                }
+            }
+
+            if ($listener) {
+                // Build OTS-specific data
+                $otsData = $this->buildOTSData($speaker, $listener, $spatial);
+                $shot = array_merge($shot, $otsData);
+
+                // Update shot type to OTS
+                $shot['type'] = 'over-the-shoulder';
+
+                // Use OTS-specific prompt
+                $listenerData = $characterLookup[$listener] ?? [];
+                $shot['visualPromptAddition'] = $this->buildOTSPrompt($shot, $charData, $listenerData);
+
+                // Include listener in shot
+                $shot['charactersInShot'] = [$speaker, $listener];
+                $shot['description'] = "Over-the-shoulder shot of {$speaker} speaking, {$listener}'s shoulder in foreground";
+
+                Log::debug('DialogueSceneDecomposer: Generated OTS shot', [
+                    'speaker' => $speaker,
+                    'listener' => $listener,
+                    'shoulder' => $otsData['otsData']['foregroundShoulder'],
+                    'profileAngle' => $otsData['otsData']['profileAngle'],
+                ]);
+            }
+        }
+
+        return $shot;
+    }
+
+    /**
+     * PHASE 4: Determine if shot should be OTS based on context.
+     *
+     * OTS shots work well for medium-intensity dialogue, creating
+     * depth and visual connection between characters.
+     *
+     * @param string $shotType Current shot type
+     * @param float $intensity Emotional intensity
+     * @param int $exchangeIndex Position in dialogue
+     * @return bool True if should use OTS framing
+     */
+    protected function shouldUseOTS(string $shotType, float $intensity, int $exchangeIndex): bool
+    {
+        // Explicit OTS shot type
+        if ($shotType === 'over-the-shoulder') {
+            return true;
+        }
+
+        // Medium shots in dialogue often work well as OTS
+        // OTS creates depth and shows spatial relationship
+        if (in_array($shotType, ['medium', 'medium-close']) && $intensity >= 0.3 && $intensity <= 0.7) {
+            // Use OTS for alternating shots (creates shot/reverse-shot rhythm)
+            return $exchangeIndex % 2 === 1;
+        }
+
+        return false;
     }
 
     /**
@@ -543,6 +746,91 @@ class DialogueSceneDecomposerService
     }
 
     /**
+     * PHASE 4: Build visual prompt with spatial continuity information.
+     *
+     * @param array $shot Shot data including spatial info
+     * @param array $characterData Character appearance data
+     * @return string Enhanced visual prompt
+     */
+    protected function buildSpatialAwarePrompt(array $shot, array $characterData): string
+    {
+        $prompt = [];
+
+        // Base character description
+        $characterName = $shot['speakingCharacter'] ?? 'character';
+        $appearance = $characterData['appearance'] ?? '';
+
+        // Shot type and framing
+        $shotType = $shot['type'] ?? 'medium';
+        $prompt[] = ucfirst($shotType) . ' shot of ' . $characterName;
+
+        if (!empty($appearance)) {
+            $prompt[] = "({$appearance})";
+        }
+
+        // PHASE 4: Add spatial positioning
+        $spatial = $shot['spatial'] ?? [];
+
+        if (!empty($spatial['subjectPosition'])) {
+            $prompt[] = "positioned {$spatial['subjectPosition']} of frame";
+        }
+
+        if (!empty($spatial['eyeLineDirection'])) {
+            $prompt[] = "looking {$spatial['eyeLineDirection']}";
+        }
+
+        if (!empty($spatial['cameraAngle'])) {
+            $angleDesc = match($spatial['cameraAngle']) {
+                'profile' => 'in profile view',
+                'three-quarter' => 'at three-quarter angle',
+                'frontal' => 'facing camera',
+                default => '',
+            };
+            if ($angleDesc) {
+                $prompt[] = $angleDesc;
+            }
+        }
+
+        // Add expression based on dialogue
+        if (!empty($shot['expression'])) {
+            $prompt[] = "with {$shot['expression']} expression";
+        }
+
+        // Add dialogue context
+        if (!empty($shot['dialogue'])) {
+            $dialogueHint = $this->getDialogueVisualHint($shot['dialogue']);
+            if ($dialogueHint) {
+                $prompt[] = $dialogueHint;
+            }
+        }
+
+        return implode(', ', array_filter($prompt)) . '.';
+    }
+
+    /**
+     * PHASE 4: Get visual hint from dialogue content.
+     *
+     * @param string $dialogue The dialogue text
+     * @return string Visual hint for the prompt
+     */
+    protected function getDialogueVisualHint(string $dialogue): string
+    {
+        if (str_ends_with(trim($dialogue), '?')) {
+            return 'questioning expression';
+        }
+        if (str_ends_with(trim($dialogue), '!')) {
+            return 'emphatic delivery';
+        }
+        if (stripos($dialogue, 'sorry') !== false || stripos($dialogue, 'apologize') !== false) {
+            return 'apologetic demeanor';
+        }
+        if (stripos($dialogue, 'love') !== false || stripos($dialogue, 'care') !== false) {
+            return 'warm expression';
+        }
+        return '';
+    }
+
+    /**
      * Determine if a reaction shot should be added.
      */
     protected function shouldAddReactionShot(string $position, float $intensity, array $options): bool
@@ -620,6 +908,141 @@ class DialogueSceneDecomposerService
             'dialogueDuration' => $dialogueDuration,
             'hasEstablishing' => !empty(array_filter($shots, fn($s) => ($s['purpose'] ?? '') === 'establishing')),
         ];
+    }
+
+    /**
+     * PHASE 4: Build OTS-specific shot data.
+     *
+     * Over-the-shoulder shots need explicit foreground/background specification
+     * to generate proper Hollywood-style framing with depth separation.
+     *
+     * @param string $speaker The speaking character (in focus)
+     * @param string $listener The listening character (foreground)
+     * @param array $spatial Base spatial data
+     * @return array Enhanced OTS shot data
+     */
+    protected function buildOTSData(string $speaker, string $listener, array $spatial): array
+    {
+        // Determine which shoulder based on spatial positioning
+        // If speaker is screen-right, we see over listener's left shoulder
+        // If speaker is screen-left, we see over listener's right shoulder
+        $speakerScreenPosition = $spatial['subjectPosition'] ?? 'right';
+        $foregroundShoulder = $speakerScreenPosition === 'right' ? 'left' : 'right';
+
+        return [
+            'otsData' => [
+                'foregroundCharacter' => $listener,
+                'foregroundShoulder' => $foregroundShoulder,
+                'foregroundBlur' => true,
+                'foregroundVisible' => 'shoulder and partial head',
+                'backgroundCharacter' => $speaker, // In focus
+                'backgroundPosition' => $speakerScreenPosition,
+                'depthOfField' => 'shallow', // Blur foreground, focus background
+                'focusOn' => $speaker,
+                'profileAngle' => $speakerScreenPosition === 'right' ? 'left-three-quarter' : 'right-three-quarter',
+            ],
+        ];
+    }
+
+    /**
+     * PHASE 4: Build visual prompt specifically for OTS shots.
+     *
+     * OTS shots require specific prompting to achieve proper Hollywood framing:
+     * - Foreground character blurred (shoulder + partial head)
+     * - Background character in sharp focus
+     * - Explicit shoulder side and profile angle
+     *
+     * @param array $shot Shot data with OTS info
+     * @param array $speakerData Speaker character data
+     * @param array $listenerData Listener character data
+     * @return string OTS-specific visual prompt
+     */
+    protected function buildOTSPrompt(array $shot, array $speakerData, array $listenerData): string
+    {
+        $otsData = $shot['otsData'] ?? [];
+        $prompt = [];
+
+        // Shot type declaration
+        $prompt[] = 'Over-the-shoulder shot';
+
+        // Foreground description (blurred)
+        $listenerName = $otsData['foregroundCharacter'] ?? 'listener';
+        $shoulder = $otsData['foregroundShoulder'] ?? 'left';
+        $prompt[] = "with {$listenerName}'s {$shoulder} shoulder and partial head in soft-focus foreground";
+
+        // Background (in focus) - the speaker
+        $speakerName = $otsData['backgroundCharacter'] ?? $shot['speakingCharacter'];
+        $speakerAppearance = $speakerData['appearance'] ?? '';
+        $profileAngle = $otsData['profileAngle'] ?? 'three-quarter';
+
+        $prompt[] = "{$speakerName} in sharp focus";
+
+        if (!empty($speakerAppearance)) {
+            $prompt[] = "({$speakerAppearance})";
+        }
+
+        $prompt[] = "at {$profileAngle} angle";
+
+        // Position in frame
+        $position = $otsData['backgroundPosition'] ?? 'right';
+        $prompt[] = "positioned {$position} of frame";
+
+        // Expression
+        if (!empty($shot['expression'])) {
+            $prompt[] = "with {$shot['expression']} expression";
+        }
+
+        // Depth of field
+        $prompt[] = 'shallow depth of field';
+        $prompt[] = 'cinematic lighting';
+
+        // Dialogue context
+        if (!empty($shot['dialogue'])) {
+            $emotion = $this->detectDialogueEmotion($shot['dialogue']);
+            if ($emotion) {
+                $prompt[] = $emotion;
+            }
+        }
+
+        return implode(', ', array_filter($prompt)) . '.';
+    }
+
+    /**
+     * PHASE 4: Detect emotional tone from dialogue text.
+     *
+     * @param string $dialogue The dialogue text
+     * @return string Emotional atmosphere description or empty string
+     */
+    protected function detectDialogueEmotion(string $dialogue): string
+    {
+        $text = strtolower($dialogue);
+
+        // Check for emotional keywords
+        if (preg_match('/\b(angry|furious|rage|hate)\b/', $text)) {
+            return 'intense confrontational mood';
+        }
+        if (preg_match('/\b(love|adore|care|tender)\b/', $text)) {
+            return 'warm intimate atmosphere';
+        }
+        if (preg_match('/\b(scared|afraid|terrified|fear)\b/', $text)) {
+            return 'tense fearful atmosphere';
+        }
+        if (preg_match('/\b(sad|cry|tears|grief)\b/', $text)) {
+            return 'somber emotional moment';
+        }
+        if (preg_match('/\b(happy|joy|excited|thrilled)\b/', $text)) {
+            return 'uplifting joyful energy';
+        }
+
+        // Check punctuation
+        if (str_ends_with(trim($dialogue), '!')) {
+            return 'emphatic delivery';
+        }
+        if (str_ends_with(trim($dialogue), '?')) {
+            return 'questioning tone';
+        }
+
+        return '';
     }
 
     /**
