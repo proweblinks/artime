@@ -8,10 +8,10 @@
 ## Current Position
 
 **Phase:** 4 of ongoing (Dialogue Scene Excellence)
-**Plan:** 02 of ? (in phase) - COMPLETE
+**Plan:** 01-02 of 4 (in phase) - COMPLETE
 **Status:** In Progress
 
-**Progress:** [#---------] Phase 4 (1/? plans complete - 04-02)
+**Progress:** [##--------] Phase 4 (2/4 plans complete - 04-01, 04-02)
 
 ---
 
@@ -22,9 +22,10 @@
 Enhance dialogue scenes with proper OTS shots, reaction variety, and spatial continuity.
 
 Plans:
-1. Spatial Continuity (pending)
+1. ~~Spatial Continuity~~ COMPLETE
 2. ~~OTS Shot Depth and Framing~~ COMPLETE
 3. Reaction Shot Variety (pending)
+4. Additional enhancements (pending)
 
 ---
 
@@ -37,6 +38,21 @@ The system should be sophisticated and automatically updated based on previous s
 ---
 
 ## Completed This Session
+
+### Plan 04-01: Spatial Continuity Tracking (COMPLETE)
+**Summary:** 180-degree rule enforcement with camera position tracking, eye-line direction, and reverse shot pairing
+
+**Tasks:**
+1. [x] Add spatial tracking properties ($axisLockSide, spatial array)
+2. [x] Implement camera position assignment (calculateSpatialData)
+3. [x] Add reverse shot pairing system (pairReverseShots)
+4. [x] Enhance visual prompts with spatial info (buildSpatialAwarePrompt)
+5. [x] Integrate into main decomposition
+
+**Commits:**
+- `3f14f75` - feat(04-02): includes spatial continuity (combined commit)
+
+**SUMMARY:** `.planning/phases/04-dialogue-scene-excellence/04-01-SUMMARY.md`
 
 ### Plan 04-02: OTS Shot Depth and Framing (COMPLETE)
 **Summary:** OTS shots now specify foreground shoulder, blur depth, and profile angle for Hollywood-style depth framing
@@ -94,6 +110,9 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 | Date | Area | Decision | Context |
 |------|------|----------|---------|
+| 2026-01-23 | Axis Lock | Camera stays on left side of axis | 180-degree rule enforcement |
+| 2026-01-23 | Character A Position | Always screen-right, looks screen-left | Consistent spatial relationships |
+| 2026-01-23 | Pair Tracking | pair_N format for reverse shots | Simple incremental pairing |
 | 2026-01-23 | OTS Shoulder | Left when speaker screen-right, right when screen-left | Follows 180-degree rule |
 | 2026-01-23 | OTS Detection | Alternating for medium shots 0.3-0.7 intensity | Creates shot/reverse-shot rhythm |
 | 2026-01-23 | OTS Pattern | Mirrored shoulders between OTS and reverse | Maintains visual continuity |
@@ -121,14 +140,21 @@ See: `.planning/phases/1.5-automatic-speech-flow/1.5-CONTEXT.md` for implementat
 
 ## Phase 4 Progress - What Was Built
 
-### Plan 04-02: OTS Shot Depth and Framing (NEW)
+### Plan 04-01: Spatial Continuity Tracking
+1. **Axis Lock:** `$axisLockSide = 'left'` for 180-degree rule
+2. **Spatial Data:** `calculateSpatialData()` computes cameraPosition, eyeLineDirection, subjectPosition
+3. **Camera Angle:** `determineCameraAngle()` maps shot types to angles
+4. **Reverse Pairing:** `pairReverseShots()` links alternating speaker shots
+5. **Spatial Prompts:** `buildSpatialAwarePrompt()` adds positioning to visual prompts
+6. **Integration:** Spatial data in every dialogue shot, pair count in logs
+
+### Plan 04-02: OTS Shot Depth and Framing
 1. **OTS Data Structure:** `buildOTSData()` with foreground/background specification
 2. **OTS Prompts:** `buildOTSPrompt()` for Hollywood-style OTS framing
 3. **Emotion Detection:** `detectDialogueEmotion()` for dialogue mood analysis
 4. **OTS Detection:** `shouldUseOTS()` for intelligent OTS triggering
 5. **Integration:** OTS logic integrated into `createDialogueShot()` flow
 6. **Dialogue Pattern:** DynamicShotEngine `$dialoguePattern` has `otsSpecs`
-7. **Spatial Methods:** calculateSpatialData, determineCameraAngle, pairReverseShots (linter additions)
 
 ---
 
@@ -158,20 +184,22 @@ None currently
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `.planning/phases/04-dialogue-scene-excellence/04-02-SUMMARY.md` | Plan 02 summary | **Created** |
-| `Services/DialogueSceneDecomposerService.php` | OTS data + prompts + detection | **Updated** |
-| `Services/DynamicShotEngine.php` | Dialogue pattern with OTS specs | **Updated** |
+| `.planning/phases/04-dialogue-scene-excellence/04-01-SUMMARY.md` | Plan 01 summary | **Created** |
+| `.planning/phases/04-dialogue-scene-excellence/04-02-SUMMARY.md` | Plan 02 summary | Created |
+| `Services/DialogueSceneDecomposerService.php` | Spatial + OTS data + prompts | **Updated** |
+| `Services/DynamicShotEngine.php` | Dialogue pattern with OTS specs | Updated |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-23
-**Stopped at:** Completed 04-02-PLAN.md (OTS Shot Depth and Framing)
+**Stopped at:** Completed 04-01-PLAN.md (Spatial Continuity Tracking)
 **Resume file:** None
-**Phase 4 Status:** In Progress (1/? plans complete)
+**Phase 4 Status:** In Progress (2/4 plans complete)
 
 ---
 
 *Session: Phase 4 - Dialogue Scene Excellence*
+*Plan 04-01 COMPLETE - Spatial continuity tracking*
 *Plan 04-02 COMPLETE - OTS shot depth and framing enhancements*
