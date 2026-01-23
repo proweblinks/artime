@@ -2086,6 +2086,139 @@ class DialogueSceneDecomposerService
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
+    // PHASE 14: TRANSITION VALIDATION (FLOW-03)
+    // Methods for detecting jump cuts and ensuring cinematic scale changes
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * PHASE 14: Validate and fix shot transitions to prevent jarring cuts (FLOW-03).
+     *
+     * Detects potential jump cuts (same type or same scale between consecutive shots)
+     * and adjusts shot types to ensure at least one-step scale change. Logs violations
+     * but does NOT halt video generation (non-blocking per prior decision).
+     *
+     * @param array $shots Array of shots to validate
+     * @return array Modified shots with transition fixes applied
+     */
+    public function validateAndFixTransitions(array $shots): array
+    {
+        if (count($shots) < 2) {
+            return $shots;
+        }
+
+        $jumpCutsDetected = 0;
+        $scaleAdjustments = 0;
+
+        for ($i = 1; $i < count($shots); $i++) {
+            $prevShot = $shots[$i - 1];
+            $currShot = $shots[$i];
+
+            $prevType = $prevShot['type'] ?? 'medium';
+            $currType = $currShot['type'] ?? 'medium';
+
+            $prevSize = $this->getShotSizeForType($prevType);
+            $currSize = $this->getShotSizeForType($currType);
+
+            // Check for jump cut: same type
+            if ($prevType === $currType) {
+                $jumpCutsDetected++;
+                Log::warning('DialogueSceneDecomposer: Jump cut detected - same shot type', [
+                    'shot_index' => $i,
+                    'prev_shot' => $i - 1,
+                    'type' => $currType,
+                    'prev_speaker' => $prevShot['speakingCharacter'] ?? 'unknown',
+                    'curr_speaker' => $currShot['speakingCharacter'] ?? 'unknown',
+                ]);
+
+                // Fix: Adjust current shot to be at least one scale step different
+                if ($currSize < 5) {
+                    $shots[$i]['type'] = $this->getWiderShotType($currType);
+                } else {
+                    $shots[$i]['type'] = $this->getTighterShotType($currType);
+                }
+                $shots[$i]['scaleAdjusted'] = true;
+                $shots[$i]['adjustmentReason'] = 'jump_cut_same_type';
+                $scaleAdjustments++;
+
+                // Update currSize for scale check
+                $currSize = $this->getShotSizeForType($shots[$i]['type']);
+            }
+
+            // Check for same scale (even if different type)
+            $scaleDiff = abs($currSize - $prevSize);
+            if ($scaleDiff < 1 && !isset($shots[$i]['scaleAdjusted'])) {
+                Log::info('DialogueSceneDecomposer: Same scale detected between consecutive shots', [
+                    'shot_index' => $i,
+                    'prev_type' => $prevType,
+                    'curr_type' => $currType,
+                    'scale' => $currSize,
+                ]);
+
+                // Fix: Step out (to wider) if possible, else step in (to tighter)
+                if ($currSize < 5) {
+                    $shots[$i]['type'] = $this->getWiderShotType($shots[$i]['type']);
+                } else {
+                    $shots[$i]['type'] = $this->getTighterShotType($shots[$i]['type']);
+                }
+                $shots[$i]['scaleAdjusted'] = true;
+                $shots[$i]['adjustmentReason'] = 'same_scale';
+                $scaleAdjustments++;
+            }
+        }
+
+        // Log summary
+        Log::info('DialogueSceneDecomposer: Transition validation complete (FLOW-03)', [
+            'total_shots' => count($shots),
+            'jump_cuts_detected' => $jumpCutsDetected,
+            'scale_adjustments' => $scaleAdjustments,
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * PHASE 14: Get wider shot type (step out one level on scale).
+     *
+     * @param string $type Current shot type
+     * @return string Wider shot type
+     */
+    protected function getWiderShotType(string $type): string
+    {
+        return match ($type) {
+            'extreme-close-up' => 'close-up',
+            'close-up' => 'medium-close',
+            'medium-close-up', 'medium-close' => 'medium',
+            'medium' => 'over-the-shoulder',
+            'over-the-shoulder' => 'medium-wide',
+            'medium-wide' => 'wide',
+            'wide', 'two-shot' => 'establishing',
+            'extreme-wide', 'establishing' => 'establishing', // Already widest
+            default => 'wide',
+        };
+    }
+
+    /**
+     * PHASE 14: Get tighter shot type (step in one level on scale).
+     *
+     * @param string $type Current shot type
+     * @return string Tighter shot type
+     */
+    protected function getTighterShotType(string $type): string
+    {
+        return match ($type) {
+            'establishing', 'extreme-wide' => 'wide',
+            'wide', 'two-shot' => 'medium-wide',
+            'medium-wide' => 'over-the-shoulder',
+            'over-the-shoulder' => 'medium',
+            'medium' => 'medium-close',
+            'medium-close-up', 'medium-close' => 'close-up',
+            'close-up' => 'extreme-close-up',
+            'extreme-close-up' => 'extreme-close-up', // Already tightest
+            default => 'medium',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
     // PHASE 11: SPEECH-DRIVEN SHOT CREATION
     // Methods for creating/enhancing shots from speech segments (1:1 mapping)
     // ═══════════════════════════════════════════════════════════════════════════════
