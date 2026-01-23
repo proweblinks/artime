@@ -1314,6 +1314,8 @@ class VideoWizard extends Component
         return [
             'script' => $this->script['scenes'][$this->inspectorSceneIndex] ?? null,
             'storyboard' => $this->storyboard[$this->inspectorSceneIndex] ?? null,
+            // Phase 9: Include shots for prompt display
+            'shots' => $this->multiShotMode['decomposedScenes'][$this->inspectorSceneIndex]['shots'] ?? [],
         ];
     }
 
