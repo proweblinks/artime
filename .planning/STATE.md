@@ -54,6 +54,14 @@ The system should be sophisticated and automatically updated based on previous s
 ### Plan 02-02: Enhance buildAnalysisPrompt (COMPLETE)
 **Summary:** AI prompt enhanced with narrative moments, emotional arc, and shot type suggestions
 
+**Tasks:**
+1. [x] Add narrative moment formatting method
+2. [x] Integrate narrative moments into buildAnalysisPrompt
+3. [x] Update shot count to align with moment count
+
+**Commits:**
+- `d63ab64` - feat(02-02): pass narrative moment count to parseAIResponse
+
 **SUMMARY:** `.planning/phases/02-narrative-intelligence/02-02-SUMMARY.md`
 
 ### Plan 02-01: Wire NarrativeMomentService (COMPLETE)
