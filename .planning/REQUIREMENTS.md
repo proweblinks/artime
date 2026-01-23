@@ -19,12 +19,12 @@ Requirements for Milestone 7. Each maps to roadmap phases.
 
 ### Prompts Display
 
-- [ ] **PRMT-01**: User can view full image prompt (not truncated)
-- [ ] **PRMT-02**: User can view full video prompt (not truncated)
-- [ ] **PRMT-03**: User can copy image prompt to clipboard with one click
-- [ ] **PRMT-04**: User can copy video prompt to clipboard with one click
-- [ ] **PRMT-05**: Shot type badge displayed with prompt
-- [ ] **PRMT-06**: Camera movement indicator displayed
+- [x] **PRMT-01**: User can view full image prompt (not truncated) ✓
+- [x] **PRMT-02**: User can view full video prompt (not truncated) ✓
+- [x] **PRMT-03**: User can copy image prompt to clipboard with one click ✓
+- [x] **PRMT-04**: User can copy video prompt to clipboard with one click ✓
+- [x] **PRMT-05**: Shot type badge displayed with prompt ✓
+- [x] **PRMT-06**: Camera movement indicator displayed ✓
 
 ### Scene Metadata
 
@@ -83,12 +83,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPCH-05 | Phase 8 | Complete |
 | SPCH-06 | Phase 8 | Complete |
 | SPCH-07 | Phase 8 | Complete |
-| PRMT-01 | Phase 9 | Pending |
-| PRMT-02 | Phase 9 | Pending |
-| PRMT-03 | Phase 9 | Pending |
-| PRMT-04 | Phase 9 | Pending |
-| PRMT-05 | Phase 9 | Pending |
-| PRMT-06 | Phase 9 | Pending |
+| PRMT-01 | Phase 9 | Complete |
+| PRMT-02 | Phase 9 | Complete |
+| PRMT-03 | Phase 9 | Complete |
+| PRMT-04 | Phase 9 | Complete |
+| PRMT-05 | Phase 9 | Complete |
+| PRMT-06 | Phase 9 | Complete |
 | META-01 | Phase 7 | Complete |
 | META-02 | Phase 7 | Complete |
 | META-03 | Phase 7 | Complete |
@@ -117,4 +117,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after Phase 8 completion (21 requirements complete)*
+*Last updated: 2026-01-23 after Phase 9 completion (27 requirements complete)*

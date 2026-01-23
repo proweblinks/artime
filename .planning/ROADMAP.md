@@ -76,35 +76,28 @@ Plans:
 
 ---
 
-## Phase 9: Prompts Display + Copy-to-Clipboard
+## Phase 9: Prompts Display + Copy-to-Clipboard ✓
 
 **Goal:** Users can view full prompts and copy them to clipboard with visual feedback
 
-**Status:** Planned (2026-01-23)
+**Status:** Complete (2026-01-23)
 
 **Dependencies:** Phase 8 (requires content structure)
 
-**Plans:** 1 plan
+**Plans:** 1 plan (all complete)
 
 **Requirements:**
-- PRMT-01: User can view full image prompt (not truncated)
-- PRMT-02: User can view full video prompt (not truncated)
-- PRMT-03: User can copy image prompt to clipboard with one click
-- PRMT-04: User can copy video prompt to clipboard with one click
-- PRMT-05: Shot type badge displayed with prompt
-- PRMT-06: Camera movement indicator displayed
+- PRMT-01: User can view full image prompt (not truncated) ✓
+- PRMT-02: User can view full video prompt (not truncated) ✓
+- PRMT-03: User can copy image prompt to clipboard with one click ✓
+- PRMT-04: User can copy video prompt to clipboard with one click ✓
+- PRMT-05: Shot type badge displayed with prompt ✓
+- PRMT-06: Camera movement indicator displayed ✓
 
-**Success Criteria:**
-1. Modal displays complete image prompt and video prompt in separate collapsible sections with full text visible
-2. Each prompt section has copy button that copies text to clipboard and shows immediate visual feedback (button text changes or toast notification)
-3. Copy functionality works reliably across modern browsers including iOS Safari with execCommand fallback
-4. Prompt sections display shot type badge (XCU, CU, MCU, etc.) and camera movement indicator with icons
-5. User can copy individual prompts or speech segments independently
-
-**Estimated time:** 2-3 hours
+**Success Criteria:** All 5 criteria verified ✓
 
 Plans:
-- [ ] 09-01-PLAN.md — Prompts display with copy-to-clipboard (computed property update, prompts section, copy buttons with iOS fallback)
+- [x] 09-01-PLAN.md — Prompts display with copy-to-clipboard (computed property update, prompts section, copy buttons with iOS fallback)
 
 ---
 
@@ -134,7 +127,7 @@ Plans:
 |-------|--------|--------------|------------------|
 | Phase 7: Foundation | ✓ Complete | MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06 (14) | 5/5 verified |
 | Phase 8: Speech Segments | ✓ Complete | SPCH-01 to SPCH-07 (7) | 5/5 verified |
-| Phase 9: Prompts + Copy | Planned | PRMT-01 to PRMT-06 (6) | 5 criteria |
+| Phase 9: Prompts + Copy | ✓ Complete | PRMT-01 to PRMT-06 (6) | 5/5 verified |
 | Phase 10: Mobile + Polish | Pending | MODL-05 (1) | 5 criteria |
 
 **Overall Progress:**
@@ -142,10 +135,10 @@ Plans:
 ```
 Phase 7:  ██████████ 100% ✓
 Phase 8:  ██████████ 100% ✓
-Phase 9:  ░░░░░░░░░░ 0% (planned)
+Phase 9:  ██████████ 100% ✓
 Phase 10: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  █████░░░░░ 50%
+Overall:  ███████░░░ 75%
 ```
 
 **Coverage:** 28/28 requirements mapped (100%)
@@ -190,4 +183,4 @@ Full transparency into generated content maintains trust and enables users to un
 ---
 
 *Milestone 7 roadmap created: 2026-01-23*
-*Phase 9 planned: 2026-01-23*
+*Phase 9 complete: 2026-01-23*
