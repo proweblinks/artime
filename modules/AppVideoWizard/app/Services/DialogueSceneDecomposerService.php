@@ -2340,9 +2340,11 @@ class DialogueSceneDecomposerService
         // Calculate durations
         $shots = $this->calculateShotDurations($shots);
 
-        // Phase 14: Validate and fix transitions (FLOW-03)
-        // This runs LAST after all shot type assignments to make minimal adjustments
+        // Phase 14: Validate and fix transitions (FLOW-03) - added by Plan 14-01
         $shots = $this->validateAndFixTransitions($shots);
+
+        // Phase 14: Ensure visual continuity across shots - added by Plan 14-02
+        $shots = $this->ensureVisualContinuity($shots, $scene);
 
         Log::info('DialogueSceneDecomposer: Enhanced shots with dialogue patterns', [
             'total_shots' => count($shots),
@@ -2510,5 +2512,457 @@ class DialogueSceneDecomposerService
             'errors' => $errors,
             'warnings' => $warnings,
         ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PHASE 14: VISUAL CONTINUITY (Plan 14-02)
+    // Methods for ensuring visual prompt consistency across shot sequences
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * PHASE 14: Ensure visual continuity across shot sequences.
+     *
+     * Attaches consistent scene context (location, time, weather) to each shot
+     * for downstream prompt builders. This ensures visual elements remain
+     * consistent across the shot sequence.
+     *
+     * @param array $shots Array of shots to enhance
+     * @param array $scene Scene data with narration
+     * @return array Shots with visual continuity metadata
+     */
+    protected function ensureVisualContinuity(array $shots, array $scene): array
+    {
+        $narration = $scene['narration'] ?? '';
+
+        $sceneContext = [
+            'location' => $this->extractLocation($narration),
+            'timeOfDay' => $this->extractTimeOfDay($narration),
+            'weather' => $this->extractWeather($narration),
+        ];
+
+        foreach ($shots as &$shot) {
+            // Add scene context to each shot for prompt building
+            $shot['sceneContext'] = $sceneContext;
+
+            // Flag for downstream prompt builders
+            $shot['visualContinuityApplied'] = true;
+        }
+
+        Log::debug('DialogueDecomposer: Visual continuity applied', [
+            'shot_count' => count($shots),
+            'context' => $sceneContext,
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * PHASE 14: Extract location from narration text.
+     *
+     * Looks for "in the", "at the", and common location keywords.
+     *
+     * @param string $text Narration text
+     * @return string|null Extracted location or null
+     */
+    protected function extractLocation(string $text): ?string
+    {
+        $text = strtolower($text);
+
+        // Match "in the [location]" or "at the [location]"
+        if (preg_match('/(?:in|at|inside|outside) the ([a-z\s]+?)(?:[,.]|$)/i', $text, $matches)) {
+            $location = trim($matches[1]);
+            // Limit to reasonable location length
+            if (strlen($location) <= 50 && strlen($location) >= 3) {
+                return ucwords($location);
+            }
+        }
+
+        // Look for common location keywords
+        $locationPatterns = [
+            'office' => 'office',
+            'kitchen' => 'kitchen',
+            'bedroom' => 'bedroom',
+            'living room' => 'living room',
+            'street' => 'street',
+            'park' => 'park',
+            'forest' => 'forest',
+            'beach' => 'beach',
+            'hospital' => 'hospital',
+            'restaurant' => 'restaurant',
+            'car' => 'car',
+            'rooftop' => 'rooftop',
+            'alley' => 'alley',
+            'warehouse' => 'warehouse',
+        ];
+
+        foreach ($locationPatterns as $keyword => $location) {
+            if (str_contains($text, $keyword)) {
+                return ucfirst($location);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * PHASE 14: Extract time of day from narration text.
+     *
+     * Looks for morning, afternoon, evening, night, dawn, dusk keywords.
+     *
+     * @param string $text Narration text
+     * @return string|null Extracted time or null
+     */
+    protected function extractTimeOfDay(string $text): ?string
+    {
+        $text = strtolower($text);
+
+        $timePatterns = [
+            'sunrise' => 'dawn',
+            'dawn' => 'dawn',
+            'morning' => 'morning',
+            'noon' => 'midday',
+            'midday' => 'midday',
+            'afternoon' => 'afternoon',
+            'dusk' => 'dusk',
+            'sunset' => 'dusk',
+            'evening' => 'evening',
+            'night' => 'night',
+            'midnight' => 'night',
+        ];
+
+        foreach ($timePatterns as $keyword => $time) {
+            if (str_contains($text, $keyword)) {
+                return $time;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * PHASE 14: Extract weather from narration text.
+     *
+     * Looks for rain, sun, storm, fog, snow keywords.
+     *
+     * @param string $text Narration text
+     * @return string|null Extracted weather or null
+     */
+    protected function extractWeather(string $text): ?string
+    {
+        $text = strtolower($text);
+
+        $weatherPatterns = [
+            'raining' => 'rain',
+            'rain' => 'rain',
+            'rainy' => 'rain',
+            'storm' => 'storm',
+            'stormy' => 'storm',
+            'thunder' => 'storm',
+            'lightning' => 'storm',
+            'sunny' => 'sunny',
+            'sunshine' => 'sunny',
+            'fog' => 'fog',
+            'foggy' => 'fog',
+            'mist' => 'fog',
+            'misty' => 'fog',
+            'snow' => 'snow',
+            'snowing' => 'snow',
+            'snowy' => 'snow',
+            'cloudy' => 'cloudy',
+            'overcast' => 'cloudy',
+            'windy' => 'windy',
+        ];
+
+        foreach ($weatherPatterns as $keyword => $weather) {
+            if (str_contains($text, $keyword)) {
+                return $weather;
+            }
+        }
+
+        return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PHASE 14: ACTION SCENE DECOMPOSITION (SCNE-02)
+    // Methods for decomposing non-dialogue action scenes with varied coverage
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * PHASE 14: Decompose an action scene (no dialogue) into varied shots.
+     *
+     * Applies Hollywood action coverage pattern from ShotContinuityService:
+     * establishing -> wide -> medium -> tracking -> close-up -> insert (cycled)
+     *
+     * Each action beat (sentence/phrase) becomes one shot with appropriate type
+     * from the coverage pattern, ensuring visual variety.
+     *
+     * @param array $scene Scene data with narration
+     * @param int $sceneIndex Scene index in story
+     * @param array $context Additional context (visualDescription, characterBible)
+     * @return array Array of shots for the action scene
+     */
+    public function decomposeActionScene(array $scene, int $sceneIndex, array $context = []): array
+    {
+        $narration = $scene['narration'] ?? '';
+
+        if (empty($narration)) {
+            Log::warning('DialogueSceneDecomposer: Action scene has no narration', [
+                'scene_index' => $sceneIndex,
+            ]);
+            return [];
+        }
+
+        // Get action coverage pattern from ShotContinuityService (DO NOT duplicate)
+        $shotContinuityService = app(\Modules\AppVideoWizard\Services\ShotContinuityService::class);
+        $actionCoveragePattern = $shotContinuityService->getCoveragePattern('action');
+
+        // Extract just the shot types from the pattern (getCoveragePattern returns full metadata)
+        $patternTypes = array_column($actionCoveragePattern, 'type');
+        if (empty($patternTypes)) {
+            // Fallback if pattern structure differs
+            $patternTypes = ['establishing', 'wide', 'medium', 'tracking', 'close-up', 'insert'];
+        }
+
+        // Extract action beats from narration
+        $actionBeats = $this->extractActionBeats($narration);
+
+        if (empty($actionBeats)) {
+            Log::warning('DialogueSceneDecomposer: No action beats extracted from narration', [
+                'scene_index' => $sceneIndex,
+                'narration_length' => strlen($narration),
+            ]);
+            return [];
+        }
+
+        Log::info('DialogueSceneDecomposer: Decomposing action scene (SCNE-02)', [
+            'scene_index' => $sceneIndex,
+            'action_beats' => count($actionBeats),
+            'pattern_length' => count($patternTypes),
+        ]);
+
+        $shots = [];
+        $totalBeats = count($actionBeats);
+
+        foreach ($actionBeats as $beatIndex => $beat) {
+            // Cycle through coverage pattern
+            $patternIndex = $beatIndex % count($patternTypes);
+            $actionType = $patternTypes[$patternIndex];
+
+            // Map action type to dialogue shot type
+            $shotType = $this->mapActionTypeToDialogueType($actionType);
+
+            // Get camera movement for this action type
+            $cameraMovement = $this->getCameraMovementForActionType($actionType);
+
+            // Calculate position in sequence
+            $position = $this->calculateDialoguePosition($beatIndex, $totalBeats);
+
+            // Create shot structure
+            $shot = [
+                'id' => uniqid('action_shot_'),
+                'type' => $shotType,
+                'purpose' => $actionType, // Original action coverage type
+                'description' => $beat,
+                'speaker' => null,  // No dialogue
+                'speakingCharacter' => null,
+                'dialogue' => '',
+                'isActionShot' => true,
+                'cameraMovement' => $cameraMovement,
+                'needsLipSync' => false,
+                'useMultitalk' => false,
+                'beatIndex' => $beatIndex,
+                'shotIndex' => $beatIndex,
+                'totalShots' => $totalBeats,
+                'position' => $position,
+                'emotionalIntensity' => $this->calculateActionBeatIntensity($beat, $position),
+                'visualDescription' => $beat,
+                'duration' => $this->calculateActionBeatDuration($beat),
+            ];
+
+            // Add visual context from scene
+            if (!empty($context['visualDescription'])) {
+                $shot['sceneVisualDescription'] = $context['visualDescription'];
+            }
+
+            $shots[] = $shot;
+        }
+
+        // Apply transition validation
+        $shots = $this->validateAndFixTransitions($shots);
+
+        // Apply visual continuity
+        $shots = $this->ensureVisualContinuity($shots, $scene);
+
+        Log::info('DialogueSceneDecomposer: Action scene decomposed', [
+            'scene_index' => $sceneIndex,
+            'shots_created' => count($shots),
+            'unique_types' => count(array_unique(array_column($shots, 'type'))),
+        ]);
+
+        return $shots;
+    }
+
+    /**
+     * PHASE 14: Map action coverage type to dialogue shot type.
+     *
+     * Maps action pattern types to types that exist in $dialogueShotTypes:
+     * - 'tracking' -> 'medium' (with cameraMovement='tracking')
+     * - 'insert' -> 'extreme-close-up'
+     * - others map directly
+     *
+     * @param string $actionType Action coverage type
+     * @return string Dialogue shot type
+     */
+    protected function mapActionTypeToDialogueType(string $actionType): string
+    {
+        return match ($actionType) {
+            'tracking' => 'medium',  // Tracking is medium with movement
+            'insert', 'detail' => 'extreme-close-up',  // Inserts/details are ECU
+            'master' => 'wide',  // Master shots are wide coverage
+            default => $actionType,  // establishing, wide, medium, close-up map directly
+        };
+    }
+
+    /**
+     * PHASE 14: Get camera movement for action coverage type.
+     *
+     * @param string $actionType Action coverage type
+     * @return string|null Camera movement description
+     */
+    protected function getCameraMovementForActionType(string $actionType): ?string
+    {
+        return match ($actionType) {
+            'tracking' => 'tracking',
+            'establishing' => 'slow pan',
+            'wide' => 'static',
+            'medium' => 'subtle drift',
+            'close-up' => 'static',
+            'insert', 'detail' => 'static',
+            default => null,
+        };
+    }
+
+    /**
+     * PHASE 14: Extract action beats from narration text.
+     *
+     * Splits narration into meaningful action chunks by:
+     * - Sentences (period, exclamation, question mark)
+     * - Semicolons
+     * - "and then" patterns
+     * - Long sentences broken at natural pause points
+     *
+     * @param string $narration Narration text to parse
+     * @return array Array of action beat strings
+     */
+    protected function extractActionBeats(string $narration): array
+    {
+        // Remove any speaker labels (e.g., "NARRATOR:" or "[NARRATOR]")
+        $text = preg_replace('/^\[?NARRATOR\]?:?\s*/im', '', $narration);
+        $text = trim($text);
+
+        if (empty($text)) {
+            return [];
+        }
+
+        // Split by sentence-ending punctuation first
+        $parts = preg_split('/(?<=[.!?])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        $beats = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (empty($part)) {
+                continue;
+            }
+
+            // Further split long sentences by semicolons
+            if (str_contains($part, ';')) {
+                $subParts = explode(';', $part);
+                foreach ($subParts as $subPart) {
+                    $subPart = trim($subPart);
+                    if (!empty($subPart)) {
+                        $beats[] = $subPart;
+                    }
+                }
+            }
+            // Further split by "and then" patterns
+            elseif (preg_match('/\band then\b/i', $part)) {
+                $subParts = preg_split('/\band then\b/i', $part);
+                foreach ($subParts as $subPart) {
+                    $subPart = trim($subPart);
+                    if (!empty($subPart)) {
+                        $beats[] = $subPart;
+                    }
+                }
+            }
+            // Keep as single beat
+            else {
+                $beats[] = $part;
+            }
+        }
+
+        // Filter out very short beats (less than 10 characters)
+        $beats = array_filter($beats, fn($beat) => strlen($beat) >= 10);
+
+        // Ensure minimum of 3 beats for variety (combine if needed)
+        if (count($beats) < 3 && !empty($beats)) {
+            // Keep as is - even 1-2 beats is valid for short action scenes
+        }
+
+        return array_values($beats);
+    }
+
+    /**
+     * PHASE 14: Calculate emotional intensity for an action beat.
+     *
+     * @param string $beat Action beat text
+     * @param string $position Position in sequence (opening, building, climax, resolution)
+     * @return float Intensity value 0.0-1.0
+     */
+    protected function calculateActionBeatIntensity(string $beat, string $position): float
+    {
+        // Base intensity from position
+        $positionIntensity = match($position) {
+            'opening' => 0.4,
+            'building' => 0.6,
+            'climax' => 0.9,
+            'resolution' => 0.5,
+            default => 0.5,
+        };
+
+        // Adjust based on action keywords
+        $text = strtolower($beat);
+        $modifier = 0;
+
+        // High-intensity action words
+        if (preg_match('/\b(explodes?|crashes?|fights?|attacks?|runs?|chases?|screams?|slams?)\b/', $text)) {
+            $modifier += 0.2;
+        }
+
+        // Medium-intensity action words
+        if (preg_match('/\b(walks?|moves?|opens?|closes?|reaches?|grabs?)\b/', $text)) {
+            $modifier += 0.1;
+        }
+
+        // Punctuation intensity
+        if (str_contains($beat, '!')) {
+            $modifier += 0.15;
+        }
+
+        return max(0.1, min(1.0, $positionIntensity + $modifier));
+    }
+
+    /**
+     * PHASE 14: Calculate duration for an action beat.
+     *
+     * @param string $beat Action beat text
+     * @return int Duration in seconds (minimum 3s)
+     */
+    protected function calculateActionBeatDuration(string $beat): int
+    {
+        // Base duration on text length (slower pace than dialogue)
+        $wordCount = str_word_count($beat);
+        // Action scenes: ~2 words per second visual pacing + 2s buffer
+        $duration = ceil($wordCount / 2) + 2;
+        return max(3, min(10, (int) $duration)); // 3-10 seconds per beat
     }
 }
