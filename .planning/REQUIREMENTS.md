@@ -1,64 +1,54 @@
-# Requirements: Video Wizard - Scene Text Inspector
+# Requirements: Video Wizard - Cinematic Shot Architecture
 
 **Defined:** 2026-01-23
-**Core Value:** Full transparency into scene text, prompts, and metadata
+**Core Value:** Automatic, effortless, Hollywood-quality output from button clicks
 
 ## v1 Requirements
 
-Requirements for Milestone 7. Each maps to roadmap phases.
+Requirements for Milestone 8. Each maps to roadmap phases.
 
-### Speech Segment Display
+### Speech-to-Shot Architecture
 
-- [x] **SPCH-01**: User can view ALL speech segments for a scene (not truncated) ✓
-- [x] **SPCH-02**: Each segment shows correct type label (NARRATOR/DIALOGUE/INTERNAL/MONOLOGUE) ✓
-- [x] **SPCH-03**: Each segment shows type-specific icon (🎙️/💬/💭/🗣️) ✓
-- [x] **SPCH-04**: Each segment shows speaker name (if applicable) ✓
-- [x] **SPCH-05**: Each segment shows lip-sync indicator (YES for dialogue/monologue, NO for narrator/internal) ✓
-- [x] **SPCH-06**: Each segment shows estimated duration ✓
-- [x] **SPCH-07**: Speaker matched to Character Bible shows character indicator ✓
+- [ ] **CSA-01**: Each dialogue segment creates its own shot (1:1 mapping)
+- [ ] **CSA-02**: Each monologue segment creates its own shot (1:1 mapping)
+- [ ] **CSA-03**: Narrator segments overlay across multiple shots (not dedicated shots)
+- [ ] **CSA-04**: Internal thought segments handled as voiceover (no dedicated shot)
 
-### Prompts Display
+### Shot Pattern & Flow
 
-- [x] **PRMT-01**: User can view full image prompt (not truncated) ✓
-- [x] **PRMT-02**: User can view full video prompt (not truncated) ✓
-- [x] **PRMT-03**: User can copy image prompt to clipboard with one click ✓
-- [x] **PRMT-04**: User can copy video prompt to clipboard with one click ✓
-- [x] **PRMT-05**: Shot type badge displayed with prompt ✓
-- [x] **PRMT-06**: Camera movement indicator displayed ✓
+- [ ] **FLOW-01**: Shot/reverse-shot pattern for 2-character conversations
+- [ ] **FLOW-02**: Single character visible per shot (model constraint enforced)
+- [ ] **FLOW-03**: Shots build cinematically on each other (no jarring cuts)
+- [ ] **FLOW-04**: Alternating character shots in dialogue sequences
 
-### Scene Metadata
+### Camera Selection
 
-- [x] **META-01**: User can view scene duration ✓
-- [x] **META-02**: User can view scene transition type ✓
-- [x] **META-03**: User can view scene location ✓
-- [x] **META-04**: User can view characters present in scene ✓
-- [x] **META-05**: User can view emotional intensity indicator ✓
-- [x] **META-06**: Climax scenes show climax badge ✓
+- [ ] **CAM-01**: Dynamic CU/MS/OTS selection based on emotional intensity
+- [ ] **CAM-02**: Camera variety based on position in conversation (opening vs climax)
+- [ ] **CAM-03**: Shot type matches speaker's emotional state
+- [ ] **CAM-04**: Establishing shot at conversation start, tight framing at climax
 
-### Modal UX
+### Scene Handling
 
-- [x] **MODL-01**: User can open inspector from scene card (🔍 Inspect button) ✓
-- [x] **MODL-02**: Modal shows scene number and title ✓
-- [x] **MODL-03**: Modal content is scrollable for long scenes ✓
-- [x] **MODL-04**: Modal has close button ✓
-- [x] **MODL-05**: Modal works on mobile (responsive) ✓
-
-### Scene Card Fixes
-
-- [x] **CARD-01**: Scene card shows dynamic label based on segment types present (not hardcoded "Dialogue") ✓
-- [x] **CARD-02**: Scene card shows type-specific icons for segments ✓
-- [x] **CARD-03**: Scene card indicates "click to view all" when truncated ✓
+- [ ] **SCNE-01**: No artificial limit on shots per scene (10+ if speech demands)
+- [ ] **SCNE-02**: Non-dialogue scenes get improved action decomposition
+- [ ] **SCNE-03**: Mixed scenes (dialogue + action) handled smoothly
+- [ ] **SCNE-04**: Scene maintains 180-degree rule throughout
 
 ## Future Requirements
 
 Deferred to later milestones.
 
-### Advanced Features
+### Advanced Dialogue
 
-- **ADVN-01**: Click speech segment to jump to timeline position
-- **ADVN-02**: Edit speech segment inline in inspector
-- **ADVN-03**: Prompt version history
-- **ADVN-04**: Drawer/side-panel option instead of modal
+- **ADV-01**: 3+ character conversation handling (group scenes)
+- **ADV-02**: Cross-cutting between parallel conversations
+- **ADV-03**: Flashback/memory shot integration
+
+### Performance
+
+- **PERF-01**: Shot generation preview before committing
+- **PERF-02**: Batch regeneration of specific shots
 
 ## Out of Scope
 
@@ -66,9 +56,10 @@ Explicitly excluded.
 
 | Feature | Reason |
 |---------|--------|
-| Inline editing of prompts | Separate edit flow exists, inspector is read-only |
-| Regenerate from inspector | Keep inspector focused on viewing |
-| Export prompts to file | Copy-to-clipboard covers this use case |
+| Multi-character in single shot | Multitalk model limitation, embrace as creative constraint |
+| Manual shot reordering | Keep automatic flow, users can regenerate |
+| Custom camera angles | Automatic selection is core value |
+| Split-screen effects | Not standard Hollywood cinematography |
 
 ## Traceability
 
@@ -76,46 +67,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SPCH-01 | Phase 8 | Complete |
-| SPCH-02 | Phase 8 | Complete |
-| SPCH-03 | Phase 8 | Complete |
-| SPCH-04 | Phase 8 | Complete |
-| SPCH-05 | Phase 8 | Complete |
-| SPCH-06 | Phase 8 | Complete |
-| SPCH-07 | Phase 8 | Complete |
-| PRMT-01 | Phase 9 | Complete |
-| PRMT-02 | Phase 9 | Complete |
-| PRMT-03 | Phase 9 | Complete |
-| PRMT-04 | Phase 9 | Complete |
-| PRMT-05 | Phase 9 | Complete |
-| PRMT-06 | Phase 9 | Complete |
-| META-01 | Phase 7 | Complete |
-| META-02 | Phase 7 | Complete |
-| META-03 | Phase 7 | Complete |
-| META-04 | Phase 7 | Complete |
-| META-05 | Phase 7 | Complete |
-| META-06 | Phase 7 | Complete |
-| MODL-01 | Phase 7 | Complete |
-| MODL-02 | Phase 7 | Complete |
-| MODL-03 | Phase 7 | Complete |
-| MODL-04 | Phase 7 | Complete |
-| MODL-05 | Phase 10 | Complete |
-| CARD-01 | Phase 7 | Complete |
-| CARD-02 | Phase 7 | Complete |
-| CARD-03 | Phase 7 | Complete |
+| CSA-01 | Phase 11 | Pending |
+| CSA-02 | Phase 11 | Pending |
+| CSA-03 | Phase 11 | Pending |
+| CSA-04 | Phase 11 | Pending |
+| SCNE-01 | Phase 11 | Pending |
+| FLOW-01 | Phase 12 | Pending |
+| FLOW-02 | Phase 12 | Pending |
+| FLOW-04 | Phase 12 | Pending |
+| SCNE-04 | Phase 12 | Pending |
+| CAM-01 | Phase 13 | Pending |
+| CAM-02 | Phase 13 | Pending |
+| CAM-03 | Phase 13 | Pending |
+| CAM-04 | Phase 13 | Pending |
+| FLOW-03 | Phase 14 | Pending |
+| SCNE-02 | Phase 14 | Pending |
+| SCNE-03 | Phase 14 | Pending |
 
 **Coverage:**
-- v1 requirements: 28 total
-- Mapped to phases: 28 (100%)
-- Unmapped: 0
+- v1 requirements: 16 total
+- Mapped to phases: 16 (100%)
+- Unmapped: 0 ✓
 
 **Phase distribution:**
-- Phase 7 (Foundation): 14 requirements (MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06)
-- Phase 8 (Speech Segments): 7 requirements (SPCH-01 to SPCH-07)
-- Phase 9 (Prompts + Copy): 6 requirements (PRMT-01 to PRMT-06)
-- Phase 10 (Mobile + Polish): 1 requirement (MODL-05)
+- Phase 11 (Speech-Driven): 5 requirements (CSA-01 to CSA-04, SCNE-01)
+- Phase 12 (Shot/Reverse-Shot): 4 requirements (FLOW-01, FLOW-02, FLOW-04, SCNE-04)
+- Phase 13 (Camera Intelligence): 4 requirements (CAM-01 to CAM-04)
+- Phase 14 (Flow & Action): 3 requirements (FLOW-03, SCNE-02, SCNE-03)
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after Phase 10 completion (28/28 requirements complete)*
-*Milestone 7 complete: 2026-01-23*
+*Last updated: 2026-01-23 after initial definition*

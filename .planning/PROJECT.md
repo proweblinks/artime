@@ -10,6 +10,20 @@ AI-powered video creation platform built with Laravel and Livewire. Users input 
 
 The system should be sophisticated and automatically updated based on previous steps in the wizard. Users click buttons and perform complete actions without effort.
 
+## Current Milestone: v8 Cinematic Shot Architecture
+
+**Goal:** Transform scene decomposition so every shot is purposeful, speech-driven, and cinematically connected.
+
+**Target features:**
+- Speech-to-Shot Mapping — Each dialogue/monologue segment creates its own shot(s)
+- Shot/Reverse-Shot Pattern — Proper conversation coverage with alternating characters
+- Dynamic Camera Selection — Vary CU/MS/OTS based on emotional intensity and position
+- Continuous Flow — Shots build cinematically on each other
+- Single-Character Focus — One character per shot (model constraint → feature)
+- Narrator Overlay — Narrator spans multiple shots, not dedicated shots
+- Unlimited Shots — 10+ shots per scene if speech demands it
+- Action Scene Improvement — Better decomposition for non-dialogue scenes
+
 ## Requirements
 
 ### Validated
@@ -23,16 +37,20 @@ The system should be sophisticated and automatically updated based on previous s
 - ✓ **M4**: Dialogue Scene Excellence — 180-degree rule, OTS depth, reaction shots, coverage validation
 - ✓ **M5**: Emotional Arc System — climax detection, intensity smoothing, arc templates
 - ✓ **M6**: UI/UX Polish — dialogue display, shot badges, progress indicators, visual consistency
+- ✓ **M7**: Scene Text Inspector — full transparency modal, speech segments, prompts, copy-to-clipboard
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] **STI-01**: Scene Text Inspector modal with full transparency
-- [ ] **STI-02**: Correct speech type labels (NARRATOR/DIALOGUE/INTERNAL/MONOLOGUE)
-- [ ] **STI-03**: Type-specific icons and colors per segment
-- [ ] **STI-04**: Auto-detection of speech types from content
-- [ ] **STI-05**: Full prompts visible (image, video, metadata)
+- [ ] **CSA-01**: Speech-driven shot count — each dialogue/monologue segment creates at least one shot
+- [ ] **CSA-02**: Narrator overlay — narrator segments span multiple shots, not dedicated
+- [ ] **CSA-03**: Single character per shot — enforce one speaking character per shot
+- [ ] **CSA-04**: Dynamic camera variety — vary CU/MS/OTS based on intensity AND position
+- [ ] **CSA-05**: Shot flow continuity — shots connect cinematically (no jarring transitions)
+- [ ] **CSA-06**: Improved action decomposition — non-dialogue scenes get better shot variety
+- [ ] **CSA-07**: Unlimited shots per scene — remove artificial limits, speech drives count
+- [ ] **CSA-08**: Character emotion matching — shot type matches speaker's emotional state
 
 ### Out of Scope
 
@@ -41,6 +59,7 @@ The system should be sophisticated and automatically updated based on previous s
 - Real-time collaboration — complexity, not core to video creation
 - Mobile app — web-first approach
 - Video editing timeline — use external tools for post-production
+- Multi-character in single shot — model limitation, embrace as creative constraint
 
 ## Context
 
@@ -49,18 +68,24 @@ The system should be sophisticated and automatically updated based on previous s
 - Main component: VideoWizard.php (~18k lines)
 - Services: SpeechSegmentParser, SpeechSegment, NarrativeMomentService, ShotIntelligenceService
 - Image generation: HiDream, NanoBanana Pro, NanoBanana
-- Video generation: Runway, other providers
+- Video generation: Runway, Multitalk (single character lip-sync)
+
+**Existing architecture (from M4):**
+- DialogueSceneDecomposerService — shot/reverse-shot, 180-degree rule, reactions
+- DynamicShotEngine — content-driven shot count, intensity mapping
+- Speech segment distribution — currently proportional (needs to become 1:1)
 
 **Current issue:**
-- Storyboard shows hardcoded "Dialogue" label for ALL text, even narrator
-- Users cannot see full text content (truncated to 80 chars, max 2 segments)
-- No way to inspect all prompts and metadata for a scene
+- Speech segments distributed proportionally across shots instead of driving shot creation
+- Scenes don't produce continuous, cinematic shot sequences
+- Dialogue doesn't naturally flow shot-to-shot with alternating characters
 
 ## Constraints
 
 - **Tech stack**: Laravel + Livewire (existing architecture)
 - **File structure**: Must follow existing module pattern in `modules/AppVideoWizard/`
 - **UI consistency**: Must match existing vw-* CSS class naming
+- **Video model**: Multitalk supports single character per shot — design around this
 
 ## Key Decisions
 
@@ -69,7 +94,10 @@ The system should be sophisticated and automatically updated based on previous s
 | SpeechSegment types: narrator, dialogue, internal, monologue | Cover all Hollywood speech patterns | ✓ Good |
 | Lip-sync only for dialogue/monologue | Narrator and internal are voiceover only | ✓ Good |
 | Purple for speaker names | Consistent with app color scheme | ✓ Good |
-| Type icons: 🎙️💬💭🗣️ | Immediate visual recognition | — Pending |
+| Type icons: 🎙️💬💭🗣️ | Immediate visual recognition | ✓ Good |
+| M4 DialogueSceneDecomposerService | Foundation for shot/reverse-shot | ✓ Good - will extend |
+| Speech-to-shot 1:1 mapping | Each speech segment drives its own shot | — Pending (M8) |
+| Narrator overlay pattern | Narrator spans shots, not dedicated | — Pending (M8) |
 
 ---
-*Last updated: 2026-01-23 after Milestone 7 start*
+*Last updated: 2026-01-23 after Milestone 8 start*

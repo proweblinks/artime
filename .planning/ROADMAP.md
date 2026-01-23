@@ -1,123 +1,161 @@
 # Video Wizard Development Roadmap
 
-## Milestone 7: Scene Text Inspector
+## Milestone 8: Cinematic Shot Architecture
 
-**Target:** Full transparency into scene text, prompts, and metadata
+**Target:** Transform scene decomposition so every shot is purposeful, speech-driven, and cinematically connected
 **Status:** In Progress (2026-01-23)
-**Total requirements:** 28 (5 categories)
+**Total requirements:** 16 (4 categories)
+**Phases:** 11-14 (continues from M7)
 
 ---
 
 ## Overview
 
-Scene Text Inspector provides complete visibility into all scene text content currently truncated in the storyboard view. Users can inspect full speech segments (with correct type labels and icons), complete AI prompts (image/video), scene metadata (duration, transitions, characters), and copy prompts to clipboard. This milestone fixes the hardcoded "Dialogue" label bug and enables users to see all generated content transparently.
+Cinematic Shot Architecture fixes the fundamental issue where speech segments are distributed proportionally across shots instead of driving shot creation. This produces non-cinematic results where dialogue doesn't flow naturally with alternating characters.
 
-The implementation follows established modal patterns from Character Bible and Location Bible modals, with critical attention to Livewire performance pitfalls (payload bloat, re-render cascades) and mobile UX requirements. Research validates this as a 6-8 hour implementation with zero new dependencies.
+The refactored system creates shots FROM speech segments: each dialogue/monologue segment becomes its own shot with proper shot/reverse-shot patterns, dynamic camera selection based on emotion and position, and continuous cinematic flow. Narrator segments overlay across multiple shots rather than receiving dedicated shots.
+
+This builds on the M4 DialogueSceneDecomposerService foundation while inverting the segment-to-shot relationship.
 
 ---
 
-## Phase 7: Foundation - Modal Shell + Scene Card Fixes + Metadata ✓
+## Phase Overview
 
-**Goal:** Users can open a working inspector modal and see scene metadata correctly displayed
+| Phase | Name | Goal | Requirements | Success Criteria |
+|-------|------|------|--------------|------------------|
+| 11 | Speech-Driven Shot Creation | Shots created FROM speech segments, not distributed TO them | CSA-01, CSA-02, CSA-03, CSA-04, SCNE-01 | 5 |
+| 12 | Shot/Reverse-Shot Patterns | Proper alternating character coverage for conversations | FLOW-01, FLOW-02, FLOW-04, SCNE-04 | 4 |
+| 13 | Dynamic Camera Intelligence | Smart camera selection based on emotion and position | CAM-01, CAM-02, CAM-03, CAM-04 | 4 |
+| 14 | Cinematic Flow & Action Scenes | Seamless transitions and improved non-dialogue handling | FLOW-03, SCNE-02, SCNE-03 | 3 |
 
-**Status:** Complete (2026-01-23)
+**Total:** 4 phases | 16 requirements | 16 success criteria
+
+---
+
+## Phase 11: Speech-Driven Shot Creation
+
+**Goal:** Refactor decomposition so speech segments CREATE shots instead of being distributed to them
+
+**Status:** Pending
 
 **Dependencies:** None (starts new milestone)
 
-**Plans:** 3 plans (all complete)
-
 **Requirements:**
-- MODL-01: User can open inspector from scene card ✓
-- MODL-02: Modal shows scene number and title ✓
-- MODL-03: Modal content is scrollable for long scenes ✓
-- MODL-04: Modal has close button ✓
-- CARD-01: Scene card shows dynamic label based on segment types present ✓
-- CARD-02: Scene card shows type-specific icons for segments ✓
-- CARD-03: Scene card indicates "click to view all" when truncated ✓
-- META-01: User can view scene duration ✓
-- META-02: User can view scene transition type ✓
-- META-03: User can view scene location ✓
-- META-04: User can view characters present in scene ✓
-- META-05: User can view emotional intensity indicator ✓
-- META-06: Climax scenes show climax badge ✓
+- CSA-01: Each dialogue segment creates its own shot (1:1 mapping)
+- CSA-02: Each monologue segment creates its own shot (1:1 mapping)
+- CSA-03: Narrator segments overlay across multiple shots (not dedicated shots)
+- CSA-04: Internal thought segments handled as voiceover (no dedicated shot)
+- SCNE-01: No artificial limit on shots per scene (10+ if speech demands)
 
-**Success Criteria:** All 5 criteria verified ✓
+**Success Criteria:**
+1. Scene with 5 dialogue exchanges produces 5+ shots (one per speaker turn)
+2. Monologue scene creates shots matching monologue segments
+3. Narrator text appears as metadata on shots, not as separate shots
+4. Internal thought segments flagged as voiceover-only, no visual shot
+5. Scene with 12 speech segments produces 12+ shots without error
 
-Plans:
-- [x] 07-01-PLAN.md — Scene card fixes (dynamic labels, type-specific icons, truncation indicators)
-- [x] 07-02-PLAN.md — Modal shell creation (VideoWizard backend, modal blade template, layout inclusion)
-- [x] 07-03-PLAN.md — Metadata display (duration, transition, location, characters, intensity, climax badge)
+**Key changes:**
+- Invert `distributeSpeechSegmentsToShots()` → `createShotsFromSpeechSegments()`
+- Separate narrator handling from dialogue/monologue
+- Remove shot count caps that limit cinematic expression
 
 ---
 
-## Phase 8: Speech Segments Display ✓
+## Phase 12: Shot/Reverse-Shot Patterns
 
-**Goal:** Users can view all speech segments with correct type labels, icons, and speaker attribution
+**Goal:** Implement proper Hollywood conversation coverage with alternating characters
 
-**Status:** Complete (2026-01-23)
+**Status:** Pending
 
-**Dependencies:** Phase 7 (requires modal shell)
-
-**Plans:** 1 plan (all complete)
+**Dependencies:** Phase 11 (requires shots to exist from speech)
 
 **Requirements:**
-- SPCH-01: User can view ALL speech segments for a scene (not truncated) ✓
-- SPCH-02: Each segment shows correct type label (NARRATOR/DIALOGUE/INTERNAL/MONOLOGUE) ✓
-- SPCH-03: Each segment shows type-specific icon (microphone/speech bubble/thought bubble/speaking) ✓
-- SPCH-04: Each segment shows speaker name (if applicable) ✓
-- SPCH-05: Each segment shows lip-sync indicator (YES for dialogue/monologue, NO for narrator/internal) ✓
-- SPCH-06: Each segment shows estimated duration ✓
-- SPCH-07: Speaker matched to Character Bible shows character indicator ✓
+- FLOW-01: Shot/reverse-shot pattern for 2-character conversations
+- FLOW-02: Single character visible per shot (model constraint enforced)
+- FLOW-04: Alternating character shots in dialogue sequences
+- SCNE-04: Scene maintains 180-degree rule throughout
 
-**Success Criteria:** All 5 criteria verified ✓
+**Success Criteria:**
+1. Two-character dialogue alternates Character A → Character B → A → B
+2. Each shot shows exactly one speaking character (validated before generation)
+3. Camera stays on same side of action axis (180-degree rule)
+4. OTS shots show foreground character blurred, background in focus
 
-Plans:
-- [x] 08-01-PLAN.md — Speech segments display (type configuration, segment cards with all properties, legacy fallback)
+**Key changes:**
+- Enhance `DialogueSceneDecomposerService` to enforce single-character shots
+- Validate shot sequence before generation
+- Add 180-degree continuity check across full scene
 
 ---
 
-## Phase 9: Prompts Display + Copy-to-Clipboard ✓
+## Phase 13: Dynamic Camera Intelligence
 
-**Goal:** Users can view full prompts and copy them to clipboard with visual feedback
+**Goal:** Smart camera selection that responds to emotion and conversation position
 
-**Status:** Complete (2026-01-23)
+**Status:** Pending
 
-**Dependencies:** Phase 8 (requires content structure)
-
-**Plans:** 1 plan (all complete)
+**Dependencies:** Phase 12 (requires pattern working)
 
 **Requirements:**
-- PRMT-01: User can view full image prompt (not truncated) ✓
-- PRMT-02: User can view full video prompt (not truncated) ✓
-- PRMT-03: User can copy image prompt to clipboard with one click ✓
-- PRMT-04: User can copy video prompt to clipboard with one click ✓
-- PRMT-05: Shot type badge displayed with prompt ✓
-- PRMT-06: Camera movement indicator displayed ✓
+- CAM-01: Dynamic CU/MS/OTS selection based on emotional intensity
+- CAM-02: Camera variety based on position in conversation (opening vs climax)
+- CAM-03: Shot type matches speaker's emotional state
+- CAM-04: Establishing shot at conversation start, tight framing at climax
 
-**Success Criteria:** All 5 criteria verified ✓
+**Success Criteria:**
+1. High-intensity dialogue (anger, fear) uses close-up framing
+2. Conversation opening uses establishing or medium shots
+3. Conversation climax uses tight close-ups
+4. Neutral dialogue uses medium shots with OTS variety
+5. Each speaker's shot type reflects their emotional state from script
 
-Plans:
-- [x] 09-01-PLAN.md — Prompts display with copy-to-clipboard (computed property update, prompts section, copy buttons with iOS fallback)
+**Key changes:**
+- Enhance `selectShotTypeForIntensity()` with conversation position awareness
+- Add per-speaker emotion analysis
+- Implement shot progression arc (wide → medium → tight as tension builds)
 
 ---
 
-## Phase 10: Mobile Responsiveness + Polish ✓
+## Phase 14: Cinematic Flow & Action Scenes
 
-**Goal:** Users have excellent experience on mobile devices with professional visual consistency
+**Goal:** Smooth shot transitions and improved non-dialogue scene handling
 
-**Status:** Complete (2026-01-23)
+**Status:** Pending
 
-**Dependencies:** Phase 9 (requires all features complete)
-
-**Plans:** 1 plan (all complete)
+**Dependencies:** Phase 13 (requires camera working)
 
 **Requirements:**
-- MODL-05: Modal works on mobile (responsive) ✓
+- FLOW-03: Shots build cinematically on each other (no jarring cuts)
+- SCNE-02: Non-dialogue scenes get improved action decomposition
+- SCNE-03: Mixed scenes (dialogue + action) handled smoothly
 
-**Success Criteria:** All 5 criteria verified ✓
+**Success Criteria:**
+1. No jump cuts (same character, same framing back-to-back)
+2. Shot scale changes by at least one step (CU → MS, not CU → CU)
+3. Action scenes produce varied shot types (establishing, action, reaction, detail)
+4. Mixed dialogue/action scenes transition smoothly between modes
+5. Visual prompt continuity verified across shot sequence
 
-Plans:
-- [x] 10-01-PLAN.md — Mobile responsive layout, iOS scroll lock, touch-optimized buttons
+**Key changes:**
+- Add transition validator to prevent jarring cuts
+- Improve `DynamicShotEngine` for action-only scenes
+- Create hybrid decomposer for dialogue+action scenes
+
+---
+
+## Dependencies
+
+```
+Phase 11 (Speech-Driven)
+    ↓
+Phase 12 (Shot/Reverse-Shot) ← depends on shots existing
+    ↓
+Phase 13 (Camera Intelligence) ← depends on pattern working
+    ↓
+Phase 14 (Flow & Polish) ← depends on camera working
+```
+
+Sequential execution required.
 
 ---
 
@@ -125,52 +163,61 @@ Plans:
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
-| Phase 7: Foundation | ✓ Complete | MODL-01 to MODL-04, CARD-01 to CARD-03, META-01 to META-06 (14) | 5/5 verified |
-| Phase 8: Speech Segments | ✓ Complete | SPCH-01 to SPCH-07 (7) | 5/5 verified |
-| Phase 9: Prompts + Copy | ✓ Complete | PRMT-01 to PRMT-06 (6) | 5/5 verified |
-| Phase 10: Mobile + Polish | ✓ Complete | MODL-05 (1) | 5/5 verified |
+| Phase 11: Speech-Driven | ○ Pending | CSA-01 to CSA-04, SCNE-01 (5) | 0/5 |
+| Phase 12: Shot/Reverse-Shot | ○ Pending | FLOW-01, FLOW-02, FLOW-04, SCNE-04 (4) | 0/4 |
+| Phase 13: Camera Intelligence | ○ Pending | CAM-01 to CAM-04 (4) | 0/4 |
+| Phase 14: Flow & Action | ○ Pending | FLOW-03, SCNE-02, SCNE-03 (3) | 0/3 |
 
 **Overall Progress:**
 
 ```
-Phase 7:  ██████████ 100% ✓
-Phase 8:  ██████████ 100% ✓
-Phase 9:  ██████████ 100% ✓
-Phase 10: ██████████ 100% ✓
+Phase 11: ░░░░░░░░░░ 0%
+Phase 12: ░░░░░░░░░░ 0%
+Phase 13: ░░░░░░░░░░ 0%
+Phase 14: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  ██████████ 100%
+Overall:  ░░░░░░░░░░ 0%
 ```
 
-**Coverage:** 28/28 requirements mapped (100%)
+**Coverage:** 16/16 requirements mapped (100%)
 
 ---
 
-## Research Validation
+## Risk Assessment
 
-Research confirms:
-- Zero new dependencies (Laravel 10 + Livewire 3 + Alpine.js sufficient)
-- Clipboard API validated in existing timeline component
-- Modal patterns established in Character Bible, Location Bible, Scene DNA modals
-- Critical pitfalls identified: payload bloat, re-render cascades, clipboard reliability, mobile UX
-
-**Implementation guidance:**
-- Use computed properties for scene data (not public properties) to avoid payload bloat
-- Apply wire:ignore on storyboard content to prevent re-render cascades
-- Implement native Clipboard API with execCommand fallback
-- Mobile-first design with fullscreen on mobile, thumb-friendly close button
-- Test on actual iPhone for iOS Safari scroll lock validation
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Many shots overwhelm UI | HIGH | Update storyboard grid to handle 10+ shots per scene |
+| Breaking existing scenes | HIGH | Preserve fallback to current decomposition for non-dialogue |
+| Performance with 10+ shots | MEDIUM | Lazy load shots, paginate if needed |
+| Complex prompt chains | MEDIUM | Validate prompts maintain character continuity |
 
 ---
 
-## Success Metrics
+## Verification Strategy
 
-| Metric | Target | Current |
-|--------|--------|---------|
-| Requirements coverage | 100% | 100% |
-| Modal open time | <300ms | TBD |
-| Copy success rate | >98% | TBD |
-| Mobile usability | Thumb-friendly | TBD |
-| Type label accuracy | 100% | 100% ✓ |
+After each phase:
+1. Test with sample dialogue scene (2 characters, 6+ exchanges)
+2. Test with monologue scene (single character, 4+ segments)
+3. Test with action scene (no dialogue)
+4. Test with mixed scene (dialogue + action)
+5. Verify generated images show correct character in correct framing
+
+---
+
+## Previous Milestone (Complete)
+
+### Milestone 7: Scene Text Inspector - COMPLETE
+
+**Status:** 100% complete (28/28 requirements)
+**Phases:** 7-10
+
+| Phase | Status |
+|-------|--------|
+| Phase 7: Foundation | ✓ Complete |
+| Phase 8: Speech Segments | ✓ Complete |
+| Phase 9: Prompts + Copy | ✓ Complete |
+| Phase 10: Mobile + Polish | ✓ Complete |
 
 ---
 
@@ -178,11 +225,9 @@ Research confirms:
 
 **"Automatic, effortless, Hollywood-quality output from button clicks."**
 
-Full transparency into generated content maintains trust and enables users to understand and reproduce AI outputs. The inspector provides complete visibility without requiring users to dig through code or logs.
+Cinematic shot architecture ensures users get professional-quality shot sequences automatically. Each button click produces shots that flow like a Hollywood film, with proper coverage, dynamic cameras, and continuous visual storytelling.
 
 ---
 
-*Milestone 7 roadmap created: 2026-01-23*
-*Phase 9 complete: 2026-01-23*
-*Phase 10 complete: 2026-01-23*
-*Milestone 7 complete: 2026-01-23*
+*Milestone 8 roadmap created: 2026-01-23*
+*Phases 11-14 defined*
