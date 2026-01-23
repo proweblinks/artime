@@ -17984,6 +17984,23 @@ PROMPT;
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
 
         // ═══════════════════════════════════════════════════════════════════════════════
+        // PHASE 14: SCENE TYPE DETECTION (SCNE-02, SCNE-03)
+        // Detect scene type for appropriate routing: dialogue, action, or mixed
+        // ═══════════════════════════════════════════════════════════════════════════════
+        $sceneTypeDetector = app(\Modules\AppVideoWizard\Services\SceneTypeDetectorService::class);
+        $sceneTypeResult = $sceneTypeDetector->detectSceneType($scene, [
+            'sceneIndex' => $sceneIndex,
+            'totalScenes' => count($this->script['scenes'] ?? []),
+        ]);
+        $sceneType = $sceneTypeResult['sceneType'] ?? 'dialogue';
+
+        Log::debug('VideoWizard: Scene type detected', [
+            'scene_id' => $sceneId,
+            'scene_type' => $sceneType,
+            'confidence' => $sceneTypeResult['confidence'] ?? 0,
+        ]);
+
+        // ═══════════════════════════════════════════════════════════════════════════════
         // PHASE 11: SPEECH-DRIVEN SHOT CREATION (1:1 mapping)
         // If scene has speechSegments with dialogue/monologue, CREATE shots from them directly.
         // This is the PRIMARY path for dialogue scenes - each segment = one shot.
@@ -18043,6 +18060,46 @@ PROMPT;
                 return $shots;
             }
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // PHASE 14: ACTION SCENE DECOMPOSITION (SCNE-02)
+        // If scene is action type and has no speech, use action coverage pattern
+        // ═══════════════════════════════════════════════════════════════════════════════
+        if ($sceneType === 'action' && empty($lipSyncSegments)) {
+            Log::info('VideoWizard: Action scene detected, using action coverage pattern', [
+                'scene_id' => $sceneId,
+                'scene_index' => $sceneIndex,
+            ]);
+
+            $actionShots = $dialogueDecomposer->decomposeActionScene($scene, $sceneIndex, [
+                'visualDescription' => $visualDescription,
+                'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+            ]);
+
+            if (!empty($actionShots)) {
+                // Convert to standard format and return
+                $shots = $this->convertDialogueShotsToStandardFormat(
+                    $actionShots,
+                    $sceneId,
+                    $scene,
+                    $visualDescription
+                );
+
+                Log::info('VideoWizard: Action scene decomposed', [
+                    'scene_id' => $sceneId,
+                    'shots_created' => count($shots),
+                    'path' => 'action-coverage',
+                ]);
+
+                return $shots;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // Phase 14: Mixed scenes (SCNE-03) are handled by the speech-driven path above.
+        // Speech segments create dialogue shots; remaining scene content flows to standard decomposition.
+        // Full hybrid handling (interleaving dialogue and action beats) deferred to future enhancement.
+        // ═══════════════════════════════════════════════════════════════════════════════
 
         // ═══════════════════════════════════════════════════════════════════════════════
         // FALLBACK: DIALOGUE SCENE DETECTION - Shot/Reverse Shot Pattern
