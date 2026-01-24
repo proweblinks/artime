@@ -2065,6 +2065,17 @@
         animation: vw-spin 0.8s linear infinite;
     }
 
+    .vw-btn-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: vw-spin 0.6s linear infinite;
+        vertical-align: middle;
+    }
+
     .vw-generating-text {
         color: rgba(255, 255, 255, 0.6);
         font-size: 0.95rem;
@@ -4594,7 +4605,7 @@ function getCameraMovementIcon($movement) {
                         wire:loading.attr="disabled"
                         wire:target="generateAllImages">
                     <span wire:loading.remove wire:target="generateAllImages">🎨</span>
-                    <span wire:loading wire:target="generateAllImages" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                    <span wire:loading wire:target="generateAllImages" class="vw-btn-spinner"></span>
                     {{ __('Generate All Images') }}
                 </button>
             @endif
@@ -5700,7 +5711,7 @@ function getCameraMovementIcon($movement) {
                                             style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                             title="{{ __('Multi-shot decomposition') }}">
                                         <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
-                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" class="vw-btn-spinner"></span>
                                     </button>
                                 </div>
                             @elseif($status === 'error')
@@ -5992,14 +6003,9 @@ function getCameraMovementIcon($movement) {
                                         wire:loading.class="vw-btn-loading"
                                         wire:target="openMultiShotModal({{ $index }})"
                                         class="vw-edit-shots-btn">
-                                    <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️ {{ __('Edit Shots') }}</span>
-                                    <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <svg style="width: 12px; height: 12px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                        </svg>
-                                        {{ __('Opening...') }}
-                                    </span>
+                                    <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
+                                    <span wire:loading wire:target="openMultiShotModal({{ $index }})" class="vw-btn-spinner"></span>
+                                    {{ __('Edit Shots') }}
                                 </button>
                             </div>
                             {{-- Horizontal Scrollable Shot Strip - Wrapped for proper collapse --}}
