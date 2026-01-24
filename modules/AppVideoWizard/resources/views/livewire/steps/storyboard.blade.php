@@ -1029,65 +1029,153 @@
     .vw-memory-cards-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
 
     .vw-memory-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 0.6rem;
+        position: relative;
+        aspect-ratio: 3/4;
+        border-radius: 0.75rem;
         overflow: hidden;
         cursor: pointer;
-        transition: all 0.2s ease;
+        background: linear-gradient(135deg, rgba(30, 30, 45, 1), rgba(20, 20, 35, 1));
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .vw-memory-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 0.75rem;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
     .vw-memory-card:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.08);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 40px rgba(139, 92, 246, 0.25), 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .vw-memory-card:hover::before {
+        opacity: 1;
     }
 
     .vw-memory-card-image {
-        aspect-ratio: 1/1;
-        position: relative;
+        position: absolute;
+        inset: 0;
         overflow: hidden;
-        background: rgba(0, 0, 0, 0.3);
     }
 
     .vw-memory-card-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s ease;
+        object-position: top center;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
     }
 
     .vw-memory-card:hover .vw-memory-card-image img {
-        transform: scale(1.05);
+        transform: scale(1.08);
+        filter: brightness(1.1);
     }
 
     .vw-memory-card-placeholder {
-        width: 100%;
-        height: 100%;
+        position: absolute;
+        inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
-        opacity: 0.4;
+        font-size: 3rem;
+        opacity: 0.3;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05));
     }
 
-    .vw-memory-card-info {
-        padding: 0.4rem 0.5rem;
-        background: rgba(0, 0, 0, 0.4);
+    /* Floating name overlay */
+    .vw-memory-card-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 2.5rem 0.75rem 0.75rem;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 40%, transparent 100%);
+        transform: translateY(0);
+        transition: all 0.3s ease;
+    }
+
+    .vw-memory-card:hover .vw-memory-card-overlay {
+        background: linear-gradient(to top, rgba(139, 92, 246, 0.9) 0%, rgba(139, 92, 246, 0.5) 30%, transparent 100%);
     }
 
     .vw-memory-card-name {
-        font-size: 0.7rem;
-        font-weight: 600;
+        font-size: 0.85rem;
+        font-weight: 700;
         color: white;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        letter-spacing: 0.02em;
+    }
+
+    .vw-memory-card-role {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 0.15rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    /* Add card with dashed border */
+    .vw-memory-card-add {
+        background: transparent;
+        border: 2px dashed rgba(139, 92, 246, 0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: none;
+    }
+
+    .vw-memory-card-add::before {
+        display: none;
+    }
+
+    .vw-memory-card-add:hover {
+        border-color: rgba(139, 92, 246, 0.6);
+        background: rgba(139, 92, 246, 0.08);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+    }
+
+    .vw-memory-card-add-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #a78bfa;
+        transition: all 0.3s ease;
+    }
+
+    .vw-memory-card-add:hover .vw-memory-card-add-icon {
+        transform: scale(1.1) rotate(90deg);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.4));
+    }
+
+    .vw-memory-card-add-text {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 500;
     }
 
     .vw-memory-empty {
@@ -1096,18 +1184,22 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 2rem 1rem;
+        padding: 3rem 1rem;
         color: rgba(255, 255, 255, 0.4);
-        gap: 0.5rem;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(6, 182, 212, 0.03));
+        border-radius: 0.75rem;
+        border: 1px dashed rgba(255, 255, 255, 0.1);
     }
 
     .vw-memory-empty-icon {
-        font-size: 2rem;
-        opacity: 0.5;
+        font-size: 2.5rem;
+        opacity: 0.4;
     }
 
     .vw-memory-empty-text {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 500;
     }
 
     .vw-memory-dna-footer {
@@ -4875,14 +4967,20 @@ function getCameraMovementIcon($movement) {
                                                 <div class="vw-memory-card-placeholder">👤</div>
                                             @endif
                                         </div>
-                                        <div class="vw-memory-card-info">
-                                            <div class="vw-memory-card-name">{{ Str::limit($char['name'] ?? __('Character'), 12) }}</div>
+                                        <div class="vw-memory-card-overlay">
+                                            <div class="vw-memory-card-name">{{ $char['name'] ?? __('Character') }}</div>
+                                            @if(!empty($char['role']))
+                                                <div class="vw-memory-card-role">{{ $char['role'] }}</div>
+                                            @endif
                                         </div>
                                     </div>
                                 @empty
                                     <div class="vw-memory-empty">
                                         <span class="vw-memory-empty-icon">👤</span>
                                         <span class="vw-memory-empty-text">{{ __('No characters yet') }}</span>
+                                        <button type="button" wire:click="openCharacterBibleModal" class="vw-memory-add-btn" style="margin-top: 0.5rem;">
+                                            <span>+</span> {{ __('Add First Character') }}
+                                        </button>
                                     </div>
                                 @endforelse
                             </div>
@@ -4911,8 +5009,8 @@ function getCameraMovementIcon($movement) {
                                                 <div class="vw-memory-card-placeholder">📍</div>
                                             @endif
                                         </div>
-                                        <div class="vw-memory-card-info">
-                                            <div class="vw-memory-card-name">{{ Str::limit($loc['name'] ?? __('Location'), 12) }}</div>
+                                        <div class="vw-memory-card-overlay">
+                                            <div class="vw-memory-card-name">{{ $loc['name'] ?? __('Location') }}</div>
                                         </div>
                                     </div>
                                 @empty
