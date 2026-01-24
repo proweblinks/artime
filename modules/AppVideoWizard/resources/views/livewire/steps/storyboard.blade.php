@@ -2076,33 +2076,11 @@
         vertical-align: middle;
     }
 
-    /* Voice Types Panel */
+    /* Voice Types Button */
     .vw-voice-types-btn:hover {
         background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(6,182,212,0.25)) !important;
         border-color: rgba(139,92,246,0.6) !important;
         transform: translateY(-1px);
-    }
-
-    .vw-voice-panel::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .vw-voice-panel::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.05);
-        border-radius: 2px;
-    }
-
-    .vw-voice-panel::-webkit-scrollbar-thumb {
-        background: rgba(139,92,246,0.4);
-        border-radius: 2px;
-    }
-
-    .vw-voice-panel::-webkit-scrollbar-thumb:hover {
-        background: rgba(139,92,246,0.6);
-    }
-
-    .rotate-180 {
-        transform: rotate(180deg);
     }
 
     .vw-generating-text {
@@ -6222,22 +6200,18 @@ function getCameraMovementIcon($movement) {
                     @endphp
 
                     @if(!empty($speechSegments) || !empty($narration))
-                        <div style="padding: 0.3rem 0.75rem;" x-data="{ voicePanelOpen: false }">
-                            <div class="vw-scene-dialogue" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+                        <div style="padding: 0.3rem 0.75rem;" x-data="{ voiceModalOpen: false }">
+                            <div class="vw-scene-dialogue" style="display: flex; justify-content: space-between; align-items: center;">
                                 {{-- Voice Types clickable badge --}}
                                 <button
                                     type="button"
-                                    @click="voicePanelOpen = !voicePanelOpen"
+                                    @click="voiceModalOpen = true"
                                     class="vw-voice-types-btn"
                                     style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
-                                    :style="voicePanelOpen ? 'background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); border-color: rgba(139,92,246,0.6);' : ''"
                                 >
                                     <span style="font-size: 0.75rem;">🎙️</span>
                                     <span style="font-weight: 600; font-size: 0.7rem; color: white;">{{ __('Voice Types') }}</span>
                                     <span style="opacity: 0.6; font-size: 0.6rem; color: rgba(255,255,255,0.7);">({{ $totalSegments }})</span>
-                                    <svg :class="voicePanelOpen ? 'rotate-180' : ''" style="width: 10px; height: 10px; transition: transform 0.2s; color: rgba(255,255,255,0.6);" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                    </svg>
                                 </button>
 
                                 {{-- Inspect button --}}
@@ -6249,130 +6223,173 @@ function getCameraMovementIcon($movement) {
                                 >
                                     🔍 {{ __('Inspect') }}
                                 </button>
+                            </div>
 
-                                {{-- Voice Types Dropdown Panel --}}
+                            {{-- Voice Types Modal Overlay --}}
+                            <template x-teleport="body">
                                 <div
-                                    x-show="voicePanelOpen"
+                                    x-show="voiceModalOpen"
                                     x-transition:enter="transition ease-out duration-150"
-                                    x-transition:enter-start="opacity-0 transform -translate-y-2"
-                                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                                    x-transition:enter-start="opacity-0"
+                                    x-transition:enter-end="opacity-100"
                                     x-transition:leave="transition ease-in duration-100"
                                     x-transition:leave-start="opacity-100"
                                     x-transition:leave-end="opacity-0"
-                                    @click.outside="voicePanelOpen = false"
-                                    class="vw-voice-panel"
-                                    style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.35rem; background: linear-gradient(135deg, rgba(30,30,50,0.98), rgba(20,20,40,0.99)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 50; max-height: 320px; overflow: hidden; display: flex; flex-direction: column;"
+                                    @keydown.escape.window="voiceModalOpen = false"
+                                    style="position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;"
+                                    x-cloak
                                 >
-                                    {{-- Panel Header --}}
-                                    <div style="padding: 0.5rem 0.65rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-                                        <span style="font-size: 0.7rem; font-weight: 600; color: white;">{{ __('Speech Segments') }}</span>
-                                        <div style="display: flex; gap: 0.5rem; font-size: 0.55rem;">
-                                            @if(collect($speechSegments)->where('needsLipSync', true)->count() > 0)
-                                                <span style="color: #6ee7b7;">{{ collect($speechSegments)->where('needsLipSync', true)->count() }} {{ __('lip-sync') }}</span>
+                                    {{-- Modal Content --}}
+                                    <div
+                                        x-show="voiceModalOpen"
+                                        x-transition:enter="transition ease-out duration-150"
+                                        x-transition:enter-start="opacity-0 transform scale-95"
+                                        x-transition:enter-end="opacity-100 transform scale-100"
+                                        x-transition:leave="transition ease-in duration-100"
+                                        x-transition:leave-start="opacity-100 transform scale-100"
+                                        x-transition:leave-end="opacity-0 transform scale-95"
+                                        @click.outside="voiceModalOpen = false"
+                                        style="background: linear-gradient(135deg, rgba(30,30,50,0.99), rgba(20,20,40,1)); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.75rem; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;"
+                                    >
+                                        {{-- Modal Header --}}
+                                        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                                            <div>
+                                                <h3 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: white; display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span>🎙️</span> {{ __('Voice Types') }}
+                                                </h3>
+                                                <p style="margin: 0.2rem 0 0 0; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                                    {{ __('Scene') }} {{ $index + 1 }} · {{ $totalSegments }} {{ __('segments') }}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                @click="voiceModalOpen = false"
+                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border: none; border-radius: 0.3rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 1rem;"
+                                            >×</button>
+                                        </div>
+
+                                        {{-- Summary Bar --}}
+                                        <div style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); display: flex; gap: 1rem; flex-shrink: 0;">
+                                            @php
+                                                $lipSyncCount = collect($speechSegments)->filter(fn($s) => ($typeIcons[$s['type'] ?? 'narrator']['lipSync'] ?? false))->count();
+                                                $voiceoverCount = $totalSegments - $lipSyncCount;
+                                            @endphp
+                                            @if($lipSyncCount > 0)
+                                                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                                    <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+                                                    <span style="font-size: 0.7rem; color: #6ee7b7;">{{ $lipSyncCount }} {{ __('Multitalk (Lip-sync)') }}</span>
+                                                </div>
                                             @endif
-                                            @if(collect($speechSegments)->where('needsLipSync', false)->count() > 0)
-                                                <span style="color: #67e8f9;">{{ collect($speechSegments)->where('needsLipSync', false)->count() }} {{ __('voiceover') }}</span>
+                                            @if($voiceoverCount > 0)
+                                                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                                    <span style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%;"></span>
+                                                    <span style="font-size: 0.7rem; color: #67e8f9;">{{ $voiceoverCount }} {{ __('TTS (Voiceover)') }}</span>
+                                                </div>
                                             @endif
                                         </div>
-                                    </div>
 
-                                    {{-- Segments List --}}
-                                    <div style="overflow-y: auto; flex: 1; padding: 0.5rem;">
-                                        @forelse($speechSegments as $segIdx => $segment)
-                                            @php
-                                                $segType = $segment['type'] ?? 'narrator';
-                                                $segConfig = $typeIcons[$segType] ?? $typeIcons['narrator'];
-                                                $segSpeaker = $segment['speaker'] ?? null;
-                                                $segText = $segment['text'] ?? '';
-                                                $segAudioUrl = $segment['audioUrl'] ?? null;
-                                                $needsLipSync = $segConfig['lipSync'] ?? false;
-                                                $wordCount = str_word_count($segText);
-                                                $estDuration = round(($wordCount / 150) * 60, 1);
-                                            @endphp
-                                            <div style="padding: 0.5rem; margin-bottom: 0.4rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $segConfig['border'] }}; border-radius: 0 0.3rem 0.3rem 0;">
-                                                {{-- Segment Header --}}
-                                                <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
-                                                    <span style="font-size: 0.85rem;">{{ $segConfig['icon'] }}</span>
-                                                    <span style="font-size: 0.55rem; font-weight: 600; color: white; padding: 0.1rem 0.3rem; background: {{ $segConfig['color'] }}; border-radius: 0.2rem;">
-                                                        {{ $segConfig['label'] }}
-                                                    </span>
-                                                    @if($segSpeaker)
-                                                        <span style="color: #c4b5fd; font-size: 0.65rem; font-weight: 600;">{{ $segSpeaker }}</span>
+                                        {{-- Segments List --}}
+                                        <div style="overflow-y: auto; flex: 1; padding: 0.75rem 1rem;">
+                                            @forelse($speechSegments as $segIdx => $segment)
+                                                @php
+                                                    $segType = $segment['type'] ?? 'narrator';
+                                                    $segConfig = $typeIcons[$segType] ?? $typeIcons['narrator'];
+                                                    $segSpeaker = $segment['speaker'] ?? null;
+                                                    $segText = $segment['text'] ?? '';
+                                                    $segAudioUrl = $segment['audioUrl'] ?? null;
+                                                    $needsLipSync = $segConfig['lipSync'] ?? false;
+                                                    $wordCount = str_word_count($segText);
+                                                    $estDuration = round(($wordCount / 150) * 60, 1);
+                                                @endphp
+                                                <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $segConfig['border'] }}; border-radius: 0 0.5rem 0.5rem 0;">
+                                                    {{-- Segment Header --}}
+                                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                                                        <span style="font-size: 1.1rem;">{{ $segConfig['icon'] }}</span>
+                                                        <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: {{ $segConfig['color'] }}; border-radius: 0.25rem;">
+                                                            {{ $segConfig['label'] }}
+                                                        </span>
+                                                        @if($segSpeaker)
+                                                            <span style="color: #c4b5fd; font-size: 0.75rem; font-weight: 600;">{{ $segSpeaker }}</span>
+                                                        @endif
+                                                        <span style="flex: 1;"></span>
+                                                        @if($needsLipSync)
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(16,185,129,0.2); color: #6ee7b7; border-radius: 0.2rem; border: 1px solid rgba(16,185,129,0.3);">MULTITALK</span>
+                                                        @else
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.2rem; border: 1px solid rgba(14,165,233,0.3);">TTS</span>
+                                                        @endif
+                                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">~{{ $estDuration }}s</span>
+                                                    </div>
+
+                                                    {{-- Segment Text --}}
+                                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.5; margin-bottom: 0.5rem;">
+                                                        {{ $segText }}
+                                                    </div>
+
+                                                    {{-- Audio Player --}}
+                                                    @if($segAudioUrl)
+                                                        <div x-data="{ playing: false, audioEl: null }">
+                                                            <button
+                                                                type="button"
+                                                                @click="
+                                                                    if (!audioEl) {
+                                                                        audioEl = new Audio('{{ $segAudioUrl }}');
+                                                                        audioEl.onended = () => playing = false;
+                                                                    }
+                                                                    if (playing) {
+                                                                        audioEl.pause();
+                                                                        audioEl.currentTime = 0;
+                                                                        playing = false;
+                                                                    } else {
+                                                                        audioEl.play();
+                                                                        playing = true;
+                                                                    }
+                                                                "
+                                                                style="display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; color: #a78bfa; font-size: 0.7rem; cursor: pointer; transition: all 0.15s;"
+                                                            >
+                                                                <span x-text="playing ? '⏹️' : '▶️'"></span>
+                                                                <span x-text="playing ? '{{ __('Stop') }}' : '{{ __('Play Audio') }}'"></span>
+                                                            </button>
+                                                        </div>
                                                     @endif
-                                                    <span style="flex: 1;"></span>
-                                                    @if($needsLipSync)
-                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(16,185,129,0.2); color: #6ee7b7; border-radius: 0.15rem;">MULTITALK</span>
-                                                    @else
-                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.15rem;">TTS</span>
-                                                    @endif
-                                                    <span style="font-size: 0.5rem; color: rgba(255,255,255,0.5);">~{{ $estDuration }}s</span>
                                                 </div>
-
-                                                {{-- Segment Text --}}
-                                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4; margin-bottom: 0.35rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                                    {{ $segText }}
-                                                </div>
-
-                                                {{-- Audio Player (if audio exists) --}}
-                                                @if($segAudioUrl)
-                                                    <div x-data="{ playing: false, audioEl: null }" style="margin-top: 0.25rem;">
-                                                        <button
-                                                            type="button"
-                                                            @click="
-                                                                if (!audioEl) {
-                                                                    audioEl = new Audio('{{ $segAudioUrl }}');
-                                                                    audioEl.onended = () => playing = false;
-                                                                }
-                                                                if (playing) {
-                                                                    audioEl.pause();
-                                                                    audioEl.currentTime = 0;
-                                                                    playing = false;
-                                                                } else {
-                                                                    audioEl.play();
-                                                                    playing = true;
-                                                                }
-                                                            "
-                                                            style="display: flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.2rem; color: #a78bfa; font-size: 0.55rem; cursor: pointer;"
-                                                        >
-                                                            <span x-text="playing ? '⏹️' : '▶️'"></span>
-                                                            <span x-text="playing ? '{{ __('Stop') }}' : '{{ __('Play Audio') }}'"></span>
-                                                        </button>
+                                            @empty
+                                                @if(!empty($narration))
+                                                    {{-- Legacy narration fallback --}}
+                                                    <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.6); border-radius: 0 0.5rem 0.5rem 0;">
+                                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                                            <span style="font-size: 1.1rem;">🎙️</span>
+                                                            <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.25rem;">NARRATOR</span>
+                                                            <span style="flex: 1;"></span>
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.2rem;">TTS</span>
+                                                        </div>
+                                                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.5;">
+                                                            {{ $narration }}
+                                                        </div>
                                                     </div>
                                                 @endif
-                                            </div>
-                                        @empty
-                                            @if(!empty($narration))
-                                                {{-- Legacy narration fallback --}}
-                                                <div style="padding: 0.5rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.6); border-radius: 0 0.3rem 0.3rem 0;">
-                                                    <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
-                                                        <span style="font-size: 0.85rem;">🎙️</span>
-                                                        <span style="font-size: 0.55rem; font-weight: 600; color: white; padding: 0.1rem 0.3rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.2rem;">NARRATOR</span>
-                                                        <span style="flex: 1;"></span>
-                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.15rem;">TTS</span>
-                                                    </div>
-                                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
-                                                        {{ Str::limit($narration, 150) }}
-                                                    </div>
-                                                </div>
-                                            @endif
-                                        @endforelse
-                                    </div>
+                                            @endforelse
+                                        </div>
 
-                                    {{-- Panel Footer with Full Inspect Link --}}
-                                    <div style="padding: 0.5rem 0.65rem; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
-                                        <button
-                                            type="button"
-                                            wire:click="openSceneTextInspector({{ $index }})"
-                                            @click="voicePanelOpen = false"
-                                            style="width: 100%; padding: 0.35rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(6,182,212,0.2)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; color: white; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s;"
-                                        >
-                                            <span>🔍</span>
-                                            <span>{{ __('Open Full Inspector') }}</span>
-                                            <span style="opacity: 0.6;">({{ __('prompts, metadata') }})</span>
-                                        </button>
+                                        {{-- Modal Footer --}}
+                                        <div style="padding: 0.75rem 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 0.5rem; flex-shrink: 0;">
+                                            <button
+                                                type="button"
+                                                wire:click="openSceneTextInspector({{ $index }})"
+                                                @click="voiceModalOpen = false"
+                                                style="flex: 1; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.25)); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.4rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
+                                            >
+                                                <span>🔍</span>
+                                                <span>{{ __('Full Inspector') }}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="voiceModalOpen = false"
+                                                style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.8); font-size: 0.75rem; cursor: pointer;"
+                                            >{{ __('Close') }}</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
                         </div>
                     @endif
 
