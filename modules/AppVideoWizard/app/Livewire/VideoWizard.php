@@ -23591,7 +23591,7 @@ PROMPT;
                 $shotSegments[] = $segment;
 
                 // Check if this segment requires lip-sync
-                if (in_array($segType, $lipSyncTypes))
+                if (in_array($segType, $lipSyncTypes)) {
                     $needsLipSync = true;
                     $shotDialogue .= ($shotDialogue ? ' ' : '') . $segText;
                     if (!empty($segment['speaker'])) {
