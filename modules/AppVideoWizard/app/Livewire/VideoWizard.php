@@ -23488,7 +23488,16 @@ PROMPT;
                 $segment = $speechSegments[$segmentIndex];
                 $shotSegments[] = $segment;
 
-                $segType = strtolower($segment['type'] ?? 'narrator');
+                $segType = $segment['type'] ?? null;
+                if ($segType === null) {
+                    Log::error('Missing segment type, defaulting to narrator', [
+                        'sceneIndex' => $sceneIndex,
+                        'segmentIndex' => $segmentIndex ?? null,
+                        'speaker' => $segment['speaker'] ?? 'unknown',
+                    ]);
+                    $segType = 'narrator';
+                }
+                $segType = strtolower($segType);
 
                 // Check if this segment requires lip-sync
                 if (in_array($segType, $lipSyncTypes)) {
@@ -23551,7 +23560,16 @@ PROMPT;
         $skippedCount = 0;
 
         foreach ($speechSegments as $segmentIndex => $segment) {
-            $segType = strtolower($segment['type'] ?? 'narrator');
+            $segType = $segment['type'] ?? null;
+            if ($segType === null) {
+                Log::error('Missing segment type, defaulting to narrator', [
+                    'sceneIndex' => $sceneIndex,
+                    'segmentIndex' => $segmentIndex ?? null,
+                    'speaker' => $segment['speaker'] ?? 'unknown',
+                ]);
+                $segType = 'narrator';
+            }
+            $segType = strtolower($segType);
 
             // ONLY dialogue and monologue create visual shots
             // Narrator and internal thought are handled as voiceover overlays (Plan 11-02)
@@ -23978,31 +23996,49 @@ PROMPT;
 
             // Generate narrator audio (combined into single track)
             if (!empty($narratorText)) {
-                $audioResult = \App\Facades\AI::process($narratorText, 'speech', [
-                    'voice' => $narratorVoice,
-                ], $teamId);
-
-                if (empty($audioResult['error']) && !empty($audioResult['data'][0])) {
-                    $filename = Str::slug($scene['id'] ?? "scene-{$sceneIndex}") . '-narrator-' . time() . '.mp3';
-                    $path = "wizard-projects/{$project->id}/audio/{$filename}";
-                    Storage::disk('public')->put($path, $audioResult['data'][0]);
-
-                    $wordCount = str_word_count($narratorText);
-                    $duration = ($wordCount / 150) * 60;
-
-                    $result['narrator'] = [
+                // Add empty text validation
+                if (empty(trim($narratorText))) {
+                    Log::warning('Empty narrator text skipped before TTS', [
+                        'sceneIndex' => $sceneIndex,
+                        'sceneId' => $scene['id'] ?? null,
+                    ]);
+                } else {
+                    $audioResult = \App\Facades\AI::process($narratorText, 'speech', [
                         'voice' => $narratorVoice,
-                        'audioUrl' => url('/files/' . $path),
-                        'duration' => $duration,
-                        'text' => $narratorText,
-                        'wordCount' => $wordCount,
-                    ];
-                    $result['totalDuration'] += $duration;
+                    ], $teamId);
+
+                    if (empty($audioResult['error']) && !empty($audioResult['data'][0])) {
+                        $filename = Str::slug($scene['id'] ?? "scene-{$sceneIndex}") . '-narrator-' . time() . '.mp3';
+                        $path = "wizard-projects/{$project->id}/audio/{$filename}";
+                        Storage::disk('public')->put($path, $audioResult['data'][0]);
+
+                        $wordCount = str_word_count($narratorText);
+                        $duration = ($wordCount / 150) * 60;
+
+                        $result['narrator'] = [
+                            'voice' => $narratorVoice,
+                            'audioUrl' => url('/files/' . $path),
+                            'duration' => $duration,
+                            'text' => $narratorText,
+                            'wordCount' => $wordCount,
+                        ];
+                        $result['totalDuration'] += $duration;
+                    }
                 }
             }
 
             // Generate character audio segments (for lip-sync)
             foreach ($characterSegments as $charSeg) {
+                // Validate text before TTS
+                if (empty(trim($charSeg['text'] ?? ''))) {
+                    Log::warning('Empty character segment text skipped before TTS', [
+                        'sceneIndex' => $sceneIndex,
+                        'speaker' => $charSeg['speaker'] ?? 'unknown',
+                        'segmentIndex' => $charSeg['segmentIndex'] ?? null,
+                    ]);
+                    continue;
+                }
+
                 $voice = $voiceoverService->getVoiceForSpeaker(
                     $charSeg['speaker'],
                     $characterBible,

@@ -654,26 +654,42 @@ class VoiceoverService
         if (!empty($narratorSegments)) {
             $narratorText = implode(' ', array_column($narratorSegments, 'text'));
 
-            $audioResult = AI::process($narratorText, 'speech', [
-                'voice' => $narratorVoice,
-            ], $teamId);
-
-            if (empty($audioResult['error']) && !empty($audioResult['data'][0])) {
-                $path = "wizard-projects/{$project->id}/audio/" . Str::slug($scene['id']) . "-narrator-" . time() . ".mp3";
-                Storage::disk('public')->put($path, $audioResult['data'][0]);
-
-                $wordCount = str_word_count($narratorText);
-                $result['narrator'] = [
+            // Validate before TTS
+            if (empty(trim($narratorText))) {
+                Log::warning('Empty narrator text skipped in VoiceoverService', [
+                    'sceneId' => $scene['id'] ?? null,
+                ]);
+            } else {
+                $audioResult = AI::process($narratorText, 'speech', [
                     'voice' => $narratorVoice,
-                    'audioUrl' => url('/files/' . $path),
-                    'duration' => ($wordCount / 150) * 60,
-                    'text' => $narratorText,
-                ];
+                ], $teamId);
+
+                if (empty($audioResult['error']) && !empty($audioResult['data'][0])) {
+                    $path = "wizard-projects/{$project->id}/audio/" . Str::slug($scene['id']) . "-narrator-" . time() . ".mp3";
+                    Storage::disk('public')->put($path, $audioResult['data'][0]);
+
+                    $wordCount = str_word_count($narratorText);
+                    $result['narrator'] = [
+                        'voice' => $narratorVoice,
+                        'audioUrl' => url('/files/' . $path),
+                        'duration' => ($wordCount / 150) * 60,
+                        'text' => $narratorText,
+                    ];
+                }
             }
         }
 
         // Generate character audio (separate files for lip-sync)
         foreach ($characterSegments as $index => $seg) {
+            // Validate text before TTS
+            if (empty(trim($seg['text'] ?? ''))) {
+                Log::warning('Empty character segment text skipped in VoiceoverService', [
+                    'speaker' => $seg['speaker'] ?? 'unknown',
+                    'index' => $index,
+                ]);
+                continue;
+            }
+
             $voice = $this->getVoiceForSpeaker($seg['speaker'], $characterBible, $narratorVoice);
 
             $audioResult = AI::process($seg['text'], 'speech', [
