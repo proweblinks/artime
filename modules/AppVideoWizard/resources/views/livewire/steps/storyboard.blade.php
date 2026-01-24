@@ -201,23 +201,63 @@
         flex: 1;
     }
 
-    /* Settings Sidebar - Collapsible */
+    /* Settings Sidebar - Collapsible & Resizable */
     .vw-settings-sidebar {
-        width: 280px;
-        min-width: 280px;
+        width: 320px;
+        min-width: 240px;
+        max-width: 500px;
         background: rgba(15, 15, 28, 0.98);
         border-right: 1px solid rgba(139, 92, 246, 0.1);
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transition: opacity 0.2s ease;
+        position: relative;
+    }
+
+    .vw-settings-sidebar:not(.resizing) {
         transition: width 0.25s ease, min-width 0.25s ease, opacity 0.2s ease;
     }
 
     .vw-settings-sidebar.collapsed {
-        width: 0;
-        min-width: 0;
+        width: 0 !important;
+        min-width: 0 !important;
         opacity: 0;
         pointer-events: none;
+    }
+
+    /* Resize Handle */
+    .vw-sidebar-resize-handle {
+        position: absolute;
+        top: 0;
+        right: -4px;
+        width: 8px;
+        height: 100%;
+        cursor: col-resize;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .vw-sidebar-resize-handle::before {
+        content: '';
+        width: 3px;
+        height: 40px;
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 2px;
+        opacity: 0;
+        transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .vw-sidebar-resize-handle:hover::before,
+    .vw-settings-sidebar.resizing .vw-sidebar-resize-handle::before {
+        opacity: 1;
+        background: rgba(139, 92, 246, 0.6);
+    }
+
+    .vw-settings-sidebar.resizing .vw-sidebar-resize-handle::before {
+        background: #8b5cf6;
     }
 
     .vw-sidebar-header {
@@ -3280,6 +3320,11 @@ function getCameraMovementIcon($movement) {
     // NEW: Sidebar layout state
     sidebarCollapsed: false,
     activeSection: 'settings',
+    // Resizable sidebar
+    sidebarWidth: parseInt(localStorage.getItem('storyboard-sidebar-width')) || 320,
+    isResizing: false,
+    resizeStartX: 0,
+    resizeStartWidth: 0,
     toggleSidebar() {
         this.sidebarCollapsed = !this.sidebarCollapsed;
     },
@@ -3287,6 +3332,27 @@ function getCameraMovementIcon($movement) {
         this.activeSection = section;
         if (this.sidebarCollapsed) {
             this.sidebarCollapsed = false;
+        }
+    },
+    startResize(e) {
+        this.isResizing = true;
+        this.resizeStartX = e.clientX;
+        this.resizeStartWidth = this.sidebarWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    },
+    onResize(e) {
+        if (!this.isResizing) return;
+        const delta = e.clientX - this.resizeStartX;
+        const newWidth = Math.min(500, Math.max(240, this.resizeStartWidth + delta));
+        this.sidebarWidth = newWidth;
+    },
+    stopResize() {
+        if (this.isResizing) {
+            this.isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            localStorage.setItem('storyboard-sidebar-width', this.sidebarWidth);
         }
     },
     // Phase 2: Collapsible sections
@@ -3821,9 +3887,17 @@ function getCameraMovementIcon($movement) {
             </div>
 
             {{-- ========================================
-                 SETTINGS SIDEBAR - Collapsible, 280px
+                 SETTINGS SIDEBAR - Collapsible & Resizable
                  ======================================== --}}
-            <div class="vw-settings-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+            <div class="vw-settings-sidebar"
+                 :class="{ 'collapsed': sidebarCollapsed, 'resizing': isResizing }"
+                 :style="!sidebarCollapsed ? 'width: ' + sidebarWidth + 'px' : ''"
+                 @mousemove.window="onResize($event)"
+                 @mouseup.window="stopResize()">
+                {{-- Resize Handle --}}
+                <div class="vw-sidebar-resize-handle"
+                     @mousedown.prevent="startResize($event)"></div>
+
                 {{-- Sidebar Header --}}
                 <div class="vw-sidebar-header">
                     <span class="vw-sidebar-title" x-text="activeSection === 'settings' ? '{{ __('Settings') }}' : activeSection === 'style' ? '{{ __('Visual Style') }}' : '{{ __('Scene Memory') }}'"></span>
