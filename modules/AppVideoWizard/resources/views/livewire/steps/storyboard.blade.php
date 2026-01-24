@@ -4184,10 +4184,17 @@ function getCameraMovementIcon($movement) {
                     @php
                         $shotStats = $multiShotMode['enabled'] ? $this->getShotStatistics() : null;
                         $clipDuration = $multiShotMode['enabled'] ? $this->getClipDuration() : 0;
-                    $sceneTiming = $script['timing'] ?? ['sceneDuration' => 35, 'pacing' => 'balanced'];
-                    $imagesReadyCount = count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl'])));
-                    $totalScenesCount = count($script['scenes'] ?? []);
-                @endphp
+                        $sceneTiming = $script['timing'] ?? ['sceneDuration' => 35, 'pacing' => 'balanced'];
+                        $imagesReadyCount = count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl'])));
+                        $totalScenesCount = count($script['scenes'] ?? []);
+                        // Image models for cost display
+                        $imageModels = [
+                            'hidream' => ['name' => 'HiDream', 'cost' => 2],
+                            'nanobanana-pro' => ['name' => 'NanoBanana Pro', 'cost' => 3],
+                            'nanobanana' => ['name' => 'NanoBanana', 'cost' => 1],
+                        ];
+                        $selectedModel = $storyboard['imageModel'] ?? 'nanobanana';
+                    @endphp
                 <div class="vw-bento-grid">
                     {{-- Stats Cards --}}
                     <div class="vw-bento-card span-3">

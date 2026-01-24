@@ -1,4 +1,7 @@
 <?php
+// Increase memory limit for large Blade templates
+ini_set('memory_limit', '256M');
+
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
