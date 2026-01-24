@@ -1024,11 +1024,13 @@ class VideoWizard extends Component
     public bool $showCharacterBibleModal = false;
     public int $editingCharacterIndex = 0;
     public bool $isGeneratingPortrait = false;
+    public bool $isSyncingCharacterBible = false;
 
     // Location Bible Modal state
     public bool $showLocationBibleModal = false;
     public int $editingLocationIndex = 0;
     public bool $isGeneratingLocationRef = false;
+    public bool $isSyncingLocationBible = false;
 
     // Scene Text Inspector Modal
     public bool $showSceneTextInspectorModal = false;
@@ -14995,13 +14997,16 @@ PROMPT;
      */
     public function openCharacterBibleModal(): void
     {
-        // Auto-sync from Story Bible if it has characters
-        if (!empty($this->storyBible['characters']) && $this->storyBible['status'] === 'ready') {
-            $this->syncStoryBibleToCharacterBible();
-        }
-
+        // Show modal immediately
         $this->showCharacterBibleModal = true;
         $this->editingCharacterIndex = 0;
+
+        // Auto-sync from Story Bible if it has characters
+        if (!empty($this->storyBible['characters']) && $this->storyBible['status'] === 'ready') {
+            $this->isSyncingCharacterBible = true;
+            $this->syncStoryBibleToCharacterBible();
+            $this->isSyncingCharacterBible = false;
+        }
     }
 
     /**
@@ -16422,14 +16427,17 @@ EOT;
      */
     public function openLocationBibleModal(): void
     {
-        // Auto-sync from Story Bible if it has locations
-        if (!empty($this->storyBible['locations']) && $this->storyBible['status'] === 'ready') {
-            $this->syncStoryBibleToLocationBible();
-        }
-
+        // Show modal immediately
         $this->showLocationBibleModal = true;
         // Set editing index to first location if exists, otherwise -1
         $this->editingLocationIndex = !empty($this->sceneMemory['locationBible']['locations']) ? 0 : -1;
+
+        // Auto-sync from Story Bible if it has locations
+        if (!empty($this->storyBible['locations']) && $this->storyBible['status'] === 'ready') {
+            $this->isSyncingLocationBible = true;
+            $this->syncStoryBibleToLocationBible();
+            $this->isSyncingLocationBible = false;
+        }
     }
 
     /**
