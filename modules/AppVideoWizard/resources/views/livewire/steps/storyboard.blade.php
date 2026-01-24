@@ -1126,23 +1126,22 @@
         cursor: not-allowed;
     }
 
-    /* Storyboard Grid - Larger cards for full-screen */
+    /* Storyboard Grid - 3 columns for better organization */
     .vw-storyboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
         /* Anti-jitter: prevent layout recalculations during updates */
         contain: layout;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1400px) {
         .vw-storyboard-grid {
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
         .vw-storyboard-grid {
             grid-template-columns: 1fr;
         }
@@ -1183,18 +1182,18 @@
     }
 
     /* ========================================
-       HYBRID A+B: Modern Cinematic Empty State
+       HYBRID A+B: Compact Cinematic Empty State
        ======================================== */
 
-    /* Empty State Container - Cinematic glassmorphism */
+    /* Empty State Container - Compact and clean */
     .vw-scene-empty {
         height: 100%;
-        min-height: 280px;
+        min-height: 200px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 1.5rem;
+        padding: 1rem;
         background: linear-gradient(135deg, rgba(15, 15, 30, 0.95), rgba(25, 25, 45, 0.9));
         border: 1px solid rgba(139, 92, 246, 0.15);
         border-radius: 0;
@@ -1203,17 +1202,17 @@
         overflow: hidden;
     }
 
-    /* Animated gradient background */
+    /* Subtle gradient background on hover */
     .vw-scene-empty::before {
         content: '';
         position: absolute;
         inset: 0;
         background: linear-gradient(135deg,
-            rgba(139, 92, 246, 0.08) 0%,
-            rgba(6, 182, 212, 0.05) 50%,
-            rgba(236, 72, 153, 0.08) 100%);
+            rgba(139, 92, 246, 0.06) 0%,
+            rgba(6, 182, 212, 0.04) 50%,
+            rgba(236, 72, 153, 0.06) 100%);
         opacity: 0;
-        transition: opacity 0.4s ease;
+        transition: opacity 0.3s ease;
     }
 
     .vw-scene-empty:hover::before {
@@ -1242,33 +1241,34 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
+        width: 100%;
     }
 
-    /* Floating icon with glow */
+    /* Compact floating icon */
     .vw-empty-icon-float {
-        width: 64px;
-        height: 64px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
         border: 1px solid rgba(139, 92, 246, 0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.75rem;
-        margin-bottom: 1rem;
+        font-size: 1.35rem;
+        margin-bottom: 0.75rem;
         animation: vw-float 3s ease-in-out infinite;
-        box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
     }
 
     @keyframes vw-float {
         0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
+        50% { transform: translateY(-4px); }
     }
 
     .vw-scene-empty-text {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.9rem;
-        margin-bottom: 1.25rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.8rem;
+        margin-bottom: 0.85rem;
         letter-spacing: 0.02em;
     }
 
@@ -1277,63 +1277,50 @@
         text-shadow: 0 2px 8px rgba(0,0,0,0.5);
     }
 
-    /* Action Cards Grid - Horizontal timeline-inspired */
+    /* Action Cards Grid - Compact horizontal layout */
     .vw-scene-empty-buttons {
         display: flex;
-        gap: 0.75rem;
+        gap: 0.5rem;
         width: 100%;
-        max-width: 420px;
+        max-width: 100%;
+        padding: 0 0.5rem;
     }
 
-    /* Individual Action Card */
+    /* Individual Action Card - Compact */
     .vw-scene-empty-btn {
         flex: 1;
-        padding: 1rem 0.75rem;
-        border-radius: 0.75rem;
+        padding: 0.65rem 0.5rem;
+        border-radius: 0.5rem;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(255, 255, 255, 0.03);
         backdrop-filter: blur(8px);
         color: white;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        gap: 0.35rem;
+        transition: all 0.2s ease;
         position: relative;
         overflow: hidden;
     }
 
-    /* Card shimmer effect on hover */
-    .vw-scene-empty-btn::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.05) 50%,
-            transparent 100%);
-        transform: translateX(-100%);
-        transition: transform 0.6s ease;
-    }
-
-    .vw-scene-empty-btn:hover::before {
-        transform: translateX(100%);
+    /* Subtle hover effect */
+    .vw-scene-empty-btn:hover {
+        transform: translateY(-2px);
     }
 
     /* AI Generate - Primary gradient card */
     .vw-scene-empty-btn.ai {
         background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.15));
         border-color: rgba(139, 92, 246, 0.3);
-        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
     }
 
     .vw-scene-empty-btn.ai:hover {
         background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
         border-color: rgba(139, 92, 246, 0.5);
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 32px rgba(139, 92, 246, 0.25);
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
     }
 
     /* Stock Media - Green accent card */
@@ -1345,8 +1332,7 @@
     .vw-scene-empty-btn.stock:hover {
         background: rgba(16, 185, 129, 0.2);
         border-color: rgba(16, 185, 129, 0.5);
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
+        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
     }
 
     /* Collage First - Pink gradient card */
@@ -1358,8 +1344,7 @@
     .vw-scene-empty-btn.collage:hover {
         background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
         border-color: rgba(236, 72, 153, 0.5);
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+        box-shadow: 0 4px 16px rgba(236, 72, 153, 0.15);
     }
 
     /* With background image - stronger glassmorphism */
@@ -5017,69 +5002,20 @@ function getCameraMovementIcon($movement) {
                             {{ __('Scene') }} {{ $index + 1 }}
                         </div>
 
-                        {{-- Multi-Shot Badge - Top right if decomposed --}}
+                        {{-- Multi-Shot Badge - Compact, top right --}}
                         @if($hasMultiShot && !empty($decomposed['shots']))
-                            <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10;">
-                                <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.3rem 0.65rem; border-radius: 0.35rem; font-size: 0.8rem; font-weight: 600;">
-                                    📽️ {{ count($decomposed['shots']) }} {{ __('shots') }}
+                            @php
+                                $shotChainStatusBadge = $this->getShotChainStatus($index);
+                            @endphp
+                            <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.35rem;">
+                                <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                                    📽️ {{ count($decomposed['shots']) }}
                                 </span>
-
-                                {{-- PHASE 6: Enhanced Multi-Shot Summary --}}
-                                @php
-                                    $shots = $decomposed['shots'];
-                                    $shotTypeCounts = [];
-                                    foreach ($shots as $shot) {
-                                        $type = getShotTypeLabel($shot['type'] ?? 'medium');
-                                        $shotTypeCounts[$type] = ($shotTypeCounts[$type] ?? 0) + 1;
-                                    }
-                                @endphp
-
-                                <div style="
-                                    display: flex;
-                                    flex-wrap: wrap;
-                                    gap: 0.2rem;
-                                    margin-top: 0.35rem;
-                                    padding-top: 0.35rem;
-                                    border-top: 1px solid rgba(255,255,255,0.2);
-                                    justify-content: flex-end;
-                                ">
-                                    @foreach($shotTypeCounts as $type => $count)
-                                        <span class="vw-shot-badge vw-shot-badge-{{ getShotTypeBadgeClass($type) }}" style="font-size: 0.55rem;">
-                                            {{ $count }}x {{ $type }}
-                                        </span>
-                                    @endforeach
-                                </div>
-
-                                {{-- PHASE 6: Scene Intensity Indicator --}}
-                                @php
-                                    $sceneShots = $decomposed['shots'];
-                                    $sceneAvgIntensity = collect($sceneShots)->avg('emotionalIntensity') ?? 0.5;
-                                    $sceneHasClimax = collect($sceneShots)->contains('isClimax', true);
-                                    $sceneIntensityClass = $sceneHasClimax ? 'climax' : ($sceneAvgIntensity >= 0.7 ? 'high' : ($sceneAvgIntensity >= 0.4 ? 'medium' : 'low'));
-                                @endphp
-
-                                <div style="
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 0.35rem;
-                                    margin-top: 0.35rem;
-                                    padding-top: 0.35rem;
-                                    border-top: 1px solid rgba(255,255,255,0.15);
-                                ">
-                                    <div class="vw-intensity-bar" style="flex: 1;" title="{{ __('Scene Intensity') }}: {{ round($sceneAvgIntensity * 100) }}%">
-                                        <div class="vw-intensity-fill vw-intensity-{{ $sceneIntensityClass }}" style="width: {{ round($sceneAvgIntensity * 100) }}%;"></div>
-                                    </div>
-
-                                    @if($sceneHasClimax)
-                                        <span class="vw-shot-badge vw-shot-badge-climax" style="font-size: 0.5rem;">
-                                            {{ __('CLIMAX') }}
-                                        </span>
-                                    @endif
-
-                                    <span style="font-size: 0.55rem; color: rgba(255,255,255,0.5);">
-                                        {{ round($sceneAvgIntensity * 100) }}%
+                                @if($shotChainStatusBadge['imagesReady'] > 0)
+                                    <span style="background: rgba(16,185,129,0.9); color: white; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600;">
+                                        🖼️ {{ $shotChainStatusBadge['imagesReady'] }}/{{ $shotChainStatusBadge['totalShots'] }}
                                     </span>
-                                </div>
+                                @endif
                             </div>
                         @endif
 
@@ -5383,75 +5319,6 @@ function getCameraMovementIcon($movement) {
                                                 <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
                                             </button>
                                         </div>
-
-                                        {{-- HYBRID B: Shot Timeline (when multi-shot exists) --}}
-                                        @if($hasMultiShot && !empty($decomposed['shots']))
-                                            @php
-                                                $timelineShots = $decomposed['shots'];
-                                                $totalShots = count($timelineShots);
-                                                $readyShots = collect($timelineShots)->filter(fn($s) => ($s['imageStatus'] ?? $s['status'] ?? '') === 'ready')->count();
-                                                $progressPercent = $totalShots > 0 ? round(($readyShots / $totalShots) * 100) : 0;
-                                            @endphp
-                                            <div class="vw-shot-timeline">
-                                                <div class="vw-shot-timeline-header">
-                                                    <span class="vw-shot-timeline-label">{{ __('Shot Timeline') }}</span>
-                                                    <span class="vw-shot-timeline-count">{{ $readyShots }}/{{ $totalShots }} {{ __('ready') }}</span>
-                                                </div>
-
-                                                {{-- Shot Thumbnails Strip --}}
-                                                <div class="vw-shot-timeline-strip">
-                                                    @foreach($timelineShots as $shotIdx => $timelineShot)
-                                                        @php
-                                                            $shotImageUrl = $timelineShot['imageUrl'] ?? null;
-                                                            $shotStatus = $timelineShot['imageStatus'] ?? $timelineShot['status'] ?? 'pending';
-                                                            $shotType = getShotTypeLabel($timelineShot['type'] ?? 'medium');
-                                                        @endphp
-                                                        <div class="vw-shot-timeline-thumb {{ $shotIdx === 0 ? 'active' : '' }}"
-                                                             wire:click="openMultiShotModal({{ $index }})"
-                                                             title="{{ __('Shot') }} {{ $shotIdx + 1 }}: {{ $shotType }}">
-                                                            @if($shotImageUrl && $shotStatus === 'ready')
-                                                                <img src="{{ $shotImageUrl }}" alt="Shot {{ $shotIdx + 1 }}" loading="lazy">
-                                                            @else
-                                                                <div class="vw-shot-timeline-thumb-placeholder">
-                                                                    @if($shotStatus === 'generating')
-                                                                        <svg style="width: 12px; height: 12px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                                                        </svg>
-                                                                    @else
-                                                                        {{ $shotType }}
-                                                                    @endif
-                                                                </div>
-                                                            @endif
-                                                            <div class="vw-shot-timeline-thumb-number">{{ $shotIdx + 1 }}</div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-
-                                                {{-- Progress Bar --}}
-                                                <div class="vw-shot-timeline-progress">
-                                                    <div class="vw-shot-timeline-progress-fill" style="width: {{ $progressPercent }}%;"></div>
-                                                </div>
-
-                                                {{-- Quick Actions --}}
-                                                <div class="vw-quick-actions">
-                                                    <button type="button"
-                                                            class="vw-quick-action-btn primary"
-                                                            wire:click="openMultiShotModal({{ $index }})"
-                                                            title="{{ __('Open Multi-Shot Editor') }}">
-                                                        ✂️ {{ __('Edit Shots') }}
-                                                    </button>
-                                                    @if($readyShots > 0)
-                                                        <button type="button"
-                                                                class="vw-quick-action-btn"
-                                                                wire:click="useFirstReadyShot({{ $index }})"
-                                                                title="{{ __('Use first ready shot as scene image') }}">
-                                                            🎯 {{ __('Use Best Shot') }}
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endif
                                     </div>
 
                                     {{-- Collage Preview (when generated) - Multi-Page Support --}}
@@ -5572,40 +5439,37 @@ function getCameraMovementIcon($movement) {
                         </div>
                     </div>
 
-                    {{-- Multi-Shot Timeline (if decomposed) --}}
+                    {{-- Multi-Shot Timeline (if decomposed) - Compact Horizontal Strip --}}
                     @if($hasMultiShot && !empty($decomposed['shots']))
                         @php
                             $shotChainStatus = $this->getShotChainStatus($index);
                             $totalShotDuration = $decomposed['totalDuration'] ?? array_sum(array_column($decomposed['shots'], 'duration'));
                         @endphp
-                        <div wire:key="multi-shot-timeline-{{ $index }}" style="padding: 0.6rem 0.75rem; border-top: 1px solid rgba(139,92,246,0.2); background: linear-gradient(180deg, rgba(139,92,246,0.08), rgba(139,92,246,0.03)); contain: layout;">
-                            {{-- Header row with stats --}}
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        📽️ {{ count($decomposed['shots']) }} {{ __('SHOTS') }}
+                        <div wire:key="multi-shot-timeline-{{ $index }}"
+                             x-data="{ expanded: false }"
+                             style="padding: 0.4rem 0.5rem; border-top: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.04); contain: layout;">
+                            {{-- Compact Header row --}}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <button type="button" @click="expanded = !expanded" style="background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.6); font-size: 0.6rem; padding: 0;">
+                                        <span x-text="expanded ? '▼' : '▶'"></span>
+                                    </button>
+                                    <span style="font-size: 0.55rem; color: rgba(255,255,255,0.5); font-weight: 600;">
+                                        📽️ {{ count($decomposed['shots']) }} {{ __('shots') }} • {{ $totalShotDuration }}s
                                     </span>
-                                    <span style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">• {{ $totalShotDuration }}s</span>
-                                    {{-- Mini progress indicators --}}
-                                    <div style="display: flex; gap: 0.25rem;">
-                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(16,185,129,0.2); border-radius: 0.15rem; color: #10b981;">
-                                            🖼️ {{ $shotChainStatus['imagesReady'] }}/{{ $shotChainStatus['totalShots'] }}
-                                        </span>
-                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(6,182,212,0.2); border-radius: 0.15rem; color: #06b6d4;">
-                                            🎬 {{ $shotChainStatus['videosReady'] }}/{{ $shotChainStatus['totalShots'] }}
-                                        </span>
-                                    </div>
+                                    <span style="font-size: 0.45rem; padding: 0.08rem 0.2rem; background: rgba(16,185,129,0.2); border-radius: 0.15rem; color: #10b981;">
+                                        🖼️ {{ $shotChainStatus['imagesReady'] }}/{{ $shotChainStatus['totalShots'] }}
+                                    </span>
                                 </div>
                                 <button type="button"
                                         wire:click="openMultiShotModal({{ $index }})"
                                         wire:loading.attr="disabled"
-                                        style="font-size: 0.55rem; padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #a78bfa; cursor: pointer;">
-                                    <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️ {{ __('Edit') }}</span>
-                                    <span wire:loading wire:target="openMultiShotModal({{ $index }})">⏳</span>
+                                        style="font-size: 0.5rem; padding: 0.12rem 0.35rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.2rem; color: #a78bfa; cursor: pointer;">
+                                    ✂️ {{ __('Edit') }}
                                 </button>
                             </div>
-                            {{-- Shots Grid with Frame Chain --}}
-                            <div wire:key="shots-grid-{{ $index }}" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 0.35rem; contain: layout;">
+                            {{-- Horizontal Scrollable Shot Strip --}}
+                            <div x-show="expanded" x-collapse wire:key="shots-grid-{{ $index }}" style="display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.25rem 0; scrollbar-width: none;">
                                 @foreach($decomposed['shots'] as $shotIdx => $shot)
                                     @php
                                         $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIdx;
@@ -5631,11 +5495,11 @@ function getCameraMovementIcon($movement) {
                                         $borderColor = $hasVideo ? 'rgba(6,182,212,0.6)' : ($hasImage ? 'rgba(16,185,129,0.5)' : ($isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.1)'));
                                     @endphp
                                     <div wire:key="shot-thumb-{{ $index }}-{{ $shotIdx }}"
-                                         style="cursor: pointer; position: relative; border-radius: 0.35rem; overflow: hidden; border: 2px solid {{ $borderColor }}; background: {{ $isSelected ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)' }}; transition: border-color 0.2s, background-color 0.2s;"
+                                         style="cursor: pointer; position: relative; border-radius: 0.25rem; overflow: hidden; border: 2px solid {{ $borderColor }}; background: {{ $isSelected ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)' }}; flex-shrink: 0; width: 56px;"
                                          wire:click="openMultiShotModal({{ $index }})"
                                          title="{{ $shot['description'] ?? 'Shot ' . ($shotIdx + 1) }} ({{ $shotDuration }}s)">
-                                        {{-- Thumbnail --}}
-                                        <div style="aspect-ratio: 16/10; position: relative; contain: strict;">
+                                        {{-- Compact Thumbnail --}}
+                                        <div style="aspect-ratio: 1; position: relative; contain: strict;">
                                             @if($hasImage)
                                                 <img src="{{ $shot['imageUrl'] }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
                                                 {{-- Video play indicator --}}
@@ -5704,27 +5568,25 @@ function getCameraMovementIcon($movement) {
                                 @endforeach
                             </div>
 
-                            {{-- Quick Actions --}}
-                            @if($shotChainStatus['imagesReady'] < $shotChainStatus['totalShots'] || $shotChainStatus['videosReady'] < $shotChainStatus['totalShots'])
-                                <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem;">
-                                    @if($shotChainStatus['imagesReady'] < $shotChainStatus['totalShots'])
-                                        <button type="button"
-                                                wire:click="generateAllShots({{ $index }})"
-                                                wire:loading.attr="disabled"
-                                                style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.25rem; color: #10b981; cursor: pointer; font-size: 0.55rem;">
-                                            🖼️ {{ __('Generate Images') }}
-                                        </button>
-                                    @endif
-                                    @if($shotChainStatus['imagesReady'] > 0 && $shotChainStatus['videosReady'] < $shotChainStatus['totalShots'])
-                                        <button type="button"
-                                                wire:click="generateAllShotVideos({{ $index }})"
-                                                wire:loading.attr="disabled"
-                                                style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.25rem; color: #06b6d4; cursor: pointer; font-size: 0.55rem;">
-                                            🎬 {{ __('Animate All') }}
-                                        </button>
-                                    @endif
-                                </div>
-                            @endif
+                            {{-- Quick Actions (also in collapsible area) --}}
+                            <div x-show="expanded" style="display: flex; gap: 0.25rem; margin-top: 0.3rem;">
+                                @if($shotChainStatus['imagesReady'] < $shotChainStatus['totalShots'])
+                                    <button type="button"
+                                            wire:click="generateAllShots({{ $index }})"
+                                            wire:loading.attr="disabled"
+                                            style="flex: 1; padding: 0.2rem 0.35rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.2rem; color: #10b981; cursor: pointer; font-size: 0.5rem;">
+                                        🖼️ {{ __('Generate All') }}
+                                    </button>
+                                @endif
+                                @if($shotChainStatus['imagesReady'] > 0 && $shotChainStatus['videosReady'] < $shotChainStatus['totalShots'])
+                                    <button type="button"
+                                            wire:click="generateAllShotVideos({{ $index }})"
+                                            wire:loading.attr="disabled"
+                                            style="flex: 1; padding: 0.2rem 0.35rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.2rem; color: #06b6d4; cursor: pointer; font-size: 0.5rem;">
+                                        🎬 {{ __('Animate All') }}
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                     @endif
 
@@ -5789,21 +5651,21 @@ function getCameraMovementIcon($movement) {
                     @endphp
 
                     @if(!empty($speechSegments) || !empty($narration))
-                        <div style="padding: 0 1rem;">
-                            <div class="vw-scene-dialogue">
-                                <div class="vw-dialogue-label" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                        <span style="font-size: 0.9rem;">{{ $speechIcon }}</span>
-                                        <span style="font-weight: 600;">{{ $speechLabel }}</span>
+                        <div style="padding: 0.4rem 0.75rem;">
+                            <div class="vw-scene-dialogue" style="padding: 0.4rem 0;">
+                                <div class="vw-dialogue-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span style="font-size: 0.75rem;">{{ $speechIcon }}</span>
+                                        <span style="font-weight: 600; font-size: 0.7rem;">{{ $speechLabel }}</span>
                                         @if(!empty($speechDetailLabel))
-                                            <span style="opacity: 0.6; font-size: 0.7rem;">{{ $speechDetailLabel }}</span>
+                                            <span style="opacity: 0.5; font-size: 0.6rem;">{{ $speechDetailLabel }}</span>
                                         @endif
                                     </div>
                                     <button
                                         wire:click="openSceneTextInspector({{ $index }})"
                                         class="vw-inspect-btn"
                                         title="{{ __('Click to view all scene text and prompts') }}"
-                                        style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; cursor: pointer; transition: all 0.2s;"
+                                        style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer; transition: all 0.2s;"
                                     >
                                         🔍 {{ __('Inspect') }}
                                     </button>
@@ -5811,67 +5673,40 @@ function getCameraMovementIcon($movement) {
 
                                 @if(!empty($speechSegments))
                                     @php
-                                        // Show first 2 segments, but ensure type diversity if mixed
+                                        // Show only 1 segment for compact view
                                         $previewSegments = [];
-                                        if ($hasMultipleTypes && count($speechSegments) > 2) {
-                                            // Group by type and pick one from each for diversity
+                                        if ($hasMultipleTypes && count($speechSegments) > 1) {
+                                            // Pick first segment
                                             $grouped = collect($speechSegments)->groupBy('type');
                                             foreach ($grouped as $segments) {
                                                 $previewSegments[] = $segments->first();
-                                                if (count($previewSegments) >= 2) break;
+                                                break; // Only 1 segment
                                             }
                                         } else {
-                                            // Just take first 2
-                                            $previewSegments = array_slice($speechSegments, 0, 2);
+                                            // Just take first 1 for compact view
+                                            $previewSegments = array_slice($speechSegments, 0, 1);
                                         }
                                     @endphp
                                     @foreach($previewSegments as $segment)
                                         @php
                                             $segType = $segment['type'] ?? 'narrator';
                                             $typeData = $typeIcons[$segType] ?? ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'label' => 'NARRATION'];
-                                            $needsLipSync = in_array($segType, ['dialogue', 'monologue']);
                                         @endphp
-                                        <div style="margin-bottom: 0.35rem; padding-left: 0.5rem; border-left: 2px solid {{ $typeData['color'] }};">
-                                            <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.15rem; flex-wrap: wrap;">
-                                                <span style="font-size: 0.75rem;">{{ $typeData['icon'] }}</span>
-                                                <span style="font-size: 0.65rem; font-weight: 600; opacity: 0.7;">{{ $typeData['label'] }}</span>
-                                                @if(!empty($segment['speaker']))
-                                                    <span class="vw-dialogue-speaker" style="margin-left: 0.25rem;">{{ $segment['speaker'] }}</span>
-                                                @endif
-                                                @if($needsLipSync)
-                                                    <span style="font-size: 0.55rem; background: rgba(251, 191, 36, 0.2); color: rgba(251, 191, 36, 1); padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: 600;">LIP-SYNC</span>
-                                                @endif
-                                            </div>
-                                            <span class="vw-dialogue-text" style="font-size: 0.85rem;">
-                                                {{ Str::limit($segment['text'] ?? '', 100) }}
+                                        <div style="padding-left: 0.4rem; border-left: 2px solid {{ $typeData['color'] }};">
+                                            <span class="vw-dialogue-text" style="font-size: 0.75rem; color: rgba(255,255,255,0.7); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                {{ Str::limit($segment['text'] ?? '', 80) }}
                                             </span>
                                         </div>
                                     @endforeach
-                                    @if(count($speechSegments) > 2)
-                                        @php
-                                            // Build truncation indicator showing type breakdown
-                                            $remainingCount = count($speechSegments) - 2;
-                                            $remainingSegments = array_slice($speechSegments, 2);
-                                            $remainingTypes = collect($remainingSegments)->groupBy('type')->map->count();
-                                            $typeBreakdownParts = [];
-                                            foreach ($remainingTypes as $type => $count) {
-                                                $typeName = $type === 'narrator' ? 'narration' : $type;
-                                                $typeBreakdownParts[] = "{$count} {$typeName}";
-                                            }
-                                            $truncationText = "+{$remainingCount} more (" . implode(', ', $typeBreakdownParts) . ')';
-                                        @endphp
-                                        <div class="vw-dialogue-more" wire:click="openSceneTextInspector({{ $index }})" style="cursor: pointer;">
-                                            {{ $truncationText }} - <span style="opacity: 0.5;">{{ __('click Inspect to view all') }}</span>
+                                    @if(count($speechSegments) > 1)
+                                        <div class="vw-dialogue-more" wire:click="openSceneTextInspector({{ $index }})" style="cursor: pointer; font-size: 0.6rem; margin-top: 0.2rem; opacity: 0.5;">
+                                            +{{ count($speechSegments) - 1 }} {{ __('more') }}
                                         </div>
                                     @endif
                                 @elseif(!empty($narration))
-                                    <div style="margin-bottom: 0.35rem; padding-left: 0.5rem; border-left: 2px solid rgba(14, 165, 233, 0.4);">
-                                        <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.15rem;">
-                                            <span style="font-size: 0.75rem;">🎙️</span>
-                                            <span style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.5;">{{ __('Narrator') }}</span>
-                                        </div>
-                                        <span class="vw-dialogue-text" style="font-size: 0.85rem;">
-                                            {{ Str::limit($narration, 150) }}
+                                    <div style="padding-left: 0.4rem; border-left: 2px solid rgba(14, 165, 233, 0.4);">
+                                        <span class="vw-dialogue-text" style="font-size: 0.75rem; color: rgba(255,255,255,0.7); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                            {{ Str::limit($narration, 100) }}
                                         </span>
                                     </div>
                                 @endif
@@ -5879,22 +5714,21 @@ function getCameraMovementIcon($movement) {
                         </div>
                     @endif
 
-                    {{-- Prompt Section --}}
-                    <div style="padding: 1rem;">
-                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                            {{ __('PROMPT') }}
+                    {{-- Prompt Section - Compact --}}
+                    <div style="padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px;">{{ __('PROMPT') }}</span>
+                            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                <span style="font-size: 0.65rem; padding: 0.15rem 0.35rem; background: rgba(6,182,212,0.15); color: #67e8f9; border-radius: 0.2rem;">
+                                    ⏱️ {{ $scene['duration'] ?? 8 }}s
+                                </span>
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">
+                                    {{ $scene['transition'] ?? 'cut' }}
+                                </span>
+                            </div>
                         </div>
-                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.75); line-height: 1.5; max-height: 4.5em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
-                            {{ Str::limit($prompt, 180) }}
-                        </div>
-                        {{-- Duration & Transition --}}
-                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(6,182,212,0.15); color: #67e8f9; border-radius: 0.25rem;">
-                                ⏱️ {{ $scene['duration'] ?? 8 }}s
-                            </span>
-                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">
-                                ↔️ {{ $scene['transition'] ?? 'cut' }}
-                            </span>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.65); line-height: 1.4; max-height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                            {{ Str::limit($prompt, 120) }}
                         </div>
                     </div>
                 </div>
