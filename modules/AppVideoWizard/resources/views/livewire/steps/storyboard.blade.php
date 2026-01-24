@@ -5080,7 +5080,7 @@ function getCameraMovementIcon($movement) {
                     $progressPercent = $totalToGenerate > 0 ? round(($completedGeneration / $totalToGenerate) * 100) : 0;
                 @endphp
                 <div class="vw-enhanced-progress"
-                     x-show="$wire.isGenerating || {{ $isGeneratingBatch ? 'true' : 'false' }}"
+                     x-show="{{ $isGeneratingBatch ? 'true' : 'false' }}"
                      x-transition:enter="transition ease-out duration-200"
                      x-transition:enter-start="opacity-0 transform -translate-y-2"
                      x-transition:enter-end="opacity-100 transform translate-y-0"
