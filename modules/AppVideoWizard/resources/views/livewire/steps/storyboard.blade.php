@@ -1277,6 +1277,107 @@
         text-shadow: 0 2px 8px rgba(0,0,0,0.5);
     }
 
+    /* ========================================
+       DYNAMIC: Preview with background image
+       ======================================== */
+
+    .vw-empty-with-preview {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+
+    .vw-preview-gradient {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+        pointer-events: none;
+    }
+
+    .vw-preview-toolbar {
+        position: relative;
+        z-index: 5;
+        padding: 0.6rem 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .vw-preview-label {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .vw-preview-actions {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .vw-preview-btn {
+        padding: 0.35rem 0.6rem;
+        border-radius: 0.35rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .vw-preview-btn:hover {
+        background: rgba(0, 0, 0, 0.7);
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .vw-preview-btn.ai {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.6));
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+
+    .vw-preview-btn.ai:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
+    }
+
+    .vw-preview-btn.stock {
+        background: rgba(16, 185, 129, 0.5);
+        border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .vw-preview-btn.stock:hover {
+        background: rgba(16, 185, 129, 0.7);
+    }
+
+    .vw-preview-btn.collage {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.5), rgba(139, 92, 246, 0.5));
+        border-color: rgba(236, 72, 153, 0.4);
+    }
+
+    .vw-preview-btn.collage:hover {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.7), rgba(139, 92, 246, 0.7));
+    }
+
+    .vw-preview-btn.use-shot {
+        background: rgba(16, 185, 129, 0.7);
+        border-color: rgba(16, 185, 129, 0.6);
+        font-weight: 600;
+    }
+
+    .vw-preview-btn.use-shot:hover {
+        background: rgba(16, 185, 129, 0.9);
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+
     /* Action Cards Grid - Compact horizontal layout */
     .vw-scene-empty-buttons {
         display: flex;
@@ -5261,65 +5362,99 @@ function getCameraMovementIcon($movement) {
                                 <div class="vw-scene-empty {{ $emptyStateBgImage ? 'has-bg-image' : '' }}"
                                      wire:loading.remove
                                      wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                     @if($emptyStateBgImage) style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('{{ $emptyStateBgImage }}'); background-size: cover; background-position: center; border: none;" @endif>
+                                     @if($emptyStateBgImage) style="background: url('{{ $emptyStateBgImage }}'); background-size: cover; background-position: center; border: none;" @endif>
 
-                                    {{-- HYBRID A+B: Cinematic Center Content --}}
-                                    <div class="vw-empty-center">
-                                        {{-- Floating Icon with Glow --}}
-                                        <div class="vw-empty-icon-float">
-                                            🎬
+                                    @if($emptyStateBgImage)
+                                        {{-- DYNAMIC: When has background image - Show image clearly with bottom toolbar --}}
+                                        <div class="vw-empty-with-preview">
+                                            {{-- Light gradient overlay at bottom only --}}
+                                            <div class="vw-preview-gradient"></div>
+
+                                            {{-- Compact bottom toolbar --}}
+                                            <div class="vw-preview-toolbar">
+                                                <span class="vw-preview-label">{{ __('Select main image:') }}</span>
+                                                <div class="vw-preview-actions">
+                                                    <button type="button"
+                                                            class="vw-preview-btn ai"
+                                                            wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                                            wire:loading.attr="disabled"
+                                                            wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                                            title="{{ __('AI Generate') }}">
+                                                        <span wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨 {{ __('Generate') }}</span>
+                                                        <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">⏳</span>
+                                                    </button>
+                                                    <button type="button"
+                                                            class="vw-preview-btn stock"
+                                                            wire:click="openStockBrowser({{ $index }})"
+                                                            title="{{ __('Stock Media') }}">
+                                                        📷 {{ __('Stock') }}
+                                                    </button>
+                                                    <button type="button"
+                                                            class="vw-preview-btn collage"
+                                                            wire:click="generateCollagePreview({{ $index }})"
+                                                            wire:loading.attr="disabled"
+                                                            wire:target="generateCollagePreview({{ $index }})"
+                                                            title="{{ __('Collage First') }}">
+                                                        <span wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️ {{ __('Collage') }}</span>
+                                                        <span wire:loading wire:target="generateCollagePreview({{ $index }})">⏳</span>
+                                                    </button>
+                                                    <button type="button"
+                                                            class="vw-preview-btn use-shot"
+                                                            wire:click="useFirstReadyShot({{ $index }})"
+                                                            title="{{ __('Use this shot as main image') }}">
+                                                        ✓ {{ __('Use This') }}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        <div class="vw-scene-empty-text">{{ __('Choose image source') }}</div>
-
-                                        {{-- Action Cards Grid --}}
-                                        <div class="vw-scene-empty-buttons">
-                                            {{-- AI Generate - Primary Action --}}
-                                            <button type="button"
-                                                    class="vw-scene-empty-btn ai"
-                                                    wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                                    wire:loading.attr="disabled"
-                                                    wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨</span>
-                                                <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                    <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                                    </svg>
-                                                </span>
-                                                <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ __('AI Generate') }}</span>
-                                                <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
-                                            </button>
-
-                                            {{-- Stock Media - Secondary Action --}}
-                                            <button type="button"
-                                                    class="vw-scene-empty-btn stock"
-                                                    wire:click="openStockBrowser({{ $index }})"
-                                                    wire:loading.attr="disabled"
-                                                    wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
-                                                <span class="vw-scene-empty-btn-icon">📷</span>
-                                                <span class="vw-scene-empty-btn-label">{{ __('Stock Media') }}</span>
-                                                <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
-                                            </button>
-
-                                            {{-- Collage First - Third Action --}}
-                                            <button type="button"
-                                                    class="vw-scene-empty-btn collage"
-                                                    wire:click="generateCollagePreview({{ $index }})"
-                                                    wire:loading.attr="disabled"
-                                                    wire:target="generateCollagePreview({{ $index }})">
-                                                <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️</span>
-                                                <span wire:loading wire:target="generateCollagePreview({{ $index }})">
-                                                    <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                                        <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                                    </svg>
-                                                </span>
-                                                <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ __('Collage First') }}</span>
-                                                <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
-                                            </button>
+                                    @else
+                                        {{-- DYNAMIC: No background - Centered layout with cards --}}
+                                        <div class="vw-empty-center">
+                                            <div class="vw-empty-icon-float">🎬</div>
+                                            <div class="vw-scene-empty-text">{{ __('Choose image source') }}</div>
+                                            <div class="vw-scene-empty-buttons">
+                                                <button type="button"
+                                                        class="vw-scene-empty-btn ai"
+                                                        wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
+                                                        wire:loading.attr="disabled"
+                                                        wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                                    <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">🎨</span>
+                                                    <span wire:loading wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                                        <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ __('AI Generate') }}</span>
+                                                    <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
+                                                </button>
+                                                <button type="button"
+                                                        class="vw-scene-empty-btn stock"
+                                                        wire:click="openStockBrowser({{ $index }})"
+                                                        wire:loading.attr="disabled"
+                                                        wire:target="generateImage({{ $index }}, '{{ $scene['id'] }}')">
+                                                    <span class="vw-scene-empty-btn-icon">📷</span>
+                                                    <span class="vw-scene-empty-btn-label">{{ __('Stock Media') }}</span>
+                                                    <span class="vw-scene-empty-btn-cost">{{ __('FREE') }}</span>
+                                                </button>
+                                                <button type="button"
+                                                        class="vw-scene-empty-btn collage"
+                                                        wire:click="generateCollagePreview({{ $index }})"
+                                                        wire:loading.attr="disabled"
+                                                        wire:target="generateCollagePreview({{ $index }})">
+                                                    <span class="vw-scene-empty-btn-icon" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">🖼️</span>
+                                                    <span wire:loading wire:target="generateCollagePreview({{ $index }})">
+                                                        <svg style="width: 20px; height: 20px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
+                                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="vw-scene-empty-btn-label" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ __('Collage First') }}</span>
+                                                    <span class="vw-scene-empty-btn-cost" wire:loading.remove wire:target="generateCollagePreview({{ $index }})">{{ $imageModels[$selectedModel]['cost'] ?? 2 }} {{ __('tokens') }}</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    @endif
 
                                     {{-- Collage Preview (when generated) - Multi-Page Support --}}
                                     @php
