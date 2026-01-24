@@ -909,22 +909,50 @@ window.multiShotVideoPolling = function() {
                                 @php
                                     $shotDialogue = $shot['dialogue'] ?? null;
                                     $shotMonologue = $shot['monologue'] ?? null;
-                                    $shotNarration = $shot['narration'] ?? null;
+                                    // Check both direct narration and narrator overlay (from speech segment distribution)
+                                    $shotNarration = $shot['narration'] ?? $shot['narratorText'] ?? null;
                                     $shotSpeaker = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
                                     $shotSpeechIndicator = $shot['speechIndicator'] ?? null;
-                                    $shotHasText = !empty($shotDialogue) || !empty($shotMonologue) || !empty($shotNarration);
+                                    // Check for narrator/internal overlays (from Plan 11-02 distribution)
+                                    $hasNarratorOverlay = !empty($shot['hasNarratorVoiceover']) || !empty($shot['narratorOverlay']);
+                                    $hasInternalOverlay = !empty($shot['internalThoughtOverlay']);
+                                    $internalText = $shot['internalThoughtText'] ?? null;
+                                    // Also check speechSegments for narrator/internal types
+                                    $shotSpeechSegments = $shot['speechSegments'] ?? [];
+                                    $hasNarratorSegment = !empty(array_filter($shotSpeechSegments, fn($s) => ($s['type'] ?? '') === 'narrator'));
+                                    $hasInternalSegment = !empty(array_filter($shotSpeechSegments, fn($s) => ($s['type'] ?? '') === 'internal'));
+                                    // Determine if shot has any speech content
+                                    $shotHasText = !empty($shotDialogue) || !empty($shotMonologue) || !empty($shotNarration) || $hasNarratorOverlay || $hasInternalOverlay || $hasNarratorSegment || $hasInternalSegment;
                                 @endphp
 
                                 @if($shotHasText)
                                     {{-- Speech Type Badge with tooltip showing full text --}}
-                                    @php $speechTooltipText = $shotDialogue ?? $shotMonologue ?? $shotNarration ?? ''; @endphp
+                                    @php
+                                        // Build tooltip text from available sources
+                                        $speechTooltipText = $shotDialogue ?? $shotMonologue ?? $shotNarration ?? $internalText ?? '';
+                                        // If still empty, try to get text from speech segments
+                                        if (empty($speechTooltipText) && !empty($shotSpeechSegments)) {
+                                            $segmentTexts = array_map(fn($s) => $s['text'] ?? '', $shotSpeechSegments);
+                                            $speechTooltipText = implode(' ', array_filter($segmentTexts));
+                                        }
+                                    @endphp
                                     <div class="msm-speech-badge-row" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem;">
                                         @if($needsLipSync && ($shotDialogue || $shotMonologue))
+                                            {{-- Dialogue/Monologue with lip-sync (character speaks on screen) --}}
                                             <span class="msm-speech-type-badge dialogue" title="{{ $speechTooltipText }}" style="cursor: help;">💬 {{ __('Dialogue') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(236, 72, 153, 0.3); color: #f9a8d4; border-radius: 0.2rem;">Multitalk</span>
                                         @elseif($shotMonologue || $shotDialogue)
+                                            {{-- Monologue without lip-sync flag (edge case - treat as TTS) --}}
                                             <span class="msm-speech-type-badge monologue" title="{{ $speechTooltipText }}" style="cursor: help;">🗣️ {{ __('Monologue') }}</span>
-                                        @elseif($shotNarration)
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
+                                        @elseif($hasInternalOverlay || $hasInternalSegment || !empty($internalText))
+                                            {{-- Internal thought (voiceover only, no lip-sync) --}}
+                                            <span class="msm-speech-type-badge internal" title="{{ $speechTooltipText }}" style="cursor: help; background: rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6);">💭 {{ __('Internal') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
+                                        @elseif($shotNarration || $hasNarratorOverlay || $hasNarratorSegment)
+                                            {{-- Narrator (voiceover only, no lip-sync) --}}
                                             <span class="msm-speech-type-badge narrator" title="{{ $speechTooltipText }}" style="cursor: help;">🎙️ {{ __('Narrator') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
                                         @endif
                                         @if($shotSpeaker)
                                             <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">{{ $shotSpeaker }}</span>

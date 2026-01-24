@@ -23415,6 +23415,8 @@ PROMPT;
 
         // Types that require lip-sync (character's lips move on screen)
         $lipSyncTypes = ['dialogue', 'monologue'];
+        // Types that are voiceover-only (no lip movement)
+        $voiceoverTypes = ['narrator', 'internal'];
 
         $segmentCount = count($speechSegments);
         $segmentsPerShot = max(1, ceil($segmentCount / $shotCount));
@@ -23424,7 +23426,11 @@ PROMPT;
             $shotSegments = [];
             $needsLipSync = false;
             $shotDialogue = '';
+            $shotNarration = '';
+            $shotInternalText = '';
             $speakers = [];
+            $hasNarrator = false;
+            $hasInternal = false;
 
             // Collect segments for this shot
             for ($i = 0; $i < $segmentsPerShot && $segmentIndex < $segmentCount; $i++, $segmentIndex++) {
@@ -23432,11 +23438,23 @@ PROMPT;
                 $shotSegments[] = $segment;
 
                 $segType = strtolower($segment['type'] ?? 'narrator');
+                $segText = $segment['text'] ?? '';
 
                 // Check if this segment requires lip-sync
                 if (in_array($segType, $lipSyncTypes)) {
                     $needsLipSync = true;
-                    $shotDialogue .= ($shotDialogue ? ' ' : '') . ($segment['text'] ?? '');
+                    $shotDialogue .= ($shotDialogue ? ' ' : '') . $segText;
+                    if (!empty($segment['speaker'])) {
+                        $speakers[$segment['speaker']] = true;
+                    }
+                } elseif ($segType === 'narrator') {
+                    // Narrator segment - voiceover only
+                    $hasNarrator = true;
+                    $shotNarration .= ($shotNarration ? ' ' : '') . $segText;
+                } elseif ($segType === 'internal') {
+                    // Internal thought segment - voiceover only
+                    $hasInternal = true;
+                    $shotInternalText .= ($shotInternalText ? ' ' : '') . $segText;
                     if (!empty($segment['speaker'])) {
                         $speakers[$segment['speaker']] = true;
                     }
@@ -23449,6 +23467,7 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['needsLipSync'] = $needsLipSync;
 
                 if ($needsLipSync) {
+                    // Dialogue/monologue - requires Multitalk
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['dialogue'] = $shotDialogue;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['speakingCharacters'] = array_keys($speakers);
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = 'multitalk';
@@ -23458,6 +23477,26 @@ PROMPT;
                     if ($firstSpeaker) {
                         $voice = $this->getVoiceForCharacterName($firstSpeaker);
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['voiceId'] = $voice;
+                    }
+                } else {
+                    // No lip-sync needed - use Minimax with TTS overlay
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = 'minimax';
+                }
+
+                // Set narrator text if present (for TTS voiceover generation)
+                if ($hasNarrator && !empty($shotNarration)) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['narration'] = $shotNarration;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['narratorText'] = $shotNarration;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['hasNarratorVoiceover'] = true;
+                }
+
+                // Set internal thought text if present (for TTS voiceover generation)
+                if ($hasInternal && !empty($shotInternalText)) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['internalThoughtText'] = $shotInternalText;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['internalThoughtOverlay'] = true;
+                    // Internal thoughts also get speaker info
+                    if (!empty($speakers)) {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['internalThoughtSpeaker'] = array_keys($speakers)[0];
                     }
                 }
             }
