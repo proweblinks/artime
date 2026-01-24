@@ -139,32 +139,30 @@
             @endif
 
             {{-- Preview Container --}}
-            <div style="display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.4); min-height: 280px; height: 45vh; position: relative; flex-shrink: 0;">
+            <div style="background: rgba(0,0,0,0.4); min-height: 280px; height: 45vh; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                 {{-- Image Preview (Alpine.js controlled visibility) --}}
-                <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
-                     style="position: absolute; inset: 1rem; display: flex; align-items: center; justify-content: center;">
-                    @if($hasImage)
-                        <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotPreviewShotIndex + 1 }}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-                    @else
-                        <div style="text-align: center; color: rgba(255,255,255,0.4);">
-                            <span style="font-size: 3rem;">🖼️</span>
-                            <div style="margin-top: 0.5rem; font-size: 0.9rem;">{{ __('No image generated yet') }}</div>
-                        </div>
-                    @endif
-                </div>
+                @if($hasImage)
+                    <img x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
+                         src="{{ $shot['imageUrl'] }}"
+                         alt="Shot {{ $shotPreviewShotIndex + 1 }}"
+                         style="max-width: calc(100% - 2rem); max-height: calc(100% - 2rem); object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+                @else
+                    <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
+                         style="text-align: center; color: rgba(255,255,255,0.4);">
+                        <span style="font-size: 3rem;">🖼️</span>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem;">{{ __('No image generated yet') }}</div>
+                    </div>
+                @endif
 
                 {{-- Video Preview (Alpine.js controlled visibility) --}}
                 @if($hasVideo)
-                    <div x-show="previewTab === 'video'"
-                         style="position: absolute; inset: 1rem; display: flex; align-items: center; justify-content: center;">
-                        <video
-                            src="{{ $shot['videoUrl'] }}"
-                            controls
-                            autoplay
-                            x-on:ended="onVideoEnded()"
-                            style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-                        </video>
-                    </div>
+                    <video x-show="previewTab === 'video'"
+                           src="{{ $shot['videoUrl'] }}"
+                           controls
+                           autoplay
+                           x-on:ended="onVideoEnded()"
+                           style="max-width: calc(100% - 2rem); max-height: calc(100% - 2rem); object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+                    </video>
                 @endif
 
                 {{-- Navigation Arrows --}}
