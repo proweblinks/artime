@@ -5951,6 +5951,108 @@ PROMPT;
     }
 
     /**
+     * Parse scene narration into speech segments for decomposition.
+     * This version specifically handles voiceover speechType and ensures
+     * segments are created even for narrator-only scenes.
+     *
+     * CRITICAL: Called before scene decomposition to ensure speech segments exist.
+     *
+     * @param int $sceneIndex Scene index
+     */
+    protected function parseSceneNarrationForDecomposition(int $sceneIndex): void
+    {
+        if (!isset($this->script['scenes'][$sceneIndex])) {
+            return;
+        }
+
+        $scene = &$this->script['scenes'][$sceneIndex];
+        $narration = $scene['narration'] ?? '';
+        $voiceover = $scene['voiceover'] ?? [];
+        $speechType = $voiceover['speechType'] ?? $scene['speechType'] ?? 'narrator';
+        $voiceoverText = $voiceover['text'] ?? '';
+
+        Log::info('VideoWizard: Parsing scene narration for decomposition', [
+            'sceneIndex' => $sceneIndex,
+            'speechType' => $speechType,
+            'hasNarration' => !empty($narration),
+            'hasVoiceoverText' => !empty($voiceoverText),
+        ]);
+
+        // If scene has voiceover text and speechType is narrator, create narrator segment(s)
+        if ($speechType === 'narrator' && !empty($voiceoverText)) {
+            // Create narrator segment from voiceover text
+            $scene['speechSegments'] = [[
+                'id' => 'seg-narrator-' . uniqid(),
+                'type' => 'narrator',
+                'text' => $voiceoverText,
+                'speaker' => null,
+                'needsLipSync' => false,
+                'order' => 0,
+            ]];
+            $scene['speechType'] = 'narrator';
+
+            Log::info('VideoWizard: Created narrator segment from voiceover text', [
+                'sceneIndex' => $sceneIndex,
+                'textLength' => strlen($voiceoverText),
+            ]);
+            return;
+        }
+
+        // If scene has narration but no speechSegments, parse it
+        if (!empty(trim($narration))) {
+            try {
+                $parser = new \Modules\AppVideoWizard\Services\SpeechSegmentParser();
+                $characterBible = $this->sceneMemory['characterBible'] ?? [];
+
+                // Parse narration into segments
+                $segments = $parser->parse($narration, $characterBible);
+
+                if (!empty($segments)) {
+                    $segmentArrays = $parser->toArray($segments);
+                    $scene['speechSegments'] = $segmentArrays;
+                    $scene['speechType'] = count($segmentArrays) > 1 ? 'mixed' : ($segmentArrays[0]['type'] ?? 'narrator');
+
+                    Log::info('VideoWizard: Parsed narration into segments for decomposition', [
+                        'sceneIndex' => $sceneIndex,
+                        'segmentCount' => count($segmentArrays),
+                        'types' => array_unique(array_column($segmentArrays, 'type')),
+                    ]);
+                    return;
+                }
+            } catch (\Exception $e) {
+                Log::warning('VideoWizard: Failed to parse narration into segments', [
+                    'sceneIndex' => $sceneIndex,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Fallback: If speechType is narrator but no text parsed, create narrator segment from narration
+        if ($speechType === 'narrator' && !empty(trim($narration))) {
+            $scene['speechSegments'] = [[
+                'id' => 'seg-narrator-' . uniqid(),
+                'type' => 'narrator',
+                'text' => trim($narration),
+                'speaker' => null,
+                'needsLipSync' => false,
+                'order' => 0,
+            ]];
+            $scene['speechType'] = 'narrator';
+
+            Log::info('VideoWizard: Created narrator segment from scene narration (fallback)', [
+                'sceneIndex' => $sceneIndex,
+                'textLength' => strlen($narration),
+            ]);
+            return;
+        }
+
+        // If still no segments, create empty array
+        if (!isset($scene['speechSegments'])) {
+            $scene['speechSegments'] = [];
+        }
+    }
+
+    /**
      * Sync detected speakers from script to Character Bible.
      * Creates character entries for speakers that don't already exist,
      * and auto-assigns voices based on detected gender/role.
@@ -17915,6 +18017,14 @@ PROMPT;
                 throw new \Exception(__('Scene not found'));
             }
 
+            // CRITICAL: Ensure speech segments are parsed BEFORE decomposition
+            // This ensures narrator/dialogue/monologue segments are properly distributed to shots
+            if (empty($scene['speechSegments'])) {
+                $this->parseSceneNarrationForDecomposition($sceneIndex);
+                // Re-read scene after parsing
+                $scene = $this->script['scenes'][$sceneIndex];
+            }
+
             // Get visual description for decomposition
             $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
             $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
@@ -23681,7 +23791,7 @@ PROMPT;
                 $shotNarrators[] = $narratorSegments[$narratorIndex];
             }
 
-            // Add as overlay metadata (not primary speech)
+            // Add as overlay metadata AND to speechSegments for UI detection
             if (!empty($shotNarrators)) {
                 $shots[$shotIdx]['narratorOverlay'] = $shotNarrators;
                 $shots[$shotIdx]['hasNarratorVoiceover'] = true;
@@ -23689,11 +23799,43 @@ PROMPT;
                 // Combine narrator text for voiceover generation (separate from dialogue)
                 $narratorText = implode(' ', array_column($shotNarrators, 'text'));
                 $shots[$shotIdx]['narratorText'] = $narratorText;
+                $shots[$shotIdx]['narration'] = $narratorText;
+
+                // CRITICAL: Add narrator segments to speechSegments for UI badge detection
+                $existingSegments = $shots[$shotIdx]['speechSegments'] ?? [];
+
+                // Check if shot already has dialogue/monologue segments
+                $hasDialogueSegments = !empty(array_filter($existingSegments, function($s) {
+                    return in_array(strtolower($s['type'] ?? ''), ['dialogue', 'monologue']);
+                }));
+
+                // If shot has NO dialogue/monologue, narrator is PRIMARY → set video model to minimax
+                if (!$hasDialogueSegments) {
+                    // Narrator-only shot: use TTS voiceover, NOT Multitalk lip-sync
+                    $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
+                    $shots[$shotIdx]['needsLipSync'] = false;
+                    $shots[$shotIdx]['selectedVideoModel'] = 'minimax';
+                    $shots[$shotIdx]['useMultitalk'] = false;
+                    // Clear any misleading dialogue/monologue text if present
+                    // (These may have been set by decomposer but narrator takes priority)
+                    if (empty($shots[$shotIdx]['dialogue'])) {
+                        unset($shots[$shotIdx]['dialogue']);
+                    }
+                    if (empty($shots[$shotIdx]['monologue'])) {
+                        unset($shots[$shotIdx]['monologue']);
+                    }
+                } else {
+                    // Mixed shot: has both dialogue/monologue AND narrator overlay
+                    // Keep lip-sync for dialogue, narrator is background voiceover
+                    $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
+                }
 
                 Log::debug('Added narrator overlay to shot', [
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIdx,
                     'narratorCount' => count($shotNarrators),
+                    'hasDialogueSegments' => $hasDialogueSegments,
+                    'needsLipSync' => $shots[$shotIdx]['needsLipSync'] ?? false,
                 ]);
             }
         }
