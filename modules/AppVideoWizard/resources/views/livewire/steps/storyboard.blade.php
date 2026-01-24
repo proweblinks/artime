@@ -5468,8 +5468,9 @@ function getCameraMovementIcon($movement) {
                                     ✂️ {{ __('Edit') }}
                                 </button>
                             </div>
-                            {{-- Horizontal Scrollable Shot Strip --}}
-                            <div x-show="expanded" x-collapse wire:key="shots-grid-{{ $index }}" style="display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.25rem 0; scrollbar-width: none;">
+                            {{-- Horizontal Scrollable Shot Strip - Wrapped for proper collapse --}}
+                            <div x-show="expanded" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 max-h-0" x-transition:enter-end="opacity-100 max-h-40" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 max-h-40" x-transition:leave-end="opacity-0 max-h-0" style="overflow: hidden;">
+                                <div wire:key="shots-grid-{{ $index }}" style="display: flex; flex-direction: row; gap: 0.25rem; overflow-x: auto; padding: 0.25rem 0; scrollbar-width: none; -webkit-overflow-scrolling: touch;">
                                 @foreach($decomposed['shots'] as $shotIdx => $shot)
                                     @php
                                         $isSelected = ($decomposed['selectedShot'] ?? 0) === $shotIdx;
@@ -5566,6 +5567,7 @@ function getCameraMovementIcon($movement) {
                                         </div>
                                     </div>
                                 @endforeach
+                                </div>
                             </div>
 
                             {{-- Quick Actions (also in collapsible area) --}}
