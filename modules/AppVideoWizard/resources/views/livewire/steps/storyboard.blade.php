@@ -2369,6 +2369,407 @@
 
     /* Brainstorm panel transitions */
     .vw-brainstorm-panel[x-cloak] { display: none; }
+
+    /* ========================================
+       PHASE 4: POLISH & REFINEMENTS
+       ======================================== */
+
+    /* Enhanced Glassmorphism Effects */
+    .vw-glass {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-glass-strong {
+        background: rgba(15, 15, 28, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .vw-glass-accent {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    /* Micro-animations: Button hover effects */
+    .vw-btn-hover {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .vw-btn-hover:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+    }
+
+    .vw-btn-hover:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Micro-animations: Card hover effects */
+    .vw-card-hover {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .vw-card-hover:hover {
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Micro-animations: Icon spin on hover */
+    .vw-icon-spin-hover:hover svg,
+    .vw-icon-spin-hover:hover .icon {
+        animation: vw-icon-spin 0.5s ease;
+    }
+
+    @keyframes vw-icon-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Micro-animations: Subtle bounce */
+    .vw-bounce-hover:hover {
+        animation: vw-subtle-bounce 0.4s ease;
+    }
+
+    @keyframes vw-subtle-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+    }
+
+    /* Micro-animations: Glow effect */
+    .vw-glow-hover {
+        transition: box-shadow 0.3s ease;
+    }
+
+    .vw-glow-hover:hover {
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Micro-animations: Scale on focus for inputs */
+    .vw-input-focus {
+        transition: all 0.2s ease;
+    }
+
+    .vw-input-focus:focus {
+        transform: scale(1.01);
+        border-color: rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+
+    /* Staggered animation for lists */
+    .vw-stagger-item {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: vw-stagger-in 0.3s ease forwards;
+    }
+
+    @keyframes vw-stagger-in {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Shimmer effect for loading states */
+    .vw-shimmer {
+        background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            rgba(255, 255, 255, 0.03) 100%
+        );
+        background-size: 200% 100%;
+        animation: vw-shimmer 1.5s infinite;
+    }
+
+    @keyframes vw-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Ripple effect on click */
+    .vw-ripple {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .vw-ripple::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+        opacity: 0;
+    }
+
+    .vw-ripple:active::after {
+        width: 200px;
+        height: 200px;
+        opacity: 1;
+        transition: 0s;
+    }
+
+    /* Keyboard shortcut badge */
+    .vw-shortcut-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.15rem 0.4rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.25rem;
+        font-size: 0.6rem;
+        font-family: monospace;
+        color: rgba(255, 255, 255, 0.4);
+        margin-left: 0.5rem;
+    }
+
+    /* Theme toggle styles */
+    .vw-theme-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 2rem;
+    }
+
+    .vw-theme-toggle-btn {
+        padding: 0.35rem 0.6rem;
+        border: none;
+        border-radius: 1.5rem;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .vw-theme-toggle-btn.active {
+        background: rgba(139, 92, 246, 0.3);
+        color: white;
+    }
+
+    /* Light theme variables (applied via class) */
+    .vw-light-theme {
+        --vw-bg-primary: #f8fafc;
+        --vw-bg-secondary: #ffffff;
+        --vw-bg-tertiary: #f1f5f9;
+        --vw-text-primary: #1e293b;
+        --vw-text-secondary: #64748b;
+        --vw-text-muted: #94a3b8;
+        --vw-border-color: rgba(0, 0, 0, 0.08);
+        --vw-accent-primary: #8b5cf6;
+        --vw-accent-secondary: #06b6d4;
+        --vw-shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dark theme variables (default) */
+    .vw-dark-theme,
+    .vw-storyboard-fullscreen {
+        --vw-bg-primary: #0f0f1c;
+        --vw-bg-secondary: #1a1a2e;
+        --vw-bg-tertiary: #252542;
+        --vw-text-primary: #ffffff;
+        --vw-text-secondary: rgba(255, 255, 255, 0.7);
+        --vw-text-muted: rgba(255, 255, 255, 0.4);
+        --vw-border-color: rgba(255, 255, 255, 0.08);
+        --vw-accent-primary: #8b5cf6;
+        --vw-accent-secondary: #06b6d4;
+        --vw-shadow-color: rgba(0, 0, 0, 0.5);
+    }
+
+    /* Apply theme variables */
+    .vw-themed-bg {
+        background-color: var(--vw-bg-primary);
+        color: var(--vw-text-primary);
+    }
+
+    .vw-themed-card {
+        background-color: var(--vw-bg-secondary);
+        border-color: var(--vw-border-color);
+    }
+
+    .vw-themed-text {
+        color: var(--vw-text-primary);
+    }
+
+    .vw-themed-text-secondary {
+        color: var(--vw-text-secondary);
+    }
+
+    .vw-themed-text-muted {
+        color: var(--vw-text-muted);
+    }
+
+    /* Keyboard shortcuts overlay */
+    .vw-shortcuts-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 2rem;
+    }
+
+    .vw-shortcuts-modal {
+        background: rgba(30, 30, 50, 0.95);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        max-width: 500px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .vw-shortcuts-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .vw-shortcuts-group {
+        margin-bottom: 1rem;
+    }
+
+    .vw-shortcuts-group-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .vw-shortcut-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+
+    .vw-shortcut-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.8rem;
+    }
+
+    .vw-shortcut-keys {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .vw-shortcut-key {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 0.35rem;
+        font-size: 0.7rem;
+        font-family: monospace;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Focus indicator for accessibility */
+    .vw-focus-ring:focus-visible {
+        outline: 2px solid rgba(139, 92, 246, 0.6);
+        outline-offset: 2px;
+    }
+
+    /* Smooth scrollbar for webkit browsers */
+    .vw-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .vw-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 3px;
+    }
+
+    .vw-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 3px;
+    }
+
+    .vw-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(139, 92, 246, 0.5);
+    }
+
+    /* Toast notification styles */
+    .vw-toast {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        padding: 0.75rem 1rem;
+        background: rgba(30, 30, 50, 0.95);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 3000;
+        animation: vw-toast-in 0.3s ease;
+    }
+
+    .vw-toast.success {
+        border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .vw-toast.error {
+        border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes vw-toast-in {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .vw-toast-out {
+        animation: vw-toast-out 0.3s ease forwards;
+    }
+
+    @keyframes vw-toast-out {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+    }
 </style>
 
 @php
@@ -2621,6 +3022,91 @@ function getCameraMovementIcon($movement) {
     cancelGeneration() {
         this.generation.active = false;
         this.generation.progress = 0;
+    },
+    // Phase 4: Theme Support
+    theme: localStorage.getItem('vw-theme') || 'dark',
+    setTheme(newTheme) {
+        this.theme = newTheme;
+        localStorage.setItem('vw-theme', newTheme);
+        document.documentElement.classList.remove('vw-light-theme', 'vw-dark-theme');
+        document.documentElement.classList.add('vw-' + newTheme + '-theme');
+    },
+    // Phase 4: Keyboard Shortcuts
+    shortcuts: {
+        showHelp: false
+    },
+    initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ignore if typing in input/textarea
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // ? or / + Shift = Show shortcuts help
+            if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+                e.preventDefault();
+                this.shortcuts.showHelp = !this.shortcuts.showHelp;
+            }
+            // G = Toggle grid/timeline view
+            else if (e.key === 'g' || e.key === 'G') {
+                e.preventDefault();
+                this.viewMode = this.viewMode === 'grid' ? 'timeline' : 'grid';
+            }
+            // S = Toggle settings panel
+            else if (e.key === 's' || e.key === 'S') {
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    this.showSettings = !this.showSettings;
+                }
+            }
+            // T = Toggle theme
+            else if (e.key === 't' || e.key === 'T') {
+                e.preventDefault();
+                this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+            }
+            // Escape = Close panels/modals
+            else if (e.key === 'Escape') {
+                if (this.shortcuts.showHelp) {
+                    this.shortcuts.showHelp = false;
+                } else if (this.sidePanel.open) {
+                    this.closeSidePanel();
+                } else if (this.brainstorm.open) {
+                    this.closeBrainstorm();
+                }
+            }
+            // 1-9 = Quick select scene
+            else if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey) {
+                const sceneIndex = parseInt(e.key) - 1;
+                const sceneCards = document.querySelectorAll('.vw-scene-card');
+                if (sceneCards[sceneIndex]) {
+                    sceneCards[sceneIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    sceneCards[sceneIndex].classList.add('selected');
+                    setTimeout(() => sceneCards[sceneIndex].classList.remove('selected'), 1000);
+                }
+            }
+        });
+    },
+    // Phase 4: Toast Notifications
+    toast: {
+        show: false,
+        message: '',
+        type: 'success',
+        timeout: null
+    },
+    showToast(message, type = 'success', duration = 3000) {
+        if (this.toast.timeout) clearTimeout(this.toast.timeout);
+        this.toast.show = true;
+        this.toast.message = message;
+        this.toast.type = type;
+        this.toast.timeout = setTimeout(() => {
+            this.toast.show = false;
+        }, duration);
+    },
+    // Initialize on mount
+    init() {
+        this.initKeyboardShortcuts();
+        // Apply saved theme
+        if (this.theme === 'light') {
+            document.documentElement.classList.add('vw-light-theme');
+        }
     }
 }">
     {{-- Top Header Bar --}}
@@ -2686,6 +3172,33 @@ function getCameraMovementIcon($movement) {
                     <span>{{ __('Timeline') }}</span>
                 </button>
             </div>
+
+            {{-- Phase 4: Theme Toggle --}}
+            <div class="vw-theme-toggle">
+                <button type="button"
+                        class="vw-theme-toggle-btn"
+                        :class="{ 'active': theme === 'dark' }"
+                        @click="setTheme('dark')"
+                        title="{{ __('Dark Theme') }}">
+                    🌙
+                </button>
+                <button type="button"
+                        class="vw-theme-toggle-btn"
+                        :class="{ 'active': theme === 'light' }"
+                        @click="setTheme('light')"
+                        title="{{ __('Light Theme') }}">
+                    ☀️
+                </button>
+            </div>
+
+            {{-- Phase 4: Keyboard Shortcuts Help --}}
+            <button type="button"
+                    @click="shortcuts.showHelp = true"
+                    style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.35rem; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;"
+                    title="{{ __('Keyboard Shortcuts') }} (?)">
+                ⌨️
+                <span class="vw-shortcut-badge">?</span>
+            </button>
 
             {{-- Settings Toggle --}}
             <button type="button"
@@ -4699,6 +5212,109 @@ function getCameraMovementIcon($movement) {
                 </div>
             </template>
         </div>
+    </div>
+
+    {{-- Phase 4: Keyboard Shortcuts Help Modal --}}
+    <div class="vw-shortcuts-overlay"
+         x-show="shortcuts.showHelp"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click.self="shortcuts.showHelp = false"
+         @keydown.escape.window="shortcuts.showHelp = false"
+         x-cloak>
+        <div class="vw-shortcuts-modal">
+            <div class="vw-shortcuts-title">
+                <span>⌨️</span>
+                <span>{{ __('Keyboard Shortcuts') }}</span>
+                <button type="button"
+                        @click="shortcuts.showHelp = false"
+                        style="margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1.25rem; line-height: 1;">
+                    ×
+                </button>
+            </div>
+
+            <div class="vw-shortcuts-group">
+                <div class="vw-shortcuts-group-title">{{ __('Navigation') }}</div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Toggle Grid/Timeline View') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">G</span>
+                    </div>
+                </div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Toggle Settings Panel') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">S</span>
+                    </div>
+                </div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Go to Scene 1-9') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">1</span>
+                        <span style="color: rgba(255,255,255,0.3);">-</span>
+                        <span class="vw-shortcut-key">9</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vw-shortcuts-group">
+                <div class="vw-shortcuts-group-title">{{ __('Appearance') }}</div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Toggle Light/Dark Theme') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">T</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vw-shortcuts-group">
+                <div class="vw-shortcuts-group-title">{{ __('Actions') }}</div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Show Keyboard Shortcuts') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">?</span>
+                    </div>
+                </div>
+                <div class="vw-shortcut-row">
+                    <span class="vw-shortcut-label">{{ __('Close Panel/Modal') }}</span>
+                    <div class="vw-shortcut-keys">
+                        <span class="vw-shortcut-key">Esc</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
+                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">
+                    {{ __('Press') }} <span class="vw-shortcut-key">?</span> {{ __('anytime to show this help') }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Phase 4: Toast Notifications --}}
+    <div class="vw-toast"
+         :class="toast.type"
+         x-show="toast.show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-4"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-4"
+         x-cloak>
+        <span x-show="toast.type === 'success'" style="font-size: 1rem;">✅</span>
+        <span x-show="toast.type === 'error'" style="font-size: 1rem;">❌</span>
+        <span x-show="toast.type === 'info'" style="font-size: 1rem;">ℹ️</span>
+        <span x-text="toast.message" style="color: white; font-size: 0.85rem;"></span>
+        <button type="button"
+                @click="toast.show = false"
+                style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem; padding: 0 0.25rem;">
+            ×
+        </button>
     </div>
 
     {{-- Stock Media Browser Modal --}}
