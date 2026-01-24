@@ -2065,6 +2065,46 @@
         animation: vw-spin 0.8s linear infinite;
     }
 
+    .vw-btn-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: vw-spin 0.6s linear infinite;
+        vertical-align: middle;
+    }
+
+    /* Voice Types Panel */
+    .vw-voice-types-btn:hover {
+        background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(6,182,212,0.25)) !important;
+        border-color: rgba(139,92,246,0.6) !important;
+        transform: translateY(-1px);
+    }
+
+    .vw-voice-panel::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .vw-voice-panel::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 2px;
+    }
+
+    .vw-voice-panel::-webkit-scrollbar-thumb {
+        background: rgba(139,92,246,0.4);
+        border-radius: 2px;
+    }
+
+    .vw-voice-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(139,92,246,0.6);
+    }
+
+    .rotate-180 {
+        transform: rotate(180deg);
+    }
+
     .vw-generating-text {
         color: rgba(255, 255, 255, 0.6);
         font-size: 0.95rem;
@@ -4594,7 +4634,7 @@ function getCameraMovementIcon($movement) {
                         wire:loading.attr="disabled"
                         wire:target="generateAllImages">
                     <span wire:loading.remove wire:target="generateAllImages">🎨</span>
-                    <span wire:loading wire:target="generateAllImages" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                    <span wire:loading wire:target="generateAllImages" class="vw-btn-spinner"></span>
                     {{ __('Generate All Images') }}
                 </button>
             @endif
@@ -5700,7 +5740,7 @@ function getCameraMovementIcon($movement) {
                                             style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                             title="{{ __('Multi-shot decomposition') }}">
                                         <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
-                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.6s linear infinite;"></span>
+                                        <span wire:loading wire:target="openMultiShotModal({{ $index }})" class="vw-btn-spinner"></span>
                                     </button>
                                 </div>
                             @elseif($status === 'error')
@@ -5992,14 +6032,9 @@ function getCameraMovementIcon($movement) {
                                         wire:loading.class="vw-btn-loading"
                                         wire:target="openMultiShotModal({{ $index }})"
                                         class="vw-edit-shots-btn">
-                                    <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️ {{ __('Edit Shots') }}</span>
-                                    <span wire:loading wire:target="openMultiShotModal({{ $index }})" style="display: flex; align-items: center; gap: 0.25rem;">
-                                        <svg style="width: 12px; height: 12px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
-                                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
-                                        </svg>
-                                        {{ __('Opening...') }}
-                                    </span>
+                                    <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
+                                    <span wire:loading wire:target="openMultiShotModal({{ $index }})" class="vw-btn-spinner"></span>
+                                    {{ __('Edit Shots') }}
                                 </button>
                             </div>
                             {{-- Horizontal Scrollable Shot Strip - Wrapped for proper collapse --}}
@@ -6179,45 +6214,164 @@ function getCameraMovementIcon($movement) {
 
                         // Type icons mapping for segments with accessibility labels
                         $typeIcons = [
-                            'narrator' => ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'label' => 'NARRATION'],
-                            'dialogue' => ['icon' => '💬', 'color' => 'rgba(34, 197, 94, 0.4)', 'label' => 'DIALOGUE'],
-                            'internal' => ['icon' => '💭', 'color' => 'rgba(168, 85, 247, 0.4)', 'label' => 'INTERNAL'],
-                            'monologue' => ['icon' => '🗣️', 'color' => 'rgba(251, 191, 36, 0.4)', 'label' => 'MONOLOGUE'],
+                            'narrator' => ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'border' => 'rgba(14, 165, 233, 0.6)', 'label' => 'NARRATOR', 'lipSync' => false],
+                            'dialogue' => ['icon' => '💬', 'color' => 'rgba(34, 197, 94, 0.4)', 'border' => 'rgba(34, 197, 94, 0.6)', 'label' => 'DIALOGUE', 'lipSync' => true],
+                            'internal' => ['icon' => '💭', 'color' => 'rgba(168, 85, 247, 0.4)', 'border' => 'rgba(168, 85, 247, 0.6)', 'label' => 'INTERNAL', 'lipSync' => false],
+                            'monologue' => ['icon' => '🗣️', 'color' => 'rgba(251, 191, 36, 0.4)', 'border' => 'rgba(251, 191, 36, 0.6)', 'label' => 'MONOLOGUE', 'lipSync' => true],
                         ];
                     @endphp
 
                     @if(!empty($speechSegments) || !empty($narration))
-                        @php
-                            // Build tooltip text from first segment or narration
-                            $tooltipText = '';
-                            if (!empty($speechSegments)) {
-                                $firstSeg = $speechSegments[0] ?? null;
-                                $tooltipText = $firstSeg['text'] ?? '';
-                                if (count($speechSegments) > 1) {
-                                    $tooltipText .= ' (+' . (count($speechSegments) - 1) . ' more)';
-                                }
-                            } elseif (!empty($narration)) {
-                                $tooltipText = $narration;
-                            }
-                        @endphp
-                        <div style="padding: 0.3rem 0.75rem;">
-                            <div class="vw-scene-dialogue" style="display: flex; justify-content: space-between; align-items: center;">
-                                {{-- Badge with tooltip showing full text --}}
-                                <div style="display: flex; align-items: center; gap: 0.25rem; cursor: help;" title="{{ $tooltipText }}">
-                                    <span style="font-size: 0.75rem;">{{ $speechIcon }}</span>
-                                    <span style="font-weight: 600; font-size: 0.7rem;">{{ $speechLabel }}</span>
-                                    @if(!empty($speechDetailLabel))
-                                        <span style="opacity: 0.5; font-size: 0.6rem;">{{ $speechDetailLabel }}</span>
-                                    @endif
-                                </div>
+                        <div style="padding: 0.3rem 0.75rem;" x-data="{ voicePanelOpen: false }">
+                            <div class="vw-scene-dialogue" style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+                                {{-- Voice Types clickable badge --}}
+                                <button
+                                    type="button"
+                                    @click="voicePanelOpen = !voicePanelOpen"
+                                    class="vw-voice-types-btn"
+                                    style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
+                                    :style="voicePanelOpen ? 'background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); border-color: rgba(139,92,246,0.6);' : ''"
+                                >
+                                    <span style="font-size: 0.75rem;">🎙️</span>
+                                    <span style="font-weight: 600; font-size: 0.7rem; color: white;">{{ __('Voice Types') }}</span>
+                                    <span style="opacity: 0.6; font-size: 0.6rem; color: rgba(255,255,255,0.7);">({{ $totalSegments }})</span>
+                                    <svg :class="voicePanelOpen ? 'rotate-180' : ''" style="width: 10px; height: 10px; transition: transform 0.2s; color: rgba(255,255,255,0.6);" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
+
+                                {{-- Inspect button --}}
                                 <button
                                     wire:click="openSceneTextInspector({{ $index }})"
                                     class="vw-inspect-btn"
-                                    title="{{ __('Click to view all scene text and prompts') }}"
+                                    title="{{ __('Full scene details') }}"
                                     style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer; transition: all 0.2s;"
                                 >
                                     🔍 {{ __('Inspect') }}
                                 </button>
+
+                                {{-- Voice Types Dropdown Panel --}}
+                                <div
+                                    x-show="voicePanelOpen"
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                                    x-transition:leave="transition ease-in duration-100"
+                                    x-transition:leave-start="opacity-100"
+                                    x-transition:leave-end="opacity-0"
+                                    @click.outside="voicePanelOpen = false"
+                                    class="vw-voice-panel"
+                                    style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.35rem; background: linear-gradient(135deg, rgba(30,30,50,0.98), rgba(20,20,40,0.99)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 50; max-height: 320px; overflow: hidden; display: flex; flex-direction: column;"
+                                >
+                                    {{-- Panel Header --}}
+                                    <div style="padding: 0.5rem 0.65rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                                        <span style="font-size: 0.7rem; font-weight: 600; color: white;">{{ __('Speech Segments') }}</span>
+                                        <div style="display: flex; gap: 0.5rem; font-size: 0.55rem;">
+                                            @if(collect($speechSegments)->where('needsLipSync', true)->count() > 0)
+                                                <span style="color: #6ee7b7;">{{ collect($speechSegments)->where('needsLipSync', true)->count() }} {{ __('lip-sync') }}</span>
+                                            @endif
+                                            @if(collect($speechSegments)->where('needsLipSync', false)->count() > 0)
+                                                <span style="color: #67e8f9;">{{ collect($speechSegments)->where('needsLipSync', false)->count() }} {{ __('voiceover') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    {{-- Segments List --}}
+                                    <div style="overflow-y: auto; flex: 1; padding: 0.5rem;">
+                                        @forelse($speechSegments as $segIdx => $segment)
+                                            @php
+                                                $segType = $segment['type'] ?? 'narrator';
+                                                $segConfig = $typeIcons[$segType] ?? $typeIcons['narrator'];
+                                                $segSpeaker = $segment['speaker'] ?? null;
+                                                $segText = $segment['text'] ?? '';
+                                                $segAudioUrl = $segment['audioUrl'] ?? null;
+                                                $needsLipSync = $segConfig['lipSync'] ?? false;
+                                                $wordCount = str_word_count($segText);
+                                                $estDuration = round(($wordCount / 150) * 60, 1);
+                                            @endphp
+                                            <div style="padding: 0.5rem; margin-bottom: 0.4rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $segConfig['border'] }}; border-radius: 0 0.3rem 0.3rem 0;">
+                                                {{-- Segment Header --}}
+                                                <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+                                                    <span style="font-size: 0.85rem;">{{ $segConfig['icon'] }}</span>
+                                                    <span style="font-size: 0.55rem; font-weight: 600; color: white; padding: 0.1rem 0.3rem; background: {{ $segConfig['color'] }}; border-radius: 0.2rem;">
+                                                        {{ $segConfig['label'] }}
+                                                    </span>
+                                                    @if($segSpeaker)
+                                                        <span style="color: #c4b5fd; font-size: 0.65rem; font-weight: 600;">{{ $segSpeaker }}</span>
+                                                    @endif
+                                                    <span style="flex: 1;"></span>
+                                                    @if($needsLipSync)
+                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(16,185,129,0.2); color: #6ee7b7; border-radius: 0.15rem;">MULTITALK</span>
+                                                    @else
+                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.15rem;">TTS</span>
+                                                    @endif
+                                                    <span style="font-size: 0.5rem; color: rgba(255,255,255,0.5);">~{{ $estDuration }}s</span>
+                                                </div>
+
+                                                {{-- Segment Text --}}
+                                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4; margin-bottom: 0.35rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                    {{ $segText }}
+                                                </div>
+
+                                                {{-- Audio Player (if audio exists) --}}
+                                                @if($segAudioUrl)
+                                                    <div x-data="{ playing: false, audioEl: null }" style="margin-top: 0.25rem;">
+                                                        <button
+                                                            type="button"
+                                                            @click="
+                                                                if (!audioEl) {
+                                                                    audioEl = new Audio('{{ $segAudioUrl }}');
+                                                                    audioEl.onended = () => playing = false;
+                                                                }
+                                                                if (playing) {
+                                                                    audioEl.pause();
+                                                                    audioEl.currentTime = 0;
+                                                                    playing = false;
+                                                                } else {
+                                                                    audioEl.play();
+                                                                    playing = true;
+                                                                }
+                                                            "
+                                                            style="display: flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.2rem; color: #a78bfa; font-size: 0.55rem; cursor: pointer;"
+                                                        >
+                                                            <span x-text="playing ? '⏹️' : '▶️'"></span>
+                                                            <span x-text="playing ? '{{ __('Stop') }}' : '{{ __('Play Audio') }}'"></span>
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            @if(!empty($narration))
+                                                {{-- Legacy narration fallback --}}
+                                                <div style="padding: 0.5rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.6); border-radius: 0 0.3rem 0.3rem 0;">
+                                                    <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                                                        <span style="font-size: 0.85rem;">🎙️</span>
+                                                        <span style="font-size: 0.55rem; font-weight: 600; color: white; padding: 0.1rem 0.3rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.2rem;">NARRATOR</span>
+                                                        <span style="flex: 1;"></span>
+                                                        <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.15rem;">TTS</span>
+                                                    </div>
+                                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); line-height: 1.4;">
+                                                        {{ Str::limit($narration, 150) }}
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endforelse
+                                    </div>
+
+                                    {{-- Panel Footer with Full Inspect Link --}}
+                                    <div style="padding: 0.5rem 0.65rem; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+                                        <button
+                                            type="button"
+                                            wire:click="openSceneTextInspector({{ $index }})"
+                                            @click="voicePanelOpen = false"
+                                            style="width: 100%; padding: 0.35rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(6,182,212,0.2)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; color: white; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s;"
+                                        >
+                                            <span>🔍</span>
+                                            <span>{{ __('Open Full Inspector') }}</span>
+                                            <span style="opacity: 0.6;">({{ __('prompts, metadata') }})</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endif
