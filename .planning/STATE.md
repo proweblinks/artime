@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 **Milestone:** 9 (Voice Production Excellence)
-**Phase:** 15 (Critical Fixes) - Ready to plan
-**Plan:** 0 of ? plans
-**Status:** Milestone initialized, ready to plan Phase 15
+**Phase:** 15 (Critical Fixes) - In progress
+**Plan:** 1 of 1 plans
+**Status:** Phase 15 Plan 01 complete (VOC-01, VOC-02)
 
 ```
-Phase 15: ░░░░░░░░░░ 0% (not yet planned)
+Phase 15: ██████████ 100% (1/1 plans complete)
 Phase 16: ░░░░░░░░░░ 0% (not yet planned)
 Phase 17: ░░░░░░░░░░ 0% (not yet planned)
 Phase 18: ░░░░░░░░░░ 0% (not yet planned)
 ─────────────────────
-Overall:  ░░░░░░░░░░ 0% (0/6 requirements)
+Overall:  ███░░░░░░░ 33% (2/6 requirements)
 ```
 
-**Last activity:** 2026-01-24 - Milestone 9 created from TTS/Lip-Sync audit
+**Last activity:** 2026-01-24 - Completed 15-01-PLAN.md
 
 ---
 
@@ -76,6 +76,8 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-24 | Voice Registry | Centralized voice assignment | Single source of truth per audit recommendation |
 | 2026-01-24 | Multi-speaker | Expand shot structure | Support multiple speakers per shot |
 | 2026-01-24 | Validation pattern | Non-blocking (same as M8) | Log warnings but don't halt generation |
+| 2026-01-24 | Voice fallback chain | Use getNarratorVoice() for narrator overlay | Established fallback: Character Bible → animation.narrator.voice → animation.voiceover.voice → 'nova' |
+| 2026-01-24 | Logging levels | Log::warning for empty text, Log::error for missing type | Distinguish recoverable issues from data integrity problems |
 
 ### Research Insights
 
@@ -102,8 +104,8 @@ The system should be sophisticated and automatically updated based on previous s
 
 | Issue | Impact | Plan | Status |
 |-------|--------|------|--------|
-| Narrator voice not assigned | High | M9 Phase 15 (VOC-01) | Planned |
-| Empty text validation | High | M9 Phase 15 (VOC-02) | Planned |
+| Narrator voice not assigned | High | M9 Phase 15 (VOC-01) | RESOLVED |
+| Empty text validation | High | M9 Phase 15 (VOC-02) | RESOLVED |
 | Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | Planned |
 | No voice continuity | Medium | M9 Phase 16 (VOC-04) | Planned |
 | Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | Planned |
@@ -153,16 +155,18 @@ None currently.
 | `.planning/STATE.md` | Current state tracking | Updated (2026-01-24) |
 | `.planning/ROADMAP.md` | Milestone 9 roadmap | Created (2026-01-24) |
 | `.planning/REQUIREMENTS.md` | M9 requirements | Created (2026-01-24) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Target for M9 |
+| `.planning/phases/15-critical-fixes/15-01-SUMMARY.md` | Phase 15 Plan 01 summary | Created (2026-01-24) |
+| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 15-01) |
+| `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-24
-**Stopped at:** Milestone 9 initialized
-**Resume file:** .planning/ROADMAP.md
-**Next step:** /gsd:plan-phase 15 or /gsd:discuss-phase 15
+**Stopped at:** Completed 15-01-PLAN.md
+**Resume file:** .planning/phases/15-critical-fixes/15-01-SUMMARY.md
+**Next step:** /gsd:plan-phase 16 (Consistency Layer)
 
 ---
 
