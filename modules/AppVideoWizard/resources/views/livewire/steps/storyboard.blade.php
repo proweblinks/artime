@@ -918,6 +918,250 @@
         cursor: pointer;
     }
 
+    /* Scene Memory - Modern Tabbed Design */
+    .vw-memory-tabs {
+        display: flex;
+        position: relative;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.75rem;
+        padding: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .vw-memory-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.6rem 0.5rem;
+        background: transparent;
+        border: none;
+        border-radius: 0.5rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        z-index: 1;
+    }
+
+    .vw-memory-tab:hover {
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .vw-memory-tab.active {
+        color: white;
+    }
+
+    .vw-memory-tab-icon {
+        font-size: 1rem;
+    }
+
+    .vw-memory-tab-label {
+        font-weight: 600;
+    }
+
+    .vw-memory-tab-count {
+        background: rgba(139, 92, 246, 0.3);
+        padding: 0.1rem 0.4rem;
+        border-radius: 0.75rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #c4b5fd;
+        min-width: 1.25rem;
+        text-align: center;
+    }
+
+    .vw-memory-tab.active .vw-memory-tab-count {
+        background: rgba(139, 92, 246, 0.6);
+        color: white;
+    }
+
+    .vw-memory-tab-indicator {
+        position: absolute;
+        bottom: 0.25rem;
+        height: calc(100% - 0.5rem);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.2));
+        border-radius: 0.5rem;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 0;
+    }
+
+    .vw-memory-panel {
+        min-height: 120px;
+    }
+
+    .vw-memory-panel-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.5rem;
+    }
+
+    .vw-memory-add-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 0.5rem;
+        color: #a78bfa;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .vw-memory-add-btn:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.25));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+    }
+
+    .vw-memory-add-btn span {
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .vw-memory-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .vw-memory-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 0.6rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .vw-memory-card:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(139, 92, 246, 0.08);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+    }
+
+    .vw-memory-card-image {
+        aspect-ratio: 1/1;
+        position: relative;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .vw-memory-card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .vw-memory-card:hover .vw-memory-card-image img {
+        transform: scale(1.05);
+    }
+
+    .vw-memory-card-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        opacity: 0.4;
+    }
+
+    .vw-memory-card-info {
+        padding: 0.4rem 0.5rem;
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .vw-memory-card-name {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .vw-memory-empty {
+        grid-column: span 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        color: rgba(255, 255, 255, 0.4);
+        gap: 0.5rem;
+    }
+
+    .vw-memory-empty-icon {
+        font-size: 2rem;
+        opacity: 0.5;
+    }
+
+    .vw-memory-empty-text {
+        font-size: 0.75rem;
+    }
+
+    .vw-memory-dna-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.75rem;
+        padding: 0.6rem 0.75rem;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(139, 92, 246, 0.08));
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        border-radius: 0.5rem;
+    }
+
+    .vw-memory-dna-info {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .vw-memory-dna-icon {
+        font-size: 1rem;
+    }
+
+    .vw-memory-dna-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .vw-memory-dna-count {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.5);
+        background: rgba(6, 182, 212, 0.15);
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.25rem;
+    }
+
+    .vw-memory-dna-btn {
+        padding: 0.3rem 0.6rem;
+        background: rgba(6, 182, 212, 0.2);
+        border: 1px solid rgba(6, 182, 212, 0.4);
+        border-radius: 0.35rem;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .vw-memory-dna-btn:hover {
+        background: rgba(6, 182, 212, 0.3);
+        transform: translateY(-1px);
+    }
+
     /* Technical Specs */
     .vw-specs-row {
         display: flex;
@@ -4579,105 +4823,117 @@ function getCameraMovementIcon($movement) {
                         </p>
                     </div>
 
-                    {{-- ======== MEMORY SECTION ======== --}}
-                    <div x-show="activeSection === 'memory'" x-transition.opacity>
+                    {{-- ======== MEMORY SECTION - Modern Tabbed Design ======== --}}
+                    <div x-show="activeSection === 'memory'" x-transition.opacity x-data="{ memoryTab: 'characters' }">
                         @php
                             $characters = $sceneMemory['characterBible']['characters'] ?? [];
                             $locations = $sceneMemory['locationBible']['locations'] ?? [];
                         @endphp
 
-                        {{-- Characters --}}
-                        <div class="vw-sidebar-section open">
-                            <div class="vw-sidebar-section-header">
-                                <div class="vw-sidebar-section-title">
-                                    <span class="icon">👤</span>
-                                    <span>{{ __('Characters') }} ({{ count($characters) }})</span>
-                                </div>
-                                <button type="button" wire:click="openCharacterBibleModal" style="font-size: 0.65rem; color: #a78bfa; background: none; border: none; cursor: pointer; font-weight: 500;">+ {{ __('Add') }}</button>
-                            </div>
-                            <div class="vw-sidebar-section-body">
-                                <div class="vw-sidebar-bible-row">
-                                    @forelse($characters as $charIndex => $char)
-                                        <div class="vw-sidebar-bible-card" wire:click="openCharacterBibleModal" title="{{ $char['name'] ?? __('Character') }}">
-                                            @if(!empty($char['referenceImage']))
-                                                <img src="{{ $char['referenceImage'] }}" alt="{{ $char['name'] ?? '' }}" class="vw-sidebar-bible-card-image" loading="lazy">
-                                            @else
-                                                <div class="vw-sidebar-bible-card-placeholder">👤</div>
-                                            @endif
-                                            <div class="vw-sidebar-bible-card-overlay">
-                                                <div class="vw-sidebar-bible-card-name">{{ $char['name'] ?? __('Character') }}</div>
-                                                <div class="vw-sidebar-bible-card-tag">&#64;{{ Str::slug($char['name'] ?? 'char') }}</div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="vw-sidebar-bible-card vw-sidebar-bible-card-add" wire:click="openCharacterBibleModal">
-                                            <div class="vw-sidebar-bible-card-add-icon">+</div>
-                                            <div class="vw-sidebar-bible-card-add-text">{{ __('Add Character') }}</div>
-                                        </div>
-                                    @endforelse
-                                    @if(count($characters) > 0)
-                                        <div class="vw-sidebar-bible-card vw-sidebar-bible-card-add" wire:click="openCharacterBibleModal">
-                                            <div class="vw-sidebar-bible-card-add-icon">+</div>
-                                            <div class="vw-sidebar-bible-card-add-text">{{ __('Add More') }}</div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
+                        {{-- Modern Tab Navigation --}}
+                        <div class="vw-memory-tabs">
+                            <button type="button"
+                                    @click="memoryTab = 'characters'"
+                                    :class="{ 'active': memoryTab === 'characters' }"
+                                    class="vw-memory-tab">
+                                <span class="vw-memory-tab-icon">👤</span>
+                                <span class="vw-memory-tab-label">{{ __('Characters') }}</span>
+                                <span class="vw-memory-tab-count">{{ count($characters) }}</span>
+                            </button>
+                            <button type="button"
+                                    @click="memoryTab = 'locations'"
+                                    :class="{ 'active': memoryTab === 'locations' }"
+                                    class="vw-memory-tab">
+                                <span class="vw-memory-tab-icon">📍</span>
+                                <span class="vw-memory-tab-label">{{ __('Locations') }}</span>
+                                <span class="vw-memory-tab-count">{{ count($locations) }}</span>
+                            </button>
+                            {{-- Tab Indicator Line --}}
+                            <div class="vw-memory-tab-indicator" :style="memoryTab === 'characters' ? 'left: 0; width: 50%;' : 'left: 50%; width: 50%;'"></div>
                         </div>
 
-                        {{-- Locations --}}
-                        <div class="vw-sidebar-section open">
-                            <div class="vw-sidebar-section-header">
-                                <div class="vw-sidebar-section-title">
-                                    <span class="icon">📍</span>
-                                    <span>{{ __('Locations') }} ({{ count($locations) }})</span>
-                                </div>
-                                <button type="button" wire:click="openLocationBibleModal" style="font-size: 0.65rem; color: #a78bfa; background: none; border: none; cursor: pointer; font-weight: 500;">+ {{ __('Add') }}</button>
-                            </div>
-                            <div class="vw-sidebar-section-body">
-                                <div class="vw-sidebar-bible-row">
-                                    @forelse($locations as $locIndex => $loc)
-                                        <div class="vw-sidebar-bible-card" wire:click="openLocationBibleModal" title="{{ $loc['name'] ?? __('Location') }}">
-                                            @if(!empty($loc['referenceImage']))
-                                                <img src="{{ $loc['referenceImage'] }}" alt="{{ $loc['name'] ?? '' }}" class="vw-sidebar-bible-card-image" loading="lazy">
-                                            @else
-                                                <div class="vw-sidebar-bible-card-placeholder">📍</div>
-                                            @endif
-                                            <div class="vw-sidebar-bible-card-overlay">
-                                                <div class="vw-sidebar-bible-card-name">{{ $loc['name'] ?? __('Location') }}</div>
-                                                <div class="vw-sidebar-bible-card-tag">&#64;{{ Str::slug($loc['name'] ?? 'location') }}</div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="vw-sidebar-bible-card vw-sidebar-bible-card-add" wire:click="openLocationBibleModal">
-                                            <div class="vw-sidebar-bible-card-add-icon">+</div>
-                                            <div class="vw-sidebar-bible-card-add-text">{{ __('Add Location') }}</div>
-                                        </div>
-                                    @endforelse
-                                    @if(count($locations) > 0)
-                                        <div class="vw-sidebar-bible-card vw-sidebar-bible-card-add" wire:click="openLocationBibleModal">
-                                            <div class="vw-sidebar-bible-card-add-icon">+</div>
-                                            <div class="vw-sidebar-bible-card-add-text">{{ __('Add More') }}</div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Scene DNA --}}
-                        <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(6,182,212,0.08), rgba(139,92,246,0.08)); border: 1px solid rgba(6,182,212,0.2); border-radius: 0.5rem; margin-top: 0.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-size: 1.25rem;">🧬</span>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 0.75rem; font-weight: 600; color: white;">{{ __('Scene DNA') }}</div>
-                                    <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ count($characters) + count($locations) }} {{ __('items synced') }}</div>
-                                </div>
-                                <button type="button"
-                                        wire:click="openSceneDNAModal"
-                                        style="padding: 0.35rem 0.75rem; background: rgba(6,182,212,0.2); border: 1px solid rgba(6,182,212,0.4); border-radius: 0.35rem; color: white; cursor: pointer; font-size: 0.65rem; font-weight: 500;">
-                                    {{ __('View') }}
+                        {{-- Characters Panel --}}
+                        <div x-show="memoryTab === 'characters'"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 transform translate-x-2"
+                             x-transition:enter-end="opacity-100 transform translate-x-0"
+                             class="vw-memory-panel">
+                            {{-- Add Button --}}
+                            <div class="vw-memory-panel-header">
+                                <button type="button" wire:click="openCharacterBibleModal" class="vw-memory-add-btn">
+                                    <span>+</span> {{ __('Add Character') }}
                                 </button>
                             </div>
+                            {{-- Character Cards Grid --}}
+                            <div class="vw-memory-cards-grid">
+                                @forelse($characters as $charIndex => $char)
+                                    <div class="vw-memory-card" wire:click="openCharacterBibleModal" title="{{ $char['name'] ?? __('Character') }}">
+                                        <div class="vw-memory-card-image">
+                                            @if(!empty($char['referenceImage']))
+                                                <img src="{{ $char['referenceImage'] }}" alt="{{ $char['name'] ?? '' }}" loading="lazy">
+                                            @else
+                                                <div class="vw-memory-card-placeholder">👤</div>
+                                            @endif
+                                        </div>
+                                        <div class="vw-memory-card-info">
+                                            <div class="vw-memory-card-name">{{ Str::limit($char['name'] ?? __('Character'), 12) }}</div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="vw-memory-empty">
+                                        <span class="vw-memory-empty-icon">👤</span>
+                                        <span class="vw-memory-empty-text">{{ __('No characters yet') }}</span>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Locations Panel --}}
+                        <div x-show="memoryTab === 'locations'"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 transform -translate-x-2"
+                             x-transition:enter-end="opacity-100 transform translate-x-0"
+                             class="vw-memory-panel">
+                            {{-- Add Button --}}
+                            <div class="vw-memory-panel-header">
+                                <button type="button" wire:click="openLocationBibleModal" class="vw-memory-add-btn">
+                                    <span>+</span> {{ __('Add Location') }}
+                                </button>
+                            </div>
+                            {{-- Location Cards Grid --}}
+                            <div class="vw-memory-cards-grid">
+                                @forelse($locations as $locIndex => $loc)
+                                    <div class="vw-memory-card" wire:click="openLocationBibleModal" title="{{ $loc['name'] ?? __('Location') }}">
+                                        <div class="vw-memory-card-image">
+                                            @if(!empty($loc['referenceImage']))
+                                                <img src="{{ $loc['referenceImage'] }}" alt="{{ $loc['name'] ?? '' }}" loading="lazy">
+                                            @else
+                                                <div class="vw-memory-card-placeholder">📍</div>
+                                            @endif
+                                        </div>
+                                        <div class="vw-memory-card-info">
+                                            <div class="vw-memory-card-name">{{ Str::limit($loc['name'] ?? __('Location'), 12) }}</div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="vw-memory-empty">
+                                        <span class="vw-memory-empty-icon">📍</span>
+                                        <span class="vw-memory-empty-text">{{ __('No locations yet') }}</span>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Scene DNA Footer --}}
+                        <div class="vw-memory-dna-footer">
+                            <div class="vw-memory-dna-info">
+                                <span class="vw-memory-dna-icon">🧬</span>
+                                <span class="vw-memory-dna-label">{{ __('Scene DNA') }}</span>
+                                <span class="vw-memory-dna-count">{{ count($characters) + count($locations) }} {{ __('synced') }}</span>
+                            </div>
+                            <button type="button" wire:click="openSceneDNAModal" class="vw-memory-dna-btn">
+                                {{ __('View') }}
+                            </button>
                         </div>
                     </div>
 
