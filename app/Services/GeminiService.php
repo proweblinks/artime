@@ -645,13 +645,16 @@ EOT;
                 'responseModalities' => ['image', 'text'],
             ];
 
-            // Add imageConfig for Gemini 2.5+ models (native aspect ratio and resolution support)
-            if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
-                $generationConfig['imageConfig'] = [
-                    'aspectRatio' => $aspectRatio,
-                    'imageSize' => strtoupper($resolution), // Must be uppercase: 1K, 2K, 4K
-                ];
-            }
+            // NOTE: imageConfig with imageSize was causing "Request contains an invalid argument" error
+            // The Gemini API doesn't support these parameters in generationConfig for image-to-image
+            // Aspect ratio is controlled through text guidance in the prompt instead
+            // If native imageConfig support is added to Gemini API in the future, re-enable this:
+            // if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
+            //     $generationConfig['imageConfig'] = [
+            //         'aspectRatio' => $aspectRatio,
+            //         'imageSize' => strtoupper($resolution), // Must be uppercase: 1K, 2K, 4K
+            //     ];
+            // }
 
             // Use longer timeout (180s) for image-to-image generation
             $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, 180);
