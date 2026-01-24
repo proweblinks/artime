@@ -3645,7 +3645,7 @@ function getCameraMovementIcon($movement) {
                                     @endif
                                     <div class="vw-bible-preview-info">
                                         <div class="vw-bible-preview-name">{{ $character['name'] ?? __('Character') . ' ' . ($charIndex + 1) }}</div>
-                                        <div class="vw-bible-preview-tag">@{{ Str::slug($character['name'] ?? 'char' . ($charIndex + 1)) }}</div>
+                                        <div class="vw-bible-preview-tag">&#64;{{ Str::slug($character['name'] ?? 'char' . ($charIndex + 1)) }}</div>
                                     </div>
                                 </div>
                             @empty
@@ -3666,7 +3666,7 @@ function getCameraMovementIcon($movement) {
                                 <span class="vw-mention-hint">
                                     <span class="vw-mention-hint-label">{{ __('Use in prompts:') }}</span>
                                     @foreach(array_slice($characters, 0, 2) as $char)
-                                        @{{ Str::slug($char['name'] ?? 'character') }}
+                                        &#64;{{ Str::slug($char['name'] ?? 'character') }}
                                     @endforeach
                                     @if(count($characters) > 2)
                                         <span style="color: rgba(255,255,255,0.4);">+{{ count($characters) - 2 }}</span>
@@ -3699,7 +3699,7 @@ function getCameraMovementIcon($movement) {
                                     @endif
                                     <div class="vw-bible-preview-info">
                                         <div class="vw-bible-preview-name">{{ $location['name'] ?? __('Location') . ' ' . ($locIndex + 1) }}</div>
-                                        <div class="vw-bible-preview-tag">@{{ Str::slug($location['name'] ?? 'location' . ($locIndex + 1)) }}</div>
+                                        <div class="vw-bible-preview-tag">&#64;{{ Str::slug($location['name'] ?? 'location' . ($locIndex + 1)) }}</div>
                                     </div>
                                 </div>
                             @empty
@@ -3720,7 +3720,7 @@ function getCameraMovementIcon($movement) {
                                 <span class="vw-mention-hint">
                                     <span class="vw-mention-hint-label">{{ __('Use in prompts:') }}</span>
                                     @foreach(array_slice($locations, 0, 2) as $loc)
-                                        @{{ Str::slug($loc['name'] ?? 'location') }}
+                                        &#64;{{ Str::slug($loc['name'] ?? 'location') }}
                                     @endforeach
                                     @if(count($locations) > 2)
                                         <span style="color: rgba(255,255,255,0.4);">+{{ count($locations) - 2 }}</span>
