@@ -1,5 +1,86 @@
 {{-- Scene Edit Modal (Enhanced from Edit Prompt) --}}
-<div x-data="{ isOpen: false, sceneIndex: 0, activeTab: 'visual' }"
+<div x-data="{
+    isOpen: false,
+    sceneIndex: 0,
+    activeTab: 'visual',
+    // Phase 3: @ Mention System
+    mention: {
+        active: false,
+        query: '',
+        selectedIndex: 0,
+        inputEl: null,
+        cursorPos: 0
+    },
+    get bibleItems() {
+        return window.bibleItems || [];
+    },
+    get filteredMentions() {
+        const items = this.bibleItems;
+        if (!this.mention.query) return items;
+        const q = this.mention.query.toLowerCase();
+        return items.filter(item =>
+            item.name.toLowerCase().includes(q) ||
+            item.tag.toLowerCase().includes(q)
+        );
+    },
+    handleMentionInput(e) {
+        const textarea = e.target;
+        const value = textarea.value;
+        const cursorPos = textarea.selectionStart;
+        let atPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+            if (value[i] === '@') { atPos = i; break; }
+            else if (value[i] === ' ' || value[i] === '\n') { break; }
+        }
+        if (atPos >= 0) {
+            this.mention.active = true;
+            this.mention.query = value.substring(atPos + 1, cursorPos);
+            this.mention.inputEl = textarea;
+            this.mention.cursorPos = cursorPos;
+            this.mention.selectedIndex = 0;
+        } else {
+            this.mention.active = false;
+            this.mention.query = '';
+        }
+    },
+    handleMentionKeydown(e) {
+        if (!this.mention.active) return;
+        const items = this.filteredMentions;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.mention.selectedIndex = Math.min(this.mention.selectedIndex + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.mention.selectedIndex = Math.max(this.mention.selectedIndex - 1, 0);
+        } else if (e.key === 'Enter' && items.length > 0) {
+            e.preventDefault();
+            this.insertMention(items[this.mention.selectedIndex]);
+        } else if (e.key === 'Escape') {
+            this.mention.active = false;
+        }
+    },
+    insertMention(item) {
+        if (!this.mention.inputEl) return;
+        const textarea = this.mention.inputEl;
+        const value = textarea.value;
+        const cursorPos = this.mention.cursorPos;
+        let atPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+            if (value[i] === '@') { atPos = i; break; }
+        }
+        if (atPos < 0) return;
+        const before = value.substring(0, atPos);
+        const after = value.substring(cursorPos);
+        const newValue = before + item.tag + ' ' + after;
+        textarea.value = newValue;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        const newCursorPos = atPos + item.tag.length + 1;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        textarea.focus();
+        this.mention.active = false;
+        this.mention.query = '';
+    }
+}"
      @open-edit-prompt-modal.window="isOpen = true; sceneIndex = $event.detail.sceneIndex; activeTab = 'visual'"
      @close-edit-prompt-modal.window="isOpen = false"
      x-show="isOpen"
@@ -68,12 +149,54 @@
 
             {{-- Visual Tab --}}
             <div x-show="activeTab === 'visual'">
-                {{-- Edit Prompt Textarea --}}
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Visual Description / Image Prompt') }}</label>
-                    <textarea wire:model.blur="editPromptText"
-                              placeholder="{{ __('Describe what you want to see in this scene...') }}"
-                              style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
+                {{-- Edit Prompt Textarea with @ Mention Support --}}
+                <div style="margin-bottom: 1rem; position: relative;">
+                    <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">
+                        {{ __('Visual Description / Image Prompt') }}
+                        <span style="color: rgba(139,92,246,0.7); font-size: 0.65rem; margin-left: 0.5rem;">{{ __('Type @ to mention characters/locations') }}</span>
+                    </label>
+                    <div class="vw-prompt-input-container">
+                        <textarea wire:model.blur="editPromptText"
+                                  @input="handleMentionInput($event)"
+                                  @keydown="handleMentionKeydown($event)"
+                                  placeholder="{{ __('Describe what you want to see in this scene... Use @character or @location to reference your bible items.') }}"
+                                  style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
+
+                        {{-- @ Mention Autocomplete Dropdown --}}
+                        <div class="vw-mention-autocomplete"
+                             x-show="mention.active && filteredMentions.length > 0"
+                             x-transition
+                             x-cloak
+                             style="position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: rgba(20, 20, 35, 0.98); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); z-index: 100; margin-top: 0.25rem;">
+                            <template x-for="(item, idx) in filteredMentions" :key="item.tag">
+                                <div class="vw-mention-item"
+                                     :class="{ 'active': mention.selectedIndex === idx }"
+                                     @click="insertMention(item)"
+                                     @mouseenter="mention.selectedIndex = idx"
+                                     style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
+                                    <template x-if="item.image">
+                                        <img :src="item.image" :alt="item.name" style="width: 32px; height: 32px; border-radius: 0.35rem; object-fit: cover;">
+                                    </template>
+                                    <template x-if="!item.image">
+                                        <div style="width: 32px; height: 32px; border-radius: 0.35rem; background: rgba(139, 92, 246, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem;" x-text="item.icon"></div>
+                                    </template>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 0.8rem; color: white; font-weight: 500;" x-text="item.name"></div>
+                                        <div style="font-size: 0.65rem; color: #a78bfa; font-family: monospace;" x-text="item.tag"></div>
+                                    </div>
+                                    <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: rgba(139, 92, 246, 0.2); color: #c4b5fd;" x-text="item.type"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="vw-keyboard-hint" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); margin-top: 0.35rem;">
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">↑↓</span>
+                        <span>{{ __('navigate') }}</span>
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">↵</span>
+                        <span>{{ __('select') }}</span>
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">esc</span>
+                        <span>{{ __('dismiss') }}</span>
+                    </div>
                 </div>
 
                 {{-- AI Prompt Expander (Hollywood-Quality Enhancement) --}}

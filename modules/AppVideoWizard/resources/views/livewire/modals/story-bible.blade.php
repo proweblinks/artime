@@ -64,7 +64,18 @@
         </div>
 
         {{-- Content --}}
-        <div style="flex: 1; overflow-y: auto; padding: 1rem;">
+        <div style="flex: 1; overflow-y: auto; padding: 1rem; position: relative;">
+
+            {{-- Loading Overlay when generating --}}
+            @if($storyBible['status'] === 'generating')
+                <div style="position: absolute; inset: 0; background: rgba(20,20,35,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; gap: 1rem;">
+                    <div style="width: 48px; height: 48px; border: 3px solid rgba(251,191,36,0.2); border-top-color: #fbbf24; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
+                    <div style="text-align: center;">
+                        <div style="color: #fcd34d; font-size: 0.9rem; font-weight: 600;">{{ __('Generating Story Bible...') }}</div>
+                        <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-top: 0.25rem;">{{ __('Creating characters, locations, and structure') }}</div>
+                    </div>
+                </div>
+            @endif
 
             {{-- OVERVIEW TAB --}}
             @if($storyBibleTab === 'overview')

@@ -1,6 +1,6 @@
 {{-- Multi-Shot Decomposition Modal - Full Screen Split Panel Layout --}}
 
-{{-- Video polling Alpine component --}}
+{{-- Video polling Alpine component with performance optimizations --}}
 <script>
 window.multiShotVideoPolling = function() {
     return {
@@ -10,9 +10,12 @@ window.multiShotVideoPolling = function() {
         maxPolls: 120,
         POLL_INTERVAL: 5000,
         componentDestroyed: false,
+        // Performance fix: instant close state
+        isClosing: false,
 
         initPolling() {
             this.componentDestroyed = false;
+            this.isClosing = false;
             this.$nextTick(() => {
                 if (this.checkForProcessingVideos()) this.startPolling();
             });
@@ -43,6 +46,15 @@ window.multiShotVideoPolling = function() {
         stopPolling() {
             if (this.pollingInterval) { clearInterval(this.pollingInterval); this.pollingInterval = null; }
             this.isPolling = false;
+        },
+        // Performance fix: instant visual close, then Livewire cleanup
+        quickClose() {
+            this.isClosing = true;
+            this.cleanup();
+            // Defer Livewire call to allow instant visual feedback
+            setTimeout(() => {
+                if (this.$wire) this.$wire.closeMultiShotModal();
+            }, 50);
         },
         cleanup() {
             this.componentDestroyed = true; this.stopPolling();
@@ -151,7 +163,12 @@ window.multiShotVideoPolling = function() {
      wire:key="multi-shot-modal-{{ $multiShotSceneIndex }}"
      x-data="multiShotVideoPolling()"
      x-init="initPolling()"
-     @destroy="cleanup()">
+     x-show="!isClosing"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     @destroy="cleanup()"
+     style="will-change: opacity;">
 
     {{-- Header --}}
     <header class="msm-header">
@@ -202,7 +219,7 @@ window.multiShotVideoPolling = function() {
                 @endif
             @endif
         </div>
-        <button type="button" wire:click="closeMultiShotModal" class="msm-close-btn">&times;</button>
+        <button type="button" @click="quickClose()" class="msm-close-btn">&times;</button>
     </header>
 
     @if($scene)
@@ -722,8 +739,8 @@ window.multiShotVideoPolling = function() {
                         <button wire:click="resetDecomposition({{ $multiShotSceneIndex }})" class="msm-reset-btn">🗑️ {{ __('Reset') }}</button>
                     </div>
 
-                    {{-- Timeline --}}
-                    <div class="msm-timeline">
+                    {{-- Timeline (synced with carousel) --}}
+                    <div class="msm-timeline" x-data="{ activeSegment: 0 }" x-on:carousel-index-changed.window="activeSegment = $event.detail.index">
                         @foreach($decomposed['shots'] as $idx => $shot)
                             @php
                                 $dur = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
@@ -731,16 +748,77 @@ window.multiShotVideoPolling = function() {
                                 $hasImg = ($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']);
                                 $hasVid = ($shot['videoStatus'] ?? '') === 'ready' && !empty($shot['videoUrl']);
                             @endphp
-                            <div class="msm-timeline-seg {{ $hasVid ? 'vid' : ($hasImg ? 'img' : '') }}" style="width: {{ $pct }}%;" wire:click="selectShot({{ $multiShotSceneIndex }}, {{ $idx }})" title="Shot {{ $idx + 1 }}: {{ $dur }}s">{{ $idx + 1 }}</div>
+                            <div class="msm-timeline-seg {{ $hasVid ? 'vid' : ($hasImg ? 'img' : '') }}"
+                                 x-bind:class="{ 'active': activeSegment === {{ $idx }} }"
+                                 style="width: {{ $pct }}%;"
+                                 x-on:click="$dispatch('scroll-to-shot', { index: {{ $idx }} })"
+                                 wire:click="selectShot({{ $multiShotSceneIndex }}, {{ $idx }})"
+                                 title="Shot {{ $idx + 1 }}: {{ $dur }}s">{{ $idx + 1 }}</div>
                         @endforeach
                     </div>
 
-                    {{-- Shot Grid --}}
+                    {{-- Shot Carousel --}}
                     @php
                         // Create a hash of all shot imageUrls to detect changes
                         $shotsHash = md5(json_encode(array_column($decomposed['shots'], 'imageUrl')));
+                        $totalShotsCount = count($decomposed['shots']);
                     @endphp
-                    <div class="msm-shot-grid" wire:key="shots-grid-{{ $multiShotSceneIndex }}-{{ $shotsHash }}">
+                    <div class="msm-carousel-wrapper"
+                         x-data="{
+                             currentIndex: 0,
+                             totalShots: {{ $totalShotsCount }},
+                             scrollContainer: null,
+                             init() {
+                                 this.scrollContainer = this.$refs.shotGrid;
+                                 this.scrollContainer.addEventListener('scroll', () => this.updateCurrentIndex());
+                             },
+                             updateCurrentIndex() {
+                                 if (!this.scrollContainer) return;
+                                 const cards = this.scrollContainer.querySelectorAll('.msm-shot-card');
+                                 const containerRect = this.scrollContainer.getBoundingClientRect();
+                                 const containerCenter = containerRect.left + containerRect.width / 2;
+                                 let closestIdx = 0;
+                                 let closestDist = Infinity;
+                                 cards.forEach((card, idx) => {
+                                     const rect = card.getBoundingClientRect();
+                                     const cardCenter = rect.left + rect.width / 2;
+                                     const dist = Math.abs(cardCenter - containerCenter);
+                                     if (dist < closestDist) {
+                                         closestDist = dist;
+                                         closestIdx = idx;
+                                     }
+                                 });
+                                 if (this.currentIndex !== closestIdx) {
+                                     this.currentIndex = closestIdx;
+                                     this.$dispatch('carousel-index-changed', { index: closestIdx });
+                                 }
+                             },
+                             scrollToShot(idx) {
+                                 const cards = this.scrollContainer.querySelectorAll('.msm-shot-card');
+                                 if (cards[idx]) {
+                                     cards[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                                     this.currentIndex = idx;
+                                 }
+                             },
+                             prev() { if (this.currentIndex > 0) this.scrollToShot(this.currentIndex - 1); },
+                             next() { if (this.currentIndex < this.totalShots - 1) this.scrollToShot(this.currentIndex + 1); }
+                         }"
+                         x-on:keydown.left.window="prev()"
+                         x-on:keydown.right.window="next()"
+                         x-on:scroll-to-shot.window="scrollToShot($event.detail.index)">
+                        <div class="msm-carousel-container">
+                            {{-- Prev Button --}}
+                            <button class="msm-carousel-nav prev"
+                                    x-on:click="prev()"
+                                    x-bind:disabled="currentIndex === 0"
+                                    title="{{ __('Previous shot') }}">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+
+                            {{-- Shot Grid (now horizontal carousel) --}}
+                            <div class="msm-shot-grid" x-ref="shotGrid" wire:key="shots-grid-{{ $multiShotSceneIndex }}-{{ $shotsHash }}">
                         @foreach($decomposed['shots'] as $shotIndex => $shot)
                             @php
                                 $hasImage = ($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']);
@@ -783,16 +861,11 @@ window.multiShotVideoPolling = function() {
                                         @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
                                     </div>
-                                    {{-- Monologue/Dialogue text indicator --}}
-                                    @if($hasMonologue || $hasDialogue)
-                                        <div class="msm-monologue-indicator" title="{{ $shot['monologue'] ?? $shot['dialogue'] ?? '' }}">
-                                            <small class="msm-monologue-preview">🗣️ "{{ Str::limit($shot['monologue'] ?? $shot['dialogue'] ?? '', 30) }}"</small>
-                                        </div>
-                                    @endif
+                                    {{-- Monologue/Dialogue - tooltip only (on badge) --}}
                                 </div>
 
                                 {{-- PHASE 6: Shot Type Badges --}}
-                                <div class="vw-shot-badges" style="padding: 0 0.5rem;">
+                                <div class="vw-shot-badges" style="padding: 0.25rem 0.75rem;">
                                     {{-- Shot Type --}}
                                     @if(!empty($shot['type']))
                                         <span class="vw-shot-badge vw-shot-badge-{{ getShotTypeBadgeClass($shot['type']) }}">
@@ -815,11 +888,11 @@ window.multiShotVideoPolling = function() {
                                         @if($movement !== 'static')
                                             <div class="vw-shot-badge vw-shot-badge-movement"
                                                  title="{{ ucwords(str_replace('-', ' ', $movement)) }}"
-                                                 style="display: inline-flex; align-items: center; gap: 0.2rem;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                 style="display: inline-flex; align-items: center; gap: 0.3rem;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                     {!! getCameraMovementSvgPath($movement) !!}
                                                 </svg>
-                                                <span>{{ strtoupper(Str::limit(str_replace('-', '', $movement), 4, '')) }}</span>
+                                                <span>{{ strtoupper(Str::limit(str_replace('-', '', $movement), 5, '')) }}</span>
                                             </div>
                                         @endif
                                     @endif
@@ -832,49 +905,122 @@ window.multiShotVideoPolling = function() {
                                     @endif
                                 </div>
 
-                                {{-- PHASE 6: Shot Dialogue Display --}}
-                                @if(!empty($shot['dialogue']))
-                                    <div class="msm-shot-dialogue" style="
-                                        background: rgba(59, 130, 246, 0.1);
-                                        border-left: 2px solid rgba(59, 130, 246, 0.5);
-                                        padding: 0.35rem 0.5rem;
-                                        margin: 0.35rem 0.5rem;
-                                        border-radius: 0 0.25rem 0.25rem 0;
-                                        font-size: 0.7rem;
-                                    ">
-                                        @if(!empty($shot['speakingCharacter']))
-                                            <span style="
-                                                color: rgba(139, 92, 246, 0.9);
-                                                font-weight: 600;
-                                                font-size: 0.65rem;
-                                            ">{{ $shot['speakingCharacter'] }}:</span>
+                                {{-- PHASE 6: Shot Speech/Text Display --}}
+                                @php
+                                    $shotDialogue = $shot['dialogue'] ?? null;
+                                    $shotMonologue = $shot['monologue'] ?? null;
+                                    // Check both direct narration and narrator overlay (from speech segment distribution)
+                                    $shotNarration = $shot['narration'] ?? $shot['narratorText'] ?? null;
+                                    $shotSpeaker = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
+                                    $shotSpeechIndicator = $shot['speechIndicator'] ?? null;
+                                    // Check for narrator/internal overlays (from Plan 11-02 distribution)
+                                    $hasNarratorOverlay = !empty($shot['hasNarratorVoiceover']) || !empty($shot['narratorOverlay']);
+                                    $hasInternalOverlay = !empty($shot['internalThoughtOverlay']);
+                                    $internalText = $shot['internalThoughtText'] ?? null;
+                                    // Also check speechSegments for narrator/internal types
+                                    $shotSpeechSegments = $shot['speechSegments'] ?? [];
+                                    $hasNarratorSegment = !empty(array_filter($shotSpeechSegments, fn($s) => ($s['type'] ?? '') === 'narrator'));
+                                    $hasInternalSegment = !empty(array_filter($shotSpeechSegments, fn($s) => ($s['type'] ?? '') === 'internal'));
+                                    $hasDialogueSegment = !empty(array_filter($shotSpeechSegments, fn($s) => in_array(($s['type'] ?? ''), ['dialogue', 'monologue'])));
+
+                                    // CRITICAL: Determine PRIMARY speech type from speechSegments (authoritative source)
+                                    // The type in speechSegments takes priority over legacy dialogue/monologue text fields
+                                    $primarySegmentType = null;
+                                    if (!empty($shotSpeechSegments)) {
+                                        $firstSegment = $shotSpeechSegments[0] ?? null;
+                                        $primarySegmentType = strtolower($firstSegment['type'] ?? '');
+                                    }
+                                    // Fall back to speechIndicator set by decomposer
+                                    if (!$primarySegmentType && $shotSpeechIndicator) {
+                                        $primarySegmentType = strtolower($shotSpeechIndicator);
+                                    }
+
+                                    // Determine actual needsLipSync based on segment type (not just shot flag)
+                                    $actualNeedsLipSync = in_array($primarySegmentType, ['dialogue', 'monologue']) && ($shot['needsLipSync'] ?? false);
+
+                                    // Determine if shot has any speech content
+                                    $shotHasText = !empty($shotDialogue) || !empty($shotMonologue) || !empty($shotNarration) || $hasNarratorOverlay || $hasInternalOverlay || $hasNarratorSegment || $hasInternalSegment;
+                                @endphp
+
+                                @if($shotHasText)
+                                    {{-- Speech Type Badges - SHOW MULTIPLE when shot has both dialogue AND narrator --}}
+                                    @php
+                                        // Build separate tooltips for dialogue and narrator
+                                        $dialogueTooltipText = $shotDialogue ?? $shotMonologue ?? '';
+                                        $narratorTooltipText = $shotNarration ?? '';
+                                        $internalTooltipText = $internalText ?? '';
+
+                                        // If still empty, try to get text from speech segments
+                                        if (empty($dialogueTooltipText) && !empty($shotSpeechSegments)) {
+                                            $dialogueSegments = array_filter($shotSpeechSegments, fn($s) => in_array(($s['type'] ?? ''), ['dialogue', 'monologue']));
+                                            $dialogueTooltipText = implode(' ', array_map(fn($s) => $s['text'] ?? '', $dialogueSegments));
+                                        }
+                                        if (empty($narratorTooltipText) && !empty($shotSpeechSegments)) {
+                                            $narratorSegments = array_filter($shotSpeechSegments, fn($s) => ($s['type'] ?? '') === 'narrator');
+                                            $narratorTooltipText = implode(' ', array_map(fn($s) => $s['text'] ?? '', $narratorSegments));
+                                        }
+
+                                        // Determine what badges to show
+                                        $showDialogueBadge = $actualNeedsLipSync && ($shotDialogue || $shotMonologue || $hasDialogueSegment);
+                                        $showNarratorBadge = !empty($shotNarration) || $hasNarratorOverlay || $hasNarratorSegment;
+                                        $showInternalBadge = $hasInternalOverlay || !empty($internalText) || $hasInternalSegment;
+
+                                        // For narrator-only shots (no dialogue)
+                                        $isNarratorOnly = ($primarySegmentType === 'narrator' || ($hasNarratorSegment && !$hasDialogueSegment)) && !$showDialogueBadge;
+                                        $isInternalOnly = ($primarySegmentType === 'internal' || ($hasInternalSegment && !$hasDialogueSegment)) && !$showDialogueBadge;
+                                    @endphp
+                                    <div class="msm-speech-badge-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem;">
+                                        {{-- PRIMARY: Dialogue/Monologue badge (Multitalk lip-sync) --}}
+                                        @if($showDialogueBadge)
+                                            <span class="msm-speech-type-badge dialogue" title="{{ $dialogueTooltipText }}" style="cursor: help;">💬 {{ __('Dialogue') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(236, 72, 153, 0.3); color: #f9a8d4; border-radius: 0.2rem;">Multitalk</span>
+                                        @elseif($shotMonologue || $shotDialogue)
+                                            {{-- Monologue without lip-sync flag (TTS only) --}}
+                                            <span class="msm-speech-type-badge monologue" title="{{ $dialogueTooltipText }}" style="cursor: help;">🗣️ {{ __('Monologue') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
                                         @endif
-                                        <span style="color: rgba(255,255,255,0.85);">
-                                            {{ Str::limit($shot['dialogue'], 60) }}
-                                        </span>
+
+                                        {{-- SECONDARY: Narrator badge (TTS voiceover) - shows alongside dialogue when both exist --}}
+                                        @if($showNarratorBadge && ($showDialogueBadge || $isNarratorOnly))
+                                            @if($showDialogueBadge)
+                                                <span style="color: rgba(255,255,255,0.3);">+</span>
+                                            @endif
+                                            <span class="msm-speech-type-badge narrator" title="{{ $narratorTooltipText }}" style="cursor: help;">🎙️ {{ __('Narrator') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
+                                        @endif
+
+                                        {{-- SECONDARY: Internal thought badge (TTS voiceover) --}}
+                                        @if($showInternalBadge || $isInternalOnly)
+                                            @if($showDialogueBadge || $showNarratorBadge)
+                                                <span style="color: rgba(255,255,255,0.3);">+</span>
+                                            @endif
+                                            <span class="msm-speech-type-badge internal" title="{{ $internalTooltipText }}" style="cursor: help; background: rgba(168, 85, 247, 0.4); border-color: rgba(168, 85, 247, 0.6);">💭 {{ __('Internal') }}</span>
+                                            <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
+                                        @endif
+
+                                        {{-- Speaker name --}}
+                                        @if($shotSpeaker)
+                                            <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">{{ $shotSpeaker }}</span>
+                                        @endif
                                     </div>
+
+                                    {{-- Text Content removed - now shown as tooltip on badge --}}
                                 @elseif(!empty($shot['needsLipSync']))
-                                    <div style="
-                                        display: inline-flex;
-                                        align-items: center;
-                                        gap: 0.25rem;
-                                        background: rgba(139, 92, 246, 0.2);
-                                        padding: 0.15rem 0.4rem;
-                                        border-radius: 0.25rem;
-                                        font-size: 0.6rem;
-                                        color: rgba(139, 92, 246, 0.9);
-                                        margin: 0.25rem 0.5rem;
-                                    ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                        </svg>
+                                    {{-- Lip-sync indicator without text - Compact --}}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem; background: rgba(236, 72, 153, 0.2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: #f472b6; margin: 0.2rem 0.5rem; font-weight: 500;">
+                                        <span>👄</span>
                                         <span>{{ __('Lip Sync') }}</span>
+                                    </div>
+                                @else
+                                    {{-- Silent shot indicator - Compact --}}
+                                    <div style="display: inline-flex; align-items: center; gap: 0.2rem; background: rgba(100, 116, 139, 0.15); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: rgba(148, 163, 184, 0.8); margin: 0.2rem 0.5rem;">
+                                        <span>🔇</span>
+                                        <span>{{ __('Silent') }}</span>
                                     </div>
                                 @endif
 
-                                {{-- PHASE 6: Shot Status and Intensity --}}
-                                <div style="display: flex; align-items: center; gap: 0.35rem; margin: 0.25rem 0.5rem;">
+                                {{-- PHASE 6: Shot Status and Intensity - Compact --}}
+                                <div style="display: flex; align-items: center; gap: 0.35rem; margin: 0.2rem 0.5rem;">
                                     {{-- Image Status --}}
                                     @php
                                         $imgStatus = $shot['status'] ?? 'pending';
@@ -883,19 +1029,19 @@ window.multiShotVideoPolling = function() {
 
                                     <div class="vw-status-badge vw-status-{{ $imgStatus }}">
                                         @if($imgStatus === 'pending')
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                                 <circle cx="12" cy="12" r="10"/>
                                             </svg>
                                         @elseif($imgStatus === 'generating')
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                                             </svg>
                                         @elseif($imgStatus === 'ready')
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                 <polyline points="20 6 9 17 4 12"/>
                                             </svg>
                                         @else
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                                             </svg>
                                         @endif
@@ -906,15 +1052,15 @@ window.multiShotVideoPolling = function() {
                                     @if(!empty($shot['needsLipSync']) || $vidStatus !== 'pending')
                                         <div class="vw-status-badge vw-status-{{ $vidStatus === 'processing' ? 'generating' : $vidStatus }}">
                                             @if($vidStatus === 'ready')
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                     <polyline points="20 6 9 17 4 12"/>
                                                 </svg>
                                             @elseif(in_array($vidStatus, ['generating', 'processing']))
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83"/>
                                                 </svg>
                                             @else
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                                     <circle cx="12" cy="12" r="10"/>
                                                 </svg>
                                             @endif
@@ -930,7 +1076,7 @@ window.multiShotVideoPolling = function() {
                                     $intensityClass = $isClimaxShot ? 'climax' : ($intensity >= 0.7 ? 'high' : ($intensity >= 0.4 ? 'medium' : 'low'));
                                     $intensityPercent = round($intensity * 100);
                                 @endphp
-                                <div class="vw-intensity-bar" style="margin: 0 0.5rem 0.35rem 0.5rem;" title="Intensity: {{ $intensityPercent }}%">
+                                <div class="vw-intensity-bar" style="margin: 0.5rem 0.75rem;" title="Intensity: {{ $intensityPercent }}%">
                                     <div class="vw-intensity-fill vw-intensity-{{ $intensityClass }}" style="width: {{ $intensityPercent }}%;"></div>
                                 </div>
 
@@ -996,22 +1142,16 @@ window.multiShotVideoPolling = function() {
                                     <span class="msm-tokens">⚡ {{ $tokenCost }}t</span>
                                 </div>
 
-                                {{-- Frame Status --}}
-                                <div class="msm-frame-status">
-                                    @if($isFirstShot)
-                                        @if($hasImage)
-                                            <span class="msm-status-ok">🔗 {{ __('Scene image') }}</span>
-                                        @else
+                                {{-- Frame Status - Only show warnings/errors to save space --}}
+                                @if(($isFirstShot && !$hasImage) || (!$isFirstShot && !$hasImage && !$wasTransferred))
+                                    <div class="msm-frame-status">
+                                        @if($isFirstShot && !$hasImage)
                                             <span class="msm-status-wait">⚠️ {{ __('Generate scene first') }}</span>
-                                        @endif
-                                    @else
-                                        @if($wasTransferred)
-                                            <span class="msm-status-ok">🔗 {{ __('Frame from Shot') }} {{ $transferredFrom + 1 }}</span>
-                                        @elseif(!$hasImage)
+                                        @elseif(!$isFirstShot && !$hasImage)
                                             <span class="msm-status-wait">⏳ {{ __('Awaiting frame') }}</span>
                                         @endif
-                                    @endif
-                                </div>
+                                    </div>
+                                @endif
 
                                 <div class="msm-shot-controls">
                                     @php $durations = $this->getAvailableDurations($shot['selectedVideoModel'] ?? 'minimax'); @endphp
@@ -1081,6 +1221,29 @@ window.multiShotVideoPolling = function() {
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+
+                            {{-- Next Button --}}
+                            <button class="msm-carousel-nav next"
+                                    x-on:click="next()"
+                                    x-bind:disabled="currentIndex === totalShots - 1"
+                                    title="{{ __('Next shot') }}">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Carousel Indicators --}}
+                        <div class="msm-carousel-indicators">
+                            @foreach($decomposed['shots'] as $dotIdx => $dotShot)
+                                <button class="msm-carousel-dot"
+                                        x-bind:class="{ 'active': currentIndex === {{ $dotIdx }} }"
+                                        x-on:click="scrollToShot({{ $dotIdx }})"
+                                        title="{{ __('Shot') }} {{ $dotIdx + 1 }}">
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
 
                     {{-- Collage Region Assignment Panel --}}
@@ -1516,94 +1679,250 @@ window.multiShotVideoPolling = function() {
 .msm-reset-btn { padding: 0.5rem 0.8rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; color: #ef4444; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
 .msm-reset-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
 
-.msm-timeline { display: flex; height: 36px; margin: 0.75rem 1.25rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(10,10,20,0.4)); border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); }
-.msm-timeline-seg { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.1); background: linear-gradient(180deg, rgba(139,92,246,0.4), rgba(139,92,246,0.25)); cursor: pointer; transition: all 0.2s ease; }
-.msm-timeline-seg.img { background: linear-gradient(180deg, rgba(16,185,129,0.55), rgba(16,185,129,0.35)); }
-.msm-timeline-seg.vid { background: linear-gradient(180deg, rgba(6,182,212,0.65), rgba(59,130,246,0.45)); }
-.msm-timeline-seg:hover { filter: brightness(1.25); transform: scaleY(1.05); }
+.msm-timeline { display: flex; height: 48px; margin: 1rem 1.5rem; background: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(10,10,20,0.45)); border-radius: 12px; overflow: hidden; box-shadow: inset 0 3px 10px rgba(0,0,0,0.35), 0 3px 12px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); }
+.msm-timeline-seg { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.95rem; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.12); background: linear-gradient(180deg, rgba(139,92,246,0.45), rgba(139,92,246,0.3)); cursor: pointer; transition: all 0.25s ease; position: relative; }
+.msm-timeline-seg.img { background: linear-gradient(180deg, rgba(16,185,129,0.6), rgba(16,185,129,0.4)); }
+.msm-timeline-seg.vid { background: linear-gradient(180deg, rgba(6,182,212,0.7), rgba(59,130,246,0.5)); }
+.msm-timeline-seg:hover { filter: brightness(1.3); transform: scaleY(1.1); box-shadow: 0 0 20px rgba(139,92,246,0.4); z-index: 5; }
+.msm-timeline-seg.active {
+    filter: brightness(1.4);
+    transform: scaleY(1.15);
+    box-shadow: 0 4px 20px rgba(139,92,246,0.5), inset 0 -3px 0 rgba(255,255,255,0.3);
+    z-index: 10;
+}
+.msm-timeline-seg.active::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgba(139,92,246,0.8);
+}
 
-.msm-shot-grid { flex: 1; padding: 1.25rem; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; align-content: start; }
+.msm-shot-grid {
+    flex: 1;
+    padding: 1rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scroll-padding: 0 1.5rem;
+    -webkit-overflow-scrolling: touch;
+}
 
-/* Shot Card - Modern Glass Card */
-.msm-shot-card { background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-.msm-shot-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); }
-.msm-shot-card.has-video { border-color: rgba(6,182,212,0.45); box-shadow: 0 4px 20px rgba(6,182,212,0.15); }
-.msm-shot-card.has-video:hover { box-shadow: 0 8px 35px rgba(6,182,212,0.25); }
+/* Hide scrollbar but keep functionality */
+.msm-shot-grid::-webkit-scrollbar { height: 0; width: 0; }
+.msm-shot-grid { scrollbar-width: none; -ms-overflow-style: none; }
 
-.msm-shot-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.2)); border-bottom: 1px solid rgba(255,255,255,0.05); }
-.msm-shot-num { background: linear-gradient(135deg, rgba(139,92,246,0.6), rgba(168,85,247,0.5)); color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; box-shadow: 0 2px 6px rgba(139,92,246,0.3); }
-.msm-shot-type { color: rgba(255,255,255,0.65); font-size: 0.75rem; font-weight: 500; }
-.msm-shot-meta { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; }
-.msm-badge-dialog { background: linear-gradient(135deg, rgba(251,191,36,0.45), rgba(245,158,11,0.35)); color: #fcd34d; padding: 0.15rem 0.35rem; border-radius: 5px; font-size: 0.65rem; font-weight: 600; }
-.msm-badge-voiceover { background: linear-gradient(135deg, rgba(100,116,139,0.45), rgba(71,85,105,0.35)); color: #94a3b8; padding: 0.15rem 0.35rem; border-radius: 5px; font-size: 0.65rem; font-weight: 600; }
-.msm-dur { font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 5px; }
-.msm-dur.green { color: #4ade80; background: rgba(34,197,94,0.15); }
-.msm-dur.yellow { color: #fde047; background: rgba(234,179,8,0.15); }
-.msm-dur.blue { color: #60a5fa; background: rgba(59,130,246,0.15); }
+/* Carousel navigation wrapper */
+.msm-carousel-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+}
 
-.msm-shot-preview { position: relative; height: 120px; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(10,10,20,0.4)); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-direction: column; }
+.msm-carousel-container {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    min-height: 0;
+    padding: 0 3.5rem;
+}
+
+/* Navigation arrows */
+.msm-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(168, 85, 247, 0.8));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+.msm-carousel-nav:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 30px rgba(139, 92, 246, 0.6);
+}
+.msm-carousel-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: translateY(-50%);
+}
+.msm-carousel-nav.prev { left: 0.5rem; }
+.msm-carousel-nav.next { right: 0.5rem; }
+
+/* Carousel indicators */
+.msm-carousel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.2));
+}
+.msm-carousel-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+.msm-carousel-dot:hover { background: rgba(255, 255, 255, 0.5); transform: scale(1.2); }
+.msm-carousel-dot.active {
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    width: 28px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.5);
+}
+
+/* Shot Card - Modern Glass Card - COMPACT NO-SCROLL */
+.msm-shot-card {
+    flex: 0 0 400px;
+    min-width: 360px;
+    max-width: 440px;
+    height: fit-content;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+}
+.msm-shot-card:first-child { margin-left: 1.5rem; }
+.msm-shot-card:last-child { margin-right: 1.5rem; }
+
+.msm-shot-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+.msm-shot-card.has-video {
+    border-color: rgba(6,182,212,0.6);
+    box-shadow: 0 8px 32px rgba(6,182,212,0.25);
+}
+.msm-shot-card.has-video:hover {
+    box-shadow: 0 16px 50px rgba(6,182,212,0.35);
+    border-color: rgba(6,182,212,0.8);
+}
+.msm-shot-card.selected {
+    border-color: rgba(139,92,246,0.8) !important;
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.3), 0 16px 50px rgba(139,92,246,0.3);
+    transform: scale(1.02);
+}
+
+.msm-shot-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.25)); border-bottom: 1px solid rgba(255,255,255,0.08); }
+.msm-shot-num { background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(168,85,247,0.6)); color: #fff; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 2px 8px rgba(139,92,246,0.4); min-width: 24px; text-align: center; }
+.msm-shot-type { color: rgba(255,255,255,0.85); font-size: 0.8rem; font-weight: 600; }
+.msm-shot-meta { margin-left: auto; display: flex; align-items: center; gap: 0.35rem; }
+.msm-badge-dialog { background: linear-gradient(135deg, rgba(251,191,36,0.5), rgba(245,158,11,0.4)); color: #fcd34d; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.msm-badge-voiceover { background: linear-gradient(135deg, rgba(100,116,139,0.5), rgba(71,85,105,0.4)); color: #cbd5e1; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.msm-dur { font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; }
+.msm-dur.green { color: #4ade80; background: rgba(34,197,94,0.2); }
+.msm-dur.yellow { color: #fde047; background: rgba(234,179,8,0.2); }
+.msm-dur.blue { color: #60a5fa; background: rgba(59,130,246,0.2); }
+.msm-monologue-indicator { display: none; } /* Hide long monologue text in header */
+
+.msm-shot-preview {
+    position: relative;
+    min-height: 120px;
+    max-height: 160px;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(10,10,20,0.4));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-direction: column;
+    overflow: hidden;
+}
 .msm-shot-preview img { width: 100%; height: 100%; object-fit: cover; }
 .msm-shot-preview img.dimmed { filter: brightness(0.35); }
-.msm-shot-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(20,20,40,0.4)); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.25s ease; backdrop-filter: blur(2px); }
+.msm-shot-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,40,0.5)); display: flex; align-items: center; justify-content: center; opacity: 0; transition: all 0.25s ease; backdrop-filter: blur(3px); flex-direction: column; gap: 0.3rem; }
 .msm-shot-preview:hover .msm-shot-overlay { opacity: 1; }
-.msm-shot-overlay span { font-size: 2rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+.msm-shot-overlay span { font-size: 1.8rem; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+.msm-shot-overlay small { font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500; }
 .msm-shot-icons { position: absolute; bottom: 0.4rem; right: 0.4rem; display: flex; gap: 0.3rem; }
-.msm-icon-img, .msm-icon-vid { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.msm-icon-img, .msm-icon-vid { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 .msm-icon-img { background: linear-gradient(135deg, #10b981, #059669); }
 .msm-icon-vid { background: linear-gradient(135deg, #06b6d4, #0284c7); }
 
-.msm-shot-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.msm-shot-empty > span { font-size: 2rem; color: rgba(255,255,255,0.2); }
-.msm-shot-empty button { padding: 0.4rem 0.8rem; background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(168,85,247,0.25)); border: 1px solid rgba(139,92,246,0.5); border-radius: 8px; color: #fff; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-.msm-shot-empty button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
-.msm-collage-btn { background: linear-gradient(135deg, rgba(236,72,153,0.45), rgba(139,92,246,0.4)) !important; border-color: rgba(236,72,153,0.55) !important; box-shadow: 0 2px 8px rgba(236,72,153,0.25); }
-.msm-collage-badge { position: absolute; top: 0.4rem; left: 0.4rem; background: linear-gradient(135deg, #ec4899, #db2777); color: #fff; padding: 0.2rem 0.45rem; border-radius: 6px; font-size: 0.65rem; font-weight: 700; box-shadow: 0 2px 8px rgba(236,72,153,0.4); }
+.msm-shot-empty { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+.msm-shot-empty > span { font-size: 3rem; color: rgba(255,255,255,0.25); }
+.msm-shot-empty button { padding: 0.6rem 1.2rem; background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(168,85,247,0.3)); border: 1px solid rgba(139,92,246,0.6); border-radius: 10px; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-shot-empty button:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(139,92,246,0.35); }
+.msm-collage-btn { background: linear-gradient(135deg, rgba(236,72,153,0.5), rgba(139,92,246,0.45)) !important; border-color: rgba(236,72,153,0.6) !important; box-shadow: 0 3px 12px rgba(236,72,153,0.3); }
+.msm-collage-badge { position: absolute; top: 0.6rem; left: 0.6rem; background: linear-gradient(135deg, #ec4899, #db2777); color: #fff; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; box-shadow: 0 3px 12px rgba(236,72,153,0.45); }
 
-.msm-vid-progress { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); backdrop-filter: blur(3px); }
-.msm-vid-progress span { color: #67e8f9; font-size: 0.8rem; font-weight: 600; margin-top: 0.6rem; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.msm-vid-progress { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+.msm-vid-progress span { color: #67e8f9; font-size: 1rem; font-weight: 600; margin-top: 0.75rem; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
 
-.msm-shot-controls { padding: 0.65rem; display: flex; flex-direction: column; gap: 0.5rem; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.15)); }
+.msm-shot-controls { padding: 0.5rem 0.65rem; display: flex; flex-direction: column; gap: 0.4rem; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.2)); }
 .msm-dur-btns { display: flex; gap: 0.25rem; }
-.msm-dur-btns button { flex: 1; padding: 0.35rem; font-size: 0.7rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; color: rgba(255,255,255,0.8); cursor: pointer; transition: all 0.2s ease; }
-.msm-dur-btns button:hover { background: rgba(255,255,255,0.1); }
+.msm-dur-btns button { flex: 1; padding: 0.35rem 0.3rem; font-size: 0.75rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.2s ease; }
+.msm-dur-btns button:hover { background: rgba(255,255,255,0.12); }
 .msm-dur-btns button.active { font-weight: 700; }
-.msm-dur-btns button.active.green { background: linear-gradient(135deg, rgba(34,197,94,0.4), rgba(22,163,74,0.3)); border-color: rgba(34,197,94,0.6); color: #4ade80; }
-.msm-dur-btns button.active.yellow { background: linear-gradient(135deg, rgba(234,179,8,0.4), rgba(202,138,4,0.3)); border-color: rgba(234,179,8,0.6); color: #fde047; }
-.msm-dur-btns button.active.blue { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(37,99,235,0.3)); border-color: rgba(59,130,246,0.6); color: #60a5fa; }
+.msm-dur-btns button.active.green { background: linear-gradient(135deg, rgba(34,197,94,0.45), rgba(22,163,74,0.35)); border-color: rgba(34,197,94,0.7); color: #4ade80; }
+.msm-dur-btns button.active.yellow { background: linear-gradient(135deg, rgba(234,179,8,0.45), rgba(202,138,4,0.35)); border-color: rgba(234,179,8,0.7); color: #fde047; }
+.msm-dur-btns button.active.blue { background: linear-gradient(135deg, rgba(59,130,246,0.45), rgba(37,99,235,0.35)); border-color: rgba(59,130,246,0.7); color: #60a5fa; }
 
-.msm-action-row { display: flex; gap: 0.35rem; }
-.msm-play-btn { flex: 1; padding: 0.45rem; background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(6,182,212,0.3)); border: 1px solid rgba(16,185,129,0.5); border-radius: 8px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-play-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.25); }
-.msm-capture-btn { padding: 0.45rem 0.6rem; background: rgba(16,185,129,0.25); border: 1px solid rgba(16,185,129,0.4); border-radius: 8px; color: #fff; font-size: 0.7rem; cursor: pointer; transition: all 0.2s ease; }
-.msm-capture-btn:hover { background: rgba(16,185,129,0.35); }
-.msm-animate-btn { flex: 1; padding: 0.5rem; background: linear-gradient(135deg, rgba(6,182,212,0.35), rgba(59,130,246,0.3)); border: 1px solid rgba(6,182,212,0.5); border-radius: 8px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-animate-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(6,182,212,0.3); }
-.msm-face-btn { flex: 1; padding: 0.5rem; background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(251,191,36,0.25)); border: 1px solid rgba(245,158,11,0.5); border-radius: 8px; color: #fbbf24; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-.msm-face-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(245,158,11,0.3); background: linear-gradient(135deg, rgba(245,158,11,0.4), rgba(251,191,36,0.35)); }
+.msm-action-row { display: flex; gap: 0.25rem; }
+.msm-play-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.35)); border: 1px solid rgba(16,185,129,0.6); border-radius: 6px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-play-btn:hover { box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+.msm-capture-btn { padding: 0.4rem 0.5rem; background: rgba(16,185,129,0.3); border: 1px solid rgba(16,185,129,0.5); border-radius: 6px; color: #fff; font-size: 0.7rem; cursor: pointer; transition: all 0.2s ease; }
+.msm-capture-btn:hover { background: rgba(16,185,129,0.4); }
+.msm-animate-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(6,182,212,0.4), rgba(59,130,246,0.35)); border: 1px solid rgba(6,182,212,0.6); border-radius: 6px; color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-animate-btn:hover { box-shadow: 0 4px 12px rgba(6,182,212,0.35); }
+.msm-face-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(251,191,36,0.3)); border: 1px solid rgba(245,158,11,0.6); border-radius: 6px; color: #fbbf24; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-face-btn:hover { box-shadow: 0 4px 12px rgba(245,158,11,0.35); background: linear-gradient(135deg, rgba(245,158,11,0.45), rgba(251,191,36,0.4)); }
 
-.msm-render-status { text-align: center; padding: 0.4rem; background: rgba(6,182,212,0.1); border-radius: 6px; position: relative; }
-.msm-render-status span { font-size: 0.75rem; color: #67e8f9; font-weight: 500; }
-.msm-reset-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; cursor: pointer; color: #fca5a5; transition: all 0.2s ease; }
-.msm-reset-btn:hover { background: rgba(239,68,68,0.4); border-color: rgba(239,68,68,0.6); }
-.msm-progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 0.4rem; }
+.msm-render-status { text-align: center; padding: 0.65rem; background: rgba(6,182,212,0.12); border-radius: 8px; position: relative; }
+.msm-render-status span { font-size: 0.85rem; color: #67e8f9; font-weight: 600; }
+.msm-reset-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.45); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; color: #fca5a5; transition: all 0.2s ease; }
+.msm-reset-btn:hover { background: rgba(239,68,68,0.45); border-color: rgba(239,68,68,0.65); }
+.msm-progress-bar { height: 6px; background: rgba(255,255,255,0.12); border-radius: 6px; overflow: hidden; margin-top: 0.5rem; }
 .msm-progress-bar div { height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6); animation: msm-progress 1.5s infinite linear; }
 
 /* Enhanced Render Status */
-.msm-render-status-enhanced { padding: 0.5rem; }
-.msm-render-status-enhanced .msm-render-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
-.msm-render-status-enhanced .msm-render-provider { font-size: 0.7rem; font-weight: 600; color: #a5b4fc; background: rgba(99,102,241,0.2); padding: 2px 6px; border-radius: 4px; }
-.msm-render-status-enhanced .msm-reset-btn { position: static; transform: none; padding: 2px 5px; font-size: 0.65rem; }
-.msm-render-status-enhanced .msm-render-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
-.msm-render-status-enhanced .msm-elapsed { font-size: 0.8rem; font-weight: 700; color: #fcd34d; font-family: monospace; }
-.msm-render-status-enhanced .msm-remaining { font-size: 0.65rem; color: #9ca3af; font-family: monospace; }
+.msm-render-status-enhanced { padding: 0.75rem; }
+.msm-render-status-enhanced .msm-render-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+.msm-render-status-enhanced .msm-render-provider { font-size: 0.8rem; font-weight: 600; color: #a5b4fc; background: rgba(99,102,241,0.25); padding: 4px 10px; border-radius: 6px; }
+.msm-render-status-enhanced .msm-reset-btn { position: static; transform: none; padding: 4px 8px; font-size: 0.75rem; }
+.msm-render-status-enhanced .msm-render-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+.msm-render-status-enhanced .msm-elapsed { font-size: 0.95rem; font-weight: 700; color: #fcd34d; font-family: monospace; }
+.msm-render-status-enhanced .msm-remaining { font-size: 0.8rem; color: #9ca3af; font-family: monospace; }
 .msm-render-status-enhanced .msm-progress-bar { margin-top: 0; }
 .msm-render-status-enhanced .msm-progress-bar div { animation: none; transition: width 0.5s ease; }
 
 /* Spinner - Modern Loading */
-.msm-spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.15); border-radius: 50%; animation: msm-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
+.msm-spinner { width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.18); border-radius: 50%; animation: msm-spin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
 .msm-spinner.pink { border-top-color: #ec4899; border-right-color: rgba(236,72,153,0.4); }
-.msm-spinner.purple { border-top-color: #8b5cf6; border-right-color: rgba(139,92,246,0.4); width: 32px; height: 32px; }
-.msm-spinner.cyan { border-top-color: #06b6d4; border-right-color: rgba(6,182,212,0.4); width: 40px; height: 40px; }
+.msm-spinner.purple { border-top-color: #8b5cf6; border-right-color: rgba(139,92,246,0.4); width: 40px; height: 40px; }
+.msm-spinner.cyan { border-top-color: #06b6d4; border-right-color: rgba(6,182,212,0.4); width: 48px; height: 48px; }
 
 /* Popup Modal - Glass Style */
 .msm-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2147483648; }
@@ -1681,15 +2000,11 @@ window.multiShotVideoPolling = function() {
 @keyframes msm-spin { to { transform: rotate(360deg); } }
 @keyframes msm-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
-/* Scrollbar Styling */
-.msm-collage-content::-webkit-scrollbar,
-.msm-shot-grid::-webkit-scrollbar { width: 8px; }
-.msm-collage-content::-webkit-scrollbar-track,
-.msm-shot-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 4px; }
-.msm-collage-content::-webkit-scrollbar-thumb,
-.msm-shot-grid::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
-.msm-collage-content::-webkit-scrollbar-thumb:hover,
-.msm-shot-grid::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
+/* Scrollbar Styling (Collage content only - carousel has hidden scrollbar) */
+.msm-collage-content::-webkit-scrollbar { width: 8px; }
+.msm-collage-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 4px; }
+.msm-collage-content::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
+.msm-collage-content::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
 
 /* AI Analysis Badges in Header */
 .msm-ai-badge { background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(6,182,212,0.3)); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; cursor: help; }
@@ -1704,24 +2019,24 @@ window.multiShotVideoPolling = function() {
 .msm-ai-reasoning { font-size: 0.7rem; color: rgba(255,255,255,0.6); background: rgba(16,185,129,0.1); padding: 0.35rem 0.6rem; border-radius: 0.35rem; margin-top: 0.5rem; border-left: 3px solid rgba(16,185,129,0.5); cursor: help; }
 
 /* Shot Card Enhanced Badges */
-.msm-badge-lipsync { font-size: 0.65rem; cursor: help; }
-.msm-badge-ai { background: rgba(16,185,129,0.3); padding: 0.1rem 0.2rem; border-radius: 0.2rem; font-size: 0.55rem; }
-.msm-shot-card.transferred { border-color: rgba(16,185,129,0.4) !important; }
-.msm-shot-card.selected { border-color: rgba(139,92,246,0.6) !important; box-shadow: 0 0 0 2px rgba(139,92,246,0.25); }
-.msm-transfer-badge { position: absolute; top: 0.35rem; right: 0.35rem; background: rgba(16,185,129,0.9); color: #fff; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.55rem; font-weight: 600; }
-.msm-from-collage { position: absolute; bottom: 1.6rem; left: 0.35rem; background: rgba(236,72,153,0.7); color: #fff; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.5rem; }
-.msm-hover-hint { position: absolute; bottom: 0.5rem; left: 50%; transform: translateX(-50%); background: rgba(139,92,246,0.8); color: #fff; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.6rem; opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; }
+.msm-badge-lipsync { font-size: 0.85rem; cursor: help; }
+.msm-badge-ai { background: rgba(16,185,129,0.35); padding: 0.2rem 0.4rem; border-radius: 5px; font-size: 0.75rem; }
+.msm-shot-card.transferred { border-color: rgba(16,185,129,0.5) !important; }
+.msm-shot-card.selected { border-color: rgba(139,92,246,0.7) !important; box-shadow: 0 0 0 3px rgba(139,92,246,0.3); }
+.msm-transfer-badge { position: absolute; top: 0.6rem; right: 0.6rem; background: rgba(16,185,129,0.95); color: #fff; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.msm-from-collage { position: absolute; bottom: 2rem; left: 0.6rem; background: rgba(236,72,153,0.85); color: #fff; padding: 0.25rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 500; }
+.msm-hover-hint { position: absolute; bottom: 0.75rem; left: 50%; transform: translateX(-50%); background: rgba(139,92,246,0.9); color: #fff; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; font-weight: 500; }
 .msm-shot-preview:hover .msm-hover-hint { opacity: 1; }
 
 /* Shot Info Row */
-.msm-shot-info { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.6rem; }
-.msm-camera { color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
-.msm-tokens { color: #fbbf24; font-weight: 600; }
+.msm-shot-info { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; }
+.msm-camera { color: rgba(255,255,255,0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; font-weight: 500; }
+.msm-tokens { color: #fbbf24; font-weight: 700; font-size: 0.85rem; background: rgba(251,191,36,0.15); padding: 0.25rem 0.5rem; border-radius: 6px; }
 
 /* Frame Status */
-.msm-frame-status { padding: 0.25rem 0.5rem; text-align: center; min-height: 1.4rem; }
-.msm-status-ok { font-size: 0.55rem; color: #10b981; background: rgba(16,185,129,0.15); padding: 0.15rem 0.4rem; border-radius: 0.2rem; }
-.msm-status-wait { font-size: 0.55rem; color: #f59e0b; background: rgba(245,158,11,0.15); padding: 0.15rem 0.4rem; border-radius: 0.2rem; }
+.msm-frame-status { padding: 0.5rem 0.85rem; text-align: center; min-height: 2rem; display: flex; align-items: center; justify-content: center; }
+.msm-status-ok { font-size: 0.8rem; color: #10b981; background: rgba(16,185,129,0.2); padding: 0.35rem 0.65rem; border-radius: 6px; font-weight: 500; }
+.msm-status-wait { font-size: 0.8rem; color: #f59e0b; background: rgba(245,158,11,0.2); padding: 0.35rem 0.65rem; border-radius: 6px; font-weight: 500; }
 
 /* Shot Overlay Enhanced */
 .msm-shot-overlay { flex-direction: column; gap: 0.25rem; }
@@ -1738,41 +2053,135 @@ window.multiShotVideoPolling = function() {
 .msm-assign-btns button small { font-size: 0.55rem; opacity: 0.7; margin-left: 0.2rem; }
 
 /* Monologue/Dialogue Indicators */
-.msm-badge-audio { background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.35)); color: #10b981; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.6rem; }
-.msm-badge-audio-gen { background: rgba(139,92,246,0.3); color: #a78bfa; padding: 0.1rem 0.25rem; border-radius: 0.2rem; font-size: 0.55rem; animation: pulse 1.5s infinite; }
+.msm-badge-audio { background: linear-gradient(135deg, rgba(16,185,129,0.45), rgba(6,182,212,0.4)); color: #10b981; padding: 0.2rem 0.4rem; border-radius: 5px; font-size: 0.8rem; }
+.msm-badge-audio-gen { background: rgba(139,92,246,0.35); color: #a78bfa; padding: 0.2rem 0.4rem; border-radius: 5px; font-size: 0.75rem; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-.msm-monologue-indicator { padding: 0.15rem 0.5rem; background: rgba(236,72,153,0.1); border-top: 1px solid rgba(236,72,153,0.15); }
-.msm-monologue-preview { color: rgba(236,72,153,0.85); font-size: 0.55rem; font-style: italic; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msm-monologue-indicator { padding: 0.35rem 0.75rem; background: rgba(236,72,153,0.12); border-top: 1px solid rgba(236,72,153,0.2); }
+
+/* Speech Type Badges for Shot Cards */
+.msm-speech-badge-row { padding: 0.15rem 0.5rem !important; }
+.msm-speech-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.12rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.msm-speech-type-badge.dialogue {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(139, 92, 246, 0.3));
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.4);
+}
+.msm-speech-type-badge.monologue {
+    background: rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.msm-speech-type-badge.narrator {
+    background: rgba(100, 116, 139, 0.25);
+    color: #94a3b8;
+    border: 1px solid rgba(100, 116, 139, 0.4);
+}
+.msm-speech-type-badge.silent {
+    background: rgba(100, 116, 139, 0.15);
+    color: rgba(148, 163, 184, 0.7);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
+.msm-monologue-preview { color: rgba(236,72,153,0.9); font-size: 0.75rem; font-style: italic; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Re-Animate Button */
-.msm-reanimate-btn { background: rgba(139,92,246,0.2) !important; border: 1px solid rgba(139,92,246,0.4) !important; padding: 0.3rem 0.4rem !important; font-size: 0.7rem !important; border-radius: 0.3rem !important; cursor: pointer; transition: all 0.2s ease; }
-.msm-reanimate-btn:hover { background: rgba(139,92,246,0.35) !important; }
-.msm-reanimate-btn.msm-needs-reanimate { background: rgba(245,158,11,0.25) !important; border-color: rgba(245,158,11,0.5) !important; animation: pulse 2s infinite; }
+.msm-reanimate-btn { background: rgba(139,92,246,0.25) !important; border: 1px solid rgba(139,92,246,0.5) !important; padding: 0.5rem 0.65rem !important; font-size: 0.85rem !important; border-radius: 8px !important; cursor: pointer; transition: all 0.2s ease; }
+.msm-reanimate-btn:hover { background: rgba(139,92,246,0.4) !important; transform: translateY(-1px); }
+.msm-reanimate-btn.msm-needs-reanimate { background: rgba(245,158,11,0.3) !important; border-color: rgba(245,158,11,0.6) !important; animation: pulse 2s infinite; }
 
 /* Wrong Model Warning */
-.msm-wrong-model-hint { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 0.55rem; padding: 0.2rem 0.4rem; text-align: center; border-top: 1px solid rgba(245,158,11,0.25); }
+.msm-wrong-model-hint { background: rgba(245,158,11,0.18); color: #fbbf24; font-size: 0.75rem; padding: 0.4rem 0.65rem; text-align: center; border-top: 1px solid rgba(245,158,11,0.3); font-weight: 500; }
 
-/* Responsive Adjustments */
-@media (max-width: 900px) {
-    .msm-split-panel { grid-template-columns: 1fr !important; grid-template-rows: auto auto 1fr; }
-    .msm-collage-panel { max-height: 45vh; border-bottom: 1px solid rgba(139,92,246,0.2); }
-    .msm-resize-handle { display: none; }
-    .msm-shot-info { flex-direction: column; gap: 0.15rem; }
-    .msm-camera { max-width: 100%; }
+/* Responsive Adjustments - Carousel Mode */
+@media (max-width: 1400px) {
+    .msm-shot-card { flex: 0 0 380px; min-width: 340px; max-width: 420px; }
 }
 
-/* PHASE 6: Shot Type Badges */
-.vw-shot-badge { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
-.vw-shot-badge-xcu { background: rgba(239, 68, 68, 0.25); color: rgba(239, 68, 68, 0.95); }
-.vw-shot-badge-cu { background: rgba(249, 115, 22, 0.25); color: rgba(249, 115, 22, 0.95); }
-.vw-shot-badge-mcu { background: rgba(245, 158, 11, 0.25); color: rgba(245, 158, 11, 0.95); }
-.vw-shot-badge-med { background: rgba(34, 197, 94, 0.25); color: rgba(34, 197, 94, 0.95); }
-.vw-shot-badge-wide { background: rgba(59, 130, 246, 0.25); color: rgba(59, 130, 246, 0.95); }
-.vw-shot-badge-est { background: rgba(99, 102, 241, 0.25); color: rgba(99, 102, 241, 0.95); }
-.vw-shot-badge-ots { background: rgba(139, 92, 246, 0.25); color: rgba(139, 92, 246, 0.95); }
-.vw-shot-badge-reaction { background: rgba(236, 72, 153, 0.25); color: rgba(236, 72, 153, 0.95); }
-.vw-shot-badge-two-shot { background: rgba(20, 184, 166, 0.25); color: rgba(20, 184, 166, 0.95); }
-.vw-shot-badge-movement { background: rgba(168, 162, 158, 0.2); color: rgba(168, 162, 158, 0.9); }
-.vw-shot-badge-climax { background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3)); color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(139, 92, 246, 0.5); }
-.vw-shot-badges { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.25rem 0; }
+@media (max-width: 1100px) {
+    .msm-shot-card { flex: 0 0 340px; min-width: 300px; max-width: 380px; }
+    .msm-shot-preview { min-height: 100px; max-height: 140px; }
+    .msm-carousel-container { padding: 0 3rem; }
+}
+
+@media (max-width: 900px) {
+    .msm-split-panel { grid-template-columns: 1fr !important; grid-template-rows: auto auto 1fr; }
+    .msm-collage-panel { max-height: 40vh; border-bottom: 1px solid rgba(139,92,246,0.25); }
+    .msm-resize-handle { display: none; }
+    .msm-shot-card { flex: 0 0 320px; min-width: 280px; max-width: 360px; }
+    .msm-shot-preview { min-height: 90px; max-height: 120px; }
+    .msm-carousel-container { padding: 0 2.5rem; }
+    .msm-carousel-nav { width: 36px; height: 36px; font-size: 1rem; }
+    .msm-carousel-nav.prev { left: 0.25rem; }
+    .msm-carousel-nav.next { right: 0.25rem; }
+    .msm-shot-info { flex-direction: column; gap: 0.25rem; align-items: flex-start; }
+    .msm-camera { max-width: 100%; }
+    .msm-action-bar { padding: 0.5rem 0.65rem; gap: 0.35rem; flex-wrap: wrap; }
+    .msm-action-btn { padding: 0.35rem 0.5rem; font-size: 0.7rem; }
+}
+
+@media (max-width: 600px) {
+    .msm-shot-card { flex: 0 0 calc(100vw - 4rem); min-width: 240px; max-width: 320px; }
+    .msm-shot-card:first-child { margin-left: 0.75rem; }
+    .msm-shot-card:last-child { margin-right: 0.75rem; }
+    .msm-carousel-container { padding: 0 1.5rem; }
+    .msm-carousel-nav { width: 32px; height: 32px; }
+    .msm-carousel-nav.prev { left: 0.1rem; }
+    .msm-carousel-nav.next { right: 0.1rem; }
+    .msm-shot-header { padding: 0.4rem 0.5rem; }
+    .msm-shot-num { font-size: 0.75rem; padding: 0.15rem 0.4rem; }
+    .msm-shot-type { font-size: 0.7rem; }
+    .msm-shot-controls { padding: 0.4rem 0.5rem; }
+    .msm-timeline { height: 36px; margin: 0.5rem 0.75rem; }
+    .msm-timeline-seg { font-size: 0.7rem; }
+    .msm-carousel-indicators { gap: 0.25rem; padding: 0.4rem 0; }
+    .msm-carousel-dot { width: 6px; height: 6px; }
+    .msm-carousel-dot.active { width: 18px; }
+}
+
+/* PHASE 6: Shot Type Badges - ENHANCED */
+.vw-shot-badge { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.vw-shot-badges { display: flex; flex-wrap: wrap; gap: 0.2rem; padding: 0.2rem 0.5rem !important; }
+.vw-shot-badge-xcu { background: rgba(239, 68, 68, 0.3); color: #f87171; }
+.vw-shot-badge-cu { background: rgba(249, 115, 22, 0.3); color: #fb923c; }
+.vw-shot-badge-mcu { background: rgba(245, 158, 11, 0.3); color: #fbbf24; }
+.vw-shot-badge-med { background: rgba(34, 197, 94, 0.3); color: #4ade80; }
+.vw-shot-badge-wide { background: rgba(59, 130, 246, 0.3); color: #60a5fa; }
+.vw-shot-badge-est { background: rgba(99, 102, 241, 0.3); color: #818cf8; }
+.vw-shot-badge-ots { background: rgba(139, 92, 246, 0.3); color: #a78bfa; }
+.vw-shot-badge-reaction { background: rgba(236, 72, 153, 0.3); color: #f472b6; }
+.vw-shot-badge-two-shot { background: rgba(20, 184, 166, 0.3); color: #2dd4bf; }
+.vw-shot-badge-movement { background: rgba(168, 162, 158, 0.25); color: #d6d3d1; }
+.vw-shot-badge-climax { background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(236, 72, 153, 0.4)); color: #fff; border: 1px solid rgba(139, 92, 246, 0.6); font-weight: 800; }
+.vw-shot-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.4rem 0; padding: 0 0.75rem; }
+
+/* Enhanced Status Badges for Multi-Shot Modal */
+.vw-status-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.55rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.vw-status-pending { background: rgba(168, 162, 158, 0.25); color: #d6d3d1; }
+.vw-status-generating { background: rgba(245, 158, 11, 0.25); color: #fbbf24; animation: pulse 1.5s ease-in-out infinite; }
+.vw-status-complete, .vw-status-ready { background: rgba(34, 197, 94, 0.25); color: #4ade80; }
+.vw-status-error { background: rgba(239, 68, 68, 0.25); color: #f87171; }
+.vw-status-badge svg { width: 12px; height: 12px; }
+
+/* Enhanced Intensity Bar */
+.vw-intensity-bar { height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; margin: 0.5rem 0.75rem; }
+.vw-intensity-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.vw-intensity-low { background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(96, 165, 250, 0.8)); }
+.vw-intensity-medium { background: linear-gradient(90deg, rgba(245, 158, 11, 0.9), rgba(251, 191, 36, 0.8)); }
+.vw-intensity-high { background: linear-gradient(90deg, rgba(239, 68, 68, 0.9), rgba(248, 113, 113, 0.8)); }
+.vw-intensity-climax { background: linear-gradient(90deg, rgba(139, 92, 246, 0.95), rgba(236, 72, 153, 0.95)); }
+
+/* Mini Progress Ring */
+.vw-mini-progress { width: 20px; height: 20px; position: relative; }
+.vw-mini-progress svg { transform: rotate(-90deg); width: 20px; height: 20px; }
+.vw-mini-progress-bg { fill: none; stroke: rgba(255, 255, 255, 0.15); stroke-width: 2; }
+.vw-mini-progress-fill { fill: none; stroke-width: 2; stroke-linecap: round; transition: stroke-dashoffset 0.3s ease; }
 </style>

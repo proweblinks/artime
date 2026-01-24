@@ -24,10 +24,16 @@
             </div>
         </div>
 
-        {{-- Story Bible sync indicator --}}
-        @if(!empty($storyBible['locations']) && $storyBible['status'] === 'ready')
-            <div style="padding: 0.35rem 1rem; background: rgba(251,191,36,0.1); border-bottom: 1px solid rgba(251,191,36,0.2); color: #fcd34d; font-size: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
-                📖 {{ __('Story Bible has') }} {{ count($storyBible['locations']) }} {{ __('locations') }} - {{ __('these are auto-synced when you open this modal') }}
+        {{-- Story Bible sync indicator with loading state --}}
+        @if($isSyncingLocationBible ?? false)
+            <div style="padding: 0.5rem 1rem; background: rgba(245,158,11,0.15); border-bottom: 1px solid rgba(245,158,11,0.3); color: #fcd34d; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 14px; height: 14px; border: 2px solid rgba(245,158,11,0.3); border-top-color: #f59e0b; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
+                <span>{{ __('Syncing locations from Story Bible...') }}</span>
+            </div>
+        @elseif(!empty($storyBible['locations']) && $storyBible['status'] === 'ready')
+            <div style="padding: 0.35rem 1rem; background: rgba(16,185,129,0.1); border-bottom: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; font-size: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: #10b981;">✓</span>
+                📖 {{ __('Synced') }} {{ count($storyBible['locations']) }} {{ __('locations from Story Bible') }}
             </div>
         @endif
 

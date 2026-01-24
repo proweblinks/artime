@@ -139,32 +139,30 @@
             @endif
 
             {{-- Preview Container --}}
-            <div style="display: flex; align-items: center; justify-content: center; padding: 0.5rem; background: rgba(0,0,0,0.3); min-height: 200px; max-height: 45vh; position: relative; flex-shrink: 0;">
+            <div style="background: rgba(0,0,0,0.4); min-height: 280px; height: 45vh; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                 {{-- Image Preview (Alpine.js controlled visibility) --}}
-                <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
-                     style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
-                    @if($hasImage)
-                        <img src="{{ $shot['imageUrl'] }}" alt="Shot {{ $shotPreviewShotIndex + 1 }}" style="max-width: 100%; max-height: 42vh; object-fit: contain; border-radius: 0.4rem; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
-                    @else
-                        <div style="text-align: center; color: rgba(255,255,255,0.4);">
-                            <span style="font-size: 2.5rem;">🖼️</span>
-                            <div style="margin-top: 0.4rem; font-size: 0.85rem;">{{ __('No image generated yet') }}</div>
-                        </div>
-                    @endif
-                </div>
+                @if($hasImage)
+                    <img x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
+                         src="{{ $shot['imageUrl'] }}"
+                         alt="Shot {{ $shotPreviewShotIndex + 1 }}"
+                         style="max-width: calc(100% - 2rem); max-height: calc(100% - 2rem); object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+                @else
+                    <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
+                         style="text-align: center; color: rgba(255,255,255,0.4);">
+                        <span style="font-size: 3rem;">🖼️</span>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem;">{{ __('No image generated yet') }}</div>
+                    </div>
+                @endif
 
                 {{-- Video Preview (Alpine.js controlled visibility) --}}
                 @if($hasVideo)
-                    <div x-show="previewTab === 'video'"
-                         style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
-                        <video
-                            src="{{ $shot['videoUrl'] }}"
-                            controls
-                            autoplay
-                            x-on:ended="onVideoEnded()"
-                            style="max-width: 100%; max-height: 42vh; object-fit: contain; border-radius: 0.4rem; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
-                        </video>
-                    </div>
+                    <video x-show="previewTab === 'video'"
+                           src="{{ $shot['videoUrl'] }}"
+                           controls
+                           autoplay
+                           x-on:ended="onVideoEnded()"
+                           style="max-width: calc(100% - 2rem); max-height: calc(100% - 2rem); object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+                    </video>
                 @endif
 
                 {{-- Navigation Arrows --}}
@@ -194,6 +192,153 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Speech/Text Content Section --}}
+            @php
+                $hasDialogue = !empty($shot['dialogue']);
+                $hasMonologue = !empty($shot['monologue']);
+                $hasNarration = !empty($shot['narration']);
+                $hasVisualContext = !empty($shot['visualContext']);
+                $speechIndicator = $shot['speechIndicator'] ?? null;
+                $speechType = $shot['speechType'] ?? 'narrator';
+                $speakingCharacter = $shot['speakingCharacter'] ?? $shot['speaker'] ?? null;
+                $needsLipSync = $shot['needsLipSync'] ?? false;
+                $hasAudioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+
+                // Determine what content to show
+                $showSpeechSection = $hasDialogue || $hasMonologue || $hasNarration || $hasVisualContext;
+            @endphp
+
+            @if($showSpeechSection)
+            <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(139, 92, 246, 0.08)); border-top: 1px solid rgba(236, 72, 153, 0.2); flex-shrink: 0;">
+                {{-- Section Header with Speech Type Badge --}}
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    @if($speechType === 'dialogue')
+                        {{-- Dialogue: Character talking to others - needs Multitalk lip-sync --}}
+                        <span style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                            💬 {{ __('DIALOGUE') }}
+                        </span>
+                        <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #f9a8d4;">
+                            🎬 {{ __('Multitalk Lip-Sync') }}
+                        </span>
+                    @elseif($speechType === 'monologue')
+                        {{-- Character Monologue: On-screen character speaking alone - needs Multitalk lip-sync --}}
+                        <span style="background: linear-gradient(135deg, #8b5cf6, #6366f1); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                            🗣️ {{ __('CHARACTER MONOLOGUE') }}
+                        </span>
+                        <span style="background: rgba(139, 92, 246, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd;">
+                            🎬 {{ __('Multitalk Lip-Sync') }}
+                        </span>
+                    @elseif($speechType === 'narrator' || $hasNarration)
+                        {{-- Narrator: Off-screen voice - TTS only, no lip-sync --}}
+                        <span style="background: rgba(100, 116, 139, 0.4); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #e2e8f0;">
+                            🎙️ {{ __('NARRATOR') }}
+                        </span>
+                        <span style="background: rgba(100, 116, 139, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #94a3b8;">
+                            🔊 {{ __('Voiceover Only') }}
+                        </span>
+                    @elseif($speechType === 'internal')
+                        {{-- Internal thoughts: Character's inner voice - TTS only, no lip-sync --}}
+                        <span style="background: rgba(168, 85, 247, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #d8b4fe;">
+                            💭 {{ __('INTERNAL THOUGHTS') }}
+                        </span>
+                        <span style="background: rgba(168, 85, 247, 0.15); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd;">
+                            🔊 {{ __('Voiceover Only') }}
+                        </span>
+                    @elseif($hasDialogue || $hasMonologue)
+                        {{-- Fallback for legacy data without proper speechType --}}
+                        @if($needsLipSync)
+                            <span style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                                💬 {{ __('SPEECH') }}
+                            </span>
+                            <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #f9a8d4;">
+                                🎬 {{ __('Lip-Sync') }}
+                            </span>
+                        @else
+                            <span style="background: rgba(139, 92, 246, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #c4b5fd;">
+                                🗣️ {{ __('SPEECH') }}
+                            </span>
+                            <span style="background: rgba(139, 92, 246, 0.15); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #a78bfa;">
+                                🔊 {{ __('Voiceover') }}
+                            </span>
+                        @endif
+                    @elseif($hasVisualContext)
+                        <span style="background: rgba(59, 130, 246, 0.2); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #93c5fd;">
+                            👁️ {{ __('VISUAL') }}
+                        </span>
+                    @endif
+
+                    {{-- Speaker name (for character speech types) --}}
+                    @if($speakingCharacter && in_array($speechType, ['dialogue', 'monologue', 'internal']))
+                        <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.4rem; background: rgba(255,255,255,0.1); border-radius: 0.25rem;">
+                            {{ $speakingCharacter }}
+                        </span>
+                    @endif
+
+                    {{-- Audio ready indicator --}}
+                    @if($hasAudioReady)
+                        <span style="background: rgba(16, 185, 129, 0.3); padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; color: #34d399;">
+                            🎤 {{ __('Audio Ready') }}
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Content Box --}}
+                <div style="background: rgba(0,0,0,0.3); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
+                    @if($hasDialogue || $hasMonologue)
+                        <p style="color: rgba(255,255,255,0.95); font-size: 0.95rem; line-height: 1.5; margin: 0; font-style: italic;">
+                            "{{ $shot['dialogue'] ?? $shot['monologue'] }}"
+                        </p>
+                    @elseif($hasNarration)
+                        <p style="color: rgba(255,255,255,0.85); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                            {{ $shot['narration'] }}
+                        </p>
+                    @elseif($hasVisualContext)
+                        <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; line-height: 1.4; margin: 0;">
+                            {{ $shot['visualContext'] }}
+                        </p>
+                    @endif
+                </div>
+
+                {{-- Generation Method Info --}}
+                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    {{-- Generation method indicator --}}
+                    @if($needsLipSync || in_array($speechType, ['dialogue', 'monologue']))
+                        <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem;">
+                            <span style="color: rgba(236, 72, 153, 0.9);">⚡</span>
+                            <span style="color: rgba(255,255,255,0.6);">{{ __('Generation') }}:</span>
+                            <span style="color: #f472b6; font-weight: 600;">{{ __('Multitalk') }}</span>
+                            <span style="color: rgba(255,255,255,0.4);">({{ __('lip-sync video with audio') }})</span>
+                        </div>
+                    @else
+                        <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem;">
+                            <span style="color: rgba(100, 116, 139, 0.9);">⚡</span>
+                            <span style="color: rgba(255,255,255,0.6);">{{ __('Generation') }}:</span>
+                            <span style="color: #94a3b8; font-weight: 600;">{{ __('TTS') }}</span>
+                            <span style="color: rgba(255,255,255,0.4);">({{ __('audio track only') }})</span>
+                        </div>
+                    @endif
+
+                    @if($shot['partOfVoiceover'] ?? false)
+                        <span style="font-size: 0.65rem; color: #94a3b8; padding: 0.15rem 0.4rem; background: rgba(100, 116, 139, 0.2); border-radius: 0.2rem;">
+                            {{ __('Part of scene voiceover') }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+            @else
+            {{-- No speech content - show silent shot indicator --}}
+            <div style="padding: 0.5rem 0.75rem; background: rgba(100, 116, 139, 0.1); border-top: 1px solid rgba(100, 116, 139, 0.2); flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="background: rgba(100, 116, 139, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; color: #94a3b8;">
+                        🔇 {{ __('SILENT SHOT') }}
+                    </span>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                        {{ $shot['type'] === 'establishing' ? __('Establishing shot - sets the scene') : ($shot['type'] === 'reaction' ? __('Reaction shot - visual response') : __('No dialogue or narration')) }}
+                    </span>
+                </div>
+            </div>
+            @endif
 
             {{-- Prompts Section (compact) --}}
             <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
