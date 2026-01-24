@@ -861,12 +861,7 @@ window.multiShotVideoPolling = function() {
                                         @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
                                     </div>
-                                    {{-- Monologue/Dialogue text indicator --}}
-                                    @if($hasMonologue || $hasDialogue)
-                                        <div class="msm-monologue-indicator" title="{{ $shot['monologue'] ?? $shot['dialogue'] ?? '' }}">
-                                            <small class="msm-monologue-preview">🗣️ "{{ Str::limit($shot['monologue'] ?? $shot['dialogue'] ?? '', 30) }}"</small>
-                                        </div>
-                                    @endif
+                                    {{-- Monologue/Dialogue - tooltip only (on badge) --}}
                                 </div>
 
                                 {{-- PHASE 6: Shot Type Badges --}}
@@ -921,37 +916,22 @@ window.multiShotVideoPolling = function() {
                                 @endphp
 
                                 @if($shotHasText)
-                                    {{-- Speech Type Badge --}}
+                                    {{-- Speech Type Badge with tooltip showing full text --}}
+                                    @php $speechTooltipText = $shotDialogue ?? $shotMonologue ?? $shotNarration ?? ''; @endphp
                                     <div class="msm-speech-badge-row" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem;">
                                         @if($needsLipSync && ($shotDialogue || $shotMonologue))
-                                            <span class="msm-speech-type-badge dialogue">💬 {{ __('Dialogue') }}</span>
+                                            <span class="msm-speech-type-badge dialogue" title="{{ $speechTooltipText }}" style="cursor: help;">💬 {{ __('Dialogue') }}</span>
                                         @elseif($shotMonologue || $shotDialogue)
-                                            <span class="msm-speech-type-badge monologue">🗣️ {{ __('Monologue') }}</span>
+                                            <span class="msm-speech-type-badge monologue" title="{{ $speechTooltipText }}" style="cursor: help;">🗣️ {{ __('Monologue') }}</span>
                                         @elseif($shotNarration)
-                                            <span class="msm-speech-type-badge narrator">🎙️ {{ __('Narrator') }}</span>
+                                            <span class="msm-speech-type-badge narrator" title="{{ $speechTooltipText }}" style="cursor: help;">🎙️ {{ __('Narrator') }}</span>
                                         @endif
                                         @if($shotSpeaker)
                                             <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500;">{{ $shotSpeaker }}</span>
                                         @endif
                                     </div>
 
-                                    {{-- Text Content - Compact --}}
-                                    <div class="msm-shot-text-content" style="
-                                        background: {{ $needsLipSync ? 'rgba(236, 72, 153, 0.1)' : ($shotNarration ? 'rgba(100, 116, 139, 0.1)' : 'rgba(139, 92, 246, 0.1)') }};
-                                        border-left: 2px solid {{ $needsLipSync ? 'rgba(236, 72, 153, 0.6)' : ($shotNarration ? 'rgba(100, 116, 139, 0.5)' : 'rgba(139, 92, 246, 0.5)') }};
-                                        padding: 0.25rem 0.5rem;
-                                        margin: 0 0.5rem 0.35rem;
-                                        border-radius: 0 4px 4px 0;
-                                        font-size: 0.7rem;
-                                    ">
-                                        <span style="color: rgba(255,255,255,0.85); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                            @if($shotDialogue || $shotMonologue)
-                                                "{{ Str::limit($shotDialogue ?? $shotMonologue, 60) }}"
-                                            @elseif($shotNarration)
-                                                {{ Str::limit($shotNarration, 60) }}
-                                            @endif
-                                        </span>
-                                    </div>
+                                    {{-- Text Content removed - now shown as tooltip on badge --}}
                                 @elseif(!empty($shot['needsLipSync']))
                                     {{-- Lip-sync indicator without text - Compact --}}
                                     <div style="display: inline-flex; align-items: center; gap: 0.2rem; background: rgba(236, 72, 153, 0.2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: #f472b6; margin: 0.2rem 0.5rem; font-weight: 500;">
@@ -1089,22 +1069,16 @@ window.multiShotVideoPolling = function() {
                                     <span class="msm-tokens">⚡ {{ $tokenCost }}t</span>
                                 </div>
 
-                                {{-- Frame Status --}}
-                                <div class="msm-frame-status">
-                                    @if($isFirstShot)
-                                        @if($hasImage)
-                                            <span class="msm-status-ok">🔗 {{ __('Scene image') }}</span>
-                                        @else
+                                {{-- Frame Status - Only show warnings/errors to save space --}}
+                                @if(($isFirstShot && !$hasImage) || (!$isFirstShot && !$hasImage && !$wasTransferred))
+                                    <div class="msm-frame-status">
+                                        @if($isFirstShot && !$hasImage)
                                             <span class="msm-status-wait">⚠️ {{ __('Generate scene first') }}</span>
-                                        @endif
-                                    @else
-                                        @if($wasTransferred)
-                                            <span class="msm-status-ok">🔗 {{ __('Frame from Shot') }} {{ $transferredFrom + 1 }}</span>
-                                        @elseif(!$hasImage)
+                                        @elseif(!$isFirstShot && !$hasImage)
                                             <span class="msm-status-wait">⏳ {{ __('Awaiting frame') }}</span>
                                         @endif
-                                    @endif
-                                </div>
+                                    </div>
+                                @endif
 
                                 <div class="msm-shot-controls">
                                     @php $durations = $this->getAvailableDurations($shot['selectedVideoModel'] ?? 'minimax'); @endphp
