@@ -1,6 +1,6 @@
 # Video Wizard - Current State
 
-> Last Updated: 2026-01-24
+> Last Updated: 2026-01-25
 > Session: Milestone 9 - Voice Production Excellence
 
 ---
@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 **Milestone:** 9 (Voice Production Excellence)
-**Phase:** 15 (Critical Fixes) - Complete
-**Plan:** 1 of 1 plans
-**Status:** Phase 15 complete, verified (VOC-01, VOC-02)
+**Phase:** 16 (Consistency Layer) - Plan 01 complete
+**Plan:** 1 of ? plans (VOC-03 complete)
+**Status:** In progress
 
 ```
 Phase 15: ██████████ 100% (1/1 plans complete)
-Phase 16: ░░░░░░░░░░ 0% (not yet planned)
+Phase 16: █████░░░░░ 50% (1/? plans complete - VOC-03 done)
 Phase 17: ░░░░░░░░░░ 0% (not yet planned)
 Phase 18: ░░░░░░░░░░ 0% (not yet planned)
 ─────────────────────
-Overall:  ███░░░░░░░ 33% (2/6 requirements)
+Overall:  ████░░░░░░ 40% (3/? requirements)
 ```
 
-**Last activity:** 2026-01-24 - Completed 15-01-PLAN.md
+**Last activity:** 2026-01-25 - Completed 16-01-PLAN.md (VOC-03)
 
 ---
 
@@ -40,13 +40,13 @@ Overall:  ███░░░░░░░ 33% (2/6 requirements)
 
 Professional-grade voice continuity and TTS production pipeline aligned with modern industry standards.
 
-**Phase 15 (Next):** Critical Fixes
-- VOC-01: Narrator voice assigned to shots
-- VOC-02: Empty text validation before TTS
+**Phase 15 (Complete):** Critical Fixes
+- VOC-01: Narrator voice assigned to shots - RESOLVED
+- VOC-02: Empty text validation before TTS - RESOLVED
 
-**Phase 16:** Consistency Layer
-- VOC-03: Unified distribution strategy
-- VOC-04: Voice continuity validation
+**Phase 16 (In Progress):** Consistency Layer
+- VOC-03: Unified distribution strategy - RESOLVED (16-01)
+- VOC-04: Voice continuity validation - Planned
 
 **Phase 17:** Voice Registry
 - VOC-05: Voice Registry centralization
@@ -76,8 +76,10 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-24 | Voice Registry | Centralized voice assignment | Single source of truth per audit recommendation |
 | 2026-01-24 | Multi-speaker | Expand shot structure | Support multiple speakers per shot |
 | 2026-01-24 | Validation pattern | Non-blocking (same as M8) | Log warnings but don't halt generation |
-| 2026-01-24 | Voice fallback chain | Use getNarratorVoice() for narrator overlay | Established fallback: Character Bible → animation.narrator.voice → animation.voiceover.voice → 'nova' |
+| 2026-01-24 | Voice fallback chain | Use getNarratorVoice() for narrator overlay | Established fallback: Character Bible -> animation.narrator.voice -> animation.voiceover.voice -> 'nova' |
 | 2026-01-24 | Logging levels | Log::warning for empty text, Log::error for missing type | Distinguish recoverable issues from data integrity problems |
+| 2026-01-25 | Internal thought algorithm | Word-split distribution matching narrator | VOC-03: preg_split + wordsPerShot for even distribution |
+| 2026-01-25 | Internal thought voice fallback | Character voice if speaker exists, else narrator voice | Consistent with narrator overlay pattern |
 
 ### Research Insights
 
@@ -85,8 +87,8 @@ The system should be sophisticated and automatically updated based on previous s
 - Narrator voice not assigned in overlayNarratorSegments() (~line 23906)
 - Single speaker per shot limitation (array_keys($speakers)[0])
 - No voice continuity validation across scenes
-- Internal thought uses segment-split, narrator uses word-split (asymmetry)
-- Silent type coercion (missing type → 'narrator' without error)
+- Internal thought uses segment-split, narrator uses word-split (asymmetry) - RESOLVED (VOC-03)
+- Silent type coercion (missing type -> 'narrator' without error)
 - Empty text can reach TTS generation
 
 **Industry standards (2025):**
@@ -96,9 +98,10 @@ The system should be sophisticated and automatically updated based on previous s
 - MultiTalk (MeiGen-AI): Audio-driven multi-person conversational video
 
 **Key locations from audit:**
-- `overlayNarratorSegments()` - needs narratorVoiceId assignment
+- `overlayNarratorSegments()` - needs narratorVoiceId assignment - RESOLVED (VOC-01)
 - Line ~23630 - single speaker extraction pattern
 - Line ~23906 - narrator text overlay point
+- `markInternalThoughtAsVoiceover()` - now uses word-split (VOC-03)
 
 ### Known Issues
 
@@ -106,7 +109,7 @@ The system should be sophisticated and automatically updated based on previous s
 |-------|--------|------|--------|
 | Narrator voice not assigned | High | M9 Phase 15 (VOC-01) | RESOLVED |
 | Empty text validation | High | M9 Phase 15 (VOC-02) | RESOLVED |
-| Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | Planned |
+| Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | RESOLVED |
 | No voice continuity | Medium | M9 Phase 16 (VOC-04) | Planned |
 | Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | Planned |
 
@@ -152,21 +155,22 @@ None currently.
 | File | Purpose | Status |
 |------|---------|--------|
 | `.planning/PROJECT.md` | Project context | Updated (2026-01-24) |
-| `.planning/STATE.md` | Current state tracking | Updated (2026-01-24) |
+| `.planning/STATE.md` | Current state tracking | Updated (2026-01-25) |
 | `.planning/ROADMAP.md` | Milestone 9 roadmap | Created (2026-01-24) |
 | `.planning/REQUIREMENTS.md` | M9 requirements | Created (2026-01-24) |
 | `.planning/phases/15-critical-fixes/15-01-SUMMARY.md` | Phase 15 Plan 01 summary | Created (2026-01-24) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 15-01) |
+| `.planning/phases/16-consistency-layer/16-01-SUMMARY.md` | Phase 16 Plan 01 summary | Created (2026-01-25) |
+| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 16-01) |
 | `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-24
-**Stopped at:** Phase 15 complete and verified
-**Resume file:** .planning/phases/15-critical-fixes/15-VERIFICATION.md
-**Next step:** /gsd:discuss-phase 16 or /gsd:plan-phase 16 (Consistency Layer)
+**Last session:** 2026-01-25
+**Stopped at:** Completed 16-01-PLAN.md (VOC-03)
+**Resume file:** .planning/phases/16-consistency-layer/16-01-SUMMARY.md
+**Next step:** Plan 16-02 for VOC-04 (Voice continuity validation) or next phase
 
 ---
 
