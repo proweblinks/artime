@@ -94,15 +94,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INF-01 | Phase 22 | Pending |
+| INF-01 | Phase 22 | Complete |
 | INF-02 | Phase 23 | Pending |
-| INF-03 | Phase 22 | Pending |
+| INF-03 | Phase 22 | Complete |
 | INF-04 | Phase 26 | Pending |
 | INF-05 | Phase 27 | Pending |
 | INF-06 | Phase 27 | Pending |
-| IMG-01 | Phase 22 | Pending |
-| IMG-02 | Phase 22 | Pending |
-| IMG-03 | Phase 22 | Pending |
+| IMG-01 | Phase 22 | Complete |
+| IMG-02 | Phase 22 | Complete |
+| IMG-03 | Phase 22 | Complete |
 | IMG-04 | Phase 23 | Pending |
 | IMG-05 | Phase 23 | Pending |
 | IMG-06 | Phase 23 | Pending |
