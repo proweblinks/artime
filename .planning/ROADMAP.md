@@ -107,7 +107,13 @@ Plans:
 
 **Goal:** Centralize voice assignment as single source of truth
 
-**Status:** Planned (2026-01-24)
+**Status:** Planned (2026-01-25)
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Create VoiceRegistryService class
+- [ ] 17-02-PLAN.md — Integrate registry into VideoWizard.php
 
 **Dependencies:** Phase 16 (requires continuity validation)
 
@@ -273,5 +279,5 @@ Voice Production Excellence ensures users get professional-quality audio automat
 
 *Milestone 9 roadmap created: 2026-01-24*
 *Phases 15-18 defined*
-*Phase 16 planned: 2026-01-25*
+*Phase 17 planned: 2026-01-25*
 *Source: Comprehensive TTS/Lip-Sync audit*
