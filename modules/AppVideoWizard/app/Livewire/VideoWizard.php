@@ -941,6 +941,10 @@ class VideoWizard extends Component
      * ]
      */
 
+    // VOC-04: Voice continuity validation results (non-blocking)
+    // Stores the result of validateVoiceContinuity() after scene decomposition
+    public array $voiceContinuityValidation = [];
+
     public bool $showMultiShotModal = false;
     public int $multiShotSceneIndex = 0;
     public int $multiShotCount = 0; // 0 = AI mode (default), >0 = manual shot count
@@ -24736,6 +24740,20 @@ PROMPT;
                 // Decompose this scene
                 $this->decomposeScene($index);
                 $decomposed++;
+            }
+
+            // VOC-04: Validate voice continuity across all scenes
+            $voiceContinuityResult = $this->validateVoiceContinuity($this->multiShotMode['decomposedScenes'] ?? []);
+
+            // Store validation result for potential debugging/reporting
+            $this->voiceContinuityValidation = $voiceContinuityResult;
+
+            // If mismatches found, they're already logged as warnings
+            // Generation continues (non-blocking per M8 pattern)
+            if (!$voiceContinuityResult['valid']) {
+                Log::info('Voice continuity issues detected - continuing generation (VOC-04)', [
+                    'mismatchCount' => $voiceContinuityResult['statistics']['mismatches'],
+                ]);
             }
 
             $this->saveProject();
