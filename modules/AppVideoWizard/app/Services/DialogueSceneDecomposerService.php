@@ -1441,6 +1441,17 @@ class DialogueSceneDecomposerService
             'spatial' => $spatial, // PHASE 4: Spatial continuity data
         ];
 
+        // VOC-06: Initialize speakers array for multi-speaker support
+        // Single dialogue shot = single speaker in array (VideoWizard may merge multiple)
+        $shot['speakers'] = [[
+            'name' => $speaker,
+            'voiceId' => $charData['voiceId'] ?? 'echo',
+            'text' => $exchange['text'],
+            'order' => 0,
+        ]];
+        $shot['speakerCount'] = 1;
+        $shot['isMultiSpeaker'] = false;
+
         // Use spatial-aware prompt for enhanced visual description
         $shot['spatialAwarePrompt'] = $this->buildSpatialAwarePrompt($shot, $charData['characterData'] ?? []);
 
