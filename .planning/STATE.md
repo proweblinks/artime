@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 **Milestone:** 9 (Voice Production Excellence)
-**Phase:** 17 (Voice Registry) - Complete
-**Plan:** 2 of 2 plans complete (17-01, 17-02)
-**Status:** Phase complete
+**Phase:** 18 (Multi-Speaker Support) - Complete
+**Plan:** 1 of 1 plans complete (18-01)
+**Status:** Milestone complete
 
 ```
 Phase 15: ██████████ 100% (1/1 plans complete)
 Phase 16: ██████████ 100% (2/2 plans complete)
 Phase 17: ██████████ 100% (2/2 plans complete)
-Phase 18: ░░░░░░░░░░ 0% (not yet planned)
+Phase 18: ██████████ 100% (1/1 plans complete)
 ─────────────────────
-Overall:  █████████░ 86% (6/7 plans complete)
+Overall:  ██████████ 100% (7/7 plans complete)
 ```
 
-**Last activity:** 2026-01-25 - Completed 17-02-PLAN.md (Voice Registry Integration)
+**Last activity:** 2026-01-25 - Completed 18-01-PLAN.md (Multi-Speaker Shot Support)
 
 ---
 
@@ -51,8 +51,8 @@ Professional-grade voice continuity and TTS production pipeline aligned with mod
 **Phase 17 (Complete):** Voice Registry
 - VOC-05: Voice Registry centralization - RESOLVED (17-01 service, 17-02 integration)
 
-**Phase 18:** Multi-Speaker Support
-- VOC-06: Multi-speaker shot support
+**Phase 18 (Complete):** Multi-Speaker Support
+- VOC-06: Multi-speaker shot support - RESOLVED (18-01)
 
 ---
 
@@ -87,12 +87,16 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-25 | Fallback lookup pattern | Callback-based voice lookup | Integration flexibility with existing getVoiceForCharacterName() |
 | 2026-01-25 | Registry initialization | Start of decomposeAllScenes() | Ensure registry populated before any scene decomposition |
 | 2026-01-25 | Null-check fallback | All registry lookups check if registry exists | Backward compatibility with non-registry code paths |
+| 2026-01-25 | buildSpeakersArray() method | Centralized logic for building speaker entries | VOC-06: Single method for structured speaker arrays with VoiceRegistry integration |
+| 2026-01-25 | Multi-speaker backward compatibility | Always populate speakingCharacter and voiceId from first speaker | Maintain compatibility with existing single-speaker code |
+| 2026-01-25 | Empty text in multi-speaker | Skip speakers with empty text using VOC-02 pattern | Prevent empty strings in speakers array |
+| 2026-01-25 | VoiceRegistry in multi-speaker | Use voiceRegistry->getVoiceForCharacter for speaker lookups | Consistent voice assignment across all speakers |
 
 ### Research Insights
 
 **Audit findings (TTS/Lip-Sync):**
 - Narrator voice not assigned in overlayNarratorSegments() (~line 23906) - RESOLVED (VOC-01)
-- Single speaker per shot limitation (array_keys($speakers)[0])
+- Single speaker per shot limitation (array_keys($speakers)[0]) - RESOLVED (VOC-06)
 - No voice continuity validation across scenes - RESOLVED (VOC-04)
 - Internal thought uses segment-split, narrator uses word-split (asymmetry) - RESOLVED (VOC-03)
 - Silent type coercion (missing type -> 'narrator' without error)
@@ -106,8 +110,9 @@ The system should be sophisticated and automatically updated based on previous s
 
 **Key locations from audit:**
 - `overlayNarratorSegments()` - uses registry for narrator voice (VOC-01/VOC-05)
-- Line ~23630 - single speaker extraction pattern
-- Line ~23906 - narrator text overlay point
+- `buildSpeakersArray()` - multi-speaker array builder with VoiceRegistry integration (VOC-06)
+- Line ~23335 (assignDialogueToShots) - multi-speaker array population (VOC-06)
+- Line ~23918 (distributeSpeechSegmentsToShots) - multi-speaker array population (VOC-06)
 - `markInternalThoughtAsVoiceover()` - uses registry for character/narrator voice (VOC-03/VOC-05)
 - `validateVoiceContinuity()` - voice continuity validation (VOC-04)
 - `VoiceRegistryService` - centralized voice registry (VOC-05)
@@ -121,7 +126,7 @@ The system should be sophisticated and automatically updated based on previous s
 | Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | RESOLVED |
 | No voice continuity | Medium | M9 Phase 16 (VOC-04) | RESOLVED |
 | No centralized voice registry | Medium | M9 Phase 17 (VOC-05) | RESOLVED |
-| Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | Planned |
+| Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | RESOLVED |
 
 ---
 
@@ -173,7 +178,8 @@ None currently.
 | `.planning/phases/16-consistency-layer/16-02-SUMMARY.md` | Phase 16 Plan 02 summary | Created (2026-01-25) |
 | `.planning/phases/17-voice-registry/17-01-SUMMARY.md` | Phase 17 Plan 01 summary | Created (2026-01-25) |
 | `.planning/phases/17-voice-registry/17-02-SUMMARY.md` | Phase 17 Plan 02 summary | Created (2026-01-25) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 17-02) |
+| `.planning/phases/18-multi-speaker-support/18-01-SUMMARY.md` | Phase 18 Plan 01 summary | Created (2026-01-25) |
+| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 18-01) |
 | `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
 | `modules/AppVideoWizard/app/Services/VoiceRegistryService.php` | Voice registry service | Created (Phase 17-01) |
 
@@ -182,9 +188,9 @@ None currently.
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 17-02-PLAN.md (Voice Registry Integration)
-**Resume file:** .planning/phases/17-voice-registry/17-02-SUMMARY.md
-**Next step:** Plan and execute Phase 18 (Multi-Speaker Support, VOC-06)
+**Stopped at:** Completed 18-01-PLAN.md (Multi-Speaker Shot Support)
+**Resume file:** .planning/phases/18-multi-speaker-support/18-01-SUMMARY.md
+**Next step:** Milestone 9 complete - all VOC requirements satisfied
 
 ---
 
