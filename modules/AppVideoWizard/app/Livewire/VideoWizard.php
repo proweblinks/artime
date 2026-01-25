@@ -23331,11 +23331,18 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $shotDialogue;
 
-                // Assign voice based on first speaking character
-                $firstSpeaker = array_keys($shotSpeakers)[0] ?? null;
-                if ($firstSpeaker) {
-                    $voice = $this->getVoiceForCharacterName($firstSpeaker);
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voice;
+                // Build multi-speaker array (VOC-06)
+                $speakersArray = $this->buildSpeakersArray($shotSpeakers);
+
+                if (!empty($speakersArray)) {
+                    // Set multi-speaker data
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakers'] = $speakersArray;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakerCount'] = count($speakersArray);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isMultiSpeaker'] = count($speakersArray) > 1;
+
+                    // Backward compatibility: populate single-speaker fields from first speaker
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakingCharacter'] = $speakersArray[0]['name'];
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $speakersArray[0]['voiceId'];
                 }
             }
         }
