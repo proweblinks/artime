@@ -993,6 +993,35 @@ class VoiceoverService
     }
 
     /**
+     * Get speakers array from shot data (VOC-06).
+     *
+     * Handles both new multi-speaker format and legacy single-speaker format
+     * for backward compatibility.
+     *
+     * @param array $shot Shot data
+     * @return array Array of speaker entries with name, voiceId, text, order
+     */
+    protected function getSpeakersFromShot(array $shot): array
+    {
+        // Prefer new multi-speaker array if present
+        if (!empty($shot['speakers']) && is_array($shot['speakers'])) {
+            return $shot['speakers'];
+        }
+
+        // Fall back to single speaker for legacy shots
+        if (!empty($shot['speakingCharacter'])) {
+            return [[
+                'name' => $shot['speakingCharacter'],
+                'voiceId' => $shot['voiceId'] ?? null,
+                'text' => $shot['dialogue'] ?? $shot['monologue'] ?? '',
+                'order' => 0,
+            ]];
+        }
+
+        return [];
+    }
+
+    /**
      * Parse scene narration into speech segments using SpeechSegmentParser.
      * This is the preferred method for extracting segments from raw text.
      *
