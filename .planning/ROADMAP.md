@@ -1,26 +1,24 @@
 # Video Wizard Development Roadmap
 
-## Milestone 9: Voice Production Excellence
+## Milestone 10: Livewire Performance Architecture
 
-**Target:** Professional-grade voice continuity and TTS production pipeline aligned with modern industry standards
-**Status:** In Progress (2026-01-24)
-**Total requirements:** 6 (3 categories)
-**Phases:** 15-18 (continues from M8)
+**Target:** Transform the Video Wizard from a monolithic 31k-line component into a performant, maintainable architecture with sub-second interactions
+**Status:** In Progress (2026-01-25)
+**Total requirements:** 8 (3 categories)
+**Phases:** 19-21 (continues from M9)
 
 ---
 
 ## Overview
 
-Voice Production Excellence addresses critical gaps in the TTS/lip-sync pipeline identified through comprehensive audit. The current implementation has solid foundations (SpeechSegment class, flexible parsing, good voice assignment) but lacks voice continuity, proper narrator voice assignment, and multi-speaker support.
+Livewire Performance Architecture addresses critical performance issues identified through debug analysis. The current implementation has a 31,489-line monolithic component with 500KB-2MB payloads per request, base64 images in component state, and 154+ wire:model.live bindings causing constant syncs.
 
-Modern industry standards (Dia 1.6B, VibeVoice, Gemini 2.5 TTS, MultiTalk) demonstrate that multi-speaker dialogue with consistent character voices and smooth turn-taking is now standard. This milestone brings the Video Wizard's voice pipeline to professional grade.
+This milestone applies a three-phase optimization strategy: Quick Wins (Livewire 3 attributes, debounced bindings, storage migration), Component Splitting (child components per wizard step and modal), and Data Normalization (database models replacing nested arrays).
 
-**Key gaps from audit:**
-- Narrator voice not assigned to shots (overlayNarratorSegments sets narratorText but NOT narratorVoiceId)
-- Single speaker per shot limitation (only first speaker's voice used)
-- No voice continuity validation (same character could get different voices)
-- Silent type coercion (missing segment type defaults to 'narrator' without error)
-- Empty text validation missing (empty segments can reach TTS)
+**Target Metrics:**
+- Payload size: <50KB per request (from 500KB-2MB)
+- Interaction latency: <500ms (from 2-5 seconds)
+- Component lines: <2,000 per component (from 31,489)
 
 ---
 
@@ -28,180 +26,121 @@ Modern industry standards (Dia 1.6B, VibeVoice, Gemini 2.5 TTS, MultiTalk) demon
 
 | Phase | Name | Goal | Requirements | Success Criteria |
 |-------|------|------|--------------|------------------|
-| 15 | Critical Fixes | Fix immediate voice assignment and validation gaps | VOC-01, VOC-02 | 2 |
-| 16 | Consistency Layer | Unify distribution strategies and validate continuity | VOC-03, VOC-04 | 2 |
-| 17 | Voice Registry | Centralize voice assignment as single source of truth | VOC-05 | 1 |
-| 18 | Multi-Speaker Support | Track multiple speakers per shot for dialogue | VOC-06 | 1 |
+| 19 | Quick Wins | Reduce payload and latency with minimal architectural changes | PERF-01, PERF-02, PERF-03, PERF-08 | 4 |
+| 20 | Component Splitting | Isolate wizard steps into independent, focused components | PERF-04, PERF-05 | 4 |
+| 21 | Data Normalization | Replace nested arrays with database-backed models | PERF-06, PERF-07 | 3 |
 
-**Total:** 4 phases | 6 requirements | 6 success criteria
+**Total:** 3 phases | 8 requirements | 11 success criteria
 
 ---
 
-## Phase 15: Critical Fixes
+## Phase 19: Quick Wins
 
-**Goal:** Fix immediate voice assignment and validation gaps that cause TTS failures
+**Goal:** Reduce payload size and interaction latency with minimal architectural changes
 
-**Status:** Complete (2026-01-24)
+**Status:** Not started
 
-**Plans:** 1 plan
+**Plans:** TBD
 
 Plans:
-- [x] 15-01-PLAN.md — Narrator voice assignment + empty text validation
+- [ ] 19-01-PLAN.md — TBD
 
 **Dependencies:** None (starts new milestone)
 
 **Requirements:**
-- VOC-01: Narrator voice assigned to shots (narratorVoiceId flows through overlayNarratorSegments)
-- VOC-02: Empty text validation before TTS (empty/invalid segments caught early)
+- PERF-01: Livewire 3 attributes — #[Locked] for constants, #[Computed] for derived values
+- PERF-02: Debounced bindings — wire:model.blur and .debounce instead of .live for text inputs
+- PERF-03: Base64 storage migration — images stored in files, lazy-loaded only for API calls
+- PERF-08: Updated hook optimization — efficient property change handling
 
 **Success Criteria:**
-1. overlayNarratorSegments() sets narratorVoiceId on each shot (from getNarratorVoice())
-2. Empty segment text caught before reaching TTS generation
-3. Missing segment type logged as error (not silently coerced to 'narrator')
-4. TTS generation receives valid, non-empty text for all segments
+1. Properties marked with #[Locked] do not serialize on every request (wizard constants, step configs)
+2. Derived values use #[Computed] with caching — no recalculation unless dependencies change
+3. Text inputs use wire:model.blur or wire:model.debounce — no full sync on every keystroke
+4. Base64 images stored in files, not component state — images only loaded when needed for API calls
 
 **Key changes:**
-- Add narratorVoiceId assignment in overlayNarratorSegments() (~line 23701)
-- Add empty text check before TTS calls
-- Log errors for missing segment types instead of silent coercion
+- Add #[Locked] attribute to read-only properties (step definitions, configs)
+- Add #[Computed] attribute to derived values (scene counts, progress calculations)
+- Change wire:model.live to wire:model.blur/.debounce in Blade templates
+- Move referenceImageBase64 from component state to file storage with lazy loading
+- Refactor updated() hook for efficient property change handling
 
 ---
 
-## Phase 16: Consistency Layer
+## Phase 20: Component Splitting
 
-**Goal:** Unify distribution strategies and validate voice continuity across scenes
+**Goal:** Isolate wizard steps into independent, focused components
 
-**Status:** Complete (2026-01-25)
+**Status:** Not started
 
-**Plans:** 2 plans
+**Plans:** TBD
 
 Plans:
-- [x] 16-01-PLAN.md — Unified distribution strategy (word-split for internal thoughts)
-- [x] 16-02-PLAN.md — Voice continuity validation (validateVoiceContinuity method)
+- [ ] 20-01-PLAN.md — TBD
 
-**Dependencies:** Phase 15 (requires validation working)
+**Dependencies:** Phase 19 (optimizations applied before splitting)
 
 **Requirements:**
-- VOC-03: Unified distribution strategy (narrator and internal thoughts use same word-split approach)
-- VOC-04: Voice continuity validation (same character maintains same voice across all scenes)
+- PERF-04: Child components — separate Livewire components per wizard step
+- PERF-05: Modal components — separate components for Character Bible, Location Bible, Shot Preview
 
 **Success Criteria:**
-1. Narrator and internal thought segments use identical word-split distribution algorithm
-2. validateVoiceContinuity() method checks character-to-voice consistency
-3. Voice mismatches logged as warnings (non-blocking, same as M8 validation pattern)
-4. Same character never receives different voices across scenes
-5. Internal thought overlay behavior matches narrator overlay behavior
+1. Each wizard step (Concept, Characters, Script, Storyboard, Animation, Audio, Export) is a separate Livewire component
+2. Step transitions emit events — parent orchestrates navigation, children own step data
+3. Modal components (Character Bible, Location Bible, Shot Preview) are standalone — open/close without main component re-render
+4. Each child component is under 2,000 lines — focused, single-responsibility
 
 **Key changes:**
-- Refactor internal thought distribution to use same word-split as narrator
-- Add validateVoiceContinuity() to check voice assignments
-- Log voice continuity warnings without blocking generation
-
-**Industry alignment:**
-- Microsoft VibeVoice: 90 minutes of speech with 4 distinct speakers maintaining consistency
-- Google Gemini 2.5 TTS: Seamless dialogue with consistent character voices
+- Extract ConceptStep, CharactersStep, ScriptStep, etc. as child components
+- Create CharacterBibleModal, LocationBibleModal, ShotPreviewModal components
+- Implement parent-child event communication for step navigation
+- Move step-specific properties from main component to respective children
 
 ---
 
-## Phase 17: Voice Registry
+## Phase 21: Data Normalization
 
-**Goal:** Centralize voice assignment as single source of truth
+**Goal:** Replace nested arrays with database-backed models for scalable data management
 
-**Status:** Complete (2026-01-25)
+**Status:** Not started
 
-**Plans:** 2 plans
-
-Plans:
-- [x] 17-01-PLAN.md — Create VoiceRegistryService class
-- [x] 17-02-PLAN.md — Integrate registry into VideoWizard.php
-
-**Dependencies:** Phase 16 (requires continuity validation)
-
-**Requirements:**
-- VOC-05: Voice Registry centralization (single source of truth for narrator, internal, character voices)
-
-**Success Criteria:**
-1. VoiceRegistry class created with narrator, internal, and character voice properties
-2. All voice lookups go through VoiceRegistry instead of multiple resolution paths
-3. Character Bible voice assignments flow into VoiceRegistry
-4. validateContinuity() method on VoiceRegistry returns issues array
-5. Voice assignment debugging simplified (single place to check)
-
-**Key changes:**
-- Create VoiceRegistry class (as proposed in audit)
-- Refactor voice lookup calls to use registry
-- Wire Character Bible voices into registry
-- Add registry-level continuity validation
-
-**Proposed interface (from audit):**
-```php
-class VoiceRegistry {
-    public ?string $narratorVoiceId;
-    public ?string $internalVoiceId;
-    public array $characterVoices = [];
-    public function validateContinuity(): array;
-}
-```
-
----
-
-## Phase 18: Multi-Speaker Support
-
-**Goal:** Track multiple speakers per shot for complex dialogue scenes
-
-**Status:** Complete (2026-01-25)
-
-**Plans:** 2 plans
+**Plans:** TBD
 
 Plans:
-- [x] 18-01-PLAN.md — Shot data structure expansion (speakers array in VideoWizard.php)
-- [x] 18-02-PLAN.md — Downstream integration (DialogueSceneDecomposerService + VoiceoverService)
+- [ ] 21-01-PLAN.md — TBD
 
-**Dependencies:** Phase 17 (requires registry working)
+**Dependencies:** Phase 20 (components need clear data boundaries before normalization)
 
 **Requirements:**
-- VOC-06: Multi-speaker shot support (multiple speakers tracked per shot for dialogue)
+- PERF-06: Database models — WizardScene, WizardShot models instead of nested arrays
+- PERF-07: Lazy loading — scene data loaded on-demand, not all at once
 
 **Success Criteria:**
-1. Shot structure supports multiple speakers array (not just first speaker)
-2. Each speaker entry includes name, voiceId, and text
-3. DialogueSceneDecomposerService creates multi-speaker shot data
-4. Downstream TTS processing can handle multiple voices per shot
-5. Shot/reverse-shot patterns still work (single visible character, multiple voice tracks)
+1. WizardScene and WizardShot Eloquent models exist with proper relationships
+2. Scene and shot data persisted to database — not serialized in component state
+3. Active scene data loaded on-demand — only current scene's shots in memory at any time
 
 **Key changes:**
-- Expand shot structure from single speaker to speakers array
-- Refactor `$firstSpeaker = array_keys($speakers)[0]` pattern (~line 23630)
-- Create multi-speaker shot data in decomposition
-- Update TTS processing to handle multiple voices
-
-**Current limitation (from audit):**
-```php
-// Current (line 23630):
-$firstSpeaker = array_keys($speakers)[0] ?? null;
-
-// Proposed:
-$shot['speakers'] = [
-    ['name' => 'HERO', 'voiceId' => 'xxx', 'text' => '...'],
-    ['name' => 'VILLAIN', 'voiceId' => 'yyy', 'text' => '...'],
-];
-```
+- Create WizardScene model (belongs to Project, has many shots)
+- Create WizardShot model (belongs to Scene, stores shot data)
+- Migrate script.scenes, storyboard.scenes, multiShotMode.decomposedScenes to database
+- Implement lazy loading — load scene data when navigating to scene
+- Update component to query models instead of accessing nested arrays
 
 ---
 
 ## Dependencies
 
 ```
-Phase 15 (Critical Fixes)
+Phase 19 (Quick Wins)
     |
-Phase 16 (Consistency Layer) <- depends on validation working
+Phase 20 (Component Splitting) <- depends on optimizations first
     |
-Phase 17 (Voice Registry) <- depends on continuity validation
-    |
-Phase 18 (Multi-Speaker) <- depends on registry working
+Phase 21 (Data Normalization) <- depends on clear component boundaries
 ```
 
-Sequential execution required.
+Sequential execution required. Each phase builds on the previous.
 
 ---
 
@@ -209,23 +148,21 @@ Sequential execution required.
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
-| Phase 15: Critical Fixes | Complete | VOC-01, VOC-02 (2) | 4/4 |
-| Phase 16: Consistency Layer | Complete | VOC-03, VOC-04 (2) | 5/5 |
-| Phase 17: Voice Registry | Complete | VOC-05 (1) | 5/5 |
-| Phase 18: Multi-Speaker | Complete | VOC-06 (1) | 5/5 |
+| Phase 19: Quick Wins | Not started | PERF-01, PERF-02, PERF-03, PERF-08 (4) | 0/4 |
+| Phase 20: Component Splitting | Not started | PERF-04, PERF-05 (2) | 0/4 |
+| Phase 21: Data Normalization | Not started | PERF-06, PERF-07 (2) | 0/3 |
 
 **Overall Progress:**
 
 ```
-Phase 15: ██████████ 100%
-Phase 16: ██████████ 100%
-Phase 17: ██████████ 100%
-Phase 18: ██████████ 100%
+Phase 19: ░░░░░░░░░░ 0%
+Phase 20: ░░░░░░░░░░ 0%
+Phase 21: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  ██████████ 100% (6/6 requirements)
+Overall:  ░░░░░░░░░░ 0% (0/8 requirements)
 ```
 
-**Coverage:** 6/6 requirements mapped (100%)
+**Coverage:** 8/8 requirements mapped (100%)
 
 ---
 
@@ -233,45 +170,45 @@ Overall:  ██████████ 100% (6/6 requirements)
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Breaking existing TTS flow | HIGH | Add validation without changing happy path first |
-| Voice Registry refactor scope | MEDIUM | Keep registry as wrapper, don't rewrite voice lookup |
-| Multi-speaker complexity | MEDIUM | Start with data structure, TTS processing later |
-| Performance with validation | LOW | Validation is lightweight string checks |
+| Breaking existing wizard functionality | HIGH | Incremental changes, test each step before proceeding |
+| Component communication complexity | MEDIUM | Keep parent simple, children own their state |
+| Database migration for active projects | MEDIUM | Migration script with rollback, test on copies |
+| Livewire 3 attribute edge cases | LOW | Test attributes on small subset first |
 
 ---
 
 ## Verification Strategy
 
 After each phase:
-1. Test with scene containing narrator segments (voice assignment)
-2. Test with empty/malformed segments (validation)
-3. Test with same character across multiple scenes (continuity)
-4. Test with multi-character dialogue (multi-speaker)
-5. Verify TTS generation produces correct audio for all segment types
+1. Measure payload size (target: <50KB by end of Phase 19, maintain through 20-21)
+2. Measure interaction latency (target: <500ms)
+3. Run through complete wizard flow (all 7 steps)
+4. Test with project containing 45+ scenes (stress test)
+5. Verify no regression in video generation quality
 
 ---
 
 ## Previous Milestone (Complete)
 
-### Milestone 8: Cinematic Shot Architecture - COMPLETE
+### Milestone 9: Voice Production Excellence - COMPLETE
 
-**Status:** 100% complete (16/16 requirements)
-**Phases:** 11-14
+**Status:** 100% complete (6/6 requirements)
+**Phases:** 15-18
 
 | Phase | Status |
 |-------|--------|
-| Phase 11: Speech-Driven | Complete |
-| Phase 12: Shot/Reverse-Shot | Complete |
-| Phase 13: Camera Intelligence | Complete |
-| Phase 14: Flow & Action | Complete |
+| Phase 15: Critical Fixes | Complete |
+| Phase 16: Consistency Layer | Complete |
+| Phase 17: Voice Registry | Complete |
+| Phase 18: Multi-Speaker Support | Complete |
 
 **Key achievements:**
-- Speech-driven shot creation (1:1 mapping)
-- Shot/reverse-shot patterns with 180-degree rule
-- Dynamic camera selection based on emotion and position
-- Jump cut prevention with transition validation
-- Action scene decomposition with coverage patterns
-- Visual continuity metadata for prompts
+- Narrator voice assigned to shots (narratorVoiceId flows through overlayNarratorSegments)
+- Empty text validation before TTS (invalid segments caught early)
+- Unified distribution strategy (narrator and internal thoughts use same word-split)
+- Voice continuity validation (same character maintains same voice)
+- Voice Registry centralization (single source of truth for all voices)
+- Multi-speaker shot support (multiple speakers tracked per shot)
 
 ---
 
@@ -279,12 +216,10 @@ After each phase:
 
 **"Automatic, effortless, Hollywood-quality output from button clicks."**
 
-Voice Production Excellence ensures users get professional-quality audio automatically. Each character maintains their voice throughout the video, narrator segments have proper voice assignment, and multi-speaker dialogue flows naturally with smooth turn-taking.
+Livewire Performance Architecture ensures the wizard responds instantly to user input. Sub-second interactions mean users focus on creative decisions, not waiting for the UI. Maintainable architecture enables continued feature development without drowning in technical debt.
 
 ---
 
-*Milestone 9 roadmap created: 2026-01-24*
-*Phases 15-18 defined*
-*Phase 17 planned: 2026-01-25*
-*Phase 18 planned: 2026-01-25*
-*Source: Comprehensive TTS/Lip-Sync audit*
+*Milestone 10 roadmap created: 2026-01-25*
+*Phases 19-21 defined*
+*Source: Debug analysis .planning/debug/livewire-performance.md*

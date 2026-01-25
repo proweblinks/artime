@@ -1,66 +1,69 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-25
-> Session: Milestone 9 - Voice Production Excellence
+> Session: Milestone 10 - Livewire Performance Architecture
 
 ---
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-24)
+See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Milestone 9 - Voice Production Excellence
+**Current focus:** Milestone 10 - Livewire Performance Architecture
 
 ---
 
 ## Current Position
 
-**Milestone:** 9 (Voice Production Excellence)
-**Phase:** 18 (Multi-Speaker Support) - Complete
-**Plan:** 2 of 2 plans complete (18-01, 18-02)
-**Status:** Milestone complete
+**Milestone:** 10 (Livewire Performance Architecture)
+**Phase:** 19 (Quick Wins)
+**Plan:** Ready to plan
+**Status:** Phase ready to plan
 
 ```
-Phase 15: ██████████ 100% (1/1 plans complete)
-Phase 16: ██████████ 100% (2/2 plans complete)
-Phase 17: ██████████ 100% (2/2 plans complete)
-Phase 18: ██████████ 100% (2/2 plans complete)
+Phase 19: ░░░░░░░░░░ 0%
+Phase 20: ░░░░░░░░░░ 0%
+Phase 21: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  ██████████ 100% (8/8 plans complete)
+Overall:  ░░░░░░░░░░ 0% (0/8 requirements)
 ```
 
-**Last activity:** 2026-01-25 - Completed 18-02-PLAN.md (Service Layer Multi-Speaker Integration)
+**Last activity:** 2026-01-25 — Roadmap created for v10
 
 ---
 
 ## Current Focus
 
-**Milestone 9: Voice Production Excellence**
+**Phase 19: Quick Wins**
 
-Professional-grade voice continuity and TTS production pipeline aligned with modern industry standards.
+Goal: Reduce payload size and interaction latency with minimal architectural changes
 
-**Phase 15 (Complete):** Critical Fixes
-- VOC-01: Narrator voice assigned to shots - RESOLVED
-- VOC-02: Empty text validation before TTS - RESOLVED
+Requirements:
+- PERF-01: Livewire 3 attributes (#[Locked], #[Computed])
+- PERF-02: Debounced bindings (wire:model.blur/.debounce)
+- PERF-03: Base64 storage migration (files, not state)
+- PERF-08: Updated hook optimization
 
-**Phase 16 (Complete):** Consistency Layer
-- VOC-03: Unified distribution strategy - RESOLVED (16-01)
-- VOC-04: Voice continuity validation - RESOLVED (16-02)
-
-**Phase 17 (Complete):** Voice Registry
-- VOC-05: Voice Registry centralization - RESOLVED (17-01 service, 17-02 integration)
-
-**Phase 18 (Complete):** Multi-Speaker Support
-- VOC-06: Multi-speaker shot support - RESOLVED (18-01 VideoWizard, 18-02 Services)
+Success Criteria:
+1. #[Locked] properties do not serialize on every request
+2. #[Computed] derived values cache until dependencies change
+3. Text inputs use debounced bindings, not .live
+4. Base64 images stored in files, loaded lazily for API calls
 
 ---
 
-## Guiding Principle
+## Performance Metrics
 
-**"Automatic, effortless, Hollywood-quality output from button clicks."**
+**Target (M10):**
+- Payload size: <50KB (from 500KB-2MB)
+- Interaction latency: <500ms (from 2-5 seconds)
+- Component lines: <2,000 per component (from 31,489)
+- wire:model.live bindings: <20 (from 154+)
 
-The system should be sophisticated and automatically updated based on previous steps in the wizard. Users click buttons and perform complete actions without effort.
+**Velocity:**
+- Total plans completed: 0 (M10)
+- Milestone started: 2026-01-25
 
 ---
 
@@ -70,86 +73,24 @@ The system should be sophisticated and automatically updated based on previous s
 
 | Date | Area | Decision | Rationale |
 |------|------|----------|-----------|
-| 2026-01-24 | Narrator voice | Fix in overlayNarratorSegments() | Audit finding - voice not flowing to shots |
-| 2026-01-24 | Validation | Pre-parse validation before TTS | Catch empty/invalid segments early |
-| 2026-01-24 | Distribution | Unify narrator and internal thought | Same word-split algorithm for consistency |
-| 2026-01-24 | Voice Registry | Centralized voice assignment | Single source of truth per audit recommendation |
-| 2026-01-24 | Multi-speaker | Expand shot structure | Support multiple speakers per shot |
-| 2026-01-24 | Validation pattern | Non-blocking (same as M8) | Log warnings but don't halt generation |
-| 2026-01-24 | Voice fallback chain | Use getNarratorVoice() for narrator overlay | Established fallback: Character Bible -> animation.narrator.voice -> animation.voiceover.voice -> 'nova' |
-| 2026-01-24 | Logging levels | Log::warning for empty text, Log::error for missing type | Distinguish recoverable issues from data integrity problems |
-| 2026-01-25 | Internal thought algorithm | Word-split distribution matching narrator | VOC-03: preg_split + wordsPerShot for even distribution |
-| 2026-01-25 | Internal thought voice fallback | Character voice if speaker exists, else narrator voice | Consistent with narrator overlay pattern |
-| 2026-01-25 | Voice continuity | First-occurrence-wins registration | VOC-04: First assigned voice becomes character's registered voice |
-| 2026-01-25 | Voice validation scope | Validate dialogue, internal thought, and narrator | Comprehensive tracking in single pass |
-| 2026-01-25 | Voice registry pattern | First-occurrence-wins registration | VOC-05: Once voice assigned, it persists for character |
-| 2026-01-25 | Registry key normalization | Case-insensitive matching | Uppercase keys for consistent character matching |
-| 2026-01-25 | Fallback lookup pattern | Callback-based voice lookup | Integration flexibility with existing getVoiceForCharacterName() |
-| 2026-01-25 | Registry initialization | Start of decomposeAllScenes() | Ensure registry populated before any scene decomposition |
-| 2026-01-25 | Null-check fallback | All registry lookups check if registry exists | Backward compatibility with non-registry code paths |
-| 2026-01-25 | buildSpeakersArray() method | Centralized logic for building speaker entries | VOC-06: Single method for structured speaker arrays with VoiceRegistry integration |
-| 2026-01-25 | Multi-speaker backward compatibility | Always populate speakingCharacter and voiceId from first speaker | Maintain compatibility with existing single-speaker code |
-| 2026-01-25 | Empty text in multi-speaker | Skip speakers with empty text using VOC-02 pattern | Prevent empty strings in speakers array |
-| 2026-01-25 | VoiceRegistry in multi-speaker | Use voiceRegistry->getVoiceForCharacter for speaker lookups | Consistent voice assignment across all speakers |
-| 2026-01-25 | Speakers initialization in shot creation | Single-entry array in DialogueSceneDecomposerService | VideoWizard merges additional speakers via buildSpeakersArray() |
-| 2026-01-25 | Multi-speaker TTS processing | Sequential generation with timing data | processMultiSpeakerShot tracks startTime/duration for concatenation |
-| 2026-01-25 | Speaker extraction abstraction | getSpeakersFromShot() helper in VoiceoverService | Backward-compatible handling of new and legacy shot formats |
+| 2026-01-25 | Architecture | Full architectural overhaul | Debug analysis showed fundamental issues |
+| 2026-01-25 | Approach | 3-phase optimization | Quick wins first, then splitting, then normalization |
+| 2026-01-25 | Model profile | Set to "quality" | Complex architectural work benefits from Opus reasoning |
 
 ### Research Insights
 
-**Audit findings (TTS/Lip-Sync):**
-- Narrator voice not assigned in overlayNarratorSegments() (~line 23906) - RESOLVED (VOC-01)
-- Single speaker per shot limitation (array_keys($speakers)[0]) - RESOLVED (VOC-06)
-- No voice continuity validation across scenes - RESOLVED (VOC-04)
-- Internal thought uses segment-split, narrator uses word-split (asymmetry) - RESOLVED (VOC-03)
-- Silent type coercion (missing type -> 'narrator' without error)
-- Empty text can reach TTS generation - RESOLVED (VOC-02)
-
-**Industry standards (2025):**
-- Dia 1.6B TTS: Speaker tags [S1], [S2] for multi-voice dialogue
-- Microsoft VibeVoice: 90 min speech with 4 distinct speakers
-- Google Gemini 2.5 TTS: Consistent character voices across dialogue
-- MultiTalk (MeiGen-AI): Audio-driven multi-person conversational video
-
-**Key locations from audit:**
-- `overlayNarratorSegments()` - uses registry for narrator voice (VOC-01/VOC-05)
-- `buildSpeakersArray()` - multi-speaker array builder with VoiceRegistry integration (VOC-06)
-- Line ~23335 (assignDialogueToShots) - multi-speaker array population (VOC-06)
-- Line ~23918 (distributeSpeechSegmentsToShots) - multi-speaker array population (VOC-06)
-- `markInternalThoughtAsVoiceover()` - uses registry for character/narrator voice (VOC-03/VOC-05)
-- `validateVoiceContinuity()` - voice continuity validation (VOC-04)
-- `VoiceRegistryService` - centralized voice registry (VOC-05)
-
-### Known Issues
-
-| Issue | Impact | Plan | Status |
-|-------|--------|------|--------|
-| Narrator voice not assigned | High | M9 Phase 15 (VOC-01) | RESOLVED |
-| Empty text validation | High | M9 Phase 15 (VOC-02) | RESOLVED |
-| Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | RESOLVED |
-| No voice continuity | Medium | M9 Phase 16 (VOC-04) | RESOLVED |
-| No centralized voice registry | Medium | M9 Phase 17 (VOC-05) | RESOLVED |
-| Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | RESOLVED |
-
----
-
-## Milestone 8 Summary - COMPLETE
-
-**Cinematic Shot Architecture** - All 4 phases complete
-
-| Phase | Plans | Key Accomplishment |
-|-------|-------|-------------------|
-| Phase 11 | 2/2 | Speech-driven shot creation (1:1 mapping) |
-| Phase 12 | 2/2 | Shot/reverse-shot with 180-degree rule |
-| Phase 13 | 1/1 | Dynamic camera based on emotion/position |
-| Phase 14 | 2/2 | Jump cut prevention, action scenes |
-
-**Total:** 8 plans, 16 requirements, all verified
+From debug analysis (.planning/debug/livewire-performance.md):
+- 31,489 line monolithic component
+- 500KB-5MB estimated payload per request
+- Base64 images potentially 4MB+ in component state
+- 154+ wire:model.live bindings
+- No Livewire 3 attributes used
 
 ---
 
 ## Previous Milestones (Complete)
 
+### Milestone 9: Voice Production Excellence - COMPLETE (2026-01-25)
 ### Milestone 8: Cinematic Shot Architecture - COMPLETE
 ### Milestone 7: Scene Text Inspector - COMPLETE
 ### Milestone 6: UI/UX Polish - COMPLETE
@@ -168,36 +109,13 @@ None currently.
 
 ---
 
-## Key Files
-
-| File | Purpose | Status |
-|------|---------|--------|
-| `.planning/PROJECT.md` | Project context | Updated (2026-01-24) |
-| `.planning/STATE.md` | Current state tracking | Updated (2026-01-25) |
-| `.planning/ROADMAP.md` | Milestone 9 roadmap | Created (2026-01-24) |
-| `.planning/REQUIREMENTS.md` | M9 requirements | Created (2026-01-24) |
-| `.planning/phases/15-critical-fixes/15-01-SUMMARY.md` | Phase 15 Plan 01 summary | Created (2026-01-24) |
-| `.planning/phases/16-consistency-layer/16-01-SUMMARY.md` | Phase 16 Plan 01 summary | Created (2026-01-25) |
-| `.planning/phases/16-consistency-layer/16-02-SUMMARY.md` | Phase 16 Plan 02 summary | Created (2026-01-25) |
-| `.planning/phases/17-voice-registry/17-01-SUMMARY.md` | Phase 17 Plan 01 summary | Created (2026-01-25) |
-| `.planning/phases/17-voice-registry/17-02-SUMMARY.md` | Phase 17 Plan 02 summary | Created (2026-01-25) |
-| `.planning/phases/18-multi-speaker-support/18-01-SUMMARY.md` | Phase 18 Plan 01 summary | Created (2026-01-25) |
-| `.planning/phases/18-multi-speaker-support/18-02-SUMMARY.md` | Phase 18 Plan 02 summary | Created (2026-01-25) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 18-01) |
-| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposer | Modified (Phase 18-02) |
-| `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01, 18-02) |
-| `modules/AppVideoWizard/app/Services/VoiceRegistryService.php` | Voice registry service | Created (Phase 17-01) |
-
----
-
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 18-02-PLAN.md (Service Layer Multi-Speaker Integration)
-**Resume file:** .planning/phases/18-multi-speaker-support/18-02-SUMMARY.md
-**Next step:** Milestone 9 complete - all VOC requirements satisfied across all layers
+**Stopped at:** Roadmap created for M10
+**Next step:** `/gsd:plan-phase 19`
 
 ---
 
-*Session: Milestone 9 - Voice Production Excellence*
-*Milestone started: 2026-01-24*
+*Session: Milestone 10 - Livewire Performance Architecture*
+*Roadmap created: 2026-01-25*

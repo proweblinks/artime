@@ -1,26 +1,39 @@
-# Requirements: Video Wizard - Voice Production Excellence
+# Requirements: Video Wizard - Livewire Performance Architecture
 
-**Defined:** 2026-01-24
+**Defined:** 2026-01-25
 **Core Value:** Automatic, effortless, Hollywood-quality output from button clicks
 
-## v1 Requirements
+## v10 Requirements
 
-Requirements for Milestone 9. Each maps to roadmap phases.
+Requirements for Milestone 10. Each maps to roadmap phases.
 
-### Critical Fixes (P0)
+### Quick Wins (P0)
 
-- [x] **VOC-01**: Narrator voice assigned to shots (narratorVoiceId flows through overlayNarratorSegments)
-- [x] **VOC-02**: Empty text validation before TTS (empty/invalid segments caught early)
+- [ ] **PERF-01**: Livewire 3 attributes — #[Locked] for constants, #[Computed] for derived values
+- [ ] **PERF-02**: Debounced bindings — wire:model.blur and .debounce instead of .live for text inputs
+- [ ] **PERF-03**: Base64 storage migration — images stored in files, lazy-loaded only for API calls
+- [ ] **PERF-08**: Updated hook optimization — efficient property change handling
 
-### Consistency Layer (P1)
+### Component Architecture (P1)
 
-- [x] **VOC-03**: Unified distribution strategy (narrator and internal thoughts use same word-split approach)
-- [x] **VOC-04**: Voice continuity validation (same character maintains same voice across all scenes)
+- [ ] **PERF-04**: Child components — separate Livewire components per wizard step
+- [ ] **PERF-05**: Modal components — separate components for Character Bible, Location Bible, Shot Preview
 
-### Voice Architecture (P2)
+### Data Normalization (P2)
 
-- [x] **VOC-05**: Voice Registry centralization (single source of truth for narrator, internal, character voices)
-- [x] **VOC-06**: Multi-speaker shot support (multiple speakers tracked per shot for dialogue scenes)
+- [ ] **PERF-06**: Database models — WizardScene, WizardShot models instead of nested arrays
+- [ ] **PERF-07**: Lazy loading — scene data loaded on-demand, not all at once
+
+## Previous Milestones (Complete)
+
+### Milestone 9: Voice Production Excellence
+
+- [x] **VOC-01**: Narrator voice assigned to shots
+- [x] **VOC-02**: Empty text validation before TTS
+- [x] **VOC-03**: Unified distribution strategy
+- [x] **VOC-04**: Voice continuity validation
+- [x] **VOC-05**: Voice Registry centralization
+- [x] **VOC-06**: Multi-speaker shot support
 
 ## Future Requirements
 
@@ -38,10 +51,11 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Real-time voice preview | High complexity, not critical for production |
+| Complete rewrite | Incremental improvements while maintaining functionality |
+| Real-time collaboration | Complexity, not core to video creation |
+| Mobile app | Web-first approach |
+| Video editing timeline | Use external tools for post-production |
 | Custom voice training | Requires external service integration |
-| Multi-language TTS | English-first, expand later |
-| Audio editing timeline | Use external tools for post-production |
 
 ## Traceability
 
@@ -49,24 +63,35 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VOC-01 | Phase 15 | Complete |
-| VOC-02 | Phase 15 | Complete |
-| VOC-03 | Phase 16 | Complete |
-| VOC-04 | Phase 16 | Complete |
-| VOC-05 | Phase 17 | Complete |
-| VOC-06 | Phase 18 | Complete |
+| PERF-01 | Phase 19 | Pending |
+| PERF-02 | Phase 19 | Pending |
+| PERF-03 | Phase 19 | Pending |
+| PERF-08 | Phase 19 | Pending |
+| PERF-04 | Phase 20 | Pending |
+| PERF-05 | Phase 20 | Pending |
+| PERF-06 | Phase 21 | Pending |
+| PERF-07 | Phase 21 | Pending |
 
 **Coverage:**
-- v1 requirements: 6 total
-- Mapped to phases: 6 (100%)
+- v10 requirements: 8 total
+- Mapped to phases: 8 (100%)
 - Unmapped: 0 ✓
 
 **Phase distribution:**
-- Phase 15 (Critical Fixes): 2 requirements (VOC-01, VOC-02)
-- Phase 16 (Consistency Layer): 2 requirements (VOC-03, VOC-04)
-- Phase 17 (Voice Registry): 1 requirement (VOC-05)
-- Phase 18 (Multi-Speaker): 1 requirement (VOC-06)
+- Phase 19 (Quick Wins): 4 requirements (PERF-01, PERF-02, PERF-03, PERF-08)
+- Phase 20 (Component Splitting): 2 requirements (PERF-04, PERF-05)
+- Phase 21 (Data Normalization): 2 requirements (PERF-06, PERF-07)
+
+## Success Metrics
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Payload size | 500KB-2MB | <50KB |
+| Interaction latency | 2-5 seconds | <500ms |
+| Component lines | 31,489 | <2,000 per component |
+| wire:model.live bindings | 154+ | <20 |
+| Base64 in state | Multiple images | 0 |
 
 ---
-*Requirements defined: 2026-01-24*
-*Source: Comprehensive TTS/Lip-Sync audit*
+*Requirements defined: 2026-01-25*
+*Source: Debug analysis .planning/debug/livewire-performance.md*

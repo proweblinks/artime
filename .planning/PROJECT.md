@@ -10,17 +10,16 @@ AI-powered video creation platform built with Laravel and Livewire. Users input 
 
 The system should be sophisticated and automatically updated based on previous steps in the wizard. Users click buttons and perform complete actions without effort.
 
-## Current Milestone: v9 Voice Production Excellence
+## Current Milestone: v10 Livewire Performance Architecture
 
-**Goal:** Professional-grade voice continuity and TTS production pipeline aligned with modern industry standards (Dia, VibeVoice, Gemini 2.5 TTS).
+**Goal:** Transform the Video Wizard from a monolithic 31k-line component into a performant, maintainable architecture with sub-second interactions.
 
 **Target features:**
-- Narrator Voice Assignment — Narrator voiceId flows to shots for TTS generation
-- Segment Validation — Empty/invalid segments caught before reaching TTS
-- Unified Distribution — Narrator and internal thoughts use consistent word-split distribution
-- Voice Continuity — Same character maintains same voice across all scenes
-- Voice Registry — Centralized source of truth for character voice assignments
-- Multi-Speaker Support — Track multiple speakers per shot for complex dialogue
+- Quick Wins — Livewire 3 attributes (#[Locked], #[Computed]), debounced bindings
+- Storage Optimization — Move base64 images from component state to file storage
+- Component Splitting — Separate child components per wizard step and modal
+- Data Normalization — Database models for scenes, shots, characters instead of nested arrays
+- Payload Reduction — From 500KB-2MB per request to <50KB
 
 ## Requirements
 
@@ -37,17 +36,20 @@ The system should be sophisticated and automatically updated based on previous s
 - ✓ **M6**: UI/UX Polish — dialogue display, shot badges, progress indicators, visual consistency
 - ✓ **M7**: Scene Text Inspector — full transparency modal, speech segments, prompts, copy-to-clipboard
 - ✓ **M8**: Cinematic Shot Architecture — speech-driven shots, shot/reverse-shot, dynamic camera, action scenes
+- ✓ **M9**: Voice Production Excellence — narrator voice, validation, continuity, registry, multi-speaker
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] **VOC-01**: Narrator voice assigned — overlayNarratorSegments() sets narratorVoiceId on shots
-- [ ] **VOC-02**: Empty text validation — empty/invalid segments caught before TTS generation
-- [ ] **VOC-03**: Unified distribution — narrator and internal thoughts use same word-split approach
-- [ ] **VOC-04**: Voice continuity validation — same character keeps same voice across scenes
-- [ ] **VOC-05**: Voice Registry centralization — single source of truth for character voices
-- [ ] **VOC-06**: Multi-speaker shot support — multiple speakers tracked per shot for dialogue
+- [ ] **PERF-01**: Livewire 3 attributes — #[Locked] for constants, #[Computed] for derived values
+- [ ] **PERF-02**: Debounced bindings — wire:model.blur and .debounce instead of .live
+- [ ] **PERF-03**: Base64 storage migration — images stored in files, lazy-loaded for API calls
+- [ ] **PERF-04**: Child components — separate Livewire components per wizard step
+- [ ] **PERF-05**: Modal components — separate components for Character Bible, Location Bible, etc.
+- [ ] **PERF-06**: Database models — WizardScene, WizardShot models instead of nested arrays
+- [ ] **PERF-07**: Lazy loading — scene data loaded on-demand, not all at once
+- [ ] **PERF-08**: Updated hook optimization — efficient property change handling
 
 ### Out of Scope
 
@@ -62,7 +64,7 @@ The system should be sophisticated and automatically updated based on previous s
 
 **Technical environment:**
 - Laravel 10 + Livewire 3
-- Main component: VideoWizard.php (~18k lines)
+- Main component: VideoWizard.php (~31k lines — performance bottleneck)
 - Services: SpeechSegmentParser, SpeechSegment, NarrativeMomentService, ShotIntelligenceService
 - Image generation: HiDream, NanoBanana Pro, NanoBanana
 - Video generation: Runway, Multitalk (single character lip-sync)
