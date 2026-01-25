@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\AppVideoWizard\App\Services;
+namespace Modules\AppVideoWizard\Services;
 
 use Illuminate\Support\Facades\Log;
 

@@ -19262,7 +19262,7 @@ PROMPT;
         // No artificial limits: 5 segments = 5 shots, 12 segments = 12 shots.
         // ═══════════════════════════════════════════════════════════════════════════════
         $speechSegments = $scene['speechSegments'] ?? [];
-        $dialogueDecomposer = app(\Modules\AppVideoWizard\App\Services\DialogueSceneDecomposerService::class);
+        $dialogueDecomposer = app(\Modules\AppVideoWizard\Services\DialogueSceneDecomposerService::class);
 
         // Check if scene has lip-sync segments (dialogue or monologue)
         $lipSyncSegments = array_filter($speechSegments, function ($seg) {
