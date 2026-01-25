@@ -14,8 +14,8 @@ Requirements for Milestone 9. Each maps to roadmap phases.
 
 ### Consistency Layer (P1)
 
-- [ ] **VOC-03**: Unified distribution strategy (narrator and internal thoughts use same word-split approach)
-- [ ] **VOC-04**: Voice continuity validation (same character maintains same voice across all scenes)
+- [x] **VOC-03**: Unified distribution strategy (narrator and internal thoughts use same word-split approach)
+- [x] **VOC-04**: Voice continuity validation (same character maintains same voice across all scenes)
 
 ### Voice Architecture (P2)
 
@@ -51,8 +51,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | VOC-01 | Phase 15 | Complete |
 | VOC-02 | Phase 15 | Complete |
-| VOC-03 | Phase 16 | Pending |
-| VOC-04 | Phase 16 | Pending |
+| VOC-03 | Phase 16 | Complete |
+| VOC-04 | Phase 16 | Complete |
 | VOC-05 | Phase 17 | Pending |
 | VOC-06 | Phase 18 | Pending |
 

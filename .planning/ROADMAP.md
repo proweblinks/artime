@@ -71,13 +71,13 @@ Plans:
 
 **Goal:** Unify distribution strategies and validate voice continuity across scenes
 
-**Status:** Ready for execution (2026-01-25)
+**Status:** Complete (2026-01-25)
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — Unified distribution strategy (word-split for internal thoughts)
-- [ ] 16-02-PLAN.md — Voice continuity validation (validateVoiceContinuity method)
+- [x] 16-01-PLAN.md — Unified distribution strategy (word-split for internal thoughts)
+- [x] 16-02-PLAN.md — Voice continuity validation (validateVoiceContinuity method)
 
 **Dependencies:** Phase 15 (requires validation working)
 
@@ -198,7 +198,7 @@ Sequential execution required.
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
 | Phase 15: Critical Fixes | Complete | VOC-01, VOC-02 (2) | 4/4 |
-| Phase 16: Consistency Layer | Ready | VOC-03, VOC-04 (2) | 0/5 |
+| Phase 16: Consistency Layer | Complete | VOC-03, VOC-04 (2) | 5/5 |
 | Phase 17: Voice Registry | Planned | VOC-05 (1) | 0/5 |
 | Phase 18: Multi-Speaker | Planned | VOC-06 (1) | 0/5 |
 
@@ -206,11 +206,11 @@ Sequential execution required.
 
 ```
 Phase 15: ██████████ 100%
-Phase 16: ░░░░░░░░░░ 0%
+Phase 16: ██████████ 100%
 Phase 17: ░░░░░░░░░░ 0%
 Phase 18: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  ███░░░░░░░ 33% (2/6 requirements)
+Overall:  ██████░░░░ 66% (4/6 requirements)
 ```
 
 **Coverage:** 6/6 requirements mapped (100%)
