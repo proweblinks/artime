@@ -5,6 +5,7 @@ namespace Modules\AppVideoWizard\Livewire;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Models\WizardProcessingJob;
@@ -1297,6 +1298,66 @@ class VideoWizard extends Component
         'comedy' => 'Comedy (Lighter Tone)',
         'documentary' => 'Documentary (Flat)',
     ];
+
+    // =========================================================================
+    // LIVEWIRE 3 COMPUTED PROPERTIES
+    // Cached per-request, accessed as properties in Blade: $this->sceneCount
+    // =========================================================================
+
+    /**
+     * Get the total number of scenes in the script.
+     * Accessed in Blade templates as: $this->sceneCount
+     */
+    #[Computed]
+    public function sceneCount(): int
+    {
+        return count($this->script['scenes'] ?? []);
+    }
+
+    /**
+     * Get the total number of shots across all decomposed scenes.
+     * Accessed in Blade templates as: $this->totalShotCount
+     */
+    #[Computed]
+    public function totalShotCount(): int
+    {
+        $total = 0;
+        foreach ($this->multiShotMode['decomposedScenes'] ?? [] as $scene) {
+            $total += count($scene['shots'] ?? []);
+        }
+        return $total;
+    }
+
+    /**
+     * Get the number of characters in the character bible.
+     * Accessed in Blade templates as: $this->characterCount
+     */
+    #[Computed]
+    public function characterCount(): int
+    {
+        return count($this->sceneMemory['characterBible']['characters'] ?? []);
+    }
+
+    /**
+     * Get the number of locations in the location bible.
+     * Accessed in Blade templates as: $this->locationCount
+     */
+    #[Computed]
+    public function locationCount(): int
+    {
+        return count($this->sceneMemory['locationBible']['locations'] ?? []);
+    }
+
+    /**
+     * Check if a style bible is configured and enabled.
+     * Accessed in Blade templates as: $this->hasStyleBible
+     */
+    #[Computed]
+    public function hasStyleBible(): bool
+    {
+        return !empty($this->sceneMemory['styleBible']['enabled'])
+            && !empty($this->sceneMemory['styleBible']['style']);
+    }
 
     /**
      * Get paginated scenes for storyboard display.
