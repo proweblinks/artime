@@ -107,13 +107,13 @@ Plans:
 
 **Goal:** Centralize voice assignment as single source of truth
 
-**Status:** Planned (2026-01-25)
+**Status:** Complete (2026-01-25)
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Create VoiceRegistryService class
-- [ ] 17-02-PLAN.md — Integrate registry into VideoWizard.php
+- [x] 17-01-PLAN.md — Create VoiceRegistryService class
+- [x] 17-02-PLAN.md — Integrate registry into VideoWizard.php
 
 **Dependencies:** Phase 16 (requires continuity validation)
 
@@ -205,7 +205,7 @@ Sequential execution required.
 |-------|--------|--------------|------------------|
 | Phase 15: Critical Fixes | Complete | VOC-01, VOC-02 (2) | 4/4 |
 | Phase 16: Consistency Layer | Complete | VOC-03, VOC-04 (2) | 5/5 |
-| Phase 17: Voice Registry | Planned | VOC-05 (1) | 0/5 |
+| Phase 17: Voice Registry | Complete | VOC-05 (1) | 5/5 |
 | Phase 18: Multi-Speaker | Planned | VOC-06 (1) | 0/5 |
 
 **Overall Progress:**
@@ -213,10 +213,10 @@ Sequential execution required.
 ```
 Phase 15: ██████████ 100%
 Phase 16: ██████████ 100%
-Phase 17: ░░░░░░░░░░ 0%
+Phase 17: ██████████ 100%
 Phase 18: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  ██████░░░░ 66% (4/6 requirements)
+Overall:  ████████░░ 83% (5/6 requirements)
 ```
 
 **Coverage:** 6/6 requirements mapped (100%)
