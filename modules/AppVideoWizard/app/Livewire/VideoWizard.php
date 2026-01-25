@@ -4,6 +4,7 @@ namespace Modules\AppVideoWizard\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
 use Livewire\WithFileUploads;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Models\WizardProcessingJob;
@@ -92,9 +93,11 @@ class VideoWizard extends Component
      * PHASE 3: Suggested settings from concept analysis.
      * Populated when concept is analyzed to suggest optimal configuration.
      */
+    #[Locked]
     public array $suggestedSettings = [];
 
     // Production Intelligence settings (auto-populated by ProductionIntelligenceService)
+    #[Locked]
     public array $productionIntelligence = [
         'mainCharScenePercent' => 70,
         'supportingCharScenePercent' => 40,
@@ -103,6 +106,7 @@ class VideoWizard extends Component
     ];
 
     // Cinematic Intelligence analysis results (populated by CinematicIntelligenceService)
+    #[Locked]
     public array $cinematicAnalysis = [
         'enabled' => true,
         'analyzed' => false,
@@ -690,6 +694,7 @@ class VideoWizard extends Component
     ];
 
     // Step 3: Voice & Dialogue Status
+    #[Locked]
     public array $voiceStatus = [
         'dialogueLines' => 0,
         'speakers' => 0,
@@ -783,6 +788,7 @@ class VideoWizard extends Component
      * Detection summary for UI display (read-only).
      * Populated after script parsing.
      */
+    #[Locked]
     public array $detectionSummary = [
         'characters' => [],
         'speechTypes' => [],
@@ -944,6 +950,7 @@ class VideoWizard extends Component
 
     // VOC-04: Voice continuity validation results (non-blocking)
     // Stores the result of validateVoiceContinuity() after scene decomposition
+    #[Locked]
     public array $voiceContinuityValidation = [];
 
     /**
@@ -1036,6 +1043,7 @@ class VideoWizard extends Component
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
     public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
     public string $activeTtsProvider = 'openai'; // Active TTS provider: openai, kokoro
+    #[Locked]
     public array $availableTtsVoices = []; // Dynamically loaded from VoiceoverService
 
     // Upscale Modal state
