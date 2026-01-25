@@ -1969,63 +1969,143 @@ class VideoWizard extends Component
         }
     }
 
+    // =========================================================================
+    // TARGETED UPDATE METHODS (Livewire 3 Performance Optimization)
+    // =========================================================================
+    // Instead of a generic updated() hook that runs regex and multiple checks
+    // on EVERY property change, these targeted methods only fire for specific
+    // properties that need handling. This eliminates unnecessary overhead.
+    // =========================================================================
+
     /**
-     * Livewire lifecycle hook - called when properties are updated.
-     * Auto-rebuilds Scene DNA when Bibles change (if autoSync is enabled).
-     * Auto-parses scene narration into speech segments when narration changes.
+     * Handle script.scenes changes - triggers Scene DNA rebuild and narration parsing.
+     * Livewire calls this for any change to script.scenes.*
+     *
+     * @param mixed $value The new value
+     * @param string $key The nested path after "script.scenes" (e.g., "0.narration")
      */
-    public function updated($property, $value): void
+    public function updatedScriptScenes($value, $key): void
     {
         // Skip during batch operations to prevent cascading updates
         if ($this->isBatchUpdating) {
             return;
         }
 
-        // =====================================================================
-        // AUTO-PARSE NARRATION ON EDIT (Phase 1.5)
-        // When scene narration changes (wire:model.blur), auto-parse into segments
-        // =====================================================================
-        if (preg_match('/^script\.scenes\.(\d+)\.narration$/', $property, $matches)) {
-            if ($this->isParsing) {
-                return; // Prevent re-entry
+        // Check if this is a narration change (e.g., "0.narration")
+        if (preg_match('/^(\d+)\.narration$/', $key, $matches)) {
+            if (!$this->isParsing) {
+                $sceneIndex = (int) $matches[1];
+                $this->parseSceneNarration($sceneIndex);
             }
-
-            $sceneIndex = (int) $matches[1];
-            $this->parseSceneNarration($sceneIndex);
-            return; // Exit early - this is a narration change
+            return; // Exit early - narration handled
         }
 
-        // PERFORMANCE: Skip auto-sync when bible modals are open
-        // Scene DNA will be rebuilt when the modal closes instead
-        if ($this->showCharacterBibleModal || $this->showLocationBibleModal) {
+        // Other scene changes trigger DNA rebuild (debounced)
+        $this->debouncedBuildSceneDNA();
+    }
+
+    /**
+     * Handle sceneMemory.characterBible changes - triggers Scene DNA rebuild.
+     * Livewire calls this for any change to sceneMemory.characterBible.*
+     *
+     * @param mixed $value The new value
+     * @param string $key The nested path after "sceneMemory.characterBible"
+     */
+    public function updatedSceneMemoryCharacterBible($value, $key): void
+    {
+        if ($this->isBatchUpdating) {
             return;
         }
 
-        // Auto-sync Scene DNA when Bibles change
-        if ($this->sceneMemory['sceneDNA']['autoSync'] ?? true) {
-            $triggerProperties = [
-                'sceneMemory.characterBible',
-                'sceneMemory.locationBible',
-                'sceneMemory.styleBible',
-                'script.scenes',
-            ];
-
-            foreach ($triggerProperties as $trigger) {
-                if (str_starts_with($property, $trigger)) {
-                    // Debounce by checking if we've synced recently (within 2 seconds)
-                    $lastSync = $this->sceneMemory['sceneDNA']['lastSyncedAt'] ?? null;
-                    if ($lastSync && now()->diffInSeconds($lastSync) < 2) {
-                        return;
-                    }
-
-                    // Only rebuild if we have scenes
-                    if (!empty($this->script['scenes'])) {
-                        $this->buildSceneDNA();
-                    }
-                    return;
-                }
-            }
+        // Skip if modal is open (will rebuild on close)
+        if ($this->showCharacterBibleModal) {
+            return;
         }
+
+        $this->debouncedBuildSceneDNA();
+    }
+
+    /**
+     * Handle sceneMemory.locationBible changes - triggers Scene DNA rebuild.
+     * Livewire calls this for any change to sceneMemory.locationBible.*
+     *
+     * @param mixed $value The new value
+     * @param string $key The nested path after "sceneMemory.locationBible"
+     */
+    public function updatedSceneMemoryLocationBible($value, $key): void
+    {
+        if ($this->isBatchUpdating) {
+            return;
+        }
+
+        // Skip if modal is open (will rebuild on close)
+        if ($this->showLocationBibleModal) {
+            return;
+        }
+
+        $this->debouncedBuildSceneDNA();
+    }
+
+    /**
+     * Handle sceneMemory.styleBible changes - triggers Scene DNA rebuild.
+     * Livewire calls this for any change to sceneMemory.styleBible.*
+     *
+     * @param mixed $value The new value
+     * @param string $key The nested path after "sceneMemory.styleBible"
+     */
+    public function updatedSceneMemoryStyleBible($value, $key): void
+    {
+        if ($this->isBatchUpdating) {
+            return;
+        }
+
+        $this->debouncedBuildSceneDNA();
+    }
+
+    /**
+     * Debounced Scene DNA rebuild - prevents multiple rebuilds in quick succession.
+     * Checks autoSync setting and enforces 2-second debounce threshold.
+     */
+    protected function debouncedBuildSceneDNA(): void
+    {
+        // Check autoSync setting
+        if (!($this->sceneMemory['sceneDNA']['autoSync'] ?? true)) {
+            return;
+        }
+
+        // Debounce by checking last sync time (2 second threshold)
+        $lastSync = $this->sceneMemory['sceneDNA']['lastSyncedAt'] ?? null;
+        if ($lastSync && now()->diffInSeconds($lastSync) < 2) {
+            return;
+        }
+
+        // Only rebuild if we have scenes
+        if (!empty($this->script['scenes'])) {
+            $this->buildSceneDNA();
+        }
+    }
+
+    /**
+     * Generic updated hook - now minimal since targeted methods handle specific properties.
+     * Most property changes are handled by targeted update{PropertyName}() methods above.
+     *
+     * @param string $property The property path that changed
+     * @param mixed $value The new value
+     */
+    public function updated($property, $value): void
+    {
+        // Skip during batch operations
+        if ($this->isBatchUpdating) {
+            return;
+        }
+
+        // No action needed - targeted methods handle:
+        // - script.scenes.* -> updatedScriptScenes()
+        // - sceneMemory.characterBible.* -> updatedSceneMemoryCharacterBible()
+        // - sceneMemory.locationBible.* -> updatedSceneMemoryLocationBible()
+        // - sceneMemory.styleBible.* -> updatedSceneMemoryStyleBible()
+        //
+        // All other property changes pass through with no processing overhead.
     }
 
     /**
