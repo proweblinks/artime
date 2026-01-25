@@ -8,6 +8,7 @@
         "php": "^8.2",
         "baileyherbert/envato": "^3.1",
         "barryvdh/laravel-dompdf": "^3.1",
+        "danny50610/bpe-tokeniser": "^1.1",
         "facebook/php-business-sdk": "^21.0",
         "fakerphp/faker": "^1.24",
         "gimucco/tiktok-loginkit": "^0.6.6",
