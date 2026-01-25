@@ -26319,7 +26319,10 @@ PROMPT;
             return;
         }
 
-        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        $this->isLoading = true;
+
+        try {
+            $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
         $shots = $decomposed['shots'] ?? [];
         $createdDefaultShots = false;
 
@@ -26476,9 +26479,6 @@ PROMPT;
             ];
         }
 
-        $this->isLoading = true;
-
-        try {
             $imageService = app(ImageGenerationService::class);
             $scene = $this->script['scenes'][$sceneIndex] ?? [];
 
