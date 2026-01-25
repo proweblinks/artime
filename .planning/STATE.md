@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 **Milestone:** 9 (Voice Production Excellence)
-**Phase:** 17 (Voice Registry) - In Progress
-**Plan:** 1 of 2 plans complete (17-01)
-**Status:** In progress
+**Phase:** 17 (Voice Registry) - Complete
+**Plan:** 2 of 2 plans complete (17-01, 17-02)
+**Status:** Phase complete
 
 ```
 Phase 15: ██████████ 100% (1/1 plans complete)
 Phase 16: ██████████ 100% (2/2 plans complete)
-Phase 17: █████░░░░░ 50% (1/2 plans complete)
+Phase 17: ██████████ 100% (2/2 plans complete)
 Phase 18: ░░░░░░░░░░ 0% (not yet planned)
 ─────────────────────
-Overall:  ███████░░░ 71% (5/7 plans complete)
+Overall:  █████████░ 86% (6/7 plans complete)
 ```
 
-**Last activity:** 2026-01-25 - Completed 17-01-PLAN.md (VoiceRegistryService)
+**Last activity:** 2026-01-25 - Completed 17-02-PLAN.md (Voice Registry Integration)
 
 ---
 
@@ -48,8 +48,8 @@ Professional-grade voice continuity and TTS production pipeline aligned with mod
 - VOC-03: Unified distribution strategy - RESOLVED (16-01)
 - VOC-04: Voice continuity validation - RESOLVED (16-02)
 
-**Phase 17 (In Progress):** Voice Registry
-- VOC-05: Voice Registry centralization - IN PROGRESS (17-01 complete, 17-02 pending)
+**Phase 17 (Complete):** Voice Registry
+- VOC-05: Voice Registry centralization - RESOLVED (17-01 service, 17-02 integration)
 
 **Phase 18:** Multi-Speaker Support
 - VOC-06: Multi-speaker shot support
@@ -85,6 +85,8 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-25 | Voice registry pattern | First-occurrence-wins registration | VOC-05: Once voice assigned, it persists for character |
 | 2026-01-25 | Registry key normalization | Case-insensitive matching | Uppercase keys for consistent character matching |
 | 2026-01-25 | Fallback lookup pattern | Callback-based voice lookup | Integration flexibility with existing getVoiceForCharacterName() |
+| 2026-01-25 | Registry initialization | Start of decomposeAllScenes() | Ensure registry populated before any scene decomposition |
+| 2026-01-25 | Null-check fallback | All registry lookups check if registry exists | Backward compatibility with non-registry code paths |
 
 ### Research Insights
 
@@ -103,11 +105,12 @@ The system should be sophisticated and automatically updated based on previous s
 - MultiTalk (MeiGen-AI): Audio-driven multi-person conversational video
 
 **Key locations from audit:**
-- `overlayNarratorSegments()` - needs narratorVoiceId assignment - RESOLVED (VOC-01)
+- `overlayNarratorSegments()` - uses registry for narrator voice (VOC-01/VOC-05)
 - Line ~23630 - single speaker extraction pattern
 - Line ~23906 - narrator text overlay point
-- `markInternalThoughtAsVoiceover()` - now uses word-split (VOC-03)
-- `validateVoiceContinuity()` - new method for VOC-04 validation
+- `markInternalThoughtAsVoiceover()` - uses registry for character/narrator voice (VOC-03/VOC-05)
+- `validateVoiceContinuity()` - voice continuity validation (VOC-04)
+- `VoiceRegistryService` - centralized voice registry (VOC-05)
 
 ### Known Issues
 
@@ -117,6 +120,7 @@ The system should be sophisticated and automatically updated based on previous s
 | Empty text validation | High | M9 Phase 15 (VOC-02) | RESOLVED |
 | Internal/narrator asymmetry | Medium | M9 Phase 16 (VOC-03) | RESOLVED |
 | No voice continuity | Medium | M9 Phase 16 (VOC-04) | RESOLVED |
+| No centralized voice registry | Medium | M9 Phase 17 (VOC-05) | RESOLVED |
 | Single speaker per shot | Medium | M9 Phase 18 (VOC-06) | Planned |
 
 ---
@@ -168,7 +172,8 @@ None currently.
 | `.planning/phases/16-consistency-layer/16-01-SUMMARY.md` | Phase 16 Plan 01 summary | Created (2026-01-25) |
 | `.planning/phases/16-consistency-layer/16-02-SUMMARY.md` | Phase 16 Plan 02 summary | Created (2026-01-25) |
 | `.planning/phases/17-voice-registry/17-01-SUMMARY.md` | Phase 17 Plan 01 summary | Created (2026-01-25) |
-| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 16-02) |
+| `.planning/phases/17-voice-registry/17-02-SUMMARY.md` | Phase 17 Plan 02 summary | Created (2026-01-25) |
+| `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 17-02) |
 | `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
 | `modules/AppVideoWizard/app/Services/VoiceRegistryService.php` | Voice registry service | Created (Phase 17-01) |
 
@@ -177,9 +182,9 @@ None currently.
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 17-01-PLAN.md (VoiceRegistryService)
-**Resume file:** .planning/phases/17-voice-registry/17-01-SUMMARY.md
-**Next step:** Execute 17-02-PLAN.md (Voice Registry integration)
+**Stopped at:** Completed 17-02-PLAN.md (Voice Registry Integration)
+**Resume file:** .planning/phases/17-voice-registry/17-02-SUMMARY.md
+**Next step:** Plan and execute Phase 18 (Multi-Speaker Support, VOC-06)
 
 ---
 
