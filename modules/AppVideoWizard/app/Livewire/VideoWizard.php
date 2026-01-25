@@ -23388,6 +23388,52 @@ PROMPT;
     }
 
     /**
+     * Build speakers array from shot speakers data (VOC-06).
+     *
+     * Creates structured speaker entries for multi-speaker shots, using
+     * VoiceRegistryService for voice lookups to ensure consistency.
+     *
+     * @param array $shotSpeakers Array of speaker => text mappings
+     * @return array Array of speaker entries with name, voiceId, text, order
+     */
+    protected function buildSpeakersArray(array $shotSpeakers): array
+    {
+        $speakersArray = [];
+        $order = 0;
+
+        foreach ($shotSpeakers as $speakerName => $speakerText) {
+            // Skip empty text (VOC-02 pattern)
+            if (empty(trim($speakerText))) {
+                Log::debug('Skipping speaker with empty text in multi-speaker array (VOC-06)', [
+                    'speaker' => $speakerName,
+                ]);
+                continue;
+            }
+
+            // Use VoiceRegistryService if available, fallback to direct lookup
+            if ($this->voiceRegistry !== null) {
+                $voiceId = $this->voiceRegistry->getVoiceForCharacter(
+                    $speakerName,
+                    fn($name) => $this->getVoiceForCharacterName($name)
+                );
+            } else {
+                $voiceId = $this->getVoiceForCharacterName($speakerName);
+            }
+
+            $speakersArray[] = [
+                'name' => $speakerName,
+                'voiceId' => $voiceId,
+                'text' => $speakerText,
+                'order' => $order,
+            ];
+
+            $order++;
+        }
+
+        return $speakersArray;
+    }
+
+    /**
      * Check if narration style requires dialogue processing.
      *
      * @return bool True if dialogue narration style is active
