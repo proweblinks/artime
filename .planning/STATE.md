@@ -18,19 +18,19 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Milestone:** 9 (Voice Production Excellence)
 **Phase:** 18 (Multi-Speaker Support) - Complete
-**Plan:** 1 of 1 plans complete (18-01)
+**Plan:** 2 of 2 plans complete (18-01, 18-02)
 **Status:** Milestone complete
 
 ```
 Phase 15: ██████████ 100% (1/1 plans complete)
 Phase 16: ██████████ 100% (2/2 plans complete)
 Phase 17: ██████████ 100% (2/2 plans complete)
-Phase 18: ██████████ 100% (1/1 plans complete)
+Phase 18: ██████████ 100% (2/2 plans complete)
 ─────────────────────
-Overall:  ██████████ 100% (7/7 plans complete)
+Overall:  ██████████ 100% (8/8 plans complete)
 ```
 
-**Last activity:** 2026-01-25 - Completed 18-01-PLAN.md (Multi-Speaker Shot Support)
+**Last activity:** 2026-01-25 - Completed 18-02-PLAN.md (Service Layer Multi-Speaker Integration)
 
 ---
 
@@ -52,7 +52,7 @@ Professional-grade voice continuity and TTS production pipeline aligned with mod
 - VOC-05: Voice Registry centralization - RESOLVED (17-01 service, 17-02 integration)
 
 **Phase 18 (Complete):** Multi-Speaker Support
-- VOC-06: Multi-speaker shot support - RESOLVED (18-01)
+- VOC-06: Multi-speaker shot support - RESOLVED (18-01 VideoWizard, 18-02 Services)
 
 ---
 
@@ -91,6 +91,9 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-25 | Multi-speaker backward compatibility | Always populate speakingCharacter and voiceId from first speaker | Maintain compatibility with existing single-speaker code |
 | 2026-01-25 | Empty text in multi-speaker | Skip speakers with empty text using VOC-02 pattern | Prevent empty strings in speakers array |
 | 2026-01-25 | VoiceRegistry in multi-speaker | Use voiceRegistry->getVoiceForCharacter for speaker lookups | Consistent voice assignment across all speakers |
+| 2026-01-25 | Speakers initialization in shot creation | Single-entry array in DialogueSceneDecomposerService | VideoWizard merges additional speakers via buildSpeakersArray() |
+| 2026-01-25 | Multi-speaker TTS processing | Sequential generation with timing data | processMultiSpeakerShot tracks startTime/duration for concatenation |
+| 2026-01-25 | Speaker extraction abstraction | getSpeakersFromShot() helper in VoiceoverService | Backward-compatible handling of new and legacy shot formats |
 
 ### Research Insights
 
@@ -179,8 +182,10 @@ None currently.
 | `.planning/phases/17-voice-registry/17-01-SUMMARY.md` | Phase 17 Plan 01 summary | Created (2026-01-25) |
 | `.planning/phases/17-voice-registry/17-02-SUMMARY.md` | Phase 17 Plan 02 summary | Created (2026-01-25) |
 | `.planning/phases/18-multi-speaker-support/18-01-SUMMARY.md` | Phase 18 Plan 01 summary | Created (2026-01-25) |
+| `.planning/phases/18-multi-speaker-support/18-02-SUMMARY.md` | Phase 18 Plan 02 summary | Created (2026-01-25) |
 | `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 18-01) |
-| `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
+| `modules/AppVideoWizard/app/Services/DialogueSceneDecomposerService.php` | Dialogue decomposer | Modified (Phase 18-02) |
+| `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01, 18-02) |
 | `modules/AppVideoWizard/app/Services/VoiceRegistryService.php` | Voice registry service | Created (Phase 17-01) |
 
 ---
@@ -188,9 +193,9 @@ None currently.
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 18-01-PLAN.md (Multi-Speaker Shot Support)
-**Resume file:** .planning/phases/18-multi-speaker-support/18-01-SUMMARY.md
-**Next step:** Milestone 9 complete - all VOC requirements satisfied
+**Stopped at:** Completed 18-02-PLAN.md (Service Layer Multi-Speaker Integration)
+**Resume file:** .planning/phases/18-multi-speaker-support/18-02-SUMMARY.md
+**Next step:** Milestone 9 complete - all VOC requirements satisfied across all layers
 
 ---
 
