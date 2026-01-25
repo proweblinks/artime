@@ -17,20 +17,20 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 **Milestone:** 9 (Voice Production Excellence)
-**Phase:** 16 (Consistency Layer) - Complete
-**Plan:** 2 of 2 plans (VOC-03, VOC-04 complete)
-**Status:** Phase 16 complete
+**Phase:** 17 (Voice Registry) - In Progress
+**Plan:** 1 of 2 plans complete (17-01)
+**Status:** In progress
 
 ```
 Phase 15: ██████████ 100% (1/1 plans complete)
 Phase 16: ██████████ 100% (2/2 plans complete)
-Phase 17: ░░░░░░░░░░ 0% (not yet planned)
+Phase 17: █████░░░░░ 50% (1/2 plans complete)
 Phase 18: ░░░░░░░░░░ 0% (not yet planned)
 ─────────────────────
-Overall:  ██████░░░░ 66% (4/6 requirements)
+Overall:  ███████░░░ 71% (5/7 plans complete)
 ```
 
-**Last activity:** 2026-01-25 - Completed 16-02-PLAN.md (VOC-04)
+**Last activity:** 2026-01-25 - Completed 17-01-PLAN.md (VoiceRegistryService)
 
 ---
 
@@ -48,8 +48,8 @@ Professional-grade voice continuity and TTS production pipeline aligned with mod
 - VOC-03: Unified distribution strategy - RESOLVED (16-01)
 - VOC-04: Voice continuity validation - RESOLVED (16-02)
 
-**Phase 17:** Voice Registry
-- VOC-05: Voice Registry centralization
+**Phase 17 (In Progress):** Voice Registry
+- VOC-05: Voice Registry centralization - IN PROGRESS (17-01 complete, 17-02 pending)
 
 **Phase 18:** Multi-Speaker Support
 - VOC-06: Multi-speaker shot support
@@ -82,6 +82,9 @@ The system should be sophisticated and automatically updated based on previous s
 | 2026-01-25 | Internal thought voice fallback | Character voice if speaker exists, else narrator voice | Consistent with narrator overlay pattern |
 | 2026-01-25 | Voice continuity | First-occurrence-wins registration | VOC-04: First assigned voice becomes character's registered voice |
 | 2026-01-25 | Voice validation scope | Validate dialogue, internal thought, and narrator | Comprehensive tracking in single pass |
+| 2026-01-25 | Voice registry pattern | First-occurrence-wins registration | VOC-05: Once voice assigned, it persists for character |
+| 2026-01-25 | Registry key normalization | Case-insensitive matching | Uppercase keys for consistent character matching |
+| 2026-01-25 | Fallback lookup pattern | Callback-based voice lookup | Integration flexibility with existing getVoiceForCharacterName() |
 
 ### Research Insights
 
@@ -164,17 +167,19 @@ None currently.
 | `.planning/phases/15-critical-fixes/15-01-SUMMARY.md` | Phase 15 Plan 01 summary | Created (2026-01-24) |
 | `.planning/phases/16-consistency-layer/16-01-SUMMARY.md` | Phase 16 Plan 01 summary | Created (2026-01-25) |
 | `.planning/phases/16-consistency-layer/16-02-SUMMARY.md` | Phase 16 Plan 02 summary | Created (2026-01-25) |
+| `.planning/phases/17-voice-registry/17-01-SUMMARY.md` | Phase 17 Plan 01 summary | Created (2026-01-25) |
 | `modules/AppVideoWizard/app/Livewire/VideoWizard.php` | Main component | Modified (Phase 16-02) |
 | `modules/AppVideoWizard/app/Services/VoiceoverService.php` | Voice service | Modified (Phase 15-01) |
+| `modules/AppVideoWizard/app/Services/VoiceRegistryService.php` | Voice registry service | Created (Phase 17-01) |
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-25
-**Stopped at:** Completed 16-02-PLAN.md (VOC-04) - Phase 16 complete
-**Resume file:** .planning/phases/16-consistency-layer/16-02-SUMMARY.md
-**Next step:** Plan Phase 17 (Voice Registry) for VOC-05
+**Stopped at:** Completed 17-01-PLAN.md (VoiceRegistryService)
+**Resume file:** .planning/phases/17-voice-registry/17-01-SUMMARY.md
+**Next step:** Execute 17-02-PLAN.md (Voice Registry integration)
 
 ---
 
