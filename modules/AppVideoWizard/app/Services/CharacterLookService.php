@@ -4,6 +4,7 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Services\GeminiService;
 use Illuminate\Support\Facades\Log;
+use Modules\AppVideoWizard\Services\CharacterPsychologyService;
 
 /**
  * Character Look System Service - Phase 4 of Hollywood Upgrade Plan
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\Log;
 class CharacterLookService
 {
     protected GeminiService $geminiService;
+
+    /**
+     * CharacterPsychologyService for full emotion mapping when presets aren't enough (Phase 23)
+     */
+    protected ?CharacterPsychologyService $psychologyService = null;
 
     /**
      * Character DNA Templates for common archetypes (Phase 4.2)
@@ -228,6 +234,59 @@ class CharacterLookService
                 'age_range' => '20-50',
                 'distinctive_features' => 'expressive face, creative aura',
             ],
+        ],
+    ];
+
+    /**
+     * Expression presets for common emotional states (Phase 23)
+     *
+     * These are SIMPLER presets for quick selection when full CharacterPsychologyService
+     * granularity isn't needed. For complex emotions, subtext layers, or Bible trait
+     * integration, use getExpressionFromPsychology() which bridges to the full service.
+     *
+     * These use physical descriptions, NOT FACS AU codes.
+     * Based on research: image models respond to physical manifestations.
+     */
+    const EXPRESSION_PRESETS = [
+        'neutral' => [
+            'description' => 'relaxed neutral expression, natural resting face',
+            'face' => 'relaxed jaw and brow, natural lip position',
+            'eyes' => 'calm direct gaze, natural eyelid position',
+        ],
+        'subtle_smile' => [
+            'description' => 'gentle hint of smile, warmth without full grin',
+            'face' => 'slight upturn at mouth corners, softened cheeks',
+            'eyes' => 'slight crinkle at corners, brightened gaze',
+        ],
+        'concerned' => [
+            'description' => 'worried concern showing in features',
+            'face' => 'slight furrow between brows, lips pressed together',
+            'eyes' => 'focused with slight tension, searching gaze',
+        ],
+        'determined' => [
+            'description' => 'resolute determination visible in set of features',
+            'face' => 'firm jaw, set mouth, defined brow line',
+            'eyes' => 'intense focused gaze, narrowed with purpose',
+        ],
+        'vulnerable' => [
+            'description' => 'open emotional vulnerability in expression',
+            'face' => 'softened features, slight tremor in lip',
+            'eyes' => 'glistening, wide and unguarded, exposed',
+        ],
+        'guarded' => [
+            'description' => 'closed off, protective expression',
+            'face' => 'tightened jaw, flattened expression',
+            'eyes' => 'narrowed, assessing, revealing nothing',
+        ],
+        'surprised' => [
+            'description' => 'genuine surprise captured in features',
+            'face' => 'raised brows, parted lips, lifted cheeks',
+            'eyes' => 'wide open, pupils dilated, alert',
+        ],
+        'contemplative' => [
+            'description' => 'deep thought visible in distant expression',
+            'face' => 'slightly furrowed brow, relaxed mouth',
+            'eyes' => 'unfocused mid-distance gaze, inner reflection',
         ],
     ];
 
@@ -573,6 +632,114 @@ PROMPT;
             'accessories' => [],
             'physical' => ['age_range' => '', 'build' => '', 'distinctive_features' => ''],
         ];
+    }
+
+    // =========================================================================
+    // PHASE 23: EXPRESSION PRESETS
+    // =========================================================================
+
+    /**
+     * Get expression preset by name (Phase 23)
+     *
+     * Use for quick expression selection. For full emotion mapping with
+     * intensity, subtext, and Bible traits, use getExpressionFromPsychology().
+     *
+     * @param string $preset Preset name from EXPRESSION_PRESETS
+     * @return array|null Preset data or null if not found
+     */
+    public function getExpressionPreset(string $preset): ?array
+    {
+        $preset = strtolower(trim($preset));
+
+        return self::EXPRESSION_PRESETS[$preset] ?? null;
+    }
+
+    /**
+     * Build expression description for prompt (Phase 23)
+     *
+     * Combines preset with optional intensity modifier.
+     *
+     * @param string $preset Preset name from EXPRESSION_PRESETS
+     * @param string $intensity Intensity level: subtle, moderate, intense
+     * @return string Formatted expression description for prompts
+     */
+    public function buildExpressionDescription(string $preset, string $intensity = 'moderate'): string
+    {
+        $presetData = $this->getExpressionPreset($preset);
+
+        if ($presetData === null) {
+            Log::debug('[CharacterLookService] Unknown expression preset requested', [
+                'preset' => $preset,
+                'available' => array_keys(self::EXPRESSION_PRESETS),
+            ]);
+
+            return '';
+        }
+
+        // Map intensity to modifier word
+        $intensityModifiers = [
+            'subtle' => 'subtly',
+            'moderate' => '',
+            'intense' => 'intensely',
+        ];
+
+        $modifier = $intensityModifiers[$intensity] ?? '';
+        $description = $presetData['description'];
+
+        // Build formatted output
+        $parts = [];
+
+        if (!empty($modifier)) {
+            $parts[] = "Expression: {$modifier} {$description}";
+        } else {
+            $parts[] = "Expression: {$description}";
+        }
+
+        $parts[] = $presetData['face'];
+        $parts[] = $presetData['eyes'];
+
+        return implode('. ', $parts) . '.';
+    }
+
+    /**
+     * Get all available expression presets (Phase 23)
+     *
+     * @return array Array of preset names and their descriptions
+     */
+    public function getExpressionPresets(): array
+    {
+        $presets = [];
+
+        foreach (self::EXPRESSION_PRESETS as $key => $data) {
+            $presets[$key] = [
+                'key' => $key,
+                'description' => $data['description'],
+            ];
+        }
+
+        return $presets;
+    }
+
+    /**
+     * Bridge to CharacterPsychologyService for full emotion mapping (Phase 23)
+     *
+     * Use when you need:
+     * - Intensity modifiers (subtle/moderate/intense)
+     * - Subtext layers (body betrays face)
+     * - Character Bible trait integration (defining_features)
+     *
+     * @param string $emotion Emotion from CharacterPsychologyService::EMOTION_MANIFESTATIONS
+     * @param string $intensity One of: subtle, moderate, intense
+     * @param array $characterTraits Optional Bible traits for enhanced description
+     * @return string Full physical description
+     */
+    public function getExpressionFromPsychology(string $emotion, string $intensity = 'moderate', array $characterTraits = []): string
+    {
+        if ($this->psychologyService === null) {
+            $this->psychologyService = new CharacterPsychologyService();
+        }
+
+        return $this->psychologyService->buildEnhancedEmotionDescription($emotion, $intensity, $characterTraits);
     }
 
     // =========================================================================
