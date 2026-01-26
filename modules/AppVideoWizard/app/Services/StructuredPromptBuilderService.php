@@ -5,6 +5,9 @@ namespace Modules\AppVideoWizard\Services;
 use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Services\CinematographyVocabulary;
 use Modules\AppVideoWizard\Services\PromptTemplateLibrary;
+use Modules\AppVideoWizard\Services\CharacterPsychologyService;
+use Modules\AppVideoWizard\Services\MiseEnSceneService;
+use Modules\AppVideoWizard\Services\ContinuityAnchorService;
 
 /**
  * StructuredPromptBuilderService
@@ -303,12 +306,223 @@ class StructuredPromptBuilderService
     protected PromptTemplateLibrary $templateLibrary;
 
     /**
+     * CharacterPsychologyService for emotion-to-physical mapping (Phase 23)
+     */
+    protected CharacterPsychologyService $characterPsychology;
+
+    /**
+     * MiseEnSceneService for environment-emotion integration (Phase 23)
+     */
+    protected MiseEnSceneService $miseEnScene;
+
+    /**
+     * ContinuityAnchorService for cross-shot persistence (Phase 23)
+     */
+    protected ContinuityAnchorService $continuityAnchor;
+
+    /**
      * Constructor - initialize cinematography vocabulary and template library.
      */
     public function __construct()
     {
         $this->vocabulary = new CinematographyVocabulary();
         $this->templateLibrary = new PromptTemplateLibrary();
+        // Phase 23: Psychology services
+        $this->characterPsychology = new CharacterPsychologyService();
+        $this->miseEnScene = new MiseEnSceneService();
+        $this->continuityAnchor = new ContinuityAnchorService();
+    }
+
+    // =========================================================================
+    // PHASE 23: Psychology Layer Methods
+    // =========================================================================
+
+    /**
+     * Build psychology layer for character expression (Phase 23)
+     *
+     * Converts emotional state to physical manifestations suitable for image generation.
+     * Uses shot type to determine emphasis (close-up = face detail, wide = body language).
+     * Integrates Character Bible defining_features when available.
+     *
+     * @param array $options Options including emotion, intensity, shot_type, character_bible
+     * @return array Psychology layer with expression and body_language keys
+     */
+    protected function buildPsychologyLayer(array $options): array
+    {
+        $emotion = $options['emotion'] ?? null;
+        $intensity = $options['intensity'] ?? 'moderate';
+        $shotType = $options['shot_type'] ?? 'medium';
+        $subtext = $options['subtext'] ?? null; // ['surface' => 'calm', 'true' => 'anxious']
+        $characterBible = $options['character_bible'] ?? null;
+
+        if (!$emotion) {
+            return [];
+        }
+
+        $manifestations = $this->characterPsychology->getManifestationsForEmotion($emotion);
+        if (empty($manifestations)) {
+            return [];
+        }
+
+        // Shot type determines emphasis
+        $emphasis = $this->getPsychologyEmphasisForShotType($shotType);
+
+        $layer = [
+            'expression' => '',
+            'body_language' => '',
+            'breath_micro' => '',
+        ];
+
+        // Extract character traits from Bible for enhanced expression
+        $characterTraits = [];
+        if ($characterBible && ($characterBible['enabled'] ?? false)) {
+            $characters = $characterBible['characters'] ?? [];
+            $mainCharacter = $characters[0] ?? [];
+
+            // INF-02: Bible defining_features flow into psychology layer
+            if (!empty($mainCharacter['defining_features'])) {
+                $characterTraits['defining_features'] = $mainCharacter['defining_features'];
+            }
+            if (!empty($mainCharacter['facial_structure'])) {
+                $characterTraits['facial_structure'] = $mainCharacter['facial_structure'];
+            }
+        }
+
+        // Build expression based on shot emphasis, with Bible traits
+        if ($emphasis['face']) {
+            $layer['expression'] = $this->characterPsychology->buildEnhancedEmotionDescription(
+                $emotion,
+                $intensity,
+                $characterTraits
+            );
+        }
+
+        if ($emphasis['body'] && !empty($manifestations['body'])) {
+            $layer['body_language'] = $manifestations['body'];
+        }
+
+        if ($emphasis['breath'] && !empty($manifestations['breath'])) {
+            $layer['breath_micro'] = $manifestations['breath'];
+        }
+
+        // Add subtext layer if present (Hollywood "body betrays face")
+        if ($subtext && isset($subtext['surface'], $subtext['true'])) {
+            $subtextLayer = $this->characterPsychology->buildSubtextLayer(
+                $subtext['surface'],
+                $subtext['true'],
+                $subtext['leakage'] ?? 0.3
+            );
+            $layer['subtext'] = $subtextLayer;
+        }
+
+        Log::debug('StructuredPromptBuilder: Built psychology layer', [
+            'emotion' => $emotion,
+            'intensity' => $intensity,
+            'shot_type' => $shotType,
+            'has_bible_traits' => !empty($characterTraits),
+            'has_expression' => !empty($layer['expression']),
+            'has_body_language' => !empty($layer['body_language']),
+            'has_subtext' => isset($layer['subtext']),
+        ]);
+
+        return $layer;
+    }
+
+    /**
+     * Determine psychology emphasis based on shot type (Phase 23)
+     *
+     * @param string $shotType The shot type (close-up, wide, etc.)
+     * @return array Emphasis flags for face, body, breath
+     */
+    protected function getPsychologyEmphasisForShotType(string $shotType): array
+    {
+        $emphasisMap = [
+            'extreme-close-up' => ['face' => true, 'body' => false, 'breath' => true],
+            'close-up' => ['face' => true, 'body' => false, 'breath' => true],
+            'medium-close' => ['face' => true, 'body' => true, 'breath' => false],
+            'medium' => ['face' => true, 'body' => true, 'breath' => false],
+            'medium-wide' => ['face' => false, 'body' => true, 'breath' => false],
+            'wide' => ['face' => false, 'body' => true, 'breath' => false],
+            'establishing' => ['face' => false, 'body' => true, 'breath' => false],
+        ];
+
+        return $emphasisMap[strtolower($shotType)] ?? ['face' => true, 'body' => true, 'breath' => false];
+    }
+
+    /**
+     * Build mise-en-scene environmental overlay (Phase 23)
+     *
+     * @param array $baseEnvironment Base environment from location Bible
+     * @param string $emotion Dominant emotional state
+     * @param int $tensionLevel Tension level 1-10
+     * @return array Enhanced environment with emotional overlay
+     */
+    protected function buildMiseEnSceneOverlay(array $baseEnvironment, string $emotion, int $tensionLevel = 5): array
+    {
+        $emotionalMood = $this->miseEnScene->getMiseEnSceneForEmotion($emotion);
+        $spatialTension = $this->miseEnScene->getSpacialTension($tensionLevel);
+
+        // Blend base environment with emotional overlay
+        $result = $this->miseEnScene->buildEnvironmentalMood($emotion, $baseEnvironment);
+
+        // Add spatial tension information
+        $result['spatial_tension'] = $spatialTension;
+        $result['tension_level'] = $tensionLevel;
+
+        Log::debug('StructuredPromptBuilder: Built mise-en-scene overlay', [
+            'emotion' => $emotion,
+            'tension_level' => $tensionLevel,
+            'has_combined_description' => !empty($result['combined_description']),
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Build continuity anchors block (Phase 23)
+     *
+     * Extracts wardrobe details from Character Bible for cross-shot persistence.
+     *
+     * @param array $character Character data from Bible (including wardrobe, defining_features)
+     * @param int $shotIndex Current shot index
+     * @param array $priorAnchors Anchors from previous shots
+     * @return string Formatted continuity anchors block
+     */
+    protected function buildContinuityAnchorsBlock(array $character, int $shotIndex, array $priorAnchors = []): string
+    {
+        if ($shotIndex === 0) {
+            // First shot - establish anchors from Bible data
+            $anchors = $this->continuityAnchor->buildAnchorDescription($character, $shotIndex);
+
+            Log::debug('StructuredPromptBuilder: Built continuity anchors (first shot)', [
+                'character_id' => $character['id'] ?? 'unknown',
+                'shot_index' => $shotIndex,
+                'anchors_length' => strlen($anchors),
+            ]);
+
+            return $anchors;
+        }
+
+        // Subsequent shots - apply prior anchors
+        $anchors = $this->continuityAnchor->getAnchorsForCharacter(
+            $character['id'] ?? 'unknown',
+            $shotIndex,
+            $priorAnchors
+        );
+
+        if (empty($anchors)) {
+            return '';
+        }
+
+        $result = $this->continuityAnchor->applyAnchorsToPrompt('', $anchors);
+
+        Log::debug('StructuredPromptBuilder: Applied continuity anchors (shot > 0)', [
+            'character_id' => $character['id'] ?? 'unknown',
+            'shot_index' => $shotIndex,
+            'anchor_count' => count($anchors),
+        ]);
+
+        return $result;
     }
 
     /**
@@ -438,6 +652,51 @@ class StructuredPromptBuilderService
             'subject_position' => 'center frame',
         ]);
 
+        // Phase 23: Build psychology layer if emotion specified
+        $psychologyLayer = [];
+        $emotion = $options['emotion'] ?? null;
+        if ($emotion) {
+            $psychologyLayer = $this->buildPsychologyLayer([
+                'emotion' => $emotion,
+                'intensity' => $options['emotion_intensity'] ?? 'moderate',
+                'shot_type' => $effectiveShotType,
+                'subtext' => $options['subtext'] ?? null,
+                'character_bible' => $characterBible, // INF-02: Pass Bible for defining_features
+            ]);
+        }
+
+        // Phase 23: Build mise-en-scene overlay if emotion affects environment
+        $miseEnSceneOverlay = [];
+        if ($emotion) {
+            $miseEnSceneOverlay = $this->buildMiseEnSceneOverlay(
+                $environment,
+                $emotion,
+                $options['tension_level'] ?? 5
+            );
+        }
+
+        // Phase 23: Build continuity anchors from Bible wardrobe/hair/accessories
+        $continuityAnchors = '';
+        if ($characterBible && ($characterBible['enabled'] ?? false)) {
+            $characters = $characterBible['characters'] ?? [];
+            $mainCharacter = $characters[0] ?? [];
+            $currentShotIndex = $shotIndex ?? 0;
+            $priorAnchors = $options['prior_anchors'] ?? [];
+
+            $continuityAnchors = $this->buildContinuityAnchorsBlock(
+                $mainCharacter,
+                $currentShotIndex,
+                $priorAnchors
+            );
+        }
+
+        Log::debug('StructuredPromptBuilder: Built creative prompt with Phase 23 psychology', [
+            'hasPsychologyLayer' => !empty($psychologyLayer),
+            'hasMiseEnSceneOverlay' => !empty($miseEnSceneOverlay),
+            'hasContinuityAnchors' => !empty($continuityAnchors),
+            'emotion' => $emotion,
+        ]);
+
         return [
             'scene_summary' => $sceneSummary,
             'subject' => $subject,
@@ -453,6 +712,10 @@ class StructuredPromptBuilderService
             'camera_language' => $cameraLanguage,       // Lens psychology (e.g., "85mm creates intimacy")
             'lighting_technical' => $lightingTechnical, // Kelvin and ratios (e.g., "5600K, -2 stops fill")
             'framing_technical' => $framingTechnical,   // Frame percentages (e.g., "40% of frame")
+            // Phase 23: Psychology layer additions
+            'psychology_layer' => $psychologyLayer,           // Emotion physical manifestations
+            'mise_en_scene_overlay' => $miseEnSceneOverlay,   // Environmental emotional mood
+            'continuity_anchors' => $continuityAnchors,       // Cross-shot persistence (Bible wardrobe)
         ];
     }
 
@@ -522,6 +785,63 @@ class StructuredPromptBuilderService
             'subject_position' => 'center frame',
         ]);
 
+        // Phase 23: Extract emotion and intensity from sceneDNAEntry
+        $emotion = $sceneDNAEntry['emotion'] ?? $options['emotion'] ?? null;
+        $emotionIntensity = $sceneDNAEntry['emotion_intensity'] ?? $options['emotion_intensity'] ?? 'moderate';
+        $tensionLevel = $sceneDNAEntry['tension_level'] ?? $options['tension_level'] ?? 5;
+        $subtext = $sceneDNAEntry['subtext'] ?? $options['subtext'] ?? null;
+
+        // Build character_bible array from sceneDNAEntry for psychology layer
+        $characterBible = null;
+        $characters = $sceneDNAEntry['characters'] ?? [];
+        if (!empty($characters)) {
+            $characterBible = [
+                'enabled' => true,
+                'characters' => $characters,
+            ];
+        }
+
+        // Phase 23: Build psychology layer if emotion specified
+        $psychologyLayer = [];
+        if ($emotion) {
+            $psychologyLayer = $this->buildPsychologyLayer([
+                'emotion' => $emotion,
+                'intensity' => $emotionIntensity,
+                'shot_type' => $effectiveShotType,
+                'subtext' => $subtext,
+                'character_bible' => $characterBible, // INF-02: Pass Bible for defining_features
+            ]);
+        }
+
+        // Phase 23: Build mise-en-scene overlay
+        $miseEnSceneOverlay = [];
+        if ($emotion) {
+            $baseEnvironment = [
+                'location' => $sceneDNAEntry['location']['name'] ?? '',
+                'description' => $sceneDNAEntry['location']['description'] ?? '',
+                'time_of_day' => $timeOfDay,
+            ];
+            $miseEnSceneOverlay = $this->buildMiseEnSceneOverlay(
+                $baseEnvironment,
+                $emotion,
+                $tensionLevel
+            );
+        }
+
+        // Phase 23: Build continuity anchors from Bible
+        $continuityAnchors = '';
+        if (!empty($characters)) {
+            $mainCharacter = $characters[0] ?? [];
+            $currentShotIndex = $sceneDNAEntry['shot_index'] ?? $options['shot_index'] ?? 0;
+            $priorAnchors = $options['prior_anchors'] ?? [];
+
+            $continuityAnchors = $this->buildContinuityAnchorsBlock(
+                $mainCharacter,
+                $currentShotIndex,
+                $priorAnchors
+            );
+        }
+
         Log::debug('StructuredPromptBuilder: Built prompt from Scene DNA', [
             'sceneIndex' => $sceneDNAEntry['sceneIndex'] ?? 'unknown',
             'characterCount' => $sceneDNAEntry['characterCount'] ?? 0,
@@ -533,6 +853,11 @@ class StructuredPromptBuilderService
             'hasCharacterDNA' => !empty($characterDNA),
             'hasCameraLanguage' => !empty($cameraLanguage),
             'hasLightingTechnical' => !empty($lightingTechnical),
+            // Phase 23 additions
+            'hasPsychologyLayer' => !empty($psychologyLayer),
+            'hasMiseEnSceneOverlay' => !empty($miseEnSceneOverlay),
+            'hasContinuityAnchors' => !empty($continuityAnchors),
+            'emotion' => $emotion,
         ]);
 
         return [
@@ -550,6 +875,10 @@ class StructuredPromptBuilderService
             'camera_language' => $cameraLanguage,       // Lens psychology (e.g., "85mm creates intimacy")
             'lighting_technical' => $lightingTechnical, // Kelvin and ratios (e.g., "5600K, -2 stops fill")
             'framing_technical' => $framingTechnical,   // Frame percentages (e.g., "40% of frame")
+            // Phase 23: Psychology layer additions
+            'psychology_layer' => $psychologyLayer,           // Emotion physical manifestations
+            'mise_en_scene_overlay' => $miseEnSceneOverlay,   // Environmental emotional mood
+            'continuity_anchors' => $continuityAnchors,       // Cross-shot persistence (Bible wardrobe)
         ];
     }
 
