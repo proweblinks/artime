@@ -10,7 +10,7 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Phase 23 - Character Psychology Bible (IN PROGRESS)
+**Current focus:** Phase 23 - Character Psychology Bible (COMPLETE)
 
 ---
 
@@ -18,36 +18,36 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
 **Phase:** 23 of 27 (Character Psychology Bible)
-**Plan:** 4 of 4 (Phase 23 nearing completion)
-**Status:** In progress
+**Plan:** 4 of 4 (Phase 23 COMPLETE)
+**Status:** Phase complete
 
 ```
-Phase 23: ██████████ 75% (3/4 plans complete)
+Phase 23: ██████████████████████ 100% (4/4 plans complete)
 ─────────────────────
-M11:      █████░░░░░ 28% (7/25 requirements)
+M11:      ██████░░░░ 32% (8/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 23-03-PLAN.md (ContinuityAnchorService + Expression Presets)
+**Last activity:** 2026-01-27 - Completed 23-04-PLAN.md (Integration)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (M11)
-- Average duration: 9.7 min
-- Total execution time: 68 min
+- Total plans completed: 8 (M11)
+- Average duration: 9.5 min
+- Total execution time: 76 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 22 | 3/3 | 34 min | 11.3 min |
-| 23 | 3/4 | 34 min | 11.3 min |
+| 23 | 4/4 | 42 min | 10.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 22-03 (15m), 23-01 (10m), 23-02 (8m), 23-01 (10m), 23-03 (6m)
-- Trend: Improving (23-03 fastest at 6min)
+- Last 5 plans: 23-01 (10m), 23-02 (8m), 23-01 (10m), 23-03 (6m), 23-04 (8m)
+- Trend: Consistent (~8min average for Phase 23)
 
 *Updated after each plan completion*
 
@@ -84,18 +84,20 @@ Recent decisions affecting current work:
 - [23-03]: ANCHOR_PRIORITY has three levels: primary (identity), secondary (continuity), tertiary (scene)
 - [23-03]: Bridge method allows progressive enhancement from presets to full psychology
 - [23-03]: Anchor conflict detection uses 70% similarity threshold with severity levels
+- [23-04]: Psychology layer only generated when emotion is specified
+- [23-04]: Shot-type emphasis: close-up=face, wide=body, medium=both
+- [23-04]: Scene DNA path extracts emotion from sceneDNAEntry first, then falls back to options
+- [23-04]: Bible defining_features woven into psychology expressions (INF-02)
 
 ### Phase 23 Progress
 
-**Phase 23: Character Psychology Bible is IN PROGRESS (3/4 plans).**
+**Phase 23: Character Psychology Bible is COMPLETE (4/4 plans).**
 
-Delivered so far:
+Delivered:
 1. 23-01: CharacterPsychologyService - Emotion-to-physical-manifestation mapping with 8 emotions
 2. 23-02: MiseEnSceneService - Environment-emotion mappings with 8 Hollywood mise-en-scene states
 3. 23-03: ContinuityAnchorService + Expression Presets - Cross-shot visual persistence and expression preset bridge
-
-Remaining:
-4. 23-04: Integration
+4. 23-04: Integration - Psychology services integrated into StructuredPromptBuilderService
 
 ### Pending Todos
 
@@ -110,13 +112,13 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 23-03-PLAN.md (ContinuityAnchorService + Expression Presets)
+Stopped at: Completed 23-04-PLAN.md (Integration) - Phase 23 COMPLETE
 Resume file: None
-Next step: Continue with 23-04-PLAN.md (Integration)
+Next step: Continue with Phase 24
 
 ---
 
-## Phase 23 Artifacts (In Progress)
+## Phase 23 Artifacts (COMPLETE)
 
 - `.planning/phases/23-character-psychology-bible/23-CONTEXT.md`
 - `.planning/phases/23-character-psychology-bible/23-RESEARCH.md`
@@ -126,20 +128,24 @@ Next step: Continue with 23-04-PLAN.md (Integration)
 - `.planning/phases/23-character-psychology-bible/23-02-SUMMARY.md`
 - `.planning/phases/23-character-psychology-bible/23-03-PLAN.md` (ContinuityAnchorService) - COMPLETE
 - `.planning/phases/23-character-psychology-bible/23-03-SUMMARY.md`
-- `.planning/phases/23-character-psychology-bible/23-04-PLAN.md`
+- `.planning/phases/23-character-psychology-bible/23-04-PLAN.md` (Integration) - COMPLETE
+- `.planning/phases/23-character-psychology-bible/23-04-SUMMARY.md`
 
 Key Files Created (Phase 23):
 - `modules/AppVideoWizard/app/Services/CharacterPsychologyService.php`
 - `modules/AppVideoWizard/app/Services/MiseEnSceneService.php`
 - `modules/AppVideoWizard/app/Services/ContinuityAnchorService.php`
+- `tests/Feature/VideoWizard/PsychologyPromptIntegrationTest.php`
 
 Key Files Modified (Phase 23):
 - `modules/AppVideoWizard/app/Services/CharacterLookService.php` (added EXPRESSION_PRESETS)
+- `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (psychology layer integration)
 
 Tests (Phase 23):
 - `tests/Unit/VideoWizard/CharacterPsychologyServiceTest.php`
 - `tests/Unit/VideoWizard/MiseEnSceneServiceTest.php`
 - `tests/Unit/VideoWizard/ContinuityAnchorServiceTest.php`
+- `tests/Feature/VideoWizard/PsychologyPromptIntegrationTest.php`
 
 ---
 
