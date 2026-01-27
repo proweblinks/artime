@@ -9,6 +9,9 @@ use Livewire\Attributes\Computed;
 use Livewire\WithFileUploads;
 use Modules\AppVideoWizard\Models\WizardProject;
 use Modules\AppVideoWizard\Models\WizardProcessingJob;
+use Modules\AppVideoWizard\Models\WizardScene;
+use Modules\AppVideoWizard\Models\WizardShot;
+use Modules\AppVideoWizard\Models\WizardSpeechSegment;
 use Modules\AppVideoWizard\Services\ConceptService;
 use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
@@ -1327,6 +1330,135 @@ class VideoWizard extends Component
     // =========================================================================
     // LIVEWIRE 3 COMPUTED PROPERTIES
     // Cached per-request, accessed as properties in Blade: $this->sceneCount
+    // =========================================================================
+
+    // =========================================================================
+    // NORMALIZED DATA ACCESS (PERF-06)
+    // Methods for accessing scene data from normalized tables with JSON fallback
+    // =========================================================================
+
+    /**
+     * Get scene IDs (database IDs for normalized, indices for JSON fallback).
+     * Cached with persistence for 5 minutes to avoid repeated queries.
+     *
+     * @return array Array of scene identifiers
+     */
+    #[Computed(persist: true, seconds: 300)]
+    public function sceneIds(): array
+    {
+        if ($this->project && $this->project->usesNormalizedData()) {
+            return $this->project->scenes()->pluck('id')->toArray();
+        }
+
+        // Fallback to JSON indices
+        return array_keys($this->script['scenes'] ?? []);
+    }
+
+    /**
+     * Get the count of scenes (normalized or JSON).
+     *
+     * @return int Number of scenes
+     */
+    #[Computed]
+    public function normalizedSceneCount(): int
+    {
+        if ($this->project && $this->project->usesNormalizedData()) {
+            return $this->project->scenes()->count();
+        }
+        return count($this->script['scenes'] ?? []);
+    }
+
+    /**
+     * Check if the current project uses normalized data.
+     *
+     * @return bool True if project has scenes in normalized tables
+     */
+    public function usesNormalizedData(): bool
+    {
+        return $this->project && $this->project->usesNormalizedData();
+    }
+
+    /**
+     * Get scene data by index for display/editing.
+     * Returns data in consistent array format regardless of source.
+     *
+     * @param int $index Scene index (order for normalized, array key for JSON)
+     * @return array|null Scene data array or null if not found
+     */
+    public function getSceneData(int $index): ?array
+    {
+        if ($this->project && $this->project->usesNormalizedData()) {
+            $scene = $this->project->scenes()
+                ->where('order', $index)
+                ->with(['shots', 'speechSegments'])
+                ->first();
+
+            if (!$scene) {
+                return null;
+            }
+
+            // Transform to array format for backward compatibility
+            return $this->normalizedSceneToArray($scene);
+        }
+
+        // JSON fallback
+        return $this->script['scenes'][$index] ?? null;
+    }
+
+    /**
+     * Transform a WizardScene model to array format matching JSON structure.
+     * Ensures backward compatibility with existing Blade templates.
+     *
+     * @param WizardScene $scene Scene model with relationships loaded
+     * @return array Scene data in legacy format
+     */
+    protected function normalizedSceneToArray(WizardScene $scene): array
+    {
+        return [
+            'id' => $scene->id,
+            'narration' => $scene->narration,
+            'visualPrompt' => $scene->visual_prompt,
+            'duration' => $scene->duration,
+            'speechType' => $scene->speech_type,
+            'transition' => $scene->transition,
+            'imageUrl' => $scene->image_url,
+            'imageStatus' => $scene->image_status,
+            'prompt' => $scene->image_prompt,
+            'videoUrl' => $scene->video_url,
+            'videoStatus' => $scene->video_status,
+            'speechSegments' => $scene->speechSegments->map(fn($s) => [
+                'id' => $s->id,
+                'type' => $s->type,
+                'text' => $s->text,
+                'speaker' => $s->speaker,
+                'characterId' => $s->character_id,
+                'voiceId' => $s->voice_id,
+                'startTime' => $s->start_time,
+                'duration' => $s->duration,
+                'audioUrl' => $s->audio_url,
+                'emotion' => $s->emotion,
+                'needsLipSync' => $s->needs_lip_sync,
+            ])->toArray(),
+            'shots' => $scene->shots->map(fn($shot) => [
+                'id' => $shot->id,
+                'imagePrompt' => $shot->image_prompt,
+                'videoPrompt' => $shot->video_prompt,
+                'cameraMovement' => $shot->camera_movement,
+                'duration' => $shot->duration,
+                'durationClass' => $shot->duration_class,
+                'imageUrl' => $shot->image_url,
+                'imageStatus' => $shot->image_status,
+                'videoUrl' => $shot->video_url,
+                'videoStatus' => $shot->video_status,
+                'dialogue' => $shot->dialogue,
+            ])->toArray(),
+            // Include metadata if present
+            'metadata' => $scene->scene_metadata,
+        ];
+    }
+
+    // =========================================================================
+    // END NORMALIZED DATA ACCESS
     // =========================================================================
 
     /**
