@@ -10,33 +10,33 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Phase 26 - LLM-Powered Expansion (COMPLETE with gap closure)
+**Current focus:** Phase 27 - UI & Performance Polish (In Progress)
 
 ---
 
 ## Current Position
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
-**Phase:** 26 of 28 (LLM-Powered Expansion)
-**Plan:** 4 of 4 (gap closure complete)
-**Status:** Phase complete
+**Phase:** 27 of 28 (UI & Performance Polish)
+**Plan:** 1 of 3 (Prompt Caching & Toggle)
+**Status:** In progress
 
 ```
-Phase 26: ████████████████████████ 100% (4/4 plans complete)
+Phase 27: ████████░░░░░░░░░░░░░░░░ 33% (1/3 plans complete)
 ─────────────────────
-M11:      ██████████████░ 76% (19/25 requirements)
+M11:      ████████████████░ 80% (20/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 26-04-PLAN.md (Gap Closure)
+**Last activity:** 2026-01-27 - Completed 27-01-PLAN.md (Prompt Caching & Toggle)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19 (M11)
-- Average duration: 7.9 min
-- Total execution time: 151 min
+- Total plans completed: 20 (M11)
+- Average duration: 7.7 min
+- Total execution time: 154 min
 
 **By Phase:**
 
@@ -47,10 +47,11 @@ M11:      ██████████████░ 76% (19/25 requirements)
 | 24 | 4/4 | 34 min | 8.5 min |
 | 25 | 3/3 | 20 min | 6.7 min |
 | 26 | 4/4 | 21 min | 5.3 min |
+| 27 | 1/3 | 3 min | 3.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 25-03 (8m), 26-01 (6m), 26-02 (6m), 26-03 (5m), 26-04 (4m)
-- Trend: Fast execution continuing (Phase 26 averaging 5.3 min)
+- Last 5 plans: 26-02 (6m), 26-03 (5m), 26-04 (4m), 27-01 (3m)
+- Trend: Fast execution continuing (Phase 27 starting at 3 min)
 
 *Updated after each plan completion*
 
@@ -140,6 +141,24 @@ Recent decisions affecting current work:
 - [26-04]: build() delegates to buildHollywoodPrompt() for automatic LLM routing
 - [26-04]: Original build() renamed to buildTemplate() for template-only path
 - [26-04]: buildHollywoodPrompt() calls buildTemplate() (not build()) to avoid circular dependency
+- [27-01]: 24-hour cache TTL for LLM-expanded prompts
+- [27-01]: Cache key uses MD5 hash of shot data + Bible context
+- [27-01]: Template-only results NOT cached (fast enough already)
+- [27-01]: Hollywood expansion toggle defaults to true (expansion enabled)
+
+### Phase 27 Progress
+
+**Phase 27: UI & Performance Polish is IN PROGRESS (1/3 plans complete).**
+
+Delivered:
+1. 27-01: Prompt Caching & Toggle - Cache-aside pattern for LLM prompts with VwSetting toggle
+
+**PERF Requirements Progress:**
+- PERF-01: Prompt caching layer - COMPLETE
+- PERF-02: Expansion toggle setting - COMPLETE
+- PERF-03: Skeleton loading states - PLANNED (27-02)
+- PERF-04: Progressive enhancement - PLANNED (27-02)
+- PERF-05: UI polish - PLANNED (27-03)
 
 ### Phase 26 Progress
 
@@ -210,9 +229,26 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 26-04-PLAN.md (Gap Closure)
+Stopped at: Completed 27-01-PLAN.md (Prompt Caching & Toggle)
 Resume file: None
-Next step: Phase 27 or Milestone wrap-up
+Next step: 27-02-PLAN.md (Skeleton Loading & Progressive Enhancement)
+
+---
+
+## Phase 27 Artifacts (IN PROGRESS)
+
+- `.planning/phases/27-ui-performance-polish/27-CONTEXT.md`
+- `.planning/phases/27-ui-performance-polish/27-01-PLAN.md` (Prompt Caching & Toggle) - COMPLETE
+- `.planning/phases/27-ui-performance-polish/27-01-SUMMARY.md`
+- `.planning/phases/27-ui-performance-polish/27-02-PLAN.md` (Skeleton Loading) - PLANNED
+- `.planning/phases/27-ui-performance-polish/27-03-PLAN.md` (UI Polish) - PLANNED
+
+Key Files Created (Phase 27):
+- `modules/AppVideoWizard/database/migrations/2026_01_27_000001_add_hollywood_expansion_setting.php`
+
+Key Files Modified (Phase 27):
+- `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (caching, toggle check)
+- `modules/AppVideoWizard/database/seeders/VwSettingSeeder.php` (hollywood_expansion_enabled)
 
 ---
 
