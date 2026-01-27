@@ -75,7 +75,16 @@ Plans:
 
 **Status:** Planned
 
-**Plans:** TBD (to be created via /gsd:plan-phase 29.1)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 29.1-01-PLAN.md — Consistent imageModel fallbacks + emotion data inheritance (DEBT-01, DEBT-02)
+- [ ] 29.1-02-PLAN.md — Wire VoicePromptBuilderService to Shot Preview (DEBT-03)
+
+**Wave Structure:**
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 29.1-01, 29.1-02 | All parallel: backend fixes and UI enhancement |
 
 **Gap Closure:** Closes tech debt from M11.2-MILESTONE-AUDIT.md
 
