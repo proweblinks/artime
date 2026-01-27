@@ -650,6 +650,45 @@ class VideoWizard extends Component
         ],
     ];
 
+    /**
+     * Gaze direction templates for each shot type.
+     * Empty string = no gaze specified (environment focus, POV, or object shots).
+     *
+     * These prevent AI models from defaulting to "looking at camera" by explicitly
+     * specifying WHERE characters should be looking for each shot type.
+     *
+     * @see 22-RESEARCH.md Section 5.4 for research background
+     */
+    protected const GAZE_TEMPLATES = [
+        // Environment-focused shots - no subject gaze
+        'establishing' => '',
+        'extreme-wide' => '',
+
+        // Action shots - engaged with environment
+        'wide' => 'looking toward scene element, engaged with environment',
+        'medium-wide' => 'looking at action or other character, not at camera',
+
+        // Conversation shots - engaged with other characters
+        'medium' => 'looking at other character or object, mid-conversation',
+        'medium-close' => 'looking at conversation partner, expressive engagement',
+        'over-shoulder' => 'looking at conversation partner in foreground',
+        'two-shot' => 'characters engaged with each other, not looking at camera',
+
+        // Emotional intensity shots - off-screen focus
+        'close-up' => 'intense gaze fixed on off-screen element, not at camera',
+        'extreme-close-up' => 'gaze directed off-screen, emotional intensity',
+        'reaction' => 'eyes directed toward off-screen stimulus, expression changing',
+
+        // Special shots - no subject or object focus
+        'pov' => '', // We ARE the viewer - no subject visible
+        'detail' => '', // Object focus - no character gaze
+        'insert' => '', // Object focus - no character gaze
+
+        // Angle shots - inherit from framing
+        'low-angle' => 'looking ahead or at scene element, powerful presence',
+        'high-angle' => 'looking down or at ground, vulnerable or thoughtful',
+    ];
+
     // Step 2: Concept
     public array $concept = [
         'rawInput' => '',
