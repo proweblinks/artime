@@ -4796,6 +4796,31 @@ function getCameraMovementIcon($movement) {
                             </div>
                         </div>
 
+                        {{-- Hollywood Expansion Toggle --}}
+                        <div class="vw-sidebar-section open">
+                            <div class="vw-sidebar-section-body" style="padding-top: 0.5rem;">
+                                <div class="vw-sidebar-toggle" style="margin-bottom: 0.75rem;">
+                                    <span class="vw-sidebar-toggle-label">
+                                        <span>✨</span>
+                                        {{ __('Hollywood Expansion') }}
+                                        <span class="vw-badge vw-badge-new" style="font-size: 0.5rem; padding: 0.1rem 0.3rem;">AI</span>
+                                    </span>
+                                    <div class="vw-sidebar-toggle-switch {{ $hollywoodExpansionEnabled ? 'active' : '' }}"
+                                         wire:click="toggleHollywoodExpansion"
+                                         title="{{ $hollywoodExpansionEnabled ? __('Click to disable AI-enhanced prompts') : __('Click to enable AI-enhanced prompts') }}">
+                                        <div class="vw-sidebar-toggle-track"></div>
+                                        <div class="vw-sidebar-toggle-thumb"></div>
+                                    </div>
+                                </div>
+                                <p style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-bottom: 0.75rem; line-height: 1.4;">
+                                    {{ $hollywoodExpansionEnabled
+                                        ? __('Complex shots get AI-enhanced Hollywood-quality prompts')
+                                        : __('All shots use fast template-only prompts')
+                                    }}
+                                </p>
+                            </div>
+                        </div>
+
                         {{-- Multi-Shot Toggle --}}
                         <div class="vw-sidebar-section open">
                             <div class="vw-sidebar-section-body" style="padding-top: 0.5rem;">
