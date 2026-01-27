@@ -10,33 +10,33 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Phase 23 - Character Psychology Bible (COMPLETE)
+**Current focus:** Phase 24 - Video Temporal Expansion (IN PROGRESS)
 
 ---
 
 ## Current Position
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
-**Phase:** 23 of 27 (Character Psychology Bible)
-**Plan:** 4 of 4 (Phase 23 COMPLETE)
-**Status:** Phase complete
+**Phase:** 24 of 28 (Video Temporal Expansion)
+**Plan:** 3 of 4
+**Status:** In progress
 
 ```
-Phase 23: ██████████████████████ 100% (4/4 plans complete)
+Phase 24: ███████████████░░░░░░░ 75% (3/4 plans complete)
 ─────────────────────
-M11:      ██████░░░░ 32% (8/25 requirements)
+M11:      ███████░░░░ 44% (11/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 23-04-PLAN.md (Integration)
+**Last activity:** 2026-01-27 - Completed 24-03-PLAN.md (Transition Vocabulary + Temporal Movement)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8 (M11)
-- Average duration: 9.5 min
-- Total execution time: 76 min
+- Total plans completed: 11 (M11)
+- Average duration: 9.3 min
+- Total execution time: 102 min
 
 **By Phase:**
 
@@ -44,10 +44,11 @@ M11:      ██████░░░░ 32% (8/25 requirements)
 |-------|-------|-------|----------|
 | 22 | 3/3 | 34 min | 11.3 min |
 | 23 | 4/4 | 42 min | 10.5 min |
+| 24 | 3/4 | 26 min | 8.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 23-01 (10m), 23-02 (8m), 23-01 (10m), 23-03 (6m), 23-04 (8m)
-- Trend: Consistent (~8min average for Phase 23)
+- Last 5 plans: 23-03 (6m), 23-04 (8m), 24-01 (9m), 24-02 (9m), 24-03 (8m)
+- Trend: Consistent (~8min average for Phase 24)
 
 *Updated after each plan completion*
 
@@ -88,16 +89,23 @@ Recent decisions affecting current work:
 - [23-04]: Shot-type emphasis: close-up=face, wide=body, medium=both
 - [23-04]: Scene DNA path extracts emotion from sceneDNAEntry first, then falls back to options
 - [23-04]: Bible defining_features woven into psychology expressions (INF-02)
+- [24-03]: Transition vocabulary is editorial (shot endings), NOT post-production (dissolves/wipes)
+- [24-03]: Mood-to-transition mapping: energetic->match_cut, tense->hard_cut, contemplative->soft_transition
+- [24-03]: Duration clamped to typical_duration_min/max from VwCameraMovement model
+- [24-03]: Psychology appended with comma separator for natural reading
+- [24-03]: 80% rule - movement duration max 80% of clip duration
 
-### Phase 23 Progress
+### Phase 24 Progress
 
-**Phase 23: Character Psychology Bible is COMPLETE (4/4 plans).**
+**Phase 24: Video Temporal Expansion is IN PROGRESS (3/4 plans complete).**
 
 Delivered:
-1. 23-01: CharacterPsychologyService - Emotion-to-physical-manifestation mapping with 8 emotions
-2. 23-02: MiseEnSceneService - Environment-emotion mappings with 8 Hollywood mise-en-scene states
-3. 23-03: ContinuityAnchorService + Expression Presets - Cross-shot visual persistence and expression preset bridge
-4. 23-04: Integration - Psychology services integrated into StructuredPromptBuilderService
+1. 24-01: VideoTemporalService - Clip duration calculation and temporal pacing patterns
+2. 24-02: CharacterDynamicsService - Character path, blocking, and transition vocabulary
+3. 24-03: TransitionVocabulary + CameraMovementService - Shot ending states and temporal movement prompts
+
+Remaining:
+4. 24-04: Integration - Temporal services integrated into video generation pipeline
 
 ### Pending Todos
 
@@ -107,14 +115,52 @@ None.
 
 None currently.
 
+### Roadmap Evolution
+
+- Phase 28 added: Voice Production Excellence (2026-01-27) — Voice registry, continuity validation, multi-speaker dialogue
+
 ---
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 23-04-PLAN.md (Integration) - Phase 23 COMPLETE
+Stopped at: Completed 24-03-PLAN.md (Transition Vocabulary + Temporal Movement)
 Resume file: None
-Next step: Continue with Phase 24
+Next step: Continue with 24-04-PLAN.md (Integration)
+
+---
+
+## Phase 24 Artifacts (IN PROGRESS)
+
+- `.planning/phases/24-video-temporal-expansion/24-RESEARCH.md`
+- `.planning/phases/24-video-temporal-expansion/24-01-PLAN.md` (VideoTemporalService) - COMPLETE
+- `.planning/phases/24-video-temporal-expansion/24-01-SUMMARY.md`
+- `.planning/phases/24-video-temporal-expansion/24-02-PLAN.md` (CharacterDynamicsService) - COMPLETE
+- `.planning/phases/24-video-temporal-expansion/24-02-SUMMARY.md`
+- `.planning/phases/24-video-temporal-expansion/24-03-PLAN.md` (Transition Vocabulary + Temporal Movement) - COMPLETE
+- `.planning/phases/24-video-temporal-expansion/24-03-SUMMARY.md`
+- `.planning/phases/24-video-temporal-expansion/24-04-PLAN.md` (Integration) - PENDING
+
+Key Files Created (Phase 24):
+- `modules/AppVideoWizard/app/Services/VideoTemporalService.php`
+- `modules/AppVideoWizard/app/Services/CharacterDynamicsService.php`
+- `modules/AppVideoWizard/app/Services/CharacterPathService.php`
+- `modules/AppVideoWizard/app/Services/TransitionVocabulary.php`
+- `tests/Unit/VideoWizard/VideoTemporalServiceTest.php`
+- `tests/Unit/VideoWizard/CharacterDynamicsServiceTest.php`
+- `tests/Unit/VideoWizard/CharacterPathServiceTest.php`
+- `tests/Unit/VideoWizard/TransitionVocabularyTest.php`
+- `tests/Unit/VideoWizard/CameraMovementServiceTemporalTest.php`
+
+Key Files Modified (Phase 24):
+- `modules/AppVideoWizard/app/Services/CameraMovementService.php` (MOVEMENT_PSYCHOLOGY, buildTemporalMovementPrompt)
+
+Tests (Phase 24):
+- `tests/Unit/VideoWizard/VideoTemporalServiceTest.php`
+- `tests/Unit/VideoWizard/CharacterDynamicsServiceTest.php`
+- `tests/Unit/VideoWizard/CharacterPathServiceTest.php`
+- `tests/Unit/VideoWizard/TransitionVocabularyTest.php`
+- `tests/Unit/VideoWizard/CameraMovementServiceTemporalTest.php`
 
 ---
 
