@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-27
-> Session: v10 Phase 21 Plan 01 Complete
+> Session: v10 Phase 21 Plan 02 Complete
 
 ---
 
@@ -18,42 +18,37 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** v10 (Livewire Performance Architecture) — In Progress
 **Phase:** 21 (Data Normalization) — In Progress
-**Plan:** 1 of ? complete
-**Status:** Plan 21-01 complete, ready for Plan 21-02
+**Plan:** 2 of ? complete
+**Status:** Plan 21-02 complete, ready for Plan 21-03
 
 ```
 Phase 19:   xxxxxxxxxx 100% (4/4 plans complete)
 Phase 20:   xxxxxxxxxx 100% (3/3 plans complete)
-Phase 21:   x......... 10% (1/? plans complete)
+Phase 21:   xx........ 20% (2/? plans complete)
 ---------------------
-v10:        xxxxxxxx.. 80% (PERF-06 partial)
+v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 ```
 
-**Last activity:** 2026-01-27 - Completed 21-01-PLAN.md (database schema and models)
+**Last activity:** 2026-01-27 - Completed 21-02-PLAN.md (data migration command and dual-mode access)
 
 ---
 
-## What Shipped (v10 Phase 21 Plan 01)
+## What Shipped (v10 Phase 21 Plan 02)
 
-**Plan 01 - Database Schema and Models:**
-- wizard_scenes migration (65 lines) - normalized scene data table
-- wizard_shots migration (66 lines) - multi-shot decomposition table
-- wizard_speech_segments migration (60 lines) - speech/dialogue table
-- WizardScene model (115 lines) - BelongsTo Project, HasMany Shots/SpeechSegments
-- WizardShot model (91 lines) - BelongsTo Scene
-- WizardSpeechSegment model (98 lines) - BelongsTo Scene
-- WizardProject updated with scenes() relationship and usesNormalizedData() helper
+**Plan 02 - Data Migration Command and Dual-Mode Access:**
+- NormalizeProjectData.php artisan command (312 lines)
+- wizard:normalize-data with --project, --dry-run, --force options
+- Transaction-wrapped migration for atomic data transfer
+- VideoWizard dual-mode data access methods
+- sceneIds() computed property with 5-minute cache
+- getSceneData() with automatic normalized/JSON source detection
 
 **Files created:**
-- modules/AppVideoWizard/database/migrations/2026_01_27_100001_create_wizard_scenes_table.php
-- modules/AppVideoWizard/database/migrations/2026_01_27_100002_create_wizard_shots_table.php
-- modules/AppVideoWizard/database/migrations/2026_01_27_100003_create_wizard_speech_segments_table.php
-- modules/AppVideoWizard/app/Models/WizardScene.php
-- modules/AppVideoWizard/app/Models/WizardShot.php
-- modules/AppVideoWizard/app/Models/WizardSpeechSegment.php
+- modules/AppVideoWizard/app/Console/Commands/NormalizeProjectData.php
 
 **Files modified:**
-- modules/AppVideoWizard/app/Models/WizardProject.php (scenes() relationship, usesNormalizedData())
+- modules/AppVideoWizard/app/Providers/AppVideoWizardServiceProvider.php
+- modules/AppVideoWizard/app/Livewire/VideoWizard.php
 
 ---
 
@@ -82,15 +77,19 @@ v10:        xxxxxxxx.. 80% (PERF-06 partial)
 | 2026-01-27 | 21-01 | scene_metadata/shot_metadata JSON for less-frequent fields |
 | 2026-01-27 | 21-01 | usesNormalizedData() pattern for backward compatibility |
 | 2026-01-27 | 21-01 | getSceneCount() checks normalized first, falls back to JSON |
+| 2026-01-27 | 21-02 | Transaction-wrapped migration with rollback on error |
+| 2026-01-27 | 21-02 | Dry-run mode for safe preview of migrations         |
+| 2026-01-27 | 21-02 | 5-minute cache on sceneIds() to reduce DB queries   |
+| 2026-01-27 | 21-02 | normalizedSceneToArray() for backward compatibility |
 
 ### Architecture Context
 
-**VideoWizard.php stats (after Phase 20):**
-- ~30,900 lines (added event listeners for both modals)
+**VideoWizard.php stats (after Phase 21 Plan 02):**
+- ~31,000 lines (added normalized data access methods)
 - 7 wizard steps in single component
 - Character/Location Bible methods now in traits
 - Both CharacterBibleModal and LocationBibleModal extracted as child components
-- Nested arrays for scenes/shots (being replaced by normalized tables)
+- Dual-mode data access: normalized tables + JSON fallback
 
 **Phase 20 complete:**
 - Plan 01: Bible trait extraction (DONE)
@@ -99,8 +98,9 @@ v10:        xxxxxxxx.. 80% (PERF-06 partial)
 
 **Phase 21 progress:**
 - Plan 01: Database schema and models (DONE)
-- PERF-06: WizardScene, WizardShot models created
-- PERF-07: Lazy loading pending (requires data migration and component updates)
+- Plan 02: Data migration command and dual-mode access (DONE)
+- PERF-06: WizardScene, WizardShot models + migration command complete
+- PERF-07: Lazy loading pending (requires lazy-loaded scene card components)
 
 ### Pending Todos
 
@@ -108,19 +108,23 @@ None.
 
 ### Blockers/Concerns
 
-**Backward compatibility:**
+**Data migration testing:**
+- Need to run wizard:normalize-data on test projects before production
+- Consider --dry-run first to verify data mapping
+
+**Backward compatibility confirmed:**
 - JSON columns kept in wizard_projects
 - usesNormalizedData() detects which mode to use
-- Data migration command needed (Plan 02 or 03)
+- VideoWizard methods transparently fall back to JSON
 
 ---
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 21-01-PLAN.md (database schema and models)
+Stopped at: Completed 21-02-PLAN.md (data migration command and dual-mode access)
 Resume file: None
-Next step: Execute Plan 21-02 (data migration command or lazy loading components)
+Next step: Execute Plan 21-03 (lazy-loaded scene card components)
 
 ---
 
