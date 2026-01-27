@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** 11.1 (Voice Production Excellence)
 **Phase:** 28 of 28 (Voice Production Excellence)
-**Plan:** 02 of 6 complete
+**Plan:** 04 of 6 complete
 **Status:** In progress
 
 ```
-Phase 28: ████████░░░░░░░░░░░░░░░░ 33%
+Phase 28: ████████████████░░░░░░░░ 67%
 ---------------------
-M11.1:    ████████░░░░░░░░░░░░░░░░ 33% (2/6 plans)
+M11.1:    ████████████████░░░░░░░░ 67% (4/6 plans)
 ```
 
-**Last activity:** 2026-01-27 - Completed 28-02-PLAN.md (Emotion Preview UI)
+**Last activity:** 2026-01-27 - Completed 28-04-PLAN.md (Emotional TTS Integration)
 
 ---
 
@@ -70,6 +70,8 @@ Major decisions logged in PROJECT.md. Highlights:
 | 2026-01-27 | 28-01 | Restoration in loadProject after sceneMemory merge |
 | 2026-01-27 | 28-02 | VoicePromptBuilderService for emotion preview      |
 | 2026-01-27 | 28-02 | Emotions from VoiceDirectionVocabulary constants   |
+| 2026-01-27 | 28-04 | Enhancement applied before TTS in scene/segment flows |
+| 2026-01-27 | 28-04 | Instructions via options for backward compatibility |
 
 ### Roadmap Evolution
 
@@ -89,9 +91,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 28-02-PLAN.md
+Stopped at: Completed 28-04-PLAN.md
 Resume file: None
-Next step: Execute 28-03-PLAN.md
+Next step: Execute 28-05-PLAN.md
 
 ---
 
