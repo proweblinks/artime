@@ -1,9 +1,9 @@
 # Video Wizard Development Roadmap
 
-## Milestone 11.2: Prompt Pipeline Integration
+## Milestone 11.2: Prompt Pipeline Integration (COMPLETE)
 
 **Target:** Wire comprehensive prompts to shot generation, add voice prompt display, fix default model
-**Status:** In Progress (2026-01-27)
+**Status:** Complete (2026-01-27)
 **Total requirements:** 4 (PPL-01 through PPL-04)
 **Phases:** 29
 
@@ -38,14 +38,14 @@ Voice Production Excellence completes the Hollywood-Quality Prompt Pipeline by a
 
 **Goal:** Shot prompts include full Character/Location DNA, voice prompts displayed in UI, nanobanana-pro default
 
-**Status:** Planned
+**Status:** Complete (2026-01-27)
 
 **Plans:** 3 plans
 
 Plans:
-- [ ] 29-01-PLAN.md — Default image model to nanobanana-pro (PPL-04)
-- [ ] 29-02-PLAN.md — Character/Location DNA in shot prompts (PPL-01, PPL-02)
-- [ ] 29-03-PLAN.md — Voice prompt display in Shot Preview (PPL-03)
+- [x] 29-01-PLAN.md — Default image model to nanobanana-pro (PPL-04)
+- [x] 29-02-PLAN.md — Character/Location DNA in shot prompts (PPL-01, PPL-02)
+- [x] 29-03-PLAN.md — Voice prompt display in Shot Preview (PPL-03)
 
 **Wave Structure:**
 | Wave | Plans | Description |
@@ -122,15 +122,15 @@ Plans:
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
-| Phase 29: Prompt Pipeline Integration | Planned | PPL-01 through PPL-04 (4) | 0/4 |
+| Phase 29: Prompt Pipeline Integration | Complete | PPL-01 through PPL-04 (4) | 4/4 |
 | Phase 28: Voice Production Excellence | Complete | VOC-07 through VOC-12 (6) | 4/4 |
 
 **Overall Progress:**
 
 ```
-Phase 29: ░░░░░░░░░░ 0%
+Phase 29: ██████████ 100%
 ─────────────────────
-M11.2:    ░░░░░░░░░░ 0% (0/4 requirements)
+M11.2:    ██████████ 100% (4/4 requirements)
 ```
 
 **Coverage:** 4/4 requirements mapped (100%)
