@@ -10,7 +10,7 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Phase 26 - LLM-Powered Expansion (COMPLETE)
+**Current focus:** Phase 26 - LLM-Powered Expansion (COMPLETE with gap closure)
 
 ---
 
@@ -18,25 +18,25 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
 **Phase:** 26 of 28 (LLM-Powered Expansion)
-**Plan:** 3 of 3
+**Plan:** 4 of 4 (gap closure complete)
 **Status:** Phase complete
 
 ```
-Phase 26: ████████████████████████ 100% (3/3 plans complete)
+Phase 26: ████████████████████████ 100% (4/4 plans complete)
 ─────────────────────
-M11:      █████████████░ 72% (18/25 requirements)
+M11:      ██████████████░ 76% (19/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 26-03-PLAN.md (Integration)
+**Last activity:** 2026-01-27 - Completed 26-04-PLAN.md (Gap Closure)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18 (M11)
-- Average duration: 8.0 min
-- Total execution time: 147 min
+- Total plans completed: 19 (M11)
+- Average duration: 7.9 min
+- Total execution time: 151 min
 
 **By Phase:**
 
@@ -46,11 +46,11 @@ M11:      █████████████░ 72% (18/25 requirements)
 | 23 | 4/4 | 42 min | 10.5 min |
 | 24 | 4/4 | 34 min | 8.5 min |
 | 25 | 3/3 | 20 min | 6.7 min |
-| 26 | 3/3 | 17 min | 5.7 min |
+| 26 | 4/4 | 21 min | 5.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 25-02 (8m), 25-03 (8m), 26-01 (6m), 26-02 (6m), 26-03 (5m)
-- Trend: Fast execution continuing (Phase 26 averaging 5.7 min)
+- Last 5 plans: 25-03 (8m), 26-01 (6m), 26-02 (6m), 26-03 (5m), 26-04 (4m)
+- Trend: Fast execution continuing (Phase 26 averaging 5.3 min)
 
 *Updated after each plan completion*
 
@@ -137,20 +137,25 @@ Recent decisions affecting current work:
 - [26-03]: buildHollywoodPrompt() as new entry point wrapping build() with LLM routing
 - [26-03]: llm_expansion option defaults to true - must explicitly disable
 - [26-03]: Scene DNA characters extracted before character_bible for complexity check
+- [26-04]: build() delegates to buildHollywoodPrompt() for automatic LLM routing
+- [26-04]: Original build() renamed to buildTemplate() for template-only path
+- [26-04]: buildHollywoodPrompt() calls buildTemplate() (not build()) to avoid circular dependency
 
 ### Phase 26 Progress
 
-**Phase 26: LLM-Powered Expansion is COMPLETE (3/3 plans).**
+**Phase 26: LLM-Powered Expansion is COMPLETE (4/4 plans including gap closure).**
 
 Delivered:
 1. 26-01: ComplexityDetectorService - Multi-dimensional complexity scoring for LLM routing
 2. 26-02: LLMExpansionService - AI-powered expansion with vocabulary constraints and fallback cascade
 3. 26-03: Integration - LLM routing in StructuredPromptBuilderService with buildHollywoodPrompt()
+4. 26-04: Gap Closure - build() delegates to buildHollywoodPrompt() for backward compatibility
 
 **LLM Requirements Complete:**
 - LLM-01: Complexity detection for LLM routing - COMPLETE
 - LLM-02: Prompt expansion for complex shots - COMPLETE
 - LLM-03: Integration with existing prompt pipeline - COMPLETE
+- LLM-04: Backward compatibility for existing callers - COMPLETE (gap closure)
 
 ### Phase 25 Progress
 
@@ -205,7 +210,7 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 26-03-PLAN.md (Integration)
+Stopped at: Completed 26-04-PLAN.md (Gap Closure)
 Resume file: None
 Next step: Phase 27 or Milestone wrap-up
 
@@ -220,6 +225,8 @@ Next step: Phase 27 or Milestone wrap-up
 - `.planning/phases/26-llm-powered-expansion/26-02-SUMMARY.md`
 - `.planning/phases/26-llm-powered-expansion/26-03-PLAN.md` (Integration) - COMPLETE
 - `.planning/phases/26-llm-powered-expansion/26-03-SUMMARY.md`
+- `.planning/phases/26-llm-powered-expansion/26-04-PLAN.md` (Gap Closure) - COMPLETE
+- `.planning/phases/26-llm-powered-expansion/26-04-SUMMARY.md`
 
 Key Files Created (Phase 26):
 - `modules/AppVideoWizard/app/Services/ComplexityDetectorService.php`
@@ -229,7 +236,8 @@ Key Files Created (Phase 26):
 - `tests/Feature/VideoWizard/LLMExpansionIntegrationTest.php`
 
 Key Files Modified (Phase 26):
-- `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (buildHollywoodPrompt, LLM routing)
+- `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (buildHollywoodPrompt, LLM routing, build() delegation)
+- `tests/Feature/VideoWizard/LLMExpansionIntegrationTest.php` (added test_build_delegates_to_hollywood_prompt)
 
 ---
 
