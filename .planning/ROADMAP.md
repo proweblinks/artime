@@ -18,8 +18,9 @@ Resume v10 performance work after Phase 19 (Quick Wins) shipped. Phases 20-21 ta
 | 19 | Quick Wins | Low-risk performance improvements | PERF-01, PERF-02, PERF-03, PERF-08 | Complete |
 | 20 | Component Splitting | PHP traits and modal child components | PERF-05 (partial PERF-04) | 4 |
 | 21 | Data Normalization | Database models and lazy loading for scenes/shots | PERF-06, PERF-07 | 4 |
+| 22 | Cinematic Storytelling Research | Fix prompt pipeline for Hollywood-quality frames | QUAL-01 | 4 |
 
-**Total:** 2 remaining phases | 4 requirements | 8 success criteria
+**Total:** 3 remaining phases | 5 requirements | 12 success criteria
 
 ---
 
@@ -121,7 +122,50 @@ Plans:
 
 ---
 
-## Future: Phase 22+ (Deferred)
+## Phase 22: Cinematic Storytelling Research
+
+**Goal:** Implement prompt pipeline fixes for Hollywood-quality cinematic frames based on research findings
+
+**Status:** Planned (2026-01-28)
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — Anti-portrait negative prompts (foundation for all shots)
+- [ ] 22-02-PLAN.md — Shot-type-specific gaze direction templates
+- [ ] 22-03-PLAN.md — Action verb library and scene-type integration
+
+**Dependencies:** None (independent of Phase 21)
+
+**Requirements:**
+- QUAL-01: Cinematic prompt pipeline — Prompts produce storytelling frames, not portraits
+
+**Research Complete (22-RESEARCH.md):**
+1. Root causes identified: Training data bias, "looking at viewer" tag frequency, static prompts
+2. Core insight: Verbs create narrative; adjectives create portraits
+3. Anti-portrait negative prompts documented
+4. Shot-type-specific gaze templates defined
+5. Action verb library by scene type created
+
+**Success Criteria** (what must be TRUE):
+1. Anti-portrait negative prompts applied to ALL shot generation
+2. Each shot type has appropriate gaze direction template
+3. Action verbs replace static descriptions in prompts
+4. Generated images show characters engaged with scene, not camera
+
+**Wave Structure:**
+- Wave 1: Plan 01 (anti-portrait negatives - foundation)
+- Wave 2: Plans 02, 03 (gaze templates + action verbs - parallel, both depend on 01)
+
+**Implementation Pattern:**
+- Add getAntiPortraitNegativePrompts() + buildNegativePrompt() helper
+- Add GAZE_TEMPLATES constant + getGazeDirectionForShot() method
+- Add ACTION_VERBS constant + getActionVerbForScene() method
+- Integrate into buildShotPrompt() and enhanceStoryAction()
+
+---
+
+## Future: Phase 23+ (Deferred)
 
 **Goal:** Extract wizard steps into child components (PERF-04 full)
 
@@ -135,6 +179,7 @@ Plans:
 **Prerequisites:**
 - Phase 20 complete (traits + modal components establish patterns)
 - Phase 21 complete (data normalization reduces state coupling)
+- Phase 22 complete (cinematic quality research informs prompt changes)
 
 ---
 
@@ -145,6 +190,7 @@ Plans:
 | Phase 19: Quick Wins | Complete | PERF-01, PERF-02, PERF-03, PERF-08 | 8/8 |
 | Phase 20: Component Splitting | Complete | PERF-05, PERF-04 (partial) | 4/4 |
 | Phase 21: Data Normalization | Planned | PERF-06, PERF-07 | 0/4 |
+| Phase 22: Cinematic Storytelling | Planned | QUAL-01 | 0/4 |
 
 **Overall Progress:**
 
@@ -152,6 +198,7 @@ Plans:
 Phase 19:   ██████████ 100%
 Phase 20:   ██████████ 100%
 Phase 21:   ░░░░░░░░░░ 0%
+Phase 22:   ░░░░░░░░░░ 0%
 ─────────────────────────
 v10:        ███████░░░ 75% (6/8 requirements)
 ```
@@ -176,9 +223,15 @@ Phase 21 (Data Normalization) [PLANNED]
     +-- Wave 1: Plan 01 - Database models (MEDIUM RISK)
     +-- Wave 2: Plan 02 - Migration command (MEDIUM RISK)
     +-- Wave 3: Plan 03 - Lazy SceneCard (MEDIUM RISK)
+
+Phase 22 (Cinematic Storytelling) [PLANNED] -- Independent track
+    |
+    +-- Wave 1: Plan 01 - Anti-portrait negatives (LOW RISK)
+    +-- Wave 2: Plan 02 - Gaze templates (LOW RISK)
+    +-- Wave 2: Plan 03 - Action verbs (LOW RISK)
     |
     v
-Phase 22+ (Deferred)
+Phase 23+ (Deferred)
     |
     +-- PERF-04 full: Wizard step components
 ```
@@ -188,4 +241,5 @@ Phase 22+ (Deferred)
 *v10 resumed: 2026-01-27*
 *Phase 20 completed: 2026-01-27*
 *Phase 21 planned: 2026-01-27*
+*Phase 22 planned: 2026-01-28*
 *Phase 19 context: .planning/phases/19-quick-wins/19-VERIFICATION.md*
