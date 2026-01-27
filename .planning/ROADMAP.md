@@ -29,9 +29,23 @@ Voice Production Excellence completes the Hollywood-Quality Prompt Pipeline by a
 
 **Goal:** Users get consistent character voices across scenes with multi-speaker dialogue support
 
-**Status:** Not started
+**Status:** Planned
 
-**Plans:** TBD (run /gsd:plan-phase 28 to break down)
+**Plans:** 5 plans
+
+Plans:
+- [ ] 28-01-PLAN.md — Voice Registry persistence to Scene DNA (VOC-07)
+- [ ] 28-02-PLAN.md — Emotion preview UI in Character Bible (VOC-12)
+- [ ] 28-03-PLAN.md — VoiceContinuityValidator service (VOC-08)
+- [ ] 28-04-PLAN.md — VoicePromptBuilder integration into VoiceoverService (VOC-09, VOC-11)
+- [ ] 28-05-PLAN.md — MultiSpeakerDialogueBuilder for unified audio (VOC-10)
+
+**Wave Structure:**
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 28-01, 28-02 | Foundation: Registry persistence + UI enhancements |
+| 2 | 28-03, 28-04 | Validation + Integration: Continuity validator + TTS pipeline |
+| 3 | 28-05 | Multi-speaker: Unified dialogue generation |
 
 **Dependencies:** Phase 25 (VoicePromptBuilderService must exist)
 
@@ -55,7 +69,7 @@ Voice Production Excellence completes the Hollywood-Quality Prompt Pipeline by a
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
-| Phase 28: Voice Production Excellence | Not started | VOC-07 through VOC-12 (6) | 0/4 |
+| Phase 28: Voice Production Excellence | Planned | VOC-07 through VOC-12 (6) | 0/4 |
 
 **Overall Progress:**
 
@@ -76,6 +90,14 @@ Phase 25 (Voice Prompt Enhancement) [v11 - SHIPPED]
     |
     v
 Phase 28 (Voice Production Excellence)
+    |
+    +-- Plan 01 (Wave 1): Voice Registry Persistence
+    +-- Plan 02 (Wave 1): Emotion Preview UI
+    |
+    +-- Plan 03 (Wave 2): VoiceContinuityValidator
+    +-- Plan 04 (Wave 2): VoicePromptBuilder Integration
+    |
+    +-- Plan 05 (Wave 3): MultiSpeakerDialogueBuilder
 ```
 
 Phase 28 builds on Phase 25's VoicePromptBuilderService.
@@ -83,5 +105,5 @@ Phase 28 builds on Phase 25's VoicePromptBuilderService.
 ---
 
 *Milestone 11.1 roadmap created: 2026-01-27*
-*Phase 28 defined from context document*
+*Phase 28 planned: 2026-01-27 (5 plans, 3 waves)*
 *Source: .planning/phases/28-voice-production-excellence/28-CONTEXT.md*
