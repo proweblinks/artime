@@ -18,25 +18,25 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
 **Phase:** 25 of 28 (Voice Prompt Enhancement)
-**Plan:** 1 of 3
+**Plan:** 2 of 3
 **Status:** In progress
 
 ```
-Phase 25: ████████░░░░░░░░░░░░░░░░ 33% (1/3 plans complete)
+Phase 25: ████████████████░░░░░░░░ 67% (2/3 plans complete)
 ─────────────────────
-M11:      █████████░░░ 52% (13/25 requirements)
+M11:      █████████░░░ 56% (14/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 25-01-PLAN.md (VoiceDirectionVocabulary)
+**Last activity:** 2026-01-27 - Completed 25-02-PLAN.md (VoicePacingService)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13 (M11)
-- Average duration: 8.8 min
-- Total execution time: 114 min
+- Total plans completed: 14 (M11)
+- Average duration: 8.7 min
+- Total execution time: 122 min
 
 **By Phase:**
 
@@ -45,11 +45,11 @@ M11:      █████████░░░ 52% (13/25 requirements)
 | 22 | 3/3 | 34 min | 11.3 min |
 | 23 | 4/4 | 42 min | 10.5 min |
 | 24 | 4/4 | 34 min | 8.5 min |
-| 25 | 1/3 | 4 min | 4.0 min |
+| 25 | 2/3 | 12 min | 6.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 24-01 (9m), 24-02 (9m), 24-03 (8m), 24-04 (8m), 25-01 (4m)
-- Trend: Fast vocabulary-only plan (25-01 at 4 min)
+- Last 5 plans: 24-02 (9m), 24-03 (8m), 24-04 (8m), 25-01 (4m), 25-02 (8m)
+- Trend: Consistent execution (Phase 25 averaging ~6 min)
 
 *Updated after each plan completion*
 
@@ -112,21 +112,26 @@ Recent decisions affecting current work:
 - [25-01]: ElevenLabs uses inline bracketed tags; OpenAI uses system instructions
 - [25-01]: 8 emotions aligned with CharacterPsychologyService (grief, anxiety, fear, contempt)
 - [25-01]: Provider-specific tags stored in separate array keys, not embedded
+- [25-02]: Five named pause types: beat (0.5s), short (1s), medium (2s), long (3s), breath (0.3s)
+- [25-02]: Five rate modifiers: slow (0.85x), measured (0.9x), normal (1.0x), urgent (1.1x), rushed (1.2x)
+- [25-02]: SSML uses milliseconds for sub-second precision, seconds for whole numbers
+- [25-02]: toSSML converts both custom [PAUSE Xs] and named [beat] markers
 
 ### Phase 25 Progress
 
-**Phase 25: Voice Prompt Enhancement is IN PROGRESS (1/3 plans).**
+**Phase 25: Voice Prompt Enhancement is IN PROGRESS (2/3 plans).**
 
 Delivered:
 1. 25-01: VoiceDirectionVocabulary - Emotional direction tags, vocal qualities, non-verbal sounds
+2. 25-02: VoicePacingService - Timing markers, pause notation, SSML conversion
 
 **VOC Requirements In Progress:**
 - VOC-01: Emotional direction tags [trembling], [whisper], [voice cracks] - COMPLETE
+- VOC-02: Pacing markers with specific timing [PAUSE 2.5s] - COMPLETE
 - VOC-03: Vocal quality descriptions (gravelly, exhausted, breathless) - COMPLETE
 - VOC-05: Breath and non-verbal sound markers [sighs], [gasps], [stammers] - COMPLETE
 
 Remaining plans:
-- 25-02: VoicePacingService (pacing, pauses, rhythm)
 - 25-03: VoicePromptBuilder integration
 
 ### Phase 24 Progress
@@ -165,9 +170,9 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 25-01-PLAN.md (VoiceDirectionVocabulary)
+Stopped at: Completed 25-02-PLAN.md (VoicePacingService)
 Resume file: None
-Next step: Execute 25-02-PLAN.md (VoicePacingService)
+Next step: Execute 25-03-PLAN.md (Voice Prompt Integration)
 
 ---
 
@@ -176,12 +181,15 @@ Next step: Execute 25-02-PLAN.md (VoicePacingService)
 - `.planning/phases/25-voice-prompt-enhancement/25-RESEARCH.md`
 - `.planning/phases/25-voice-prompt-enhancement/25-01-PLAN.md` (VoiceDirectionVocabulary) - COMPLETE
 - `.planning/phases/25-voice-prompt-enhancement/25-01-SUMMARY.md`
-- `.planning/phases/25-voice-prompt-enhancement/25-02-PLAN.md` (VoicePacingService) - PENDING
+- `.planning/phases/25-voice-prompt-enhancement/25-02-PLAN.md` (VoicePacingService) - COMPLETE
+- `.planning/phases/25-voice-prompt-enhancement/25-02-SUMMARY.md`
 - `.planning/phases/25-voice-prompt-enhancement/25-03-PLAN.md` (VoicePromptBuilder Integration) - PENDING
 
 Key Files Created (Phase 25):
 - `modules/AppVideoWizard/app/Services/VoiceDirectionVocabulary.php`
+- `modules/AppVideoWizard/app/Services/VoicePacingService.php`
 - `tests/Unit/VideoWizard/VoiceDirectionVocabularyTest.php`
+- `tests/Unit/VideoWizard/VoicePacingServiceTest.php`
 
 ---
 
