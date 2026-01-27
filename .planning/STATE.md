@@ -95,6 +95,7 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 | 2026-01-28 | 22-01 | Centralized buildNegativePrompt() for DRY principle |
 | 2026-01-28 | 22-02 | GAZE_TEMPLATES defines gaze per shot type           |
 | 2026-01-28 | 22-02 | Empty gaze for environment/POV shots (no subject)   |
+| 2026-01-28 | 22-02 | Gaze direction in prompt: after story, before dialogue |
 | 2026-01-28 | 22-03 | 17 mood categories for action verb variation        |
 | 2026-01-28 | 22-03 | variationIndex ensures different actions per shot   |
 | 2026-01-28 | 22-03 | Dynamic verb detection prevents double-verbing      |
