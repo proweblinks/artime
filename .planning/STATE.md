@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** 11.1 (Voice Production Excellence)
 **Phase:** 28 of 28 (Voice Production Excellence)
-**Plan:** 04 of 6 complete
+**Plan:** 05 of 6 complete
 **Status:** In progress
 
 ```
-Phase 28: ████████████████░░░░░░░░ 67%
+Phase 28: ████████████████████░░░░ 83%
 ---------------------
-M11.1:    ████████████████░░░░░░░░ 67% (4/6 plans)
+M11.1:    ████████████████████░░░░ 83% (5/6 plans)
 ```
 
-**Last activity:** 2026-01-27 - Completed 28-03-PLAN.md (Voice Continuity Validator)
+**Last activity:** 2026-01-27 - Completed 28-05-PLAN.md (Multi-Speaker Dialogue Builder)
 
 ---
 
@@ -74,6 +74,8 @@ Major decisions logged in PROJECT.md. Highlights:
 | 2026-01-27 | 28-03 | Only ISSUE_VOICE_DRIFT shown in UI (not info-level issues)   |
 | 2026-01-27 | 28-04 | Enhancement applied before TTS in scene/segment flows        |
 | 2026-01-27 | 28-04 | Instructions via options for backward compatibility          |
+| 2026-01-27 | 28-05 | 0.3s speaker transition pause for natural dialogue flow      |
+| 2026-01-27 | 28-05 | Hash-based fallback for consistent voice assignment          |
 
 ### Roadmap Evolution
 
@@ -93,9 +95,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 28-03-PLAN.md
+Stopped at: Completed 28-05-PLAN.md
 Resume file: None
-Next step: Execute 28-05-PLAN.md (Wave 2 complete: 28-03, 28-04 done)
+Next step: Execute 28-06-PLAN.md (Wave 3 complete: 28-05 done)
 
 ---
 
