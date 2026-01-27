@@ -25,15 +25,15 @@ Requirements for Milestone 11. Each maps to roadmap phases.
 ### Video Prompts (VID)
 
 **Table Stakes:**
-- [ ] **VID-01**: Video prompts include all image prompt features
-- [ ] **VID-02**: Video prompts include temporal progression with beat-by-beat timing (0-2s: action, 2-4s: reaction)
-- [ ] **VID-03**: Video prompts include camera movement with duration and psychological purpose
-- [ ] **VID-04**: Video prompts include character movement paths within frame
+- [x] **VID-01**: Video prompts include all image prompt features
+- [x] **VID-02**: Video prompts include temporal progression with beat-by-beat timing (0-2s: action, 2-4s: reaction)
+- [x] **VID-03**: Video prompts include camera movement with duration and psychological purpose
+- [x] **VID-04**: Video prompts include character movement paths within frame
 
 **Differentiators:**
-- [ ] **VID-05**: Video prompts include inter-character dynamics (mirroring, spatial power relationships)
-- [ ] **VID-06**: Video prompts include breath and micro-movements for realism
-- [ ] **VID-07**: Video prompts include transition suggestions to next shot
+- [x] **VID-05**: Video prompts include inter-character dynamics (mirroring, spatial power relationships)
+- [x] **VID-06**: Video prompts include breath and micro-movements for realism
+- [x] **VID-07**: Video prompts include transition suggestions to next shot
 
 ### Voice Prompts (VOC)
 
@@ -109,13 +109,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMG-07 | Phase 23 | Complete |
 | IMG-08 | Phase 23 | Complete |
 | IMG-09 | Phase 23 | Complete |
-| VID-01 | Phase 24 | Pending |
-| VID-02 | Phase 24 | Pending |
-| VID-03 | Phase 24 | Pending |
-| VID-04 | Phase 24 | Pending |
-| VID-05 | Phase 24 | Pending |
-| VID-06 | Phase 24 | Pending |
-| VID-07 | Phase 24 | Pending |
+| VID-01 | Phase 24 | Complete |
+| VID-02 | Phase 24 | Complete |
+| VID-03 | Phase 24 | Complete |
+| VID-04 | Phase 24 | Complete |
+| VID-05 | Phase 24 | Complete |
+| VID-06 | Phase 24 | Complete |
+| VID-07 | Phase 24 | Complete |
 | VOC-01 | Phase 25 | Pending |
 | VOC-02 | Phase 25 | Pending |
 | VOC-03 | Phase 25 | Pending |

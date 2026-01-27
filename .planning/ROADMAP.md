@@ -5,7 +5,7 @@
 **Target:** Transform prompt generation from 50-80 words to 600-1000 word Hollywood screenplay-level prompts for image, video, and voice generation
 **Status:** In Progress (2026-01-25)
 **Total requirements:** 25 (4 categories)
-**Phases:** 22-27 (continues from M10)
+**Phases:** 22-28 (continues from M10)
 
 ---
 
@@ -25,8 +25,9 @@ Hollywood-Quality Prompt Pipeline transforms the Video Wizard's AI prompts from 
 | 25 | Voice Prompt Enhancement | Voice prompts include emotional direction and performance cues | VOC-01, VOC-02, VOC-03, VOC-04, VOC-05, VOC-06 | 3 |
 | 26 | LLM-Powered Expansion | AI expands complex shots beyond template capability | INF-04 | 2 |
 | 27 | UI & Performance Polish | Prompt preview, caching, and comparison tools | INF-05, INF-06 | 3 |
+| 28 | Voice Production Excellence | Voice registry, continuity validation, multi-speaker dialogue | TBD | TBD |
 
-**Total:** 6 phases | 25 requirements | 21 success criteria
+**Total:** 7 phases | 25+ requirements | 21+ success criteria
 
 ---
 
@@ -94,19 +95,19 @@ Plans:
 
 ---
 
-## Phase 24: Video Temporal Expansion
+## Phase 24: Video Temporal Expansion ✓
 
 **Goal:** Users see video prompts that choreograph motion, timing, and multi-character dynamics
 
-**Status:** Planned (2026-01-27)
+**Status:** Complete (2026-01-27)
 
 **Plans:** 4 plans in 2 waves
 
 Plans:
-- [ ] 24-01-PLAN.md — VideoTemporalService and MicroMovementService (Wave 1)
-- [ ] 24-02-PLAN.md — CharacterDynamicsService and CharacterPathService (Wave 1)
-- [ ] 24-03-PLAN.md — TransitionVocabulary and CameraMovementService temporal extension (Wave 1)
-- [ ] 24-04-PLAN.md — VideoPromptBuilderService integration (Wave 2)
+- [x] 24-01-PLAN.md — VideoTemporalService and MicroMovementService (Wave 1)
+- [x] 24-02-PLAN.md — CharacterDynamicsService and CharacterPathService (Wave 1)
+- [x] 24-03-PLAN.md — TransitionVocabulary and CameraMovementService temporal extension (Wave 1)
+- [x] 24-04-PLAN.md — VideoPromptBuilderService integration (Wave 2)
 
 **Dependencies:** Phase 23 (image prompt features are inherited by video)
 
@@ -201,6 +202,32 @@ Plans:
 
 ---
 
+## Phase 28: Voice Production Excellence
+
+**Goal:** Users get consistent voice production with registry, continuity validation, and multi-speaker support
+
+**Status:** Not started
+
+**Plans:** TBD
+
+Plans:
+- [ ] 28-01: TBD (run /gsd:plan-phase 28 to break down)
+
+**Dependencies:** Phase 27
+
+**Requirements:**
+- TBD (run /gsd:plan-phase 28 to define from context)
+
+**Success Criteria** (what must be TRUE):
+- TBD (will be derived from requirements during planning)
+
+**Context Available:**
+- Comprehensive audit document saved as 28-CONTEXT.md
+- Covers Voice Registry, SSML markup, multi-speaker dialogue, lip-sync production
+- Priority matrix (P0-P3) defined
+
+---
+
 ## Dependencies
 
 ```
@@ -218,11 +245,15 @@ Phase 22 (Foundation & Model Adapters)
               |
               v
           Phase 27 (UI & Performance Polish)
+              |
+              v
+          Phase 28 (Voice Production Excellence)
 ```
 
 Phase 25 can run in parallel with 23-24 (voice is independent of image/video progression).
 Phase 26 requires all prompt types complete before AI expansion.
 Phase 27 is final polish after all prompt systems work.
+Phase 28 enhances voice production with registry and multi-speaker capabilities.
 
 ---
 
@@ -232,22 +263,24 @@ Phase 27 is final polish after all prompt systems work.
 |-------|--------|--------------|------------------|
 | Phase 22: Foundation & Model Adapters | Complete ✓ | INF-01, INF-03, IMG-01, IMG-02, IMG-03 (5) | 5/5 |
 | Phase 23: Character Psychology & Bible | Complete ✓ | INF-02, IMG-04, IMG-05, IMG-06, IMG-07, IMG-08, IMG-09 (7) | 4/4 |
-| Phase 24: Video Temporal Expansion | Planned | VID-01, VID-02, VID-03, VID-04, VID-05, VID-06, VID-07 (7) | 0/4 |
+| Phase 24: Video Temporal Expansion | Complete ✓ | VID-01, VID-02, VID-03, VID-04, VID-05, VID-06, VID-07 (7) | 4/4 |
 | Phase 25: Voice Prompt Enhancement | Not started | VOC-01, VOC-02, VOC-03, VOC-04, VOC-05, VOC-06 (6) | 0/3 |
 | Phase 26: LLM-Powered Expansion | Not started | INF-04 (1) | 0/2 |
 | Phase 27: UI & Performance Polish | Not started | INF-05, INF-06 (2) | 0/3 |
+| Phase 28: Voice Production Excellence | Not started | TBD | 0/TBD |
 
 **Overall Progress:**
 
 ```
 Phase 22: ██████████ 100% ✓
 Phase 23: ██████████ 100% ✓
-Phase 24: ░░░░░░░░░░ 0%
+Phase 24: ██████████ 100% ✓
 Phase 25: ░░░░░░░░░░ 0%
 Phase 26: ░░░░░░░░░░ 0%
 Phase 27: ░░░░░░░░░░ 0%
+Phase 28: ░░░░░░░░░░ 0%
 ─────────────────────
-Overall:  █████░░░░░ 48% (12/25 requirements)
+Overall:  ███████░░░ 76% (19/25 requirements)
 ```
 
 **Coverage:** 25/25 requirements mapped (100%)
@@ -317,5 +350,6 @@ Hollywood-Quality Prompt Pipeline delivers on the "Hollywood-quality" promise. U
 *Phase 22 planned: 2026-01-26*
 *Phase 23 planned: 2026-01-27*
 *Phase 24 planned: 2026-01-27*
-*Phases 22-27 defined*
+*Phase 28 added: 2026-01-27*
+*Phases 22-28 defined*
 *Source: Research .planning/research/SUMMARY.md*
