@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-27
-> Session: M11.2 Gap Closure
+> Session: M11.2 Complete
 
 ---
 
@@ -10,16 +10,15 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** M11.2 Gap Closure (Phase 29.1)
+**Current focus:** Ready for next milestone
 
 ---
 
 ## Current Position
 
-**Milestone:** 11.2 (Prompt Pipeline Integration) — Gap Closure
-**Phase:** 29.1 (Integration Consistency Fixes) — Complete
-**Plan:** 02 of 02 complete
-**Status:** Phase complete
+**Milestone:** 11.2 (Prompt Pipeline Integration) — Complete
+**Phase:** All complete
+**Status:** Milestone shipped
 
 ```
 Phase 29:   ██████████ 100% (3/3 plans complete)
@@ -28,14 +27,15 @@ Phase 29.1: ██████████ 100% (2/2 plans complete)
 M11.2:      ██████████ 100% (4/4 requirements + 3/3 debt)
 ```
 
-**Last activity:** 2026-01-27 - Completed 29.1-02-PLAN.md (DEBT-03 resolved)
+**Last activity:** 2026-01-27 - M11.2 milestone completed and archived
 
 ---
 
-## What Shipped (v11)
+## What Shipped (v11 + M11.1 + M11.2)
 
-**6 phases, 21 plans, 25 requirements:**
+**8 phases, 31 plans, 38 requirements:**
 
+### v11 (Phases 22-27)
 - Phase 22: Foundation & Model Adapters (CinematographyVocabulary, CLIP tokenization)
 - Phase 23: Character Psychology & Bible (physical manifestations, mise-en-scene)
 - Phase 24: Video Temporal Expansion (beats, dynamics, transitions)
@@ -43,12 +43,20 @@ M11.2:      ██████████ 100% (4/4 requirements + 3/3 debt)
 - Phase 26: LLM-Powered Expansion (complexity detection, AI expansion)
 - Phase 27: UI & Performance Polish (caching, comparison, toggle)
 
+### M11.1 (Phase 28)
+- Phase 28: Voice Production Excellence (registry, continuity, multi-speaker)
+
+### M11.2 (Phases 29, 29.1)
+- Phase 29: Prompt Pipeline Integration (Character/Location DNA, voice UI, defaults)
+- Phase 29.1: Integration Consistency Fixes (fallbacks, emotion inheritance, enhanced prompts)
+
 **Key services created:**
 - CinematographyVocabulary, PromptTemplateLibrary, ModelPromptAdapterService
 - CharacterPsychologyService, MiseEnSceneService, ContinuityAnchorService
 - VideoTemporalService, MicroMovementService, CharacterDynamicsService, CharacterPathService, TransitionVocabulary
 - VoiceDirectionVocabulary, VoicePacingService, VoicePromptBuilderService
 - ComplexityDetectorService, LLMExpansionService
+- VoiceContinuityValidator, MultiSpeakerDialogueBuilder
 
 ---
 
@@ -95,9 +103,9 @@ Major decisions logged in PROJECT.md. Highlights:
 
 ### Roadmap Evolution
 
-- Phase 29 complete (Prompt Pipeline Integration)
-- Phase 29.1 complete (Integration Consistency Fixes) - gap closure
-- M11.2 gap closure complete (all tech debt resolved)
+- v11 complete (Phases 22-27)
+- M11.1 complete (Phase 28)
+- M11.2 complete (Phases 29, 29.1)
 - v10 remains paused (Livewire Performance)
 
 ### Pending Todos
@@ -113,9 +121,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 29.1-02-PLAN.md (all tech debt resolved)
+Stopped at: M11.2 milestone completed and archived
 Resume file: None
-Next step: M11.2 milestone complete - ready for next milestone
+Next step: /gsd:new-milestone for next milestone
 
 ---
 
@@ -126,5 +134,8 @@ Milestone artifacts archived to `.planning/milestones/`:
 - v11-REQUIREMENTS.md
 - v11-MILESTONE-AUDIT.md
 - v11-INTEGRATION-CHECK.md
+- M11.2-ROADMAP.md
+- M11.2-REQUIREMENTS.md
+- M11.2-AUDIT.md
 
 Phase directories remain in `.planning/phases/` (22-* through 29.1-*)

@@ -12,7 +12,22 @@ The system should be sophisticated and automatically updated based on previous s
 
 ## Current State
 
-**Shipped:** v11 Hollywood-Quality Prompt Pipeline (2026-01-27)
+**Shipped:** M11.2 Prompt Pipeline Integration (2026-01-27)
+- Shot prompts include Character DNA (descriptions from Scene Memory)
+- Shot prompts include Location DNA (details from Scene Memory)
+- Voice prompts visible in Shot Preview modal with emotional direction
+- Default image model upgraded to nanobanana-pro (3 tokens)
+- VoicePromptBuilderService wired to UI with enhanced prompts
+- All tech debt from M11.2 audit closed
+
+**Also shipped:** M11.1 Voice Production Excellence (2026-01-27)
+- Voice Registry persists character-voice mappings across scenes
+- Voice Continuity Validation ensures settings match
+- Enhanced SSML Markup with emotional direction
+- Multi-Speaker Dialogue handles conversations in single generation
+- Voice selection UI in Character Bible modal
+
+**Foundation:** v11 Hollywood-Quality Prompt Pipeline (2026-01-27)
 - 600-1000 word prompts with camera psychology, lighting ratios, physical manifestations
 - Video temporal beats, character dynamics, camera movement psychology
 - Voice emotional direction, pacing markers, provider-specific formatting
@@ -23,7 +38,7 @@ The system should be sophisticated and automatically updated based on previous s
 - Phase 19 complete (Quick Wins)
 - Phases 20-21 deferred (Component Splitting, Data Normalization)
 
-**Next:** Phase 28 (Voice Production Excellence) or v12 planning
+**Next:** v12 planning or new milestone
 
 ## Requirements
 
@@ -42,6 +57,8 @@ The system should be sophisticated and automatically updated based on previous s
 - ✓ **M8**: Cinematic Shot Architecture — speech-driven shots, shot/reverse-shot, dynamic camera, action scenes
 - ✓ **M9**: Voice Production Excellence — narrator voice, validation, continuity, registry, multi-speaker
 - ✓ **M11**: Hollywood-Quality Prompt Pipeline — camera psychology, physical manifestations, temporal beats, LLM expansion, CLIP tokenization (25 requirements)
+- ✓ **M11.1**: Voice Production Excellence — voice registry, continuity validation, multi-speaker, SSML (6 requirements)
+- ✓ **M11.2**: Prompt Pipeline Integration — Character/Location DNA in shots, voice prompt UI, quality defaults (7 requirements)
 
 ### Active
 
@@ -118,4 +135,4 @@ The system should be sophisticated and automatically updated based on previous s
 | Multi-speaker tracking | Multiple speakers per shot for dialogue | — Pending (M9) |
 
 ---
-*Last updated: 2026-01-27 after v11 milestone completion*
+*Last updated: 2026-01-27 after M11.2 milestone completion*
