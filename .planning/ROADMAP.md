@@ -1,9 +1,9 @@
 # Video Wizard Development Roadmap
 
-## Milestone 11.2: Prompt Pipeline Integration (IN PROGRESS)
+## Milestone 11.2: Prompt Pipeline Integration (COMPLETE)
 
 **Target:** Wire comprehensive prompts to shot generation, add voice prompt display, fix default model
-**Status:** Gap closure in progress
+**Status:** Complete (2026-01-27)
 **Total requirements:** 4 (PPL-01 through PPL-04) + tech debt closure
 **Phases:** 29, 29.1
 
@@ -73,13 +73,13 @@ Plans:
 
 **Goal:** Close tech debt from M11.2 audit — consistent imageModel fallbacks, emotion data inheritance, voice prompt enhancement in UI
 
-**Status:** Planned
+**Status:** Complete (2026-01-27)
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 29.1-01-PLAN.md — Consistent imageModel fallbacks + emotion data inheritance (DEBT-01, DEBT-02)
-- [ ] 29.1-02-PLAN.md — Wire VoicePromptBuilderService to Shot Preview (DEBT-03)
+- [x] 29.1-01-PLAN.md — Consistent imageModel fallbacks + emotion data inheritance (DEBT-01, DEBT-02)
+- [x] 29.1-02-PLAN.md — Wire VoicePromptBuilderService to Shot Preview (DEBT-03)
 
 **Wave Structure:**
 | Wave | Plans | Description |
@@ -157,16 +157,16 @@ Plans:
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
 | Phase 29: Prompt Pipeline Integration | Complete | PPL-01 through PPL-04 (4) | 4/4 |
-| Phase 29.1: Integration Consistency Fixes | Planned | DEBT-01, DEBT-02, DEBT-03 (3) | 0/3 |
+| Phase 29.1: Integration Consistency Fixes | Complete | DEBT-01, DEBT-02, DEBT-03 (3) | 3/3 |
 | Phase 28: Voice Production Excellence | Complete | VOC-07 through VOC-12 (6) | 4/4 |
 
 **Overall Progress:**
 
 ```
 Phase 29:   ██████████ 100%
-Phase 29.1: ░░░░░░░░░░ 0%
+Phase 29.1: ██████████ 100%
 ─────────────────────────
-M11.2:      █████████░ 90% (4/4 requirements + 0/3 debt)
+M11.2:      ██████████ 100% (4/4 requirements + 3/3 debt)
 ```
 
 **Coverage:** 4/4 requirements mapped + 3 debt items (100%)
@@ -190,11 +190,11 @@ Phase 29 (Prompt Pipeline Integration) [M11.2 - COMPLETE]
     +-- PPL-04: Default to nanobanana-pro ✓
     |
     v
-Phase 29.1 (Integration Consistency Fixes) [M11.2 - PLANNED]
+Phase 29.1 (Integration Consistency Fixes) [M11.2 - COMPLETE]
     |
-    +-- DEBT-01: Consistent imageModel fallbacks
-    +-- DEBT-02: Emotion data inheritance
-    +-- DEBT-03: VoicePromptBuilder in Shot Preview
+    +-- DEBT-01: Consistent imageModel fallbacks ✓
+    +-- DEBT-02: Emotion data inheritance ✓
+    +-- DEBT-03: VoicePromptBuilder in Shot Preview ✓
 ```
 
 Phase 29 wires existing services to UI display and fixes defaults.
