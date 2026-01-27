@@ -89,6 +89,10 @@ Recent decisions affecting current work:
 - [23-04]: Shot-type emphasis: close-up=face, wide=body, medium=both
 - [23-04]: Scene DNA path extracts emotion from sceneDNAEntry first, then falls back to options
 - [23-04]: Bible defining_features woven into psychology expressions (INF-02)
+- [24-02]: Edward Hall's 4 proxemic zones for spatial vocabulary (intimate 0-18in, personal 18in-4ft, social 4-12ft, public 12+ft)
+- [24-02]: Power positioning uses frame position (higher=dominant, lower=subordinate)
+- [24-02]: 5 character path categories: approach, retreat, stationary_motion, crossing, gestural
+- [24-02]: Path duration estimates aligned with VideoTemporalService (2-5s typical)
 - [24-03]: Transition vocabulary is editorial (shot endings), NOT post-production (dissolves/wipes)
 - [24-03]: Mood-to-transition mapping: energetic->match_cut, tense->hard_cut, contemplative->soft_transition
 - [24-03]: Duration clamped to typical_duration_min/max from VwCameraMovement model
