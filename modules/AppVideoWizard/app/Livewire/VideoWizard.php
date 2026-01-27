@@ -20868,6 +20868,33 @@ PROMPT;
         $shotType = $shot['type'] ?? 'medium';
         $parts[] = $this->getHollywoodShotDescription($shotType);
 
+        // 1.5. CHARACTER BIBLE (Characters in this scene) - from buildScenePrompt Layer 2
+        if ($this->sceneMemory['characterBible']['enabled'] ?? false) {
+            $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+            $sceneCharacters = $this->getCharactersForSceneIndex($characters, $sceneIndex);
+
+            if (!empty($sceneCharacters)) {
+                $characterDescriptions = [];
+                foreach ($sceneCharacters as $character) {
+                    if (!empty($character['description'])) {
+                        $name = $character['name'] ?? 'Character';
+                        $charDesc = "{$name}: {$character['description']}";
+
+                        // Include traits if available for personality/expression guidance
+                        $traits = $character['traits'] ?? [];
+                        if (!empty($traits)) {
+                            $charDesc .= ' (personality: ' . implode(', ', array_slice($traits, 0, 4)) . ')';
+                        }
+
+                        $characterDescriptions[] = $charDesc;
+                    }
+                }
+                if (!empty($characterDescriptions)) {
+                    $parts[] = 'CHARACTERS: ' . implode('. ', $characterDescriptions);
+                }
+            }
+        }
+
         // 2. Unique visual description (MOST IMPORTANT)
         if (!empty($shot['uniqueVisualDescription'])) {
             $parts[] = $shot['uniqueVisualDescription'];
