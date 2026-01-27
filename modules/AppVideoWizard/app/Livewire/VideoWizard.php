@@ -16107,21 +16107,15 @@ EOT;
 
     /**
      * Open Location Bible modal.
-     * Auto-syncs from Story Bible if available.
+     * Dispatches event to child component to open.
      */
     public function openLocationBibleModal(): void
     {
-        // Show modal immediately
+        // Track modal visibility in parent for conditional rendering
         $this->showLocationBibleModal = true;
-        // Set editing index to first location if exists, otherwise -1
-        $this->editingLocationIndex = !empty($this->sceneMemory['locationBible']['locations']) ? 0 : -1;
 
-        // Auto-sync from Story Bible if it has locations
-        if (!empty($this->storyBible['locations']) && $this->storyBible['status'] === 'ready') {
-            $this->isSyncingLocationBible = true;
-            $this->syncStoryBibleToLocationBible();
-            $this->isSyncingLocationBible = false;
-        }
+        // Dispatch to child component to open the modal
+        $this->dispatch('open-location-bible');
     }
 
     /**
@@ -16155,6 +16149,94 @@ EOT;
         // Rebuild Scene DNA with validated data
         $this->buildSceneDNA();
         $this->saveProject();
+    }
+
+    // =========================================================================
+    // LOCATION BIBLE CHILD COMPONENT EVENT HANDLERS
+    // =========================================================================
+
+    /**
+     * Handle location bible updates from child component.
+     * Receives the full locationBible array and persists it.
+     */
+    #[On('location-bible-updated')]
+    public function handleLocationBibleUpdated(array $locationBible): void
+    {
+        $this->sceneMemory['locationBible'] = $locationBible;
+
+        // Use SceneSyncService to validate and fix any conflicts
+        $syncService = app(SceneSyncService::class);
+
+        // Fix any duplicate scene assignments
+        $conflictsFixed = $syncService->fixLocationConflicts($this->sceneMemory['locationBible']);
+        if ($conflictsFixed > 0) {
+            Log::info('LocationBibleUpdated: Fixed scene conflicts', [
+                'conflictsFixed' => $conflictsFixed,
+            ]);
+        }
+
+        // Ensure all scenes have a location
+        $totalScenes = count($this->script['scenes'] ?? []);
+        $assigned = $syncService->ensureAllScenesHaveLocation($this->sceneMemory['locationBible'], $totalScenes);
+        if ($assigned > 0) {
+            Log::info('LocationBibleUpdated: Assigned unassigned scenes', [
+                'scenesAssigned' => $assigned,
+            ]);
+        }
+
+        // Rebuild Scene DNA with validated data
+        $this->debouncedBuildSceneDNA();
+        $this->saveProject();
+    }
+
+    /**
+     * Handle generate location reference request from child component.
+     * Child dispatches this because parent has ImageGenerationService access.
+     */
+    #[On('generate-location-reference')]
+    public function handleGenerateLocationReferenceFromChild(int $locationIndex): void
+    {
+        // Use existing reference generation logic
+        $this->generateLocationReference($locationIndex);
+
+        // Notify child component of result
+        $location = $this->sceneMemory['locationBible']['locations'][$locationIndex] ?? null;
+        if ($location) {
+            $this->dispatch('location-reference-generated',
+                locationIndex: $locationIndex,
+                referenceImage: $location['referenceImage'] ?? null,
+                referenceImageStorageKey: $location['referenceImageStorageKey'] ?? null,
+                status: $location['referenceImageStatus'] ?? 'none',
+                error: null
+            );
+        }
+    }
+
+    /**
+     * Handle generate all location references request from child component.
+     */
+    #[On('generate-all-location-references')]
+    public function handleGenerateAllLocationReferencesFromChild(): void
+    {
+        $this->generateAllMissingLocationReferences();
+    }
+
+    /**
+     * Handle auto-detect locations request from child component.
+     */
+    #[On('auto-detect-locations')]
+    public function handleAutoDetectLocationsFromChild(): void
+    {
+        $this->autoDetectLocations();
+    }
+
+    /**
+     * Handle location bible closed event from child component.
+     */
+    #[On('location-bible-closed')]
+    public function handleLocationBibleClosed(): void
+    {
+        $this->showLocationBibleModal = false;
     }
 
     /**
