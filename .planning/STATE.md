@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** 11.2 (Prompt Pipeline Integration)
 **Phase:** 29 of 29 (Prompt Pipeline Integration)
-**Plan:** 1 of 4 (Default Image Model)
+**Plan:** 2 of 4 (Character/Location DNA in Shot Prompts)
 **Status:** In progress
 
 ```
-Phase 29: ██░░░░░░░░ 20% (1/4 plans complete)
+Phase 29: ███████░░░ 75% (3/4 plans complete)
 ---------------------
-M11.2:    ██░░░░░░░░ 20% (1/4 requirements)
+M11.2:    ███████░░░ 75% (3/4 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 29-01-PLAN.md (Default Image Model)
+**Last activity:** 2026-01-27 - Completed 29-02-PLAN.md (Character/Location DNA)
 
 ---
 
@@ -82,6 +82,8 @@ Major decisions logged in PROJECT.md. Highlights:
 | Date       | Plan  | Decision                                            |
 |------------|-------|-----------------------------------------------------|
 | 2026-01-27 | 29-01 | All 6 locations updated for nanobanana-pro default          |
+| 2026-01-27 | 29-02 | sceneIndex default 0 for backward compatibility             |
+| 2026-01-27 | 29-02 | Character/Location Bible placed after shot type, before visual description |
 | 2026-01-27 | 29-03 | Purple styling for voice prompts (rgba(139, 92, 246))       |
 | 2026-01-27 | 29-03 | Dialogue > monologue > narration cascade for voice text     |
 | 2026-01-27 | 29-03 | Emotion tag in pink to differentiate from voice text        |
@@ -104,9 +106,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 29-01-PLAN.md
+Stopped at: Completed 29-02-PLAN.md
 Resume file: None
-Next step: Execute 29-02-PLAN.md
+Next step: Execute 29-04-PLAN.md (1 plan remaining)
 
 ---
 
@@ -118,4 +120,4 @@ Milestone artifacts archived to `.planning/milestones/`:
 - v11-MILESTONE-AUDIT.md
 - v11-INTEGRATION-CHECK.md
 
-Phase directories remain in `.planning/phases/` (22-* through 27-*).
+Phase directories remain in `.planning/phases/` (22-* through 29-*).
