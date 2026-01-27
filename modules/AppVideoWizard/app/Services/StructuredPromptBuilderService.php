@@ -8,6 +8,7 @@ use Modules\AppVideoWizard\Services\PromptTemplateLibrary;
 use Modules\AppVideoWizard\Services\CharacterPsychologyService;
 use Modules\AppVideoWizard\Services\MiseEnSceneService;
 use Modules\AppVideoWizard\Services\ContinuityAnchorService;
+use Modules\AppVideoWizard\Services\LLMExpansionService;
 
 /**
  * StructuredPromptBuilderService
@@ -321,6 +322,12 @@ class StructuredPromptBuilderService
     protected ContinuityAnchorService $continuityAnchor;
 
     /**
+     * LLMExpansionService for complex shot expansion (Phase 26)
+     * Nullable to allow lazy initialization
+     */
+    protected ?LLMExpansionService $llmExpansionService = null;
+
+    /**
      * Constructor - initialize cinematography vocabulary and template library.
      */
     public function __construct()
@@ -331,6 +338,8 @@ class StructuredPromptBuilderService
         $this->characterPsychology = new CharacterPsychologyService();
         $this->miseEnScene = new MiseEnSceneService();
         $this->continuityAnchor = new ContinuityAnchorService();
+        // Phase 26: LLM expansion service (lazy loaded)
+        // Lazy load to avoid circular dependencies - will be resolved via app() when needed
     }
 
     // =========================================================================
@@ -521,6 +530,198 @@ class StructuredPromptBuilderService
             'shot_index' => $shotIndex,
             'anchor_count' => count($anchors),
         ]);
+
+        return $result;
+    }
+
+    // =========================================================================
+    // PHASE 26: LLM-Powered Expansion Integration
+    // =========================================================================
+
+    /**
+     * Get or lazily initialize the LLM expansion service.
+     *
+     * Uses lazy initialization to avoid circular dependencies.
+     *
+     * @return LLMExpansionService
+     */
+    protected function getLLMExpansionService(): LLMExpansionService
+    {
+        if ($this->llmExpansionService === null) {
+            $this->llmExpansionService = app(LLMExpansionService::class);
+        }
+        return $this->llmExpansionService;
+    }
+
+    /**
+     * Determine if LLM expansion should be used for this shot.
+     *
+     * Checks if LLM expansion is enabled in options and if the shot
+     * is complex enough to warrant LLM enhancement.
+     *
+     * @param array $options Build options
+     * @return bool True if LLM expansion should be used
+     */
+    protected function shouldUseLLMExpansion(array $options): bool
+    {
+        // Check if LLM expansion is explicitly disabled
+        $llmEnabled = $options['llm_expansion'] ?? true;
+        if (!$llmEnabled) {
+            return false;
+        }
+
+        // Build shot data from options for complexity check
+        $shotData = $this->buildShotDataFromOptions($options);
+
+        // Use LLMExpansionService complexity detection
+        return $this->getLLMExpansionService()->isComplex($shotData);
+    }
+
+    /**
+     * Build shot data array from options for LLM expansion.
+     *
+     * Extracts and normalizes the fields needed by LLMExpansionService.
+     *
+     * @param array $options Build options
+     * @return array Shot data for complexity analysis
+     */
+    protected function buildShotDataFromOptions(array $options): array
+    {
+        // Extract characters from various sources
+        $characters = [];
+        $characterBible = $options['character_bible'] ?? null;
+        $sceneDNA = $options['scene_dna'] ?? null;
+        $sceneIndex = $options['scene_index'] ?? 0;
+
+        // Try Scene DNA first
+        if ($sceneDNA && ($sceneDNA['enabled'] ?? false) && !empty($sceneDNA['scenes'][$sceneIndex])) {
+            $characters = $sceneDNA['scenes'][$sceneIndex]['characters'] ?? [];
+        }
+        // Fall back to character bible
+        elseif ($characterBible && ($characterBible['enabled'] ?? false)) {
+            $characters = $options['characters'] ?? $characterBible['characters'] ?? [];
+        }
+        // Use direct characters if provided
+        elseif (!empty($options['characters'])) {
+            $characters = $options['characters'];
+        }
+
+        return [
+            'characters' => $characters,
+            'shot_type' => $options['shot_type'] ?? 'medium',
+            'emotion' => $options['emotion'] ?? null,
+            'emotions' => $options['emotions'] ?? [],
+            'subtext' => $options['subtext'] ?? '',
+            'tension_level' => $options['tension_level'] ?? 5,
+            'environment' => $options['environment'] ?? '',
+            'relationship' => $options['relationship'] ?? null,
+            'action' => $options['action'] ?? null,
+        ];
+    }
+
+    /**
+     * Wrap LLM expansion result in standard build output format.
+     *
+     * Converts the LLM expansion output to match the structure
+     * returned by the template-based build() method.
+     *
+     * @param array $llmResult Result from LLMExpansionService
+     * @param array $options Original build options
+     * @return array Structured prompt matching build() output format
+     */
+    protected function wrapLLMResult(array $llmResult, array $options): array
+    {
+        $visualMode = $options['visual_mode'] ?? 'cinematic-realistic';
+        $template = self::VISUAL_MODE_TEMPLATES[$visualMode] ?? self::VISUAL_MODE_TEMPLATES['cinematic-realistic'];
+        $aspectRatio = $options['aspect_ratio'] ?? '16:9';
+
+        return [
+            'meta_data' => [
+                'prompt_type' => $template['prompt_type'],
+                'visual_mode' => $visualMode,
+                'version' => 'v2.0_STRUCTURED_PROMPT',
+                'expansion_method' => 'llm_expansion',
+                'expansion_provider' => $llmResult['provider'] ?? 'unknown',
+            ],
+            'output_settings' => array_merge($template['output_settings'], [
+                'aspect_ratio' => $aspectRatio,
+                'orientation' => $this->getOrientation($aspectRatio),
+            ]),
+            'global_rules' => $template['global_rules'],
+            'creative_prompt' => [
+                'scene_summary' => $llmResult['expanded_prompt'],
+                'llm_expanded' => true,
+                'source' => 'llm_expansion',
+            ],
+            'technical_specifications' => $this->buildTechnicalSpecs($options, $template),
+            'negative_prompt' => $this->buildNegativePrompt($options, $template),
+            // Include complexity analysis metadata
+            'llm_metadata' => [
+                'method' => $llmResult['method'] ?? 'llm',
+                'provider' => $llmResult['provider'] ?? 'unknown',
+                'complexity' => $llmResult['complexity'] ?? [],
+                'word_count' => $llmResult['word_count'] ?? null,
+                'markers_valid' => $llmResult['markers_valid'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Build Hollywood-quality prompt with automatic LLM expansion for complex shots.
+     *
+     * This is the main entry point for prompt building with LLM enhancement.
+     * Complex shots (3+ characters, high emotional complexity, etc.) automatically
+     * route through LLM expansion, while simple shots use efficient template expansion.
+     *
+     * @param array $options Configuration options including:
+     *   - llm_expansion: bool (default true) - Set to false to disable LLM
+     *   - shot_type: string - The shot type (close-up, medium, wide, etc.)
+     *   - characters: array - Character data
+     *   - emotion: string - Emotional state
+     *   - subtext: string - Hidden emotional subtext
+     *   - environment: string - Environment description
+     *   - All other options passed to build()
+     * @return array Structured prompt data with method metadata
+     */
+    public function buildHollywoodPrompt(array $options = []): array
+    {
+        // Check if this shot is complex and should use LLM
+        if ($this->shouldUseLLMExpansion($options)) {
+            $shotData = $this->buildShotDataFromOptions($options);
+
+            Log::debug('StructuredPromptBuilder: Attempting LLM expansion for complex shot', [
+                'shot_type' => $shotData['shot_type'],
+                'character_count' => count($shotData['characters']),
+                'has_subtext' => !empty($shotData['subtext']),
+            ]);
+
+            $llmResult = $this->getLLMExpansionService()->expandWithCache($shotData);
+
+            if ($llmResult['method'] === 'llm') {
+                // LLM expansion succeeded - wrap in standard structure
+                Log::info('StructuredPromptBuilder: LLM expansion successful', [
+                    'provider' => $llmResult['provider'],
+                    'word_count' => $llmResult['word_count'] ?? 'unknown',
+                ]);
+                return $this->wrapLLMResult($llmResult, $options);
+            }
+
+            // LLM failed, falling through to template expansion
+            Log::info('StructuredPromptBuilder: LLM expansion fallback to template', [
+                'reason' => $llmResult['method'] ?? 'unknown',
+            ]);
+        }
+
+        // Use template-based prompt building (existing flow)
+        $result = $this->build($options);
+
+        // Add method metadata for consistency
+        $result['meta_data']['expansion_method'] = 'template';
+        $result['llm_metadata'] = [
+            'method' => 'template',
+            'provider' => 'rules',
+            'complexity' => [],
+        ];
 
         return $result;
     }

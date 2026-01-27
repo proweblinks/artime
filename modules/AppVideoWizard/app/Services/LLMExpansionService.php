@@ -99,6 +99,20 @@ class LLMExpansionService
     }
 
     /**
+     * Check if shot data is complex enough to warrant LLM expansion.
+     *
+     * This is a convenience method for external services to check complexity
+     * without performing expansion.
+     *
+     * @param array $shotData Shot data with characters, shot_type, emotion, etc.
+     * @return bool True if shot is complex
+     */
+    public function isComplex(array $shotData): bool
+    {
+        return $this->complexityDetector->isComplex($shotData);
+    }
+
+    /**
      * Main entry point - expand shot data based on complexity.
      *
      * Routes complex shots to LLM expansion, simple shots to template expansion.
