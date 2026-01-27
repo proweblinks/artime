@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-27
-> Session: v10 Phase 20 Complete
+> Session: v10 Phase 21 Plan 01 Complete
 
 ---
 
@@ -17,56 +17,49 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 **Milestone:** v10 (Livewire Performance Architecture) — In Progress
-**Phase:** 20 (Component Splitting) — VERIFIED ✓
-**Plan:** 3 of 3 complete
-**Status:** Phase 20 verified, ready for Phase 21
+**Phase:** 21 (Data Normalization) — In Progress
+**Plan:** 1 of ? complete
+**Status:** Plan 21-01 complete, ready for Plan 21-02
 
 ```
 Phase 19:   xxxxxxxxxx 100% (4/4 plans complete)
 Phase 20:   xxxxxxxxxx 100% (3/3 plans complete)
-Phase 21:   .......... 0% (not started)
+Phase 21:   x......... 10% (1/? plans complete)
 ---------------------
-v10:        xxxxxxx... 78% (7/9 requirements)
+v10:        xxxxxxxx.. 80% (PERF-06 partial)
 ```
 
-**Last activity:** 2026-01-27 - Phase 20 verified (14/14 must-haves)
+**Last activity:** 2026-01-27 - Completed 21-01-PLAN.md (database schema and models)
 
 ---
 
-## What Shipped (v10 Phase 20 Complete)
+## What Shipped (v10 Phase 21 Plan 01)
 
-**Plan 01 - Bible Trait Extraction:**
-- WithCharacterBible trait (1195 lines)
-- WithLocationBible trait (442 lines)
-- VideoWizard.php reduced from ~32,331 to 30,708 lines
-
-**Plan 02 - Character Bible Modal Extraction:**
-- CharacterBibleModal.php child component (861 lines)
-- character-bible-modal.blade.php view (692 lines)
-- Event-based parent-child communication for CRUD, portrait generation
-
-**Plan 03 - Location Bible Modal Extraction:**
-- LocationBibleModal.php child component (717 lines)
-- location-bible-modal.blade.php view (470 lines)
-- Scene-location one-to-one enforcement in child
+**Plan 01 - Database Schema and Models:**
+- wizard_scenes migration (65 lines) - normalized scene data table
+- wizard_shots migration (66 lines) - multi-shot decomposition table
+- wizard_speech_segments migration (60 lines) - speech/dialogue table
+- WizardScene model (115 lines) - BelongsTo Project, HasMany Shots/SpeechSegments
+- WizardShot model (91 lines) - BelongsTo Scene
+- WizardSpeechSegment model (98 lines) - BelongsTo Scene
+- WizardProject updated with scenes() relationship and usesNormalizedData() helper
 
 **Files created:**
-- modules/AppVideoWizard/app/Livewire/Traits/WithCharacterBible.php
-- modules/AppVideoWizard/app/Livewire/Traits/WithLocationBible.php
-- modules/AppVideoWizard/app/Livewire/Modals/CharacterBibleModal.php
-- modules/AppVideoWizard/app/Livewire/Modals/LocationBibleModal.php
-- modules/AppVideoWizard/resources/views/livewire/modals/character-bible-modal.blade.php
-- modules/AppVideoWizard/resources/views/livewire/modals/location-bible-modal.blade.php
+- modules/AppVideoWizard/database/migrations/2026_01_27_100001_create_wizard_scenes_table.php
+- modules/AppVideoWizard/database/migrations/2026_01_27_100002_create_wizard_shots_table.php
+- modules/AppVideoWizard/database/migrations/2026_01_27_100003_create_wizard_speech_segments_table.php
+- modules/AppVideoWizard/app/Models/WizardScene.php
+- modules/AppVideoWizard/app/Models/WizardShot.php
+- modules/AppVideoWizard/app/Models/WizardSpeechSegment.php
 
 **Files modified:**
-- modules/AppVideoWizard/app/Livewire/VideoWizard.php (traits, event listeners)
-- modules/AppVideoWizard/resources/views/livewire/steps/storyboard.blade.php (livewire components)
+- modules/AppVideoWizard/app/Models/WizardProject.php (scenes() relationship, usesNormalizedData())
 
 ---
 
 ## Accumulated Context
 
-### Key Decisions (v10 Phase 19-20)
+### Key Decisions (v10 Phase 19-21)
 
 | Date       | Plan  | Decision                                            |
 |------------|-------|-----------------------------------------------------|
@@ -85,6 +78,10 @@ v10:        xxxxxxx... 78% (7/9 requirements)
 | 2026-01-27 | 20-03 | Reference generation stays in parent (needs ImageGenerationService) |
 | 2026-01-27 | 20-03 | Child dispatches events, parent handles heavy operations |
 | 2026-01-27 | 20-03 | Scene data passed as prop, not modelable             |
+| 2026-01-27 | 21-01 | Migration timestamps 100001-100003 to avoid conflict with existing |
+| 2026-01-27 | 21-01 | scene_metadata/shot_metadata JSON for less-frequent fields |
+| 2026-01-27 | 21-01 | usesNormalizedData() pattern for backward compatibility |
+| 2026-01-27 | 21-01 | getSceneCount() checks normalized first, falls back to JSON |
 
 ### Architecture Context
 
@@ -93,16 +90,17 @@ v10:        xxxxxxx... 78% (7/9 requirements)
 - 7 wizard steps in single component
 - Character/Location Bible methods now in traits
 - Both CharacterBibleModal and LocationBibleModal extracted as child components
-- Nested arrays for scenes/shots
+- Nested arrays for scenes/shots (being replaced by normalized tables)
 
 **Phase 20 complete:**
 - Plan 01: Bible trait extraction (DONE)
 - Plan 02: Character Bible Modal extraction (DONE)
 - Plan 03: Location Bible Modal extraction (DONE)
 
-**Phase 21 targets:**
-- PERF-06: WizardScene, WizardShot database models
-- PERF-07: Lazy loading for scene/shot data
+**Phase 21 progress:**
+- Plan 01: Database schema and models (DONE)
+- PERF-06: WizardScene, WizardShot models created
+- PERF-07: Lazy loading pending (requires data migration and component updates)
 
 ### Pending Todos
 
@@ -110,19 +108,19 @@ None.
 
 ### Blockers/Concerns
 
-**Architectural complexity:**
-- Phase 20-21 require significant refactoring
-- Need careful state sharing between components
-- Backward compatibility with existing projects
+**Backward compatibility:**
+- JSON columns kept in wizard_projects
+- usesNormalizedData() detects which mode to use
+- Data migration command needed (Plan 02 or 03)
 
 ---
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed Phase 20 (Component Splitting) - All 3 plans
+Stopped at: Completed 21-01-PLAN.md (database schema and models)
 Resume file: None
-Next step: /gsd:discuss-phase 21 or /gsd:plan-phase 21
+Next step: Execute Plan 21-02 (data migration command or lazy loading components)
 
 ---
 
@@ -134,5 +132,6 @@ Milestone artifacts archived to `.planning/milestones/`:
 
 Phase directories in `.planning/phases/`:
 - 19-quick-wins/ (v10 Phase 19 - complete)
-- 20-component-splitting/ (v10 Phase 20 - in progress)
+- 20-component-splitting/ (v10 Phase 20 - complete)
+- 21-data-normalization/ (v10 Phase 21 - in progress)
 - 22-* through 29.1-* (v11, M11.1, M11.2)
