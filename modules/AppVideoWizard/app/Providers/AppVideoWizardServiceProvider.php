@@ -233,6 +233,12 @@ class AppVideoWizardServiceProvider extends ServiceProvider
             \Modules\AppVideoWizard\Services\Voice\VoiceContinuityValidator::class,
             fn () => new \Modules\AppVideoWizard\Services\Voice\VoiceContinuityValidator()
         );
+
+        // Phase 28: Multi-Speaker Dialogue Builder (VOC-10)
+        $this->app->singleton(
+            \Modules\AppVideoWizard\Services\Voice\MultiSpeakerDialogueBuilder::class,
+            fn () => new \Modules\AppVideoWizard\Services\Voice\MultiSpeakerDialogueBuilder()
+        );
     }
 
     /**
