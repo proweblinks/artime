@@ -713,7 +713,7 @@ class StructuredPromptBuilderService
         }
 
         // Use template-based prompt building (existing flow)
-        $result = $this->build($options);
+        $result = $this->buildTemplate($options);
 
         // Add method metadata for consistency
         $result['meta_data']['expansion_method'] = 'template';
@@ -728,11 +728,24 @@ class StructuredPromptBuilderService
 
     /**
      * Build a complete structured prompt from scene data.
+     * Automatically routes through LLM expansion for complex shots.
      *
      * @param array $options Configuration options
      * @return array Structured prompt data
      */
     public function build(array $options): array
+    {
+        return $this->buildHollywoodPrompt($options);
+    }
+
+    /**
+     * Build a structured prompt using template-based expansion only.
+     * Called by buildHollywoodPrompt() for non-complex shots or as fallback.
+     *
+     * @param array $options Configuration options
+     * @return array Structured prompt data
+     */
+    public function buildTemplate(array $options): array
     {
         $visualMode = $options['visual_mode'] ?? 'cinematic-realistic';
         $template = self::VISUAL_MODE_TEMPLATES[$visualMode] ?? self::VISUAL_MODE_TEMPLATES['cinematic-realistic'];
