@@ -736,7 +736,13 @@ window.multiShotVideoPolling = function() {
                                 👄 {{ $lipSyncStats['hasAudio'] }}/{{ $lipSyncStats['total'] }}
                             </span>
                         @endif
-                        <button wire:click="resetDecomposition({{ $multiShotSceneIndex }})" class="msm-reset-btn">🗑️ {{ __('Reset') }}</button>
+                        <button
+                            wire:click="resetDecomposition({{ $multiShotSceneIndex }})"
+                            wire:confirm="{{ __('Are you sure you want to reset all shots? This will delete all generated images and videos for this scene.') }}"
+                            class="msm-reset-decomposition-btn"
+                            title="{{ __('Reset all shots and start fresh') }}">
+                            🗑️ {{ __('Reset All') }}
+                        </button>
                     </div>
 
                     {{-- Timeline (synced with carousel) --}}
@@ -1676,8 +1682,12 @@ window.multiShotVideoPolling = function() {
 .msm-action-btn.amber:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.35); }
 .msm-lipsync-status { background: rgba(251,191,36,0.2); color: #fbbf24; padding: 0.35rem 0.65rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(251,191,36,0.3); cursor: help; }
 .msm-spacer { flex: 1; }
+/* Reset button for video render status (small inline) */
 .msm-reset-btn { padding: 0.5rem 0.8rem; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.35); border-radius: 8px; color: #ef4444; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
 .msm-reset-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
+/* Reset Decomposition button (action bar) - distinct styling */
+.msm-reset-decomposition-btn { padding: 0.6rem 1rem; background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1)); border: 1px solid rgba(239,68,68,0.4); border-radius: 10px; color: #fca5a5; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.4rem; }
+.msm-reset-decomposition-btn:hover { background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(220,38,38,0.2)); border-color: rgba(239,68,68,0.6); color: #fecaca; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(239,68,68,0.2); }
 
 .msm-timeline { display: flex; height: 48px; margin: 1rem 1.5rem; background: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(10,10,20,0.45)); border-radius: 12px; overflow: hidden; box-shadow: inset 0 3px 10px rgba(0,0,0,0.35), 0 3px 12px rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); }
 .msm-timeline-seg { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.95rem; font-weight: 700; border-right: 1px solid rgba(255,255,255,0.12); background: linear-gradient(180deg, rgba(139,92,246,0.45), rgba(139,92,246,0.3)); cursor: pointer; transition: all 0.25s ease; position: relative; }
@@ -1902,8 +1912,9 @@ window.multiShotVideoPolling = function() {
 
 .msm-render-status { text-align: center; padding: 0.65rem; background: rgba(6,182,212,0.12); border-radius: 8px; position: relative; }
 .msm-render-status span { font-size: 0.85rem; color: #67e8f9; font-weight: 600; }
-.msm-reset-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.45); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; color: #fca5a5; transition: all 0.2s ease; }
-.msm-reset-btn:hover { background: rgba(239,68,68,0.45); border-color: rgba(239,68,68,0.65); }
+/* Reset button INSIDE render status - positioned absolutely */
+.msm-render-status .msm-reset-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.45); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; cursor: pointer; color: #fca5a5; transition: all 0.2s ease; }
+.msm-render-status .msm-reset-btn:hover { background: rgba(239,68,68,0.45); border-color: rgba(239,68,68,0.65); }
 .msm-progress-bar { height: 6px; background: rgba(255,255,255,0.12); border-radius: 6px; overflow: hidden; margin-top: 0.5rem; }
 .msm-progress-bar div { height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6); animation: msm-progress 1.5s infinite linear; }
 
