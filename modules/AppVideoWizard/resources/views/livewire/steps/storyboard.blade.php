@@ -5383,11 +5383,44 @@ function getCameraMovementIcon($movement) {
             </div>
 
             {{-- Storyboard Grid - Using Paginated Scenes (Grid View) --}}
+            {{-- PERF-07: Lazy-loaded SceneCard components for normalized projects --}}
+            @php
+                $isNormalized = $this->usesNormalizedData();
+            @endphp
+
             <div class="vw-storyboard-grid"
                  x-show="viewMode === 'grid'"
                  x-transition
                  wire:loading.remove
                  wire:target="goToStoryboardPage,previousStoryboardPage,nextStoryboardPage">
+
+            @if($isNormalized)
+                {{-- Normalized data: Use lazy-loaded SceneCard components --}}
+                {{-- Scene data loads on-demand when card enters viewport --}}
+                @php
+                    // Apply pagination to sceneIds
+                    $sceneIdsOffset = ($paginatedData['currentPage'] - 1) * $storyboardPerPage;
+                    $paginatedSceneIds = array_slice($this->sceneIds, $sceneIdsOffset, $storyboardPerPage);
+                @endphp
+                @foreach($paginatedSceneIds as $localIndex => $sceneId)
+                    @php
+                        $sceneIndex = $sceneIdsOffset + $localIndex;
+                    @endphp
+                    <livewire:app-video-wizard::components.scene-card
+                        :scene-id="$sceneId"
+                        :project-id="$projectId"
+                        :scene-index="$sceneIndex"
+                        :is-normalized="true"
+                        :json-scene-data="null"
+                        :storyboard-data="null"
+                        :multi-shot-data="$multiShotMode['decomposedScenes'][$sceneIndex] ?? null"
+                        lazy
+                        wire:key="scene-card-normalized-{{ $sceneId }}"
+                    />
+                @endforeach
+            @else
+                {{-- JSON fallback: Inline rendering with data passed directly --}}
+                {{-- This preserves all existing functionality for non-migrated projects --}}
             @foreach($paginatedData['scenes'] as $localIndex => $scene)
                 @php
                     // Get the actual index in the full scenes array
@@ -6324,6 +6357,8 @@ function getCameraMovementIcon($movement) {
                     ])
                 </div>
             @endforeach
+            @endif
+            {{-- End PERF-07 normalized/JSON conditional --}}
             </div>
 
             {{-- Timeline View --}}
