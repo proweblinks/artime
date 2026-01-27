@@ -246,7 +246,15 @@ class AppVideoWizardServiceProvider extends ServiceProvider
      */
     protected function registerLivewireComponents(): void
     {
+        // Main wizard component
         Livewire::component('appvideowizard::video-wizard', \Modules\AppVideoWizard\Livewire\VideoWizard::class);
+
+        // Phase 20: Bible modal components
+        Livewire::component('app-video-wizard::modals.character-bible-modal', \Modules\AppVideoWizard\Livewire\Modals\CharacterBibleModal::class);
+        Livewire::component('app-video-wizard::modals.location-bible-modal', \Modules\AppVideoWizard\Livewire\Modals\LocationBibleModal::class);
+
+        // Phase 21: Lazy-loaded scene card component
+        Livewire::component('app-video-wizard::components.scene-card', \Modules\AppVideoWizard\Livewire\Components\SceneCard::class);
     }
 
     /**
