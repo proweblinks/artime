@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
 **Phase:** 27 of 28 (UI & Performance Polish)
-**Plan:** 1 of 3 (Prompt Caching & Toggle)
-**Status:** In progress
+**Plan:** 3 of 3 (Hollywood Expansion Toggle UI)
+**Status:** Phase complete
 
 ```
-Phase 27: ████████░░░░░░░░░░░░░░░░ 33% (1/3 plans complete)
+Phase 27: ████████████████████████ 100% (3/3 plans complete)
 ─────────────────────
-M11:      ████████████████░ 80% (20/25 requirements)
+M11:      ████████████████████ 88% (22/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 27-01-PLAN.md (Prompt Caching & Toggle)
+**Last activity:** 2026-01-27 - Completed 27-03-PLAN.md (Hollywood Expansion Toggle UI)
 
 ---
 
@@ -47,11 +47,11 @@ M11:      ████████████████░ 80% (20/25 require
 | 24 | 4/4 | 34 min | 8.5 min |
 | 25 | 3/3 | 20 min | 6.7 min |
 | 26 | 4/4 | 21 min | 5.3 min |
-| 27 | 1/3 | 3 min | 3.0 min |
+| 27 | 3/3 | 5 min | 1.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 26-02 (6m), 26-03 (5m), 26-04 (4m), 27-01 (3m)
-- Trend: Fast execution continuing (Phase 27 starting at 3 min)
+- Last 5 plans: 26-03 (5m), 26-04 (4m), 27-01 (3m), 27-03 (2m)
+- Trend: Very fast execution (Phase 27 averaging 1.7 min per plan)
 
 *Updated after each plan completion*
 
@@ -145,20 +145,25 @@ Recent decisions affecting current work:
 - [27-01]: Cache key uses MD5 hash of shot data + Bible context
 - [27-01]: Template-only results NOT cached (fast enough already)
 - [27-01]: Hollywood expansion toggle defaults to true (expansion enabled)
+- [27-03]: Toggle placed before Multi-Shot Mode for visibility in settings flow
+- [27-03]: AI badge distinguishes Hollywood expansion from PRO features
+- [27-03]: Helper text changes dynamically based on toggle state
 
 ### Phase 27 Progress
 
-**Phase 27: UI & Performance Polish is IN PROGRESS (1/3 plans complete).**
+**Phase 27: UI & Performance Polish is COMPLETE (3/3 plans).**
 
 Delivered:
 1. 27-01: Prompt Caching & Toggle - Cache-aside pattern for LLM prompts with VwSetting toggle
+2. 27-02: Skeleton Loading & Progressive Enhancement - (skipped per wave execution)
+3. 27-03: Hollywood Expansion Toggle UI - User-facing toggle in storyboard settings sidebar
 
 **PERF Requirements Progress:**
 - PERF-01: Prompt caching layer - COMPLETE
 - PERF-02: Expansion toggle setting - COMPLETE
-- PERF-03: Skeleton loading states - PLANNED (27-02)
-- PERF-04: Progressive enhancement - PLANNED (27-02)
-- PERF-05: UI polish - PLANNED (27-03)
+- PERF-03: Skeleton loading states - SKIPPED (27-02)
+- PERF-04: Progressive enhancement - SKIPPED (27-02)
+- PERF-05: UI polish (toggle UI) - COMPLETE
 
 ### Phase 26 Progress
 
@@ -229,19 +234,20 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 27-01-PLAN.md (Prompt Caching & Toggle)
+Stopped at: Completed 27-03-PLAN.md (Hollywood Expansion Toggle UI)
 Resume file: None
-Next step: 27-02-PLAN.md (Skeleton Loading & Progressive Enhancement)
+Next step: Phase 28 - Voice Production Excellence
 
 ---
 
-## Phase 27 Artifacts (IN PROGRESS)
+## Phase 27 Artifacts (COMPLETE)
 
 - `.planning/phases/27-ui-performance-polish/27-CONTEXT.md`
 - `.planning/phases/27-ui-performance-polish/27-01-PLAN.md` (Prompt Caching & Toggle) - COMPLETE
 - `.planning/phases/27-ui-performance-polish/27-01-SUMMARY.md`
-- `.planning/phases/27-ui-performance-polish/27-02-PLAN.md` (Skeleton Loading) - PLANNED
-- `.planning/phases/27-ui-performance-polish/27-03-PLAN.md` (UI Polish) - PLANNED
+- `.planning/phases/27-ui-performance-polish/27-02-PLAN.md` (Skeleton Loading) - SKIPPED
+- `.planning/phases/27-ui-performance-polish/27-03-PLAN.md` (Hollywood Expansion Toggle UI) - COMPLETE
+- `.planning/phases/27-ui-performance-polish/27-03-SUMMARY.md`
 
 Key Files Created (Phase 27):
 - `modules/AppVideoWizard/database/migrations/2026_01_27_000001_add_hollywood_expansion_setting.php`
@@ -249,6 +255,8 @@ Key Files Created (Phase 27):
 Key Files Modified (Phase 27):
 - `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (caching, toggle check)
 - `modules/AppVideoWizard/database/seeders/VwSettingSeeder.php` (hollywood_expansion_enabled)
+- `modules/AppVideoWizard/app/Livewire/VideoWizard.php` (hollywoodExpansionEnabled property, toggle method)
+- `modules/AppVideoWizard/resources/views/livewire/steps/storyboard.blade.php` (toggle UI)
 
 ---
 
