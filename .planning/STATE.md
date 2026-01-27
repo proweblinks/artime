@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-27
-> Session: Milestone Complete
+> Session: Executing M11.1
 
 ---
 
@@ -10,7 +10,7 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Between milestones — v11 shipped, planning next
+**Current focus:** M11.1 Voice Production Excellence (Phase 28)
 
 ---
 
@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** 11.1 (Voice Production Excellence)
 **Phase:** 28 of 28 (Voice Production Excellence)
-**Plan:** Not started
-**Status:** Planning
+**Plan:** 01 of 6 complete
+**Status:** In progress
 
 ```
-Phase 28: ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
-─────────────────────
-M11.1:    ░░░░░░░░░░░░░░░░░░░░░░░░ 0% (0/6 requirements)
+Phase 28: ████░░░░░░░░░░░░░░░░░░░░ 17%
+---------------------
+M11.1:    ████░░░░░░░░░░░░░░░░░░░░ 17% (1/6 plans)
 ```
 
-**Last activity:** 2026-01-27 — Started M11.1 with Phase 28
+**Last activity:** 2026-01-27 - Completed 28-01-PLAN.md (Voice Registry Persistence)
 
 ---
 
@@ -62,9 +62,16 @@ Major decisions logged in PROJECT.md. Highlights:
 - 3+ characters ALWAYS triggers LLM complexity
 - Subject NEVER removed during CLIP compression
 
+### Key Decisions (M11.1)
+
+| Date       | Plan  | Decision                                            |
+|------------|-------|-----------------------------------------------------|
+| 2026-01-27 | 28-01 | Voice registry stored in sceneDNA.voiceRegistry    |
+| 2026-01-27 | 28-01 | Restoration in loadProject after sceneMemory merge |
+
 ### Roadmap Evolution
 
-- Phase 28 defined but not planned (Voice Production Excellence)
+- Phase 28 in progress (Voice Production Excellence)
 - v10 remains paused (Livewire Performance)
 
 ### Pending Todos
@@ -80,9 +87,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: v11 milestone completion
+Stopped at: Completed 28-01-PLAN.md
 Resume file: None
-Next step: /gsd:new-milestone or /gsd:plan-phase 28
+Next step: Execute 28-02-PLAN.md
 
 ---
 
