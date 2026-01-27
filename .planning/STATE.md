@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-27
-> Session: Executing M11.1
+> Session: Executing M11.2
 
 ---
 
@@ -10,7 +10,7 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** M11.1 Voice Production Excellence (Phase 28)
+**Current focus:** M11.2 Prompt Pipeline Integration (Phase 29)
 
 ---
 
@@ -18,16 +18,16 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** 11.2 (Prompt Pipeline Integration)
 **Phase:** 29 of 29 (Prompt Pipeline Integration)
-**Plan:** 0 of ? (pending planning)
-**Status:** Context gathered, ready to plan
+**Plan:** 3 of 4 (Voice Prompt Display in Shot Preview)
+**Status:** In progress
 
 ```
-Phase 29: ░░░░░░░░░░ 0%
+Phase 29: ███░░░░░░░ 30% (3/10 tasks estimated)
 ---------------------
-M11.2:    ░░░░░░░░░░ 0% (0/4 requirements)
+M11.2:    ███░░░░░░░ 30% (1/4 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Phase 29 context created from user feedback
+**Last activity:** 2026-01-27 - Completed 29-03-PLAN.md (Voice Prompt Display)
 
 ---
 
@@ -77,9 +77,17 @@ Major decisions logged in PROJECT.md. Highlights:
 | 2026-01-27 | 28-05 | 0.3s speaker transition pause for natural dialogue flow      |
 | 2026-01-27 | 28-05 | Hash-based fallback for consistent voice assignment          |
 
+### Key Decisions (M11.2)
+
+| Date       | Plan  | Decision                                            |
+|------------|-------|-----------------------------------------------------|
+| 2026-01-27 | 29-03 | Purple styling for voice prompts (rgba(139, 92, 246))       |
+| 2026-01-27 | 29-03 | Dialogue > monologue > narration cascade for voice text     |
+| 2026-01-27 | 29-03 | Emotion tag in pink to differentiate from voice text        |
+
 ### Roadmap Evolution
 
-- Phase 28 in progress (Voice Production Excellence)
+- Phase 29 in progress (Prompt Pipeline Integration)
 - v10 remains paused (Livewire Performance)
 
 ### Pending Todos
@@ -95,9 +103,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Phase 29 context created
+Stopped at: Completed 29-03-PLAN.md
 Resume file: None
-Next step: /gsd:plan-phase 29
+Next step: Execute 29-04-PLAN.md
 
 ---
 
