@@ -6982,12 +6982,8 @@ PROMPT;
             // PHASE 3: Get character consistency options for visual consistency
             $characterOptions = $this->getCharacterConsistencyOptions($sceneIndex);
 
-            // CRITICAL: Include negative prompts for realism (avoid cartoon/anime)
-            $negativePrompt = null;
-            if (($this->storyboard['technicalSpecs']['enabled'] ?? true) &&
-                !empty($this->storyboard['technicalSpecs']['negative'])) {
-                $negativePrompt = $this->storyboard['technicalSpecs']['negative'];
-            }
+            // CRITICAL: Include negative prompts for realism + anti-portrait
+            $negativePrompt = $this->buildNegativePrompt();
 
             $result = $imageService->generateSceneImage($project, $scene, array_merge([
                 'sceneIndex' => $sceneIndex,
@@ -7121,12 +7117,8 @@ PROMPT;
                 $this->saveProject();
             }
 
-            // CRITICAL: Include negative prompts for realism (avoid cartoon/anime)
-            $negativePrompt = null;
-            if (($this->storyboard['technicalSpecs']['enabled'] ?? true) &&
-                !empty($this->storyboard['technicalSpecs']['negative'])) {
-                $negativePrompt = $this->storyboard['technicalSpecs']['negative'];
-            }
+            // CRITICAL: Include negative prompts for realism + anti-portrait
+            $negativePrompt = $this->buildNegativePrompt();
 
             // Second pass: Actually generate images
             foreach ($scenesToGenerate as $index) {
@@ -25252,12 +25244,8 @@ PROMPT;
                     // PHASE 3: Get character consistency options for visual consistency
                     $characterOptions = $this->getCharacterConsistencyOptions($sceneIndex);
 
-                    // CRITICAL: Include negative prompts for realism (avoid cartoon/anime)
-                    $negativePrompt = null;
-                    if (($this->storyboard['technicalSpecs']['enabled'] ?? true) &&
-                        !empty($this->storyboard['technicalSpecs']['negative'])) {
-                        $negativePrompt = $this->storyboard['technicalSpecs']['negative'];
-                    }
+                    // CRITICAL: Include negative prompts for realism + anti-portrait
+                    $negativePrompt = $this->buildNegativePrompt();
 
                     $result = $imageService->generateSceneImage($project, [
                         'id' => $shot['id'],
@@ -25669,12 +25657,8 @@ PROMPT;
                                 "4) Characters should be DOING something, not standing still. " .
                                 "5) Capture genuine emotion and movement like a real film frame.";
 
-                            // CRITICAL: Include negative prompts for realism (avoid cartoon/anime)
-                            $negativePrompt = null;
-                            if (($this->storyboard['technicalSpecs']['enabled'] ?? true) &&
-                                !empty($this->storyboard['technicalSpecs']['negative'])) {
-                                $negativePrompt = $this->storyboard['technicalSpecs']['negative'];
-                            }
+                            // CRITICAL: Include negative prompts for realism + anti-portrait
+                            $negativePrompt = $this->buildNegativePrompt();
 
                             // Build options for image generation
                             $generationOptions = [
@@ -26004,11 +25988,8 @@ PROMPT;
                 $shotPrompt .= "CRITICAL: Characters caught in action - mid-gesture, mid-conversation. " .
                     "NO looking at camera. NO posed photographs. Natural, cinematic, dynamic.";
 
-                // CRITICAL: Include negative prompts for realism (avoid cartoon/anime)
-                $negativePrompt = null;
-                if ($techSpecsEnabled && !empty($this->storyboard['technicalSpecs']['negative'])) {
-                    $negativePrompt = $this->storyboard['technicalSpecs']['negative'];
-                }
+                // CRITICAL: Include negative prompts for realism + anti-portrait
+                $negativePrompt = $this->buildNegativePrompt();
 
                 // Generate the image
                 $result = $imageService->generateSceneImage($project, [
