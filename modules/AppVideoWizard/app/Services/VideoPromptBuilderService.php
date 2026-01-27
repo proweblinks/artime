@@ -1134,4 +1134,360 @@ class VideoPromptBuilderService
 
         return $anchors;
     }
+
+    /**
+     * Build complete Hollywood-quality video prompt with temporal structure.
+     * Implements VID-01 through VID-07 requirements.
+     *
+     * @param array $shot Shot data (type, duration, characters, action, emotion, etc.)
+     * @param array $context Scene context (genre, mood, lighting, timeOfDay, etc.)
+     * @param array $storyBibleContext Optional Story Bible data
+     * @param array $temporalBeats Optional pre-defined temporal beats
+     * @return array Complete prompt with components and metadata
+     */
+    public function buildTemporalVideoPrompt(
+        array $shot,
+        array $context = [],
+        array $storyBibleContext = [],
+        array $temporalBeats = []
+    ): array {
+        try {
+            // Extract shot parameters
+            $shotType = $shot['type'] ?? 'medium-shot';
+            $duration = $shot['duration'] ?? 6;
+            $emotion = $shot['emotion'] ?? $context['mood'] ?? 'neutral';
+            $characters = $shot['characters'] ?? [];
+
+            // Normalize characters to array of names
+            if (!empty($characters) && !is_array($characters)) {
+                $characters = [$characters];
+            }
+
+            // 1. START WITH BASE HOLLYWOOD PROMPT (VID-01: inherits all image features)
+            $baseResult = $this->buildHollywoodPrompt($shot, $context, $storyBibleContext);
+
+            if (!$baseResult['success']) {
+                return $baseResult;
+            }
+
+            // Initialize temporal components
+            $temporalComponents = [];
+            $transitionSetup = [
+                'ending_state' => '',
+                'next_shot_suggestion' => '',
+            ];
+
+            // 2. ADD TEMPORAL BEAT STRUCTURE (VID-02)
+            $temporalBeatsString = '';
+            if (!empty($temporalBeats)) {
+                // Validate beats first
+                $validation = $this->videoTemporalService->validateBeatsForDuration($temporalBeats, $duration);
+                if (!$validation['valid']) {
+                    Log::warning('VideoPromptBuilderService: Temporal beats validation warnings', [
+                        'warnings' => $validation['warnings'],
+                    ]);
+                }
+                $temporalBeatsString = $this->videoTemporalService->buildTemporalBeats($temporalBeats, $duration);
+            } else {
+                // Auto-generate beats from shot action if no beats provided
+                $temporalBeatsString = $this->autoGenerateTemporalBeats($shot, $duration);
+            }
+            $temporalComponents['temporal_beats'] = $temporalBeatsString;
+
+            // 3. ENHANCE CAMERA MOVEMENT WITH DURATION AND PSYCHOLOGY (VID-03)
+            $cameraMovement = $shot['cameraMovement'] ?? $this->inferCameraMovement($shotType, $emotion);
+            $emotionalPurpose = $this->mapEmotionToPsychology($emotion);
+            $movementDuration = $this->cameraMovementService->getRecommendedDuration($cameraMovement, $duration);
+
+            $cameraWithPsychology = $this->cameraMovementService->buildTemporalMovementPrompt(
+                $cameraMovement,
+                $movementDuration,
+                $emotionalPurpose,
+                $context['intensity'] ?? 'moderate'
+            );
+            $temporalComponents['camera_psychology'] = $cameraWithPsychology;
+
+            // 4. ADD CHARACTER PATH DESCRIPTION (VID-04)
+            $characterPathString = '';
+            $movementIntent = $shot['movement_intent'] ?? $shot['characterPath'] ?? null;
+            if ($movementIntent) {
+                $pathSuggestion = $this->characterPathService->suggestPathForIntent($movementIntent);
+                $characterPathString = $this->characterPathService->buildCharacterPath(
+                    $pathSuggestion['path_type'],
+                    $pathSuggestion['variant'],
+                    $shot['path_parameters'] ?? []
+                );
+            }
+            $temporalComponents['character_path'] = $characterPathString;
+
+            // 5. ADD MULTI-CHARACTER DYNAMICS (VID-05)
+            $dynamicsString = '';
+            $isMultiCharacter = count($characters) > 1;
+            if ($isMultiCharacter) {
+                $relationship = $shot['relationship'] ?? $context['relationship'] ?? 'colleagues';
+                $proximity = $shot['proximity'] ?? $this->characterDynamicsService->getProximityForRelationship($relationship);
+                $dynamicsString = $this->characterDynamicsService->buildSpatialDynamics(
+                    $relationship,
+                    $proximity,
+                    $characters
+                );
+            }
+            $temporalComponents['character_dynamics'] = $dynamicsString;
+
+            // 6. ADD MICRO-MOVEMENTS (VID-06)
+            $microMovementsString = $this->microMovementService->buildMicroMovementLayer(
+                $shotType,
+                $emotion,
+                []
+            );
+            $temporalComponents['micro_movements'] = $microMovementsString;
+
+            // 7. ADD TRANSITION SETUP (VID-07)
+            $transitionType = $this->transitionVocabulary->suggestTransitionForMood($emotion);
+            $transitionVariants = $this->transitionVocabulary->getVariantsForType($transitionType);
+            $defaultVariant = !empty($transitionVariants) ? $transitionVariants[0] : 'reaction_held';
+
+            $endingState = $this->transitionVocabulary->buildTransitionSetup(
+                $transitionType,
+                $shot['transition_variant'] ?? $defaultVariant,
+                []
+            );
+
+            // Map transition type to ending state for next shot suggestion
+            $endingStateKey = $this->mapTransitionToEndingState($transitionType, $shot);
+            $nextShotSuggestion = $this->transitionVocabulary->getNextShotSuggestion($endingStateKey);
+
+            $transitionSetup = [
+                'ending_state' => $endingState,
+                'next_shot_suggestion' => $nextShotSuggestion,
+                'transition_type' => $transitionType,
+            ];
+
+            // ASSEMBLE FULL PROMPT
+            // Order: Camera (with psychology) -> Subject & Dynamics -> Temporal Beats -> Micro-movements -> Base components
+            $promptParts = [];
+
+            // Camera with psychology and duration
+            if (!empty($cameraWithPsychology)) {
+                $promptParts[] = $cameraWithPsychology;
+            }
+
+            // Subject and character dynamics (for multi-character)
+            if (!empty($baseResult['components']['subject'])) {
+                $subjectLine = $baseResult['components']['subject'];
+                if (!empty($dynamicsString)) {
+                    $subjectLine .= '. ' . $dynamicsString;
+                }
+                $promptParts[] = $subjectLine;
+            }
+
+            // Temporal beats with timing
+            if (!empty($temporalBeatsString)) {
+                $promptParts[] = $temporalBeatsString;
+            }
+
+            // Character path (if provided)
+            if (!empty($characterPathString)) {
+                $promptParts[] = $characterPathString;
+            }
+
+            // Micro-movements (for close-ups/medium shots)
+            if (!empty($microMovementsString)) {
+                $promptParts[] = $microMovementsString;
+            }
+
+            // Action from base
+            if (!empty($baseResult['components']['action'])) {
+                $promptParts[] = $baseResult['components']['action'];
+            }
+
+            // Environment and lighting from base
+            if (!empty($baseResult['components']['environment'])) {
+                $promptParts[] = $baseResult['components']['environment'];
+            }
+            if (!empty($baseResult['components']['lighting'])) {
+                $promptParts[] = $baseResult['components']['lighting'];
+            }
+
+            // Style from base
+            if (!empty($baseResult['components']['style'])) {
+                $promptParts[] = $baseResult['components']['style'];
+            }
+
+            $fullPrompt = implode('. ', array_filter($promptParts));
+
+            // Add quality markers
+            $qualityLevel = $context['qualityLevel'] ?? 'cinematic';
+            $fullPrompt = $this->addQualityMarkers($fullPrompt, $qualityLevel);
+
+            Log::info('VideoPromptBuilderService: Built temporal video prompt', [
+                'shot_type' => $shotType,
+                'duration' => $duration,
+                'has_temporal_beats' => !empty($temporalBeatsString),
+                'has_multi_character' => $isMultiCharacter,
+                'has_micro_movements' => !empty($microMovementsString),
+                'prompt_length' => strlen($fullPrompt),
+            ]);
+
+            return [
+                'success' => true,
+                'prompt' => $fullPrompt,
+                'components' => array_merge(
+                    $baseResult['components'],
+                    $temporalComponents
+                ),
+                'transition_setup' => $transitionSetup,
+                'negativeGuidance' => $baseResult['negativeGuidance'] ?? $this->getNegativeGuidance($context),
+                'formula' => 'temporal_hollywood',
+                'metadata' => [
+                    'shotType' => $shotType,
+                    'duration' => $duration,
+                    'emotion' => $emotion,
+                    'qualityLevel' => $qualityLevel,
+                    'temporal_structure' => true,
+                    'beat_count' => !empty($temporalBeats) ? count($temporalBeats) : $this->countAutoGeneratedBeats($shot, $duration),
+                    'has_multi_character' => $isMultiCharacter,
+                    'has_micro_movements' => !empty($microMovementsString),
+                    'character_count' => count($characters),
+                ],
+            ];
+
+        } catch (\Throwable $e) {
+            Log::error('VideoPromptBuilderService: Temporal prompt build failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Fallback to standard Hollywood method
+            return $this->buildHollywoodPrompt($shot, $context, $storyBibleContext);
+        }
+    }
+
+    /**
+     * Auto-generate temporal beats from shot action and duration.
+     *
+     * @param array $shot Shot data
+     * @param int $duration Clip duration in seconds
+     * @return string Formatted temporal beats
+     */
+    protected function autoGenerateTemporalBeats(array $shot, int $duration): string
+    {
+        $subjectAction = $shot['subjectAction'] ?? $shot['action'] ?? '';
+
+        if (empty($subjectAction)) {
+            return '';
+        }
+
+        // Classify the action to get appropriate duration
+        $actionType = $this->videoTemporalService->classifyAction($subjectAction);
+        $suggestedDuration = $this->videoTemporalService->suggestBeatDuration($actionType);
+
+        // Create single beat from the action
+        $beats = [
+            [
+                'action' => $subjectAction,
+                'duration' => min($suggestedDuration, $duration),
+            ],
+        ];
+
+        return $this->videoTemporalService->buildTemporalBeats($beats, $duration);
+    }
+
+    /**
+     * Count auto-generated beats for metadata.
+     *
+     * @param array $shot Shot data
+     * @param int $duration Clip duration
+     * @return int Beat count
+     */
+    protected function countAutoGeneratedBeats(array $shot, int $duration): int
+    {
+        $subjectAction = $shot['subjectAction'] ?? $shot['action'] ?? '';
+        return !empty($subjectAction) ? 1 : 0;
+    }
+
+    /**
+     * Infer camera movement from shot type and emotion.
+     *
+     * @param string $shotType Shot type
+     * @param string $emotion Emotional context
+     * @return string Movement slug
+     */
+    protected function inferCameraMovement(string $shotType, string $emotion): string
+    {
+        // Map shot types to default movements
+        $shotDefaults = [
+            'close-up' => 'dolly-in',
+            'extreme-close-up' => 'push-in',
+            'medium-shot' => 'static',
+            'wide-shot' => 'pan',
+            'establishing-shot' => 'crane-up',
+            'two-shot' => 'static',
+            'over-the-shoulder' => 'static',
+        ];
+
+        // Emotion overrides
+        $emotionOverrides = [
+            'tense' => 'push-in',
+            'dramatic' => 'dolly-in',
+            'peaceful' => 'static',
+            'energetic' => 'tracking',
+            'romantic' => 'dolly-in',
+        ];
+
+        // Check emotion first, then shot type
+        if (isset($emotionOverrides[$emotion])) {
+            return $emotionOverrides[$emotion];
+        }
+
+        return $shotDefaults[$shotType] ?? 'static';
+    }
+
+    /**
+     * Map emotion to psychological purpose for camera movement.
+     *
+     * @param string $emotion Emotion
+     * @return string Psychology key
+     */
+    protected function mapEmotionToPsychology(string $emotion): string
+    {
+        $mapping = [
+            'tense' => 'tension',
+            'dramatic' => 'tension',
+            'romantic' => 'intimacy',
+            'tender' => 'intimacy',
+            'peaceful' => 'contemplation',
+            'contemplative' => 'contemplation',
+            'sad' => 'isolation',
+            'melancholic' => 'isolation',
+            'hopeful' => 'reveal',
+            'curious' => 'discovery',
+            'powerful' => 'power',
+            'vulnerable' => 'vulnerability',
+            'anxious' => 'urgency',
+            'fearful' => 'urgency',
+            'farewell' => 'departure',
+            'neutral' => 'contemplation',
+        ];
+
+        return $mapping[strtolower($emotion)] ?? 'contemplation';
+    }
+
+    /**
+     * Map transition type to ending state key for next shot suggestions.
+     *
+     * @param string $transitionType Transition type
+     * @param array $shot Shot data
+     * @return string Ending state key
+     */
+    protected function mapTransitionToEndingState(string $transitionType, array $shot): string
+    {
+        $mapping = [
+            'match_cut_setup' => 'mid_motion',
+            'hard_cut_setup' => 'emotional_peak',
+            'soft_transition_setup' => 'settling',
+        ];
+
+        return $mapping[$transitionType] ?? 'settling';
+    }
 }
