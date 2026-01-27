@@ -20895,6 +20895,44 @@ PROMPT;
             }
         }
 
+        // 1.6. LOCATION BIBLE (Location for this scene) - from buildScenePrompt Layer 3
+        if ($this->sceneMemory['locationBible']['enabled'] ?? false) {
+            $locations = $this->sceneMemory['locationBible']['locations'] ?? [];
+            $sceneLocation = $this->getLocationForSceneIndex($locations, $sceneIndex);
+
+            if ($sceneLocation) {
+                $locationParts = [];
+
+                $locName = $sceneLocation['name'] ?? '';
+                $locType = $sceneLocation['type'] ?? '';
+                if ($locName) {
+                    $locationParts[] = $locName . ($locType ? " ({$locType})" : '');
+                }
+
+                if (!empty($sceneLocation['description'])) {
+                    $locationParts[] = $sceneLocation['description'];
+                }
+
+                if (!empty($sceneLocation['timeOfDay'])) {
+                    $locationParts[] = $sceneLocation['timeOfDay'];
+                }
+
+                if (!empty($sceneLocation['weather']) && $sceneLocation['weather'] !== 'clear') {
+                    $locationParts[] = $sceneLocation['weather'] . ' weather';
+                }
+
+                // Include location state for this scene if available
+                $locationState = $this->getLocationStateForScene($sceneLocation, $sceneIndex);
+                if ($locationState) {
+                    $locationParts[] = 'current state: ' . $locationState;
+                }
+
+                if (!empty($locationParts)) {
+                    $parts[] = 'LOCATION: ' . implode(', ', $locationParts);
+                }
+            }
+        }
+
         // 2. Unique visual description (MOST IMPORTANT)
         if (!empty($shot['uniqueVisualDescription'])) {
             $parts[] = $shot['uniqueVisualDescription'];
