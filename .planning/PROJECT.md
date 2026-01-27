@@ -34,11 +34,12 @@ The system should be sophisticated and automatically updated based on previous s
 - LLM expansion for complex shots (3+ characters)
 - CLIP tokenization (77-token compression)
 
-**Paused:** v10 Livewire Performance Architecture
+**In Progress:** v10 Livewire Performance Architecture (Resumed)
 - Phase 19 complete (Quick Wins)
-- Phases 20-21 deferred (Component Splitting, Data Normalization)
+- Phase 20 next (Component Splitting)
+- Phase 21 pending (Data Normalization)
 
-**Next:** v12 planning or new milestone
+**Next:** Phase 20 planning
 
 ## Requirements
 
