@@ -17,18 +17,18 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 **Milestone:** 11.2 (Prompt Pipeline Integration) — Gap Closure
-**Phase:** 29.1 (Integration Consistency Fixes) — Planned
-**Plan:** Not yet planned
-**Status:** Gap closure phase created
+**Phase:** 29.1 (Integration Consistency Fixes) — Complete
+**Plan:** 01 of 01 complete
+**Status:** Phase complete
 
 ```
 Phase 29:   ██████████ 100% (3/3 plans complete)
-Phase 29.1: ░░░░░░░░░░ 0% (needs planning)
+Phase 29.1: ██████████ 100% (1/1 plans complete)
 ---------------------
-M11.2:      █████████░ 90% (4/4 requirements + 0/3 debt)
+M11.2:      ██████████ 100% (4/4 requirements + 2/2 debt)
 ```
 
-**Last activity:** 2026-01-27 - Created Phase 29.1 for tech debt closure
+**Last activity:** 2026-01-27 - Completed 29.1-01-PLAN.md (DEBT-01, DEBT-02 resolved)
 
 ---
 
@@ -88,12 +88,14 @@ Major decisions logged in PROJECT.md. Highlights:
 | 2026-01-27 | 29-03 | Purple styling for voice prompts (rgba(139, 92, 246))       |
 | 2026-01-27 | 29-03 | Dialogue > monologue > narration cascade for voice text     |
 | 2026-01-27 | 29-03 | Emotion tag in pink to differentiate from voice text        |
+| 2026-01-27 | 29.1-01 | Emotion field placed after monologue in shot array         |
+| 2026-01-27 | 29.1-01 | replace_all used for batch hidream->nanobanana-pro update  |
 
 ### Roadmap Evolution
 
 - Phase 29 complete (Prompt Pipeline Integration)
-- Phase 29.1 created (Integration Consistency Fixes) — gap closure
-- M11.2 gap closure in progress
+- Phase 29.1 complete (Integration Consistency Fixes) - gap closure
+- M11.2 gap closure complete (all tech debt resolved)
 - v10 remains paused (Livewire Performance)
 
 ### Pending Todos
@@ -109,9 +111,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Created Phase 29.1 for gap closure
+Stopped at: Completed 29.1-01-PLAN.md
 Resume file: None
-Next step: /gsd:plan-phase 29.1
+Next step: M11.2 milestone complete - ready for next milestone
 
 ---
 
@@ -123,4 +125,4 @@ Milestone artifacts archived to `.planning/milestones/`:
 - v11-MILESTONE-AUDIT.md
 - v11-INTEGRATION-CHECK.md
 
-Phase directories remain in `.planning/phases/` (22-* through 29-*).
+Phase directories remain in `.planning/phases/` (22-* through 29.1-*)
