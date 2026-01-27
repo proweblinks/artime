@@ -119,8 +119,35 @@ class WizardProject extends Model
         return config("appvideowizard.production_types.{$this->production_type}");
     }
 
+    // =========================================================================
+    // SCENE RELATIONSHIPS (Normalized Data - Phase 21)
+    // =========================================================================
+
     /**
-     * Get scenes from script.
+     * Get the scenes for this project (normalized data).
+     * Ordered by position within the project.
+     */
+    public function scenes(): HasMany
+    {
+        return $this->hasMany(WizardScene::class, 'project_id')
+            ->orderBy('order');
+    }
+
+    /**
+     * Check if project uses normalized data (scenes table) vs JSON arrays.
+     * Used for backward compatibility during transition.
+     */
+    public function usesNormalizedData(): bool
+    {
+        return $this->scenes()->exists();
+    }
+
+    // =========================================================================
+    // SCENE HELPERS (Support both JSON and normalized data)
+    // =========================================================================
+
+    /**
+     * Get scenes from script (JSON data - legacy).
      */
     public function getScenes(): array
     {
@@ -128,10 +155,16 @@ class WizardProject extends Model
     }
 
     /**
-     * Get scene count.
+     * Get scene count (checks normalized first, falls back to JSON).
      */
     public function getSceneCount(): int
     {
+        // Try normalized data first
+        if ($this->usesNormalizedData()) {
+            return $this->scenes()->count();
+        }
+
+        // Fallback to JSON
         return count($this->getScenes());
     }
 
