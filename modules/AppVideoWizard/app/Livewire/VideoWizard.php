@@ -19773,10 +19773,10 @@ PROMPT;
             'characters' => $sceneCharacters ?? [],
         ];
 
-        $shots = $this->applyStoryBeatsToShots($shots, $storyBeats, $visualDescription, $sceneNeedsLipSync, $sceneContext);
+        $shots = $this->applyStoryBeatsToShots($shots, $storyBeats, $visualDescription, $sceneNeedsLipSync, $sceneContext, $sceneIndex);
 
         // Detect and fix similar adjacent shots (redundancy prevention)
-        $shots = $this->detectAndFixSimilarShots($shots, 0.7);
+        $shots = $this->detectAndFixSimilarShots($shots, 0.7, $sceneIndex);
 
         // Validate shot purposes for logical progression
         $shots = $this->validateShotPurposes($shots);
@@ -20692,13 +20692,14 @@ PROMPT;
      * @param string $baseVisualDescription Fallback visual description
      * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
      * @param array $sceneContext Scene context for story-aware prompts
+     * @param int $sceneIndex Scene index for character/location lookup
      * @return array Enhanced shots with unique content
      */
-    protected function applyStoryBeatsToShots(array $shots, ?array $storyBeats, string $baseVisualDescription, bool $sceneNeedsLipSync = false, array $sceneContext = []): array
+    protected function applyStoryBeatsToShots(array $shots, ?array $storyBeats, string $baseVisualDescription, bool $sceneNeedsLipSync = false, array $sceneContext = [], int $sceneIndex = 0): array
     {
         if (empty($storyBeats) || empty($storyBeats['beats'])) {
             // Fallback: add basic variety if no story beats
-            return $this->addBasicShotVariety($shots, $baseVisualDescription, $sceneContext);
+            return $this->addBasicShotVariety($shots, $baseVisualDescription, $sceneContext, $sceneIndex);
         }
 
         // Flatten story beats into individual shots
@@ -20723,7 +20724,7 @@ PROMPT;
 
             if ($beatShot) {
                 // Merge AI story content with engine timing/type
-                $enhancedShots[] = $this->mergeStoryBeatWithEngineShot($engineShot, $beatShot, $continuity, $i, $sceneNeedsLipSync);
+                $enhancedShots[] = $this->mergeStoryBeatWithEngineShot($engineShot, $beatShot, $continuity, $i, $sceneNeedsLipSync, $sceneIndex);
                 $beatIndex++;
             } else {
                 // No more beat shots, use fallback with scene context
@@ -20734,7 +20735,7 @@ PROMPT;
         // If we have more beat shots than engine shots, add extras
         while ($beatIndex < count($beatShots)) {
             $beatShot = $beatShots[$beatIndex];
-            $extraShot = $this->createShotFromBeat($beatShot, $continuity, count($enhancedShots), $sceneNeedsLipSync);
+            $extraShot = $this->createShotFromBeat($beatShot, $continuity, count($enhancedShots), $sceneNeedsLipSync, $sceneIndex);
             $enhancedShots[] = $extraShot;
             $beatIndex++;
         }
@@ -20752,7 +20753,7 @@ PROMPT;
      * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
      * @return array Merged shot
      */
-    protected function mergeStoryBeatWithEngineShot(array $engineShot, array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false): array
+    protected function mergeStoryBeatWithEngineShot(array $engineShot, array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false, int $sceneIndex = 0): array
     {
         // Build unique visual description for this shot
         $uniqueVisual = $beatShot['uniqueVisualDescription'] ?? '';
@@ -20800,7 +20801,7 @@ PROMPT;
         $engineShot['beatPurpose'] = $beatShot['beatPurpose'] ?? '';
 
         // Rebuild prompts with unique content
-        $engineShot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($engineShot);
+        $engineShot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($engineShot, $sceneIndex);
         $engineShot['prompt'] = $engineShot['imagePrompt'];
 
         // Video prompt with story action - includes all story elements
@@ -20859,7 +20860,7 @@ PROMPT;
     /**
      * Build enhanced image prompt from shot data with unique content.
      */
-    protected function buildEnhancedShotImagePrompt(array $shot): string
+    protected function buildEnhancedShotImagePrompt(array $shot, int $sceneIndex = 0): string
     {
         $parts = [];
 
@@ -20921,7 +20922,7 @@ PROMPT;
      * @param array $sceneContext Scene context for story-aware prompts
      * @return array Enhanced shots with variety
      */
-    protected function addBasicShotVariety(array $shots, string $baseVisualDescription, array $sceneContext = []): array
+    protected function addBasicShotVariety(array $shots, string $baseVisualDescription, array $sceneContext = [], int $sceneIndex = 0): array
     {
         $characterMatch = [];
         $hasCharacter = preg_match('/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:walks|stands|looks|sits|moves)/i', $baseVisualDescription, $characterMatch);
@@ -21028,7 +21029,7 @@ PROMPT;
             $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt(array_merge($shot, [
                 'uniqueVisualDescription' => $varietyDesc,
                 'description' => $varietyDesc . ' ' . $baseVisualDescription,
-            ]));
+            ]), $sceneIndex);
             $shot['prompt'] = $shot['imagePrompt'];
         }
 
@@ -21154,9 +21155,10 @@ PROMPT;
      * @param array $continuity Continuity notes
      * @param int $index Shot index
      * @param bool $sceneNeedsLipSync Whether scene's speechType requires lip-sync (monologue/dialogue)
+     * @param int $sceneIndex Scene index for character/location lookup
      * @return array New shot structure
      */
-    protected function createShotFromBeat(array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false): array
+    protected function createShotFromBeat(array $beatShot, array $continuity, int $index, bool $sceneNeedsLipSync = false, int $sceneIndex = 0): array
     {
         $shotType = $beatShot['shotType'] ?? 'medium';
         $duration = $this->getClipDuration();
@@ -21193,7 +21195,7 @@ PROMPT;
 
         $shot['uniqueVisualDescription'] = $uniqueVisual;
         $shot['description'] = $uniqueVisual;
-        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot);
+        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
         $shot['prompt'] = $shot['imagePrompt'];
 
         // Video prompt - includes all story elements
@@ -21229,9 +21231,10 @@ PROMPT;
      *
      * @param array $shots Array of shot structures
      * @param float $threshold Similarity threshold (0-1). Shots above this are considered redundant.
+     * @param int $sceneIndex Scene index for character/location lookup
      * @return array Fixed shots with redundancy resolved
      */
-    protected function detectAndFixSimilarShots(array $shots, float $threshold = 0.7): array
+    protected function detectAndFixSimilarShots(array $shots, float $threshold = 0.7, int $sceneIndex = 0): array
     {
         if (count($shots) < 2) {
             return $shots;
@@ -21254,7 +21257,7 @@ PROMPT;
                     'currentType' => $currentShot['type'] ?? 'unknown',
                 ]);
 
-                $currentShot = $this->differentiateShotFromPrevious($currentShot, $previousShot, $i);
+                $currentShot = $this->differentiateShotFromPrevious($currentShot, $previousShot, $i, $sceneIndex);
             }
 
             $fixedShots[] = $currentShot;
@@ -21310,7 +21313,7 @@ PROMPT;
     /**
      * Differentiate a shot from its predecessor to avoid redundancy.
      */
-    protected function differentiateShotFromPrevious(array $shot, array $previousShot, int $index): array
+    protected function differentiateShotFromPrevious(array $shot, array $previousShot, int $index, int $sceneIndex = 0): array
     {
         // 1. Change shot type if same
         $previousType = $previousShot['type'] ?? 'medium';
@@ -21339,7 +21342,7 @@ PROMPT;
         }
 
         // 4. Rebuild prompts with new settings
-        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot);
+        $shot['imagePrompt'] = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
         $shot['prompt'] = $shot['imagePrompt'];
 
         // 5. Rebuild video prompt - includes all story elements
@@ -26413,7 +26416,7 @@ PROMPT;
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
                     // Use enhanced prompt with shot context (pass shot array directly)
-                    $enhancedPrompt = $this->buildEnhancedShotImagePrompt($shot);
+                    $enhancedPrompt = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
 
                     // =================================================================
                     // PHASE 3: Pass shot context for duplicate prevention
