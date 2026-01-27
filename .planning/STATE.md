@@ -10,33 +10,33 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** Phase 24 - Video Temporal Expansion (COMPLETE)
+**Current focus:** Phase 25 - Voice Prompt Enhancement (IN PROGRESS)
 
 ---
 
 ## Current Position
 
 **Milestone:** 11 (Hollywood-Quality Prompt Pipeline)
-**Phase:** 24 of 28 (Video Temporal Expansion)
-**Plan:** 4 of 4
-**Status:** Phase complete
+**Phase:** 25 of 28 (Voice Prompt Enhancement)
+**Plan:** 1 of 3
+**Status:** In progress
 
 ```
-Phase 24: ████████████████████████ 100% (4/4 plans complete)
+Phase 25: ████████░░░░░░░░░░░░░░░░ 33% (1/3 plans complete)
 ─────────────────────
-M11:      ████████░░░░ 48% (12/25 requirements)
+M11:      █████████░░░ 52% (13/25 requirements)
 ```
 
-**Last activity:** 2026-01-27 - Completed 24-04-PLAN.md (Video Temporal Integration)
+**Last activity:** 2026-01-27 - Completed 25-01-PLAN.md (VoiceDirectionVocabulary)
 
 ---
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12 (M11)
-- Average duration: 9.2 min
-- Total execution time: 110 min
+- Total plans completed: 13 (M11)
+- Average duration: 8.8 min
+- Total execution time: 114 min
 
 **By Phase:**
 
@@ -45,10 +45,11 @@ M11:      ████████░░░░ 48% (12/25 requirements)
 | 22 | 3/3 | 34 min | 11.3 min |
 | 23 | 4/4 | 42 min | 10.5 min |
 | 24 | 4/4 | 34 min | 8.5 min |
+| 25 | 1/3 | 4 min | 4.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 23-04 (8m), 24-01 (9m), 24-02 (9m), 24-03 (8m), 24-04 (8m)
-- Trend: Consistent (~8min average for Phase 24)
+- Last 5 plans: 24-01 (9m), 24-02 (9m), 24-03 (8m), 24-04 (8m), 25-01 (4m)
+- Trend: Fast vocabulary-only plan (25-01 at 4 min)
 
 *Updated after each plan completion*
 
@@ -107,6 +108,26 @@ Recent decisions affecting current work:
 - [24-04]: Emotion maps to psychology key for camera movement purpose
 - [24-04]: Transition setup stored in metadata (editorial info), not in main prompt
 - [24-04]: Prompt assembly: Camera -> Subject+Dynamics -> Beats -> Micro-movements -> Base
+- [25-01]: No FACS AU codes for TTS - research confirmed they don't work
+- [25-01]: ElevenLabs uses inline bracketed tags; OpenAI uses system instructions
+- [25-01]: 8 emotions aligned with CharacterPsychologyService (grief, anxiety, fear, contempt)
+- [25-01]: Provider-specific tags stored in separate array keys, not embedded
+
+### Phase 25 Progress
+
+**Phase 25: Voice Prompt Enhancement is IN PROGRESS (1/3 plans).**
+
+Delivered:
+1. 25-01: VoiceDirectionVocabulary - Emotional direction tags, vocal qualities, non-verbal sounds
+
+**VOC Requirements In Progress:**
+- VOC-01: Emotional direction tags [trembling], [whisper], [voice cracks] - COMPLETE
+- VOC-03: Vocal quality descriptions (gravelly, exhausted, breathless) - COMPLETE
+- VOC-05: Breath and non-verbal sound markers [sighs], [gasps], [stammers] - COMPLETE
+
+Remaining plans:
+- 25-02: VoicePacingService (pacing, pauses, rhythm)
+- 25-03: VoicePromptBuilder integration
 
 ### Phase 24 Progress
 
@@ -144,9 +165,23 @@ None currently.
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 24-04-PLAN.md (Video Temporal Integration)
+Stopped at: Completed 25-01-PLAN.md (VoiceDirectionVocabulary)
 Resume file: None
-Next step: Begin Phase 25 (Voice Production Excellence) or other M11 work
+Next step: Execute 25-02-PLAN.md (VoicePacingService)
+
+---
+
+## Phase 25 Artifacts (IN PROGRESS)
+
+- `.planning/phases/25-voice-prompt-enhancement/25-RESEARCH.md`
+- `.planning/phases/25-voice-prompt-enhancement/25-01-PLAN.md` (VoiceDirectionVocabulary) - COMPLETE
+- `.planning/phases/25-voice-prompt-enhancement/25-01-SUMMARY.md`
+- `.planning/phases/25-voice-prompt-enhancement/25-02-PLAN.md` (VoicePacingService) - PENDING
+- `.planning/phases/25-voice-prompt-enhancement/25-03-PLAN.md` (VoicePromptBuilder Integration) - PENDING
+
+Key Files Created (Phase 25):
+- `modules/AppVideoWizard/app/Services/VoiceDirectionVocabulary.php`
+- `tests/Unit/VideoWizard/VoiceDirectionVocabularyTest.php`
 
 ---
 
