@@ -26500,7 +26500,7 @@ PROMPT;
                         'id' => $shot['id'],
                         'visualDescription' => $enhancedPrompt,
                     ], array_merge([
-                        'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                        'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
                         'sceneIndex' => $sceneIndex,
                         // Shot-specific context for StructuredPromptBuilder
                         'shot_type' => $shot['type'] ?? 'medium',
@@ -26915,7 +26915,7 @@ PROMPT;
 
                             // Build options for image generation
                             $generationOptions = [
-                                'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                                'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
                                 'sceneIndex' => $sceneIndex,
                                 'shot_type' => $shotType,
                                 'shot_index' => $shotIndex,
@@ -27252,7 +27252,7 @@ PROMPT;
                     'id' => "collage_{$sceneIndex}_page_{$pageIndex}_region_{$regionIdx}",
                     'visualDescription' => $shotPrompt,
                 ], [
-                    'model' => $this->storyboard['imageModel'] ?? 'hidream',
+                    'model' => $this->storyboard['imageModel'] ?? 'nanobanana-pro',
                     'sceneIndex' => $sceneIndex,
                     'teamId' => session('current_team_id', 0),
                     'sceneMemory' => $this->sceneMemory,
