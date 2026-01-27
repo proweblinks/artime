@@ -1215,6 +1215,13 @@ class VideoWizard extends Component
      */
     public bool $autoProceedEnabled = false;
 
+    /**
+     * Hollywood prompt expansion toggle state.
+     * When true, complex shots route through LLM for AI-enhanced prompts.
+     * When false, all shots use template-only prompts (faster but less detailed).
+     */
+    public bool $hollywoodExpansionEnabled = true;
+
     // Storyboard Pagination (Performance optimization for 45+ scenes)
     public int $storyboardPage = 1;
     public int $storyboardPerPage = 12;
@@ -2136,11 +2143,15 @@ class VideoWizard extends Component
             // PHASE 3: Ensure Hollywood features are enabled by default
             $this->ensureHollywoodSettingsExist();
 
+            // Load Hollywood expansion setting
+            $this->hollywoodExpansionEnabled = (bool) VwSetting::getValue('hollywood_expansion_enabled', true);
+
             // Log that settings were loaded (helpful for debugging)
             Log::debug('VideoWizard: Dynamic settings loaded', [
                 'defaultShotCount' => $this->multiShotMode['defaultShotCount'],
                 'autoDecompose' => $this->multiShotMode['autoDecompose'],
                 'ttsProvider' => $this->activeTtsProvider,
+                'hollywoodExpansionEnabled' => $this->hollywoodExpansionEnabled,
             ]);
         } catch (\Throwable $e) {
             // If VwSetting table doesn't exist yet, use defaults
@@ -18931,6 +18942,29 @@ PROMPT;
     {
         $this->multiShotMode['enabled'] = !$this->multiShotMode['enabled'];
         $this->saveProject();
+    }
+
+    /**
+     * Toggle Hollywood prompt expansion setting.
+     * When disabled, all shots use template-only prompts (faster but less detailed).
+     * When enabled, complex shots get AI-enhanced Hollywood-quality prompts.
+     */
+    public function toggleHollywoodExpansion(): void
+    {
+        $this->hollywoodExpansionEnabled = !$this->hollywoodExpansionEnabled;
+
+        // Persist to database
+        VwSetting::setValue('hollywood_expansion_enabled', $this->hollywoodExpansionEnabled ? 'true' : 'false');
+
+        // Clear cache to ensure new setting takes effect
+        VwSetting::clearCache();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $this->hollywoodExpansionEnabled
+                ? __('Hollywood expansion enabled - AI-enhanced prompts for complex shots')
+                : __('Hollywood expansion disabled - using template prompts for faster generation'),
+        ]);
     }
 
     /**
