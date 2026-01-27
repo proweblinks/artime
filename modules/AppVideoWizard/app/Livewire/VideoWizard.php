@@ -963,6 +963,10 @@ class VideoWizard extends Component
     #[Locked]
     public array $voiceContinuityValidation = [];
 
+    // VOC-08: Voice continuity issues for UI display
+    // Stores voice drift warnings detected by VoiceContinuityValidator
+    public array $voiceContinuityIssues = [];
+
     /**
      * Voice registry service for centralized voice assignment tracking (Phase 17).
      * Initialized at start of decomposeAllScenes().
@@ -2600,6 +2604,9 @@ class VideoWizard extends Component
 
             // PHASE 5: Initialize emotional arc data from loaded scenes
             $this->updateEmotionalArcData();
+
+            // Validate voice continuity on load (VOC-08)
+            $this->validateVoiceContinuityForUI();
         }
 
         // Initialize save hash to prevent redundant save after loading
@@ -18294,6 +18301,9 @@ EOT;
         // Validate continuity
         $this->validateSceneContinuity();
 
+        // Validate voice continuity after scene generation (VOC-08)
+        $this->validateVoiceContinuityForUI();
+
         Log::debug('SceneDNA: Built unified scene data', [
             'totalScenes' => $totalScenes,
             'scenesWithCharacters' => count(array_filter($sceneDNAData, fn($s) => $s['characterCount'] > 0)),
@@ -18624,6 +18634,50 @@ EOT;
             Log::debug('SceneDNA: Continuity issues detected', [
                 'issueCount' => count($issues),
                 'types' => array_count_values(array_column($issues, 'type')),
+            ]);
+        }
+    }
+
+    /**
+     * Validate voice continuity across scenes and store issues for UI display (VOC-08).
+     * Uses VoiceContinuityValidator service to detect voice drift between scenes.
+     *
+     * @return void
+     */
+    public function validateVoiceContinuityForUI(): void
+    {
+        $scenes = $this->sceneMemory['scenes'] ?? [];
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+
+        if (count($scenes) < 2) {
+            $this->voiceContinuityIssues = [];
+            return;
+        }
+
+        $validator = app(\Modules\AppVideoWizard\Services\Voice\VoiceContinuityValidator::class);
+        $result = $validator->validateAllScenes($scenes, $characterBible);
+
+        // Extract only warnings (voice drift issues) for user display
+        $warnings = [];
+        foreach ($result['sceneIssues'] as $sceneIssue) {
+            foreach ($sceneIssue['issues'] as $issue) {
+                if ($issue['type'] === \Modules\AppVideoWizard\Services\Voice\VoiceContinuityValidator::ISSUE_VOICE_DRIFT) {
+                    $warnings[] = [
+                        'message' => $issue['message'],
+                        'character' => $issue['character'],
+                        'fromScene' => $sceneIssue['fromSceneId'],
+                        'toScene' => $sceneIssue['toSceneId'],
+                    ];
+                }
+            }
+        }
+
+        $this->voiceContinuityIssues = $warnings;
+
+        if (!empty($warnings)) {
+            Log::warning('VideoWizard: Voice continuity issues detected (VOC-08)', [
+                'project_id' => $this->project?->id,
+                'issueCount' => count($warnings),
             ]);
         }
     }
