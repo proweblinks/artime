@@ -1,6 +1,15 @@
 # Video Wizard Development Roadmap
 
-## Milestone 11.1: Voice Production Excellence
+## Milestone 11.2: Prompt Pipeline Integration
+
+**Target:** Wire comprehensive prompts to shot generation, add voice prompt display, fix default model
+**Status:** In Progress (2026-01-27)
+**Total requirements:** 4 (PPL-01 through PPL-04)
+**Phases:** 29
+
+---
+
+## Milestone 11.1: Voice Production Excellence (COMPLETE)
 
 **Target:** Complete voice production pipeline with registry, continuity validation, and multi-speaker support
 **Status:** Complete (2026-01-27)
@@ -16,6 +25,38 @@ Voice Production Excellence completes the Hollywood-Quality Prompt Pipeline by a
 ---
 
 ## Phase Overview
+
+| Phase | Name | Goal | Requirements | Success Criteria |
+|-------|------|------|--------------|------------------|
+| 29 | Prompt Pipeline Integration | Shot prompts include full Character/Location DNA, voice prompts displayed, quality defaults | PPL-01, PPL-02, PPL-03, PPL-04 | 4 |
+
+**Total:** 1 phase | 4 requirements | 4 success criteria
+
+---
+
+## Phase 29: Prompt Pipeline Integration
+
+**Goal:** Shot prompts include full Character/Location DNA, voice prompts displayed in UI, nanobanana-pro default
+
+**Status:** Not started
+
+**Plans:** TBD (pending /gsd:plan-phase 29)
+
+**Requirements:**
+- PPL-01: Shot prompts include Character DNA (character descriptions from Scene Memory)
+- PPL-02: Shot prompts include Location DNA (location details from Scene Memory)
+- PPL-03: Voice prompt displayed in Shot Preview modal
+- PPL-04: Default image model is nanobanana-pro (3 tokens)
+
+**Success Criteria** (what must be TRUE):
+1. Shot Preview IMAGE PROMPT shows full prompt with CHARACTERS and LOCATION sections
+2. Shot Preview has VOICE PROMPT section showing narration/dialogue and emotional direction
+3. New projects default to nanobanana-pro model
+4. Images generated are visually richer and story-specific
+
+---
+
+## Phase Overview (M11.1 - Complete)
 
 | Phase | Name | Goal | Requirements | Success Criteria |
 |-------|------|------|--------------|------------------|
@@ -69,17 +110,18 @@ Plans:
 
 | Phase | Status | Requirements | Success Criteria |
 |-------|--------|--------------|------------------|
+| Phase 29: Prompt Pipeline Integration | Not started | PPL-01 through PPL-04 (4) | 0/4 |
 | Phase 28: Voice Production Excellence | Complete | VOC-07 through VOC-12 (6) | 4/4 |
 
 **Overall Progress:**
 
 ```
-Phase 28: ██████████ 100%
+Phase 29: ░░░░░░░░░░ 0%
 ─────────────────────
-M11.1:    ██████████ 100% (6/6 requirements)
+M11.2:    ░░░░░░░░░░ 0% (0/4 requirements)
 ```
 
-**Coverage:** 6/6 requirements mapped (100%)
+**Coverage:** 4/4 requirements mapped (100%)
 
 ---
 
@@ -89,21 +131,21 @@ M11.1:    ██████████ 100% (6/6 requirements)
 Phase 25 (Voice Prompt Enhancement) [v11 - SHIPPED]
     |
     v
-Phase 28 (Voice Production Excellence)
+Phase 28 (Voice Production Excellence) [M11.1 - COMPLETE]
     |
-    +-- Plan 01 (Wave 1): Voice Registry Persistence
-    +-- Plan 02 (Wave 1): Emotion Preview UI
+    v
+Phase 29 (Prompt Pipeline Integration) [M11.2 - IN PROGRESS]
     |
-    +-- Plan 03 (Wave 2): VoiceContinuityValidator
-    +-- Plan 04 (Wave 2): VoicePromptBuilder Integration
-    |
-    +-- Plan 05 (Wave 3): MultiSpeakerDialogueBuilder
+    +-- PPL-01: Character DNA in shot prompts
+    +-- PPL-02: Location DNA in shot prompts
+    +-- PPL-03: Voice prompt display in Shot Preview
+    +-- PPL-04: Default to nanobanana-pro
 ```
 
-Phase 28 builds on Phase 25's VoicePromptBuilderService.
+Phase 29 wires existing services to UI display and fixes defaults.
 
 ---
 
-*Milestone 11.1 roadmap created: 2026-01-27*
-*Phase 28 planned: 2026-01-27 (5 plans, 3 waves)*
-*Source: .planning/phases/28-voice-production-excellence/28-CONTEXT.md*
+*Milestone 11.1 completed: 2026-01-27*
+*Milestone 11.2 started: 2026-01-27*
+*Phase 29 context: .planning/phases/29-prompt-pipeline-integration/29-CONTEXT.md*
