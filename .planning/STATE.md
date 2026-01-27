@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-28
-> Session: Phase 22 Plan 01 Complete
+> Session: Phase 22 Plan 03 Complete
 
 ---
 
@@ -17,34 +17,47 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 ## Current Position
 
 **Milestone:** v10 (Livewire Performance Architecture) — In Progress
-**Phase:** 22 (Cinematic Storytelling Research) — In Progress
-**Plan:** 1 of 3 complete
-**Status:** Plan 22-01 complete, ready for Plan 22-02
+**Phase:** 22 (Cinematic Storytelling Research) — Complete
+**Plan:** 3 of 3 complete
+**Status:** Phase 22 complete, all cinematic storytelling features implemented
 
 ```
 Phase 19:   xxxxxxxxxx 100% (4/4 plans complete)
 Phase 20:   xxxxxxxxxx 100% (3/3 plans complete)
 Phase 21:   xx........ 20% (2/? plans complete)
-Phase 22:   xxx....... 33% (1/3 plans complete)
+Phase 22:   xxxxxxxxxx 100% (3/3 plans complete)
 ---------------------
 v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 ```
 
-**Last activity:** 2026-01-28 - Completed 22-01-PLAN.md (anti-portrait negative prompts)
+**Last activity:** 2026-01-28 - Completed 22-03-PLAN.md (action verb library)
 
 ---
 
-## What Shipped (Phase 22 Plan 01)
+## What Shipped (Phase 22 Complete)
 
 **Plan 01 - Anti-Portrait Negative Prompts:**
 - getAntiPortraitNegativePrompts() method with 14 anti-portrait terms
 - buildNegativePrompt() helper combining user + anti-portrait prompts
 - All 5 image generation call sites updated to use centralized method
 
+**Plan 02 - Environmental Storytelling (Gaze Directions):**
+- GAZE_TEMPLATES constant with shot-specific gaze directions
+- getGazeDirectionForShot() method for explicit gaze control
+- Integration into buildStoryVisualContent() prompt building
+
+**Plan 03 - Dynamic Action Poses:**
+- ACTION_VERBS constant with 17 mood categories and 70+ verb phrases
+- getActionVerbForScene() method with intelligent mood matching
+- enhanceStoryAction() integration for narrative frame generation
+
 **Files modified:**
 - modules/AppVideoWizard/app/Livewire/VideoWizard.php
 
-**Key outcome:** All generated shots now include anti-portrait negative prompts, preventing AI models from defaulting to portrait-style images with characters looking at camera.
+**Key outcome:** Three-layer cinematic prompt enhancement preventing portrait-style AI generation:
+1. Anti-portrait negative prompts prevent camera gaze
+2. Gaze direction templates specify where characters look
+3. Action verbs transform static descriptions into narrative moments
 
 ---
 
@@ -80,16 +93,24 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 | 2026-01-28 | 22-01 | Anti-portrait prompts always appended, never replace user prompts |
 | 2026-01-28 | 22-01 | 14 anti-portrait terms from research document       |
 | 2026-01-28 | 22-01 | Centralized buildNegativePrompt() for DRY principle |
+| 2026-01-28 | 22-02 | GAZE_TEMPLATES defines gaze per shot type           |
+| 2026-01-28 | 22-02 | Empty gaze for environment/POV shots (no subject)   |
+| 2026-01-28 | 22-03 | 17 mood categories for action verb variation        |
+| 2026-01-28 | 22-03 | variationIndex ensures different actions per shot   |
+| 2026-01-28 | 22-03 | Dynamic verb detection prevents double-verbing      |
 
 ### Architecture Context
 
-**VideoWizard.php stats (after Phase 22 Plan 01):**
-- ~31,000 lines (added anti-portrait methods)
+**VideoWizard.php stats (after Phase 22 Complete):**
+- ~31,500 lines (added cinematic storytelling features)
 - 7 wizard steps in single component
 - Character/Location Bible methods now in traits
 - Both CharacterBibleModal and LocationBibleModal extracted as child components
 - Dual-mode data access: normalized tables + JSON fallback
-- Anti-portrait negative prompts on all image generation
+- Three-layer cinematic prompt enhancement:
+  - Anti-portrait negative prompts
+  - Gaze direction templates
+  - Action verb injection
 
 **Phase 20 complete:**
 - Plan 01: Bible trait extraction (DONE)
@@ -102,10 +123,10 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 - PERF-06: WizardScene, WizardShot models + migration command complete
 - PERF-07: Lazy loading pending (requires lazy-loaded scene card components)
 
-**Phase 22 progress:**
+**Phase 22 complete:**
 - Plan 01: Anti-portrait negative prompts (DONE)
-- Plan 02: Environmental storytelling (direction-based camera angles) - NEXT
-- Plan 03: Dynamic action poses (verb-based action terms) - PENDING
+- Plan 02: Environmental storytelling / gaze directions (DONE)
+- Plan 03: Dynamic action poses / verb library (DONE)
 
 ### Pending Todos
 
@@ -124,19 +145,19 @@ None.
 
 ### Roadmap Evolution
 
-- Phase 22 Cinematic Storytelling Research in progress
+- Phase 22 Cinematic Storytelling Research COMPLETE
   - Plan 01: Anti-portrait negative prompts (COMPLETE)
-  - Plan 02: Environmental storytelling (NEXT)
-  - Plan 03: Dynamic action poses (PENDING)
+  - Plan 02: Environmental storytelling / gaze directions (COMPLETE)
+  - Plan 03: Dynamic action poses / verb library (COMPLETE)
 
 ---
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 22-01-PLAN.md (anti-portrait negative prompts)
+Stopped at: Completed 22-03-PLAN.md (action verb library)
 Resume file: None
-Next step: Execute Plan 22-02 (environmental storytelling)
+Next step: Phase 21 PERF-07 (lazy loading) or next milestone planning
 
 ---
 
@@ -150,5 +171,5 @@ Phase directories in `.planning/phases/`:
 - 19-quick-wins/ (v10 Phase 19 - complete)
 - 20-component-splitting/ (v10 Phase 20 - complete)
 - 21-data-normalization/ (v10 Phase 21 - in progress)
-- 22-cinematic-storytelling-research/ (Phase 22 - in progress)
+- 22-cinematic-storytelling-research/ (Phase 22 - complete)
 - 22-* through 29.1-* (v11, M11.1, M11.2)
