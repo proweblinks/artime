@@ -145,6 +145,9 @@ Recent decisions affecting current work:
 - [27-01]: Cache key uses MD5 hash of shot data + Bible context
 - [27-01]: Template-only results NOT cached (fast enough already)
 - [27-01]: Hollywood expansion toggle defaults to true (expansion enabled)
+- [27-02]: Accordion pattern: expanded prompt visible by default, toggle reveals original
+- [27-02]: Metadata passthrough via project attributes (_lastExpandedPrompt, _lastExpansionMethod)
+- [27-02]: Responsive breakpoint at 1200px for side-by-side layout
 - [27-03]: Toggle placed before Multi-Shot Mode for visibility in settings flow
 - [27-03]: AI badge distinguishes Hollywood expansion from PRO features
 - [27-03]: Helper text changes dynamically based on toggle state
@@ -155,14 +158,14 @@ Recent decisions affecting current work:
 
 Delivered:
 1. 27-01: Prompt Caching & Toggle - Cache-aside pattern for LLM prompts with VwSetting toggle
-2. 27-02: Skeleton Loading & Progressive Enhancement - (skipped per wave execution)
+2. 27-02: Prompt Comparison UI - Accordion component for before/after prompt comparison in shot cards
 3. 27-03: Hollywood Expansion Toggle UI - User-facing toggle in storyboard settings sidebar
 
 **PERF Requirements Progress:**
 - PERF-01: Prompt caching layer - COMPLETE
 - PERF-02: Expansion toggle setting - COMPLETE
-- PERF-03: Skeleton loading states - SKIPPED (27-02)
-- PERF-04: Progressive enhancement - SKIPPED (27-02)
+- PERF-03: Prompt comparison view - COMPLETE (27-02: word counts, expansion ratio, responsive layout)
+- PERF-04: Expansion method badge - COMPLETE (27-02: AI or Template indicator)
 - PERF-05: UI polish (toggle UI) - COMPLETE
 
 ### Phase 26 Progress
@@ -245,18 +248,21 @@ Next step: Phase 28 - Voice Production Excellence
 - `.planning/phases/27-ui-performance-polish/27-CONTEXT.md`
 - `.planning/phases/27-ui-performance-polish/27-01-PLAN.md` (Prompt Caching & Toggle) - COMPLETE
 - `.planning/phases/27-ui-performance-polish/27-01-SUMMARY.md`
-- `.planning/phases/27-ui-performance-polish/27-02-PLAN.md` (Skeleton Loading) - SKIPPED
+- `.planning/phases/27-ui-performance-polish/27-02-PLAN.md` (Prompt Comparison UI) - COMPLETE
+- `.planning/phases/27-ui-performance-polish/27-02-SUMMARY.md`
 - `.planning/phases/27-ui-performance-polish/27-03-PLAN.md` (Hollywood Expansion Toggle UI) - COMPLETE
 - `.planning/phases/27-ui-performance-polish/27-03-SUMMARY.md`
 
 Key Files Created (Phase 27):
 - `modules/AppVideoWizard/database/migrations/2026_01_27_000001_add_hollywood_expansion_setting.php`
+- `modules/AppVideoWizard/resources/views/livewire/partials/prompt-comparison.blade.php`
 
 Key Files Modified (Phase 27):
 - `modules/AppVideoWizard/app/Services/StructuredPromptBuilderService.php` (caching, toggle check)
 - `modules/AppVideoWizard/database/seeders/VwSettingSeeder.php` (hollywood_expansion_enabled)
-- `modules/AppVideoWizard/app/Livewire/VideoWizard.php` (hollywoodExpansionEnabled property, toggle method)
-- `modules/AppVideoWizard/resources/views/livewire/steps/storyboard.blade.php` (toggle UI)
+- `modules/AppVideoWizard/app/Livewire/VideoWizard.php` (hollywoodExpansionEnabled, expansion metadata)
+- `modules/AppVideoWizard/resources/views/livewire/steps/storyboard.blade.php` (toggle UI, prompt comparison)
+- `modules/AppVideoWizard/app/Services/ImageGenerationService.php` (expansion metadata passthrough)
 
 ---
 
