@@ -9368,6 +9368,73 @@ PROMPT;
     }
 
     /**
+     * Preview character voice with emotional direction applied (VOC-12).
+     *
+     * Allows users to hear how a character voice sounds with different emotional
+     * directions (trembling, whisper, etc.) before finalizing their selection.
+     *
+     * @param int $characterIndex Character index in characterBible
+     * @param string|null $emotion Emotion to apply (from VoiceDirectionVocabulary)
+     */
+    public function previewVoiceWithEmotion(int $characterIndex, ?string $emotion = null): void
+    {
+        $character = $this->sceneMemory['characterBible']['characters'][$characterIndex] ?? null;
+        if (!$character) {
+            $this->error = __('Character not found');
+            return;
+        }
+
+        $voiceId = $character['voice']['id'] ?? $this->getDefaultVoiceForCharacter($character);
+        $sampleText = __('Hello, this is how I sound with :emotion emotion.', [
+            'emotion' => $emotion ?: 'neutral'
+        ]);
+
+        try {
+            // Apply emotional direction if specified
+            if ($emotion) {
+                $promptBuilder = app(\Modules\AppVideoWizard\Services\VoicePromptBuilderService::class);
+                $segment = new SpeechSegment([
+                    'text' => $sampleText,
+                    'emotion' => $emotion,
+                    'type' => SpeechSegment::TYPE_DIALOGUE,
+                ]);
+
+                $enhanced = $promptBuilder->buildEnhancedVoicePrompt($segment, [
+                    'provider' => app(VoiceoverService::class)->getActiveProvider(),
+                ]);
+
+                $sampleText = $enhanced['text'];
+            }
+
+            $voiceoverService = app(VoiceoverService::class);
+            $audioData = $voiceoverService->previewVoice($voiceId, $sampleText);
+            $this->dispatch('play-audio-preview', audioData: $audioData);
+
+        } catch (\Exception $e) {
+            Log::error('Voice preview with emotion failed (VOC-12)', [
+                'character' => $character['name'] ?? 'unknown',
+                'emotion' => $emotion,
+                'error' => $e->getMessage(),
+            ]);
+            $this->error = __('Failed to preview voice: :error', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get default voice ID for a character based on their gender.
+     *
+     * @param array $character Character data
+     * @return string Voice ID
+     */
+    protected function getDefaultVoiceForCharacter(array $character): string
+    {
+        $gender = strtolower($character['gender'] ?? $character['voice']['gender'] ?? '');
+        if (str_contains($gender, 'female')) return 'nova';
+        if (str_contains($gender, 'male')) return 'onyx';
+        return 'alloy';
+    }
+
+    /**
      * Apply a complete look preset to a character (hair, wardrobe, makeup, accessories).
      * These presets ensure Hollywood-level visual consistency.
      */
