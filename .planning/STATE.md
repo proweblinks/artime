@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-28
-> Session: Phase 22 Plan 03 Complete
+> Session: Phase 23 Plan 01 Complete
 
 ---
 
@@ -10,60 +10,49 @@
 See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Core value:** Automatic, effortless, Hollywood-quality output from button clicks
-**Current focus:** v10 Livewire Performance (Phases 20-21) + Phase 22 Cinematic Storytelling
+**Current focus:** v10 Livewire Performance (Phases 20-21) + Phase 23 Scene-Level Shot Continuity
 
 ---
 
 ## Current Position
 
 **Milestone:** v10 (Livewire Performance Architecture) — In Progress
-**Phase:** 22 (Cinematic Storytelling Research) — Complete
-**Plan:** 3 of 3 complete
-**Status:** Phase 22 complete, all cinematic storytelling features implemented
+**Phase:** 23 (Scene-Level Shot Continuity) — In Progress
+**Plan:** 1 of ? complete
+**Status:** Plan 01 complete, Hollywood continuity integration implemented
 
 ```
 Phase 19:   xxxxxxxxxx 100% (4/4 plans complete)
 Phase 20:   xxxxxxxxxx 100% (3/3 plans complete)
 Phase 21:   xx........ 20% (2/? plans complete)
 Phase 22:   xxxxxxxxxx 100% (3/3 plans complete)
+Phase 23:   x......... 10% (1/? plans complete)
 ---------------------
 v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 ```
 
-**Last activity:** 2026-01-28 - Completed 22-03-PLAN.md (action verb library)
+**Last activity:** 2026-01-28 - Completed 23-01-PLAN.md (spatial enrichment + Hollywood continuity)
 
 ---
 
-## What Shipped (Phase 22 Complete)
+## What Shipped (Phase 23 Plan 01)
 
-**Plan 01 - Anti-Portrait Negative Prompts:**
-- getAntiPortraitNegativePrompts() method with 14 anti-portrait terms
-- buildNegativePrompt() helper combining user + anti-portrait prompts
-- All 5 image generation call sites updated to use centralized method
-
-**Plan 02 - Environmental Storytelling (Gaze Directions):**
-- GAZE_TEMPLATES constant with shot-specific gaze directions
-- getGazeDirectionForShot() method for explicit gaze control
-- Integration into buildStoryVisualContent() prompt building
-
-**Plan 03 - Dynamic Action Poses:**
-- ACTION_VERBS constant with 17 mood categories and 70+ verb phrases
-- getActionVerbForScene() method with intelligent mood matching
-- enhanceStoryAction() integration for narrative frame generation
+**Plan 01 - Spatial Enrichment + Hollywood Continuity Integration:**
+- enrichShotsWithSpatialData() method mapping eyeline to lookDirection/screenDirection
+- Replaced analyzeSequence() with analyzeHollywoodContinuity() in addContinuityAnalysis()
+- Scene type and progression type context passed to Hollywood analysis
+- Enriched shots preserved for downstream use
 
 **Files modified:**
-- modules/AppVideoWizard/app/Livewire/VideoWizard.php
+- modules/AppVideoWizard/app/Services/ShotIntelligenceService.php
 
-**Key outcome:** Three-layer cinematic prompt enhancement preventing portrait-style AI generation:
-1. Anti-portrait negative prompts prevent camera gaze
-2. Gaze direction templates specify where characters look
-3. Action verbs transform static descriptions into narrative moments
+**Key outcome:** Hollywood continuity methods (check180DegreeRule, checkEyelineMatch, checkMatchOnAction) can now function with properly enriched shot data
 
 ---
 
 ## Accumulated Context
 
-### Key Decisions (v10 Phase 19-22)
+### Key Decisions (v10 Phase 19-23)
 
 | Date       | Plan  | Decision                                            |
 |------------|-------|-----------------------------------------------------|
@@ -99,6 +88,10 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 | 2026-01-28 | 22-03 | 17 mood categories for action verb variation        |
 | 2026-01-28 | 22-03 | variationIndex ensures different actions per shot   |
 | 2026-01-28 | 22-03 | Dynamic verb detection prevents double-verbing      |
+| 2026-01-28 | 23-01 | Map eyeline to lookDirection (same values) for checkEyelineMatch() |
+| 2026-01-28 | 23-01 | Map eyeline to screenDirection (left_to_right/right_to_left/center) for check180DegreeRule() |
+| 2026-01-28 | 23-01 | Preserve enriched shots when auto-optimization doesn't trigger |
+| 2026-01-28 | 23-01 | Use analyzeHollywoodContinuity() instead of analyzeSequence() |
 
 ### Architecture Context
 
@@ -112,6 +105,12 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
   - Anti-portrait negative prompts
   - Gaze direction templates
   - Action verb injection
+
+**ShotIntelligenceService.php (after Phase 23 Plan 01):**
+- ~1995 lines
+- enrichShotsWithSpatialData() for field mapping
+- Hollywood continuity analysis integration
+- Spatial data preserved for downstream processing
 
 **Phase 20 complete:**
 - Plan 01: Bible trait extraction (DONE)
@@ -128,6 +127,9 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 - Plan 01: Anti-portrait negative prompts (DONE)
 - Plan 02: Environmental storytelling / gaze directions (DONE)
 - Plan 03: Dynamic action poses / verb library (DONE)
+
+**Phase 23 in progress:**
+- Plan 01: Spatial enrichment + Hollywood continuity integration (DONE)
 
 ### Pending Todos
 
@@ -150,15 +152,20 @@ None.
   - Plan 01: Anti-portrait negative prompts (COMPLETE)
   - Plan 02: Environmental storytelling / gaze directions (COMPLETE)
   - Plan 03: Dynamic action poses / verb library (COMPLETE)
+  - UAT: 1 passed, 4 skipped (individual shot quality verified)
+
+- Phase 23 Scene-Level Shot Continuity IN PROGRESS
+  - Plan 01: Spatial enrichment + Hollywood continuity integration (COMPLETE)
+  - Next: Additional plans for enhanced continuity features
 
 ---
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 22-03-PLAN.md (action verb library)
+Stopped at: Completed 23-01-PLAN.md
 Resume file: None
-Next step: Phase 21 PERF-07 (lazy loading) or next milestone planning
+Next step: Continue Phase 23 (additional continuity plans if any)
 
 ---
 
@@ -173,4 +180,5 @@ Phase directories in `.planning/phases/`:
 - 20-component-splitting/ (v10 Phase 20 - complete)
 - 21-data-normalization/ (v10 Phase 21 - in progress)
 - 22-cinematic-storytelling-research/ (Phase 22 - complete)
+- 23-scene-level-shot-continuity/ (Phase 23 - in progress)
 - 22-* through 29.1-* (v11, M11.1, M11.2)
