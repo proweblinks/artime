@@ -170,14 +170,15 @@ Plans:
 
 **Goal:** Connect existing ShotContinuityService Hollywood methods to shot generation pipeline by enriching shots with spatial metadata and wiring globalRules enforcement flags
 
-**Status:** Planned (2026-01-28)
+**Status:** In Progress (gap closure) — Plans 01-03 complete, Plan 04 in progress
 
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] 23-01-PLAN.md — Shot data enrichment + Hollywood continuity integration
-- [ ] 23-02-PLAN.md — GlobalRules wiring from VideoWizard to ShotIntelligenceService
-- [ ] 23-03-PLAN.md — Enforcement-aware Hollywood analysis in ShotContinuityService
+- [x] 23-01-PLAN.md — Shot data enrichment + Hollywood continuity integration
+- [x] 23-02-PLAN.md — GlobalRules wiring from VideoWizard to ShotIntelligenceService
+- [x] 23-03-PLAN.md — Enforcement-aware Hollywood analysis in ShotContinuityService
+- [ ] 23-04-PLAN.md — Gap closure: Wire DynamicShotEngine path to ShotIntelligenceService
 
 **Dependencies:** Phase 22 complete (individual shot quality must work before scene-level continuity)
 
@@ -194,18 +195,23 @@ Plans:
 **Success Criteria** (what must be TRUE):
 1. Sequential shots maintain spatial consistency (180-degree rule)
 2. Eyelines match across cuts in dialogue scenes
-3. Shot progression follows intentional rhythm (wide→medium→close for tension build)
+3. Shot progression follows intentional rhythm (wide to medium to close for tension build)
 4. Action started in one shot continues logically in the next
 
 **Wave Structure:**
 - Wave 1: Plan 01 (data enrichment + Hollywood method call - foundation)
 - Wave 2: Plans 02, 03 (globalRules wiring + enforcement options - parallel, both depend on 01)
+- Wave 3: Plan 04 (gap closure - wires DynamicShotEngine path to continuity analysis)
+
+**Gap Closure (from VERIFICATION.md):**
+Plans 01-03 implemented all Hollywood continuity logic correctly, but in a code path (ShotIntelligenceService::analyzeScene) that isn't used. The active path (decomposeSceneWithDynamicEngine) uses DynamicShotEngine directly. Plan 04 adds post-processing to wire DynamicShotEngine shots through ShotIntelligenceService continuity analysis.
 
 **Implementation Pattern:**
-- Add `enrichShotsWithSpatialData()` method to map eyeline → lookDirection/screenDirection
+- Add `enrichShotsWithSpatialData()` method to map eyeline to lookDirection/screenDirection
 - Change `addContinuityAnalysis()` to call `analyzeHollywoodContinuity()` instead of `analyzeSequence()`
 - Pass globalRules from VideoWizard storyBible through to continuity analysis
 - Make Hollywood checks conditional based on enforcement flags
+- Add public `applyContinuityAnalysis()` wrapper for external callers (Plan 04)
 
 **Key Insight:**
 No new algorithms needed. Over 1,400 lines of continuity logic already exists in ShotContinuityService. The work is connecting data flow and calling the right methods.
@@ -239,7 +245,7 @@ No new algorithms needed. Over 1,400 lines of continuity logic already exists in
 | Phase 20: Component Splitting | Complete | PERF-05, PERF-04 (partial) | 4/4 |
 | Phase 21: Data Normalization | Planned | PERF-06, PERF-07 | 0/4 |
 | Phase 22: Cinematic Storytelling | Complete | QUAL-01 | 4/4 |
-| Phase 23: Shot Continuity | Planned | QUAL-02 | 0/4 |
+| Phase 23: Shot Continuity | In Progress | QUAL-02 | 3/4 (gap closure) |
 
 **Overall Progress:**
 
@@ -248,7 +254,7 @@ Phase 19:   ██████████ 100%
 Phase 20:   ██████████ 100%
 Phase 21:   ░░░░░░░░░░ 0%
 Phase 22:   ██████████ 100%
-Phase 23:   ░░░░░░░░░░ 0%
+Phase 23:   ███████░░░ 75% (gap closure in progress)
 ─────────────────────────
 v10:        ███████░░░ 70% (7/10 requirements)
 ```
@@ -276,16 +282,17 @@ Phase 21 (Data Normalization) [PLANNED]
 
 Phase 22 (Cinematic Storytelling) [COMPLETE] -- Independent track
     |
-    +-- Wave 1: Plan 01 - Anti-portrait negatives (LOW RISK) ✓
-    +-- Wave 2: Plan 02 - Gaze templates (LOW RISK) ✓
-    +-- Wave 2: Plan 03 - Action verbs (LOW RISK) ✓
+    +-- Wave 1: Plan 01 - Anti-portrait negatives (LOW RISK)
+    +-- Wave 2: Plan 02 - Gaze templates (LOW RISK)
+    +-- Wave 2: Plan 03 - Action verbs (LOW RISK)
     |
     v
-Phase 23 (Shot Continuity) [PLANNED] -- Builds on Phase 22
+Phase 23 (Shot Continuity) [IN PROGRESS] -- Builds on Phase 22
     |
-    +-- Wave 1: Plan 01 - Data enrichment + Hollywood integration (LOW RISK)
-    +-- Wave 2: Plan 02 - GlobalRules wiring (LOW RISK)
-    +-- Wave 2: Plan 03 - Enforcement options (LOW RISK)
+    +-- Wave 1: Plan 01 - Data enrichment + Hollywood integration (LOW RISK) [DONE]
+    +-- Wave 2: Plan 02 - GlobalRules wiring (LOW RISK) [DONE]
+    +-- Wave 2: Plan 03 - Enforcement options (LOW RISK) [DONE]
+    +-- Wave 3: Plan 04 - Gap closure: Wire active path (LOW RISK) [IN PROGRESS]
     |
     v
 Phase 24+ (Deferred)
@@ -299,5 +306,5 @@ Phase 24+ (Deferred)
 *Phase 20 completed: 2026-01-27*
 *Phase 21 planned: 2026-01-27*
 *Phase 22 completed: 2026-01-28*
-*Phase 23 planned: 2026-01-28*
+*Phase 23 gap closure: 2026-01-28*
 *Phase 19 context: .planning/phases/19-quick-wins/19-VERIFICATION.md*
