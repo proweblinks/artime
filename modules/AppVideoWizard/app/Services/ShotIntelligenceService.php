@@ -1539,19 +1539,38 @@ Return ONLY valid JSON (no markdown, no explanation):
             return $analysis;
         }
 
-        // Analyze shot sequence for continuity
-        $shots = $analysis['shots'] ?? [];
-        $continuityResult = $this->continuityService->analyzeSequence($shots);
+        // PHASE 23: Enrich shots with spatial data before continuity analysis
+        // This maps eyeline to lookDirection/screenDirection for Hollywood continuity checks
+        $shots = $this->enrichShotsWithSpatialData($analysis['shots'] ?? []);
+
+        // PHASE 23: Use Hollywood continuity analysis instead of basic analyzeSequence
+        // This enables 180-degree rule, eyeline matching, and action continuity checks
+        $sceneType = $context['sceneType'] ?? VwSetting::getValue('shot_continuity_default_scene_type', 'dialogue');
+        $progressionType = $context['progressionType'] ?? 'building';
+
+        $continuityResult = $this->continuityService->analyzeHollywoodContinuity($shots, [
+            'sceneType' => $sceneType,
+            'progressionType' => $progressionType,
+        ]);
+
+        Log::debug('ShotIntelligenceService: Hollywood continuity analysis', [
+            'overall_score' => $continuityResult['overall'] ?? null,
+            'issues_count' => count($continuityResult['issues'] ?? []),
+            'scene_type' => $sceneType,
+        ]);
 
         // Add continuity data to analysis
         $analysis['continuity'] = $continuityResult;
 
+        // Track if auto-optimization replaced the shots
+        $wasOptimized = false;
+
         // If auto-optimize is enabled and score is low, try to optimize
+        $overallScore = $continuityResult['overall'] ?? $continuityResult['score'] ?? 100;
         if ($this->continuityService->isAutoOptimizationEnabled() &&
-            $continuityResult['score'] < 70 &&
+            $overallScore < 70 &&
             count($shots) > 1) {
 
-            $sceneType = $context['sceneType'] ?? VwSetting::getValue('shot_continuity_default_scene_type', 'dialogue');
             $optimized = $this->continuityService->optimizeSequence($shots, $sceneType);
 
             if ($optimized['improvement'] > 10) {
@@ -1563,6 +1582,7 @@ Return ONLY valid JSON (no markdown, no explanation):
                     'newScore' => $optimized['optimizedScore'],
                     'changes' => $optimized['changes'],
                 ];
+                $wasOptimized = true;
 
                 // Recalculate total duration
                 $totalDuration = 0;
@@ -1577,6 +1597,12 @@ Return ONLY valid JSON (no markdown, no explanation):
                     'changes_count' => count($optimized['changes']),
                 ]);
             }
+        }
+
+        // Store enriched shots back if auto-optimization didn't replace them
+        // This preserves the lookDirection/screenDirection fields for downstream use
+        if (!$wasOptimized) {
+            $analysis['shots'] = $shots;
         }
 
         return $analysis;
