@@ -18065,6 +18065,20 @@ PROMPT;
     {
         $totalScenes = count($this->script['scenes'] ?? []);
 
+        // PHASE 23: Extract globalRules from storyBible cinematography settings
+        // These flags control continuity enforcement (180-degree rule, eyeline match, match cuts)
+        $cinematography = $this->storyBible['cinematography'] ?? [];
+        $globalRules = $cinematography['globalRules'] ?? [];
+
+        // Ensure default values for continuity enforcement flags
+        $globalRulesWithDefaults = [
+            'enforce180Rule' => $globalRules['enforce180Rule'] ?? true,
+            'enforceEyeline' => $globalRules['enforceEyeline'] ?? true,
+            'enforceMatchCuts' => $globalRules['enforceMatchCuts'] ?? true,
+            'minShotVariety' => $globalRules['minShotVariety'] ?? 3,
+            'maxSimilarityThreshold' => $globalRules['maxSimilarityThreshold'] ?? 0.7,
+        ];
+
         return [
             // Scene positioning
             'sceneIndex' => $sceneIndex,
@@ -18087,6 +18101,10 @@ PROMPT;
 
             // Available durations from settings for DynamicShotEngine
             'availableDurations' => $this->getAvailableDurations('minimax'),
+
+            // PHASE 23: Continuity enforcement settings from storyBible
+            // These flow to ShotIntelligenceService for Hollywood continuity analysis
+            'globalRules' => $globalRulesWithDefaults,
         ];
     }
 
