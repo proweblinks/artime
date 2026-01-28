@@ -1,7 +1,7 @@
 # Video Wizard - Current State
 
 > Last Updated: 2026-01-28
-> Session: Phase 23 Plan 03 Complete
+> Session: Phase 23 Plan 02 Complete
 
 ---
 
@@ -18,8 +18,8 @@ See: .planning/PROJECT.md (updated 2026-01-27)
 
 **Milestone:** v10 (Livewire Performance Architecture) — In Progress
 **Phase:** 23 (Scene-Level Shot Continuity) — In Progress
-**Plan:** 3 of ? complete
-**Status:** Plan 03 complete, enforcement-aware Hollywood continuity analysis
+**Plan:** 3 of ? complete (01, 02, 03 done)
+**Status:** Plan 02 complete, globalRules flow from storyBible to continuity analysis
 
 ```
 Phase 19:   xxxxxxxxxx 100% (4/4 plans complete)
@@ -31,7 +31,24 @@ Phase 23:   xxx....... 30% (3/? plans complete)
 v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 ```
 
-**Last activity:** 2026-01-28 - Completed 23-03-PLAN.md (enforcement options for Hollywood continuity)
+**Last activity:** 2026-01-28 - Completed 23-02-PLAN.md (globalRules wired to shot generation context)
+
+---
+
+## What Shipped (Phase 23 Plan 02)
+
+**Plan 02 - Wire GlobalRules to Shot Generation Context:**
+- buildDecompositionContext() extracts globalRules from storyBible cinematography
+- Enforcement flags (enforce180Rule, enforceEyeline, enforceMatchCuts) passed via context
+- addContinuityAnalysis() respects globalRules when filtering continuity issues
+- Disabled rules do not produce warnings/issues
+- Enforcement status tracked in continuity result for transparency
+
+**Files modified:**
+- modules/AppVideoWizard/app/Livewire/VideoWizard.php
+- modules/AppVideoWizard/app/Services/ShotIntelligenceService.php
+
+**Key outcome:** Continuity enforcement now respects user settings in storyBible cinematography
 
 ---
 
@@ -108,6 +125,9 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 | 2026-01-28 | 23-01 | Map eyeline to screenDirection (left_to_right/right_to_left/center) for check180DegreeRule() |
 | 2026-01-28 | 23-01 | Preserve enriched shots when auto-optimization doesn't trigger |
 | 2026-01-28 | 23-01 | Use analyzeHollywoodContinuity() instead of analyzeSequence() |
+| 2026-01-28 | 23-02 | Default all enforcement flags to true (enforce by default) |
+| 2026-01-28 | 23-02 | Filter issues after analysis rather than skip analysis |
+| 2026-01-28 | 23-02 | Track enforcement settings in continuity result for transparency |
 | 2026-01-28 | 23-03 | Default all enforcement flags (enforce180Rule, enforceEyeline, enforceMatchCuts) to true |
 | 2026-01-28 | 23-03 | Skipped rules get null scores rather than 0 or 100 |
 | 2026-01-28 | 23-03 | Overall score uses weighted average normalized by actual weights used |
@@ -150,6 +170,7 @@ v10:        xxxxxxxx.. 85% (PERF-06 complete, PERF-07 pending)
 
 **Phase 23 in progress:**
 - Plan 01: Spatial enrichment + Hollywood continuity integration (DONE)
+- Plan 02: Wire globalRules to shot generation context (DONE)
 - Plan 03: Enforcement options for Hollywood continuity (DONE)
 
 ### Pending Todos
@@ -184,9 +205,9 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 23-03-PLAN.md
+Stopped at: Completed 23-02-PLAN.md
 Resume file: None
-Next step: Continue Phase 23 (additional continuity plans if any)
+Next step: Continue Phase 23 (Plans 01, 02, 03 complete)
 
 ---
 
