@@ -18700,6 +18700,35 @@ PROMPT;
         // Validate shot purposes for logical progression
         $shots = $this->validateShotPurposes($shots);
 
+        // ═══════════════════════════════════════════════════════════════════════════════
+        // PHASE 23: Apply Hollywood continuity analysis to DynamicShotEngine shots
+        // This connects the Phase 23 continuity implementation to the active code path
+        // ═══════════════════════════════════════════════════════════════════════════════
+        try {
+            $shotIntelligenceService = app(ShotIntelligenceService::class);
+            $continuityResult = $shotIntelligenceService->applyContinuityAnalysis($shots, $context);
+
+            // Use enriched shots with spatial data
+            $shots = $continuityResult['shots'];
+
+            // Store continuity analysis for UI display or debugging
+            $continuityAnalysis = $continuityResult['continuity'];
+
+            Log::info('VideoWizard: Hollywood continuity analysis applied', [
+                'scene_id' => $sceneId,
+                'shot_count' => count($shots),
+                'continuity_score' => $continuityAnalysis['overall'] ?? null,
+                'issues_count' => count($continuityAnalysis['issues'] ?? []),
+                'rules_enforced' => $continuityAnalysis['rulesEnforced'] ?? [],
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: Failed to apply continuity analysis', [
+                'scene_id' => $sceneId,
+                'error' => $e->getMessage(),
+            ]);
+            // Continue without continuity - shots still work, just without Hollywood checks
+        }
+
         Log::info('VideoWizard: Story beats applied to shots', [
             'scene_id' => $sceneId,
             'shot_count' => count($shots),
