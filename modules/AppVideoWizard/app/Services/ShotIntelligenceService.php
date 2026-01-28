@@ -1539,6 +1539,13 @@ Return ONLY valid JSON (no markdown, no explanation):
             return $analysis;
         }
 
+        // PHASE 23: Extract globalRules from context for continuity enforcement control
+        // These flags allow users to toggle specific Hollywood rules via storyBible
+        $globalRules = $context['globalRules'] ?? [];
+        $enforce180Rule = $globalRules['enforce180Rule'] ?? true;
+        $enforceEyeline = $globalRules['enforceEyeline'] ?? true;
+        $enforceMatchCuts = $globalRules['enforceMatchCuts'] ?? true;
+
         // PHASE 23: Enrich shots with spatial data before continuity analysis
         // This maps eyeline to lookDirection/screenDirection for Hollywood continuity checks
         $shots = $this->enrichShotsWithSpatialData($analysis['shots'] ?? []);
@@ -1548,15 +1555,45 @@ Return ONLY valid JSON (no markdown, no explanation):
         $sceneType = $context['sceneType'] ?? VwSetting::getValue('shot_continuity_default_scene_type', 'dialogue');
         $progressionType = $context['progressionType'] ?? 'building';
 
+        // Pass enforcement flags to Hollywood analysis for rule-aware checking
         $continuityResult = $this->continuityService->analyzeHollywoodContinuity($shots, [
             'sceneType' => $sceneType,
             'progressionType' => $progressionType,
+            'enforce180Rule' => $enforce180Rule,
+            'enforceEyeline' => $enforceEyeline,
+            'enforceMatchCuts' => $enforceMatchCuts,
         ]);
+
+        // PHASE 23: Filter issues based on enforcement flags
+        // If a rule is disabled, remove its issues from the result
+        // This allows the Hollywood methods to detect potential issues while respecting user settings
+        $issues = $continuityResult['issues'] ?? [];
+
+        if (!$enforce180Rule) {
+            $issues = array_filter($issues, fn($issue) => ($issue['type'] ?? '') !== '180_degree_rule');
+        }
+        if (!$enforceEyeline) {
+            $issues = array_filter($issues, fn($issue) => ($issue['type'] ?? '') !== 'eyeline_match');
+        }
+        if (!$enforceMatchCuts) {
+            $issues = array_filter($issues, fn($issue) => ($issue['type'] ?? '') !== 'match_on_action');
+        }
+
+        // Re-index array after filtering
+        $continuityResult['issues'] = array_values($issues);
+
+        // Track which rules are enforced for transparency
+        $continuityResult['enforcement'] = [
+            'enforce180Rule' => $enforce180Rule,
+            'enforceEyeline' => $enforceEyeline,
+            'enforceMatchCuts' => $enforceMatchCuts,
+        ];
 
         Log::debug('ShotIntelligenceService: Hollywood continuity analysis', [
             'overall_score' => $continuityResult['overall'] ?? null,
             'issues_count' => count($continuityResult['issues'] ?? []),
             'scene_type' => $sceneType,
+            'enforcement' => $continuityResult['enforcement'],
         ]);
 
         // Add continuity data to analysis
