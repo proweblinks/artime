@@ -963,6 +963,11 @@ class ShotContinuityService
         $sceneType = $options['sceneType'] ?? 'dialogue';
         $progressionType = $options['progressionType'] ?? 'building';
 
+        // Extract enforcement options (default to true for all rules)
+        $enforce180Rule = $options['enforce180Rule'] ?? true;
+        $enforceEyeline = $options['enforceEyeline'] ?? true;
+        $enforceMatchCuts = $options['enforceMatchCuts'] ?? true;
+
         $result = [
             'issues' => [],
             'suggestions' => [],
@@ -1011,43 +1016,56 @@ class ShotContinuityService
                 $compat = $this->checkShotCompatibility($prevShot, $shot);
                 $compatibilityScores[] = $compat['score'];
 
-                // 180-degree rule
-                $rule180 = $this->check180DegreeRule($prevShot, $shot);
-                if (!$rule180['valid']) {
-                    $rule180Issues++;
-                    $result['issues'][] = [
-                        'type' => '180_degree_rule',
-                        'position' => $i + 1,
-                        'message' => $rule180['message'],
-                        'suggestion' => $rule180['suggestion'],
-                    ];
+                // 180-degree rule (conditional)
+                if ($enforce180Rule) {
+                    $rule180 = $this->check180DegreeRule($prevShot, $shot);
+                    if (!$rule180['valid']) {
+                        $rule180Issues++;
+                        $result['issues'][] = [
+                            'type' => '180_degree_rule',
+                            'position' => $i + 1,
+                            'message' => $rule180['message'],
+                            'suggestion' => $rule180['suggestion'] ?? 'Maintain camera on same side of action line',
+                        ];
+                    }
                 }
 
-                // Match on action
-                $actionMatch = $this->checkMatchOnAction($prevShot, $shot);
-                if (!$actionMatch['valid']) {
-                    $actionIssues++;
-                    $result['issues'][] = [
-                        'type' => 'match_on_action',
-                        'position' => $i + 1,
-                        'message' => $actionMatch['message'],
-                        'suggestion' => $actionMatch['suggestion'],
-                    ];
+                // Match on action (conditional)
+                if ($enforceMatchCuts) {
+                    $actionMatch = $this->checkMatchOnAction($prevShot, $shot);
+                    if (!$actionMatch['valid']) {
+                        $actionIssues++;
+                        $result['issues'][] = [
+                            'type' => 'match_on_action',
+                            'position' => $i + 1,
+                            'message' => $actionMatch['message'],
+                            'suggestion' => $actionMatch['suggestion'],
+                        ];
+                    }
                 }
 
-                // Eyeline match
-                $eyeline = $this->checkEyelineMatch($prevShot, $shot);
-                if (!$eyeline['valid']) {
-                    $eyelineIssues++;
-                    $result['issues'][] = [
-                        'type' => 'eyeline_match',
-                        'position' => $i + 1,
-                        'message' => $eyeline['message'],
-                        'suggestion' => $eyeline['suggestion'],
-                    ];
+                // Eyeline match (conditional)
+                if ($enforceEyeline) {
+                    $eyeline = $this->checkEyelineMatch($prevShot, $shot);
+                    if (!$eyeline['valid']) {
+                        $eyelineIssues++;
+                        $result['issues'][] = [
+                            'type' => 'eyeline_match',
+                            'position' => $i + 1,
+                            'message' => $eyeline['message'],
+                            'suggestion' => $eyeline['suggestion'],
+                        ];
+                    }
                 }
             }
         }
+
+        // Track which rules were enforced
+        $rulesEnforced = [
+            '180DegreeRule' => $enforce180Rule,
+            'matchOnAction' => $enforceMatchCuts,
+            'eyelineMatch' => $enforceEyeline,
+        ];
 
         // Calculate scores
         $totalTransitions = max(1, count($shots) - 1);
@@ -1056,23 +1074,62 @@ class ShotContinuityService
             ? round(array_sum($compatibilityScores) / count($compatibilityScores))
             : 100;
 
-        $result['scores']['180DegreeRule'] = round(100 - ($rule180Issues / $totalTransitions * 100));
-        $result['scores']['matchOnAction'] = round(100 - ($actionIssues / $totalTransitions * 100));
-        $result['scores']['eyelineMatch'] = round(100 - ($eyelineIssues / $totalTransitions * 100));
+        // Adjust scores based on what was checked (null for skipped rules)
+        if (!$enforce180Rule) {
+            $result['scores']['180DegreeRule'] = null;  // Not checked, not counted
+        } else {
+            $result['scores']['180DegreeRule'] = round(100 - ($rule180Issues / $totalTransitions * 100));
+        }
+
+        if (!$enforceMatchCuts) {
+            $result['scores']['matchOnAction'] = null;  // Not checked, not counted
+        } else {
+            $result['scores']['matchOnAction'] = round(100 - ($actionIssues / $totalTransitions * 100));
+        }
+
+        if (!$enforceEyeline) {
+            $result['scores']['eyelineMatch'] = null;  // Not checked, not counted
+        } else {
+            $result['scores']['eyelineMatch'] = round(100 - ($eyelineIssues / $totalTransitions * 100));
+        }
+
         $result['scores']['energyProgression'] = !empty($energyScores)
             ? round(array_sum($energyScores) / count($energyScores))
             : 100;
 
-        // Overall weighted score
-        $result['overall'] = round(
-            $result['scores']['shotCompatibility'] * 0.25 +
-            $result['scores']['30DegreeRule'] * 0.15 +
-            $result['scores']['180DegreeRule'] * 0.20 +
-            $result['scores']['matchOnAction'] * 0.15 +
-            $result['scores']['eyelineMatch'] * 0.10 +
-            $result['scores']['energyProgression'] * 0.15
-        );
+        // Calculate overall from only the enforced rules
+        // Build weighted scores array for rules that were checked
+        $weightedScores = [];
+        $totalWeight = 0;
 
+        // Always include these (always checked)
+        $weightedScores[] = $result['scores']['shotCompatibility'] * 0.25;
+        $totalWeight += 0.25;
+        $weightedScores[] = $result['scores']['30DegreeRule'] * 0.15;
+        $totalWeight += 0.15;
+        $weightedScores[] = $result['scores']['energyProgression'] * 0.15;
+        $totalWeight += 0.15;
+
+        // Conditionally include enforced rules
+        if ($enforce180Rule && $result['scores']['180DegreeRule'] !== null) {
+            $weightedScores[] = $result['scores']['180DegreeRule'] * 0.20;
+            $totalWeight += 0.20;
+        }
+        if ($enforceMatchCuts && $result['scores']['matchOnAction'] !== null) {
+            $weightedScores[] = $result['scores']['matchOnAction'] * 0.15;
+            $totalWeight += 0.15;
+        }
+        if ($enforceEyeline && $result['scores']['eyelineMatch'] !== null) {
+            $weightedScores[] = $result['scores']['eyelineMatch'] * 0.10;
+            $totalWeight += 0.10;
+        }
+
+        // Calculate weighted average (normalize by total weight)
+        $result['overall'] = $totalWeight > 0
+            ? round(array_sum($weightedScores) / $totalWeight)
+            : 100;  // All optional rules disabled = perfect score based on always-checked rules
+
+        $result['rulesEnforced'] = $rulesEnforced;
         $result['shotCount'] = count($shots);
         $result['issueCount'] = count($result['issues']);
 
