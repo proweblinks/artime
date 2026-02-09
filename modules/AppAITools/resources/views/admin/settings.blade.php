@@ -148,7 +148,9 @@
     </div>
 </div>
 
-@push('scripts')
+@endsection
+
+@section('script')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let keyIndex = {{ count($youtubeKeys) }};
@@ -241,5 +243,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endpush
 @endsection
