@@ -12,6 +12,7 @@ class VideoOptimizer extends Component
     public bool $isLoading = false;
     public ?array $result = null;
     public array $history = [];
+    public string $activeTab = 'titles';
 
     public function mount()
     {
@@ -57,6 +58,11 @@ class VideoOptimizer extends Component
         } finally {
             $this->isLoading = false;
         }
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
     }
 
     public function render()

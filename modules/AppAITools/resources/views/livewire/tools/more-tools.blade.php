@@ -1,48 +1,45 @@
 <div>
-    {{-- Header --}}
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('app.ai-tools.index') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-light fa-arrow-left"></i>
+@include('appaitools::livewire.partials._tool-base')
+
+<div class="aith-tool" style="max-width: 900px;">
+
+    {{-- Navigation --}}
+    <div class="aith-nav">
+        <a href="{{ route('app.ai-tools.index') }}" class="aith-nav-btn">
+            <i class="fa-light fa-arrow-left"></i> {{ __('Back to Hub') }}
         </a>
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-            <i class="fa-light fa-grid-2-plus text-white text-lg"></i>
-        </div>
-        <div>
-            <h1 class="text-xl font-bold text-base-content">{{ __('More AI Tools') }}</h1>
-            <p class="text-sm text-base-content/60">{{ __('Additional AI-powered tools for content creators') }}</p>
-        </div>
+    </div>
+
+    {{-- Header --}}
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 700; color: #fff; margin: 0 0 0.5rem;">
+            <span style="font-size: 1.5rem;">🧰</span> {{ __('More AI Tools') }}
+        </h1>
+        <p style="font-size: 0.9375rem; color: rgba(255,255,255,0.5); margin: 0;">
+            {{ __('Additional AI-powered tools for content creators') }}
+        </p>
     </div>
 
     {{-- Sub-Tools Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="aith-grid-2">
         @foreach($subTools as $key => $tool)
-            <a href="{{ route($tool['route']) }}" class="group">
-                <div class="card bg-base-200 border border-base-300 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 h-full">
-                    <div class="card-body">
-                        <div class="flex items-start gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ $tool['color'] }} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                                <i class="{{ $tool['icon'] }} text-white text-xl"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-semibold text-base-content group-hover:text-primary transition-colors">
-                                    {{ __($tool['name']) }}
-                                </h3>
-                                <p class="text-sm text-base-content/60 mt-1 line-clamp-2">
-                                    {{ __($tool['description']) }}
-                                </p>
-                            </div>
-                        </div>
-                        @if($tool['credits'] > 0)
-                            <div class="mt-4 flex items-center gap-2">
-                                <span class="badge badge-sm badge-ghost">
-                                    <i class="fa-light fa-coins mr-1"></i>
-                                    {{ $tool['credits'] }} {{ __('credits') }}
-                                </span>
-                            </div>
-                        @endif
-                    </div>
+        <a href="{{ route($tool['route']) }}" class="aith-subtool-card">
+            <div class="aith-subtool-icon {{ $tool['color'] ?? 'aith-icon-blue' }}"
+                style="background: {{ $tool['gradient'] ?? 'linear-gradient(135deg, #6366f1, #7c3aed)' }};">
+                <i class="{{ $tool['icon'] }}"></i>
+            </div>
+            <div>
+                <h3 class="aith-subtool-name">{{ __($tool['name']) }}</h3>
+                <p class="aith-subtool-desc">{{ __($tool['description']) }}</p>
+                @if(isset($tool['credits']) && $tool['credits'] > 0)
+                <div class="aith-subtool-credits">
+                    <span class="aith-badge aith-badge-ghost"><i class="fa-light fa-coins"></i> {{ $tool['credits'] }} {{ __('credits') }}</span>
                 </div>
-            </a>
+                @endif
+            </div>
+        </a>
         @endforeach
     </div>
+
+</div>
 </div>

@@ -1,114 +1,175 @@
 <div>
-    {{-- Header --}}
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('app.ai-tools.more-tools') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-light fa-arrow-left"></i>
+@include('appaitools::livewire.partials._tool-base')
+
+<div class="aith-tool" x-data="{
+    progress: 0, step: 0, tipIndex: 0,
+    tips: [
+        'Great scripts start with a hook in the first 5 seconds',
+        'Structure your script: Hook → Problem → Solution → CTA',
+        'Write like you talk - conversational scripts perform 40% better',
+        'Include pattern interrupts every 60 seconds to keep viewers'
+    ],
+    steps: [
+        { label: 'Analyzing Topic', icon: 'fa-magnifying-glass' },
+        { label: 'Structuring Script', icon: 'fa-list-tree' },
+        { label: 'Writing Hook', icon: 'fa-bolt' },
+        { label: 'Generating Sections', icon: 'fa-paragraph' },
+        { label: 'Adding CTA', icon: 'fa-bullhorn' }
+    ],
+    interval: null, tipInterval: null,
+    startLoading() {
+        this.progress = 0; this.step = 0; this.tipIndex = 0;
+        this.interval = setInterval(() => {
+            if (this.progress < 30) this.progress += 2;
+            else if (this.progress < 60) this.progress += 1;
+            else if (this.progress < 85) this.progress += 0.5;
+            else if (this.progress < 95) this.progress += 0.2;
+            this.step = Math.min(Math.floor(this.progress / 20), this.steps.length - 1);
+        }, 200);
+        this.tipInterval = setInterval(() => { this.tipIndex = (this.tipIndex + 1) % this.tips.length; }, 4000);
+    },
+    stopLoading() {
+        this.progress = 100; this.step = this.steps.length;
+        clearInterval(this.interval); clearInterval(this.tipInterval);
+    }
+}"
+x-init="Livewire.hook('message.processed', (msg, comp) => { if (comp.id === $wire.__instance.id && !$wire.isLoading) stopLoading(); });">
+
+    {{-- Navigation --}}
+    <div class="aith-nav">
+        <a href="{{ route('app.ai-tools.more-tools') }}" class="aith-nav-btn">
+            <i class="fa-light fa-arrow-left"></i> {{ __('Back') }}
         </a>
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-            <i class="fa-light fa-scroll text-white text-lg"></i>
-        </div>
-        <div>
-            <h1 class="text-xl font-bold text-base-content">{{ __('Script Studio') }}</h1>
-            <p class="text-sm text-base-content/60">{{ __('Generate complete video scripts with hooks, sections and CTAs') }}</p>
-        </div>
+        <div class="aith-nav-spacer"></div>
+        @if(count($history) > 0)
+        <button class="aith-nav-btn" onclick="document.getElementById('aith-history-ss').classList.toggle('aith-open')">
+            <i class="fa-light fa-clock-rotate-left"></i> {{ __('History') }}
+        </button>
+        @endif
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Input Panel --}}
-        <div class="lg:col-span-1">
-            <div class="card bg-base-200 border border-base-300">
-                <div class="card-body">
-                    <h3 class="font-semibold mb-4">{{ __('Generate Script') }}</h3>
+    @if(!$result)
+    <div class="aith-card">
+        <h2 class="aith-card-title"><span class="aith-emoji">📝</span> {{ __('Script Studio') }}</h2>
 
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Platform') }}</span></label>
-                        <select wire:model="platform" class="select select-bordered select-sm w-full">
-                            @foreach($platforms as $key => $p)
-                                <option value="{{ $key }}">{{ $p['name'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Topic') }}</span></label>
-                        <textarea wire:model="topic" class="textarea textarea-bordered textarea-sm w-full" rows="3" placeholder="{{ __('What is your video about?') }}"></textarea>
-                        @error('topic') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Duration') }}</span></label>
-                        <select wire:model="duration" class="select select-bordered select-sm w-full">
-                            @foreach($durations as $key => $d)
-                                <option value="{{ $key }}">{{ $d['label'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Style') }}</span></label>
-                        <select wire:model="style" class="select select-bordered select-sm w-full">
-                            @foreach($styles as $key => $label)
-                                <option value="{{ $key }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <button wire:click="generate" wire:loading.attr="disabled" class="btn btn-primary btn-sm w-full" {{ $isLoading ? 'disabled' : '' }}>
-                        <span wire:loading.remove wire:target="generate">
-                            <i class="fa-light fa-scroll mr-1"></i>{{ __('Generate Script') }}
-                        </span>
-                        <span wire:loading wire:target="generate">
-                            <i class="fa-light fa-spinner-third fa-spin mr-1"></i>{{ __('Generating...') }}
-                        </span>
-                    </button>
-
-                    @if(session('error'))
-                        <div class="alert alert-error mt-3 text-sm">{{ session('error') }}</div>
-                    @endif
+        <div class="aith-feature-box aith-feat-blue">
+            <button type="button" class="aith-feature-toggle" onclick="aithToggleFeature(this)">
+                <span>💡</span> {{ __('What can this tool do?') }}
+                <i class="fa-light fa-chevron-down aith-chevron"></i>
+            </button>
+            <div class="aith-feature-content">
+                <div class="aith-feature-grid">
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Generate complete video scripts') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Attention-grabbing hooks') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Structured sections with transitions') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Effective call-to-actions') }}</div>
                 </div>
             </div>
         </div>
 
-        {{-- Results Panel --}}
-        <div class="lg:col-span-2">
-            @if($result)
-                <div class="space-y-4">
-                    {{-- Script Stats --}}
-                    @if(isset($result['word_count']))
-                        <div class="flex gap-4">
-                            <div class="badge badge-lg badge-ghost">
-                                <i class="fa-light fa-text-size mr-1"></i>
-                                {{ number_format($result['word_count']) }} {{ __('words') }}
-                            </div>
-                            @if(isset($result['estimated_duration']))
-                                <div class="badge badge-lg badge-ghost">
-                                    <i class="fa-light fa-clock mr-1"></i>
-                                    {{ $result['estimated_duration'] }}
-                                </div>
-                            @endif
-                        </div>
-                    @endif
+        @if(session('error'))
+            <div class="aith-error"><i class="fa-light fa-circle-exclamation"></i> {{ session('error') }}</div>
+        @endif
 
-                    {{-- Script Content --}}
-                    <div class="card bg-base-200 border border-base-300">
-                        <div class="card-body">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="font-semibold"><i class="fa-light fa-scroll mr-2"></i>{{ __('Script') }}</h3>
-                                <button onclick="navigator.clipboard.writeText(document.getElementById('script-content').innerText)" class="btn btn-ghost btn-xs">
-                                    <i class="fa-light fa-copy mr-1"></i>{{ __('Copy') }}
-                                </button>
-                            </div>
-                            <div id="script-content" class="prose prose-sm max-w-none whitespace-pre-wrap bg-base-300 p-4 rounded-lg text-sm">{{ $result['script'] ?? '' }}</div>
-                        </div>
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Topic') }}</label>
+            <textarea wire:model="topic" class="aith-textarea" rows="3" placeholder="{{ __('What is your video about?') }}"></textarea>
+            @error('topic') <div class="aith-field-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="aith-grid-2">
+            <div class="aith-form-group">
+                <label class="aith-label">{{ __('Duration') }}</label>
+                <select wire:model="duration" class="aith-select">
+                    @foreach($durations as $key => $d)
+                    <option value="{{ $key }}">{{ $d['label'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="aith-form-group">
+                <label class="aith-label">{{ __('Style') }}</label>
+                <select wire:model="style" class="aith-select">
+                    @foreach($styles as $key => $label)
+                    <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <button wire:click="generate" class="aith-btn-primary" {{ $isLoading ? 'disabled' : '' }}
+            @click="if(!$wire.isLoading) startLoading()">
+            <span wire:loading.remove wire:target="generate">
+                <i class="fa-light fa-scroll"></i> {{ __('Generate Script') }}
+            </span>
+            <span wire:loading wire:target="generate">
+                <i class="fa-light fa-spinner-third fa-spin"></i> {{ __('Generating...') }}
+            </span>
+        </button>
+
+        <div x-show="$wire.isLoading" x-cloak class="aith-loading" x-transition>
+            <div class="aith-loading-header">
+                <div class="aith-loading-title"><span class="aith-emoji">📝</span> {{ __('Writing script...') }}</div>
+                <div class="aith-progress-pct" x-text="Math.round(progress) + '%'"></div>
+            </div>
+            <div class="aith-progress-bar"><div class="aith-progress-fill" :style="'width:' + progress + '%'"></div></div>
+            <div class="aith-steps-grid">
+                <template x-for="(s, i) in steps" :key="i">
+                    <div class="aith-step" :class="{ 'aith-step-done': i < step, 'aith-step-active': i === step }">
+                        <span class="aith-step-icon"><i :class="i < step ? 'fa-light fa-check' : (i === step ? 'fa-light fa-spinner-third fa-spin' : 'fa-light ' + s.icon)"></i></span>
+                        <span x-text="s.label"></span>
                     </div>
-                </div>
-            @else
-                <div class="flex flex-col items-center justify-center h-64 text-base-content/40">
-                    <i class="fa-light fa-scroll text-5xl mb-4"></i>
-                    <p class="text-lg">{{ __('Enter a topic to generate a complete script') }}</p>
-                    <p class="text-sm mt-1">{{ __('Including hook, sections, and call-to-action') }}</p>
-                </div>
-            @endif
+                </template>
+            </div>
+            <div class="aith-tip"><span class="aith-emoji">💡</span> <span x-text="tips[tipIndex]"></span></div>
         </div>
     </div>
+    @endif
+
+    @if($result)
+    <div class="aith-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 class="aith-card-title" style="margin:0"><span class="aith-emoji">✨</span> {{ __('Your Script') }}</h2>
+            <div style="display:flex; gap:0.5rem;">
+                <button class="aith-copy-btn" onclick="aithCopyToClipboard(document.getElementById('aith-script-content').innerText, this)">
+                    <i class="fa-light fa-copy"></i> {{ __('Copy Script') }}
+                </button>
+                <button class="aith-btn-secondary" wire:click="$set('result', null)">
+                    <i class="fa-light fa-arrow-rotate-left"></i> {{ __('New') }}
+                </button>
+            </div>
+        </div>
+
+        @if(isset($result['word_count']) || isset($result['estimated_duration']))
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+            @if(isset($result['word_count']))
+            <span class="aith-badge aith-badge-ghost" style="padding: 0.375rem 0.75rem;">
+                <i class="fa-light fa-text-size"></i> {{ number_format($result['word_count']) }} {{ __('words') }}
+            </span>
+            @endif
+            @if(isset($result['estimated_duration']))
+            <span class="aith-badge aith-badge-ghost" style="padding: 0.375rem 0.75rem;">
+                <i class="fa-light fa-clock"></i> {{ $result['estimated_duration'] }}
+            </span>
+            @endif
+        </div>
+        @endif
+
+        <div id="aith-script-content" class="aith-result-pre">{{ $result['script'] ?? '' }}</div>
+    </div>
+    @endif
+
+    @if(count($history) > 0)
+    <div id="aith-history-ss" class="aith-card" style="display:none; margin-top: 1rem;">
+        <h3 class="aith-section-title"><i class="fa-light fa-clock-rotate-left"></i> {{ __('Recent Scripts') }}</h3>
+        @foreach($history as $item)
+        <div class="aith-result-item" style="cursor:default;">
+            <div class="aith-result-text">{{ $item['title'] ?? 'Untitled' }}</div>
+            <div style="font-size:0.6875rem; color:#94a3b8; margin-top:0.25rem;">{{ \Carbon\Carbon::createFromTimestamp($item['created'])->diffForHumans() }}</div>
+        </div>
+        @endforeach
+    </div>
+    <style>#aith-history-ss.aith-open { display: block !important; }</style>
+    @endif
+
+</div>
 </div>

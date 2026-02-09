@@ -1,108 +1,191 @@
 <div>
-    {{-- Header --}}
-    <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('app.ai-tools.more-tools') }}" class="btn btn-ghost btn-sm">
-            <i class="fa-light fa-arrow-left"></i>
+@include('appaitools::livewire.partials._tool-base')
+
+<div class="aith-tool" x-data="{
+    progress: 0, step: 0, tipIndex: 0,
+    tips: [
+        'The first 3 seconds determine if someone watches your video',
+        'Questions as hooks increase engagement by 60%',
+        'Surprising facts trigger curiosity and boost retention',
+        'Emotional hooks outperform logical ones 3:1'
+    ],
+    steps: [
+        { label: 'Analyzing Topic', icon: 'fa-magnifying-glass' },
+        { label: 'Studying Patterns', icon: 'fa-chart-mixed' },
+        { label: 'Generating Hooks', icon: 'fa-bolt' },
+        { label: 'Scoring Impact', icon: 'fa-star' }
+    ],
+    interval: null, tipInterval: null,
+    startLoading() {
+        this.progress = 0; this.step = 0; this.tipIndex = 0;
+        this.interval = setInterval(() => {
+            if (this.progress < 30) this.progress += 2;
+            else if (this.progress < 60) this.progress += 1;
+            else if (this.progress < 85) this.progress += 0.5;
+            else if (this.progress < 95) this.progress += 0.2;
+            this.step = Math.min(Math.floor(this.progress / 25), this.steps.length - 1);
+        }, 200);
+        this.tipInterval = setInterval(() => { this.tipIndex = (this.tipIndex + 1) % this.tips.length; }, 4000);
+    },
+    stopLoading() {
+        this.progress = 100; this.step = this.steps.length;
+        clearInterval(this.interval); clearInterval(this.tipInterval);
+    }
+}"
+x-init="Livewire.hook('message.processed', (msg, comp) => { if (comp.id === $wire.__instance.id && !$wire.isLoading) stopLoading(); });">
+
+    {{-- Navigation --}}
+    <div class="aith-nav">
+        <a href="{{ route('app.ai-tools.more-tools') }}" class="aith-nav-btn">
+            <i class="fa-light fa-arrow-left"></i> {{ __('Back') }}
         </a>
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-            <i class="fa-light fa-bolt text-white text-lg"></i>
-        </div>
-        <div>
-            <h1 class="text-xl font-bold text-base-content">{{ __('Viral Hook Lab') }}</h1>
-            <p class="text-sm text-base-content/60">{{ __('Generate attention-grabbing hooks with effectiveness scores') }}</p>
-        </div>
+        <div class="aith-nav-spacer"></div>
+        @if(count($history) > 0)
+        <button class="aith-nav-btn" onclick="document.getElementById('aith-history-vh').classList.toggle('aith-open')">
+            <i class="fa-light fa-clock-rotate-left"></i> {{ __('History') }}
+        </button>
+        @endif
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Input Panel --}}
-        <div class="lg:col-span-1">
-            <div class="card bg-base-200 border border-base-300">
-                <div class="card-body">
-                    <h3 class="font-semibold mb-4">{{ __('Generate Hooks') }}</h3>
+    @if(!$result)
+    <div class="aith-card">
+        <h2 class="aith-card-title"><span class="aith-emoji">⚡</span> {{ __('Viral Hook Lab') }}</h2>
 
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Platform') }}</span></label>
-                        <select wire:model="platform" class="select select-bordered select-sm w-full">
-                            @foreach($platforms as $key => $p)
-                                <option value="{{ $key }}">{{ $p['name'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Topic') }}</span></label>
-                        <textarea wire:model="topic" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="{{ __('What is your video about?') }}"></textarea>
-                        @error('topic') <span class="text-error text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Hook Style') }}</span></label>
-                        <select wire:model="hookStyle" class="select select-bordered select-sm w-full">
-                            @foreach($hookStyles as $key => $label)
-                                <option value="{{ $key }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="form-control mb-4">
-                        <label class="label"><span class="label-text">{{ __('Number of Hooks') }}</span></label>
-                        <input type="range" wire:model="count" min="3" max="10" class="range range-sm range-primary" step="1">
-                        <div class="text-xs text-center text-base-content/60 mt-1">{{ $count }} {{ __('hooks') }}</div>
-                    </div>
-
-                    <button wire:click="generate" wire:loading.attr="disabled" class="btn btn-primary btn-sm w-full" {{ $isLoading ? 'disabled' : '' }}>
-                        <span wire:loading.remove wire:target="generate">
-                            <i class="fa-light fa-bolt mr-1"></i>{{ __('Generate Hooks') }}
-                        </span>
-                        <span wire:loading wire:target="generate">
-                            <i class="fa-light fa-spinner-third fa-spin mr-1"></i>{{ __('Generating...') }}
-                        </span>
-                    </button>
-
-                    @if(session('error'))
-                        <div class="alert alert-error mt-3 text-sm">{{ session('error') }}</div>
-                    @endif
+        <div class="aith-feature-box aith-feat-yellow">
+            <button type="button" class="aith-feature-toggle" onclick="aithToggleFeature(this)">
+                <span>💡</span> {{ __('What can this tool do?') }}
+                <i class="fa-light fa-chevron-down aith-chevron"></i>
+            </button>
+            <div class="aith-feature-content">
+                <div class="aith-feature-grid">
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Generate attention-grabbing hooks') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Multiple hook styles to choose from') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Effectiveness score for each hook') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Explanations of why each hook works') }}</div>
                 </div>
             </div>
         </div>
 
-        {{-- Results Panel --}}
-        <div class="lg:col-span-2">
-            @if($result && isset($result['hooks']))
-                <div class="space-y-3">
-                    @foreach($result['hooks'] as $index => $hook)
-                        <div class="card bg-base-200 border border-base-300">
-                            <div class="card-body p-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="flex flex-col items-center">
-                                        <div class="text-xs text-base-content/40 mb-1">#{{ $index + 1 }}</div>
-                                        @if(isset($hook['score']))
-                                            <div class="radial-progress text-xs {{ $hook['score'] >= 80 ? 'text-success' : ($hook['score'] >= 60 ? 'text-warning' : 'text-error') }}" style="--value:{{ $hook['score'] }}; --size:2.5rem; --thickness:3px;">
-                                                {{ $hook['score'] }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <div class="flex-1">
-                                        <p class="font-medium text-sm">{{ $hook['text'] ?? $hook }}</p>
-                                        @if(isset($hook['explanation']))
-                                            <p class="text-xs text-base-content/60 mt-2">{{ $hook['explanation'] }}</p>
-                                        @endif
-                                    </div>
-                                    <button onclick="navigator.clipboard.writeText('{{ addslashes($hook['text'] ?? $hook) }}')" class="btn btn-ghost btn-xs shrink-0">
-                                        <i class="fa-light fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+        @if(session('error'))
+            <div class="aith-error"><i class="fa-light fa-circle-exclamation"></i> {{ session('error') }}</div>
+        @endif
+
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Topic') }}</label>
+            <textarea wire:model="topic" class="aith-textarea" rows="2" placeholder="{{ __('What is your video about?') }}"></textarea>
+            @error('topic') <div class="aith-field-error">{{ $message }}</div> @enderror
+        </div>
+
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Hook Style') }}</label>
+            <select wire:model="hookStyle" class="aith-select">
+                @foreach($hookStyles as $key => $label)
+                <option value="{{ $key }}">{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Number of Hooks') }}: <strong x-text="$wire.count">{{ $count }}</strong></label>
+            <div class="aith-range-wrap">
+                <input type="range" wire:model="count" min="3" max="10" step="1" class="aith-range">
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="aith-range-val">3</span>
+                    <span class="aith-range-val">10</span>
                 </div>
-            @else
-                <div class="flex flex-col items-center justify-center h-64 text-base-content/40">
-                    <i class="fa-light fa-bolt text-5xl mb-4"></i>
-                    <p class="text-lg">{{ __('Enter a topic to generate viral hooks') }}</p>
-                    <p class="text-sm mt-1">{{ __('Each hook comes with an effectiveness score') }}</p>
-                </div>
-            @endif
+            </div>
+        </div>
+
+        <button wire:click="generate" class="aith-btn-primary" {{ $isLoading ? 'disabled' : '' }}
+            @click="if(!$wire.isLoading) startLoading()">
+            <span wire:loading.remove wire:target="generate">
+                <i class="fa-light fa-bolt"></i> {{ __('Generate Hooks') }}
+            </span>
+            <span wire:loading wire:target="generate">
+                <i class="fa-light fa-spinner-third fa-spin"></i> {{ __('Generating...') }}
+            </span>
+        </button>
+
+        <div x-show="$wire.isLoading" x-cloak class="aith-loading" x-transition>
+            <div class="aith-loading-header">
+                <div class="aith-loading-title"><span class="aith-emoji">⚡</span> {{ __('Crafting hooks...') }}</div>
+                <div class="aith-progress-pct" x-text="Math.round(progress) + '%'"></div>
+            </div>
+            <div class="aith-progress-bar"><div class="aith-progress-fill" :style="'width:' + progress + '%'"></div></div>
+            <div class="aith-steps-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <template x-for="(s, i) in steps" :key="i">
+                    <div class="aith-step" :class="{ 'aith-step-done': i < step, 'aith-step-active': i === step }">
+                        <span class="aith-step-icon"><i :class="i < step ? 'fa-light fa-check' : (i === step ? 'fa-light fa-spinner-third fa-spin' : 'fa-light ' + s.icon)"></i></span>
+                        <span x-text="s.label"></span>
+                    </div>
+                </template>
+            </div>
+            <div class="aith-tip"><span class="aith-emoji">💡</span> <span x-text="tips[tipIndex]"></span></div>
         </div>
     </div>
+    @endif
+
+    @if($result && isset($result['hooks']))
+    <div class="aith-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 class="aith-card-title" style="margin:0"><span class="aith-emoji">⚡</span> {{ __('Generated Hooks') }}</h2>
+            <button class="aith-btn-secondary" wire:click="$set('result', null)">
+                <i class="fa-light fa-arrow-rotate-left"></i> {{ __('New') }}
+            </button>
+        </div>
+
+        @foreach($result['hooks'] as $index => $hook)
+        @php
+            $hookText = is_array($hook) ? ($hook['text'] ?? '') : $hook;
+            $score = is_array($hook) ? ($hook['score'] ?? null) : null;
+            $explanation = is_array($hook) ? ($hook['explanation'] ?? null) : null;
+        @endphp
+        <div class="aith-result-item">
+            <div class="aith-result-row">
+                <div style="display:flex; align-items:flex-start; gap:0.75rem; flex:1;">
+                    <div style="text-align:center; min-width: 3rem;">
+                        <div style="font-size:0.6875rem; color:#94a3b8; margin-bottom:0.25rem;">#{{ $index + 1 }}</div>
+                        @if($score)
+                        <div class="aith-score-gauge" style="width:44px; height:44px;">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="aith-gauge-bg" cx="60" cy="60" r="50"/>
+                                <circle class="aith-gauge-fill" cx="60" cy="60" r="50"
+                                    stroke="{{ $score >= 80 ? '#10b981' : ($score >= 60 ? '#f59e0b' : '#ef4444') }}"
+                                    stroke-dasharray="314"
+                                    stroke-dashoffset="{{ 314 - (314 * $score / 100) }}"/>
+                            </svg>
+                            <div class="aith-score-val" style="font-size:0.75rem; color: {{ $score >= 80 ? '#10b981' : ($score >= 60 ? '#f59e0b' : '#ef4444') }}">{{ $score }}</div>
+                        </div>
+                        @endif
+                    </div>
+                    <div style="flex:1;">
+                        <div class="aith-result-text" style="font-weight:500;">{{ $hookText }}</div>
+                        @if($explanation)
+                        <p style="font-size:0.75rem; color:#64748b; margin:0.375rem 0 0;">{{ $explanation }}</p>
+                        @endif
+                    </div>
+                </div>
+                <button class="aith-copy-btn" onclick="aithCopyToClipboard(this.closest('.aith-result-item').querySelector('.aith-result-text').innerText, this)">
+                    <i class="fa-light fa-copy"></i>
+                </button>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    @if(count($history) > 0)
+    <div id="aith-history-vh" class="aith-card" style="display:none; margin-top: 1rem;">
+        <h3 class="aith-section-title"><i class="fa-light fa-clock-rotate-left"></i> {{ __('Recent Hooks') }}</h3>
+        @foreach($history as $item)
+        <div class="aith-result-item" style="cursor:default;">
+            <div class="aith-result-text">{{ $item['title'] ?? 'Untitled' }}</div>
+            <div style="font-size:0.6875rem; color:#94a3b8; margin-top:0.25rem;">{{ \Carbon\Carbon::createFromTimestamp($item['created'])->diffForHumans() }}</div>
+        </div>
+        @endforeach
+    </div>
+    <style>#aith-history-vh.aith-open { display: block !important; }</style>
+    @endif
+
+</div>
 </div>
