@@ -24,6 +24,20 @@
         "position": 15000,
         "name": "Video Creator",
         "color": "#8b5cf6",
-        "icon": "fa-light fa-video"
+        "icon": "fa-light fa-video",
+        "sub_menu": [
+            {
+                "uri": "app/video-wizard/creator-hub",
+                "name": "Creator Hub",
+                "position": 110,
+                "icon": "fa-light fa-rocket"
+            },
+            {
+                "uri": "app/video-wizard/studio",
+                "name": "Studio",
+                "position": 100,
+                "icon": "fa-light fa-video"
+            }
+        ]
     }
 }
