@@ -71,7 +71,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between mt-3">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="addKeyBtn">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addKeyBtn">
                                 <i class="fa-light fa-plus me-1"></i>{{ __('Add Key') }}
                             </button>
                             <button type="submit" class="btn btn-sm btn-primary">
