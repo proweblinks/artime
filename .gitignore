@@ -20,3 +20,5 @@ yarn-error.log
 /.idea
 /.vscode
 /.zed
+_deploy.py
+_cpanel*.py
