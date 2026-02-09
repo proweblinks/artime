@@ -1,0 +1,16 @@
+{
+    "name": "AppAITools",
+    "alias": "appaitools",
+    "description": "AI-powered creator tools - video optimization, competitor analysis, trend prediction, thumbnails, channel audit, and more",
+    "keywords": ["ai", "tools", "seo", "optimization", "thumbnails"],
+    "priority": 0,
+    "providers": [
+        "Modules\\AppAITools\\Providers\\AppAIToolsServiceProvider"
+    ],
+    "files": [],
+    "assets": {
+        "css": [],
+        "js": []
+    },
+    "permission": false
+}
