@@ -2,7 +2,7 @@
     <style>
         /* ===== AI Tools Hub - Scoped Styles ===== */
         .aith {
-            min-height: 100vh;
+            min-height: 100%;
             position: relative;
             overflow: hidden;
             padding: 2rem 1.5rem 3rem;
