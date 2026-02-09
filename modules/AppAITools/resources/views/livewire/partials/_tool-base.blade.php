@@ -4,7 +4,7 @@
 /* Root container */
 .aith-tool {
     padding: 1.5rem;
-    max-width: 800px;
+    max-width: 1080px;
     margin: 0 auto;
     position: relative;
     z-index: 1;
