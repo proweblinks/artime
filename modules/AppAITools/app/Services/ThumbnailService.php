@@ -35,6 +35,17 @@ class ThumbnailService
     }
 
     /**
+     * Resolve the image model config from the config key.
+     */
+    protected function resolveImageModel(string $modelKey): array
+    {
+        $models = config('appaitools.thumbnail_image_models', []);
+        return $models[$modelKey] ?? $models['default'] ?? [
+            'provider' => 'default', 'model' => null, 'resolution' => '1K', 'maxHumanRefs' => 0,
+        ];
+    }
+
+    /**
      * Generate thumbnails using the PRO multi-mode system.
      */
     public function generatePro(array $params): array
@@ -43,6 +54,8 @@ class ThumbnailService
         $userId = auth()->id();
         $mode = $params['mode'] ?? 'quick';
         $variations = min(max($params['variations'] ?? 2, 1), 4);
+        $imageModelKey = $params['imageModel'] ?? 'nanobanana-pro';
+        $imageModelConfig = $this->resolveImageModel($imageModelKey);
 
         $history = AiToolHistory::create([
             'team_id' => $teamId,
@@ -55,6 +68,7 @@ class ThumbnailService
                 'title' => $params['title'] ?? '',
                 'category' => $params['category'] ?? 'general',
                 'style' => $params['style'] ?? 'professional',
+                'image_model' => $imageModelKey,
                 'variations' => $variations,
                 'custom_prompt' => $params['customPrompt'] ?? '',
                 'has_reference' => !empty($params['referenceStorageKey']),
@@ -71,31 +85,42 @@ class ThumbnailService
             $images = [];
             $storagePath = "public/ai-tools/thumbnails/{$teamId}";
             $totalTokens = 0;
+            $isGeminiModel = ($imageModelConfig['provider'] ?? 'default') === 'gemini' && !empty($imageModelConfig['model']);
 
-            if ($mode === 'quick') {
-                // Quick mode: generate via AI::process (text-to-image)
-                $images = $this->generateQuickMode($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
+            // Collect additional reference images (face lock etc.)
+            $additionalImages = [];
+            if (!empty($params['faceLockStorageKey'])) {
+                $faceBase64 = $this->loadReferenceImage($params['faceLockStorageKey']);
+                if ($faceBase64) {
+                    $additionalImages[] = ['base64' => $faceBase64, 'mimeType' => 'image/png'];
+                    $imagePrompt .= "\n\nFACE LOCK: PRESERVE the exact facial identity from the additional face reference image. "
+                        . "This must be THE SAME PERSON with identical facial features, skin tone, face shape, jawline, eyes, and hair.";
+                }
+            }
+
+            if ($mode === 'quick' && !$isGeminiModel) {
+                // Default provider quick mode: text-to-image via AI::process
+                $images = $this->generateQuickDefault($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
+            } elseif ($mode === 'quick' && $isGeminiModel) {
+                // Gemini quick mode: text-to-image via GeminiService directly (NanoBanana/Pro)
+                $images = $this->generateQuickGemini($imagePrompt, $variations, $storagePath, $history->id, $imageModelConfig, $additionalImages);
             } else {
-                // Reference/Upgrade mode: use GeminiService image-to-image
+                // Reference/Upgrade mode: image-to-image
                 $refBase64 = null;
                 if (!empty($params['referenceStorageKey'])) {
                     $refBase64 = $this->loadReferenceImage($params['referenceStorageKey']);
                 }
 
-                $additionalImages = [];
-                if (!empty($params['faceLockStorageKey'])) {
-                    $faceBase64 = $this->loadReferenceImage($params['faceLockStorageKey']);
-                    if ($faceBase64) {
-                        $additionalImages[] = ['base64' => $faceBase64, 'mimeType' => 'image/png'];
-                        $imagePrompt .= "\n\nFACE LOCK: PRESERVE the exact facial identity from the additional face reference image.";
-                    }
-                }
-
                 if ($refBase64) {
-                    $images = $this->generateWithReference($imagePrompt, $refBase64, $variations, $storagePath, $history->id, $additionalImages);
+                    $images = $this->generateWithReference(
+                        $imagePrompt, $refBase64, $variations, $storagePath,
+                        $history->id, $imageModelConfig, $additionalImages
+                    );
+                } elseif ($isGeminiModel) {
+                    // No reference available, fall back to Gemini text-to-image
+                    $images = $this->generateQuickGemini($imagePrompt, $variations, $storagePath, $history->id, $imageModelConfig, $additionalImages);
                 } else {
-                    // Fallback to quick mode if no reference available
-                    $images = $this->generateQuickMode($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
+                    $images = $this->generateQuickDefault($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
                 }
             }
 
@@ -110,6 +135,7 @@ class ThumbnailService
                         'mode' => $mode,
                         'style' => $params['style'] ?? 'professional',
                         'category' => $params['category'] ?? 'general',
+                        'image_model' => $imageModelKey,
                     ],
                 ]);
             }
@@ -119,6 +145,7 @@ class ThumbnailService
                 'prompt' => $imagePrompt,
                 'mode' => $mode,
                 'style' => $params['style'] ?? 'professional',
+                'image_model' => $imageModelKey,
                 'history_id' => $history->id,
             ];
 
@@ -137,9 +164,9 @@ class ThumbnailService
     }
 
     /**
-     * Quick mode: text-to-image generation.
+     * Quick mode with default provider: text-to-image via AI::process.
      */
-    protected function generateQuickMode(string $prompt, int $variations, string $storagePath, int $historyId, int $teamId, int &$totalTokens): array
+    protected function generateQuickDefault(string $prompt, int $variations, string $storagePath, int $historyId, int $teamId, int &$totalTokens): array
     {
         $images = [];
 
@@ -155,7 +182,7 @@ class ThumbnailService
             ], $teamId);
 
             if (!empty($imageResult['error'])) {
-                Log::warning('ThumbnailService quick mode error', ['error' => $imageResult['error'], 'variation' => $v]);
+                Log::warning('ThumbnailService quick default error', ['error' => $imageResult['error'], 'variation' => $v]);
                 continue;
             }
 
@@ -177,12 +204,90 @@ class ThumbnailService
     }
 
     /**
-     * Reference/Upgrade mode: image-to-image with GeminiService.
+     * Quick mode with Gemini (NanoBanana / NanoBanana Pro): text-to-image via GeminiService.
      */
-    protected function generateWithReference(string $prompt, string $refBase64, int $variations, string $storagePath, int $historyId, array $additionalImages = []): array
+    protected function generateQuickGemini(string $prompt, int $variations, string $storagePath, int $historyId, array $modelConfig, array $additionalImages = []): array
     {
         $images = [];
         $gemini = app(GeminiService::class);
+        $geminiModel = $modelConfig['model'];
+        $resolution = $modelConfig['resolution'] ?? '1K';
+
+        for ($v = 0; $v < $variations; $v++) {
+            $variationPrompt = $prompt;
+            if ($v > 0) {
+                $variationPrompt .= "\n\nVARIATION {$v}: Generate a distinctly different visual interpretation while keeping the same subject matter and quality.";
+            }
+
+            try {
+                $options = [
+                    'model' => $geminiModel,
+                    'aspectRatio' => '16:9',
+                    'resolution' => $resolution,
+                ];
+
+                // Use generateImage for text-to-image (no reference)
+                // If we have face lock images, use generateImageFromImage with the face as primary
+                if (!empty($additionalImages)) {
+                    $primaryFace = $additionalImages[0];
+                    $extraImages = array_slice($additionalImages, 1);
+                    $opts = $options + ['mimeType' => $primaryFace['mimeType'] ?? 'image/png'];
+                    if (!empty($extraImages)) {
+                        $opts['additionalImages'] = $extraImages;
+                    }
+                    $result = $gemini->generateImageFromImage($primaryFace['base64'], $variationPrompt, $opts);
+                } else {
+                    $result = $gemini->generateImage($variationPrompt, $options);
+                }
+
+                // Handle GeminiService response formats
+                if (!empty($result['success']) && !empty($result['imageData'])) {
+                    // generateImageFromImage format
+                    $filename = "thumb_{$historyId}_{$v}_" . time() . '.png';
+                    Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+                    $path = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+                    $images[] = ['index' => $v, 'path' => $path, 'url' => asset($path)];
+                } elseif (!empty($result['data'])) {
+                    // generateImage format (returns data array like AI::process)
+                    foreach ($result['data'] as $imageData) {
+                        $imageInfo = $this->saveImageData($imageData, $storagePath, $historyId, $v);
+                        if ($imageInfo) {
+                            $images[] = $imageInfo;
+                        }
+                    }
+                } else {
+                    Log::warning('ThumbnailService Gemini quick mode: no image data', [
+                        'variation' => $v,
+                        'model' => $geminiModel,
+                        'error' => $result['error'] ?? 'Unknown',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('ThumbnailService Gemini quick mode exception', [
+                    'variation' => $v,
+                    'model' => $geminiModel,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (empty($images)) {
+            throw new \Exception(__('Failed to generate thumbnails with :model. Please try again.', ['model' => $modelConfig['name'] ?? 'Gemini']));
+        }
+
+        return $images;
+    }
+
+    /**
+     * Reference/Upgrade mode: image-to-image with GeminiService.
+     * Now routes through the correct Gemini model (NanoBanana / NanoBanana Pro).
+     */
+    protected function generateWithReference(string $prompt, string $refBase64, int $variations, string $storagePath, int $historyId, array $modelConfig, array $additionalImages = []): array
+    {
+        $images = [];
+        $gemini = app(GeminiService::class);
+        $geminiModel = $modelConfig['model'] ?? null;
+        $resolution = $modelConfig['resolution'] ?? '2K';
 
         for ($v = 0; $v < $variations; $v++) {
             $variationPrompt = $prompt;
@@ -194,7 +299,13 @@ class ThumbnailService
                 $options = [
                     'aspectRatio' => '16:9',
                     'mimeType' => 'image/png',
+                    'resolution' => $resolution,
                 ];
+
+                // Set the specific Gemini model if configured
+                if ($geminiModel) {
+                    $options['model'] = $geminiModel;
+                }
 
                 if (!empty($additionalImages)) {
                     $options['additionalImages'] = $additionalImages;
@@ -215,12 +326,14 @@ class ThumbnailService
                 } else {
                     Log::warning('ThumbnailService reference mode: generation failed', [
                         'variation' => $v,
+                        'model' => $geminiModel,
                         'error' => $result['error'] ?? 'Unknown',
                     ]);
                 }
             } catch (\Exception $e) {
                 Log::warning('ThumbnailService reference mode exception', [
                     'variation' => $v,
+                    'model' => $geminiModel,
                     'error' => $e->getMessage(),
                 ]);
             }
@@ -282,10 +395,13 @@ class ThumbnailService
         $imageBase64 = base64_encode(Storage::get($diskPath));
         $gemini = app(GeminiService::class);
 
+        // Use NanoBanana Pro (Gemini 3 Pro) for best upscale quality
+        $proModel = config('appaitools.thumbnail_image_models.nanobanana-pro', []);
         $result = $gemini->generateImageFromImage(
             $imageBase64,
             'Upscale this image to the highest possible resolution. Maintain ALL details, textures, colors, and composition exactly as they are. Do not change, add, or remove any elements. Only increase resolution and sharpness.',
             [
+                'model' => $proModel['model'] ?? 'gemini-3-pro-image-preview',
                 'aspectRatio' => '16:9',
                 'resolution' => '4K',
                 'mimeType' => 'image/png',

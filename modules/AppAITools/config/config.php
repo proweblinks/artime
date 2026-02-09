@@ -209,6 +209,43 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Thumbnail Image Models (Gemini-based)
+    |--------------------------------------------------------------------------
+    | Mirrors VideoWizard IMAGE_MODELS - same Gemini model IDs.
+    | 'default' uses AI::process() which routes to whatever the admin configured.
+    */
+    'thumbnail_image_models' => [
+        'nanobanana-pro' => [
+            'name' => 'NanoBanana Pro',
+            'description' => 'Best quality, 4K output, up to 5 face references',
+            'credits' => 6,
+            'provider' => 'gemini',
+            'model' => 'gemini-3-pro-image-preview',
+            'resolution' => '4K',
+            'maxHumanRefs' => 5,
+        ],
+        'nanobanana' => [
+            'name' => 'NanoBanana',
+            'description' => 'Good quality, fast generation',
+            'credits' => 3,
+            'provider' => 'gemini',
+            'model' => 'gemini-2.5-flash-image',
+            'resolution' => '1K',
+            'maxHumanRefs' => 3,
+        ],
+        'default' => [
+            'name' => 'Standard',
+            'description' => 'Uses admin-configured AI provider',
+            'credits' => 2,
+            'provider' => 'default',
+            'model' => null,
+            'resolution' => '1K',
+            'maxHumanRefs' => 0,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Thumbnail Upscale Credits
     |--------------------------------------------------------------------------
     */

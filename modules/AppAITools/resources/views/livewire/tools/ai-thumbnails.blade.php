@@ -378,12 +378,75 @@
     object-fit: cover;
     border: 2px solid #7c3aed;
 }
+/* Image model selector */
+.aith-model-group {
+    display: flex;
+    gap: 0.5rem;
+}
+.aith-model-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.625rem 0.5rem;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    position: relative;
+}
+.aith-model-btn:hover {
+    border-color: #c4b5fd;
+    background: #faf5ff;
+}
+.aith-model-btn.aith-model-active {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+}
+.aith-model-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+}
+.aith-model-btn.aith-model-active .aith-model-name {
+    color: #7c3aed;
+}
+.aith-model-detail {
+    font-size: 0.625rem;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+.aith-model-credits {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: #7c3aed;
+    background: rgba(124,58,237,0.08);
+    padding: 0.0625rem 0.375rem;
+    border-radius: 999px;
+}
+.aith-model-badge-pro {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    padding: 0.125rem 0.375rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 @media (max-width: 640px) {
     .aith-mode-tabs { flex-direction: column; }
     .aith-inline-row { flex-direction: column; }
     .aith-img-grid-2, .aith-img-grid-3, .aith-img-grid-4 { grid-template-columns: 1fr; }
     .aith-youtube-fetch { flex-direction: column; }
     .aith-inpaint-controls { gap: 0.5rem; }
+    .aith-model-group { flex-direction: column; }
 }
 </style>
 
@@ -488,6 +551,21 @@ x-init="
         </div>
 
         {{-- Shared settings --}}
+        <div class="aith-form-group" style="margin-bottom:1rem;">
+            <label class="aith-label">{{ __('Image Engine') }}</label>
+            <div class="aith-model-group">
+                @foreach($imageModels as $key => $m)
+                <button class="aith-model-btn {{ $imageModel === $key ? 'aith-model-active' : '' }}"
+                    wire:click="$set('imageModel', '{{ $key }}')">
+                    @if($key === 'nanobanana-pro')
+                    <span class="aith-model-badge-pro">PRO</span>
+                    @endif
+                    <span class="aith-model-name">{{ $m['name'] }}</span>
+                    <span class="aith-model-credits">{{ $m['credits'] }} {{ __('cr/img') }}</span>
+                </button>
+                @endforeach
+            </div>
+        </div>
         <div class="aith-inline-row" style="margin-bottom:1rem;">
             <div class="aith-form-group" style="margin-bottom:0;">
                 <label class="aith-label">{{ __('Category') }}</label>
@@ -589,12 +667,12 @@ x-init="
             </button>
             <div class="aith-feature-content">
                 <div class="aith-feature-grid">
-                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('3 generation modes: Quick, Reference & Upgrade') }}</div>
-                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Upload reference images for style transfer') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('NanoBanana Pro: 4K output, 5 face references') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('NanoBanana: Fast quality with face consistency') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('3 modes: Quick, Reference & Upgrade') }}</div>
                     <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('YouTube URL auto-fetch & thumbnail upgrade') }}</div>
-                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('7 content categories with smart prompts') }}</div>
                     <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('HD upscaling & AI inpainting editor') }}</div>
-                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Batch processing up to 10 videos') }}</div>
+                    <div class="aith-feature-item"><i class="fa-light fa-check"></i> {{ __('Face lock, batch processing & more') }}</div>
                 </div>
             </div>
         </div>
@@ -651,6 +729,24 @@ x-init="
                 <button class="aith-var-btn {{ $variations === $i ? 'aith-var-active' : '' }}"
                     wire:click="$set('variations', {{ $i }})">{{ $i }}</button>
                 @endfor
+            </div>
+        </div>
+
+        {{-- Image Model --}}
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Image Engine') }}</label>
+            <div class="aith-model-group">
+                @foreach($imageModels as $key => $m)
+                <button class="aith-model-btn {{ $imageModel === $key ? 'aith-model-active' : '' }}"
+                    wire:click="$set('imageModel', '{{ $key }}')">
+                    @if($key === 'nanobanana-pro')
+                    <span class="aith-model-badge-pro">PRO</span>
+                    @endif
+                    <span class="aith-model-name">{{ $m['name'] }}</span>
+                    <span class="aith-model-detail">{{ $m['description'] }}</span>
+                    <span class="aith-model-credits">{{ $m['credits'] }} {{ __('cr/img') }}</span>
+                </button>
+                @endforeach
             </div>
         </div>
 
@@ -841,7 +937,7 @@ x-init="
                 <i class="fa-light fa-wand-magic-sparkles"></i>
                 {{ __('Generate Thumbnail') }}
                 <span style="opacity:0.7; font-size:0.8125rem;">
-                    ({{ $modes[$mode]['credits'] ?? 2 }} {{ __('credits') }} x {{ $variations }})
+                    ({{ $imageModels[$imageModel]['credits'] ?? 2 }} {{ __('credits') }} x {{ $variations }})
                 </span>
             </span>
             <span wire:loading wire:target="generate">
@@ -1063,6 +1159,9 @@ x-init="
                     <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.25rem;">
                         @if(!empty($item['input_data']['mode']))
                         <span class="aith-badge aith-badge-purple">{{ ucfirst($item['input_data']['mode']) }}</span>
+                        @endif
+                        @if(!empty($item['input_data']['image_model']))
+                        <span class="aith-badge aith-badge-ghost">{{ $imageModels[$item['input_data']['image_model']]['name'] ?? $item['input_data']['image_model'] }}</span>
                         @endif
                         <span style="font-size:0.6875rem; color:#94a3b8;">{{ \Carbon\Carbon::createFromTimestamp($item['created'])->diffForHumans() }}</span>
                     </div>

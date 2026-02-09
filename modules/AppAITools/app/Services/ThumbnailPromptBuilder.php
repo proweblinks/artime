@@ -86,16 +86,22 @@ class ThumbnailPromptBuilder
     protected function buildReferenceTypeLayer(array $params): string
     {
         $mode = $params['mode'] ?? 'quick';
+        $strength = $params['styleStrength'] ?? 0.7;
+        $strengthLang = $this->strengthLanguage($strength);
 
         if ($mode === 'upgrade') {
-            return 'UPGRADE TRANSFORM: You are improving an existing YouTube thumbnail. '
-                . 'Keep the core concept and subject matter but dramatically enhance: '
-                . 'visual quality, color grading, composition, lighting, and overall professional polish. '
-                . 'Make it look like a top creator\'s thumbnail while preserving the original idea.';
+            return "UPGRADE TRANSFORM: You are improving an existing YouTube thumbnail.\n"
+                . "Keep the core concept and subject matter but dramatically enhance:\n"
+                . "- Visual quality: 8K photorealistic, cinematic film still quality\n"
+                . "- Color grading: Professional color science, rich tonal range\n"
+                . "- Composition: Rule of thirds, strong visual hierarchy\n"
+                . "- Lighting: Professional cinematography lighting with depth\n"
+                . "- Overall polish: Make it look like a top creator's thumbnail\n"
+                . "{$strengthLang} the original concept while maximizing visual quality.";
         }
 
         if ($mode === 'reference') {
-            $refType = $params['referenceType'] ?? 'style';
+            $refType = $params['referenceType'] ?? 'auto';
             return $this->buildReferenceInstructions($refType, $params);
         }
 
@@ -104,24 +110,90 @@ class ThumbnailPromptBuilder
 
     protected function buildReferenceInstructions(string $refType, array $params): string
     {
+        $faceStrength = $params['faceStrength'] ?? 0.8;
+        $styleStrength = $params['styleStrength'] ?? 0.7;
+        $faceLang = $this->strengthLanguage($faceStrength);
+        $styleLang = $this->strengthLanguage($styleStrength);
+
         $instructions = [
-            'face' => 'FACE PRESERVE: Use the reference image to extract and preserve the person\'s facial identity exactly. '
-                . 'Recreate the same person with the same facial features in a new thumbnail composition.',
+            'face' => $this->buildFacePreservePrompt($faceLang),
 
-            'product' => 'PRODUCT SHOWCASE: Use the reference image to identify the product/object. '
-                . 'Feature this product prominently in the thumbnail with professional product photography aesthetics.',
+            'product' => "PRODUCT SHOWCASE: Use the reference image to identify the product/object.\n"
+                . "Feature this product prominently in the thumbnail with professional product photography aesthetics.\n"
+                . "- Maintain exact product shape, proportions, branding, and color\n"
+                . "- Use dramatic lighting to highlight product features\n"
+                . "- {$styleLang} the product's visual identity",
 
-            'style' => 'STYLE TRANSFER: Analyze the visual style of the reference image (colors, lighting, composition, mood). '
-                . 'Apply this same visual style to generate a new thumbnail with the requested content.',
+            'style' => "STYLE TRANSFER: Analyze the visual style of the reference image.\n"
+                . "Extract and apply these style elements to the new thumbnail:\n"
+                . "1. COLOR PALETTE: Identical color scheme, saturation, and tonal range\n"
+                . "2. LIGHTING STYLE: Same direction, quality (hard/soft), and color temperature\n"
+                . "3. COMPOSITION: Similar framing, depth of field, and visual weight distribution\n"
+                . "4. MOOD/ATMOSPHERE: Same emotional tone and visual energy\n"
+                . "5. TEXTURE/GRAIN: Match post-processing aesthetics (film grain, sharpness)\n"
+                . "6. CONTRAST RATIO: Same shadow depth and highlight brightness\n"
+                . "{$styleLang} these style elements in the new thumbnail.",
 
-            'background' => 'BACKGROUND REFERENCE: Use the reference image as background or environment inspiration. '
-                . 'Place the main subject in a similar setting or environment.',
+            'background' => "BACKGROUND REFERENCE: Use the reference image as environment/setting reference.\n"
+                . "LOCATION PRESERVATION:\n"
+                . "1. ARCHITECTURE: Maintain identical structural elements, spatial layout\n"
+                . "2. MATERIALS & TEXTURES: Same surfaces, finishes, and materials\n"
+                . "3. COLOR PALETTE: Identical environmental color scheme\n"
+                . "4. LIGHTING DIRECTION: Same light source positions and quality\n"
+                . "5. ATMOSPHERE: Same visual mood, depth, and ambiance\n"
+                . "{$styleLang} these environmental elements.",
 
-            'auto' => 'REFERENCE ANALYSIS: Analyze the reference image and intelligently determine the best approach: '
-                . 'preserve faces if present, maintain the visual style, and incorporate key elements into the new thumbnail.',
+            'auto' => "REFERENCE ANALYSIS: Analyze the reference image and intelligently determine the best approach.\n"
+                . "If a PERSON is prominently featured:\n" . $this->buildFacePreservePrompt($faceLang) . "\n"
+                . "If NO person is featured, apply STYLE TRANSFER:\n"
+                . "- Extract color palette, lighting, composition, and mood\n"
+                . "- {$styleLang} these visual elements in the new thumbnail.",
         ];
 
         return $instructions[$refType] ?? $instructions['auto'];
+    }
+
+    /**
+     * Build face preservation prompt using Character DNA technique from VideoWizard.
+     */
+    protected function buildFacePreservePrompt(string $strengthLang): string
+    {
+        return <<<EOT
+FACE IDENTITY PRESERVATION (CRITICAL):
+Generate an image of THIS EXACT PERSON from the reference image.
+
+IDENTITY DNA - {$strengthLang} these features:
+- FACE: Same exact facial structure, jawline, cheekbones, forehead shape
+- EYES: Same eye shape, color, spacing, brow shape and thickness
+- NOSE: Same nose shape, bridge width, tip shape
+- MOUTH: Same lip shape, mouth width, smile characteristics
+- SKIN: Same skin tone, complexion, texture (natural, no airbrushing)
+- HAIR: Same hair color, style, length, texture, parting
+- BODY: Same build, proportions, posture characteristics
+
+QUALITY REQUIREMENTS:
+- 8K photorealistic, cinematic film still quality
+- Natural skin texture with visible pores
+- Professional cinematography lighting
+- Sharp focus on face, cinematic depth of field
+
+OUTPUT: Generate showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT appearance in the described scene.
+EOT;
+    }
+
+    /**
+     * Convert strength float (0.3-1.0) to natural language instruction.
+     */
+    protected function strengthLanguage(float $strength): string
+    {
+        if ($strength >= 0.9) {
+            return 'STRICTLY preserve exactly';
+        } elseif ($strength >= 0.7) {
+            return 'Closely match and preserve';
+        } elseif ($strength >= 0.5) {
+            return 'Loosely inspired by, maintain the general feel of';
+        }
+        return 'Take creative liberty while referencing';
     }
 
     protected function buildCompositionLayer(array $params): string

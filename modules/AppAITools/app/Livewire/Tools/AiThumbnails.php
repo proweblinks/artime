@@ -16,6 +16,7 @@ class AiThumbnails extends Component
     public string $title = '';
     public string $category = 'general';
     public string $style = 'professional';
+    public string $imageModel = 'nanobanana-pro';
     public int $variations = 2;
     public string $customPrompt = '';
 
@@ -210,6 +211,7 @@ class AiThumbnails extends Component
                 'title' => $this->title,
                 'category' => $this->category,
                 'style' => $this->style,
+                'imageModel' => $this->imageModel,
                 'variations' => $this->variations,
                 'customPrompt' => $this->customPrompt,
                 'youtubeData' => $this->youtubeData,
@@ -428,6 +430,7 @@ class AiThumbnails extends Component
                     'title' => $item['data']['title'] ?? 'Untitled',
                     'category' => $this->category,
                     'style' => $this->style,
+                    'imageModel' => $this->imageModel,
                     'variations' => $this->variations,
                     'customPrompt' => $this->customPrompt,
                     'youtubeData' => $item['data'],
@@ -485,6 +488,7 @@ class AiThumbnails extends Component
                 'title' => $item['data']['title'] ?? 'Untitled',
                 'category' => $this->category,
                 'style' => $this->style,
+                'imageModel' => $this->imageModel,
                 'variations' => 1,
                 'customPrompt' => $this->customPrompt,
                 'youtubeData' => $item['data'],
@@ -523,6 +527,7 @@ class AiThumbnails extends Component
             'modes' => config('appaitools.thumbnail_modes'),
             'categories' => config('appaitools.thumbnail_categories'),
             'styles' => config('appaitools.thumbnail_styles'),
+            'imageModels' => config('appaitools.thumbnail_image_models'),
         ]);
     }
 }
