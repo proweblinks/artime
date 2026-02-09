@@ -82,6 +82,12 @@ class AppVideoWizardServiceProvider extends ServiceProvider
                 'icon' => 'fa-light fa-video',
                 'sub_menu' => [
                     [
+                        'uri' => 'admin/video-wizard/creator-hub',
+                        'name' => 'Creator Hub',
+                        'position' => 110,
+                        'icon' => 'fa-light fa-rocket',
+                    ],
+                    [
                         'uri' => 'admin/video-wizard',
                         'name' => 'Dashboard',
                         'position' => 100,
