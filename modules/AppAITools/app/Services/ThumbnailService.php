@@ -3,124 +3,123 @@
 namespace Modules\AppAITools\Services;
 
 use App\Facades\AI;
+use App\Services\GeminiService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Modules\AppAITools\Models\AiToolHistory;
 use Modules\AppAITools\Models\AiToolAsset;
 
 class ThumbnailService
 {
     /**
-     * Generate thumbnails from a title and style.
+     * Store a reference image to disk.
      */
-    public function generate(string $title, string $style, string $customPrompt = '', string $aspectRatio = '16:9'): array
+    public function storeReferenceImage(int $teamId, string $base64, string $ext = 'png'): string
+    {
+        $dir = "public/ai-tools/thumbnail-refs/{$teamId}";
+        $filename = 'ref-' . Str::random(16) . '.' . $ext;
+        Storage::put("{$dir}/{$filename}", base64_decode($base64));
+        return "{$dir}/{$filename}";
+    }
+
+    /**
+     * Load a reference image from disk as base64.
+     */
+    public function loadReferenceImage(string $storageKey): ?string
+    {
+        if (!$storageKey || !Storage::exists($storageKey)) {
+            return null;
+        }
+        return base64_encode(Storage::get($storageKey));
+    }
+
+    /**
+     * Generate thumbnails using the PRO multi-mode system.
+     */
+    public function generatePro(array $params): array
     {
         $teamId = session('current_team_id', 0);
         $userId = auth()->id();
+        $mode = $params['mode'] ?? 'quick';
+        $variations = min(max($params['variations'] ?? 2, 1), 4);
 
         $history = AiToolHistory::create([
             'team_id' => $teamId,
             'user_id' => $userId,
             'tool' => 'ai_thumbnails',
             'platform' => 'general',
-            'title' => $title,
+            'title' => $params['title'] ?? 'Thumbnail',
             'input_data' => [
-                'title' => $title,
-                'style' => $style,
-                'custom_prompt' => $customPrompt,
-                'aspect_ratio' => $aspectRatio,
+                'mode' => $mode,
+                'title' => $params['title'] ?? '',
+                'category' => $params['category'] ?? 'general',
+                'style' => $params['style'] ?? 'professional',
+                'variations' => $variations,
+                'custom_prompt' => $params['customPrompt'] ?? '',
+                'has_reference' => !empty($params['referenceStorageKey']),
+                'has_youtube' => !empty($params['youtubeData']),
             ],
             'status' => 2,
         ]);
 
         try {
-            $styleName = config("appaitools.thumbnail_styles.{$style}", 'Bold Text');
-
-            // Generate image prompt via AI
-            $promptGenPrompt = "You are an expert thumbnail designer. Create a detailed image generation prompt for a YouTube-style thumbnail.\n\n"
-                . "Video title: \"{$title}\"\n"
-                . "Style: {$styleName}\n"
-                . ($customPrompt ? "Additional details: {$customPrompt}\n" : '')
-                . "\nRules:\n"
-                . "- Describe the visual composition in detail\n"
-                . "- Include colors, lighting, and mood\n"
-                . "- Make it eye-catching and click-worthy\n"
-                . "- Do NOT include any text in the image description (thumbnails text is added later)\n"
-                . "- Focus on a single striking visual that tells the story\n"
-                . "\nRespond with ONLY the image generation prompt, no explanation.";
-
-            $promptResult = AI::process($promptGenPrompt, 'text', ['maxResult' => 1], $teamId);
-            $imagePrompt = trim($promptResult['data'][0] ?? $title);
-
-            // Map aspect ratio to size
-            $sizeMap = [
-                '16:9' => '1024x576',
-                '9:16' => '576x1024',
-                '1:1' => '1024x1024',
-            ];
-            $size = $sizeMap[$aspectRatio] ?? '1024x576';
-
-            // Generate image
-            $imageResult = AI::process($imagePrompt, 'image', [
-                'size' => $size,
-                'n' => 2,
-            ], $teamId);
-
-            if (!empty($imageResult['error'])) {
-                throw new \Exception($imageResult['error']);
-            }
+            // Build prompt using ThumbnailPromptBuilder
+            $promptBuilder = new ThumbnailPromptBuilder();
+            $imagePrompt = $promptBuilder->build($params);
 
             $images = [];
             $storagePath = "public/ai-tools/thumbnails/{$teamId}";
+            $totalTokens = 0;
 
-            foreach ($imageResult['data'] ?? [] as $idx => $imageData) {
-                $imageInfo = ['index' => $idx];
-
-                if (isset($imageData['url'])) {
-                    $imageInfo['url'] = $imageData['url'];
-                    $imageInfo['path'] = '';
-
-                    // Try to download and save locally
-                    try {
-                        $contents = file_get_contents($imageData['url']);
-                        if ($contents) {
-                            $filename = "thumb_{$history->id}_{$idx}_" . time() . '.png';
-                            Storage::put("{$storagePath}/{$filename}", $contents);
-                            $imageInfo['path'] = "storage/ai-tools/thumbnails/{$teamId}/{$filename}";
-                        }
-                    } catch (\Exception $e) {
-                        Log::info('ThumbnailService: Could not save locally', ['error' => $e->getMessage()]);
-                    }
-                } elseif (isset($imageData['b64_json'])) {
-                    $filename = "thumb_{$history->id}_{$idx}_" . time() . '.png';
-                    Storage::put("{$storagePath}/{$filename}", base64_decode($imageData['b64_json']));
-                    $imageInfo['path'] = "storage/ai-tools/thumbnails/{$teamId}/{$filename}";
-                    $imageInfo['url'] = asset($imageInfo['path']);
+            if ($mode === 'quick') {
+                // Quick mode: generate via AI::process (text-to-image)
+                $images = $this->generateQuickMode($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
+            } else {
+                // Reference/Upgrade mode: use GeminiService image-to-image
+                $refBase64 = null;
+                if (!empty($params['referenceStorageKey'])) {
+                    $refBase64 = $this->loadReferenceImage($params['referenceStorageKey']);
                 }
 
-                $images[] = $imageInfo;
+                $additionalImages = [];
+                if (!empty($params['faceLockStorageKey'])) {
+                    $faceBase64 = $this->loadReferenceImage($params['faceLockStorageKey']);
+                    if ($faceBase64) {
+                        $additionalImages[] = ['base64' => $faceBase64, 'mimeType' => 'image/png'];
+                        $imagePrompt .= "\n\nFACE LOCK: PRESERVE the exact facial identity from the additional face reference image.";
+                    }
+                }
 
-                // Save asset record
+                if ($refBase64) {
+                    $images = $this->generateWithReference($imagePrompt, $refBase64, $variations, $storagePath, $history->id, $additionalImages);
+                } else {
+                    // Fallback to quick mode if no reference available
+                    $images = $this->generateQuickMode($imagePrompt, $variations, $storagePath, $history->id, $teamId, $totalTokens);
+                }
+            }
+
+            // Save asset records
+            foreach ($images as $idx => $imageInfo) {
                 AiToolAsset::create([
                     'history_id' => $history->id,
                     'type' => 'thumbnail',
                     'file_path' => $imageInfo['path'] ?? '',
                     'metadata' => [
                         'prompt' => $imagePrompt,
-                        'style' => $style,
-                        'aspect_ratio' => $aspectRatio,
-                        'size' => $size,
+                        'mode' => $mode,
+                        'style' => $params['style'] ?? 'professional',
+                        'category' => $params['category'] ?? 'general',
                     ],
                 ]);
             }
 
-            $totalTokens = ($promptResult['totalTokens'] ?? 0) + ($imageResult['totalTokens'] ?? 0);
-
             $result = [
                 'images' => $images,
                 'prompt' => $imagePrompt,
-                'style' => $style,
-                'aspect_ratio' => $aspectRatio,
+                'mode' => $mode,
+                'style' => $params['style'] ?? 'professional',
+                'history_id' => $history->id,
             ];
 
             $history->update([
@@ -138,7 +137,225 @@ class ThumbnailService
     }
 
     /**
-     * Compare two thumbnails using AI vision.
+     * Quick mode: text-to-image generation.
+     */
+    protected function generateQuickMode(string $prompt, int $variations, string $storagePath, int $historyId, int $teamId, int &$totalTokens): array
+    {
+        $images = [];
+
+        for ($v = 0; $v < $variations; $v++) {
+            $variationPrompt = $prompt;
+            if ($v > 0) {
+                $variationPrompt .= "\n\nVARIATION {$v}: Generate a distinctly different visual interpretation while keeping the same subject matter and quality.";
+            }
+
+            $imageResult = AI::process($variationPrompt, 'image', [
+                'size' => '1024x576',
+                'n' => 1,
+            ], $teamId);
+
+            if (!empty($imageResult['error'])) {
+                Log::warning('ThumbnailService quick mode error', ['error' => $imageResult['error'], 'variation' => $v]);
+                continue;
+            }
+
+            $totalTokens += ($imageResult['totalTokens'] ?? 0);
+
+            foreach ($imageResult['data'] ?? [] as $imageData) {
+                $imageInfo = $this->saveImageData($imageData, $storagePath, $historyId, $v);
+                if ($imageInfo) {
+                    $images[] = $imageInfo;
+                }
+            }
+        }
+
+        if (empty($images)) {
+            throw new \Exception(__('Failed to generate thumbnails. Please try again.'));
+        }
+
+        return $images;
+    }
+
+    /**
+     * Reference/Upgrade mode: image-to-image with GeminiService.
+     */
+    protected function generateWithReference(string $prompt, string $refBase64, int $variations, string $storagePath, int $historyId, array $additionalImages = []): array
+    {
+        $images = [];
+        $gemini = app(GeminiService::class);
+
+        for ($v = 0; $v < $variations; $v++) {
+            $variationPrompt = $prompt;
+            if ($v > 0) {
+                $variationPrompt .= "\n\nVARIATION {$v}: Create a distinctly different composition and visual approach while maintaining the same quality and reference style.";
+            }
+
+            try {
+                $options = [
+                    'aspectRatio' => '16:9',
+                    'mimeType' => 'image/png',
+                ];
+
+                if (!empty($additionalImages)) {
+                    $options['additionalImages'] = $additionalImages;
+                }
+
+                $result = $gemini->generateImageFromImage($refBase64, $variationPrompt, $options);
+
+                if (!empty($result['success']) && !empty($result['imageData'])) {
+                    $filename = "thumb_{$historyId}_{$v}_" . time() . '.png';
+                    Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+                    $path = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+
+                    $images[] = [
+                        'index' => $v,
+                        'path' => $path,
+                        'url' => asset($path),
+                    ];
+                } else {
+                    Log::warning('ThumbnailService reference mode: generation failed', [
+                        'variation' => $v,
+                        'error' => $result['error'] ?? 'Unknown',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::warning('ThumbnailService reference mode exception', [
+                    'variation' => $v,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (empty($images)) {
+            throw new \Exception(__('Failed to generate thumbnails with reference. Please try again.'));
+        }
+
+        return $images;
+    }
+
+    /**
+     * Save image data (URL or base64) to storage.
+     */
+    protected function saveImageData(array $imageData, string $storagePath, int $historyId, int $index): ?array
+    {
+        $imageInfo = ['index' => $index];
+
+        if (isset($imageData['url'])) {
+            $imageInfo['url'] = $imageData['url'];
+            $imageInfo['path'] = '';
+
+            try {
+                $contents = file_get_contents($imageData['url']);
+                if ($contents) {
+                    $filename = "thumb_{$historyId}_{$index}_" . time() . '.png';
+                    Storage::put("{$storagePath}/{$filename}", $contents);
+                    $imageInfo['path'] = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+                    $imageInfo['url'] = asset($imageInfo['path']);
+                }
+            } catch (\Exception $e) {
+                Log::info('ThumbnailService: Could not save locally', ['error' => $e->getMessage()]);
+            }
+        } elseif (isset($imageData['b64_json'])) {
+            $filename = "thumb_{$historyId}_{$index}_" . time() . '.png';
+            Storage::put("{$storagePath}/{$filename}", base64_decode($imageData['b64_json']));
+            $imageInfo['path'] = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+            $imageInfo['url'] = asset($imageInfo['path']);
+        } else {
+            return null;
+        }
+
+        return $imageInfo;
+    }
+
+    /**
+     * Upscale a thumbnail to HD (4x) using GeminiService.
+     */
+    public function upscaleImage(string $imagePath, ?int $historyId = null): array
+    {
+        // Convert web path to storage path
+        $diskPath = str_replace('storage/', 'public/', $imagePath);
+
+        if (!Storage::exists($diskPath)) {
+            throw new \Exception(__('Original image not found.'));
+        }
+
+        $imageBase64 = base64_encode(Storage::get($diskPath));
+        $gemini = app(GeminiService::class);
+
+        $result = $gemini->generateImageFromImage(
+            $imageBase64,
+            'Upscale this image to the highest possible resolution. Maintain ALL details, textures, colors, and composition exactly as they are. Do not change, add, or remove any elements. Only increase resolution and sharpness.',
+            [
+                'aspectRatio' => '16:9',
+                'resolution' => '4K',
+                'mimeType' => 'image/png',
+            ]
+        );
+
+        if (empty($result['success']) || empty($result['imageData'])) {
+            throw new \Exception($result['error'] ?? __('Upscaling failed. Please try again.'));
+        }
+
+        // Save HD version
+        $pathInfo = pathinfo($diskPath);
+        $hdFilename = $pathInfo['filename'] . '_hd.' . ($pathInfo['extension'] ?? 'png');
+        $hdDiskPath = $pathInfo['dirname'] . '/' . $hdFilename;
+
+        Storage::put($hdDiskPath, base64_decode($result['imageData']));
+
+        $hdWebPath = str_replace('public/', 'storage/', $hdDiskPath);
+
+        return [
+            'path' => $hdWebPath,
+            'url' => asset($hdWebPath),
+        ];
+    }
+
+    /**
+     * Inpaint edit a thumbnail using GeminiService mask editing.
+     */
+    public function inpaintEdit(string $imagePath, string $maskBase64, string $editPrompt): array
+    {
+        $diskPath = str_replace('storage/', 'public/', $imagePath);
+
+        if (!Storage::exists($diskPath)) {
+            throw new \Exception(__('Original image not found.'));
+        }
+
+        $imageBase64 = base64_encode(Storage::get($diskPath));
+        $gemini = app(GeminiService::class);
+
+        $result = $gemini->editImageWithMask(
+            $imageBase64,
+            $maskBase64,
+            $editPrompt,
+            [
+                'aspectRatio' => '16:9',
+                'imageMimeType' => 'image/png',
+            ]
+        );
+
+        if (empty($result['success']) || empty($result['imageData'])) {
+            throw new \Exception($result['error'] ?? __('Inpaint edit failed. Please try again.'));
+        }
+
+        // Save edited version (replace original)
+        $teamId = session('current_team_id', 0);
+        $storagePath = "public/ai-tools/thumbnails/{$teamId}";
+        $filename = "thumb_edited_" . time() . '_' . Str::random(6) . '.png';
+
+        Storage::put("{$storagePath}/{$filename}", base64_decode($result['imageData']));
+
+        $webPath = str_replace('public/', 'storage/', $storagePath) . "/{$filename}";
+
+        return [
+            'path' => $webPath,
+            'url' => asset($webPath),
+        ];
+    }
+
+    /**
+     * Compare two thumbnails using AI vision (existing method).
      */
     public function compare(string $imagePath1, string $imagePath2): array
     {
@@ -156,22 +373,16 @@ class ThumbnailService
         ]);
 
         try {
-            // Encode images to base64
             $image1Base64 = base64_encode(file_get_contents($imagePath1));
             $image2Base64 = base64_encode(file_get_contents($imagePath2));
 
-            // Analyze thumbnail A
             $analysisA = $this->analyzeThumb($image1Base64, 'A', $teamId);
-
-            // Analyze thumbnail B
             $analysisB = $this->analyzeThumb($image2Base64, 'B', $teamId);
 
-            // Determine winner
             $scoreA = array_sum($analysisA['scores'] ?? []);
             $scoreB = array_sum($analysisB['scores'] ?? []);
             $winner = $scoreA >= $scoreB ? 'A' : 'B';
 
-            // Get improvement tips
             $improvementPrompt = "Based on these thumbnail analyses, provide 5 specific improvement tips:\n"
                 . "Thumbnail A scores: " . json_encode($analysisA['scores'] ?? []) . "\n"
                 . "Thumbnail B scores: " . json_encode($analysisB['scores'] ?? []) . "\n"
@@ -203,9 +414,6 @@ class ThumbnailService
         }
     }
 
-    /**
-     * Analyze a single thumbnail image via AI vision.
-     */
     protected function analyzeThumb(string $base64Image, string $label, int $teamId): array
     {
         $prompt = "Analyze this thumbnail image (Thumbnail {$label}) for click-through effectiveness. "
@@ -231,5 +439,20 @@ class ThumbnailService
         $text = preg_replace('/\s*```$/', '', $text);
 
         return json_decode(trim($text), true) ?: ['scores' => [], 'feedback' => ''];
+    }
+
+    /**
+     * Legacy generate method for backward compatibility.
+     */
+    public function generate(string $title, string $style, string $customPrompt = '', string $aspectRatio = '16:9'): array
+    {
+        return $this->generatePro([
+            'mode' => 'quick',
+            'title' => $title,
+            'category' => 'general',
+            'style' => $style,
+            'variations' => 2,
+            'customPrompt' => $customPrompt,
+        ]);
     }
 }

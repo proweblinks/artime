@@ -260,6 +260,71 @@ class YouTubeDataService
     }
 
     /**
+     * Extract playlist ID from a YouTube playlist URL.
+     */
+    public function extractPlaylistId(string $url): ?string
+    {
+        if (preg_match('/[?&]list=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
+
+    /**
+     * Get videos from a playlist.
+     */
+    public function getPlaylistVideos(string $playlistUrl, int $limit = 10): array
+    {
+        $playlistId = $this->extractPlaylistId($playlistUrl);
+        if (!$playlistId) {
+            throw new \Exception('Could not parse playlist URL. Please provide a valid YouTube playlist URL.');
+        }
+
+        $cacheKey = "yt_playlist_{$playlistId}_{$limit}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($playlistId, $limit) {
+            $data = $this->apiCall('playlistItems', [
+                'part' => 'snippet',
+                'playlistId' => $playlistId,
+                'maxResults' => min($limit, 50),
+            ]);
+
+            $videoIds = array_filter(array_map(
+                fn($item) => $item['snippet']['resourceId']['videoId'] ?? null,
+                $data['items'] ?? []
+            ));
+
+            if (empty($videoIds)) {
+                return [];
+            }
+
+            $videoData = $this->apiCall('videos', [
+                'part' => 'snippet,statistics,contentDetails',
+                'id' => implode(',', $videoIds),
+            ]);
+
+            return array_map(function ($item) {
+                $snippet = $item['snippet'] ?? [];
+                $stats = $item['statistics'] ?? [];
+                return [
+                    'id' => $item['id'] ?? '',
+                    'title' => $snippet['title'] ?? '',
+                    'description' => $snippet['description'] ?? '',
+                    'channel' => $snippet['channelTitle'] ?? '',
+                    'channel_id' => $snippet['channelId'] ?? '',
+                    'published_at' => $snippet['publishedAt'] ?? '',
+                    'thumbnail' => $snippet['thumbnails']['high']['url'] ?? $snippet['thumbnails']['default']['url'] ?? '',
+                    'tags' => $snippet['tags'] ?? [],
+                    'views' => (int) ($stats['viewCount'] ?? 0),
+                    'likes' => (int) ($stats['likeCount'] ?? 0),
+                    'comments' => (int) ($stats['commentCount'] ?? 0),
+                    'duration' => $item['contentDetails']['duration'] ?? '',
+                ];
+            }, $videoData['items'] ?? []);
+        });
+    }
+
+    /**
      * Get recent videos from a channel.
      */
     public function getChannelVideos(string $channelId, int $limit = 20): array

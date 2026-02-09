@@ -171,19 +171,48 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Thumbnail Modes
+    |--------------------------------------------------------------------------
+    */
+    'thumbnail_modes' => [
+        'quick'     => ['name' => 'Quick', 'credits' => 2, 'icon' => 'fa-bolt', 'description' => 'Fast generation, no reference needed'],
+        'reference' => ['name' => 'Reference', 'credits' => 4, 'icon' => 'fa-image', 'description' => 'Upload reference for style transfer'],
+        'upgrade'   => ['name' => 'Upgrade', 'credits' => 4, 'icon' => 'fa-arrow-up', 'description' => 'Upgrade existing thumbnail from YouTube'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Thumbnail Categories
+    |--------------------------------------------------------------------------
+    */
+    'thumbnail_categories' => [
+        'general' => 'General',
+        'gaming' => 'Gaming',
+        'tutorial' => 'Tutorial',
+        'vlog' => 'Vlog',
+        'review' => 'Review',
+        'news' => 'News',
+        'entertainment' => 'Entertainment',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Thumbnail Styles
     |--------------------------------------------------------------------------
     */
     'thumbnail_styles' => [
-        'bold_text' => 'Bold Text Overlay',
-        'cinematic' => 'Cinematic',
-        'minimalist' => 'Minimalist',
-        'vibrant' => 'Vibrant & Colorful',
-        'dark_moody' => 'Dark & Moody',
-        'professional' => 'Professional / Corporate',
-        'playful' => 'Playful / Fun',
-        'retro' => 'Retro / Vintage',
+        'professional' => 'Professional',
+        'dramatic' => 'Dramatic',
+        'minimal' => 'Minimal',
+        'bold' => 'Bold',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Thumbnail Upscale Credits
+    |--------------------------------------------------------------------------
+    */
+    'thumbnail_upscale_credits' => 2,
 
     /*
     |--------------------------------------------------------------------------
