@@ -3,7 +3,6 @@
 namespace Modules\AppAITools\Providers;
 
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -54,60 +53,11 @@ class AppAIToolsServiceProvider extends ServiceProvider
 
     /**
      * Register admin sidebar menu for Creator Hub settings.
+     * Note: The menu item is defined in AppVideoWizardServiceProvider pointing to admin/creator-hub/settings.
      */
     protected function registerAdminMenu(): void
     {
-        View::composer('*', function ($view) {
-            static $menuRegistered = false;
-            if ($menuRegistered) {
-                return;
-            }
-
-            $loginAs = session('login_as', 'client');
-            if ($loginAs !== 'admin') {
-                return;
-            }
-
-            $sidebar = View::shared('sidebar');
-            if (!$sidebar || !isset($sidebar['top'])) {
-                return;
-            }
-
-            // Find the Video Creator admin menu and add Creator Hub settings under it
-            foreach ($sidebar['top'] as &$item) {
-                if (isset($item['uri']) && str_contains($item['uri'], 'admin/video-wizard')) {
-                    // Check if Creator Hub sub-menu already exists
-                    $hasCreatorHub = false;
-                    if (isset($item['sub_menu'])) {
-                        foreach ($item['sub_menu'] as $sub) {
-                            if (isset($sub['uri']) && str_contains($sub['uri'], 'admin/creator-hub')) {
-                                $hasCreatorHub = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!$hasCreatorHub && isset($item['sub_menu'])) {
-                        $item['sub_menu'][] = [
-                            'uri' => 'admin/creator-hub/settings',
-                            'name' => 'Creator Hub Settings',
-                            'position' => 105,
-                            'icon' => 'fa-light fa-wand-magic-sparkles',
-                        ];
-
-                        // Re-sort sub_menu by position descending
-                        usort($item['sub_menu'], function ($a, $b) {
-                            return ($b['position'] ?? 0) <=> ($a['position'] ?? 0);
-                        });
-                    }
-                    break;
-                }
-            }
-            unset($item);
-
-            View::share('sidebar', $sidebar);
-            $menuRegistered = true;
-        });
+        // No-op: menu link is already registered by AppVideoWizardServiceProvider
     }
 
     /**
