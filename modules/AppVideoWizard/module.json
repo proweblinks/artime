@@ -22,21 +22,21 @@
         "section": "top",
         "tab_id": 11,
         "position": 15000,
-        "name": "Video Creator",
+        "name": "Hub Creator",
         "color": "#8b5cf6",
-        "icon": "fa-light fa-video",
+        "icon": "fa-light fa-rocket",
         "sub_menu": [
             {
-                "uri": "app/video-wizard/creator-hub",
-                "name": "Creator Hub",
+                "uri": "app/video-wizard/studio",
+                "name": "Video Wizard",
                 "position": 110,
-                "icon": "fa-light fa-rocket"
+                "icon": "fa-light fa-video"
             },
             {
-                "uri": "app/video-wizard/studio",
-                "name": "Studio",
+                "uri": "app/ai-tools",
+                "name": "Ai Tools",
                 "position": 100,
-                "icon": "fa-light fa-video"
+                "icon": "fa-light fa-wand-magic-sparkles"
             }
         ]
     }
