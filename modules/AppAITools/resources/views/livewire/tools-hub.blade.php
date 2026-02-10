@@ -54,6 +54,15 @@
             color: #c4b5fd;
         }
 
+        /* Aggregate Stats Row */
+        .aith-agg-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+        @media (max-width:768px) { .aith-agg-row { grid-template-columns:repeat(2,1fr); } }
+        .aith-agg-card { padding:1rem 1.25rem; border-radius:0.75rem; background:rgba(255,255,255,0.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); text-align:center; transition:all 0.3s; }
+        .aith-agg-card:hover { background:rgba(255,255,255,0.08); }
+        .aith-agg-emoji { font-size:1.5rem; display:block; margin-bottom:0.25rem; }
+        .aith-agg-num { font-size:1.75rem; font-weight:800; color:#fff; }
+        .aith-agg-label { font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.05em; }
+
         /* Usage Stats Carousel */
         .aith-stats { margin-bottom: 2.5rem; }
         .aith-stats-scroll {
@@ -85,6 +94,44 @@
         .aith-grad-pink-rose { background: linear-gradient(90deg, #ec4899, #e11d48); }
         .aith-grad-emerald-teal { background: linear-gradient(90deg, #10b981, #0d9488); }
 
+        /* Pinned Tools Row */
+        .aith-pinned-row { display:flex; gap:0.75rem; overflow-x:auto; margin-bottom:2rem; padding-bottom:0.5rem; }
+        .aith-pinned-row::-webkit-scrollbar { display:none; }
+        .aith-pinned-card { flex-shrink:0; display:flex; align-items:center; gap:0.625rem; padding:0.625rem 1rem; border-radius:0.75rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
+        .aith-pinned-card:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
+        .aith-pinned-emoji { font-size:1.25rem; }
+        .aith-pinned-name { color:#fff; font-size:0.8125rem; font-weight:600; white-space:nowrap; }
+        .aith-pinned-unpin { color:rgba(255,255,255,0.3); font-size:0.75rem; cursor:pointer; margin-left:0.25rem; transition:color 0.2s; }
+        .aith-pinned-unpin:hover { color:#f87171; }
+
+        /* Recommended Row */
+        .aith-rec-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem; }
+        @media (max-width:768px) { .aith-rec-row { grid-template-columns:1fr; } }
+        .aith-rec-card { display:flex; align-items:center; gap:0.75rem; padding:0.875rem 1rem; border-radius:0.75rem; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
+        .aith-rec-card:hover { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.35); }
+        .aith-rec-emoji { font-size:1.5rem; }
+        .aith-rec-info { flex:1; min-width:0; }
+        .aith-rec-name { color:#fff; font-size:0.875rem; font-weight:600; }
+        .aith-rec-reason { color:rgba(255,255,255,0.4); font-size:0.75rem; }
+
+        /* Suggestion Engine */
+        .aith-suggest { margin-bottom:2rem; padding:1.25rem; border-radius:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+        .aith-suggest-title { color:rgba(255,255,255,0.6); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem; }
+        .aith-suggest-chips { display:flex; flex-wrap:wrap; gap:0.5rem; }
+        .aith-suggest-chip { padding:0.375rem 0.875rem; border-radius:9999px; font-size:0.8125rem; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); }
+        .aith-suggest-chip:hover { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd; }
+        .aith-suggest-chip.active { background:rgba(139,92,246,0.25); border-color:rgba(139,92,246,0.5); color:#e9d5ff; }
+        .aith-suggest-results { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; flex-wrap:wrap; gap:0.5rem; }
+        .aith-suggest-result { display:inline-flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; font-size:0.8125rem; font-weight:600; text-decoration:none!important; transition:all 0.2s; }
+        .aith-suggest-result:hover { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#e9d5ff; }
+
+        /* Category Tabs */
+        .aith-cat-tabs { display:flex; gap:0.5rem; overflow-x:auto; margin-bottom:1.5rem; padding-bottom:0.25rem; }
+        .aith-cat-tabs::-webkit-scrollbar { display:none; }
+        .aith-cat-tab { padding:0.5rem 1rem; border-radius:9999px; font-size:0.8125rem; font-weight:600; white-space:nowrap; cursor:pointer; transition:all 0.2s; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.5); }
+        .aith-cat-tab:hover { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); }
+        .aith-cat-tab.active { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#c4b5fd; }
+
         /* Section Title */
         .aith-section-title { font-size: 1.125rem; font-weight: 700; color: #fff; margin-bottom: 1.5rem; }
 
@@ -101,6 +148,8 @@
         /* Tool Card */
         .aith-tool-card {
             display: block;
+            position: relative;
+            overflow: hidden;
             padding: 1.5rem;
             border-radius: 1rem;
             background: rgba(255,255,255,0.03);
@@ -115,6 +164,10 @@
             border-color: rgba(255,255,255,0.15);
             transform: scale(1.02);
             box-shadow: 0 8px 32px rgba(124,58,237,0.05);
+        }
+        .aith-tool-card.aith-highlighted {
+            border-color: rgba(139,92,246,0.5);
+            box-shadow: 0 0 20px rgba(139,92,246,0.15);
         }
 
         /* Tool Icon */
@@ -150,6 +203,32 @@
         .aith-cta-emerald { color: #34d399; }
         .aith-cta-purple { color: #c084fc; }
         .aith-cta-amber { color: #fbbf24; }
+
+        /* Badge: Credit Cost */
+        .aith-badge-credit { position:absolute; top:0.75rem; right:0.75rem; padding:0.2rem 0.5rem; border-radius:9999px; font-size:0.6875rem; font-weight:700; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); z-index:1; }
+
+        /* Badge: NEW */
+        .aith-badge-new { position:absolute; top:0.75rem; left:0.75rem; padding:0.15rem 0.5rem; border-radius:9999px; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; background:linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff; animation:aithPulseNew 2s ease-in-out infinite; z-index:1; }
+        @keyframes aithPulseNew { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+        /* Badge: Pin */
+        .aith-badge-pin { position:absolute; top:0.75rem; right:3.25rem; width:1.5rem; height:1.5rem; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.6875rem; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); border:1px solid transparent; transition:all 0.2s; z-index:4; }
+        .aith-badge-pin:hover { background:rgba(255,255,255,0.12); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
+        .aith-badge-pin.pinned { color:#fbbf24; background:rgba(251,191,36,0.15); border-color:rgba(251,191,36,0.3); }
+
+        /* Last Result Preview */
+        .aith-last-preview { margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(255,255,255,0.06); }
+        .aith-last-snippet { font-size:0.75rem; color:rgba(255,255,255,0.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .aith-last-time { font-size:0.625rem; color:rgba(255,255,255,0.2); }
+
+        /* Quick Action Overlay */
+        .aith-quick-actions { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:0.75rem; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s; border-radius:1rem; z-index:3; }
+        .aith-tool-card:hover .aith-quick-actions { opacity:1; }
+        .aith-quick-btn { padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.8125rem; font-weight:600; cursor:pointer; transition:all 0.2s; text-decoration:none!important; display:inline-flex; align-items:center; gap:0.375rem; }
+        .aith-quick-primary { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; border:none; }
+        .aith-quick-primary:hover { background:linear-gradient(135deg,#8b5cf6,#7c3aed); transform:scale(1.05); color:#fff; }
+        .aith-quick-secondary { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.15); }
+        .aith-quick-secondary:hover { background:rgba(255,255,255,0.15); color:#fff; }
 
         /* Enterprise Banner */
         .aith-enterprise-banner {
@@ -380,6 +459,34 @@
             </div>
         </div>
 
+        {{-- ============================================= --}}
+        {{-- Feature 9: Aggregate Stats Row               --}}
+        {{-- ============================================= --}}
+        @if(!empty($aggregateStats))
+        <div class="aith-agg-row">
+            <div class="aith-agg-card">
+                <span class="aith-agg-emoji">&#128202;</span>
+                <div class="aith-agg-num">{{ number_format($aggregateStats['total_analyses'] ?? 0) }}</div>
+                <div class="aith-agg-label">Total Analyses</div>
+            </div>
+            <div class="aith-agg-card">
+                <span class="aith-agg-emoji">&#9889;</span>
+                <div class="aith-agg-num">{{ number_format($aggregateStats['credits_used'] ?? 0) }}</div>
+                <div class="aith-agg-label">Credits Used</div>
+            </div>
+            <div class="aith-agg-card">
+                <span class="aith-agg-emoji">{{ $aggregateStats['most_used_emoji'] ?? '&#128736;' }}</span>
+                <div class="aith-agg-num" style="font-size:1.125rem;">{{ $aggregateStats['most_used'] ?? '-' }}</div>
+                <div class="aith-agg-label">Most Used Tool</div>
+            </div>
+            <div class="aith-agg-card">
+                <span class="aith-agg-emoji">&#128293;</span>
+                <div class="aith-agg-num">{{ $aggregateStats['streak'] ?? 0 }}<span style="font-size:0.875rem;color:rgba(255,255,255,0.4);"> days</span></div>
+                <div class="aith-agg-label">Activity Streak</div>
+            </div>
+        </div>
+        @endif
+
         {{-- Usage Stats Carousel --}}
         @if(count($usageStats) > 0)
         <div class="aith-stats">
@@ -414,45 +521,197 @@
         </div>
         @endif
 
-        {{-- AI Tools Section --}}
-        <div class="aith-section-title">&#128736;&#65039; AI Tools</div>
-
-        <div class="aith-grid">
-            @php
-                $iconClasses = [
-                    'video_optimizer'     => 'aith-icon-blue-purple',
-                    'competitor_analysis' => 'aith-icon-red-orange',
-                    'trend_predictor'     => 'aith-icon-cyan-blue',
-                    'ai_thumbnails'       => 'aith-icon-pink-rose',
-                    'channel_audit'       => 'aith-icon-emerald-teal',
-                    'more_tools'          => 'aith-icon-purple-indigo',
-                    'enterprise_suite'    => 'aith-icon-amber-yellow',
-                ];
-                $ctaClasses = [
-                    'video_optimizer'     => 'aith-cta-blue',
-                    'competitor_analysis' => 'aith-cta-red',
-                    'trend_predictor'     => 'aith-cta-cyan',
-                    'ai_thumbnails'       => 'aith-cta-pink',
-                    'channel_audit'       => 'aith-cta-emerald',
-                    'more_tools'          => 'aith-cta-purple',
-                    'enterprise_suite'    => 'aith-cta-amber',
-                ];
-            @endphp
-
-            @foreach($tools as $key => $tool)
-                @if($key === 'enterprise_suite') @continue @endif
-                <a href="{{ route($tool['route']) }}" class="aith-tool-card">
-                    <div class="aith-tool-icon {{ $iconClasses[$key] ?? 'aith-icon-blue-purple' }}">
-                        {{ $tool['emoji'] }}
-                    </div>
-                    <div class="aith-tool-name">{{ __($tool['name']) }}</div>
-                    <div class="aith-tool-desc">{{ __($tool['description']) }}</div>
-                    <span class="aith-tool-cta {{ $ctaClasses[$key] ?? 'aith-cta-blue' }}">
-                        {{ __($tool['cta_text']) }} <span>&#8594;</span>
+        {{-- ============================================= --}}
+        {{-- Feature 4: Pinned Tools Row                  --}}
+        {{-- ============================================= --}}
+        @if(count($pinnedTools) > 0)
+        <div class="aith-section-title">&#11088; Pinned Tools</div>
+        <div class="aith-pinned-row">
+            @foreach($pinnedTools as $pinnedKey)
+                @php $pt = $tools[$pinnedKey] ?? null; @endphp
+                @if($pt)
+                <div class="aith-pinned-card" style="display:flex;">
+                    <a href="{{ route($pt['route']) }}" style="display:flex;align-items:center;gap:0.625rem;text-decoration:none!important;color:inherit;">
+                        <span class="aith-pinned-emoji">{{ $pt['emoji'] }}</span>
+                        <span class="aith-pinned-name">{{ $pt['name'] }}</span>
+                    </a>
+                    <span class="aith-pinned-unpin" wire:click.prevent="togglePin('{{ $pinnedKey }}')" title="Unpin">
+                        <i class="fa-solid fa-xmark"></i>
                     </span>
-                </a>
+                </div>
+                @endif
             @endforeach
         </div>
+        @endif
+
+        {{-- ============================================= --}}
+        {{-- Feature 2: Recommended For You               --}}
+        {{-- ============================================= --}}
+        @if(count($recommendedTools) > 0)
+        <div class="aith-section-title">&#128161; Recommended For You</div>
+        <div class="aith-rec-row">
+            @foreach($recommendedTools as $recKey)
+                @php $rt = $tools[$recKey] ?? null; @endphp
+                @if($rt)
+                <a href="{{ route($rt['route']) }}" class="aith-rec-card">
+                    <span class="aith-rec-emoji">{{ $rt['emoji'] }}</span>
+                    <div class="aith-rec-info">
+                        <div class="aith-rec-name">{{ $rt['name'] }}</div>
+                        <div class="aith-rec-reason">Based on your usage</div>
+                    </div>
+                    <span style="color:rgba(255,255,255,0.3);">&#8594;</span>
+                </a>
+                @endif
+            @endforeach
+        </div>
+        @endif
+
+        {{-- ============================================= --}}
+        {{-- Feature 10: Tool Suggestion Engine           --}}
+        {{-- ============================================= --}}
+        @if(!empty($suggestionEngine['questions']))
+        <div class="aith-suggest" x-data="{ activeQ: null, activeTools: [] }">
+            <div class="aith-suggest-title">&#129300; What should I do next?</div>
+            <div class="aith-suggest-chips">
+                @foreach($suggestionEngine['questions'] as $idx => $sq)
+                <span class="aith-suggest-chip"
+                      :class="{ 'active': activeQ === {{ $idx }} }"
+                      @click="activeQ = activeQ === {{ $idx }} ? null : {{ $idx }}; activeTools = activeQ === {{ $idx }} ? {{ json_encode($sq['tools']) }} : []">
+                    {{ $sq['q'] }}
+                </span>
+                @endforeach
+            </div>
+            <template x-if="activeTools.length > 0">
+                <div class="aith-suggest-results">
+                    @foreach($tools as $tKey => $tVal)
+                    <template x-if="activeTools.includes('{{ $tKey }}')">
+                        <a href="{{ route($tVal['route']) }}" class="aith-suggest-result">
+                            {{ $tVal['emoji'] }} {{ $tVal['name'] }} &#8594;
+                        </a>
+                    </template>
+                    @endforeach
+                </div>
+            </template>
+        </div>
+        @endif
+
+        {{-- ============================================= --}}
+        {{-- Feature 6: Category Filter Tabs              --}}
+        {{-- ============================================= --}}
+        @php
+            $isNewThreshold = now()->subDays(30)->format('Y-m-d');
+        @endphp
+
+        <div x-data="{ activeCategory: 'all', highlightedTools: [] }" x-init="$watch('activeCategory', () => highlightedTools = [])">
+
+            {{-- Category Tabs --}}
+            @if(!empty($hubCategories))
+            <div class="aith-cat-tabs">
+                @foreach($hubCategories as $catKey => $cat)
+                <span class="aith-cat-tab"
+                      :class="{ 'active': activeCategory === '{{ $catKey }}' }"
+                      @click="activeCategory = '{{ $catKey }}'">
+                    {{ $cat['emoji'] }} {{ $cat['name'] }}
+                </span>
+                @endforeach
+            </div>
+            @endif
+
+            {{-- AI Tools Grid --}}
+            <div class="aith-section-title">&#128736;&#65039; AI Tools</div>
+
+            <div class="aith-grid">
+                @php
+                    $iconClasses = [
+                        'video_optimizer'     => 'aith-icon-blue-purple',
+                        'competitor_analysis' => 'aith-icon-red-orange',
+                        'trend_predictor'     => 'aith-icon-cyan-blue',
+                        'ai_thumbnails'       => 'aith-icon-pink-rose',
+                        'channel_audit'       => 'aith-icon-emerald-teal',
+                        'more_tools'          => 'aith-icon-purple-indigo',
+                        'enterprise_suite'    => 'aith-icon-amber-yellow',
+                    ];
+                    $ctaClasses = [
+                        'video_optimizer'     => 'aith-cta-blue',
+                        'competitor_analysis' => 'aith-cta-red',
+                        'trend_predictor'     => 'aith-cta-cyan',
+                        'ai_thumbnails'       => 'aith-cta-pink',
+                        'channel_audit'       => 'aith-cta-emerald',
+                        'more_tools'          => 'aith-cta-purple',
+                        'enterprise_suite'    => 'aith-cta-amber',
+                    ];
+                @endphp
+
+                @foreach($tools as $key => $tool)
+                    @if($key === 'enterprise_suite') @continue @endif
+
+                    @php
+                        $toolCategory = $tool['category'] ?? 'content';
+                        $isNew = isset($tool['last_updated']) && $tool['last_updated'] >= $isNewThreshold;
+                        $creditCost = $tool['credits'] ?? 0;
+                        $isPinned = in_array($key, $pinnedTools);
+                        $lastResult = $lastResults[$key] ?? null;
+                    @endphp
+
+                    <div class="aith-tool-card"
+                         data-category="{{ $toolCategory }}"
+                         x-show="activeCategory === 'all' || activeCategory === '{{ $toolCategory }}'"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         :class="{ 'aith-highlighted': highlightedTools.includes('{{ $key }}') }">
+
+                        {{-- Feature 7: NEW badge --}}
+                        @if($isNew)
+                        <span class="aith-badge-new">NEW</span>
+                        @endif
+
+                        {{-- Feature 3: Credit badge --}}
+                        @if($creditCost > 0)
+                        <span class="aith-badge-credit">{{ $creditCost }} {{ $creditCost === 1 ? 'credit' : 'credits' }}</span>
+                        @endif
+
+                        {{-- Feature 4: Pin button --}}
+                        <span class="aith-badge-pin {{ $isPinned ? 'pinned' : '' }}"
+                              wire:click.prevent="togglePin('{{ $key }}')"
+                              title="{{ $isPinned ? 'Unpin' : 'Pin to top' }}">
+                            <i class="fa-{{ $isPinned ? 'solid' : 'light' }} fa-star"></i>
+                        </span>
+
+                        {{-- Feature 8: Quick action overlay --}}
+                        <div class="aith-quick-actions">
+                            <a href="{{ route($tool['route']) }}" class="aith-quick-btn aith-quick-primary">
+                                <i class="fa-light fa-play"></i> Open Tool
+                            </a>
+                            @if($lastResult)
+                            <a href="{{ route($tool['route']) }}" class="aith-quick-btn aith-quick-secondary">
+                                <i class="fa-light fa-clock-rotate-left"></i> View Last
+                            </a>
+                            @endif
+                        </div>
+
+                        {{-- Card Content --}}
+                        <div class="aith-tool-icon {{ $iconClasses[$key] ?? 'aith-icon-blue-purple' }}">
+                            {{ $tool['emoji'] }}
+                        </div>
+                        <div class="aith-tool-name">{{ __($tool['name']) }}</div>
+                        <div class="aith-tool-desc">{{ __($tool['description']) }}</div>
+                        <span class="aith-tool-cta {{ $ctaClasses[$key] ?? 'aith-cta-blue' }}">
+                            {{ __($tool['cta_text']) }} <span>&#8594;</span>
+                        </span>
+
+                        {{-- Feature 5: Last result preview --}}
+                        @if($lastResult)
+                        <div class="aith-last-preview">
+                            <div class="aith-last-snippet">{{ $lastResult['snippet'] }}</div>
+                            <div class="aith-last-time">{{ $lastResult['time_ago'] }}</div>
+                        </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+        </div>{{-- /x-data category filter --}}
 
         {{-- Enterprise Suite Banner --}}
         @if(isset($tools['enterprise_suite']))

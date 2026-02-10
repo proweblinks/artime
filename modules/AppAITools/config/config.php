@@ -71,6 +71,8 @@ return [
             'cta_color' => 'text-blue-400',
             'credits' => 1,
             'route' => 'app.ai-tools.video-optimizer',
+            'category' => 'optimization',
+            'last_updated' => '2026-01-15',
         ],
         'competitor_analysis' => [
             'name' => 'Competitor Analysis',
@@ -82,6 +84,8 @@ return [
             'cta_color' => 'text-red-400',
             'credits' => 3,
             'route' => 'app.ai-tools.competitor-analysis',
+            'category' => 'analytics',
+            'last_updated' => '2026-02-10',
         ],
         'trend_predictor' => [
             'name' => 'Trend Predictor',
@@ -93,6 +97,8 @@ return [
             'cta_color' => 'text-cyan-400',
             'credits' => 2,
             'route' => 'app.ai-tools.trend-predictor',
+            'category' => 'analytics',
+            'last_updated' => '2026-01-20',
         ],
         'ai_thumbnails' => [
             'name' => 'AI Thumbnails',
@@ -104,6 +110,8 @@ return [
             'cta_color' => 'text-pink-400',
             'credits' => 3,
             'route' => 'app.ai-tools.ai-thumbnails',
+            'category' => 'content',
+            'last_updated' => '2026-01-25',
         ],
         'channel_audit' => [
             'name' => 'Channel Audit Pro',
@@ -115,6 +123,8 @@ return [
             'cta_color' => 'text-emerald-400',
             'credits' => 3,
             'route' => 'app.ai-tools.channel-audit',
+            'category' => 'analytics',
+            'last_updated' => '2026-02-01',
         ],
         'more_tools' => [
             'name' => 'More AI Tools',
@@ -126,6 +136,8 @@ return [
             'cta_color' => 'text-purple-400',
             'credits' => 0,
             'route' => 'app.ai-tools.more-tools',
+            'category' => 'content',
+            'last_updated' => '2026-01-10',
         ],
         'enterprise_suite' => [
             'name' => 'Enterprise Suite',
@@ -137,6 +149,37 @@ return [
             'cta_color' => 'text-amber-400',
             'credits' => 0,
             'route' => 'app.ai-tools.enterprise-suite',
+            'category' => 'monetization',
+            'last_updated' => '2026-02-05',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hub Categories (for category filter tabs)
+    |--------------------------------------------------------------------------
+    */
+    'hub_categories' => [
+        'all'           => ['name' => 'All Tools',     'icon' => 'fa-light fa-grid-2',          'emoji' => "\xE2\x9C\xA8"],
+        'optimization'  => ['name' => 'Optimization',  'icon' => 'fa-light fa-chart-line-up',   'emoji' => "\xF0\x9F\x9A\x80"],
+        'analytics'     => ['name' => 'Analytics',      'icon' => 'fa-light fa-chart-pie',       'emoji' => "\xF0\x9F\x93\x8A"],
+        'content'       => ['name' => 'Content',        'icon' => 'fa-light fa-pen-nib',         'emoji' => "\xF0\x9F\x8E\xA8"],
+        'monetization'  => ['name' => 'Monetization',  'icon' => 'fa-light fa-sack-dollar',     'emoji' => "\xF0\x9F\x92\xB0"],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Suggestion Engine (What should I do next?)
+    |--------------------------------------------------------------------------
+    */
+    'suggestion_engine' => [
+        'questions' => [
+            ['q' => 'I want to grow my channel', 'tools' => ['channel_audit', 'trend_predictor', 'competitor_analysis']],
+            ['q' => 'I need help with my next video', 'tools' => ['video_optimizer', 'ai_thumbnails', 'more_tools']],
+            ['q' => 'I want to spy on competitors', 'tools' => ['competitor_analysis', 'channel_audit']],
+            ['q' => 'I want to make money', 'tools' => ['enterprise_suite', 'channel_audit']],
+            ['q' => 'I want better thumbnails', 'tools' => ['ai_thumbnails']],
+            ['q' => 'I need content ideas', 'tools' => ['trend_predictor', 'more_tools']],
         ],
     ],
 
