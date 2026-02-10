@@ -4,40 +4,23 @@ namespace Modules\AppAITools\Livewire\SubTools;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\AppAITools\Models\AiToolHistory;
+use Modules\AppAITools\Livewire\Tools\Concerns\HasToolHistory;
 
 class ThumbnailArena extends Component
 {
     use WithFileUploads;
+    use HasToolHistory;
 
     public $thumbnail1;
     public $thumbnail2;
     public bool $isLoading = false;
     public ?array $result = null;
-    public array $history = [];
+
+    protected function getToolKey(): string { return 'thumbnail_arena'; }
 
     public function mount()
     {
         $this->loadHistory();
-    }
-
-    public function loadHistory()
-    {
-        $teamId = session('current_team_id');
-        if ($teamId) {
-            $this->history = AiToolHistory::forTeam($teamId)
-                ->forTool('thumbnail_arena')
-                ->completed()
-                ->orderByDesc('created')
-                ->limit(10)
-                ->get()
-                ->map(fn ($h) => [
-                    'id' => $h->id_secure,
-                    'title' => $h->title,
-                    'created' => $h->created,
-                ])
-                ->toArray();
-        }
     }
 
     public function compare()

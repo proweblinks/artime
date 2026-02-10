@@ -3,41 +3,24 @@
 namespace Modules\AppAITools\Livewire\Tools;
 
 use Livewire\Component;
-use Modules\AppAITools\Models\AiToolHistory;
+use Modules\AppAITools\Livewire\Tools\Concerns\HasToolHistory;
 
 class VideoOptimizer extends Component
 {
+    use HasToolHistory;
+
     public string $url = '';
     public string $platform = '';
     public bool $isLoading = false;
     public ?array $result = null;
-    public array $history = [];
     public string $activeTab = 'titles';
+
+    protected function getToolKey(): string { return 'video_optimizer'; }
 
     public function mount()
     {
         $this->platform = config('appaitools.platforms.' . get_option('creator_hub_default_platform', 'youtube')) ? get_option('creator_hub_default_platform', 'youtube') : 'youtube';
         $this->loadHistory();
-    }
-
-    public function loadHistory()
-    {
-        $teamId = session('current_team_id');
-        if ($teamId) {
-            $this->history = AiToolHistory::forTeam($teamId)
-                ->forTool('video_optimizer')
-                ->completed()
-                ->orderByDesc('created')
-                ->limit(10)
-                ->get()
-                ->map(fn ($h) => [
-                    'id' => $h->id_secure,
-                    'title' => $h->title,
-                    'platform' => $h->platform,
-                    'created' => $h->created,
-                ])
-                ->toArray();
-        }
     }
 
     public function optimize()

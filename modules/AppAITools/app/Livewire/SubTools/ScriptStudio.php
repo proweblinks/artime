@@ -3,42 +3,25 @@
 namespace Modules\AppAITools\Livewire\SubTools;
 
 use Livewire\Component;
-use Modules\AppAITools\Models\AiToolHistory;
+use Modules\AppAITools\Livewire\Tools\Concerns\HasToolHistory;
 
 class ScriptStudio extends Component
 {
+    use HasToolHistory;
+
     public string $topic = '';
     public string $duration = 'medium';
     public string $style = 'engaging';
     public string $platform = '';
     public bool $isLoading = false;
     public ?array $result = null;
-    public array $history = [];
+
+    protected function getToolKey(): string { return 'script_studio'; }
 
     public function mount()
     {
         $this->platform = get_option('creator_hub_default_platform', 'youtube');
         $this->loadHistory();
-    }
-
-    public function loadHistory()
-    {
-        $teamId = session('current_team_id');
-        if ($teamId) {
-            $this->history = AiToolHistory::forTeam($teamId)
-                ->forTool('script_studio')
-                ->completed()
-                ->orderByDesc('created')
-                ->limit(10)
-                ->get()
-                ->map(fn ($h) => [
-                    'id' => $h->id_secure,
-                    'title' => $h->title,
-                    'platform' => $h->platform,
-                    'created' => $h->created,
-                ])
-                ->toArray();
-        }
     }
 
     public function generate()

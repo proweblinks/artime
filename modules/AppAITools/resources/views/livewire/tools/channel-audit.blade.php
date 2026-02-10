@@ -50,7 +50,7 @@ x-init="
         </a>
         <div class="aith-nav-spacer"></div>
         @if(count($history) > 0)
-        <button class="aith-nav-btn" onclick="document.getElementById('aith-history-ca2').classList.toggle('aith-open')">
+        <button class="aith-nav-btn" onclick="document.getElementById('aith-history-panel').classList.toggle('aith-open')">
             <i class="fa-light fa-clock-rotate-left"></i> {{ __('History') }}
         </button>
         @endif
@@ -234,23 +234,8 @@ x-init="
 
     @endif
 
-    {{-- History Panel --}}
-    @if(count($history) > 0)
-    <div id="aith-history-ca2" class="aith-card" style="display:none; margin-top: 1rem;">
-        <h3 class="aith-section-title"><i class="fa-light fa-clock-rotate-left"></i> {{ __('Recent Audits') }}</h3>
-        @foreach($history as $item)
-        <div class="aith-result-item" style="cursor:default;">
-            <div class="aith-result-row">
-                <div style="flex:1">
-                    <div class="aith-result-text">{{ $item['title'] ?? 'Untitled' }}</div>
-                    <div style="font-size:0.6875rem; color:#94a3b8; margin-top:0.25rem;">{{ \Carbon\Carbon::createFromTimestamp($item['created'])->diffForHumans() }}</div>
-                </div>
-            </div>
-        </div>
-        @endforeach
-    </div>
-    <style>#aith-history-ca2.aith-open { display: block !important; }</style>
-    @endif
+    {{-- History --}}
+    @include('appaitools::livewire.partials._tool-history')
 
 </div>
 </div>

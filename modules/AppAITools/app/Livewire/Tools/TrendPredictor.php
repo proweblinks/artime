@@ -3,41 +3,24 @@
 namespace Modules\AppAITools\Livewire\Tools;
 
 use Livewire\Component;
-use Modules\AppAITools\Models\AiToolHistory;
+use Modules\AppAITools\Livewire\Tools\Concerns\HasToolHistory;
 
 class TrendPredictor extends Component
 {
+    use HasToolHistory;
+
     public string $niche = '';
     public string $platform = '';
     public string $region = 'US';
     public bool $isLoading = false;
     public ?array $result = null;
-    public array $history = [];
+
+    protected function getToolKey(): string { return 'trend_predictor'; }
 
     public function mount()
     {
         $this->platform = get_option('creator_hub_default_platform', 'youtube');
         $this->loadHistory();
-    }
-
-    public function loadHistory()
-    {
-        $teamId = session('current_team_id');
-        if ($teamId) {
-            $this->history = AiToolHistory::forTeam($teamId)
-                ->forTool('trend_predictor')
-                ->completed()
-                ->orderByDesc('created')
-                ->limit(10)
-                ->get()
-                ->map(fn ($h) => [
-                    'id' => $h->id_secure,
-                    'title' => $h->title,
-                    'platform' => $h->platform,
-                    'created' => $h->created,
-                ])
-                ->toArray();
-        }
     }
 
     public function predict()
