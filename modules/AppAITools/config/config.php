@@ -302,7 +302,7 @@ return [
             'credits' => 3,
             'route' => 'app.ai-tools.enterprise.placement-finder',
             'is_existing' => false,
-            'loading_steps' => ['Analyzing your channel', 'Understanding your content', 'Identifying your niche', 'Searching similar channels', 'Scoring relevance', 'Compiling results'],
+            'loading_steps' => ['Analyzing your channel', 'Identifying your niche', 'Finding placement channels', 'Scoring audience relevance', 'Building campaign strategy', 'Compiling results'],
         ],
         'viral-predictor' => [
             'name' => 'Viral Score Predictor',

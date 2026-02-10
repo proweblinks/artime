@@ -13,22 +13,77 @@ class EnterpriseToolService
      */
     public function analyzePlacement(string $channelUrl, string $niche = ''): array
     {
-        $prompt = "You are an expert YouTube advertising strategist. Analyze this YouTube channel and find ideal placement opportunities for Google Ads.\n\n"
-            . "Channel URL: {$channelUrl}\n"
-            . ($niche ? "Target niche: {$niche}\n" : '')
-            . "\nProvide a comprehensive placement analysis as JSON with this structure:\n"
-            . "{\n"
-            . "  \"channel_analysis\": { \"name\": \"\", \"niche\": \"\", \"estimated_subscribers\": \"\", \"content_type\": \"\" },\n"
-            . "  \"placement_score\": 0-100,\n"
-            . "  \"similar_channels\": [\n"
-            . "    { \"name\": \"\", \"relevance_score\": 0-100, \"estimated_cpm\": \"\", \"audience_overlap\": \"\", \"recommendation\": \"\" }\n"
-            . "  ],\n"
-            . "  \"targeting_keywords\": [\"keyword1\", \"keyword2\"],\n"
-            . "  \"audience_insights\": { \"demographics\": \"\", \"interests\": \"\", \"buying_intent\": \"\" },\n"
-            . "  \"budget_recommendation\": { \"daily_min\": \"\", \"daily_max\": \"\", \"expected_ctr\": \"\" },\n"
-            . "  \"tips\": [\"tip1\", \"tip2\", \"tip3\"]\n"
-            . "}\n\n"
-            . "Generate 8-10 similar channels. Respond with ONLY valid JSON.";
+        $nicheContext = $niche ? "\nThe advertiser is specifically targeting the \"{$niche}\" niche." : '';
+
+        $prompt = <<<PROMPT
+You are a senior Google Ads strategist specializing in YouTube Placement Targeting campaigns. Your job is to analyze a YouTube channel and find REAL YouTube channels that would be ideal placements for a Google Ads campaign targeting a similar audience.
+
+CONTEXT: In Google Ads, "Placement Targeting" lets advertisers choose specific YouTube channels where their ads will appear. The goal is to find channels whose viewers would be interested in the analyzed channel's content — so ads shown on those channels reach a relevant, engaged audience.
+
+CHANNEL TO ANALYZE: {$channelUrl}{$nicheContext}
+
+CRITICAL RULES:
+1. Only recommend YouTube channels you are CONFIDENT actually exist. Use channels you know from your training data.
+2. Every channel MUST include its real YouTube handle (e.g. @mkbhd, @veritasium). If you're not sure of the exact handle, do NOT include that channel.
+3. Include a MIX of channel sizes: some large (1M+), some medium (100K-1M), and some smaller but highly relevant (10K-100K). Smaller channels often have higher engagement rates and lower CPMs.
+4. Generate exactly 15 placement channels.
+5. For each channel, explain specifically WHY it's a good placement match — what audience overlap exists.
+6. CPM estimates should reflect realistic YouTube Ads CPM ranges for the niche (typically $2-$15 for most niches, $15-$50 for finance/insurance/legal).
+
+Respond with ONLY valid JSON in this exact structure:
+
+{
+  "channel_info": {
+    "name": "Channel Name",
+    "handle": "@handle",
+    "niche": "Primary niche category",
+    "sub_niche": "More specific sub-category",
+    "estimated_subscribers": "e.g. 1.2M",
+    "content_style": "e.g. Long-form reviews, Short tutorials, Vlogs",
+    "upload_frequency": "e.g. 2-3 videos/week",
+    "audience_type": "Brief description of who watches this channel"
+  },
+  "placement_score": 85,
+  "niche_insights": {
+    "niche_cpm_range": "$X - $Y",
+    "best_ad_formats": ["Skippable in-stream", "Discovery ads"],
+    "peak_months": ["November", "December"],
+    "audience_demographics": "e.g. Males 25-44, tech-savvy, mid-to-high income",
+    "competition_level": "Low|Medium|High"
+  },
+  "placements": [
+    {
+      "channel_name": "Actual Channel Name",
+      "handle": "@actualhandle",
+      "channel_url": "https://youtube.com/@actualhandle",
+      "subscribers": "e.g. 2.5M",
+      "relevance_score": 92,
+      "estimated_cpm": "$4.50 - $8.00",
+      "content_type": "e.g. Tech reviews & unboxings",
+      "audience_match": "Specific reason why this channel's audience overlaps with the analyzed channel",
+      "recommended_ad_format": "Skippable in-stream|Non-skippable|Bumper|Discovery",
+      "tier": "large|medium|small"
+    }
+  ],
+  "campaign_strategy": {
+    "recommended_daily_budget": "$XX - $XX",
+    "expected_cpm_range": "$X - $Y",
+    "expected_ctr": "X.X% - X.X%",
+    "recommended_bid_strategy": "e.g. Target CPM or Maximize conversions",
+    "ad_group_structure": [
+      {
+        "group_name": "e.g. High-Relevance Tech Channels",
+        "channels": ["@handle1", "@handle2", "@handle3"],
+        "rationale": "Why these channels are grouped together"
+      }
+    ]
+  },
+  "google_ads_keywords": ["keyword1", "keyword2", "keyword3"],
+  "tips": [
+    "Specific, actionable tip about running placement campaigns in this niche"
+  ]
+}
+PROMPT;
 
         return $this->executeAnalysis('placement_finder', $channelUrl, $prompt);
     }

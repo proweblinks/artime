@@ -10,33 +10,36 @@
 
         <div class="aith-card">
             <div class="aith-e-tool-header">
-                <div class="aith-e-tool-icon aith-e-icon-purple-violet" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
                     <i class="fa-light fa-bullseye-pointer" style="color:#fff;font-size:1.1rem;"></i>
                 </div>
                 <div class="aith-e-tool-info">
                     <h2>Placement Finder</h2>
-                    <p>Find YouTube channels for Google Ads placements in your niche</p>
+                    <p>Find YouTube channels for Google Ads placement targeting</p>
                 </div>
                 <span class="aith-e-badge-enterprise">Enterprise</span>
             </div>
 
             @if(!$result && !$isLoading)
             {{-- Input Form --}}
+            <div style="text-align:center;margin-bottom:1.25rem;">
+                <p style="color:rgba(255,255,255,0.6);font-size:0.9rem;line-height:1.5;">Enter your YouTube channel link and we'll find channels whose audience would engage with your content — ready to paste into Google Ads.</p>
+            </div>
             <div class="aith-form-group">
-                <label class="aith-label">YouTube Channel URL</label>
+                <label class="aith-label">Your YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
-                       placeholder="https://youtube.com/@channel">
+                       placeholder="https://youtube.com/@yourchannel">
                 @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
+                <span style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:0.25rem;display:block;">Supports: youtube.com/@handle, youtube.com/channel/..., youtube.com/c/...</span>
             </div>
             <div class="aith-form-group">
                 <label class="aith-label">Target Niche (optional)</label>
                 <input type="text" wire:model="niche" class="aith-input"
-                       placeholder="e.g. tech reviews, fitness, cooking">
-                @error('niche') <span class="aith-e-field-error">{{ $message }}</span> @enderror
+                       placeholder="e.g. tech reviews, fitness, personal finance">
             </div>
             <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
                 <span wire:loading.remove wire:target="analyze">
-                    <i class="fa-light fa-magnifying-glass"></i> Find Placements
+                    <i class="fa-light fa-magnifying-glass"></i> Find Placement Channels
                 </span>
                 <span wire:loading wire:target="analyze">
                     <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
@@ -52,7 +55,7 @@
                 let interval = setInterval(() => { if(step < steps - 1) step++; }, 2500);
                 $wire.on('loadingComplete', () => clearInterval(interval));
             ">
-                <div class="aith-e-loading-title">Analyzing placements...</div>
+                <div class="aith-e-loading-title">Finding placement channels...</div>
                 <div class="aith-e-loading-steps">
                     @foreach($loadingSteps as $i => $step)
                     <div class="aith-e-loading-step"
@@ -74,149 +77,229 @@
             @if($result && !$isLoading)
             {{-- Results --}}
             <div class="aith-e-result-header">
-                <span class="aith-e-result-title">Placement Analysis Results</span>
+                <span class="aith-e-result-title">Placement Results</span>
                 <div class="aith-e-result-actions">
+                    @if(!empty($result['placements']))
+                    <button onclick="enterpriseCopy('{{ collect($result['placements'])->pluck('channel_url')->filter()->implode('\n') }}', 'All {{ count($result['placements']) }} channel URLs copied!')" class="aith-e-btn-copy" style="padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-copy"></i> Copy All {{ count($result['placements']) }} URLs
+                    </button>
+                    @endif
                     <button onclick="enterprisePdfExport('pdf-content-placement-finder', 'Placement-Finder-Analysis')" class="aith-e-btn-pdf">
                         <i class="fa-light fa-file-pdf"></i> Export PDF
                     </button>
                     <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Search
                     </button>
                 </div>
             </div>
 
             <div id="pdf-content-placement-finder">
 
-            {{-- Score --}}
-            @php $score = $result['placement_score'] ?? 0; @endphp
-            <div class="aith-e-score-card">
-                <div class="aith-e-score-circle {{ $score >= 80 ? 'aith-e-score-high' : ($score >= 50 ? 'aith-e-score-medium' : 'aith-e-score-low') }}">
-                    {{ $score }}
+            {{-- Channel Info Card --}}
+            @if(isset($result['channel_info']))
+            @php $ci = $result['channel_info']; @endphp
+            <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:0.75rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);margin-bottom:1rem;">
+                <div style="width:3rem;height:3rem;border-radius:50%;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fa-light fa-play" style="color:#fff;font-size:1rem;"></i>
                 </div>
-                <div class="aith-e-score-info">
-                    <div class="aith-e-score-label">Placement Score</div>
-                    <div class="aith-e-score-text">
-                        @if($score >= 80) Excellent placement potential
-                        @elseif($score >= 50) Good placement opportunities available
-                        @else Limited placement options - consider broadening criteria
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#fff;font-size:1rem;">{{ $ci['name'] ?? 'Your Channel' }}</div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">{{ $ci['handle'] ?? '' }} · {{ $ci['niche'] ?? '' }}{{ isset($ci['sub_niche']) ? ' / '.$ci['sub_niche'] : '' }}</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    @php $score = $result['placement_score'] ?? 0; @endphp
+                    <div class="aith-e-score-circle {{ $score >= 80 ? 'aith-e-score-high' : ($score >= 50 ? 'aith-e-score-medium' : 'aith-e-score-low') }}" style="width:3rem;height:3rem;font-size:0.9rem;">
+                        {{ $score }}
+                    </div>
+                </div>
+            </div>
+
+            {{-- Channel Quick Stats --}}
+            <div class="aith-e-grid-3" style="margin-bottom:1rem;">
+                <div class="aith-e-summary-card aith-e-summary-card-purple">
+                    <div class="aith-e-summary-label">Subscribers</div>
+                    <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $ci['estimated_subscribers'] ?? '-' }}</div>
+                    <div class="aith-e-summary-sub">{{ $ci['upload_frequency'] ?? '' }}</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-blue">
+                    <div class="aith-e-summary-label">Content Style</div>
+                    <div class="aith-e-summary-value" style="color:#93c5fd;font-size:1rem;">{{ $ci['content_style'] ?? '-' }}</div>
+                    <div class="aith-e-summary-sub">{{ $ci['audience_type'] ?? '' }}</div>
+                </div>
+                @if(isset($result['niche_insights']))
+                <div class="aith-e-summary-card aith-e-summary-card-green">
+                    <div class="aith-e-summary-label">Niche CPM Range</div>
+                    <div class="aith-e-summary-value" style="color:#86efac;">{{ $result['niche_insights']['niche_cpm_range'] ?? '-' }}</div>
+                    <div class="aith-e-summary-sub">{{ $result['niche_insights']['competition_level'] ?? '' }} competition</div>
+                </div>
+                @endif
+            </div>
+            @endif
+
+            {{-- Niche Insights --}}
+            @if(isset($result['niche_insights']))
+            @php $ni = $result['niche_insights']; @endphp
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-mixed"></i> Niche Insights</div>
+                <div class="aith-e-grid-2">
+                    @if(isset($ni['audience_demographics']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Target Audience</span>
+                        <div style="font-size:0.85rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ $ni['audience_demographics'] }}</div>
+                    </div>
+                    @endif
+                    @if(isset($ni['best_ad_formats']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Best Ad Formats</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
+                            @foreach((is_array($ni['best_ad_formats']) ? $ni['best_ad_formats'] : [$ni['best_ad_formats']]) as $fmt)
+                            <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $fmt }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                    @if(isset($ni['peak_months']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Peak Months</span>
+                        <div style="font-size:0.85rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ is_array($ni['peak_months']) ? implode(', ', $ni['peak_months']) : $ni['peak_months'] }}</div>
+                    </div>
+                    @endif
+                    @if(isset($ni['competition_level']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Ad Competition</span>
+                        @php $cl = strtolower($ni['competition_level']); @endphp
+                        <div style="margin-top:0.25rem;">
+                            <span class="aith-e-tag {{ $cl === 'low' ? 'aith-e-tag-high' : ($cl === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $ni['competition_level'] }}</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            {{-- Placement Channels --}}
+            @if(!empty($result['placements']))
+            <div class="aith-e-section-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-bullseye-pointer"></i> Placement Channels ({{ count($result['placements']) }})</div>
+                </div>
+
+                @foreach($result['placements'] as $idx => $p)
+                <div style="padding:0.875rem;border-radius:0.625rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.625rem;">
+                    {{-- Channel header --}}
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+                        <span style="width:1.75rem;height:1.75rem;border-radius:50%;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#c4b5fd;flex-shrink:0;font-weight:700;">{{ $idx + 1 }}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                                <span style="font-weight:700;color:#fff;font-size:0.9rem;">{{ $p['channel_name'] ?? '' }}</span>
+                                @if(isset($p['handle']))
+                                <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $p['handle'] }}</span>
+                                @endif
+                                @if(isset($p['tier']))
+                                @php $tier = strtolower($p['tier']); @endphp
+                                <span class="aith-e-tag" style="font-size:0.6rem;padding:0.1rem 0.4rem;{{ $tier === 'large' ? 'background:rgba(234,179,8,0.15);color:#fde047;' : ($tier === 'medium' ? 'background:rgba(59,130,246,0.15);color:#93c5fd;' : 'background:rgba(34,197,94,0.15);color:#86efac;') }}">{{ ucfirst($tier) }}</span>
+                                @endif
+                            </div>
+                            @if(isset($p['subscribers']))
+                            <span style="font-size:0.75rem;color:rgba(255,255,255,0.35);">{{ $p['subscribers'] }} subscribers · {{ $p['content_type'] ?? '' }}</span>
+                            @endif
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+                            @php $rs = $p['relevance_score'] ?? 0; @endphp
+                            <span class="aith-e-match-badge {{ $rs >= 80 ? 'aith-e-match-high' : ($rs >= 60 ? 'aith-e-match-medium' : 'aith-e-match-low') }}">{{ $rs }}%</span>
+                            @if(isset($p['channel_url']))
+                            <a href="{{ $p['channel_url'] }}" target="_blank" style="color:rgba(255,255,255,0.4);font-size:0.85rem;text-decoration:none;" title="Visit channel"><i class="fa-light fa-arrow-up-right-from-square"></i></a>
+                            <button onclick="enterpriseCopy('{{ $p['channel_url'] }}', 'URL copied!')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:0.85rem;" title="Copy URL"><i class="fa-light fa-copy"></i></button>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Match reason --}}
+                    @if(isset($p['audience_match']))
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;padding-left:2.5rem;">
+                        {{ $p['audience_match'] }}
+                    </div>
+                    @endif
+
+                    {{-- Badges row --}}
+                    <div style="display:flex;flex-wrap:wrap;gap:0.375rem;padding-left:2.5rem;">
+                        @if(isset($p['estimated_cpm']))
+                        <span class="aith-e-pill aith-e-pill-green"><i class="fa-light fa-dollar-sign" style="font-size:0.6rem;"></i> {{ $p['estimated_cpm'] }}</span>
+                        @endif
+                        @if(isset($p['recommended_ad_format']))
+                        <span class="aith-e-pill aith-e-pill-blue"><i class="fa-light fa-rectangle-ad" style="font-size:0.6rem;"></i> {{ $p['recommended_ad_format'] }}</span>
                         @endif
                     </div>
                 </div>
-            </div>
-
-            {{-- Channel Analysis --}}
-            @if(isset($result['channel_analysis']))
-            <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-simple"></i> Channel Analysis</div>
-                <div class="aith-e-grid-2">
-                    @foreach($result['channel_analysis'] as $key => $val)
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">{{ str_replace('_', ' ', $key) }}</span>
-                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ $val }}</div>
-                    </div>
-                    @endforeach
-                </div>
+                @endforeach
             </div>
             @endif
 
-            {{-- Audience Insights --}}
-            @if(isset($result['audience_insights']))
+            {{-- Campaign Strategy --}}
+            @if(isset($result['campaign_strategy']))
+            @php $cs = $result['campaign_strategy']; @endphp
             <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-pie"></i> Audience Insights</div>
-                <div class="aith-e-grid-2">
-                    @if(isset($result['audience_insights']['demographics']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Demographics</span>
-                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
-                            @if(is_array($result['audience_insights']['demographics']))
-                                {{ implode(', ', $result['audience_insights']['demographics']) }}
-                            @else
-                                {{ $result['audience_insights']['demographics'] }}
-                            @endif
-                        </div>
+                <div class="aith-e-section-card-title"><i class="fa-light fa-bullseye"></i> Google Ads Campaign Strategy</div>
+
+                {{-- Budget & Performance --}}
+                <div class="aith-e-grid-3" style="margin-bottom:1rem;">
+                    <div style="text-align:center;padding:0.75rem;border-radius:0.5rem;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:0.25rem;">Daily Budget</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#86efac;">{{ $cs['recommended_daily_budget'] ?? '-' }}</div>
+                    </div>
+                    <div style="text-align:center;padding:0.75rem;border-radius:0.5rem;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:0.25rem;">Expected CPM</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#93c5fd;">{{ $cs['expected_cpm_range'] ?? '-' }}</div>
+                    </div>
+                    <div style="text-align:center;padding:0.75rem;border-radius:0.5rem;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:0.25rem;">Expected CTR</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#c4b5fd;">{{ $cs['expected_ctr'] ?? '-' }}</div>
+                    </div>
+                </div>
+
+                @if(isset($cs['recommended_bid_strategy']))
+                <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.75rem;">
+                    <strong style="color:rgba(255,255,255,0.7);">Bid Strategy:</strong> {{ $cs['recommended_bid_strategy'] }}
+                </div>
+                @endif
+
+                {{-- Ad Group Structure --}}
+                @if(!empty($cs['ad_group_structure']))
+                <div style="font-size:0.75rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.5rem;margin-top:0.75rem;">Suggested Ad Groups</div>
+                @foreach($cs['ad_group_structure'] as $agIdx => $ag)
+                <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.5rem;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
+                        <span class="aith-e-step-badge">{{ $agIdx + 1 }}</span>
+                        <span style="font-weight:600;color:#fff;font-size:0.85rem;">{{ $ag['group_name'] ?? '' }}</span>
+                    </div>
+                    @if(!empty($ag['channels']))
+                    <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-bottom:0.375rem;padding-left:2.25rem;">
+                        @foreach($ag['channels'] as $agHandle)
+                        <span class="aith-e-pill" style="background:rgba(139,92,246,0.12);color:#c4b5fd;font-size:0.7rem;padding:0.15rem 0.5rem;">{{ $agHandle }}</span>
+                        @endforeach
                     </div>
                     @endif
-                    @if(isset($result['audience_insights']['interests']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Interests</span>
-                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
-                            @if(is_array($result['audience_insights']['interests']))
-                                {{ implode(', ', $result['audience_insights']['interests']) }}
-                            @else
-                                {{ $result['audience_insights']['interests'] }}
-                            @endif
-                        </div>
-                    </div>
-                    @endif
-                    @if(isset($result['audience_insights']['buying_intent']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Buying Intent</span>
-                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
-                            @if(is_array($result['audience_insights']['buying_intent']))
-                                {{ implode(', ', $result['audience_insights']['buying_intent']) }}
-                            @else
-                                {{ $result['audience_insights']['buying_intent'] }}
-                            @endif
-                        </div>
-                    </div>
+                    @if(isset($ag['rationale']))
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);padding-left:2.25rem;">{{ $ag['rationale'] }}</div>
                     @endif
                 </div>
+                @endforeach
+                @endif
             </div>
             @endif
 
-            {{-- Similar Channels --}}
-            @if(!empty($result['similar_channels']))
+            {{-- Google Ads Keywords --}}
+            @if(!empty($result['google_ads_keywords']))
             <div class="aith-e-section-card">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-                    <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-users"></i> Similar Channels for Placement</div>
-                    <button class="aith-e-btn-copy" onclick="enterpriseCopy('{{ collect($result['similar_channels'])->pluck('name')->filter()->implode('\n') }}', 'All channel names copied!')">
-                        <i class="fa-light fa-copy"></i> Copy All Channels
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+                    <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-tags"></i> Google Ads Keywords</div>
+                    <button onclick="enterpriseCopy('{{ collect($result['google_ads_keywords'])->implode('\n') }}', 'Keywords copied!')" class="aith-e-btn-copy" style="font-size:0.7rem;">
+                        <i class="fa-light fa-copy"></i> Copy
                     </button>
                 </div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Channel</th><th>Relevance</th><th>Est. CPM</th><th>Overlap</th><th>Recommendation</th></tr></thead>
-                        <tbody>
-                        @foreach($result['similar_channels'] as $ch)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $ch['name'] ?? '' }}</td>
-                            <td>
-                                @php $rs = $ch['relevance_score'] ?? 0; @endphp
-                                <span class="aith-e-tag {{ $rs >= 80 ? 'aith-e-tag-high' : ($rs >= 50 ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $rs }}/100</span>
-                            </td>
-                            <td>{{ $ch['estimated_cpm'] ?? '-' }}</td>
-                            <td>{{ $ch['audience_overlap'] ?? '-' }}</td>
-                            <td>{{ $ch['recommendation'] ?? '' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
-
-            {{-- Targeting Keywords --}}
-            @if(!empty($result['targeting_keywords']))
-            <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-tags"></i> Targeting Keywords</div>
-                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-                    @foreach($result['targeting_keywords'] as $kw)
-                    <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $kw }}</span>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            {{-- Budget Recommendation --}}
-            @if(isset($result['budget_recommendation']))
-            <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-sack-dollar"></i> Budget Recommendation</div>
-                <div class="aith-e-grid-2">
-                    @foreach($result['budget_recommendation'] as $key => $val)
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">{{ str_replace('_', ' ', $key) }}</span>
-                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ $val }}</div>
-                    </div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+                    @foreach($result['google_ads_keywords'] as $kw)
+                    <span class="aith-e-pill" style="background:rgba(139,92,246,0.12);color:#c4b5fd;">{{ $kw }}</span>
                     @endforeach
                 </div>
             </div>
@@ -225,7 +308,7 @@
             {{-- Tips --}}
             @if(!empty($result['tips']))
             <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-lightbulb"></i> Tips</div>
+                <div class="aith-e-section-card-title"><i class="fa-light fa-lightbulb"></i> Placement Tips</div>
                 <ul class="aith-e-list">
                     @foreach($result['tips'] as $tip)
                     <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $tip }}</li>
@@ -233,6 +316,17 @@
                 </ul>
             </div>
             @endif
+
+            {{-- How to Use --}}
+            <div class="aith-e-section-card" style="background:rgba(139,92,246,0.05);border-color:rgba(139,92,246,0.15);">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-circle-info"></i> How to Use These Results</div>
+                <ul class="aith-e-list" style="font-size:0.8rem;">
+                    <li><span class="bullet" style="color:#c4b5fd;"><strong>1.</strong></span> Click <strong style="color:rgba(255,255,255,0.8);">Copy All URLs</strong> above to copy all channel URLs at once</li>
+                    <li><span class="bullet" style="color:#c4b5fd;"><strong>2.</strong></span> In <strong style="color:rgba(255,255,255,0.8);">Google Ads</strong>, create a new Video campaign → Ad Group → Placements</li>
+                    <li><span class="bullet" style="color:#c4b5fd;"><strong>3.</strong></span> Paste the channel URLs into the <strong style="color:rgba(255,255,255,0.8);">YouTube channels</strong> placement field</li>
+                    <li><span class="bullet" style="color:#c4b5fd;"><strong>4.</strong></span> Start with the <strong style="color:rgba(255,255,255,0.8);">highest relevance</strong> channels and expand based on performance</li>
+                </ul>
+            </div>
 
             </div>{{-- end pdf-content --}}
             @endif
