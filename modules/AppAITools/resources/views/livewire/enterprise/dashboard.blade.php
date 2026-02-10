@@ -196,18 +196,36 @@
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 1.25rem !important;
             width: 100% !important;
+            box-sizing: border-box !important;
         }
-        @media (max-width: 992px) { .aith-enterprise .aith-e-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-        @media (max-width: 576px) { .aith-enterprise .aith-e-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 992px) {
+            .aith-enterprise .aith-e-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            .aith-enterprise .aith-e-grid[style] {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+        @media (max-width: 576px) {
+            .aith-enterprise .aith-e-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .aith-enterprise .aith-e-grid[style] {
+                grid-template-columns: 1fr !important;
+            }
+        }
 
         .aith-e-card {
-            display: flex; flex-direction: column;
+            display: flex !important; flex-direction: column !important;
             padding: 1.5rem; border-radius: 1rem;
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.08);
             transition: all 0.3s;
             text-decoration: none !important;
             height: 100%;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
         .aith-e-card:hover {
             background: rgba(255,255,255,0.06);
@@ -514,7 +532,7 @@
             </div>
 
             {{-- Tools Grid --}}
-            <div class="aith-e-grid">
+            <div class="aith-e-grid" wire:key="enterprise-tools-grid" style="display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 1.25rem !important; width: 100% !important;">
                 @php
                     $iconClasses = [
                         'bulk-optimizer'          => 'aith-e-icon-blue-indigo',
