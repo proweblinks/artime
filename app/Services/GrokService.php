@@ -113,7 +113,7 @@ class GrokService
                     'temperature' => $options['temperature'] ?? 0.7,
                     'top_p'       => $options['top_p'] ?? 0.95,
                 ],
-                'timeout' => 120, // Grok supports long contexts, may need more time
+                'timeout' => 300, // Large prompts (placement finder, etc.) need more time
             ]);
 
             $body = json_decode($response->getBody(), true);
