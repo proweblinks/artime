@@ -203,7 +203,11 @@ JSON
                 . "- Be specific: mention video titles, actual numbers, and concrete strategies\n"
                 . "\nRespond with ONLY the JSON object.";
 
-            $result = AI::process($prompt, 'text', ['maxResult' => 1, 'maxTokens' => 5000], $teamId);
+            $aiPlatform = get_option('ai_platform', 'openai');
+            $result = AI::processWithOverride($prompt, $aiPlatform, null, 'text', [
+                'maxResult' => 1,
+                'max_tokens' => 5000,
+            ], $teamId);
 
             if (!empty($result['error'])) {
                 throw new \Exception($result['error']);
