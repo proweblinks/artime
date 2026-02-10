@@ -11,6 +11,11 @@ use Modules\AppAITools\Models\AiToolHistory;
 class EnterpriseToolService
 {
     /**
+     * Last saved history record, used to update result_data after enrichment.
+     */
+    protected ?AiToolHistory $lastHistory = null;
+
+    /**
      * Analyze a YouTube channel for Google Ads placement opportunities.
      */
     public function analyzePlacement(string $channelUrl, string $niche = '', array $excludeHandles = []): array
@@ -64,8 +69,11 @@ class EnterpriseToolService
             throw new \Exception('AI could not generate placement results. Please try again or use a different channel URL.');
         }
 
-        // Enrich with real YouTube thumbnails
-        return $this->enrichPlacementsWithThumbnails($result, $channelUrl);
+        // Enrich with real YouTube thumbnails and persist back to DB
+        $enriched = $this->enrichPlacementsWithThumbnails($result, $channelUrl);
+        $this->persistEnrichedResult($enriched);
+
+        return $enriched;
     }
 
     /**
@@ -98,8 +106,11 @@ class EnterpriseToolService
             throw new \Exception('AI could not generate more placements. Please try again.');
         }
 
-        // Enrich with real YouTube thumbnails
-        return $this->enrichPlacementsWithThumbnails($result);
+        // Enrich with real YouTube thumbnails and persist back to DB
+        $enriched = $this->enrichPlacementsWithThumbnails($result);
+        $this->persistEnrichedResult($enriched);
+
+        return $enriched;
     }
 
     /**
@@ -162,6 +173,16 @@ class EnterpriseToolService
         }
 
         return $result;
+    }
+
+    /**
+     * Save enriched result data back to the last history record.
+     */
+    protected function persistEnrichedResult(array $result): void
+    {
+        if ($this->lastHistory) {
+            $this->lastHistory->update(['result_data' => $result]);
+        }
     }
 
     /**
@@ -487,7 +508,7 @@ class EnterpriseToolService
             throw new \Exception($quota['message']);
         }
 
-        $history = AiToolHistory::create([
+        $this->lastHistory = AiToolHistory::create([
             'team_id' => $teamId,
             'user_id' => $userId,
             'tool' => $toolKey,
@@ -496,6 +517,7 @@ class EnterpriseToolService
             'input_data' => ['url' => $input, 'tool' => $toolKey],
             'status' => 2,
         ]);
+        $history = $this->lastHistory;
 
         try {
             if ($maxTokens > 0) {
