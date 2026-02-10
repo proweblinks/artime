@@ -151,6 +151,174 @@
         .aith-cta-purple { color: #c084fc; }
         .aith-cta-amber { color: #fbbf24; }
 
+        /* Enterprise Banner */
+        .aith-enterprise-banner {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 1.75rem;
+            margin-bottom: 3rem;
+            padding: 1.75rem 2rem;
+            border-radius: 1.25rem;
+            overflow: hidden;
+            text-decoration: none !important;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background:
+                linear-gradient(135deg,
+                    rgba(251,191,36,0.12) 0%,
+                    rgba(245,158,11,0.08) 30%,
+                    rgba(139,92,246,0.1) 70%,
+                    rgba(236,72,153,0.08) 100%);
+            border: 1px solid rgba(251,191,36,0.2);
+        }
+        .aith-enterprise-banner:hover {
+            border-color: rgba(251,191,36,0.4);
+            transform: translateY(-3px);
+            box-shadow:
+                0 12px 40px rgba(251,191,36,0.15),
+                0 0 0 1px rgba(251,191,36,0.1);
+        }
+        .aith-enterprise-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                105deg,
+                transparent 40%,
+                rgba(251,191,36,0.06) 45%,
+                rgba(251,191,36,0.1) 50%,
+                rgba(251,191,36,0.06) 55%,
+                transparent 60%
+            );
+            background-size: 200% 100%;
+            animation: aithShimmer 3s ease-in-out infinite;
+        }
+        @keyframes aithShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .aith-enterprise-crown {
+            position: relative;
+            flex-shrink: 0;
+            width: 4.5rem;
+            height: 4.5rem;
+            border-radius: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.25rem;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 8px 32px rgba(245,158,11,0.35);
+        }
+        .aith-enterprise-crown::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 1.35rem;
+            background: conic-gradient(
+                from 0deg,
+                rgba(251,191,36,0.6),
+                rgba(245,158,11,0),
+                rgba(251,191,36,0.6),
+                rgba(245,158,11,0),
+                rgba(251,191,36,0.6)
+            );
+            z-index: -1;
+            animation: aithCrownGlow 4s linear infinite;
+        }
+        @keyframes aithCrownGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .aith-enterprise-body {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        .aith-enterprise-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.2rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));
+            border: 1px solid rgba(251,191,36,0.3);
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+        }
+        .aith-enterprise-title {
+            font-size: 1.375rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.375rem;
+            line-height: 1.2;
+        }
+        .aith-enterprise-title span {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .aith-enterprise-desc {
+            color: rgba(255,255,255,0.45);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        .aith-enterprise-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.625rem;
+        }
+        .aith-enterprise-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.6875rem;
+            font-weight: 500;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.5);
+        }
+        .aith-enterprise-arrow {
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));
+            border: 1px solid rgba(251,191,36,0.25);
+            color: #fbbf24;
+            font-size: 1.125rem;
+            transition: all 0.3s;
+        }
+        .aith-enterprise-banner:hover .aith-enterprise-arrow {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            transform: translateX(4px);
+            box-shadow: 0 4px 20px rgba(245,158,11,0.35);
+        }
+        @media (max-width: 640px) {
+            .aith-enterprise-banner {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+            .aith-enterprise-tags { justify-content: center; }
+            .aith-enterprise-arrow { display: none; }
+        }
+
         /* Recent Activity */
         .aith-activity { border-radius: 0.75rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
         .aith-activity-item {
@@ -272,18 +440,43 @@
             @endphp
 
             @foreach($tools as $key => $tool)
-            <a href="{{ route($tool['route']) }}" class="aith-tool-card">
-                <div class="aith-tool-icon {{ $iconClasses[$key] ?? 'aith-icon-blue-purple' }}">
-                    {{ $tool['emoji'] }}
-                </div>
-                <div class="aith-tool-name">{{ __($tool['name']) }}</div>
-                <div class="aith-tool-desc">{{ __($tool['description']) }}</div>
-                <span class="aith-tool-cta {{ $ctaClasses[$key] ?? 'aith-cta-blue' }}">
-                    {{ __($tool['cta_text']) }} <span>&#8594;</span>
-                </span>
-            </a>
+                @if($key === 'enterprise_suite') @continue @endif
+                <a href="{{ route($tool['route']) }}" class="aith-tool-card">
+                    <div class="aith-tool-icon {{ $iconClasses[$key] ?? 'aith-icon-blue-purple' }}">
+                        {{ $tool['emoji'] }}
+                    </div>
+                    <div class="aith-tool-name">{{ __($tool['name']) }}</div>
+                    <div class="aith-tool-desc">{{ __($tool['description']) }}</div>
+                    <span class="aith-tool-cta {{ $ctaClasses[$key] ?? 'aith-cta-blue' }}">
+                        {{ __($tool['cta_text']) }} <span>&#8594;</span>
+                    </span>
+                </a>
             @endforeach
         </div>
+
+        {{-- Enterprise Suite Banner --}}
+        @if(isset($tools['enterprise_suite']))
+        <a href="{{ route($tools['enterprise_suite']['route']) }}" class="aith-enterprise-banner">
+            <div class="aith-enterprise-crown">&#128081;</div>
+            <div class="aith-enterprise-body">
+                <div class="aith-enterprise-label">
+                    <i class="fa-light fa-sparkles"></i> Premium Suite
+                </div>
+                <div class="aith-enterprise-title">Unlock <span>15 Enterprise AI Tools</span></div>
+                <div class="aith-enterprise-desc">{{ __($tools['enterprise_suite']['description']) }}</div>
+                <div class="aith-enterprise-tags">
+                    <span class="aith-enterprise-tag">&#128176; Monetization</span>
+                    <span class="aith-enterprise-tag">&#128200; Analytics</span>
+                    <span class="aith-enterprise-tag">&#127775; Brand Deals</span>
+                    <span class="aith-enterprise-tag">&#128640; Revenue Automation</span>
+                    <span class="aith-enterprise-tag">&#128270; Audience Profiling</span>
+                </div>
+            </div>
+            <div class="aith-enterprise-arrow">
+                <i class="fa-light fa-arrow-right"></i>
+            </div>
+        </a>
+        @endif
 
         {{-- Recent Activity --}}
         @if(count($recentActivity) > 0)
