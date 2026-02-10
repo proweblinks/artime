@@ -3,6 +3,49 @@
 @include('appaitools::livewire.partials._tool-base')
 
 <style>
+    /* Dark theme overrides for enterprise tools */
+    .aith-card {
+        background: rgba(255,255,255,0.04) !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    }
+    .aith-card:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+    }
+    .aith-label {
+        color: rgba(255,255,255,0.7) !important;
+    }
+    .aith-label-hint {
+        color: rgba(255,255,255,0.35) !important;
+    }
+    .aith-input,
+    .aith-select,
+    .aith-textarea {
+        background: rgba(255,255,255,0.06) !important;
+        border-color: rgba(255,255,255,0.12) !important;
+        color: #fff !important;
+    }
+    .aith-input:focus,
+    .aith-select:focus,
+    .aith-textarea:focus {
+        border-color: rgba(139,92,246,0.5) !important;
+        box-shadow: 0 4px 16px rgba(139,92,246,0.2) !important;
+    }
+    .aith-input::placeholder,
+    .aith-textarea::placeholder {
+        color: rgba(255,255,255,0.25) !important;
+    }
+    .aith-btn-secondary {
+        color: rgba(255,255,255,0.6) !important;
+        border-color: rgba(255,255,255,0.15) !important;
+        background: transparent !important;
+    }
+    .aith-btn-secondary:hover {
+        background: rgba(255,255,255,0.08) !important;
+        color: #fff !important;
+        border-color: rgba(255,255,255,0.25) !important;
+    }
+
     /* Enterprise Tool Specific Overrides */
     .aith-tool { max-width: 1080px; }
 
