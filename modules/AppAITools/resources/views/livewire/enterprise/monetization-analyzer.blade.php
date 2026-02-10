@@ -1,0 +1,197 @@
+<div>
+    @include('appaitools::livewire.enterprise._enterprise-tool-base')
+
+    <div class="aith-tool">
+        <div class="aith-nav">
+            <a href="{{ route('app.ai-tools.enterprise-suite') }}" class="aith-nav-btn">
+                <i class="fa-light fa-arrow-left"></i> Enterprise Suite
+            </a>
+        </div>
+
+        <div class="aith-card">
+            <div class="aith-e-tool-header">
+                <div class="aith-e-tool-icon" style="background:linear-gradient(135deg,#22c55e,#059669);">
+                    <i class="fa-light fa-coins" style="color:#fff;font-size:1.1rem;"></i>
+                </div>
+                <div class="aith-e-tool-info">
+                    <h2>Monetization Analyzer</h2>
+                    <p>Estimate channel earnings and optimize revenue streams</p>
+                </div>
+                <span class="aith-e-badge-enterprise">Enterprise</span>
+            </div>
+
+            @if(!$result && !$isLoading)
+            {{-- Input Form --}}
+            <div class="aith-form-group">
+                <label class="aith-label">YouTube Channel URL</label>
+                <input type="url" wire:model="url" class="aith-input"
+                       placeholder="https://youtube.com/@channel">
+            </div>
+            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <i class="fa-light fa-coins"></i> Analyze Revenue
+                <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
+            </button>
+            @endif
+
+            @if($isLoading)
+            {{-- Loading Steps --}}
+            <div class="aith-e-loading" x-data="{ step: 0 }" x-init="
+                let steps = {{ count($loadingSteps) }};
+                let interval = setInterval(() => { if(step < steps - 1) step++; }, 2500);
+                $wire.on('loadingComplete', () => clearInterval(interval));
+            ">
+                <div class="aith-e-loading-title">Analyzing monetization...</div>
+                <div class="aith-e-loading-steps">
+                    @foreach($loadingSteps as $i => $step)
+                    <div class="aith-e-loading-step"
+                         :class="{ 'active': step === {{ $i }}, 'done': step > {{ $i }} }">
+                        <span class="step-icon">
+                            <template x-if="step > {{ $i }}"><i class="fa-solid fa-check"></i></template>
+                            <template x-if="step <= {{ $i }}">{{ $i + 1 }}</template>
+                        </span>
+                        <span class="step-label">{{ $step }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                <div class="aith-e-progress-bar">
+                    <div class="aith-e-progress-fill" :style="'width:' + ((step + 1) / {{ count($loadingSteps) }} * 100) + '%'"></div>
+                </div>
+            </div>
+            @endif
+
+            @if($result && !$isLoading)
+            {{-- Results --}}
+            <div class="aith-e-result-header">
+                <span class="aith-e-result-title">Monetization Analysis Results</span>
+                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                </button>
+            </div>
+
+            {{-- Score --}}
+            @php $score = $result['monetization_score'] ?? 0; @endphp
+            <div class="aith-e-score-card">
+                <div class="aith-e-score-circle {{ $score >= 80 ? 'aith-e-score-high' : ($score >= 50 ? 'aith-e-score-medium' : 'aith-e-score-low') }}">
+                    {{ $score }}
+                </div>
+                <div class="aith-e-score-info">
+                    <div class="aith-e-score-label">Monetization Score</div>
+                    <div class="aith-e-score-text">
+                        @if($score >= 80) Excellent monetization potential
+                        @elseif($score >= 50) Good revenue opportunities available
+                        @else Limited monetization - significant optimization needed
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Channel Overview --}}
+            @if(isset($result['channel_overview']))
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-simple"></i> Channel Overview</div>
+                <div class="aith-e-grid-2">
+                    @foreach($result['channel_overview'] as $key => $val)
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">{{ str_replace('_', ' ', $key) }}</span>
+                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ $val }}</div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Revenue Breakdown --}}
+            @if(!empty($result['revenue_breakdown']))
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-money-bill-trend-up"></i> Revenue Breakdown</div>
+                <div style="overflow-x:auto;">
+                    <table class="aith-e-table">
+                        <thead><tr><th>Stream</th><th>Monthly Estimate</th><th>Potential</th><th>Status</th></tr></thead>
+                        <tbody>
+                        @foreach($result['revenue_breakdown'] as $item)
+                        <tr>
+                            <td style="font-weight:600;color:#fff;">{{ $item['stream'] ?? '' }}</td>
+                            <td>{{ $item['monthly_estimate'] ?? '-' }}</td>
+                            <td>{{ $item['potential'] ?? '-' }}</td>
+                            <td>
+                                @php $status = strtolower($item['status'] ?? ''); @endphp
+                                <span class="aith-e-tag {{ $status === 'active' ? 'aith-e-tag-high' : ($status === 'underutilized' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $item['status'] ?? '-' }}</span>
+                            </td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Total Monthly Estimate --}}
+            @if(isset($result['total_monthly_estimate']))
+            <div class="aith-e-section-card" style="text-align:center;">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-sack-dollar"></i> Total Monthly Estimate</div>
+                <div style="font-size:2rem;font-weight:700;color:#22c55e;margin:0.75rem 0;">{{ $result['total_monthly_estimate'] }}</div>
+            </div>
+            @endif
+
+            {{-- Growth Opportunities --}}
+            @if(!empty($result['growth_opportunities']))
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-arrow-trend-up"></i> Growth Opportunities</div>
+                <div style="overflow-x:auto;">
+                    <table class="aith-e-table">
+                        <thead><tr><th>Opportunity</th><th>Potential Revenue</th><th>Difficulty</th><th>Priority</th></tr></thead>
+                        <tbody>
+                        @foreach($result['growth_opportunities'] as $opp)
+                        <tr>
+                            <td style="font-weight:600;color:#fff;">{{ $opp['opportunity'] ?? '' }}</td>
+                            <td>{{ $opp['potential_revenue'] ?? '-' }}</td>
+                            <td>
+                                @php $diff = strtolower($opp['difficulty'] ?? ''); @endphp
+                                <span class="aith-e-tag {{ $diff === 'easy' ? 'aith-e-tag-high' : ($diff === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $opp['difficulty'] ?? '-' }}</span>
+                            </td>
+                            <td>
+                                @php $pri = strtolower($opp['priority'] ?? ''); @endphp
+                                <span class="aith-e-tag {{ $pri === 'high' ? 'aith-e-tag-high' : ($pri === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $opp['priority'] ?? '-' }}</span>
+                            </td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Optimization Tips --}}
+            @if(!empty($result['optimization_tips']))
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-lightbulb"></i> Optimization Tips</div>
+                <ul class="aith-e-list">
+                    @foreach($result['optimization_tips'] as $tip)
+                    <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $tip }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+            @endif
+
+            {{-- Error --}}
+            @if(session('error'))
+            <div class="aith-e-error">{{ session('error') }}</div>
+            @endif
+        </div>
+
+        {{-- History --}}
+        @if(count($history) > 0 && !$result)
+        <div class="aith-card" style="margin-top:1rem;">
+            <div class="aith-e-section-card-title"><i class="fa-light fa-clock-rotate-left"></i> Recent Analyses</div>
+            @foreach($history as $i => $item)
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;"
+                 wire:click="loadHistoryItem({{ $i }})">
+                <span style="font-size:0.8rem;color:rgba(255,255,255,0.6);">{{ \Illuminate\Support\Str::limit($item['title'], 60) }}</span>
+                <span style="font-size:0.75rem;color:rgba(255,255,255,0.25);">{{ $item['time_ago'] }}</span>
+            </div>
+            @endforeach
+        </div>
+        @endif
+    </div>
+</div>

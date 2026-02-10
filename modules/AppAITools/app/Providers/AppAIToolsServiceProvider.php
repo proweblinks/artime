@@ -81,6 +81,21 @@ class AppAIToolsServiceProvider extends ServiceProvider
         Livewire::component('app-ai-tools::viral-hook-lab', \Modules\AppAITools\Livewire\SubTools\ViralHookLab::class);
         Livewire::component('app-ai-tools::content-multiplier', \Modules\AppAITools\Livewire\SubTools\ContentMultiplier::class);
         Livewire::component('app-ai-tools::thumbnail-arena', \Modules\AppAITools\Livewire\SubTools\ThumbnailArena::class);
+
+        // Enterprise Suite components
+        Livewire::component('app-ai-tools::enterprise-dashboard', \Modules\AppAITools\Livewire\Enterprise\EnterpriseDashboard::class);
+        Livewire::component('app-ai-tools::enterprise.placement-finder', \Modules\AppAITools\Livewire\Enterprise\PlacementFinder::class);
+        Livewire::component('app-ai-tools::enterprise.monetization-analyzer', \Modules\AppAITools\Livewire\Enterprise\MonetizationAnalyzer::class);
+        Livewire::component('app-ai-tools::enterprise.sponsorship-calculator', \Modules\AppAITools\Livewire\Enterprise\SponsorshipCalculator::class);
+        Livewire::component('app-ai-tools::enterprise.revenue-diversification', \Modules\AppAITools\Livewire\Enterprise\RevenueDiversification::class);
+        Livewire::component('app-ai-tools::enterprise.cpm-booster', \Modules\AppAITools\Livewire\Enterprise\CpmBooster::class);
+        Livewire::component('app-ai-tools::enterprise.audience-profiler', \Modules\AppAITools\Livewire\Enterprise\AudienceProfiler::class);
+        Livewire::component('app-ai-tools::enterprise.digital-product-architect', \Modules\AppAITools\Livewire\Enterprise\DigitalProductArchitect::class);
+        Livewire::component('app-ai-tools::enterprise.affiliate-finder', \Modules\AppAITools\Livewire\Enterprise\AffiliateFinder::class);
+        Livewire::component('app-ai-tools::enterprise.multi-income-converter', \Modules\AppAITools\Livewire\Enterprise\MultiIncomeConverter::class);
+        Livewire::component('app-ai-tools::enterprise.brand-deal-matchmaker', \Modules\AppAITools\Livewire\Enterprise\BrandDealMatchmaker::class);
+        Livewire::component('app-ai-tools::enterprise.licensing-scout', \Modules\AppAITools\Livewire\Enterprise\LicensingScout::class);
+        Livewire::component('app-ai-tools::enterprise.revenue-automation', \Modules\AppAITools\Livewire\Enterprise\RevenueAutomation::class);
     }
 
     /**

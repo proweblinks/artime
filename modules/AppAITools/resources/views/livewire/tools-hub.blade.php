@@ -132,6 +132,7 @@
         .aith-icon-pink-rose { background: linear-gradient(135deg, #ec4899, #e11d48); }
         .aith-icon-emerald-teal { background: linear-gradient(135deg, #10b981, #0d9488); }
         .aith-icon-purple-indigo { background: linear-gradient(135deg, #a855f7, #4f46e5); }
+        .aith-icon-amber-yellow { background: linear-gradient(135deg, #f59e0b, #eab308); }
 
         .aith-tool-card:hover .aith-tool-icon { transform: scale(1.1); transition: transform 0.3s; }
 
@@ -148,6 +149,7 @@
         .aith-cta-pink { color: #f472b6; }
         .aith-cta-emerald { color: #34d399; }
         .aith-cta-purple { color: #c084fc; }
+        .aith-cta-amber { color: #fbbf24; }
 
         /* Recent Activity */
         .aith-activity { border-radius: 0.75rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
@@ -256,6 +258,7 @@
                     'ai_thumbnails'       => 'aith-icon-pink-rose',
                     'channel_audit'       => 'aith-icon-emerald-teal',
                     'more_tools'          => 'aith-icon-purple-indigo',
+                    'enterprise_suite'    => 'aith-icon-amber-yellow',
                 ];
                 $ctaClasses = [
                     'video_optimizer'     => 'aith-cta-blue',
@@ -264,6 +267,7 @@
                     'ai_thumbnails'       => 'aith-cta-pink',
                     'channel_audit'       => 'aith-cta-emerald',
                     'more_tools'          => 'aith-cta-purple',
+                    'enterprise_suite'    => 'aith-cta-amber',
                 ];
             @endphp
 

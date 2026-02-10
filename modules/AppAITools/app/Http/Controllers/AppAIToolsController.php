@@ -64,4 +64,47 @@ class AppAIToolsController extends Controller
             'title' => $subToolMap[$tool]['title'],
         ]);
     }
+
+    /**
+     * Enterprise Suite dashboard.
+     */
+    public function enterpriseSuite()
+    {
+        return view('appaitools::tool', [
+            'component' => 'enterprise-dashboard',
+            'title' => 'Enterprise Suite',
+        ]);
+    }
+
+    /**
+     * Enterprise Suite individual tool page.
+     */
+    public function enterpriseTool(Request $request, string $tool = '')
+    {
+        $tool = $request->route()->defaults['tool'] ?? $tool;
+
+        $enterpriseToolMap = [
+            'placement-finder'          => ['component' => 'enterprise.placement-finder',          'title' => 'Placement Finder'],
+            'monetization-analyzer'     => ['component' => 'enterprise.monetization-analyzer',     'title' => 'Monetization Analyzer'],
+            'sponsorship-calculator'    => ['component' => 'enterprise.sponsorship-calculator',    'title' => 'Sponsorship Rate Calculator'],
+            'revenue-diversification'   => ['component' => 'enterprise.revenue-diversification',   'title' => 'Revenue Diversification'],
+            'cpm-booster'               => ['component' => 'enterprise.cpm-booster',               'title' => 'CPM Booster Strategist'],
+            'audience-profiler'         => ['component' => 'enterprise.audience-profiler',         'title' => 'Audience Monetization Profiler'],
+            'digital-product-architect' => ['component' => 'enterprise.digital-product-architect', 'title' => 'Digital Product Architect'],
+            'affiliate-finder'          => ['component' => 'enterprise.affiliate-finder',          'title' => 'Affiliate Goldmine Finder'],
+            'multi-income-converter'    => ['component' => 'enterprise.multi-income-converter',    'title' => 'Multi-Income Converter'],
+            'brand-deal-matchmaker'     => ['component' => 'enterprise.brand-deal-matchmaker',     'title' => 'Brand Deal Matchmaker'],
+            'licensing-scout'           => ['component' => 'enterprise.licensing-scout',           'title' => 'Licensing & Syndication Scout'],
+            'revenue-automation'        => ['component' => 'enterprise.revenue-automation',        'title' => 'Revenue Automation Pipeline'],
+        ];
+
+        if (!isset($enterpriseToolMap[$tool])) {
+            abort(404);
+        }
+
+        return view('appaitools::tool', [
+            'component' => $enterpriseToolMap[$tool]['component'],
+            'title' => $enterpriseToolMap[$tool]['title'],
+        ]);
+    }
 }
