@@ -74,13 +74,13 @@ return [
         ],
         'competitor_analysis' => [
             'name' => 'Competitor Analysis',
-            'description' => 'Reverse-engineer the success of any video. Reveal competitor SEO strategies, strengths, and weaknesses to outperform them.',
+            'description' => 'Channel-level competitive intelligence. Analyze any competitor\'s strategy, find content gaps, exploit weaknesses, and build a battle plan.',
             'icon' => 'fa-light fa-magnifying-glass-chart',
             'emoji' => "\xF0\x9F\x8E\xAF",
             'color' => 'from-red-500 to-orange-600',
             'cta_text' => 'Analyze Competitor',
             'cta_color' => 'text-red-400',
-            'credits' => 2,
+            'credits' => 3,
             'route' => 'app.ai-tools.competitor-analysis',
         ],
         'trend_predictor' => [

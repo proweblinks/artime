@@ -23,10 +23,18 @@ class CompetitorAnalysis extends Component
         $this->loadHistory();
     }
 
+    public function resetForm(): void
+    {
+        $this->competitorUrl = '';
+        $this->myUrl = '';
+        $this->result = null;
+    }
+
     public function analyze()
     {
         $this->validate([
             'competitorUrl' => 'required|url',
+            'myUrl' => 'nullable|url',
             'platform' => 'required|in:' . implode(',', array_keys(config('appaitools.platforms'))),
         ]);
 

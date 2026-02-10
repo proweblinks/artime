@@ -1060,6 +1060,64 @@
 .aith-list-icon-item { display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem 0; font-size:0.8125rem; color:#475569; line-height:1.4; }
 .aith-list-icon-item i { margin-top:3px; flex-shrink:0; }
 
+/* ===== Competitor Analysis — Spy Report Styles ===== */
+
+/* Threat level indicator */
+.aith-threat { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; border-radius:14px; }
+.aith-threat-gauge { position:relative; width:80px; height:80px; }
+.aith-threat-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; }
+.aith-threat-label { padding:0.375rem 0.875rem; border-radius:8px; font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; }
+.aith-threat-low { background:#ecfdf5; color:#059669; border:2px solid #a7f3d0; }
+.aith-threat-med { background:#fffbeb; color:#d97706; border:2px solid #fed7aa; }
+.aith-threat-high { background:#fef2f2; color:#dc2626; border:2px solid #fecaca; }
+.aith-threat-extreme { background:#450a0a; color:#fca5a5; border:2px solid #991b1b; }
+
+/* Head-to-head comparison */
+.aith-h2h-row { display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0; border-bottom:1px solid #f1f5f9; }
+.aith-h2h-label { flex:0 0 120px; font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; }
+.aith-h2h-val { flex:1; text-align:center; font-size:0.875rem; font-weight:600; }
+.aith-h2h-you { color:#7c3aed; }
+.aith-h2h-them { color:#dc2626; }
+.aith-h2h-winner { position:relative; }
+.aith-h2h-winner::after { content:''; position:absolute; bottom:-2px; left:10%; right:10%; height:2px; border-radius:1px; }
+.aith-h2h-you.aith-h2h-winner::after { background:#7c3aed; }
+.aith-h2h-them.aith-h2h-winner::after { background:#dc2626; }
+
+/* Spy/intel card accent */
+.aith-card-accent-red { border-left:3px solid #ef4444; }
+.aith-card-accent-orange { border-left:3px solid #f97316; }
+
+/* Content gap table */
+.aith-gap-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.75rem; background:#f8fafc; border-radius:10px; margin-bottom:0.5rem; border:1px solid #f1f5f9; }
+.aith-gap-num { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#f97316); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; }
+.aith-gap-info { flex:1; }
+.aith-gap-title { font-size:0.8125rem; font-weight:600; color:#1e293b; margin-bottom:0.25rem; }
+.aith-gap-desc { font-size:0.75rem; color:#64748b; }
+.aith-gap-meta { display:flex; gap:0.5rem; margin-top:0.375rem; }
+
+/* Weakness exploit cards */
+.aith-exploit-item { display:flex; gap:0.75rem; padding:0.75rem; background:#fef2f2; border-radius:10px; margin-bottom:0.5rem; border:1px solid #fecaca; }
+.aith-exploit-icon { width:32px; height:32px; border-radius:8px; background:#dc2626; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.aith-exploit-info { flex:1; }
+.aith-exploit-title { font-size:0.8125rem; font-weight:600; color:#991b1b; margin-bottom:0.25rem; }
+.aith-exploit-text { font-size:0.8125rem; color:#64748b; line-height:1.4; }
+
+/* Battle plan phases */
+.aith-phase { padding:1rem; background:#f8fafc; border-radius:12px; border:1px solid #f1f5f9; margin-bottom:0.75rem; border-left:3px solid; }
+.aith-phase-1 { border-left-color:#ef4444; }
+.aith-phase-2 { border-left-color:#f97316; }
+.aith-phase-3 { border-left-color:#eab308; }
+.aith-phase-4 { border-left-color:#10b981; }
+.aith-phase-name { font-size:0.875rem; font-weight:700; color:#1e293b; margin-bottom:0.25rem; }
+.aith-phase-goal { font-size:0.75rem; color:#7c3aed; font-weight:500; margin-bottom:0.5rem; }
+.aith-phase-actions { list-style:none; padding:0; margin:0; }
+.aith-phase-actions li { font-size:0.8125rem; color:#475569; padding:0.25rem 0; padding-left:1.25rem; position:relative; }
+.aith-phase-actions li::before { content:'\2022'; position:absolute; left:0; color:#94a3b8; }
+
+/* Win probability meter */
+.aith-win-meter { height:8px; border-radius:4px; background:#f1f5f9; overflow:hidden; position:relative; }
+.aith-win-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+
 /* Responsive */
 @media (max-width: 640px) {
     .aith-tool { padding: 1rem; }
