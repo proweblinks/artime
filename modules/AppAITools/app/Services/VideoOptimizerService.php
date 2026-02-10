@@ -196,32 +196,60 @@ class VideoOptimizerService
         return ['score' => min(100, $score), 'summary' => $summary];
     }
 
-    /**
-     * Parse JSON array from AI response, handling common formatting issues.
-     */
     protected function parseJsonArray(string $text): array
     {
         $text = trim($text);
-
-        // Remove markdown code block markers
-        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
-        $text = preg_replace('/\s*```$/', '', $text);
+        $text = preg_replace('/```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```/', '', $text);
         $text = trim($text);
 
         $decoded = json_decode($text, true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
+        if (is_array($decoded)) return $decoded;
 
-        // Try to extract JSON array from text
         if (preg_match('/\[.*\]/s', $text, $matches)) {
             $decoded = json_decode($matches[0], true);
-            if (is_array($decoded)) {
-                return $decoded;
-            }
+            if (is_array($decoded)) return $decoded;
         }
 
-        // Fall back to splitting by newlines
-        return array_filter(array_map('trim', explode("\n", $text)));
+        $jsonStart = strpos($text, '[');
+        if ($jsonStart === false) $jsonStart = strpos($text, '{');
+        if ($jsonStart !== false) {
+            $jsonStr = substr($text, $jsonStart);
+            $len = strlen($jsonStr);
+            $repaired = '';
+            $stack = [];
+            $inString = false;
+            $escape = false;
+
+            for ($i = 0; $i < $len; $i++) {
+                $ch = $jsonStr[$i];
+                if ($escape) { $escape = false; $repaired .= $ch; continue; }
+                if ($ch === '\\' && $inString) { $escape = true; $repaired .= $ch; continue; }
+                if ($ch === '"') { $inString = !$inString; $repaired .= $ch; continue; }
+                if ($inString) { $repaired .= $ch; continue; }
+                if ($ch === '{' || $ch === '[') { $stack[] = $ch; $repaired .= $ch; continue; }
+                if ($ch === '}') {
+                    if (!empty($stack) && end($stack) === '{') { array_pop($stack); $repaired .= $ch; }
+                    continue;
+                }
+                if ($ch === ']') {
+                    if (!empty($stack) && end($stack) === '[') { array_pop($stack); $repaired .= $ch; }
+                    continue;
+                }
+                $repaired .= $ch;
+            }
+
+            $repaired = rtrim($repaired, " \t\n\r,:");
+            $repaired = preg_replace('/"[^"]*$/', '""', $repaired);
+            while (!empty($stack)) {
+                $opener = array_pop($stack);
+                $repaired .= ($opener === '{') ? '}' : ']';
+            }
+
+            $decoded = json_decode($repaired, true);
+            if (is_array($decoded)) return $decoded;
+        }
+
+        return [];
     }
 }

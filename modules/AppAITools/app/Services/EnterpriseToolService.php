@@ -550,7 +550,7 @@ class EnterpriseToolService
     }
 
     /**
-     * Parse JSON from AI response, handling markdown code blocks and truncated responses.
+     * Parse JSON from AI response, handling markdown code blocks, truncated and malformed responses.
      */
     protected function parseJson(string $text): array
     {
@@ -575,36 +575,75 @@ class EnterpriseToolService
             }
         }
 
-        // Handle truncated JSON: find the opening { and try to repair
+        // Robust repair: walk the string, skip extra closers, close unclosed openers
         $jsonStart = strpos($text, '{');
         if ($jsonStart !== false) {
             $jsonStr = substr($text, $jsonStart);
-
-            // Count unmatched braces and brackets, then close them
-            $braces = 0;
-            $brackets = 0;
+            $len = strlen($jsonStr);
+            $repaired = '';
+            $stack = [];
             $inString = false;
             $escape = false;
-            for ($i = 0; $i < strlen($jsonStr); $i++) {
+
+            for ($i = 0; $i < $len; $i++) {
                 $ch = $jsonStr[$i];
-                if ($escape) { $escape = false; continue; }
-                if ($ch === '\\') { $escape = true; continue; }
-                if ($ch === '"') { $inString = !$inString; continue; }
-                if ($inString) continue;
-                if ($ch === '{') $braces++;
-                if ($ch === '}') $braces--;
-                if ($ch === '[') $brackets++;
-                if ($ch === ']') $brackets--;
+
+                if ($escape) {
+                    $escape = false;
+                    $repaired .= $ch;
+                    continue;
+                }
+                if ($ch === '\\' && $inString) {
+                    $escape = true;
+                    $repaired .= $ch;
+                    continue;
+                }
+                if ($ch === '"') {
+                    $inString = !$inString;
+                    $repaired .= $ch;
+                    continue;
+                }
+                if ($inString) {
+                    $repaired .= $ch;
+                    continue;
+                }
+
+                // Track openers
+                if ($ch === '{' || $ch === '[') {
+                    $stack[] = $ch;
+                    $repaired .= $ch;
+                    continue;
+                }
+
+                // For closers, only emit if they match the last opener
+                if ($ch === '}') {
+                    if (!empty($stack) && end($stack) === '{') {
+                        array_pop($stack);
+                        $repaired .= $ch;
+                    }
+                    // else: extra closer — skip it
+                    continue;
+                }
+                if ($ch === ']') {
+                    if (!empty($stack) && end($stack) === '[') {
+                        array_pop($stack);
+                        $repaired .= $ch;
+                    }
+                    continue;
+                }
+
+                $repaired .= $ch;
             }
 
-            // Remove trailing incomplete value (after last comma or colon in non-string context)
-            $repaired = rtrim($jsonStr, " \t\n\r,:");
-            // Remove any trailing partial string value like "some text
+            // Remove trailing incomplete value
+            $repaired = rtrim($repaired, " \t\n\r,:");
             $repaired = preg_replace('/"[^"]*$/', '""', $repaired);
 
-            // Close all open brackets and braces
-            $repaired .= str_repeat(']', max(0, $brackets));
-            $repaired .= str_repeat('}', max(0, $braces));
+            // Close any remaining open structures (in reverse order)
+            while (!empty($stack)) {
+                $opener = array_pop($stack);
+                $repaired .= ($opener === '{') ? '}' : ']';
+            }
 
             $decoded = json_decode($repaired, true);
             if (is_array($decoded)) {
