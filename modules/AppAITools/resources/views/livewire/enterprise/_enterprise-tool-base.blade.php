@@ -202,7 +202,14 @@
     .aith-e-tag-underutilized { background: rgba(245,158,11,0.15); color: #fcd34d; }
 
     .aith-e-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-    @media (max-width: 768px) { .aith-e-grid-2 { grid-template-columns: 1fr; } }
+    .aith-e-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 768px) {
+        .aith-e-grid-2 { grid-template-columns: 1fr; }
+        .aith-e-grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .aith-e-grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
 
     /* Error state */
     .aith-e-error {
@@ -212,4 +219,253 @@
         color: #fca5a5; font-size: 0.875rem;
         text-align: center;
     }
+
+    /* Validation error */
+    .aith-e-field-error {
+        color: #fca5a5; font-size: 0.8rem; margin-top: 0.25rem; display: block;
+    }
+
+    /* PDF export button */
+    .aith-e-btn-pdf {
+        display: inline-flex; align-items: center; gap: 0.375rem;
+        padding: 0.375rem 0.75rem; border-radius: 0.5rem;
+        background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);
+        color: #fca5a5; font-size: 0.75rem; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .aith-e-btn-pdf:hover {
+        background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3);
+    }
+
+    /* Copy button */
+    .aith-e-btn-copy {
+        display: inline-flex; align-items: center; gap: 0.375rem;
+        padding: 0.375rem 0.75rem; border-radius: 0.5rem;
+        background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2);
+        color: #c4b5fd; font-size: 0.75rem; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .aith-e-btn-copy:hover {
+        background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.3);
+    }
+
+    /* Gradient summary cards */
+    .aith-e-summary-card {
+        padding: 1.25rem; border-radius: 0.75rem; text-align: center;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .aith-e-summary-card-green {
+        background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.08));
+        border-color: rgba(34,197,94,0.2);
+    }
+    .aith-e-summary-card-blue {
+        background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(6,182,212,0.08));
+        border-color: rgba(59,130,246,0.2);
+    }
+    .aith-e-summary-card-teal {
+        background: linear-gradient(135deg, rgba(20,184,166,0.15), rgba(6,182,212,0.08));
+        border-color: rgba(20,184,166,0.2);
+    }
+    .aith-e-summary-card-purple {
+        background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(168,85,247,0.08));
+        border-color: rgba(139,92,246,0.2);
+    }
+    .aith-e-summary-card-orange {
+        background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(234,88,12,0.08));
+        border-color: rgba(249,115,22,0.2);
+    }
+    .aith-e-summary-label {
+        font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase;
+        letter-spacing: 0.5px; margin-bottom: 0.375rem;
+    }
+    .aith-e-summary-value {
+        font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem;
+    }
+    .aith-e-summary-sub {
+        font-size: 0.75rem; color: rgba(255,255,255,0.35);
+    }
+
+    /* Inline progress bars */
+    .aith-e-progress-inline {
+        width: 100%; height: 6px; border-radius: 3px;
+        background: rgba(255,255,255,0.06); overflow: hidden;
+        margin-top: 0.375rem;
+    }
+    .aith-e-progress-inline-fill {
+        height: 100%; border-radius: 3px; transition: width 0.5s ease;
+    }
+    .aith-e-progress-green { background: linear-gradient(90deg, #22c55e, #10b981); }
+    .aith-e-progress-blue { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+    .aith-e-progress-purple { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+    .aith-e-progress-orange { background: linear-gradient(90deg, #f97316, #eab308); }
+
+    /* Keyword/program pills */
+    .aith-e-pill {
+        display: inline-flex; align-items: center; gap: 0.375rem;
+        padding: 0.375rem 0.75rem; border-radius: 9999px;
+        font-size: 0.8rem; font-weight: 500;
+    }
+    .aith-e-pill-green {
+        background: rgba(34,197,94,0.12); color: #86efac;
+        border: 1px solid rgba(34,197,94,0.2);
+    }
+    .aith-e-pill-purple {
+        background: rgba(139,92,246,0.12); color: #c4b5fd;
+        border: 1px solid rgba(139,92,246,0.2);
+    }
+    .aith-e-pill-blue {
+        background: rgba(59,130,246,0.12); color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.2);
+    }
+    .aith-e-pill-orange {
+        background: rgba(249,115,22,0.12); color: #fdba74;
+        border: 1px solid rgba(249,115,22,0.2);
+    }
+
+    /* Numbered step badges */
+    .aith-e-step-badge {
+        width: 28px; height: 28px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(168,85,247,0.15));
+        border: 1px solid rgba(139,92,246,0.3);
+        color: #c4b5fd;
+    }
+
+    /* Alert/warning cards */
+    .aith-e-alert-card {
+        padding: 1rem 1.25rem; border-radius: 0.75rem;
+        background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(239,68,68,0.08));
+        border: 1px solid rgba(249,115,22,0.2);
+        margin-bottom: 1rem;
+        display: flex; align-items: center; gap: 0.75rem;
+    }
+    .aith-e-alert-icon {
+        font-size: 1.25rem; flex-shrink: 0;
+    }
+    .aith-e-alert-text {
+        font-size: 0.85rem; color: rgba(255,255,255,0.7);
+    }
+    .aith-e-alert-value {
+        font-weight: 700; color: #fdba74;
+    }
+
+    /* Code/template blocks */
+    .aith-e-code-block {
+        padding: 1rem; border-radius: 0.5rem;
+        background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+        font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+        color: rgba(255,255,255,0.6); white-space: pre-wrap;
+        line-height: 1.6; position: relative;
+    }
+
+    /* Match score badge */
+    .aith-e-match-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; border-radius: 50%;
+        font-size: 0.8rem; font-weight: 700;
+    }
+    .aith-e-match-high { background: rgba(34,197,94,0.15); color: #86efac; border: 2px solid rgba(34,197,94,0.3); }
+    .aith-e-match-medium { background: rgba(245,158,11,0.15); color: #fcd34d; border: 2px solid rgba(245,158,11,0.3); }
+    .aith-e-match-low { background: rgba(239,68,68,0.15); color: #fca5a5; border: 2px solid rgba(239,68,68,0.3); }
+
+    /* Result header actions */
+    .aith-e-result-actions {
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* Toast */
+    .aith-e-toast-container {
+        position: fixed; bottom: 1.5rem; right: 1.5rem;
+        z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .aith-e-toast {
+        padding: 0.625rem 1rem; border-radius: 0.5rem;
+        background: rgba(34,197,94,0.9); color: #fff;
+        font-size: 0.8rem; font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: aith-e-toast-in 0.3s ease;
+    }
+    @keyframes aith-e-toast-in {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
 </style>
+
+{{-- PDF Export Libraries --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
+<script>
+    /* Enterprise Tool Helpers */
+    function enterprisePdfExport(elementId, filename) {
+        var el = document.getElementById(elementId);
+        if (!el) return;
+        var btn = event.currentTarget;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner-third fa-spin"></i> Exporting...';
+        html2canvas(el, { backgroundColor: '#1a1a2e', scale: 2, useCORS: true }).then(function(canvas) {
+            var pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+            var imgData = canvas.toDataURL('image/png');
+            var ratio = canvas.width / canvas.height;
+            var pdfWidth = 190;
+            var pdfHeight = pdfWidth / ratio;
+            var pageHeight = 277;
+            if (pdfHeight <= pageHeight) {
+                pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+            } else {
+                var position = 0;
+                var heightLeft = pdfHeight;
+                pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position -= pageHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 10, position + 10, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                }
+            }
+            pdf.save((filename || 'Enterprise-Analysis') + '.pdf');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-light fa-file-pdf"></i> Export PDF';
+            enterpriseToast('PDF exported successfully!');
+        }).catch(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-light fa-file-pdf"></i> Export PDF';
+        });
+    }
+
+    function enterpriseCopy(text, message) {
+        navigator.clipboard.writeText(text).then(function() {
+            enterpriseToast(message || 'Copied to clipboard!');
+        }).catch(function() {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            enterpriseToast(message || 'Copied to clipboard!');
+        });
+    }
+
+    function enterpriseToast(message) {
+        var container = document.getElementById('aith-e-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'aith-e-toast-container';
+            container.className = 'aith-e-toast-container';
+            document.body.appendChild(container);
+        }
+        var toast = document.createElement('div');
+        toast.className = 'aith-e-toast';
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'all 0.3s';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 3000);
+    }
+</script>

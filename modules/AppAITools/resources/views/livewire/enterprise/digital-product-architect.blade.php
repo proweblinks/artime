@@ -26,15 +26,21 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <div class="aith-e-field-error">{{ $message }}</div> @enderror
             </div>
             <div class="aith-form-group">
                 <label class="aith-label">Your Expertise (optional)</label>
                 <input type="text" wire:model="expertise" class="aith-input"
                        placeholder="e.g. web development, photography, fitness coaching">
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-cart-shopping"></i> Design Products
-                <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
+            <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-cart-shopping"></i> Design Products
+                    <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
             </button>
             @endif
 
@@ -68,10 +74,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Digital Product Blueprint</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-digital-product-architect', 'Digital-Product-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-digital-product-architect">
 
             {{-- Score --}}
             @php $score = $result['product_readiness_score'] ?? 0; @endphp
@@ -132,24 +145,15 @@
                     @if(isset($product['description']))
                     <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;">{{ $product['description'] }}</div>
                     @endif
-                    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
                         @if(isset($product['suggested_price']))
-                        <div>
-                            <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Price</span>
-                            <div style="font-size:0.875rem;color:#6366f1;font-weight:600;">{{ $product['suggested_price'] }}</div>
-                        </div>
+                        <span class="aith-e-pill aith-e-pill-blue"><i class="fa-light fa-tag" style="font-size:0.65rem;"></i> {{ $product['suggested_price'] }}</span>
                         @endif
                         @if(isset($product['estimated_monthly_revenue']))
-                        <div>
-                            <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Monthly Revenue</span>
-                            <div style="font-size:0.875rem;color:#22c55e;font-weight:600;">{{ $product['estimated_monthly_revenue'] }}</div>
-                        </div>
+                        <span class="aith-e-pill aith-e-pill-green"><i class="fa-light fa-chart-line-up" style="font-size:0.65rem;"></i> {{ $product['estimated_monthly_revenue'] }}/mo</span>
                         @endif
                         @if(isset($product['development_time']))
-                        <div>
-                            <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Dev Time</span>
-                            <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);">{{ $product['development_time'] }}</div>
-                        </div>
+                        <span class="aith-e-pill aith-e-pill-orange"><i class="fa-light fa-clock" style="font-size:0.65rem;"></i> {{ $product['development_time'] }}</span>
                         @endif
                     </div>
                     @if(!empty($product['content_outline']))
@@ -171,24 +175,27 @@
             @if(!empty($result['launch_plan']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-rocket"></i> Launch Plan</div>
-                @foreach($result['launch_plan'] as $phase)
-                <div style="padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
-                        <span style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $phase['phase'] ?? '' }}</span>
-                        @if(isset($phase['duration']))
-                        <span class="aith-e-tag" style="background:rgba(99,102,241,0.15);color:#a5b4fc;">{{ $phase['duration'] }}</span>
+                @foreach($result['launch_plan'] as $idx => $phase)
+                <div style="display:flex;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span class="aith-e-step-badge">{{ $idx + 1 }}</span>
+                    <div style="flex:1;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+                            <span style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $phase['phase'] ?? '' }}</span>
+                            @if(isset($phase['duration']))
+                            <span class="aith-e-tag" style="background:rgba(99,102,241,0.15);color:#a5b4fc;">{{ $phase['duration'] }}</span>
+                            @endif
+                        </div>
+                        @if(isset($phase['goal']))
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">{{ $phase['goal'] }}</div>
+                        @endif
+                        @if(!empty($phase['actions']))
+                        <ul class="aith-e-list">
+                            @foreach($phase['actions'] as $action)
+                            <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $action }}</li>
+                            @endforeach
+                        </ul>
                         @endif
                     </div>
-                    @if(isset($phase['goal']))
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">{{ $phase['goal'] }}</div>
-                    @endif
-                    @if(!empty($phase['actions']))
-                    <ul class="aith-e-list">
-                        @foreach($phase['actions'] as $action)
-                        <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $action }}</li>
-                        @endforeach
-                    </ul>
-                    @endif
                 </div>
                 @endforeach
             </div>
@@ -214,12 +221,32 @@
                 </div>
                 @if(!empty($result['pricing_strategy']['bundle_ideas']))
                 <div style="margin-top:0.75rem;">
+                    @if(count($result['pricing_strategy']['bundle_ideas']) >= 3)
+                    {{-- 3-tier visual pricing --}}
+                    <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Bundle Tiers</span>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:0.375rem;">
+                        @foreach(array_slice($result['pricing_strategy']['bundle_ideas'], 0, 3) as $tierIdx => $bundle)
+                        <div style="padding:0.75rem;border-radius:0.5rem;background:rgba({{ $tierIdx === 1 ? '99,102,241,0.12' : '255,255,255,0.03' }});border:1px solid rgba({{ $tierIdx === 1 ? '99,102,241,0.3' : '255,255,255,0.06' }});text-align:center;{{ $tierIdx === 1 ? 'transform:scale(1.03);' : '' }}">
+                            <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.25rem;">{{ $tierIdx === 0 ? 'Basic' : ($tierIdx === 1 ? 'Popular' : 'Premium') }}</div>
+                            <div style="font-size:0.8rem;color:#fff;font-weight:600;">{{ $bundle }}</div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @if(count($result['pricing_strategy']['bundle_ideas']) > 3)
+                    <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.5rem;">
+                        @foreach(array_slice($result['pricing_strategy']['bundle_ideas'], 3) as $bundle)
+                        <span class="aith-e-tag" style="background:rgba(99,102,241,0.15);color:#a5b4fc;">{{ $bundle }}</span>
+                        @endforeach
+                    </div>
+                    @endif
+                    @else
                     <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Bundle Ideas</span>
                     <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.375rem;">
                         @foreach($result['pricing_strategy']['bundle_ideas'] as $bundle)
                         <span class="aith-e-tag" style="background:rgba(99,102,241,0.15);color:#a5b4fc;">{{ $bundle }}</span>
                         @endforeach
                     </div>
+                    @endif
                 </div>
                 @endif
             </div>
@@ -245,6 +272,8 @@
                 </div>
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

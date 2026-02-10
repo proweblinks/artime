@@ -20,6 +20,15 @@ class DigitalProductArchitect extends Component
     protected function getScoreKey(): string { return 'product_readiness_score'; }
     protected function getScoreLabel(): string { return 'Readiness'; }
 
+    public function resetForm(): void
+    {
+        $this->url = '';
+        $this->expertise = '';
+        $this->result = null;
+        $this->isLoading = false;
+        $this->loadingStep = 0;
+    }
+
     public function mount()
     {
         $this->loadHistory();
@@ -42,6 +51,7 @@ class DigitalProductArchitect extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());
         } finally {
+            $this->dispatch('loadingComplete');
             $this->isLoading = false;
         }
     }

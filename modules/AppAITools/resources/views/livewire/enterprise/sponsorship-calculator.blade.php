@@ -26,9 +26,15 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-gem"></i> Calculate Rates
+            <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-gem"></i> Calculate Rates
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,10 +69,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Sponsorship Rate Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-sponsorship-calculator', 'Sponsorship-Rate-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-sponsorship-calculator">
 
             {{-- Score --}}
             @php $score = $result['sponsorship_score'] ?? 0; @endphp
@@ -104,28 +117,43 @@
             @if(!empty($result['rate_tiers']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-layer-group"></i> Rate Tiers</div>
-                <div class="aith-e-grid-2">
-                    @foreach($result['rate_tiers'] as $tier)
-                    <div class="aith-e-section-card" style="margin-bottom:0;">
-                        <div style="font-weight:600;color:#fff;font-size:0.9rem;margin-bottom:0.5rem;">{{ $tier['name'] ?? $tier['tier'] ?? '' }}</div>
-                        <div style="display:flex;gap:0.5rem;margin-bottom:0.375rem;">
-                            <span style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Min:</span>
-                            <span style="font-size:0.875rem;color:#a855f7;font-weight:600;">{{ $tier['min'] ?? '-' }}</span>
-                            <span style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-left:0.5rem;">Max:</span>
-                            <span style="font-size:0.875rem;color:#ec4899;font-weight:600;">{{ $tier['max'] ?? '-' }}</span>
-                        </div>
-                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">{{ $tier['description'] ?? '' }}</div>
-                    </div>
-                    @endforeach
+                <div class="aith-e-grid-3">
+                @php $tierColors = ['#22c55e', '#3b82f6', '#a855f7', '#f97316']; $i = 0; @endphp
+                @foreach($result['rate_tiers'] as $tierKey => $tier)
+                @php $color = $tierColors[$i % count($tierColors)]; $i++; @endphp
+                <div class="aith-e-section-card" style="margin-bottom:0;text-align:center;">
+                    <div style="font-weight:600;color:#fff;font-size:0.85rem;margin-bottom:0.75rem;">{{ is_numeric($tierKey) ? ($tier['name'] ?? $tier['tier'] ?? '') : ucwords(str_replace('_', ' ', $tierKey)) }}</div>
+                    <div style="font-size:1.25rem;font-weight:700;color:{{ $color }};margin-bottom:0.25rem;">{{ $tier['min'] ?? '-' }} - {{ $tier['max'] ?? '-' }}</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $tier['description'] ?? '' }}</div>
+                </div>
+                @endforeach
                 </div>
             </div>
             @endif
 
             {{-- Niche CPM Benchmark --}}
             @if(isset($result['niche_cpm_benchmark']))
-            <div class="aith-e-section-card" style="text-align:center;">
+            <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-gauge-high"></i> Niche CPM Benchmark</div>
-                <div style="font-size:1.5rem;font-weight:700;color:#a855f7;margin:0.75rem 0;">{{ $result['niche_cpm_benchmark'] }}</div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:2rem;padding:1rem 0;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.375rem;">Niche Average CPM</div>
+                        <div style="font-size:1.75rem;font-weight:700;color:#a855f7;">
+                            @if(is_array($result['niche_cpm_benchmark']))
+                                {{ $result['niche_cpm_benchmark']['average'] ?? $result['niche_cpm_benchmark']['niche_average'] ?? json_encode($result['niche_cpm_benchmark']) }}
+                            @else
+                                {{ $result['niche_cpm_benchmark'] }}
+                            @endif
+                        </div>
+                    </div>
+                    @if(isset($result['channel_profile']['estimated_cpm']) || isset($result['channel_profile']['current_cpm']))
+                    <div style="width:1px;height:3rem;background:rgba(255,255,255,0.1);"></div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.375rem;">Your Estimated CPM</div>
+                        <div style="font-size:1.75rem;font-weight:700;color:#22c55e;">{{ $result['channel_profile']['estimated_cpm'] ?? $result['channel_profile']['current_cpm'] ?? '-' }}</div>
+                    </div>
+                    @endif
+                </div>
             </div>
             @endif
 
@@ -154,11 +182,14 @@
             @if(!empty($result['negotiation_tips']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-handshake"></i> Negotiation Tips</div>
-                <ul class="aith-e-list">
-                    @foreach($result['negotiation_tips'] as $tip)
-                    <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $tip }}</li>
+                <div class="aith-e-grid-2">
+                    @foreach($result['negotiation_tips'] as $idx => $tip)
+                    <div class="aith-e-section-card" style="margin-bottom:0;display:flex;align-items:flex-start;gap:0.75rem;">
+                        <div class="aith-e-step-badge">{{ $idx + 1 }}</div>
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.6);line-height:1.5;">{{ $tip }}</div>
+                    </div>
                     @endforeach
-                </ul>
+                </div>
             </div>
             @endif
 
@@ -173,6 +204,8 @@
                 </ul>
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

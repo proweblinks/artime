@@ -41,6 +41,7 @@ class SponsorshipCalculator extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());
         } finally {
+            $this->dispatch('loadingComplete');
             $this->isLoading = false;
         }
     }

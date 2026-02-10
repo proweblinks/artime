@@ -26,10 +26,16 @@
                 <label class="aith-label">YouTube Video URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/watch?v=...">
+                @error('url') <div class="aith-e-field-error">{{ $message }}</div> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-clone"></i> Convert to Multi-Income
-                <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
+            <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-clone"></i> Convert to Multi-Income
+                    <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
             </button>
             @endif
 
@@ -63,10 +69,26 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Multi-Income Analysis Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-multi-income-converter', 'Multi-Income-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-multi-income-converter">
+
+            {{-- Total Potential Revenue Summary --}}
+            @if(isset($result['total_potential_revenue']))
+            <div class="aith-e-summary-card aith-e-summary-card-teal" style="margin-bottom:1rem;">
+                <div class="aith-e-summary-label">Total Potential Revenue</div>
+                <div class="aith-e-summary-value" style="color:#5eead4;">{{ $result['total_potential_revenue'] }}</div>
+                <div class="aith-e-summary-sub">From {{ count($result['income_streams'] ?? []) }} content pieces</div>
+            </div>
+            @endif
 
             {{-- Score --}}
             @php $score = $result['multi_income_score'] ?? 0; @endphp
@@ -118,7 +140,10 @@
                         <span><strong style="color:rgba(255,255,255,0.6);">Time to Create:</strong> {{ $stream['time_to_create'] ?? '-' }}</span>
                     </div>
                     @if(!empty($stream['content_draft']))
-                    <pre style="white-space:pre-wrap;font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:0.5rem;">{{ $stream['content_draft'] }}</pre>
+                    <div style="margin-top:0.5rem;padding:0.5rem;border-radius:0.375rem;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:0.25rem;">Content Draft Preview</div>
+                        <pre style="white-space:pre-wrap;font-size:0.75rem;color:rgba(255,255,255,0.45);margin:0;font-family:monospace;max-height:6rem;overflow:hidden;">{{ $stream['content_draft'] }}</pre>
+                    </div>
                     @endif
                 </div>
                 @endforeach
@@ -129,31 +154,15 @@
             @if(!empty($result['repurposing_plan']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-calendar-days"></i> Repurposing Plan</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Day</th><th>Action</th><th>Platform</th><th>Format</th></tr></thead>
-                        <tbody>
-                        @foreach($result['repurposing_plan'] as $plan)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $plan['day'] ?? '' }}</td>
-                            <td>{{ $plan['action'] ?? '-' }}</td>
-                            <td>{{ $plan['platform'] ?? '-' }}</td>
-                            <td>{{ $plan['format'] ?? '-' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                @foreach($result['repurposing_plan'] as $plan)
+                <div style="display:flex;gap:0.75rem;padding:0.625rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span class="aith-e-pill aith-e-pill-blue" style="flex-shrink:0;">{{ $plan['day'] ?? '' }}</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#fff;font-size:0.85rem;">{{ $plan['action'] ?? '' }}</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.125rem;">{{ $plan['platform'] ?? '' }} · {{ $plan['format'] ?? '' }}</div>
+                    </div>
                 </div>
-            </div>
-            @endif
-
-            {{-- Total Potential Revenue --}}
-            @if(isset($result['total_potential_revenue']))
-            <div class="aith-e-section-card">
-                <div style="text-align:center;padding:1rem;">
-                    <span style="font-size:1.5rem;font-weight:800;color:#86efac;">{{ $result['total_potential_revenue'] }}</span>
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-top:0.25rem;">Total Potential Revenue</div>
-                </div>
+                @endforeach
             </div>
             @endif
 
@@ -168,6 +177,8 @@
                 </ul>
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

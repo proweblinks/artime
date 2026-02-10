@@ -26,14 +26,21 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
             <div class="aith-form-group">
                 <label class="aith-label">Target Niche (optional)</label>
                 <input type="text" wire:model="niche" class="aith-input"
                        placeholder="e.g. tech reviews, fitness, cooking">
+                @error('niche') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-magnifying-glass"></i> Find Placements
+            <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-magnifying-glass"></i> Find Placements
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -68,10 +75,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Placement Analysis Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-placement-finder', 'Placement-Finder-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-placement-finder">
 
             {{-- Score --}}
             @php $score = $result['placement_score'] ?? 0; @endphp
@@ -105,10 +119,60 @@
             </div>
             @endif
 
+            {{-- Audience Insights --}}
+            @if(isset($result['audience_insights']))
+            <div class="aith-e-section-card">
+                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-pie"></i> Audience Insights</div>
+                <div class="aith-e-grid-2">
+                    @if(isset($result['audience_insights']['demographics']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Demographics</span>
+                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
+                            @if(is_array($result['audience_insights']['demographics']))
+                                {{ implode(', ', $result['audience_insights']['demographics']) }}
+                            @else
+                                {{ $result['audience_insights']['demographics'] }}
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                    @if(isset($result['audience_insights']['interests']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Interests</span>
+                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
+                            @if(is_array($result['audience_insights']['interests']))
+                                {{ implode(', ', $result['audience_insights']['interests']) }}
+                            @else
+                                {{ $result['audience_insights']['interests'] }}
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                    @if(isset($result['audience_insights']['buying_intent']))
+                    <div style="padding:0.375rem 0;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Buying Intent</span>
+                        <div style="font-size:0.875rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">
+                            @if(is_array($result['audience_insights']['buying_intent']))
+                                {{ implode(', ', $result['audience_insights']['buying_intent']) }}
+                            @else
+                                {{ $result['audience_insights']['buying_intent'] }}
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             {{-- Similar Channels --}}
             @if(!empty($result['similar_channels']))
             <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-users"></i> Similar Channels for Placement</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-users"></i> Similar Channels for Placement</div>
+                    <button class="aith-e-btn-copy" onclick="enterpriseCopy('{{ collect($result['similar_channels'])->pluck('name')->filter()->implode('\n') }}', 'All channel names copied!')">
+                        <i class="fa-light fa-copy"></i> Copy All Channels
+                    </button>
+                </div>
                 <div style="overflow-x:auto;">
                     <table class="aith-e-table">
                         <thead><tr><th>Channel</th><th>Relevance</th><th>Est. CPM</th><th>Overlap</th><th>Recommendation</th></tr></thead>
@@ -169,6 +233,8 @@
                 </ul>
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

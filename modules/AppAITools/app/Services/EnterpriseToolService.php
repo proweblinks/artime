@@ -44,13 +44,13 @@ class EnterpriseToolService
             . "{\n"
             . "  \"channel_overview\": { \"name\": \"\", \"niche\": \"\", \"estimated_subscribers\": \"\", \"monthly_views\": \"\" },\n"
             . "  \"monetization_score\": 0-100,\n"
-            . "  \"revenue_breakdown\": {\n"
-            . "    \"adsense\": { \"monthly_estimate\": \"\", \"cpm_range\": \"\", \"status\": \"\" },\n"
-            . "    \"sponsorships\": { \"monthly_estimate\": \"\", \"potential\": \"\" },\n"
-            . "    \"memberships\": { \"monthly_estimate\": \"\", \"potential\": \"\" },\n"
-            . "    \"merchandise\": { \"monthly_estimate\": \"\", \"potential\": \"\" },\n"
-            . "    \"super_chats\": { \"monthly_estimate\": \"\", \"potential\": \"\" }\n"
-            . "  },\n"
+            . "  \"revenue_breakdown\": [\n"
+            . "    { \"stream\": \"AdSense\", \"monthly_estimate\": \"$X\", \"potential\": \"high|medium|low\", \"status\": \"active|underutilized|inactive\" },\n"
+            . "    { \"stream\": \"Sponsorships\", \"monthly_estimate\": \"$X\", \"potential\": \"high|medium|low\", \"status\": \"active|underutilized|inactive\" },\n"
+            . "    { \"stream\": \"Memberships\", \"monthly_estimate\": \"$X\", \"potential\": \"high|medium|low\", \"status\": \"active|underutilized|inactive\" },\n"
+            . "    { \"stream\": \"Merchandise\", \"monthly_estimate\": \"$X\", \"potential\": \"high|medium|low\", \"status\": \"active|underutilized|inactive\" },\n"
+            . "    { \"stream\": \"Super Chats\", \"monthly_estimate\": \"$X\", \"potential\": \"high|medium|low\", \"status\": \"active|underutilized|inactive\" }\n"
+            . "  ],\n"
             . "  \"total_monthly_estimate\": \"\",\n"
             . "  \"growth_opportunities\": [\n"
             . "    { \"opportunity\": \"\", \"potential_revenue\": \"\", \"difficulty\": \"easy|medium|hard\", \"priority\": \"high|medium|low\" }\n"
@@ -334,6 +334,14 @@ class EnterpriseToolService
         $teamId = session('current_team_id', 0);
         $userId = auth()->id();
 
+        // Check credit quota before proceeding
+        $configKey = str_replace('_', '-', $toolKey);
+        $credits = config("appaitools.enterprise_tools.{$configKey}.credits", 3);
+        $quota = \Credit::checkQuota($teamId);
+        if (!$quota['can_use']) {
+            throw new \Exception($quota['message']);
+        }
+
         $history = AiToolHistory::create([
             'team_id' => $teamId,
             'user_id' => $userId,
@@ -352,8 +360,11 @@ class EnterpriseToolService
             $history->update([
                 'result_data' => $parsed,
                 'status' => 1,
-                'credits_used' => $aiResult['totalTokens'] ?? 0,
+                'credits_used' => $credits,
             ]);
+
+            // Track credit usage
+            \Credit::trackUsage($credits, 'enterprise_tool', $toolKey, $teamId);
 
             return $parsed;
         } catch (\Exception $e) {

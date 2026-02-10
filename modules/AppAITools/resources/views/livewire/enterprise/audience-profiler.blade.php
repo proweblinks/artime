@@ -26,9 +26,17 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url')
+                <span class="aith-e-field-error">{{ $message }}</span>
+                @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-users-viewfinder"></i> Profile Audience
+            <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-users-viewfinder"></i> Profile Audience
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,11 +71,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Audience Profile Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-audience-profiler', 'Audience-Profile-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
 
+            <div id="pdf-content-audience-profiler">
             {{-- Score --}}
             @php $score = $result['audience_score'] ?? 0; @endphp
             <div class="aith-e-score-card">
@@ -118,6 +132,14 @@
                             @endif
                         </div>
                     </div>
+                    @if(isset($seg['percentage']))
+                    @php
+                    $pctNum = intval(preg_replace('/[^0-9]/', '', $seg['percentage']));
+                    @endphp
+                    <div class="aith-e-progress-inline" style="margin-bottom:0.5rem;">
+                        <div class="aith-e-progress-inline-fill aith-e-progress-orange" style="width:{{ min($pctNum, 100) }}%"></div>
+                    </div>
+                    @endif
                     @if(!empty($seg['interests']))
                     <div style="margin-bottom:0.375rem;">
                         <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Interests</span>
@@ -173,23 +195,18 @@
             @if(!empty($result['product_recommendations']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-boxes-stacked"></i> Product Recommendations</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Product Type</th><th>Price Range</th><th>Conversion</th><th>Reasoning</th></tr></thead>
-                        <tbody>
-                        @foreach($result['product_recommendations'] as $prod)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $prod['product_type'] ?? '' }}</td>
-                            <td style="color:#f97316;font-weight:600;">{{ $prod['price_range'] ?? '-' }}</td>
-                            <td>
-                                @php $cp = strtolower($prod['conversion_potential'] ?? ''); @endphp
-                                <span class="aith-e-tag {{ $cp === 'high' ? 'aith-e-tag-high' : ($cp === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $prod['conversion_potential'] ?? '-' }}</span>
-                            </td>
-                            <td>{{ $prod['reasoning'] ?? '' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                <div class="aith-e-grid-2">
+                @foreach($result['product_recommendations'] as $prod)
+                <div class="aith-e-section-card" style="margin-bottom:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+                        <span style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $prod['product_type'] ?? '' }}</span>
+                        @php $cp = strtolower($prod['conversion_potential'] ?? ''); @endphp
+                        <span class="aith-e-tag {{ $cp === 'high' ? 'aith-e-tag-high' : ($cp === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $prod['conversion_potential'] ?? '-' }}</span>
+                    </div>
+                    <div style="font-size:0.875rem;color:#f97316;font-weight:600;margin-bottom:0.375rem;">{{ $prod['price_range'] ?? '-' }}</div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">{{ $prod['reasoning'] ?? '' }}</div>
+                </div>
+                @endforeach
                 </div>
             </div>
             @endif
@@ -205,6 +222,7 @@
                 </ul>
             </div>
             @endif
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

@@ -26,9 +26,15 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-coins"></i> Analyze Revenue
+            <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-coins"></i> Analyze Revenue
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,10 +69,36 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Monetization Analysis Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-monetization-analyzer', 'Monetization-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-monetization-analyzer">
+
+            {{-- Summary Cards --}}
+            @if(isset($result['channel_overview']) || isset($result['total_monthly_estimate']))
+            <div class="aith-e-grid-3" style="margin-bottom:1rem;">
+                <div class="aith-e-summary-card aith-e-summary-card-green">
+                    <div class="aith-e-summary-label">Monthly Estimate</div>
+                    <div class="aith-e-summary-value" style="color:#86efac;">{{ $result['total_monthly_estimate'] ?? 'N/A' }}</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-blue">
+                    <div class="aith-e-summary-label">Yearly Estimate</div>
+                    <div class="aith-e-summary-value" style="color:#93c5fd;">{{ $result['total_monthly_estimate'] ?? 'N/A' }}</div>
+                    <div class="aith-e-summary-sub">x12 monthly</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-purple">
+                    <div class="aith-e-summary-label">Estimated CPM</div>
+                    <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $result['channel_overview']['estimated_cpm'] ?? 'N/A' }}</div>
+                </div>
+            </div>
+            @endif
 
             {{-- Score --}}
             @php $score = $result['monetization_score'] ?? 0; @endphp
@@ -104,32 +136,13 @@
             @if(!empty($result['revenue_breakdown']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-money-bill-trend-up"></i> Revenue Breakdown</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Stream</th><th>Monthly Estimate</th><th>Potential</th><th>Status</th></tr></thead>
-                        <tbody>
-                        @foreach($result['revenue_breakdown'] as $item)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $item['stream'] ?? '' }}</td>
-                            <td>{{ $item['monthly_estimate'] ?? '-' }}</td>
-                            <td>{{ $item['potential'] ?? '-' }}</td>
-                            <td>
-                                @php $status = strtolower($item['status'] ?? ''); @endphp
-                                <span class="aith-e-tag {{ $status === 'active' ? 'aith-e-tag-high' : ($status === 'underutilized' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $item['status'] ?? '-' }}</span>
-                            </td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                @foreach($result['revenue_breakdown'] as $item)
+                <div style="display:flex;align-items:center;gap:0.75rem;padding:0.625rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span style="font-weight:600;color:#fff;flex:1;">{{ $item['stream'] ?? '' }}</span>
+                    <span style="color:#22c55e;font-weight:600;font-size:0.875rem;">{{ $item['monthly_estimate'] ?? '-' }}</span>
+                    <span class="aith-e-tag {{ strtolower($item['status'] ?? '') === 'active' ? 'aith-e-tag-active' : (strtolower($item['status'] ?? '') === 'underutilized' ? 'aith-e-tag-underutilized' : 'aith-e-tag-inactive') }}">{{ $item['status'] ?? '-' }}</span>
                 </div>
-            </div>
-            @endif
-
-            {{-- Total Monthly Estimate --}}
-            @if(isset($result['total_monthly_estimate']))
-            <div class="aith-e-section-card" style="text-align:center;">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-sack-dollar"></i> Total Monthly Estimate</div>
-                <div style="font-size:2rem;font-weight:700;color:#22c55e;margin:0.75rem 0;">{{ $result['total_monthly_estimate'] }}</div>
+                @endforeach
             </div>
             @endif
 
@@ -167,11 +180,13 @@
                 <div class="aith-e-section-card-title"><i class="fa-light fa-lightbulb"></i> Optimization Tips</div>
                 <ul class="aith-e-list">
                     @foreach($result['optimization_tips'] as $tip)
-                    <li><span class="bullet"><i class="fa-solid fa-circle" style="font-size:0.35rem;"></i></span> {{ $tip }}</li>
+                    <li><span class="bullet" style="font-size:0.85rem;">&#128161;</span> {{ $tip }}</li>
                     @endforeach
                 </ul>
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

@@ -20,6 +20,15 @@ class PlacementFinder extends Component
     protected function getScoreKey(): string { return 'placement_score'; }
     protected function getScoreLabel(): string { return 'Placement'; }
 
+    public function resetForm(): void
+    {
+        $this->url = '';
+        $this->niche = '';
+        $this->result = null;
+        $this->isLoading = false;
+        $this->loadingStep = 0;
+    }
+
     public function mount()
     {
         $this->loadHistory();
@@ -42,6 +51,7 @@ class PlacementFinder extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());
         } finally {
+            $this->dispatch('loadingComplete');
             $this->isLoading = false;
         }
     }

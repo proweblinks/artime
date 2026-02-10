@@ -62,6 +62,14 @@ trait HasEnterpriseHistory
         }
     }
 
+    public function resetForm(): void
+    {
+        $this->url = '';
+        $this->result = null;
+        $this->isLoading = false;
+        $this->loadingStep = 0;
+    }
+
     public function deleteHistoryItem(int $index): void
     {
         $teamId = session('current_team_id');

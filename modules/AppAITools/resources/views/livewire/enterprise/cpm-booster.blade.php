@@ -26,14 +26,25 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url')
+                <span class="aith-e-field-error">{{ $message }}</span>
+                @enderror
             </div>
             <div class="aith-form-group">
                 <label class="aith-label">Target Niche (optional)</label>
                 <input type="text" wire:model="niche" class="aith-input"
                        placeholder="e.g. finance, tech reviews, health">
+                @error('niche')
+                <span class="aith-e-field-error">{{ $message }}</span>
+                @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-rocket"></i> Boost CPM Strategy
+            <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-rocket"></i> Boost CPM Strategy
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -68,10 +79,32 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">CPM Boost Strategy</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-cpm-booster', 'CPM-Booster-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-cpm-booster">
+            {{-- Current CPM vs Potential CPM --}}
+            @if(isset($result['current_analysis']['estimated_cpm']))
+            <div class="aith-e-grid-2" style="margin-bottom:1rem;">
+                <div class="aith-e-summary-card aith-e-summary-card-orange">
+                    <div class="aith-e-summary-label">Current CPM</div>
+                    <div class="aith-e-summary-value" style="color:#fdba74;">{{ $result['current_analysis']['estimated_cpm'] }}</div>
+                    <div class="aith-e-summary-sub">Your estimated range</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-green">
+                    <div class="aith-e-summary-label">Potential CPM</div>
+                    <div class="aith-e-summary-value" style="color:#86efac;">{{ $result['high_cpm_keywords'][0]['estimated_cpm'] ?? 'Higher' }}</div>
+                    <div class="aith-e-summary-sub">Top keyword CPM target</div>
+                </div>
+            </div>
+            @endif
 
             {{-- Score --}}
             @php $score = $result['cpm_score'] ?? 0; @endphp
@@ -108,24 +141,25 @@
             {{-- High CPM Keywords --}}
             @if(!empty($result['high_cpm_keywords']))
             <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-tags"></i> High CPM Keywords</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Keyword</th><th>Est. CPM</th><th>Search Volume</th><th>Competition</th></tr></thead>
-                        <tbody>
-                        @foreach($result['high_cpm_keywords'] as $kw)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $kw['keyword'] ?? '' }}</td>
-                            <td style="color:#22c55e;font-weight:600;">{{ $kw['estimated_cpm'] ?? '-' }}</td>
-                            <td>{{ $kw['search_volume'] ?? '-' }}</td>
-                            <td>
-                                @php $comp = strtolower($kw['competition'] ?? ''); @endphp
-                                <span class="aith-e-tag {{ $comp === 'low' ? 'aith-e-tag-high' : ($comp === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $kw['competition'] ?? '-' }}</span>
-                            </td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-tags"></i> High CPM Keywords</div>
+                    <button onclick="
+                        let kws = @js(collect($result['high_cpm_keywords'])->pluck('keyword')->implode(', '));
+                        navigator.clipboard.writeText(kws).then(() => {
+                            this.innerText = 'Copied!';
+                            setTimeout(() => { this.innerHTML = '<i class=\'fa-light fa-copy\'></i> Copy Keywords'; }, 2000);
+                        });
+                    " class="aith-btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem;">
+                        <i class="fa-light fa-copy"></i> Copy Keywords
+                    </button>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                @foreach($result['high_cpm_keywords'] as $kw)
+                    <span class="aith-e-pill aith-e-pill-green">
+                        {{ $kw['keyword'] ?? '' }}
+                        <span style="opacity:0.7;margin-left:0.25rem;">{{ $kw['estimated_cpm'] ?? '' }}</span>
+                    </span>
+                @endforeach
                 </div>
             </div>
             @endif
@@ -169,7 +203,7 @@
                         <tr>
                             <td style="font-weight:600;color:#fff;">{{ $item['week'] ?? '' }}</td>
                             <td>{{ $item['topic'] ?? '' }}</td>
-                            <td style="color:#22c55e;font-weight:600;">{{ $item['target_cpm'] ?? '-' }}</td>
+                            <td><span style="color:#22c55e;font-weight:600;">{{ $item['target_cpm'] ?? '-' }}</span></td>
                             <td>{{ $item['format'] ?? '-' }}</td>
                         </tr>
                         @endforeach
@@ -190,6 +224,7 @@
                 </ul>
             </div>
             @endif
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

@@ -26,9 +26,17 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url')
+                <span class="aith-e-field-error">{{ $message }}</span>
+                @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-chart-pie"></i> Analyze Revenue Streams
+            <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-chart-pie"></i> Analyze Revenue Streams
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,11 +71,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Revenue Diversification Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-revenue-diversification', 'Revenue-Diversification-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
 
+            <div id="pdf-content-revenue-diversification">
             {{-- Score --}}
             @php $score = $result['diversification_score'] ?? 0; @endphp
             <div class="aith-e-score-card">
@@ -127,6 +141,16 @@
             </div>
             @endif
 
+            {{-- Missing Revenue Potential Alert --}}
+            @if(isset($result['total_potential_increase']))
+            <div class="aith-e-alert-card">
+                <span class="aith-e-alert-icon">⚠️</span>
+                <div class="aith-e-alert-text">
+                    You're potentially missing <span class="aith-e-alert-value">{{ $result['total_potential_increase'] }}</span> in monthly revenue from untapped streams.
+                </div>
+            </div>
+            @endif
+
             {{-- New Opportunities --}}
             @if(!empty($result['new_opportunities']))
             <div class="aith-e-section-card">
@@ -135,10 +159,15 @@
                 <div class="aith-e-section-card" style="margin-bottom:0.75rem;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
                         <span style="font-weight:600;color:#fff;font-size:0.9rem;">{{ $opp['stream_name'] ?? $opp['name'] ?? '' }}</span>
-                        @if(isset($opp['difficulty']))
-                        @php $diff = strtolower($opp['difficulty']); @endphp
-                        <span class="aith-e-tag {{ $diff === 'easy' ? 'aith-e-tag-high' : ($diff === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $opp['difficulty'] }}</span>
-                        @endif
+                        <div style="display:flex;gap:0.375rem;align-items:center;">
+                            @if(isset($opp['monthly_potential']))
+                            <span style="font-size:0.8rem;color:#86efac;font-weight:600;">{{ $opp['monthly_potential'] }}</span>
+                            @endif
+                            @if(isset($opp['difficulty']))
+                            @php $diff = strtolower($opp['difficulty']); @endphp
+                            <span class="aith-e-tag {{ $diff === 'easy' ? 'aith-e-tag-high' : ($diff === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $opp['difficulty'] }}</span>
+                            @endif
+                        </div>
                     </div>
                     @if(isset($opp['description']))
                     <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;">{{ $opp['description'] }}</div>
@@ -173,30 +202,30 @@
             @if(!empty($result['priority_roadmap']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-road"></i> Priority Roadmap</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Month</th><th>Action</th><th>Expected Result</th></tr></thead>
-                        <tbody>
-                        @foreach($result['priority_roadmap'] as $item)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $item['month'] ?? '' }}</td>
-                            <td>{{ $item['action'] ?? '' }}</td>
-                            <td>{{ $item['expected_result'] ?? '' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                @foreach($result['priority_roadmap'] as $idx => $item)
+                <div style="display:flex;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span class="aith-e-step-badge">{{ $idx + 1 }}</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $item['month'] ?? '' }}</div>
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:0.25rem;">{{ $item['action'] ?? '' }}</div>
+                        @if(isset($item['expected_result']))
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:0.25rem;">Expected: {{ $item['expected_result'] }}</div>
+                        @endif
+                    </div>
                 </div>
+                @endforeach
             </div>
             @endif
 
             {{-- Total Potential Increase --}}
             @if(isset($result['total_potential_increase']))
-            <div class="aith-e-section-card" style="text-align:center;">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-arrow-up-right-dots"></i> Total Potential Increase</div>
-                <div style="font-size:2rem;font-weight:700;color:#3b82f6;margin:0.75rem 0;">{{ $result['total_potential_increase'] }}</div>
+            <div class="aith-e-section-card" style="text-align:center;padding:1.5rem;">
+                <div class="aith-e-section-card-title" style="justify-content:center;"><i class="fa-light fa-arrow-up-right-dots"></i> Total Potential Increase</div>
+                <div style="font-size:2.5rem;font-weight:700;color:#3b82f6;margin:1rem 0;line-height:1;">{{ $result['total_potential_increase'] }}</div>
+                <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);">Estimated additional monthly revenue from all untapped streams</div>
             </div>
             @endif
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

@@ -26,9 +26,15 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-gears"></i> Build Pipeline
+            <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-gears"></i> Build Pipeline
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,10 +69,38 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Revenue Automation Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-revenue-automation', 'Revenue-Automation-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-revenue-automation">
+
+            {{-- Revenue Summary Cards --}}
+            @if(isset($result['total_automated_revenue']))
+            <div class="aith-e-grid-3" style="margin-bottom:1rem;">
+                <div class="aith-e-summary-card aith-e-summary-card-orange">
+                    <div class="aith-e-summary-label">Current Manual</div>
+                    <div class="aith-e-summary-value" style="color:#fdba74;">{{ $result['channel_analysis']['current_automation_level'] ?? 'Low' }}</div>
+                    <div class="aith-e-summary-sub">Automation level</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-green">
+                    <div class="aith-e-summary-label">After Automation</div>
+                    <div class="aith-e-summary-value" style="color:#86efac;">{{ $result['total_automated_revenue'] }}</div>
+                    <div class="aith-e-summary-sub">Monthly potential</div>
+                </div>
+                <div class="aith-e-summary-card aith-e-summary-card-blue">
+                    <div class="aith-e-summary-label">Time Saved</div>
+                    <div class="aith-e-summary-value" style="color:#93c5fd;">{{ count($result['automation_workflows'] ?? []) }}</div>
+                    <div class="aith-e-summary-sub">Automated workflows</div>
+                </div>
+            </div>
+            @endif
 
             {{-- Score --}}
             @php $score = $result['automation_score'] ?? 0; @endphp
@@ -131,23 +165,21 @@
             @if(!empty($result['tool_stack']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-toolbox"></i> Tool Stack</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Tool</th><th>Purpose</th><th>Cost</th><th>Category</th></tr></thead>
-                        <tbody>
-                        @foreach($result['tool_stack'] as $tool)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $tool['tool'] ?? '' }}</td>
-                            <td>{{ $tool['purpose'] ?? '-' }}</td>
-                            <td>{{ $tool['cost'] ?? '-' }}</td>
-                            <td>
-                                @php $cat = strtolower($tool['category'] ?? ''); @endphp
-                                <span class="aith-e-tag {{ $cat === 'essential' ? 'aith-e-tag-high' : ($cat === 'recommended' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $tool['category'] ?? '-' }}</span>
-                            </td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                <div class="aith-e-grid-2">
+                @foreach($result['tool_stack'] as $tool)
+                <div class="aith-e-section-card" style="margin-bottom:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.375rem;">
+                        <span style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $tool['tool'] ?? '' }}</span>
+                        @if(isset($tool['cost']))
+                        <span style="color:#22c55e;font-weight:600;font-size:0.8rem;">{{ $tool['cost'] }}</span>
+                        @endif
+                    </div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">{{ $tool['purpose'] ?? '' }}</div>
+                    @if(isset($tool['category']))
+                    <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $tool['category'] }}</span>
+                    @endif
+                </div>
+                @endforeach
                 </div>
             </div>
             @endif
@@ -158,7 +190,12 @@
                 <div class="aith-e-section-card-title"><i class="fa-light fa-diagram-project"></i> Automation Workflows</div>
                 @foreach($result['automation_workflows'] as $workflow)
                 <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.75rem;">
-                    <div style="font-weight:600;color:#fff;font-size:0.9rem;margin-bottom:0.375rem;">{{ $workflow['workflow'] ?? $workflow['name'] ?? '' }}</div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
+                        <span style="font-weight:600;color:#fff;font-size:0.9rem;">{{ $workflow['workflow'] ?? $workflow['name'] ?? '' }}</span>
+                        @if(isset($workflow['revenue_impact']))
+                        <span class="aith-e-pill aith-e-pill-green" style="padding:0.2rem 0.5rem;font-size:0.7rem;">{{ $workflow['revenue_impact'] }}</span>
+                        @endif
+                    </div>
                     <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:0.375rem;">
                         <strong style="color:rgba(255,255,255,0.6);">Trigger:</strong> {{ $workflow['trigger'] ?? '-' }}
                     </div>
@@ -174,9 +211,6 @@
                         </ul>
                     </div>
                     @endif
-                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">
-                        <strong style="color:rgba(255,255,255,0.6);">Revenue Impact:</strong> {{ $workflow['revenue_impact'] ?? '-' }}
-                    </div>
                 </div>
                 @endforeach
             </div>
@@ -186,38 +220,33 @@
             @if(!empty($result['implementation_timeline']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-timeline"></i> Implementation Timeline</div>
-                @foreach($result['implementation_timeline'] as $phase)
-                <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.75rem;">
-                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
-                        <span style="font-weight:600;color:#fff;font-size:0.9rem;">{{ $phase['phase'] ?? '' }}</span>
-                        <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $phase['duration'] ?? '' }}</span>
+                @foreach($result['implementation_timeline'] as $phaseIdx => $phase)
+                <div style="display:flex;gap:0.75rem;padding:0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.75rem;">
+                    <span class="aith-e-step-badge">{{ $phaseIdx + 1 }}</span>
+                    <div style="flex:1;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
+                            <span style="font-weight:600;color:#fff;font-size:0.9rem;">{{ $phase['phase'] ?? '' }}</span>
+                            <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);">{{ $phase['duration'] ?? '' }}</span>
+                        </div>
+                        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">
+                            <strong style="color:rgba(255,255,255,0.6);">Milestone:</strong> {{ $phase['milestone'] ?? '-' }}
+                        </div>
+                        @if(!empty($phase['tasks']))
+                        <ul style="list-style:none;padding:0;margin:0.25rem 0 0;">
+                            @foreach($phase['tasks'] as $task)
+                            <li style="font-size:0.75rem;color:rgba(255,255,255,0.4);padding:0.125rem 0;padding-left:0.75rem;position:relative;">
+                                <span style="position:absolute;left:0;color:#7c3aed;">&#8226;</span> {{ $task }}
+                            </li>
+                            @endforeach
+                        </ul>
+                        @endif
                     </div>
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.375rem;">
-                        <strong style="color:rgba(255,255,255,0.6);">Milestone:</strong> {{ $phase['milestone'] ?? '-' }}
-                    </div>
-                    @if(!empty($phase['tasks']))
-                    <ul style="list-style:none;padding:0;margin:0.25rem 0 0;">
-                        @foreach($phase['tasks'] as $task)
-                        <li style="font-size:0.75rem;color:rgba(255,255,255,0.4);padding:0.125rem 0;padding-left:0.75rem;position:relative;">
-                            <span style="position:absolute;left:0;color:#7c3aed;">&#8226;</span> {{ $task }}
-                        </li>
-                        @endforeach
-                    </ul>
-                    @endif
                 </div>
                 @endforeach
             </div>
             @endif
 
-            {{-- Total Automated Revenue --}}
-            @if(isset($result['total_automated_revenue']))
-            <div class="aith-e-section-card">
-                <div style="text-align:center;padding:1rem;">
-                    <span style="font-size:1.5rem;font-weight:800;color:#86efac;">{{ $result['total_automated_revenue'] }}</span>
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-top:0.25rem;">Total Automated Revenue Potential</div>
-                </div>
-            </div>
-            @endif
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}

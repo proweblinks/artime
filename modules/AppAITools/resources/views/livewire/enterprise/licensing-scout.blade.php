@@ -26,9 +26,15 @@
                 <label class="aith-label">YouTube Channel URL</label>
                 <input type="url" wire:model="url" class="aith-input"
                        placeholder="https://youtube.com/@channel">
+                @error('url') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
-            <button wire:click="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
-                <i class="fa-light fa-file-certificate"></i> Scout Opportunities
+            <button wire:click="analyze" wire:loading.attr="disabled" wire:target="analyze" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
+                <span wire:loading.remove wire:target="analyze">
+                    <i class="fa-light fa-file-certificate"></i> Scout Opportunities
+                </span>
+                <span wire:loading wire:target="analyze">
+                    <i class="fa-light fa-spinner-third fa-spin"></i> Analyzing...
+                </span>
                 <span style="margin-left:0.5rem;opacity:0.6;font-size:0.8rem;">3 credits</span>
             </button>
             @endif
@@ -63,10 +69,17 @@
             {{-- Results --}}
             <div class="aith-e-result-header">
                 <span class="aith-e-result-title">Licensing & Syndication Results</span>
-                <button wire:click="$set('result', null)" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
-                    <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
-                </button>
+                <div class="aith-e-result-actions">
+                    <button onclick="enterprisePdfExport('pdf-content-licensing-scout', 'Licensing-Scout-Analysis')" class="aith-e-btn-pdf">
+                        <i class="fa-light fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button wire:click="resetForm" class="aith-btn-secondary" style="font-size:0.8rem;padding:0.375rem 0.75rem;">
+                        <i class="fa-light fa-arrow-rotate-left"></i> New Analysis
+                    </button>
+                </div>
             </div>
+
+            <div id="pdf-content-licensing-scout">
 
             {{-- Score --}}
             @php $score = $result['licensing_score'] ?? 0; @endphp
@@ -120,11 +133,14 @@
                     <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;">{{ $opp['description'] ?? '' }}</div>
                     <div style="display:flex;gap:1rem;font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:0.5rem;">
                         <span><strong style="color:rgba(255,255,255,0.6);">Revenue Model:</strong> {{ $opp['revenue_model'] ?? '-' }}</span>
-                        <span><strong style="color:rgba(255,255,255,0.6);">Est. Monthly:</strong> {{ $opp['estimated_monthly'] ?? '-' }}</span>
+                        @if(isset($opp['estimated_monthly']))
+                        <span class="aith-e-pill aith-e-pill-green" style="padding:0.2rem 0.5rem;font-size:0.7rem;">{{ $opp['estimated_monthly'] }}</span>
+                        @endif
                     </div>
                     @if(!empty($opp['requirements']))
                     <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:0.5rem;">
-                        <strong style="color:rgba(255,255,255,0.6);">Requirements:</strong> {{ $opp['requirements'] }}
+                        <strong style="color:rgba(255,255,255,0.6);">Requirements:</strong>
+                        <span class="aith-e-pill" style="padding:0.2rem 0.5rem;font-size:0.7rem;background:rgba(59,130,246,0.15);color:#93c5fd;margin-left:0.25rem;">{{ $opp['requirements'] }}</span>
                     </div>
                     @endif
                     @if(!empty($opp['action_steps']))
@@ -145,20 +161,19 @@
             @if(!empty($result['syndication_networks']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-network-wired"></i> Syndication Networks</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Network</th><th>Type</th><th>Revenue Share</th><th>Best For</th></tr></thead>
-                        <tbody>
-                        @foreach($result['syndication_networks'] as $network)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $network['network'] ?? '' }}</td>
-                            <td>{{ $network['type'] ?? '-' }}</td>
-                            <td>{{ $network['revenue_share'] ?? '-' }}</td>
-                            <td>{{ $network['best_for'] ?? '-' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                <div class="aith-e-grid-2">
+                @foreach($result['syndication_networks'] as $network)
+                <div class="aith-e-section-card" style="margin-bottom:0;">
+                    <div style="font-weight:600;color:#fff;font-size:0.875rem;margin-bottom:0.375rem;">{{ $network['network'] ?? '' }}</div>
+                    <div style="display:flex;gap:0.5rem;margin-bottom:0.375rem;">
+                        <span class="aith-e-tag" style="background:rgba(20,184,166,0.15);color:#5eead4;">{{ $network['type'] ?? '' }}</span>
+                        @if(isset($network['revenue_share']))
+                        <span class="aith-e-pill aith-e-pill-green" style="padding:0.2rem 0.5rem;font-size:0.7rem;">{{ $network['revenue_share'] }}</span>
+                        @endif
+                    </div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);">{{ $network['best_for'] ?? '' }}</div>
+                </div>
+                @endforeach
                 </div>
             </div>
             @endif
@@ -179,23 +194,24 @@
             @if(!empty($result['action_plan']))
             <div class="aith-e-section-card">
                 <div class="aith-e-section-card-title"><i class="fa-light fa-list-check"></i> Action Plan</div>
-                <div style="overflow-x:auto;">
-                    <table class="aith-e-table">
-                        <thead><tr><th>Step</th><th>Action</th><th>Timeline</th><th>Expected Outcome</th></tr></thead>
-                        <tbody>
-                        @foreach($result['action_plan'] as $plan)
-                        <tr>
-                            <td style="font-weight:600;color:#fff;">{{ $plan['step'] ?? '' }}</td>
-                            <td>{{ $plan['action'] ?? '-' }}</td>
-                            <td>{{ $plan['timeline'] ?? '-' }}</td>
-                            <td>{{ $plan['expected_outcome'] ?? '-' }}</td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                @foreach($result['action_plan'] as $plan)
+                <div style="display:flex;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span class="aith-e-step-badge">{{ $plan['step'] ?? '' }}</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;color:#fff;font-size:0.875rem;">{{ $plan['action'] ?? '' }}</div>
+                        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.25rem;">
+                            <span>{{ $plan['timeline'] ?? '' }}</span>
+                            @if(isset($plan['expected_outcome']))
+                            <span style="margin-left:0.5rem;">→ {{ $plan['expected_outcome'] }}</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
+                @endforeach
             </div>
             @endif
+
+            </div>{{-- end pdf-content --}}
             @endif
 
             {{-- Error --}}
