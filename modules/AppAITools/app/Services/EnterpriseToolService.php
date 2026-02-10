@@ -13,76 +13,31 @@ class EnterpriseToolService
      */
     public function analyzePlacement(string $channelUrl, string $niche = ''): array
     {
-        $nicheLine = $niche ? "\nThe advertiser is specifically targeting the \"{$niche}\" niche." : '';
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
 
-        $prompt = 'You are a senior Google Ads strategist specializing in YouTube Placement Targeting campaigns. '
-            . 'Your job is to analyze a YouTube channel and find REAL YouTube channels that would be ideal placements '
-            . "for a Google Ads campaign targeting a similar audience.\n\n"
-            . 'CONTEXT: In Google Ads, "Placement Targeting" lets advertisers choose specific YouTube channels where '
-            . 'their ads will appear. The goal is to find channels whose viewers would be interested in the analyzed '
-            . "channel's content — so ads shown on those channels reach a relevant, engaged audience.\n\n"
-            . "CHANNEL TO ANALYZE: {$channelUrl}{$nicheLine}\n\n"
-            . "CRITICAL RULES:\n"
-            . "1. Only recommend YouTube channels you are CONFIDENT actually exist. Use channels you know from your training data.\n"
-            . "2. Every channel MUST include its real YouTube handle (e.g. @mkbhd, @veritasium). If you are not sure of the exact handle, do NOT include that channel.\n"
-            . "3. Include a MIX of channel sizes: some large (1M+), some medium (100K-1M), and some smaller but highly relevant (10K-100K). Smaller channels often have higher engagement rates and lower CPMs.\n"
-            . "4. Generate exactly 15 placement channels.\n"
-            . "5. For each channel, explain specifically WHY it is a good placement match — what audience overlap exists.\n"
-            . "6. CPM estimates should reflect realistic YouTube Ads CPM ranges for the niche (typically 2-15 USD for most niches, 15-50 USD for finance/insurance/legal).\n\n"
-            . "Respond with ONLY valid JSON in this exact structure:\n\n"
-            . "{\n"
-            . '  "channel_info": {' . "\n"
-            . '    "name": "Channel Name",' . "\n"
-            . '    "handle": "@handle",' . "\n"
-            . '    "niche": "Primary niche category",' . "\n"
-            . '    "sub_niche": "More specific sub-category",' . "\n"
-            . '    "estimated_subscribers": "e.g. 1.2M",' . "\n"
-            . '    "content_style": "e.g. Long-form reviews, Short tutorials, Vlogs",' . "\n"
-            . '    "upload_frequency": "e.g. 2-3 videos/week",' . "\n"
-            . '    "audience_type": "Brief description of who watches this channel"' . "\n"
-            . "  },\n"
-            . '  "placement_score": 85,' . "\n"
-            . '  "niche_insights": {' . "\n"
-            . '    "niche_cpm_range": "e.g. 4.00 - 10.00 USD",' . "\n"
-            . '    "best_ad_formats": ["Skippable in-stream", "Discovery ads"],' . "\n"
-            . '    "peak_months": ["November", "December"],' . "\n"
-            . '    "audience_demographics": "e.g. Males 25-44, tech-savvy, mid-to-high income",' . "\n"
-            . '    "competition_level": "Low|Medium|High"' . "\n"
-            . "  },\n"
-            . '  "placements": [' . "\n"
-            . "    {\n"
-            . '      "channel_name": "Actual Channel Name",' . "\n"
-            . '      "handle": "@actualhandle",' . "\n"
-            . '      "channel_url": "https://youtube.com/@actualhandle",' . "\n"
-            . '      "subscribers": "e.g. 2.5M",' . "\n"
-            . '      "relevance_score": 92,' . "\n"
-            . '      "estimated_cpm": "e.g. 4.50 - 8.00 USD",' . "\n"
-            . '      "content_type": "e.g. Tech reviews & unboxings",' . "\n"
-            . '      "audience_match": "Specific reason why this channels audience overlaps with the analyzed channel",' . "\n"
-            . '      "recommended_ad_format": "Skippable in-stream|Non-skippable|Bumper|Discovery",' . "\n"
-            . '      "tier": "large|medium|small"' . "\n"
-            . "    }\n"
-            . "  ],\n"
-            . '  "campaign_strategy": {' . "\n"
-            . '    "recommended_daily_budget": "e.g. 20 - 50 USD",' . "\n"
-            . '    "expected_cpm_range": "e.g. 4.00 - 10.00 USD",' . "\n"
-            . '    "expected_ctr": "e.g. 0.5% - 1.2%",' . "\n"
-            . '    "recommended_bid_strategy": "e.g. Target CPM or Maximize conversions",' . "\n"
-            . '    "ad_group_structure": [' . "\n"
-            . "      {\n"
-            . '        "group_name": "e.g. High-Relevance Tech Channels",' . "\n"
-            . '        "channels": ["@handle1", "@handle2", "@handle3"],' . "\n"
-            . '        "rationale": "Why these channels are grouped together"' . "\n"
-            . "      }\n"
-            . "    ]\n"
-            . "  },\n"
-            . '  "google_ads_keywords": ["keyword1", "keyword2", "keyword3"],' . "\n"
-            . '  "tips": [' . "\n"
-            . '    "Specific, actionable tip about running placement campaigns in this niche"' . "\n"
-            . "  ]\n"
-            . "}";
+        $prompt = "You are a YouTube Ads placement strategist. Based on the channel below, return a JSON object with "
+            . "placement channel recommendations for Google Ads Placement Targeting.\n\n"
+            . "Channel: {$channelUrl}{$nicheLine}\n\n"
+            . "IMPORTANT: Output ONLY raw JSON. No explanation, no markdown, no code fences. Start your response with { and end with }.\n\n"
+            . "Use REAL YouTube channels you are confident exist. Include their actual @handle. "
+            . "Mix of sizes: large (1M+), medium (100K-1M), small (10K-100K). Generate exactly 10 channels. "
+            . "Keep audience_match descriptions short (under 20 words).\n\n"
+            . "JSON structure:\n"
+            . '{"channel_info":{"name":"","handle":"@handle","niche":"","sub_niche":"","estimated_subscribers":"1.2M",'
+            . '"content_style":"","upload_frequency":"","audience_type":""},'
+            . '"placement_score":85,'
+            . '"niche_insights":{"niche_cpm_range":"4-10 USD","best_ad_formats":["Skippable in-stream"],'
+            . '"peak_months":["November"],"audience_demographics":"","competition_level":"Medium"},'
+            . '"placements":[{"channel_name":"","handle":"@handle","channel_url":"https://youtube.com/@handle",'
+            . '"subscribers":"2.5M","relevance_score":92,"estimated_cpm":"4-8 USD","content_type":"",'
+            . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}],'
+            . '"campaign_strategy":{"recommended_daily_budget":"20-50 USD","expected_cpm_range":"4-10 USD",'
+            . '"expected_ctr":"0.5-1.2%","recommended_bid_strategy":"Target CPM",'
+            . '"ad_group_structure":[{"group_name":"","channels":["@h1","@h2"],"rationale":""}]},'
+            . '"google_ads_keywords":["keyword1","keyword2"],'
+            . '"tips":["tip1","tip2","tip3"]}';
 
-        return $this->executeAnalysis('placement_finder', $channelUrl, $prompt);
+        return $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
     }
 
     /**
@@ -381,7 +336,7 @@ class EnterpriseToolService
     /**
      * Core execution: call AI, parse result, save history.
      */
-    protected function executeAnalysis(string $toolKey, string $input, string $prompt): array
+    protected function executeAnalysis(string $toolKey, string $input, string $prompt, int $maxTokens = 0): array
     {
         $teamId = session('current_team_id', 0);
         $userId = auth()->id();
@@ -405,7 +360,15 @@ class EnterpriseToolService
         ]);
 
         try {
-            $aiResult = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+            if ($maxTokens > 0) {
+                $provider = get_option('ai_platform', 'openai');
+                $aiResult = AI::processWithOverride($prompt, $provider, null, 'text', [
+                    'maxResult' => 1,
+                    'max_tokens' => $maxTokens,
+                ], $teamId);
+            } else {
+                $aiResult = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
+            }
             $rawText = $aiResult['data'][0] ?? '';
             $parsed = $this->parseJson($rawText);
 
@@ -427,23 +390,63 @@ class EnterpriseToolService
     }
 
     /**
-     * Parse JSON from AI response, handling markdown code blocks.
+     * Parse JSON from AI response, handling markdown code blocks and truncated responses.
      */
     protected function parseJson(string $text): array
     {
         $text = trim($text);
-        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
-        $text = preg_replace('/\s*```$/', '', $text);
+
+        // Remove markdown code blocks anywhere in text
+        $text = preg_replace('/```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```/', '', $text);
         $text = trim($text);
 
+        // Try direct parse
         $decoded = json_decode($text, true);
         if (is_array($decoded)) {
             return $decoded;
         }
 
-        // Try to extract JSON object from text
+        // Extract JSON object from surrounding text (AI may prefix with explanation)
         if (preg_match('/\{.*\}/s', $text, $matches)) {
             $decoded = json_decode($matches[0], true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        // Handle truncated JSON: find the opening { and try to repair
+        $jsonStart = strpos($text, '{');
+        if ($jsonStart !== false) {
+            $jsonStr = substr($text, $jsonStart);
+
+            // Count unmatched braces and brackets, then close them
+            $braces = 0;
+            $brackets = 0;
+            $inString = false;
+            $escape = false;
+            for ($i = 0; $i < strlen($jsonStr); $i++) {
+                $ch = $jsonStr[$i];
+                if ($escape) { $escape = false; continue; }
+                if ($ch === '\\') { $escape = true; continue; }
+                if ($ch === '"') { $inString = !$inString; continue; }
+                if ($inString) continue;
+                if ($ch === '{') $braces++;
+                if ($ch === '}') $braces--;
+                if ($ch === '[') $brackets++;
+                if ($ch === ']') $brackets--;
+            }
+
+            // Remove trailing incomplete value (after last comma or colon in non-string context)
+            $repaired = rtrim($jsonStr, " \t\n\r,:");
+            // Remove any trailing partial string value like "some text
+            $repaired = preg_replace('/"[^"]*$/', '""', $repaired);
+
+            // Close all open brackets and braces
+            $repaired .= str_repeat(']', max(0, $brackets));
+            $repaired .= str_repeat('}', max(0, $braces));
+
+            $decoded = json_decode($repaired, true);
             if (is_array($decoded)) {
                 return $decoded;
             }
