@@ -103,13 +103,14 @@
         .aith-e-section-action:hover { color: rgba(255,255,255,0.6); }
 
         /* Tool Cards - Dashboard (compact) */
-        .aith-e-dash-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
+        .aith-enterprise .aith-e-dash-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 1rem !important;
+            width: 100% !important;
         }
-        @media (max-width: 992px) { .aith-e-dash-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .aith-e-dash-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 992px) { .aith-enterprise .aith-e-dash-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 576px) { .aith-enterprise .aith-e-dash-grid { grid-template-columns: 1fr !important; } }
 
         .aith-e-dash-card {
             display: flex; flex-direction: column; align-items: center;
@@ -190,13 +191,14 @@
         }
 
         /* Tool Cards - Grid (full) */
-        .aith-e-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
+        .aith-enterprise .aith-e-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 1.25rem !important;
+            width: 100% !important;
         }
-        @media (max-width: 992px) { .aith-e-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .aith-e-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 992px) { .aith-enterprise .aith-e-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 576px) { .aith-enterprise .aith-e-grid { grid-template-columns: 1fr !important; } }
 
         .aith-e-card {
             display: flex; flex-direction: column;
