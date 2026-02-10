@@ -627,10 +627,8 @@
     </div>
 </div>
 
-<script>
-function enterpriseDashboard() {
-    // Build tools data from server config
-    const allTools = @json(collect($tools)->map(function($tool, $key) {
+@php
+    $toolsJson = collect($tools)->map(function($tool, $key) {
         return [
             'key' => $key,
             'name' => $tool['name'],
@@ -639,7 +637,12 @@ function enterpriseDashboard() {
             'category' => $tool['category'] ?? '',
             'route' => route($tool['route']),
         ];
-    })->values()->toArray());
+    })->values()->toArray();
+@endphp
+
+<script>
+function enterpriseDashboard() {
+    const allTools = @json($toolsJson);
 
     return {
         paletteOpen: false,
