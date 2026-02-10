@@ -190,40 +190,217 @@
             @if(isset($result['niche_insights']))
             @php $ni = $result['niche_insights']; @endphp
             <div class="aith-e-section-card">
-                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-mixed"></i> Niche Insights</div>
-                <div class="aith-e-grid-2">
-                    @if(isset($ni['audience_demographics']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Target Audience</span>
-                        <div style="font-size:0.85rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ $ni['audience_demographics'] }}</div>
+                <div class="aith-e-section-card-title"><i class="fa-light fa-chart-mixed"></i> Niche Intelligence</div>
+
+                {{-- Top badges row --}}
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+                    @if(isset($ni['competition_level']))
+                    @php $cl = strtolower($ni['competition_level']); @endphp
+                    <div style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <i class="fa-light fa-gauge-high" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Competition</span>
+                        <span class="aith-e-tag {{ $cl === 'low' ? 'aith-e-tag-high' : ($cl === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}" style="font-size:0.65rem;padding:0.1rem 0.4rem;">{{ $ni['competition_level'] }}</span>
                     </div>
                     @endif
+                    @if(isset($ni['brand_safety']))
+                    @php $bs = strtolower($ni['brand_safety']); @endphp
+                    <div style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <i class="fa-light fa-shield-check" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Brand Safety</span>
+                        <span class="aith-e-tag {{ $bs === 'high' ? 'aith-e-tag-high' : ($bs === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}" style="font-size:0.65rem;padding:0.1rem 0.4rem;">{{ $ni['brand_safety'] }}</span>
+                    </div>
+                    @endif
+                    @if(isset($ni['buying_intent']))
+                    @php $bi = strtolower($ni['buying_intent']); @endphp
+                    <div style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <i class="fa-light fa-cart-shopping" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Buying Intent</span>
+                        <span class="aith-e-tag {{ $bi === 'high' ? 'aith-e-tag-high' : ($bi === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}" style="font-size:0.65rem;padding:0.1rem 0.4rem;">{{ $ni['buying_intent'] }}</span>
+                    </div>
+                    @endif
+                    @if(isset($ni['avg_engagement_rate']))
+                    <div style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <i class="fa-light fa-heart" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Engagement</span>
+                        <span style="font-size:0.7rem;color:#86efac;font-weight:600;">{{ $ni['avg_engagement_rate'] }}</span>
+                    </div>
+                    @endif
+                    @if(isset($ni['optimal_video_length']))
+                    <div style="display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <i class="fa-light fa-clock" style="font-size:0.7rem;color:rgba(255,255,255,0.4);"></i>
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Optimal Length</span>
+                        <span style="font-size:0.7rem;color:#93c5fd;font-weight:600;">{{ $ni['optimal_video_length'] }}</span>
+                    </div>
+                    @endif
+                </div>
+
+                {{-- Demographics: Age + Gender + Audience --}}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+
+                    {{-- Age Distribution --}}
+                    @if(!empty($ni['age_distribution']))
+                    <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.625rem;display:flex;align-items:center;gap:0.375rem;">
+                            <i class="fa-light fa-users" style="font-size:0.65rem;"></i> Age Distribution
+                        </div>
+                        @foreach($ni['age_distribution'] as $age)
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
+                            <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);width:3rem;text-align:right;flex-shrink:0;">{{ $age['range'] ?? '' }}</span>
+                            <div style="flex:1;height:0.5rem;border-radius:0.25rem;background:rgba(255,255,255,0.06);overflow:hidden;">
+                                <div style="height:100%;border-radius:0.25rem;background:linear-gradient(90deg,#7c3aed,#a855f7);width:{{ min(($age['pct'] ?? 0) / 40 * 100, 100) }}%;"></div>
+                            </div>
+                            <span style="font-size:0.7rem;color:#c4b5fd;font-weight:600;width:2.25rem;text-align:right;flex-shrink:0;">{{ $age['pct'] ?? 0 }}%</span>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    {{-- Gender + Device Split --}}
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                        @if(isset($ni['gender_split']))
+                        <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.375rem;">
+                                <i class="fa-light fa-venus-mars" style="font-size:0.65rem;"></i> Gender Split
+                            </div>
+                            <div style="display:flex;height:1.25rem;border-radius:0.375rem;overflow:hidden;margin-bottom:0.375rem;">
+                                <div style="width:{{ $ni['gender_split']['male'] ?? 50 }}%;background:linear-gradient(90deg,#3b82f6,#60a5fa);display:flex;align-items:center;justify-content:center;">
+                                    <span style="font-size:0.6rem;color:#fff;font-weight:600;">{{ $ni['gender_split']['male'] ?? 50 }}%</span>
+                                </div>
+                                <div style="width:{{ $ni['gender_split']['female'] ?? 50 }}%;background:linear-gradient(90deg,#ec4899,#f472b6);display:flex;align-items:center;justify-content:center;">
+                                    <span style="font-size:0.6rem;color:#fff;font-weight:600;">{{ $ni['gender_split']['female'] ?? 50 }}%</span>
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;">
+                                <span style="font-size:0.65rem;color:#60a5fa;"><i class="fa-light fa-mars" style="margin-right:0.2rem;"></i>Male</span>
+                                <span style="font-size:0.65rem;color:#f472b6;"><i class="fa-light fa-venus" style="margin-right:0.2rem;"></i>Female</span>
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(isset($ni['device_split']))
+                        <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.375rem;">
+                                <i class="fa-light fa-display" style="font-size:0.65rem;"></i> Device Split
+                            </div>
+                            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                                @php
+                                    $deviceIcons = ['mobile' => 'fa-mobile', 'desktop' => 'fa-desktop', 'tablet' => 'fa-tablet', 'tv' => 'fa-tv'];
+                                    $deviceColors = ['mobile' => '#22c55e', 'desktop' => '#3b82f6', 'tablet' => '#f59e0b', 'tv' => '#a855f7'];
+                                @endphp
+                                @foreach($ni['device_split'] as $device => $pct)
+                                <div style="display:flex;align-items:center;gap:0.3rem;">
+                                    <i class="fa-light {{ $deviceIcons[$device] ?? 'fa-circle' }}" style="font-size:0.7rem;color:{{ $deviceColors[$device] ?? '#fff' }};"></i>
+                                    <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);">{{ ucfirst($device) }}</span>
+                                    <span style="font-size:0.7rem;color:{{ $deviceColors[$device] ?? '#fff' }};font-weight:600;">{{ $pct }}%</span>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Geographic Distribution --}}
+                @if(!empty($ni['geographic_top5']))
+                <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);margin-bottom:1rem;">
+                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.625rem;display:flex;align-items:center;gap:0.375rem;">
+                        <i class="fa-light fa-globe" style="font-size:0.65rem;"></i> Top Geographic Markets
+                    </div>
+                    @foreach($ni['geographic_top5'] as $geo)
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem;">
+                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);width:2rem;text-align:right;flex-shrink:0;font-weight:600;">{{ $geo['country'] ?? '' }}</span>
+                        <div style="flex:1;height:0.5rem;border-radius:0.25rem;background:rgba(255,255,255,0.06);overflow:hidden;">
+                            <div style="height:100%;border-radius:0.25rem;background:linear-gradient(90deg,#06b6d4,#22d3ee);width:{{ min(($geo['pct'] ?? 0) / 40 * 100, 100) }}%;"></div>
+                        </div>
+                        <span style="font-size:0.7rem;color:#22d3ee;font-weight:600;width:2.25rem;text-align:right;flex-shrink:0;">{{ $geo['pct'] ?? 0 }}%</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+
+                {{-- Seasonal CPM Trend --}}
+                @if(!empty($ni['seasonal_cpm']))
+                <div style="padding:0.75rem;border-radius:0.5rem;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.06);margin-bottom:1rem;">
+                    <div style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.375rem;">
+                        <i class="fa-light fa-chart-line" style="font-size:0.65rem;"></i> Seasonal CPM Trend
+                        <span style="font-size:0.6rem;color:rgba(255,255,255,0.25);margin-left:auto;">Multiplier relative to base CPM</span>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:0.25rem;height:5rem;">
+                        @php $maxV = collect($ni['seasonal_cpm'])->max('v') ?: 1; @endphp
+                        @foreach($ni['seasonal_cpm'] as $sm)
+                        @php
+                            $barH = max(10, ($sm['v'] ?? 0.5) / $maxV * 100);
+                            $isHigh = ($sm['v'] ?? 0) >= 1.0;
+                            $barColor = $isHigh ? 'linear-gradient(0deg,#22c55e,#4ade80)' : 'linear-gradient(0deg,#3b82f6,#60a5fa)';
+                        @endphp
+                        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                            <span style="font-size:0.55rem;color:{{ $isHigh ? '#86efac' : 'rgba(255,255,255,0.35)' }};font-weight:{{ $isHigh ? '600' : '400' }};">{{ $sm['v'] ?? '' }}x</span>
+                            <div style="width:100%;height:{{ $barH }}%;border-radius:0.25rem 0.25rem 0 0;background:{{ $barColor }};min-height:0.375rem;"></div>
+                            <span style="font-size:0.55rem;color:rgba(255,255,255,0.4);">{{ $sm['m'] ?? '' }}</span>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                {{-- Tags rows: Ad Formats, Content Types, Advertiser Categories, Interests --}}
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
                     @if(isset($ni['best_ad_formats']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Best Ad Formats</span>
-                        <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem;">
+                    <div>
+                        <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-rectangle-ad" style="margin-right:0.25rem;"></i>Best Ad Formats</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
                             @foreach((is_array($ni['best_ad_formats']) ? $ni['best_ad_formats'] : [$ni['best_ad_formats']]) as $fmt)
-                            <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;">{{ $fmt }}</span>
+                            <span class="aith-e-tag" style="background:rgba(139,92,246,0.15);color:#c4b5fd;font-size:0.7rem;">{{ $fmt }}</span>
                             @endforeach
                         </div>
                     </div>
                     @endif
-                    @if(isset($ni['peak_months']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Peak Months</span>
-                        <div style="font-size:0.85rem;color:rgba(255,255,255,0.7);margin-top:0.125rem;">{{ is_array($ni['peak_months']) ? implode(', ', $ni['peak_months']) : $ni['peak_months'] }}</div>
+
+                    @if(!empty($ni['best_content_types']))
+                    <div>
+                        <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-video" style="margin-right:0.25rem;"></i>Best Content Types</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
+                            @foreach($ni['best_content_types'] as $ct)
+                            <span class="aith-e-tag" style="background:rgba(34,197,94,0.15);color:#86efac;font-size:0.7rem;">{{ $ct }}</span>
+                            @endforeach
+                        </div>
                     </div>
                     @endif
-                    @if(isset($ni['competition_level']))
-                    <div style="padding:0.375rem 0;">
-                        <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);text-transform:uppercase;">Ad Competition</span>
-                        @php $cl = strtolower($ni['competition_level']); @endphp
-                        <div style="margin-top:0.25rem;">
-                            <span class="aith-e-tag {{ $cl === 'low' ? 'aith-e-tag-high' : ($cl === 'medium' ? 'aith-e-tag-medium' : 'aith-e-tag-low') }}">{{ $ni['competition_level'] }}</span>
+
+                    @if(!empty($ni['top_advertiser_categories']))
+                    <div>
+                        <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-building" style="margin-right:0.25rem;"></i>Top Advertiser Verticals</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
+                            @foreach($ni['top_advertiser_categories'] as $cat)
+                            <span class="aith-e-tag" style="background:rgba(234,179,8,0.15);color:#fde047;font-size:0.7rem;">{{ $cat }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    @if(!empty($ni['audience_interests']))
+                    <div>
+                        <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-sparkles" style="margin-right:0.25rem;"></i>Audience Interests</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
+                            @foreach($ni['audience_interests'] as $interest)
+                            <span class="aith-e-tag" style="background:rgba(6,182,212,0.15);color:#67e8f9;font-size:0.7rem;">{{ $interest }}</span>
+                            @endforeach
                         </div>
                     </div>
                     @endif
                 </div>
+
+                {{-- Peak Months --}}
+                @if(isset($ni['peak_months']))
+                <div style="margin-top:0.75rem;">
+                    <span style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;display:block;margin-bottom:0.375rem;"><i class="fa-light fa-calendar-star" style="margin-right:0.25rem;"></i>Peak Advertising Months</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.25rem;">
+                        @foreach((is_array($ni['peak_months']) ? $ni['peak_months'] : [$ni['peak_months']]) as $month)
+                        <span class="aith-e-tag" style="background:rgba(239,68,68,0.15);color:#fca5a5;font-size:0.7rem;">{{ $month }}</span>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
             @endif
 

@@ -36,8 +36,16 @@ class EnterpriseToolService
             . '{"channel_info":{"name":"","handle":"@handle","niche":"","sub_niche":"","estimated_subscribers":"1.2M",'
             . '"content_style":"","upload_frequency":"","audience_type":""},'
             . '"placement_score":85,'
-            . '"niche_insights":{"niche_cpm_range":"4-10 USD","best_ad_formats":["Skippable in-stream"],'
-            . '"peak_months":["November"],"audience_demographics":"","competition_level":"Medium"},'
+            . '"niche_insights":{"niche_cpm_range":"4-10 USD","competition_level":"Medium","brand_safety":"High","buying_intent":"High",'
+            . '"audience_demographics":"Males 18-34","best_ad_formats":["Skippable in-stream","Bumper ads"],'
+            . '"peak_months":["Nov","Dec","Sep"],"top_advertiser_categories":["Consumer Electronics","SaaS","Mobile Apps"],'
+            . '"audience_interests":["Technology","Gaming","Photography"],'
+            . '"geographic_top5":[{"country":"US","pct":35},{"country":"UK","pct":12},{"country":"IN","pct":10},{"country":"CA","pct":8},{"country":"DE","pct":5}],'
+            . '"age_distribution":[{"range":"13-17","pct":8},{"range":"18-24","pct":32},{"range":"25-34","pct":35},{"range":"35-44","pct":15},{"range":"45+","pct":10}],'
+            . '"gender_split":{"male":78,"female":22},'
+            . '"best_content_types":["Reviews","Comparisons","Unboxings"],"optimal_video_length":"10-20 min","avg_engagement_rate":"4.2%",'
+            . '"device_split":{"mobile":62,"desktop":30,"tv":8},'
+            . '"seasonal_cpm":[{"m":"Jan","v":0.7},{"m":"Feb","v":0.75},{"m":"Mar","v":0.8},{"m":"Apr","v":0.85},{"m":"May","v":0.9},{"m":"Jun","v":0.85},{"m":"Jul","v":0.8},{"m":"Aug","v":0.85},{"m":"Sep","v":1.0},{"m":"Oct","v":1.1},{"m":"Nov","v":1.3},{"m":"Dec","v":1.0}]},'
             . '"placements":[{"channel_name":"","handle":"@handle","channel_url":"https://youtube.com/@handle",'
             . '"subscribers":"2.5M","relevance_score":92,"estimated_cpm":"4-8 USD","content_type":"",'
             . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}],'
@@ -47,7 +55,7 @@ class EnterpriseToolService
             . '"google_ads_keywords":["keyword1","keyword2"],'
             . '"tips":["tip1","tip2","tip3"]}';
 
-        $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
+        $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 5000);
 
         // If AI refused or parse failed, throw so the user sees an error
         if (!empty($result['parse_error'])) {
