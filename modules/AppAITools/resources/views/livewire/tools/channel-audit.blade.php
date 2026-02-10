@@ -886,10 +886,13 @@ x-init="
 
     </div>{{-- /audit-results-container --}}
 
-    {{-- PDF Export Script --}}
+    @endif
+
+    {{-- PDF Export Script (outside @if block so it survives Livewire morphs) --}}
     <script>
     function aithLoadScript(url) {
         return new Promise(function(ok, fail) {
+            if (document.querySelector('script[src="'+url+'"]')) { ok(); return; }
             var s = document.createElement('script');
             s.src = url;
             s.onload = ok;
@@ -984,7 +987,9 @@ x-init="
                 pdf.addImage(jpgData, 'JPEG', m, m - (i * usable), w, h);
             }
 
-            var name = @json($ci['title'] ?? 'channel');
+            // Read channel name from DOM instead of @json to avoid Livewire issues
+            var nameEl = el.querySelector('.aith-channel-name') || el.querySelector('h3');
+            var name = (nameEl ? nameEl.textContent : 'channel').trim();
             pdf.save('audit-' + name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.pdf');
         } catch(e) {
             console.error('PDF export error:', e);
@@ -997,8 +1002,6 @@ x-init="
         done();
     }
     </script>
-
-    @endif
 
     {{-- History --}}
     @include('appaitools::livewire.partials._tool-history')
