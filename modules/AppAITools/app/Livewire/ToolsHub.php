@@ -285,14 +285,37 @@ class ToolsHub extends Component
             }
         }
 
-        $mostUsedKey = $mostUsed ? $this->resolveConfigKey($mostUsed->tool) : null;
         $tools = config('appaitools.tools', []);
+        $enterpriseTools = config('appaitools.enterprise_tools', []);
+
+        // Resolve most-used tool name and emoji
+        $mostUsedName = '-';
+        $mostUsedEmoji = '';
+        if ($mostUsed) {
+            $dbTool = $mostUsed->tool;
+            $configKey = $this->resolveConfigKey($dbTool);
+
+            if ($configKey && isset($tools[$configKey])) {
+                // Check if it's an enterprise sub-tool — show specific name
+                $entKey = str_replace('_', '-', $dbTool);
+                if (isset($enterpriseTools[$entKey])) {
+                    $mostUsedName = $enterpriseTools[$entKey]['name'];
+                    $mostUsedEmoji = $enterpriseTools[$entKey]['emoji'] ?? '';
+                } else {
+                    $mostUsedName = $tools[$configKey]['name'];
+                    $mostUsedEmoji = $tools[$configKey]['emoji'] ?? '';
+                }
+            } else {
+                // Fallback: format DB tool name as readable text
+                $mostUsedName = ucwords(str_replace('_', ' ', $dbTool));
+            }
+        }
 
         $this->aggregateStats = [
             'total_analyses' => $total,
             'credits_used' => $creditsUsed,
-            'most_used' => $mostUsedKey ? ($tools[$mostUsedKey]['name'] ?? ucfirst($mostUsedKey)) : '-',
-            'most_used_emoji' => $mostUsedKey ? ($tools[$mostUsedKey]['emoji'] ?? '') : '',
+            'most_used' => $mostUsedName,
+            'most_used_emoji' => $mostUsedEmoji,
             'streak' => $streak,
         ];
     }
@@ -300,6 +323,7 @@ class ToolsHub extends Component
     protected function resolveConfigKey(string $dbTool): ?string
     {
         $map = [
+            // Main tools
             'video_optimizer' => 'video_optimizer',
             'competitor' => 'competitor_analysis',
             'competitor_analysis' => 'competitor_analysis',
@@ -312,6 +336,19 @@ class ToolsHub extends Component
             'viral_hooks' => 'more_tools',
             'content_multiplier' => 'more_tools',
             'thumbnail_arena' => 'more_tools',
+            // Enterprise tools
+            'placement_finder' => 'enterprise_suite',
+            'monetization_analyzer' => 'enterprise_suite',
+            'sponsorship_calculator' => 'enterprise_suite',
+            'revenue_diversification' => 'enterprise_suite',
+            'cpm_booster' => 'enterprise_suite',
+            'audience_profiler' => 'enterprise_suite',
+            'digital_product_architect' => 'enterprise_suite',
+            'affiliate_finder' => 'enterprise_suite',
+            'multi_income_converter' => 'enterprise_suite',
+            'brand_deal_matchmaker' => 'enterprise_suite',
+            'licensing_scout' => 'enterprise_suite',
+            'revenue_automation' => 'enterprise_suite',
         ];
         return $map[$dbTool] ?? null;
     }
