@@ -334,6 +334,16 @@ return [
             'credits' => 2,
             'route' => 'app.ai-tools.video-optimizer',
             'is_existing' => true,
+            'tiers' => [],
+            'next_steps' => [
+                ['tool' => 'cpm-booster', 'reason' => 'Boost CPM on your optimized videos'],
+                ['tool' => 'monetization-analyzer', 'reason' => 'See how optimization affects revenue'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => [],
+            'estimated_seconds' => 10,
         ],
         'placement-finder' => [
             'name' => 'Placement Finder',
@@ -346,6 +356,21 @@ return [
             'route' => 'app.ai-tools.enterprise.placement-finder',
             'is_existing' => false,
             'loading_steps' => ['Analyzing your channel', 'Identifying your niche', 'Finding placement channels', 'Scoring audience relevance', 'Building campaign strategy', 'Compiling results'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'audience-profiler', 'reason' => 'Profile the audience you\'re targeting'],
+                ['tool' => 'cpm-booster', 'reason' => 'Optimize CPM for your placements'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+                ['key' => 'niche', 'type' => 'text', 'label' => 'Target Niche', 'required' => false],
+            ],
+            'result_sections' => ['placement_score', 'placements', 'campaign_strategy', 'niche_insights'],
+            'estimated_seconds' => 18,
         ],
         'viral-predictor' => [
             'name' => 'Viral Score Predictor',
@@ -357,6 +382,16 @@ return [
             'credits' => 2,
             'route' => 'app.ai-tools.trend-predictor',
             'is_existing' => true,
+            'tiers' => [],
+            'next_steps' => [
+                ['tool' => 'placement-finder', 'reason' => 'Find placements for viral content'],
+                ['tool' => 'sponsorship-calculator', 'reason' => 'Calculate rates for viral reach'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Video URL', 'required' => true],
+            ],
+            'result_sections' => [],
+            'estimated_seconds' => 10,
         ],
         'monetization-analyzer' => [
             'name' => 'Monetization Analyzer',
@@ -369,6 +404,20 @@ return [
             'route' => 'app.ai-tools.enterprise.monetization-analyzer',
             'is_existing' => false,
             'loading_steps' => ['Fetching channel data', 'Analyzing view patterns', 'Calculating CPM estimates', 'Generating revenue report'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'revenue-diversification', 'reason' => 'Find untapped income streams'],
+                ['tool' => 'cpm-booster', 'reason' => 'Boost your ad revenue CPM'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['monetization_score', 'revenue_breakdown', 'growth_opportunities', 'action_plan'],
+            'estimated_seconds' => 15,
         ],
         'script-writer' => [
             'name' => 'Script Writer Pro',
@@ -380,6 +429,16 @@ return [
             'credits' => 2,
             'route' => 'app.ai-tools.script-studio',
             'is_existing' => true,
+            'tiers' => [],
+            'next_steps' => [
+                ['tool' => 'multi-income-converter', 'reason' => 'Turn scripts into multiple content pieces'],
+                ['tool' => 'affiliate-finder', 'reason' => 'Add affiliate mentions to your script'],
+            ],
+            'inputs' => [
+                ['key' => 'topic', 'type' => 'text', 'label' => 'Video Topic', 'required' => true],
+            ],
+            'result_sections' => [],
+            'estimated_seconds' => 10,
         ],
         'sponsorship-calculator' => [
             'name' => 'Sponsorship Rate Calculator',
@@ -392,6 +451,20 @@ return [
             'route' => 'app.ai-tools.enterprise.sponsorship-calculator',
             'is_existing' => false,
             'loading_steps' => ['Fetching channel data', 'Analyzing engagement', 'Determining niche CPM', 'Calculating rates', 'Industry comparison', 'Generating tips'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'brand-deal-matchmaker', 'reason' => 'Find brands that match your rates'],
+                ['tool' => 'audience-profiler', 'reason' => 'Strengthen your pitch with audience data'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['sponsorship_score', 'rate_card', 'industry_comparison', 'pitch_tips'],
+            'estimated_seconds' => 20,
         ],
         'revenue-diversification' => [
             'name' => 'Revenue Diversification',
@@ -404,6 +477,20 @@ return [
             'route' => 'app.ai-tools.enterprise.revenue-diversification',
             'is_existing' => false,
             'loading_steps' => ['Analyzing channel', 'Auditing revenue', 'Identifying gaps', 'Calculating potential', 'Building action plan'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'digital-product-architect', 'reason' => 'Design products for your audience'],
+                ['tool' => 'affiliate-finder', 'reason' => 'Discover affiliate programs in your niche'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['diversification_score', 'revenue_streams', 'gap_analysis', 'action_plan'],
+            'estimated_seconds' => 18,
         ],
         'cpm-booster' => [
             'name' => 'CPM Booster Strategist',
@@ -416,6 +503,21 @@ return [
             'route' => 'app.ai-tools.enterprise.cpm-booster',
             'is_existing' => false,
             'loading_steps' => ['Analyzing niche', 'Checking CPM trends', 'Finding high-CPM keywords', 'Generating video ideas', 'Building calendar'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'monetization-analyzer', 'reason' => 'See full revenue potential'],
+                ['tool' => 'placement-finder', 'reason' => 'Find high-CPM ad placements'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+                ['key' => 'niche', 'type' => 'text', 'label' => 'Niche', 'required' => false],
+            ],
+            'result_sections' => ['cpm_score', 'keyword_strategy', 'content_calendar', 'cpm_trends'],
+            'estimated_seconds' => 20,
         ],
         'audience-profiler' => [
             'name' => 'Audience Monetization Profiler',
@@ -428,6 +530,20 @@ return [
             'route' => 'app.ai-tools.enterprise.audience-profiler',
             'is_existing' => false,
             'loading_steps' => ['Fetching channel data', 'Analyzing demographics', 'Profiling segments', 'Finding products', 'Creating offers'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'digital-product-architect', 'reason' => 'Create products for your audience'],
+                ['tool' => 'brand-deal-matchmaker', 'reason' => 'Pitch brands with audience insights'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['audience_score', 'demographics', 'spending_behavior', 'product_recommendations'],
+            'estimated_seconds' => 18,
         ],
         'digital-product-architect' => [
             'name' => 'Digital Product Architect',
@@ -440,6 +556,20 @@ return [
             'route' => 'app.ai-tools.enterprise.digital-product-architect',
             'is_existing' => false,
             'loading_steps' => ['Analyzing content', 'Identifying expertise', 'Finding product gaps', 'Generating product ideas', 'Building launch plan'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'audience-profiler', 'reason' => 'Validate product-audience fit'],
+                ['tool' => 'multi-income-converter', 'reason' => 'Promote products from your videos'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['product_score', 'product_ideas', 'pricing_strategy', 'launch_plan'],
+            'estimated_seconds' => 22,
         ],
         'affiliate-finder' => [
             'name' => 'Affiliate Goldmine Finder',
@@ -452,6 +582,21 @@ return [
             'route' => 'app.ai-tools.enterprise.affiliate-finder',
             'is_existing' => false,
             'loading_steps' => ['Analyzing niche', 'Scanning affiliate networks', 'Finding programs', 'Matching products', 'Generating scripts'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'multi-income-converter', 'reason' => 'Embed affiliates into your content'],
+                ['tool' => 'revenue-diversification', 'reason' => 'See all revenue stream options'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+                ['key' => 'niche', 'type' => 'text', 'label' => 'Niche', 'required' => false],
+            ],
+            'result_sections' => ['affiliate_score', 'programs', 'integration_scripts', 'revenue_estimates'],
+            'estimated_seconds' => 20,
         ],
         'multi-income-converter' => [
             'name' => 'Multi-Income Converter',
@@ -464,6 +609,20 @@ return [
             'route' => 'app.ai-tools.enterprise.multi-income-converter',
             'is_existing' => false,
             'loading_steps' => ['Analyzing video content', 'Extracting key points', 'Finding platforms', 'Creating content pieces', 'Building strategy'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'licensing-scout', 'reason' => 'License your repurposed content'],
+                ['tool' => 'digital-product-architect', 'reason' => 'Turn content into products'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Video URL', 'required' => true],
+            ],
+            'result_sections' => ['conversion_score', 'content_pieces', 'platform_strategy', 'monetization_tips'],
+            'estimated_seconds' => 18,
         ],
         'brand-deal-matchmaker' => [
             'name' => 'Brand Deal Matchmaker',
@@ -476,6 +635,20 @@ return [
             'route' => 'app.ai-tools.enterprise.brand-deal-matchmaker',
             'is_existing' => false,
             'loading_steps' => ['Analyzing channel', 'Identifying niche', 'Matching brands', 'Creating pitches', 'Building strategy'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'sponsorship-calculator', 'reason' => 'Calculate your rates for these brands'],
+                ['tool' => 'audience-profiler', 'reason' => 'Back your pitch with audience data'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['match_score', 'brand_matches', 'pitch_templates', 'outreach_strategy'],
+            'estimated_seconds' => 20,
         ],
         'licensing-scout' => [
             'name' => 'Licensing & Syndication Scout',
@@ -488,6 +661,20 @@ return [
             'route' => 'app.ai-tools.enterprise.licensing-scout',
             'is_existing' => false,
             'loading_steps' => ['Analyzing content', 'Scanning platforms', 'Finding opportunities', 'Evaluating networks', 'Creating action plan'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'revenue-automation', 'reason' => 'Automate your licensing revenue'],
+                ['tool' => 'multi-income-converter', 'reason' => 'Create licensable content from videos'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['licensing_score', 'opportunities', 'platform_analysis', 'action_plan'],
+            'estimated_seconds' => 18,
         ],
         'revenue-automation' => [
             'name' => 'Revenue Automation Pipeline',
@@ -500,6 +687,20 @@ return [
             'route' => 'app.ai-tools.enterprise.revenue-automation',
             'is_existing' => false,
             'loading_steps' => ['Analyzing channel', 'Mapping revenue streams', 'Finding automations', 'Building tool stack', 'Creating timeline'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'monetization-analyzer', 'reason' => 'Identify what to automate first'],
+                ['tool' => 'digital-product-architect', 'reason' => 'Create automated product funnels'],
+            ],
+            'inputs' => [
+                ['key' => 'url', 'type' => 'url', 'label' => 'Channel URL', 'required' => true],
+            ],
+            'result_sections' => ['automation_score', 'tool_stack', 'revenue_streams', 'implementation_timeline'],
+            'estimated_seconds' => 22,
         ],
     ],
 

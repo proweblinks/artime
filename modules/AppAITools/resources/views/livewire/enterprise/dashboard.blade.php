@@ -393,6 +393,33 @@
             .aith-enterprise { padding: 2.5rem 2rem 3rem; }
             .aith-e-title { font-size: 2rem; }
         }
+
+        /* Tier chips on cards */
+        .aith-e-card-tiers { display:flex; gap:0.375rem; margin-top:0.5rem; flex-wrap:wrap; }
+        .aith-e-tier-chip { padding:0.15rem 0.5rem; border-radius:9999px; font-size:0.625rem; font-weight:600;
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.4);
+            display:inline-flex; align-items:center; gap:0.25rem; }
+        .aith-e-tier-chip i { font-size:0.6rem; }
+        .aith-e-tier-chip.standard { background:rgba(139,92,246,0.1); border-color:rgba(139,92,246,0.2); color:#c4b5fd; }
+
+        /* Time estimate badge */
+        .aith-e-card-time { font-size:0.7rem; color:rgba(255,255,255,0.25); display:flex; align-items:center; gap:0.25rem; }
+
+        /* Next steps row */
+        .aith-e-card-next { display:flex; gap:0.375rem; margin-top:0.5rem; flex-wrap:wrap; }
+        .aith-e-next-chip { padding:0.15rem 0.5rem; border-radius:0.375rem; font-size:0.625rem; font-weight:500;
+            background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.15); color:rgba(134,239,172,0.7);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:12rem; }
+
+        /* Input tags */
+        .aith-e-card-inputs { display:flex; gap:0.25rem; margin-top:0.375rem; }
+        .aith-e-input-tag { padding:0.1rem 0.4rem; border-radius:0.25rem; font-size:0.6rem; font-weight:500;
+            background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.15); color:rgba(147,197,253,0.7); }
+        .aith-e-input-tag.optional { opacity:0.5; }
+
+        /* Result sections preview */
+        .aith-e-card-sections { display:flex; gap:0.25rem; margin-top:0.375rem; flex-wrap:wrap; }
+        .aith-e-section-dot { width:0.375rem; height:0.375rem; border-radius:50%; background:rgba(139,92,246,0.4); }
     </style>
 
     {{-- Aurora Background --}}
@@ -472,6 +499,14 @@
                             <div class="aith-e-dash-card-emoji" x-text="tool.emoji"></div>
                             <div class="aith-e-dash-card-name" x-text="tool.name"></div>
                             <div class="aith-e-dash-card-desc" x-text="tool.description"></div>
+                            <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                                <span x-show="tool.estimated_seconds" class="aith-e-card-time" style="font-size:0.65rem;">
+                                    <i class="fa-light fa-clock"></i> ~<span x-text="tool.estimated_seconds"></span>s
+                                </span>
+                                <span x-show="tool.tier_range" class="aith-e-card-time" style="font-size:0.65rem;">
+                                    <i class="fa-light fa-coins"></i> <span x-text="tool.tier_range"></span> cr
+                                </span>
+                            </div>
                         </a>
                     </template>
                 </div>
@@ -560,22 +595,71 @@
                 @endphp
 
                 @foreach($filteredTools as $key => $tool)
-                <a href="{{ route($tool['route']) }}" class="aith-e-card"
-                   @click="trackRecent('{{ $key }}')">
+                <a href="{{ route($tool['route']) }}" class="aith-e-card" @click="trackRecent('{{ $key }}')">
                     <div class="aith-e-card-top">
                         <div class="aith-e-card-icon {{ $iconClasses[$key] ?? 'aith-e-icon-blue-indigo' }}">
                             {{ $tool['emoji'] }}
                         </div>
-                        <span class="aith-e-card-badge {{ $badgeClasses[$tool['category'] ?? ''] ?? 'aith-e-badge-optimization' }}">
+                        <span class="aith-e-card-badge {{ $badgeClasses[$tool['category'] ?? ''] ?? '' }}">
                             {{ ucfirst($tool['category'] ?? 'tool') }}
                         </span>
                     </div>
                     <div class="aith-e-card-name">{{ __($tool['name']) }}</div>
                     <div class="aith-e-card-desc">{{ __($tool['description']) }}</div>
-                    <div class="aith-e-card-footer">
-                        <span class="aith-e-card-credits">
-                            <i class="fa-light fa-coins"></i> {{ $tool['credits'] }} credits
+
+                    {{-- Feature 1: Tier chips --}}
+                    @if(!empty($tool['tiers']))
+                    <div class="aith-e-card-tiers">
+                        @foreach($tool['tiers'] as $tierKey => $tier)
+                        <span class="aith-e-tier-chip {{ $tierKey === 'standard' ? 'standard' : '' }}">
+                            <i class="{{ $tier['icon'] }}"></i> {{ $tier['label'] }} · {{ $tier['credits'] }}cr
                         </span>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    {{-- Feature 3: Input requirements --}}
+                    @if(!empty($tool['inputs']))
+                    <div class="aith-e-card-inputs">
+                        @foreach($tool['inputs'] as $inp)
+                        <span class="aith-e-input-tag {{ $inp['required'] ? '' : 'optional' }}">
+                            {{ $inp['label'] }}{{ $inp['required'] ? '' : '?' }}
+                        </span>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    {{-- Feature 2: Next steps --}}
+                    @if(!empty($tool['next_steps']))
+                    <div class="aith-e-card-next">
+                        @foreach($tool['next_steps'] as $ns)
+                            @php $nsTool = $tools[$ns['tool']] ?? null; @endphp
+                            @if($nsTool)
+                            <span class="aith-e-next-chip" title="{{ $ns['reason'] }}">
+                                {{ $nsTool['emoji'] }} {{ $nsTool['name'] }}
+                            </span>
+                            @endif
+                        @endforeach
+                    </div>
+                    @endif
+
+                    <div class="aith-e-card-footer">
+                        <div style="display:flex;align-items:center;gap:0.75rem;">
+                            <span class="aith-e-card-credits">
+                                <i class="fa-light fa-coins"></i>
+                                @if(!empty($tool['tiers']))
+                                    {{ $tool['tiers']['quick']['credits'] ?? 1 }}-{{ $tool['tiers']['deep']['credits'] ?? 5 }} credits
+                                @else
+                                    {{ $tool['credits'] }} credits
+                                @endif
+                            </span>
+                            {{-- Feature 5: Time estimate --}}
+                            @if(!empty($tool['estimated_seconds']))
+                            <span class="aith-e-card-time">
+                                <i class="fa-light fa-clock"></i> ~{{ $tool['estimated_seconds'] }}s
+                            </span>
+                            @endif
+                        </div>
                         <span class="aith-e-card-launch">
                             Launch <i class="fa-light fa-arrow-right"></i>
                         </span>
@@ -656,6 +740,11 @@
             'emoji' => $tool['emoji'],
             'category' => $tool['category'] ?? '',
             'route' => route($tool['route']),
+            'credits' => $tool['credits'] ?? 0,
+            'estimated_seconds' => $tool['estimated_seconds'] ?? null,
+            'tier_range' => !empty($tool['tiers'])
+                ? ($tool['tiers']['quick']['credits'] ?? 1) . '-' . ($tool['tiers']['deep']['credits'] ?? 5)
+                : null,
         ];
     })->values()->toArray();
 @endphp
