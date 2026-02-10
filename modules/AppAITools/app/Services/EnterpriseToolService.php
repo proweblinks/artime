@@ -3,6 +3,8 @@
 namespace Modules\AppAITools\Services;
 
 use App\Facades\AI;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\AppAITools\Models\AiToolHistory;
 
@@ -43,7 +45,10 @@ class EnterpriseToolService
             . '"google_ads_keywords":["keyword1","keyword2"],'
             . '"tips":["tip1","tip2","tip3"]}';
 
-        return $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
+        $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
+
+        // Enrich with real YouTube thumbnails
+        return $this->enrichPlacementsWithThumbnails($result, $channelUrl);
     }
 
     /**
@@ -68,7 +73,86 @@ class EnterpriseToolService
             . '"subscribers":"2.5M","relevance_score":92,"estimated_cpm":"4-8 USD","content_type":"",'
             . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}]}';
 
-        return $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 3000);
+        $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 3000);
+
+        // Enrich with real YouTube thumbnails
+        return $this->enrichPlacementsWithThumbnails($result);
+    }
+
+    /**
+     * Enrich placement results with real YouTube channel thumbnails.
+     * Uses YouTube Data API to batch-fetch channel info by handle.
+     */
+    protected function enrichPlacementsWithThumbnails(array $result, ?string $sourceChannelUrl = null): array
+    {
+        try {
+            $ytService = app(YouTubeDataService::class);
+
+            // Fetch source channel thumbnail
+            if ($sourceChannelUrl && isset($result['channel_info'])) {
+                try {
+                    $channelData = $ytService->getChannelData($sourceChannelUrl);
+                    if ($channelData && !empty($channelData['thumbnail'])) {
+                        $result['channel_info']['thumbnail_url'] = $channelData['thumbnail'];
+                        // Also enrich with real subscriber count if available
+                        if (!empty($channelData['subscribers'])) {
+                            $result['channel_info']['real_subscribers'] = $this->formatSubscriberCount($channelData['subscribers']);
+                        }
+                        if (!empty($channelData['title'])) {
+                            $result['channel_info']['name'] = $channelData['title'];
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::debug("Could not fetch source channel thumbnail: " . $e->getMessage());
+                }
+            }
+
+            // Fetch thumbnails for placement channels
+            if (!empty($result['placements'])) {
+                foreach ($result['placements'] as $idx => &$placement) {
+                    $handle = $placement['handle'] ?? '';
+                    if (empty($handle)) continue;
+
+                    try {
+                        $handleClean = ltrim($handle, '@');
+                        $placementUrl = "https://youtube.com/@{$handleClean}";
+                        $channelData = $ytService->getChannelData($placementUrl);
+
+                        if ($channelData && !empty($channelData['thumbnail'])) {
+                            $placement['thumbnail_url'] = $channelData['thumbnail'];
+                            // Update with real subscriber count
+                            if (!empty($channelData['subscribers'])) {
+                                $placement['subscribers'] = $this->formatSubscriberCount($channelData['subscribers']);
+                            }
+                            if (!empty($channelData['title'])) {
+                                $placement['channel_name'] = $channelData['title'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::debug("Could not fetch thumbnail for {$handle}: " . $e->getMessage());
+                    }
+                }
+                unset($placement);
+            }
+        } catch (\Exception $e) {
+            Log::warning("Thumbnail enrichment failed: " . $e->getMessage());
+        }
+
+        return $result;
+    }
+
+    /**
+     * Format a raw subscriber count into a human-readable string.
+     */
+    protected function formatSubscriberCount(int $count): string
+    {
+        if ($count >= 1000000) {
+            return round($count / 1000000, 1) . 'M';
+        }
+        if ($count >= 1000) {
+            return round($count / 1000, 1) . 'K';
+        }
+        return (string) $count;
     }
 
     /**

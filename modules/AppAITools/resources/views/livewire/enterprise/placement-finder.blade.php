@@ -135,16 +135,19 @@
 
             {{-- Channel Info Card --}}
             @if(isset($result['channel_info']))
-            @php
-                $ci = $result['channel_info'];
-                $channelInitial = strtoupper(substr($ci['name'] ?? 'Y', 0, 1));
-                $avatarGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
-                $channelGradient = $avatarGradients[$channelInitial] ?? '#7c3aed,#a855f7';
-            @endphp
+            @php $ci = $result['channel_info']; @endphp
             <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;border-radius:0.75rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);margin-bottom:1rem;">
-                <div class="aith-pf-avatar" style="background:linear-gradient(135deg,{{ $channelGradient }});width:3.5rem;height:3.5rem;font-size:1.4rem;">
+                @if(!empty($ci['thumbnail_url']))
+                <img src="{{ $ci['thumbnail_url'] }}" alt="{{ $ci['name'] ?? '' }}" style="width:3.5rem;height:3.5rem;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(139,92,246,0.3);">
+                @else
+                @php
+                    $channelInitial = strtoupper(substr($ci['name'] ?? 'Y', 0, 1));
+                    $avatarGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
+                @endphp
+                <div class="aith-pf-avatar" style="background:linear-gradient(135deg,{{ $avatarGradients[$channelInitial] ?? '#7c3aed,#a855f7' }});width:3.5rem;height:3.5rem;font-size:1.4rem;">
                     {{ $channelInitial }}
                 </div>
+                @endif
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;color:#fff;font-size:1.1rem;">{{ $ci['name'] ?? 'Your Channel' }}</div>
                     <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:0.125rem;">{{ $ci['handle'] ?? '' }} · {{ $ci['niche'] ?? '' }}{{ isset($ci['sub_niche']) ? ' / '.$ci['sub_niche'] : '' }}</div>
@@ -232,17 +235,20 @@
                 </div>
 
                 @foreach($result['placements'] as $idx => $p)
-                @php
-                    $pInitial = strtoupper(substr($p['channel_name'] ?? '?', 0, 1));
-                    $pGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
-                    $pGradient = $pGradients[$pInitial] ?? '#7c3aed,#a855f7';
-                @endphp
                 <div class="aith-pf-channel-card">
                     {{-- Channel header --}}
                     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
-                        <div class="aith-pf-avatar aith-pf-avatar-sm" style="background:linear-gradient(135deg,{{ $pGradient }});">
+                        @if(!empty($p['thumbnail_url']))
+                        <img src="{{ $p['thumbnail_url'] }}" alt="{{ $p['channel_name'] ?? '' }}" style="width:2.25rem;height:2.25rem;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);">
+                        @else
+                        @php
+                            $pInitial = strtoupper(substr($p['channel_name'] ?? '?', 0, 1));
+                            $pGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
+                        @endphp
+                        <div class="aith-pf-avatar aith-pf-avatar-sm" style="background:linear-gradient(135deg,{{ $pGradients[$pInitial] ?? '#7c3aed,#a855f7' }});">
                             {{ $pInitial }}
                         </div>
+                        @endif
                         <div style="flex:1;min-width:0;">
                             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                                 <span style="font-weight:700;color:#fff;font-size:0.9rem;">{{ $p['channel_name'] ?? '' }}</span>
