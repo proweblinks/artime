@@ -21,12 +21,14 @@ class EnterpriseToolService
             $excludeLine = "\n\nDo NOT include these channels (already found): " . implode(', ', $excludeHandles) . ". Find completely different channels.";
         }
 
-        $prompt = "You are a YouTube Ads placement strategist specializing in Google Ads Placement Targeting.\n\n"
+        $prompt = "You are an advertising data assistant that generates YouTube channel placement recommendations for Google Ads campaigns. "
+            . "You do NOT need internet access — use your training knowledge of YouTube channels to provide recommendations.\n\n"
+            . "Analyze this channel and recommend similar channels for ad placement targeting.\n"
             . "Channel: {$channelUrl}{$nicheLine}{$excludeLine}\n\n"
             . "RULES:\n"
             . "1. Output ONLY raw JSON. No explanation, no markdown, no code fences. Start with { end with }.\n"
-            . "2. ONLY include YouTube channels you are 100% certain exist and are currently active (uploading in 2024-2025).\n"
-            . "3. Use well-known, established channels. Do NOT invent or guess channel names.\n"
+            . "2. ONLY include YouTube channels you know from your training data that are well-established.\n"
+            . "3. Use real, well-known channels. Do NOT invent or guess channel names.\n"
             . "4. Every handle must be the channel's real YouTube @handle.\n"
             . "5. Mix: 3 large (1M+ subs), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
             . "6. Keep audience_match under 15 words.\n\n"
@@ -47,6 +49,11 @@ class EnterpriseToolService
 
         $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
 
+        // If AI refused or parse failed, throw so the user sees an error
+        if (!empty($result['parse_error'])) {
+            throw new \Exception('AI could not generate placement results. Please try again or use a different channel URL.');
+        }
+
         // Enrich with real YouTube thumbnails
         return $this->enrichPlacementsWithThumbnails($result, $channelUrl);
     }
@@ -59,12 +66,14 @@ class EnterpriseToolService
         $nicheLine = $niche ? " Niche: {$niche}." : '';
         $excludeLine = "\n\nEXCLUDE these channels (already found): " . implode(', ', $excludeHandles) . ".\nFind 10 completely DIFFERENT channels not in that list.";
 
-        $prompt = "You are a YouTube Ads placement strategist. Find MORE placement channels for Google Ads targeting.\n\n"
+        $prompt = "You are an advertising data assistant that generates YouTube channel placement recommendations for Google Ads campaigns. "
+            . "You do NOT need internet access — use your training knowledge of YouTube channels.\n\n"
+            . "Find MORE placement channels similar to this channel for ad targeting.\n"
             . "Channel: {$channelUrl}{$nicheLine}{$excludeLine}\n\n"
             . "RULES:\n"
             . "1. Output ONLY raw JSON. No explanation, no markdown, no code fences. Start with { end with }.\n"
-            . "2. ONLY include YouTube channels you are 100% certain exist and are currently active (uploading in 2024-2025).\n"
-            . "3. Use well-known, established channels. Do NOT invent or guess channel names.\n"
+            . "2. ONLY include YouTube channels you know from your training data that are well-established.\n"
+            . "3. Use real, well-known channels. Do NOT invent or guess channel names.\n"
             . "4. Every handle must be the channel's real YouTube @handle.\n"
             . "5. Mix: 3 large (1M+), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
             . "6. Keep audience_match under 15 words.\n\n"
@@ -74,6 +83,10 @@ class EnterpriseToolService
             . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}]}';
 
         $result = $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 3000);
+
+        if (!empty($result['parse_error'])) {
+            throw new \Exception('AI could not generate more placements. Please try again.');
+        }
 
         // Enrich with real YouTube thumbnails
         return $this->enrichPlacementsWithThumbnails($result);
