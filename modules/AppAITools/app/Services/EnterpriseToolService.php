@@ -32,7 +32,8 @@ class EnterpriseToolService
             . "4. Every handle must be the channel's real YouTube @handle.\n"
             . "5. Mix: 3 large (1M+ subs), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
             . "6. Keep audience_match under 15 words.\n"
-            . "7. CRITICAL: All niche_insights values MUST be customized for the channel's actual niche. Do NOT copy the example values — analyze the channel and provide realistic data for its specific niche, audience demographics, geographic markets, seasonal trends, and advertiser categories.\n\n"
+            . "7. CRITICAL: All niche_insights values MUST be customized for the channel's actual niche. Do NOT copy the example values — analyze the channel and provide realistic data for its specific niche, audience demographics, geographic markets, seasonal trends, and advertiser categories.\n"
+            . "8. seasonal_cpm 'v' values are CPM MULTIPLIERS (0.5-1.5 range, where 1.0 = average). Low months ~0.6-0.8, average ~0.9-1.0, peak ~1.1-1.5. Do NOT use absolute CPM dollar values.\n\n"
             . "JSON structure (example values are PLACEHOLDERS — replace ALL with channel-specific data):\n"
             . '{"channel_info":{"name":"","handle":"@handle","niche":"","sub_niche":"","estimated_subscribers":"1.2M",'
             . '"content_style":"","upload_frequency":"","audience_type":""},'
