@@ -681,6 +681,49 @@
     gap: 0.25rem;
     flex-wrap: wrap;
 }
+/* Face Lock animated faces */
+.aith-facelock-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.aith-facelock-faces {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+.aith-facelock-faces span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
+    line-height: 1;
+    animation: aithFaceRotate 6s infinite;
+    opacity: 0;
+}
+.aith-facelock-faces span:nth-child(1) { animation-delay: 0s; }
+.aith-facelock-faces span:nth-child(2) { animation-delay: 1.5s; }
+.aith-facelock-faces span:nth-child(3) { animation-delay: 3s; }
+.aith-facelock-faces span:nth-child(4) { animation-delay: 4.5s; }
+@keyframes aithFaceRotate {
+    0%, 20% { opacity: 1; transform: translateY(0); }
+    25%, 100% { opacity: 0; transform: translateY(-6px); }
+}
+.aith-facelock-pro-badge {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    color: #7c3aed;
+    background: rgba(124,58,237,0.1);
+    padding: 0.0625rem 0.375rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
 /* Bulk face lock source buttons */
 .aith-source-group {
     display: flex;
@@ -884,11 +927,17 @@ x-init="
             <textarea wire:model="customPrompt" class="aith-textarea" rows="2" placeholder="{{ __('Additional creative direction...') }}"></textarea>
         </div>
 
-        {{-- Bulk Face Lock --}}
+        {{-- Bulk Face Lock (NanoBanana Pro only) --}}
+        @if($imageModel === 'nanobanana-pro')
         <div class="aith-form-group" style="margin-top:0.5rem;">
             <label class="aith-checkbox-item">
                 <input type="checkbox" wire:model.live="bulkFaceLockEnabled">
-                <span>{{ __('Face Lock') }} <span class="aith-label-hint">{{ __('Consistent face across all bulk thumbnails') }}</span></span>
+                <span class="aith-facelock-label">
+                    <span class="aith-facelock-faces"><span>🧑</span><span>👩</span><span>👨</span><span>🧔</span></span>
+                    {{ __('Face Lock') }}
+                    <span class="aith-facelock-pro-badge">PRO</span>
+                </span>
+                <span class="aith-label-hint" style="display:block; margin-top:0.125rem;">{{ __('Keep the same face consistent across all bulk thumbnails') }}</span>
             </label>
             @if($bulkFaceLockEnabled)
             <div style="margin-top:0.5rem;">
@@ -931,6 +980,7 @@ x-init="
             </div>
             @endif
         </div>
+        @endif
 
         {{-- Bulk items table --}}
         @if(count($bulkItems) > 0)
@@ -1261,11 +1311,17 @@ x-init="
                     </div>
                 </div>
 
-                {{-- Face Lock --}}
+                {{-- Face Lock (NanoBanana Pro only) --}}
+                @if($imageModel === 'nanobanana-pro')
                 <div class="aith-form-group" style="margin-top:0.5rem;">
                     <label class="aith-checkbox-item">
                         <input type="checkbox" wire:model.live="faceLockEnabled">
-                        <span>{{ __('Face Lock') }} <span class="aith-label-hint">{{ __('Consistent face across all variations') }}</span></span>
+                        <span class="aith-facelock-label">
+                            <span class="aith-facelock-faces"><span>🧑</span><span>👩</span><span>👨</span><span>🧔</span></span>
+                            {{ __('Face Lock') }}
+                            <span class="aith-facelock-pro-badge">PRO</span>
+                        </span>
+                        <span class="aith-label-hint" style="display:block; margin-top:0.125rem;">{{ __('Keep the same face consistent across all variations') }}</span>
                     </label>
                     @if($faceLockEnabled)
                     <div style="margin-top:0.5rem;">
@@ -1291,6 +1347,7 @@ x-init="
                     </div>
                     @endif
                 </div>
+                @endif
             </div>
         </div>
         @endif
