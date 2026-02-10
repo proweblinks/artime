@@ -19,7 +19,7 @@ trait HasToolHistory
             'platform' => $h->platform,
             'credits' => $h->credits_used,
             'time_ago' => Carbon::createFromTimestamp($h->created)->diffForHumans(),
-            'result_data' => json_decode($h->result_data, true),
+            'result_data' => is_array($h->result_data) ? $h->result_data : json_decode($h->result_data, true),
         ];
     }
 
