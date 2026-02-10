@@ -913,6 +913,153 @@
 .aith-icon-teal { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
 .aith-icon-red { background: linear-gradient(135deg, #ef4444, #a855f7); }
 
+/* ===== Channel Audit Pro - Advanced Styles ===== */
+
+/* Channel profile header */
+.aith-channel-header { display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.aith-channel-avatar { width:72px; height:72px; border-radius:50%; border:3px solid #e2e8f0; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+.aith-channel-meta { flex:1; }
+.aith-channel-name { font-size:1.25rem; font-weight:700; color:#1e293b; margin:0; }
+.aith-channel-stats { display:flex; flex-wrap:wrap; gap:1rem; margin-top:0.5rem; }
+.aith-channel-stat { font-size:0.75rem; color:#64748b; display:flex; align-items:center; gap:0.25rem; }
+.aith-channel-stat strong { color:#334155; font-weight:600; }
+
+/* Grade badge */
+.aith-grade { display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:12px; font-size:1.5rem; font-weight:800; flex-shrink:0; }
+.aith-grade-a { background:#ecfdf5; color:#059669; border:2px solid #a7f3d0; }
+.aith-grade-b { background:#eff6ff; color:#2563eb; border:2px solid #bfdbfe; }
+.aith-grade-c { background:#fffbeb; color:#d97706; border:2px solid #fed7aa; }
+.aith-grade-d { background:#fef2f2; color:#dc2626; border:2px solid #fecaca; }
+
+/* Health status badges */
+.aith-health-grid { display:flex; flex-wrap:wrap; gap:0.5rem; }
+.aith-health-item { display:flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:8px; font-size:0.75rem; font-weight:500; }
+.aith-health-good { background:#ecfdf5; color:#059669; border:1px solid #d1fae5; }
+.aith-health-avg { background:#fffbeb; color:#d97706; border:1px solid #fed7aa; }
+.aith-health-poor { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+
+/* Metric dashboard cards */
+.aith-metric-card { text-align:center; padding:1rem; background:#f8fafc; border-radius:10px; border:1px solid #f1f5f9; transition:all 0.2s; }
+.aith-metric-card:hover { background:#f1f5f9; border-color:#e2e8f0; transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.aith-metric-value { font-size:1.375rem; font-weight:700; color:#7c3aed; }
+.aith-metric-label { font-size:0.6875rem; color:#64748b; text-transform:uppercase; letter-spacing:0.03em; margin-top:0.25rem; }
+.aith-metric-sub { font-size:0.6875rem; color:#94a3b8; margin-top:0.125rem; }
+
+/* Video performance cards */
+.aith-video-perf { display:flex; gap:0.75rem; align-items:center; padding:0.625rem; background:#f8fafc; border-radius:8px; margin-bottom:0.5rem; border:1px solid #f1f5f9; transition:all 0.2s; }
+.aith-video-perf:hover { background:#f1f5f9; border-color:#e2e8f0; }
+.aith-video-perf img { width:80px; height:45px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+.aith-video-perf-info { flex:1; min-width:0; }
+.aith-video-perf-title { font-size:0.8125rem; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.aith-video-perf-stats { font-size:0.75rem; color:#64748b; margin-top:0.125rem; }
+.aith-video-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6875rem; font-weight:700; flex-shrink:0; }
+.aith-rank-top { background:#ecfdf5; color:#059669; }
+.aith-rank-bottom { background:#fef2f2; color:#dc2626; }
+
+/* Action plan timeline */
+.aith-action-item { display:flex; gap:0.75rem; padding:0.875rem; background:#f8fafc; border-radius:10px; border:1px solid #f1f5f9; margin-bottom:0.625rem; transition:all 0.2s; }
+.aith-action-item:hover { background:#f1f5f9; border-color:#e2e8f0; }
+.aith-action-week { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; padding:0.25rem 0.625rem; border-radius:6px; font-size:0.6875rem; font-weight:600; white-space:nowrap; height:fit-content; }
+.aith-action-info { flex:1; }
+.aith-action-title { font-size:0.875rem; font-weight:600; color:#1e293b; margin-bottom:0.25rem; }
+.aith-action-text { font-size:0.8125rem; color:#64748b; line-height:1.4; }
+
+/* PDF export button */
+.aith-btn-pdf { display:inline-flex; align-items:center; gap:0.375rem; padding:0.5rem 1rem; background:#fef2f2; color:#dc2626; font-size:0.8125rem; font-weight:500; border:1px solid #fecaca; border-radius:8px; cursor:pointer; transition:all 0.2s; }
+.aith-btn-pdf:hover { background:#fee2e2; border-color:#fca5a5; }
+
+/* Tag color variants */
+.aith-tag-green { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#059669; border-color:#a7f3d0; }
+.aith-tag-red { background:linear-gradient(135deg,#fef2f2,#fecaca); color:#dc2626; border-color:#fca5a5; }
+.aith-tag-amber { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#d97706; border-color:#fed7aa; }
+
+/* Quick Wins banner */
+.aith-qw-banner { background:linear-gradient(135deg,#ecfdf5,#d1fae5,#a7f3d0); border:1px solid #6ee7b7; border-radius:14px; padding:1.25rem; margin-bottom:1.25rem; }
+.aith-qw-title { font-size:0.9375rem; font-weight:700; color:#065f46; margin:0 0 0.875rem; display:flex; align-items:center; gap:0.5rem; }
+.aith-qw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; }
+.aith-qw-item { background:rgba(255,255,255,0.8); backdrop-filter:blur(4px); border-radius:10px; padding:0.875rem; border:1px solid rgba(16,185,129,0.2); transition:all 0.2s; }
+.aith-qw-item:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
+.aith-qw-icon { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.875rem; margin-bottom:0.5rem; }
+.aith-qw-action { font-size:0.8125rem; font-weight:600; color:#065f46; line-height:1.3; margin-bottom:0.375rem; }
+.aith-qw-impact { font-size:0.6875rem; color:#059669; font-weight:500; }
+.aith-qw-effort { display:inline-flex; padding:0.125rem 0.375rem; border-radius:4px; font-size:0.625rem; font-weight:600; text-transform:uppercase; background:#d1fae5; color:#065f46; margin-left:0.375rem; }
+
+/* Engagement funnel */
+.aith-funnel { padding:1rem 0; }
+.aith-funnel-step { display:flex; align-items:center; gap:1rem; margin-bottom:0.75rem; }
+.aith-funnel-bar-wrap { flex:1; }
+.aith-funnel-label { font-size:0.75rem; font-weight:600; color:#334155; margin-bottom:0.25rem; display:flex; justify-content:space-between; }
+.aith-funnel-bar { height:28px; border-radius:8px; position:relative; display:flex; align-items:center; transition:width 1s ease; }
+.aith-funnel-bar-1 { background:linear-gradient(90deg,#6366f1,#818cf8); }
+.aith-funnel-bar-2 { background:linear-gradient(90deg,#8b5cf6,#a78bfa); }
+.aith-funnel-bar-3 { background:linear-gradient(90deg,#a855f7,#c084fc); }
+.aith-funnel-pct { position:absolute; right:0.75rem; font-size:0.6875rem; font-weight:700; color:#fff; }
+.aith-funnel-arrow { color:#cbd5e1; font-size:0.75rem; }
+.aith-funnel-insight { background:#f5f3ff; border:1px solid #ede9fe; border-radius:8px; padding:0.625rem 0.875rem; font-size:0.8125rem; color:#6d28d9; line-height:1.4; margin-top:0.5rem; }
+
+/* Competitor benchmark bars */
+.aith-bench-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.875rem; }
+.aith-bench-label { width:100px; font-size:0.75rem; font-weight:500; color:#64748b; flex-shrink:0; }
+.aith-bench-bars { flex:1; position:relative; height:24px; }
+.aith-bench-bg { position:absolute; inset:0; background:#f1f5f9; border-radius:6px; }
+.aith-bench-niche { position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#e2e8f0,#cbd5e1); border-radius:6px; }
+.aith-bench-you { position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#7c3aed,#a78bfa); border-radius:6px; z-index:1; }
+.aith-bench-legend { display:flex; gap:1rem; margin-bottom:0.75rem; }
+.aith-bench-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:0.25rem; }
+
+/* Collapsible / accordion for recommendations */
+.aith-collapse-header { display:flex; align-items:center; justify-content:space-between; padding:0.875rem 1rem; background:#f8fafc; border-radius:10px; border:1px solid #f1f5f9; cursor:pointer; transition:all 0.2s; margin-bottom:0.5rem; user-select:none; }
+.aith-collapse-header:hover { background:#f1f5f9; border-color:#e2e8f0; }
+.aith-collapse-header.aith-collapse-open { border-radius:10px 10px 0 0; margin-bottom:0; border-bottom:none; background:#f1f5f9; }
+.aith-collapse-left { display:flex; align-items:center; gap:0.75rem; flex:1; min-width:0; }
+.aith-collapse-title { font-size:0.8125rem; font-weight:600; color:#1e293b; }
+.aith-collapse-desc { font-size:0.75rem; color:#64748b; margin-top:0.125rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.aith-collapse-chevron { transition:transform 0.3s; color:#94a3b8; font-size:0.75rem; flex-shrink:0; }
+.aith-collapse-open .aith-collapse-chevron { transform:rotate(180deg); }
+.aith-collapse-body { max-height:0; overflow:hidden; transition:max-height 0.4s ease, padding 0.3s ease; background:#f8fafc; border:1px solid #f1f5f9; border-top:none; border-radius:0 0 10px 10px; margin-bottom:0.5rem; }
+.aith-collapse-body.aith-collapse-open { max-height:500px; padding:0.875rem 1rem; }
+
+/* Category score card (enhanced) */
+.aith-cat-card { padding:1rem; background:#f8fafc; border-radius:12px; border:1px solid #f1f5f9; transition:all 0.3s; position:relative; overflow:hidden; }
+.aith-cat-card:hover { background:#f1f5f9; border-color:#e2e8f0; transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.aith-cat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:3px 3px 0 0; }
+.aith-cat-card.aith-cat-green::before { background:linear-gradient(90deg,#10b981,#34d399); }
+.aith-cat-card.aith-cat-yellow::before { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+.aith-cat-card.aith-cat-red::before { background:linear-gradient(90deg,#ef4444,#f87171); }
+.aith-cat-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.875rem; margin-bottom:0.5rem; }
+.aith-cat-icon-green { background:#ecfdf5; color:#059669; }
+.aith-cat-icon-yellow { background:#fffbeb; color:#d97706; }
+.aith-cat-icon-red { background:#fef2f2; color:#dc2626; }
+
+/* Key takeaway banner */
+.aith-takeaway { background:linear-gradient(135deg,#7c3aed,#6366f1,#4f46e5); border-radius:14px; padding:1.25rem 1.5rem; color:#fff; margin-bottom:1.25rem; position:relative; overflow:hidden; }
+.aith-takeaway::after { content:''; position:absolute; top:-50%; right:-20%; width:200px; height:200px; background:rgba(255,255,255,0.05); border-radius:50%; }
+.aith-takeaway-label { font-size:0.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; opacity:0.8; margin-bottom:0.375rem; }
+.aith-takeaway-text { font-size:1rem; font-weight:600; line-height:1.5; }
+
+/* Section divider with description */
+.aith-section-header { margin-bottom:1rem; }
+.aith-section-desc { font-size:0.75rem; color:#94a3b8; margin-top:0.25rem; line-height:1.4; }
+
+/* Card with gradient top border */
+.aith-card-accent { border-top:3px solid transparent; }
+.aith-card-accent-purple { border-image:linear-gradient(90deg,#7c3aed,#a78bfa) 1; }
+.aith-card-accent-green { border-image:linear-gradient(90deg,#10b981,#34d399) 1; }
+.aith-card-accent-blue { border-image:linear-gradient(90deg,#3b82f6,#60a5fa) 1; }
+.aith-card-accent-amber { border-image:linear-gradient(90deg,#f59e0b,#fbbf24) 1; }
+
+/* Milestone progress */
+.aith-milestone { display:flex; align-items:center; gap:1rem; padding:1rem; background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-radius:12px; border:1px solid #ddd6fe; }
+.aith-milestone-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#8b5cf6); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.aith-milestone-info { flex:1; }
+.aith-milestone-text { font-size:0.8125rem; font-weight:600; color:#4c1d95; margin-bottom:0.375rem; }
+.aith-milestone-bar { height:6px; background:#ddd6fe; border-radius:999px; overflow:hidden; }
+.aith-milestone-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#a78bfa); border-radius:999px; }
+
+/* Blocker/accelerator items */
+.aith-list-icon-item { display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem 0; font-size:0.8125rem; color:#475569; line-height:1.4; }
+.aith-list-icon-item i { margin-top:3px; flex-shrink:0; }
+
 /* Responsive */
 @media (max-width: 640px) {
     .aith-tool { padding: 1rem; }
@@ -924,6 +1071,10 @@
     .aith-video-info { flex-direction: column; }
     .aith-video-thumb { width: 100%; }
     .aith-nav { flex-wrap: wrap; }
+    .aith-qw-grid { grid-template-columns: 1fr; }
+    .aith-channel-header { flex-direction:column; text-align:center; }
+    .aith-channel-stats { justify-content:center; }
+    .aith-bench-label { width:70px; font-size:0.6875rem; }
 }
 </style>
 

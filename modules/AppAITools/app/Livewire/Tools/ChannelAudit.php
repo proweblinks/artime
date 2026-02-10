@@ -42,6 +42,13 @@ class ChannelAudit extends Component
         }
     }
 
+    public function resetForm(): void
+    {
+        $this->channelUrl = '';
+        $this->result = null;
+        $this->isLoading = false;
+    }
+
     public function render()
     {
         return view('appaitools::livewire.tools.channel-audit', [
