@@ -987,7 +987,7 @@ x-init="
                 pdf.addImage(jpgData, 'JPEG', m, m - (i * usable), w, h);
             }
 
-            // Read channel name from DOM instead of @json to avoid Livewire issues
+            // Read channel name from DOM
             var nameEl = el.querySelector('.aith-channel-name') || el.querySelector('h3');
             var name = (nameEl ? nameEl.textContent : 'channel').trim();
             pdf.save('audit-' + name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.pdf');
