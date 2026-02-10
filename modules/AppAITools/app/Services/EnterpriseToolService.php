@@ -31,21 +31,22 @@ class EnterpriseToolService
             . "3. Use real, well-known channels. Do NOT invent or guess channel names.\n"
             . "4. Every handle must be the channel's real YouTube @handle.\n"
             . "5. Mix: 3 large (1M+ subs), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
-            . "6. Keep audience_match under 15 words.\n\n"
-            . "JSON structure:\n"
+            . "6. Keep audience_match under 15 words.\n"
+            . "7. CRITICAL: All niche_insights values MUST be customized for the channel's actual niche. Do NOT copy the example values — analyze the channel and provide realistic data for its specific niche, audience demographics, geographic markets, seasonal trends, and advertiser categories.\n\n"
+            . "JSON structure (example values are PLACEHOLDERS — replace ALL with channel-specific data):\n"
             . '{"channel_info":{"name":"","handle":"@handle","niche":"","sub_niche":"","estimated_subscribers":"1.2M",'
             . '"content_style":"","upload_frequency":"","audience_type":""},'
-            . '"placement_score":85,'
-            . '"niche_insights":{"niche_cpm_range":"4-10 USD","competition_level":"Medium","brand_safety":"High","buying_intent":"High",'
-            . '"audience_demographics":"Males 18-34","best_ad_formats":["Skippable in-stream","Bumper ads"],'
-            . '"peak_months":["Nov","Dec","Sep"],"top_advertiser_categories":["Consumer Electronics","SaaS","Mobile Apps"],'
-            . '"audience_interests":["Technology","Gaming","Photography"],'
-            . '"geographic_top5":[{"country":"US","pct":35},{"country":"UK","pct":12},{"country":"IN","pct":10},{"country":"CA","pct":8},{"country":"DE","pct":5}],'
-            . '"age_distribution":[{"range":"13-17","pct":8},{"range":"18-24","pct":32},{"range":"25-34","pct":35},{"range":"35-44","pct":15},{"range":"45+","pct":10}],'
-            . '"gender_split":{"male":78,"female":22},'
-            . '"best_content_types":["Reviews","Comparisons","Unboxings"],"optimal_video_length":"10-20 min","avg_engagement_rate":"4.2%",'
-            . '"device_split":{"mobile":62,"desktop":30,"tv":8},'
-            . '"seasonal_cpm":[{"m":"Jan","v":0.7},{"m":"Feb","v":0.75},{"m":"Mar","v":0.8},{"m":"Apr","v":0.85},{"m":"May","v":0.9},{"m":"Jun","v":0.85},{"m":"Jul","v":0.8},{"m":"Aug","v":0.85},{"m":"Sep","v":1.0},{"m":"Oct","v":1.1},{"m":"Nov","v":1.3},{"m":"Dec","v":1.0}]},'
+            . '"placement_score":0,'
+            . '"niche_insights":{"niche_cpm_range":"X-Y USD","competition_level":"Low|Medium|High","brand_safety":"Low|Medium|High","buying_intent":"Low|Medium|High",'
+            . '"audience_demographics":"describe target demo","best_ad_formats":["format1","format2"],'
+            . '"peak_months":["month1","month2"],"top_advertiser_categories":["industry1","industry2","industry3"],'
+            . '"audience_interests":["interest1","interest2","interest3"],'
+            . '"geographic_top5":[{"country":"XX","pct":0},{"country":"XX","pct":0},{"country":"XX","pct":0},{"country":"XX","pct":0},{"country":"XX","pct":0}],'
+            . '"age_distribution":[{"range":"13-17","pct":0},{"range":"18-24","pct":0},{"range":"25-34","pct":0},{"range":"35-44","pct":0},{"range":"45+","pct":0}],'
+            . '"gender_split":{"male":0,"female":0},'
+            . '"best_content_types":["type1","type2","type3"],"optimal_video_length":"X-Y min","avg_engagement_rate":"X%",'
+            . '"device_split":{"mobile":0,"desktop":0,"tv":0},'
+            . '"seasonal_cpm":[{"m":"Jan","v":0.0},{"m":"Feb","v":0.0},{"m":"Mar","v":0.0},{"m":"Apr","v":0.0},{"m":"May","v":0.0},{"m":"Jun","v":0.0},{"m":"Jul","v":0.0},{"m":"Aug","v":0.0},{"m":"Sep","v":0.0},{"m":"Oct","v":0.0},{"m":"Nov","v":0.0},{"m":"Dec","v":0.0}]},'
             . '"placements":[{"channel_name":"","handle":"@handle","channel_url":"https://youtube.com/@handle",'
             . '"subscribers":"2.5M","relevance_score":92,"estimated_cpm":"4-8 USD","content_type":"",'
             . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}],'
