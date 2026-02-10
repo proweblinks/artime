@@ -163,7 +163,7 @@ x-init="
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.25rem;">
             <h2 class="aith-card-title" style="margin:0"><span class="aith-emoji">📊</span> {{ __('Audit Results') }}</h2>
             <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button class="aith-btn-pdf" onclick="aithExportPdf()">
+                <button class="aith-btn-pdf" onclick="aithExportPdf(this)">
                     <i class="fa-light fa-file-pdf"></i> {{ __('Export PDF') }}
                 </button>
                 <button class="aith-btn-secondary" wire:click="resetForm">
@@ -888,61 +888,113 @@ x-init="
 
     {{-- PDF Export Script --}}
     <script>
-    function aithExportPdf() {
-        var btn = event.currentTarget;
+    function aithLoadScript(url) {
+        return new Promise(function(ok, fail) {
+            var s = document.createElement('script');
+            s.src = url;
+            s.onload = ok;
+            s.onerror = function() { fail(new Error('Failed to load ' + url)); };
+            document.head.appendChild(s);
+        });
+    }
+
+    function aithImgToDataUrl(blob, maxDim) {
+        return new Promise(function(resolve, reject) {
+            var url = URL.createObjectURL(blob);
+            var img = new Image();
+            img.onload = function() {
+                var r = Math.min(maxDim / img.width, maxDim / img.height, 1);
+                var c = document.createElement('canvas');
+                c.width = Math.round(img.width * r);
+                c.height = Math.round(img.height * r);
+                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                URL.revokeObjectURL(url);
+                resolve(c.toDataURL('image/jpeg', 0.5));
+            };
+            img.onerror = function() { URL.revokeObjectURL(url); reject(); };
+            img.src = url;
+        });
+    }
+
+    async function aithExportPdf(btn) {
         var origHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-light fa-spinner-third fa-spin"></i> Generating...';
         btn.disabled = true;
+        function done() { btn.innerHTML = origHtml; btn.disabled = false; }
 
-        var container = document.getElementById('audit-results-container');
-        if (!container) { btn.innerHTML = origHtml; btn.disabled = false; return; }
+        var el = document.getElementById('audit-results-container');
+        if (!el) { done(); return; }
 
-        var scriptsToLoad = [];
-        if (typeof html2canvas === 'undefined') {
-            scriptsToLoad.push('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        }
-        if (typeof window.jspdf === 'undefined') {
-            scriptsToLoad.push('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-        }
+        var imgBackups = [];
 
-        var loaded = 0;
-        function onAllLoaded() {
-            html2canvas(container, { scale: 2, useCORS: true, logging: false, backgroundColor: '#f1f5f9' }).then(function(canvas) {
-                var imgData = canvas.toDataURL('image/jpeg', 0.95);
-                var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-                var pdfW = pdf.internal.pageSize.getWidth();
-                var pdfH = pdf.internal.pageSize.getHeight();
-                var imgW = pdfW - 20;
-                var imgH = (canvas.height * imgW) / canvas.width;
-                var yOffset = 10;
+        try {
+            // 1. Load libraries
+            await Promise.all([
+                typeof html2canvas !== 'undefined' ? Promise.resolve() :
+                    aithLoadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+                typeof window.jspdf !== 'undefined' ? Promise.resolve() :
+                    aithLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+            ]);
 
-                while (yOffset < imgH + 10) {
-                    if (yOffset > 10) pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 10, 10 - (yOffset - 10), imgW, imgH);
-                    yOffset += pdfH - 20;
+            // 2. Inline cross-origin images as compressed data URLs to avoid CORS canvas taint
+            var imgs = el.querySelectorAll('img');
+            await Promise.all(Array.from(imgs).map(async function(img) {
+                var src = img.getAttribute('src') || '';
+                if (!src.startsWith('http') || src.startsWith(location.origin)) return;
+                try {
+                    var resp = await fetch(src, { mode: 'cors' });
+                    var blob = await resp.blob();
+                    var dataUrl = await aithImgToDataUrl(blob, 160);
+                    imgBackups.push({ el: img, src: src });
+                    img.src = dataUrl;
+                } catch(e) {
+                    imgBackups.push({ el: img, src: src, hidden: true });
+                    img.style.visibility = 'hidden';
                 }
+            }));
 
-                var channelName = @json($ci['title'] ?? 'channel');
-                pdf.save('audit-' + channelName.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.pdf');
-                btn.innerHTML = origHtml;
-                btn.disabled = false;
-            }).catch(function() {
-                btn.innerHTML = origHtml;
-                btn.disabled = false;
+            // 3. Capture at reasonable quality
+            var canvas = await html2canvas(el, {
+                scale: 1.5,
+                logging: false,
+                backgroundColor: '#f1f5f9',
+                imageTimeout: 0
             });
-        }
 
-        if (scriptsToLoad.length === 0) {
-            onAllLoaded();
-        } else {
-            scriptsToLoad.forEach(function(src) {
-                var s = document.createElement('script');
-                s.src = src;
-                s.onload = function() { loaded++; if (loaded >= scriptsToLoad.length) onAllLoaded(); };
-                s.onerror = function() { btn.innerHTML = origHtml; btn.disabled = false; };
-                document.head.appendChild(s);
+            // 4. Restore original images immediately
+            imgBackups.forEach(function(b) {
+                b.el.src = b.src;
+                if (b.hidden) b.el.style.visibility = '';
             });
+            imgBackups = [];
+
+            // 5. Build PDF with proper page splitting
+            var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+            var pw = pdf.internal.pageSize.getWidth();
+            var ph = pdf.internal.pageSize.getHeight();
+            var m = 8;
+            var w = pw - m * 2;
+            var h = (canvas.height * w) / canvas.width;
+            var usable = ph - m * 2;
+            var pages = Math.ceil(h / usable);
+            var jpgData = canvas.toDataURL('image/jpeg', 0.55);
+
+            for (var i = 0; i < pages; i++) {
+                if (i > 0) pdf.addPage();
+                pdf.addImage(jpgData, 'JPEG', m, m - (i * usable), w, h);
+            }
+
+            var name = @json($ci['title'] ?? 'channel');
+            pdf.save('audit-' + name.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.pdf');
+        } catch(e) {
+            console.error('PDF export error:', e);
+            imgBackups.forEach(function(b) {
+                b.el.src = b.src;
+                if (b.hidden) b.el.style.visibility = '';
+            });
+            alert('PDF export failed: ' + (e.message || 'Unknown error. Please try again.'));
         }
+        done();
     }
     </script>
 
