@@ -440,6 +440,276 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+/* Category/Style pill buttons */
+.aith-pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+.aith-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4375rem 0.75rem;
+    border-radius: 999px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #475569;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.aith-pill:hover {
+    border-color: #c4b5fd;
+    background: #faf5ff;
+}
+.aith-pill.aith-pill-active {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    color: #7c3aed;
+    font-weight: 600;
+}
+.aith-pill .aith-pill-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+/* Style cards */
+.aith-style-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+.aith-style-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.625rem 0.375rem;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.aith-style-card:hover {
+    border-color: #c4b5fd;
+    background: #faf5ff;
+}
+.aith-style-card.aith-style-active {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+}
+.aith-style-card .aith-style-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+.aith-style-card .aith-style-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+}
+.aith-style-card.aith-style-active .aith-style-name {
+    color: #7c3aed;
+}
+.aith-style-card .aith-style-desc {
+    font-size: 0.625rem;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+/* Mode feature tags */
+.aith-mode-features {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 0.125rem;
+}
+.aith-mode-feature-tag {
+    font-size: 0.5625rem;
+    font-weight: 500;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 999px;
+}
+.aith-mode-tab.aith-mode-active .aith-mode-feature-tag {
+    color: #7c3aed;
+    background: rgba(124,58,237,0.08);
+}
+/* YouTube Preview Modal */
+.aith-yt-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.aith-yt-preview-modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 720px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+.aith-yt-preview-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.aith-yt-preview-section {
+    margin-bottom: 1.25rem;
+}
+.aith-yt-preview-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+.aith-yt-search-card {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+.aith-yt-search-thumb {
+    width: 200px;
+    min-width: 200px;
+    border-radius: 8px;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+.aith-yt-search-meta h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.aith-yt-search-meta p {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+.aith-yt-sidebar-card {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    max-width: 400px;
+}
+.aith-yt-sidebar-thumb {
+    width: 120px;
+    min-width: 120px;
+    border-radius: 6px;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+.aith-yt-sidebar-meta h4 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.aith-yt-sidebar-meta p {
+    font-size: 0.6875rem;
+    color: #94a3b8;
+}
+.aith-yt-mobile-card {
+    max-width: 320px;
+    background: #f8fafc;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.aith-yt-mobile-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+.aith-yt-mobile-meta {
+    padding: 0.5rem 0.75rem;
+}
+.aith-yt-mobile-meta h4 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+}
+.aith-yt-mobile-meta p {
+    font-size: 0.6875rem;
+    color: #94a3b8;
+    margin-top: 0.125rem;
+}
+/* Bulk generated thumbnail */
+.aith-bulk-generated {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+.aith-bulk-gen-thumb {
+    width: 120px;
+    border-radius: 6px;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border: 2px solid #7c3aed;
+}
+.aith-bulk-gen-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+/* Bulk face lock source buttons */
+.aith-source-group {
+    display: flex;
+    gap: 0.375rem;
+    margin-bottom: 0.75rem;
+}
+.aith-source-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+    transition: all 0.2s;
+}
+.aith-source-btn:hover {
+    border-color: #c4b5fd;
+}
+.aith-source-btn.aith-source-active {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    color: #7c3aed;
+    font-weight: 600;
+}
 @media (max-width: 640px) {
     .aith-mode-tabs { flex-direction: column; }
     .aith-inline-row { flex-direction: column; }
@@ -447,6 +717,9 @@
     .aith-youtube-fetch { flex-direction: column; }
     .aith-inpaint-controls { gap: 0.5rem; }
     .aith-model-group { flex-direction: column; }
+    .aith-style-grid { grid-template-columns: repeat(2, 1fr); }
+    .aith-yt-search-card { flex-direction: column; }
+    .aith-yt-search-thumb { width: 100%; min-width: unset; }
 }
 </style>
 
@@ -566,28 +839,97 @@ x-init="
                 @endforeach
             </div>
         </div>
-        <div class="aith-inline-row" style="margin-bottom:1rem;">
-            <div class="aith-form-group" style="margin-bottom:0;">
-                <label class="aith-label">{{ __('Category') }}</label>
-                <select wire:model="category" class="aith-select">
-                    @foreach($categories as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+        {{-- Category pills --}}
+        <div class="aith-form-group" style="margin-bottom:1rem;">
+            <label class="aith-label">{{ __('Category') }}</label>
+            <div class="aith-pill-group">
+                @foreach($categories as $key => $cat)
+                <button class="aith-pill {{ $category === $key ? 'aith-pill-active' : '' }}"
+                    wire:click="$set('category', '{{ $key }}')">
+                    <span class="aith-pill-icon">{{ $cat['icon'] }}</span>
+                    {{ $cat['name'] }}
+                </button>
+                @endforeach
             </div>
-            <div class="aith-form-group" style="margin-bottom:0;">
-                <label class="aith-label">{{ __('Style') }}</label>
-                <select wire:model="style" class="aith-select">
-                    @foreach($styles as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+        </div>
+
+        {{-- Style cards --}}
+        <div class="aith-form-group" style="margin-bottom:1rem;">
+            <label class="aith-label">{{ __('Style') }}</label>
+            <div class="aith-style-grid">
+                @foreach($styles as $key => $st)
+                <button class="aith-style-card {{ $style === $key ? 'aith-style-active' : '' }}"
+                    wire:click="$set('style', '{{ $key }}')">
+                    <span class="aith-style-icon">{{ $st['icon'] }}</span>
+                    <span class="aith-style-name">{{ $st['name'] }}</span>
+                    <span class="aith-style-desc">{{ $st['description'] }}</span>
+                </button>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Variations --}}
+        <div class="aith-form-group" style="margin-bottom:1rem;">
+            <label class="aith-label">{{ __('Variations per video') }}</label>
+            <div class="aith-var-group">
+                @for($i = 1; $i <= 4; $i++)
+                <button class="aith-var-btn {{ $variations === $i ? 'aith-var-active' : '' }}"
+                    wire:click="$set('variations', {{ $i }})">{{ $i }}</button>
+                @endfor
             </div>
         </div>
 
         <div class="aith-form-group">
             <label class="aith-label">{{ __('Custom Prompt') }} <span class="aith-label-hint">({{ __('Optional, applied to all') }})</span></label>
             <textarea wire:model="customPrompt" class="aith-textarea" rows="2" placeholder="{{ __('Additional creative direction...') }}"></textarea>
+        </div>
+
+        {{-- Bulk Face Lock --}}
+        <div class="aith-form-group" style="margin-top:0.5rem;">
+            <label class="aith-checkbox-item">
+                <input type="checkbox" wire:model.live="bulkFaceLockEnabled">
+                <span>{{ __('Face Lock') }} <span class="aith-label-hint">{{ __('Consistent face across all bulk thumbnails') }}</span></span>
+            </label>
+            @if($bulkFaceLockEnabled)
+            <div style="margin-top:0.5rem;">
+                <div class="aith-source-group">
+                    <button class="aith-source-btn {{ $bulkFaceLockSource === 'first' ? 'aith-source-active' : '' }}"
+                        wire:click="$set('bulkFaceLockSource', 'first')">
+                        <i class="fa-light fa-play"></i> {{ __('First Video') }}
+                    </button>
+                    <button class="aith-source-btn {{ $bulkFaceLockSource === 'upload' ? 'aith-source-active' : '' }}"
+                        wire:click="$set('bulkFaceLockSource', 'upload')">
+                        <i class="fa-light fa-cloud-arrow-up"></i> {{ __('Upload') }}
+                    </button>
+                </div>
+
+                @if($bulkFaceLockSource === 'first')
+                <div style="font-size:0.75rem; color:#64748b; padding:0.5rem; background:#f8fafc; border-radius:8px;">
+                    <i class="fa-light fa-info-circle"></i> {{ __('Face will be extracted from the first video\'s thumbnail automatically.') }}
+                </div>
+                @elseif($bulkFaceLockSource === 'upload')
+                    @if($bulkFaceLockPreview)
+                    <div class="aith-facelock-zone">
+                        <img src="{{ $bulkFaceLockPreview }}" class="aith-facelock-preview" alt="Face">
+                        <div>
+                            <div style="font-size:0.8125rem; font-weight:600; color:#1e293b;">{{ __('Face locked') }}</div>
+                            <button class="aith-img-btn" wire:click="removeBulkFaceLock" style="margin-top:0.25rem;">
+                                <i class="fa-light fa-xmark"></i> {{ __('Remove') }}
+                            </button>
+                        </div>
+                    </div>
+                    @else
+                    <label class="aith-upload-zone" for="bulk-facelock-upload" style="padding:1rem;">
+                        <div style="font-size:0.8125rem; color:#475569;"><i class="fa-light fa-user-circle"></i> {{ __('Upload face reference') }}</div>
+                        <input type="file" id="bulk-facelock-upload" wire:model="bulkFaceLockImage" accept="image/*" style="display:none;">
+                    </label>
+                    <div wire:loading wire:target="bulkFaceLockImage" style="font-size:0.75rem; color:#7c3aed; margin-top:0.25rem;">
+                        <i class="fa-light fa-spinner-third fa-spin"></i> {{ __('Uploading...') }}
+                    </div>
+                    @endif
+                @endif
+            </div>
+            @endif
         </div>
 
         {{-- Bulk items table --}}
@@ -625,16 +967,29 @@ x-init="
                         <div style="font-size:0.625rem; color:#dc2626; margin-top:0.25rem;">{{ Str::limit($item['error'], 50) }}</div>
                         @endif
                     </td>
-                    <td style="text-align:right;">
-                        @if($item['status'] === 'error' || $item['status'] === 'done')
-                        <button class="aith-img-btn" wire:click="regenerateBulkItem({{ $idx }})">
-                            <i class="fa-light fa-arrow-rotate-left"></i>
-                        </button>
-                        @endif
+                    <td>
                         @if($item['status'] === 'done' && !empty($item['result']['images'][0]))
-                        <a href="{{ $item['result']['images'][0]['url'] ?? asset($item['result']['images'][0]['path'] ?? '') }}" download class="aith-img-btn">
-                            <i class="fa-light fa-download"></i>
-                        </a>
+                        <div class="aith-bulk-generated">
+                            <img src="{{ $item['result']['images'][0]['url'] ?? asset($item['result']['images'][0]['path'] ?? '') }}" class="aith-bulk-gen-thumb" alt="">
+                            <div class="aith-bulk-gen-actions">
+                                <a href="{{ $item['result']['images'][0]['url'] ?? asset($item['result']['images'][0]['path'] ?? '') }}" download class="aith-img-btn">
+                                    <i class="fa-light fa-download"></i>
+                                </a>
+                                <button class="aith-img-btn aith-img-btn-hd" wire:click="upscaleImage(0)" title="{{ __('HD Upscale') }}">
+                                    <i class="fa-light fa-arrow-up-right-dots"></i>
+                                </button>
+                                <button class="aith-img-btn" wire:click="regenerateBulkItem({{ $idx }})" title="{{ __('Regenerate') }}">
+                                    <i class="fa-light fa-arrow-rotate-left"></i>
+                                </button>
+                            </div>
+                        </div>
+                        @endif
+                    </td>
+                    <td style="text-align:right;">
+                        @if($item['status'] === 'error')
+                        <button class="aith-img-btn" wire:click="regenerateBulkItem({{ $idx }})">
+                            <i class="fa-light fa-arrow-rotate-left"></i> {{ __('Retry') }}
+                        </button>
                         @endif
                     </td>
                 </tr>
@@ -689,6 +1044,13 @@ x-init="
                 <i class="fa-light {{ $m['icon'] }}"></i>
                 <span class="aith-mode-name">{{ $m['name'] }}</span>
                 <span class="aith-mode-desc">{{ $m['description'] }}</span>
+                @if(!empty($m['features']))
+                <div class="aith-mode-features">
+                    @foreach($m['features'] as $feat)
+                    <span class="aith-mode-feature-tag">{{ $feat }}</span>
+                    @endforeach
+                </div>
+                @endif
                 <span class="aith-mode-credits">{{ $m['credits'] }} {{ __('credits') }}</span>
             </button>
             @endforeach
@@ -701,23 +1063,32 @@ x-init="
             @error('title') <div class="aith-field-error">{{ $message }}</div> @enderror
         </div>
 
-        {{-- Category + Style row --}}
-        <div class="aith-inline-row">
-            <div class="aith-form-group">
-                <label class="aith-label">{{ __('Category') }}</label>
-                <select wire:model="category" class="aith-select">
-                    @foreach($categories as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+        {{-- Category --}}
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Category') }}</label>
+            <div class="aith-pill-group">
+                @foreach($categories as $key => $cat)
+                <button class="aith-pill {{ $category === $key ? 'aith-pill-active' : '' }}"
+                    wire:click="$set('category', '{{ $key }}')">
+                    <span class="aith-pill-icon">{{ $cat['icon'] }}</span>
+                    {{ $cat['name'] }}
+                </button>
+                @endforeach
             </div>
-            <div class="aith-form-group">
-                <label class="aith-label">{{ __('Style') }}</label>
-                <select wire:model="style" class="aith-select">
-                    @foreach($styles as $key => $label)
-                    <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+        </div>
+
+        {{-- Style --}}
+        <div class="aith-form-group">
+            <label class="aith-label">{{ __('Style') }}</label>
+            <div class="aith-style-grid">
+                @foreach($styles as $key => $st)
+                <button class="aith-style-card {{ $style === $key ? 'aith-style-active' : '' }}"
+                    wire:click="$set('style', '{{ $key }}')">
+                    <span class="aith-style-icon">{{ $st['icon'] }}</span>
+                    <span class="aith-style-name">{{ $st['name'] }}</span>
+                    <span class="aith-style-desc">{{ $st['description'] }}</span>
+                </button>
+                @endforeach
             </div>
         </div>
 
@@ -971,12 +1342,96 @@ x-init="
 
     {{-- ==================== RESULTS ==================== --}}
     @if($result && isset($result['images']))
-    <div class="aith-card">
+    <div class="aith-card" x-data="{ showYtPreview: false }">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
             <h2 class="aith-card-title" style="margin:0"><span class="aith-emoji">✨</span> {{ __('Generated Thumbnails') }}</h2>
-            <button class="aith-btn-secondary" wire:click="$set('result', null)">
-                <i class="fa-light fa-arrow-rotate-left"></i> {{ __('Create New') }}
-            </button>
+            <div style="display:flex; gap:0.375rem; flex-wrap:wrap;">
+                <button class="aith-btn-secondary" @click="showYtPreview = true">
+                    <i class="fa-brands fa-youtube"></i> {{ __('YouTube Preview') }}
+                </button>
+                @if(count($result['images']) > 1)
+                <button class="aith-btn-secondary" x-data x-on:click="
+                    (async () => {
+                        const btn = $el;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class=\'fa-light fa-spinner-third fa-spin\'></i> Zipping...';
+                        try {
+                            const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+                            const zip = new JSZip();
+                            const imgs = @js($result['images']);
+                            for (let i = 0; i < imgs.length; i++) {
+                                const url = imgs[i].url || ('/' + imgs[i].path);
+                                const resp = await fetch(url);
+                                const blob = await resp.blob();
+                                zip.file('thumbnail_' + (i+1) + '.png', blob);
+                            }
+                            const content = await zip.generateAsync({type:'blob'});
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(content);
+                            a.download = 'thumbnails.zip';
+                            a.click();
+                            URL.revokeObjectURL(a.href);
+                        } catch(e) { console.error(e); }
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class=\'fa-light fa-file-zipper\'></i> {{ __('Download ZIP') }}';
+                    })()
+                ">
+                    <i class="fa-light fa-file-zipper"></i> {{ __('Download ZIP') }}
+                </button>
+                @endif
+                <button class="aith-btn-secondary" wire:click="resetForm">
+                    <i class="fa-light fa-plus"></i> {{ __('Create New') }}
+                </button>
+            </div>
+        </div>
+
+        {{-- YouTube Preview Modal --}}
+        <div x-show="showYtPreview" x-cloak x-transition.opacity class="aith-yt-preview-overlay" @click.self="showYtPreview = false">
+            <div class="aith-yt-preview-modal" @click.stop>
+                <div class="aith-yt-preview-title">
+                    <span><i class="fa-brands fa-youtube" style="color:#FF0000;"></i> {{ __('YouTube Preview') }}</span>
+                    <button style="background:none;border:none;cursor:pointer;font-size:1.25rem;color:#94a3b8;" @click="showYtPreview = false">
+                        <i class="fa-light fa-xmark"></i>
+                    </button>
+                </div>
+
+                {{-- Search Results Preview --}}
+                <div class="aith-yt-preview-section">
+                    <div class="aith-yt-preview-label">{{ __('Search Results') }}</div>
+                    <div class="aith-yt-search-card">
+                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-search-thumb" alt="">
+                        <div class="aith-yt-search-meta">
+                            <h4>{{ $title ?: 'Your Video Title' }}</h4>
+                            <p>{{ __('Your Channel') }} &middot; {{ number_format(rand(1000, 500000)) }} {{ __('views') }} &middot; {{ rand(1,12) }} {{ __('hours ago') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Sidebar Preview --}}
+                <div class="aith-yt-preview-section">
+                    <div class="aith-yt-preview-label">{{ __('Suggested Sidebar') }}</div>
+                    <div class="aith-yt-sidebar-card">
+                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-sidebar-thumb" alt="">
+                        <div class="aith-yt-sidebar-meta">
+                            <h4>{{ $title ?: 'Your Video Title' }}</h4>
+                            <p>{{ __('Your Channel') }}</p>
+                            <p>{{ number_format(rand(1000, 500000)) }} {{ __('views') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mobile Feed Preview --}}
+                <div class="aith-yt-preview-section">
+                    <div class="aith-yt-preview-label">{{ __('Mobile Feed') }}</div>
+                    <div class="aith-yt-mobile-card">
+                        <img src="{{ $result['images'][0]['url'] ?? asset($result['images'][0]['path'] ?? '') }}" class="aith-yt-mobile-thumb" alt="">
+                        <div class="aith-yt-mobile-meta">
+                            <h4>{{ $title ?: 'Your Video Title' }}</h4>
+                            <p>{{ __('Your Channel') }} &middot; {{ number_format(rand(1000, 500000)) }} {{ __('views') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Inpainting Editor --}}

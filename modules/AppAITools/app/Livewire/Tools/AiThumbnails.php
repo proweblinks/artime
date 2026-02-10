@@ -64,6 +64,16 @@ class AiThumbnails extends Component
     public array $bulkItems = [];
     public bool $isBulkProcessing = false;
 
+    // Bulk face lock
+    public bool $bulkFaceLockEnabled = false;
+    public string $bulkFaceLockSource = 'first'; // first|upload|select
+    public $bulkFaceLockImage = null;
+    public ?string $bulkFaceLockPreview = null;
+    public ?string $bulkFaceLockStorageKey = null;
+
+    // YouTube preview modal
+    public bool $showYoutubePreview = false;
+
     public function mount()
     {
         $this->loadHistory();
@@ -340,6 +350,66 @@ class AiThumbnails extends Component
         $this->faceLockImage = null;
     }
 
+    public function updatedBulkFaceLockImage()
+    {
+        $this->validate([
+            'bulkFaceLockImage' => 'image|max:10240',
+        ]);
+
+        if ($this->bulkFaceLockImage) {
+            $teamId = session('current_team_id', 0);
+            $service = app(ThumbnailService::class);
+
+            $contents = file_get_contents($this->bulkFaceLockImage->getRealPath());
+            $base64 = base64_encode($contents);
+            $ext = $this->bulkFaceLockImage->getClientOriginalExtension() ?: 'png';
+
+            $this->bulkFaceLockStorageKey = $service->storeReferenceImage($teamId, $base64, $ext);
+            $this->bulkFaceLockPreview = 'data:' . $this->bulkFaceLockImage->getMimeType() . ';base64,' . $base64;
+
+            $this->bulkFaceLockImage = null;
+        }
+    }
+
+    public function removeBulkFaceLock()
+    {
+        $this->bulkFaceLockEnabled = false;
+        $this->bulkFaceLockStorageKey = null;
+        $this->bulkFaceLockPreview = null;
+        $this->bulkFaceLockImage = null;
+        $this->bulkFaceLockSource = 'first';
+    }
+
+    public function resetForm()
+    {
+        $this->mode = 'quick';
+        $this->title = '';
+        $this->category = 'general';
+        $this->style = 'professional';
+        $this->imageModel = 'nanobanana-pro';
+        $this->variations = 2;
+        $this->customPrompt = '';
+        $this->youtubeUrl = '';
+        $this->youtubeData = null;
+        $this->referenceImage = null;
+        $this->referenceImagePreview = null;
+        $this->referenceStorageKey = null;
+        $this->showAdvanced = false;
+        $this->faceLockEnabled = false;
+        $this->faceLockStorageKey = null;
+        $this->faceLockPreview = null;
+        $this->result = null;
+        $this->editingImageIndex = null;
+        $this->editPrompt = '';
+        $this->showYoutubePreview = false;
+        $this->resetErrorBag();
+    }
+
+    public function toggleYoutubePreview()
+    {
+        $this->showYoutubePreview = !$this->showYoutubePreview;
+    }
+
     public function loadHistoryItem(string $idSecure)
     {
         $teamId = session('current_team_id');
@@ -419,6 +489,22 @@ class AiThumbnails extends Component
         $this->isBulkProcessing = true;
         $service = app(ThumbnailService::class);
 
+        // Resolve bulk face lock: if "first" source, grab face from first video's thumbnail
+        $bulkFaceKey = null;
+        if ($this->bulkFaceLockEnabled) {
+            if ($this->bulkFaceLockSource === 'upload' && $this->bulkFaceLockStorageKey) {
+                $bulkFaceKey = $this->bulkFaceLockStorageKey;
+            } elseif ($this->bulkFaceLockSource === 'first' && !empty($this->bulkItems[0]['data']['thumbnail'])) {
+                try {
+                    $thumbContents = file_get_contents($this->bulkItems[0]['data']['thumbnail']);
+                    if ($thumbContents) {
+                        $teamId = session('current_team_id', 0);
+                        $bulkFaceKey = $service->storeReferenceImage($teamId, base64_encode($thumbContents), 'jpg');
+                    }
+                } catch (\Exception $e) {}
+            }
+        }
+
         foreach ($this->bulkItems as $idx => &$item) {
             if ($item['status'] !== 'pending') continue;
 
@@ -441,7 +527,7 @@ class AiThumbnails extends Component
                     'backgroundStyle' => $this->backgroundStyle,
                     'faceStrength' => $this->faceStrength,
                     'styleStrength' => $this->styleStrength,
-                    'faceLockStorageKey' => $this->faceLockEnabled ? $this->faceLockStorageKey : null,
+                    'faceLockStorageKey' => $bulkFaceKey,
                 ];
 
                 // Download YouTube thumbnail as reference
@@ -499,7 +585,7 @@ class AiThumbnails extends Component
                 'backgroundStyle' => $this->backgroundStyle,
                 'faceStrength' => $this->faceStrength,
                 'styleStrength' => $this->styleStrength,
-                'faceLockStorageKey' => $this->faceLockEnabled ? $this->faceLockStorageKey : null,
+                'faceLockStorageKey' => $this->bulkFaceLockEnabled && $this->bulkFaceLockStorageKey ? $this->bulkFaceLockStorageKey : null,
             ];
 
             if (!empty($item['data']['thumbnail'])) {

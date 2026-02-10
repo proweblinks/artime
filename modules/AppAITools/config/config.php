@@ -186,9 +186,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'thumbnail_modes' => [
-        'quick'     => ['name' => 'Quick', 'credits' => 2, 'icon' => 'fa-bolt', 'description' => 'Fast generation, no reference needed'],
-        'reference' => ['name' => 'Reference', 'credits' => 4, 'icon' => 'fa-image', 'description' => 'Upload reference for style transfer'],
-        'upgrade'   => ['name' => 'Upgrade', 'credits' => 4, 'icon' => 'fa-arrow-up', 'description' => 'Upgrade existing thumbnail from YouTube'],
+        'quick'     => ['name' => 'Quick', 'credits' => 2, 'icon' => 'fa-bolt', 'description' => 'Fast generation, no reference needed', 'features' => ['~5 seconds', 'No reference']],
+        'reference' => ['name' => 'Reference', 'credits' => 4, 'icon' => 'fa-image', 'description' => 'Upload reference for style transfer', 'features' => ['~10 seconds', 'Upload face/product']],
+        'upgrade'   => ['name' => 'Upgrade', 'credits' => 4, 'icon' => 'fa-arrow-up', 'description' => 'Upgrade existing thumbnail from YouTube', 'features' => ['~10 seconds', 'From YouTube URL']],
     ],
 
     /*
@@ -197,13 +197,13 @@ return [
     |--------------------------------------------------------------------------
     */
     'thumbnail_categories' => [
-        'general' => 'General',
-        'gaming' => 'Gaming',
-        'tutorial' => 'Tutorial',
-        'vlog' => 'Vlog',
-        'review' => 'Review',
-        'news' => 'News',
-        'entertainment' => 'Entertainment',
+        'general'       => ['name' => 'General',       'icon' => "\xF0\x9F\x8E\xAF"],
+        'gaming'        => ['name' => 'Gaming',        'icon' => "\xF0\x9F\x8E\xAE"],
+        'tutorial'      => ['name' => 'Tutorial',      'icon' => "\xF0\x9F\x93\x9A"],
+        'vlog'          => ['name' => 'Vlog',          'icon' => "\xF0\x9F\x93\xB9"],
+        'review'        => ['name' => 'Review',        'icon' => "\xF0\x9F\x93\xA6"],
+        'news'          => ['name' => 'News',          'icon' => "\xF0\x9F\x93\xB0"],
+        'entertainment' => ['name' => 'Entertainment', 'icon' => "\xF0\x9F\x8E\xAC"],
     ],
 
     /*
@@ -212,10 +212,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'thumbnail_styles' => [
-        'professional' => 'Professional',
-        'dramatic' => 'Dramatic',
-        'minimal' => 'Minimal',
-        'bold' => 'Bold',
+        'professional' => ['name' => 'Professional', 'icon' => "\xF0\x9F\x92\xBC", 'description' => 'Clean & polished'],
+        'dramatic'     => ['name' => 'Dramatic',     'icon' => "\xF0\x9F\x8E\xAC", 'description' => 'High contrast & cinematic'],
+        'minimal'      => ['name' => 'Minimal',      'icon' => "\xE2\x9C\xA8",     'description' => 'Simple & elegant'],
+        'bold'         => ['name' => 'Bold',         'icon' => "\xF0\x9F\x94\xA5", 'description' => 'Eye-catching & vibrant'],
     ],
 
     /*
