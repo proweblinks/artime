@@ -13,6 +13,7 @@ class PlacementFinder extends Component
     public string $url = '';
     public string $niche = '';
     public bool $isLoading = false;
+    public bool $isFindingMore = false;
     public ?array $result = null;
     public int $loadingStep = 0;
 
@@ -26,6 +27,7 @@ class PlacementFinder extends Component
         $this->niche = '';
         $this->result = null;
         $this->isLoading = false;
+        $this->isFindingMore = false;
         $this->loadingStep = 0;
     }
 
@@ -53,6 +55,40 @@ class PlacementFinder extends Component
         } finally {
             $this->dispatch('loadingComplete');
             $this->isLoading = false;
+        }
+    }
+
+    public function findMore()
+    {
+        if (!$this->result || !$this->url) return;
+
+        $this->isFindingMore = true;
+
+        try {
+            // Collect existing handles to exclude
+            $existingHandles = collect($this->result['placements'] ?? [])
+                ->pluck('handle')
+                ->filter()
+                ->values()
+                ->toArray();
+
+            $service = app(EnterpriseToolService::class);
+            $moreResults = $service->findMorePlacements($this->url, $this->niche, $existingHandles);
+
+            // Merge new placements into existing result
+            if (!empty($moreResults['placements'])) {
+                $this->result['placements'] = array_merge(
+                    $this->result['placements'] ?? [],
+                    $moreResults['placements']
+                );
+            }
+
+            $this->loadHistory();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to find more: ' . $e->getMessage());
+        } finally {
+            $this->dispatch('findMoreComplete');
+            $this->isFindingMore = false;
         }
     }
 

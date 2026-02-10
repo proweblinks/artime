@@ -1,7 +1,42 @@
 <div>
     @include('appaitools::livewire.enterprise._enterprise-tool-base')
 
-    <div class="aith-tool">
+    {{-- Wider layout for placement finder --}}
+    <style>
+        .aith-tool.aith-tool-wide { max-width: 1280px; }
+        .aith-pf-avatar {
+            width: 2.75rem; height: 2.75rem; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.1rem; color: #fff; flex-shrink: 0;
+            text-transform: uppercase;
+        }
+        .aith-pf-avatar-sm {
+            width: 2.25rem; height: 2.25rem; font-size: 0.85rem;
+        }
+        .aith-pf-channel-card {
+            padding: 1rem; border-radius: 0.75rem;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 0.625rem; transition: border-color 0.2s;
+        }
+        .aith-pf-channel-card:hover {
+            border-color: rgba(139,92,246,0.25);
+        }
+        .aith-pf-find-more {
+            width: 100%; padding: 1rem; border-radius: 0.75rem;
+            background: rgba(139,92,246,0.06); border: 2px dashed rgba(139,92,246,0.2);
+            color: #c4b5fd; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .aith-pf-find-more:hover {
+            background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.35);
+        }
+        .aith-pf-find-more:disabled {
+            opacity: 0.5; cursor: not-allowed;
+        }
+    </style>
+
+    <div class="aith-tool aith-tool-wide">
         <div class="aith-nav">
             <a href="{{ route('app.ai-tools.enterprise-suite') }}" class="aith-nav-btn">
                 <i class="fa-light fa-arrow-left"></i> Enterprise Suite
@@ -80,7 +115,10 @@
                 <span class="aith-e-result-title">Placement Results</span>
                 <div class="aith-e-result-actions">
                     @if(!empty($result['placements']))
-                    <button onclick="enterpriseCopy('{{ collect($result['placements'])->pluck('channel_url')->filter()->implode('\n') }}', 'All {{ count($result['placements']) }} channel URLs copied!')" class="aith-e-btn-copy" style="padding:0.375rem 0.75rem;">
+                    <button onclick="
+                        var urls = @js(collect($result['placements'])->pluck('channel_url')->filter()->implode('\n'));
+                        enterpriseCopy(urls, 'All {{ count($result['placements']) }} channel URLs copied!');
+                    " class="aith-e-btn-copy" style="padding:0.375rem 0.75rem;">
                         <i class="fa-light fa-copy"></i> Copy All {{ count($result['placements']) }} URLs
                     </button>
                     @endif
@@ -97,20 +135,29 @@
 
             {{-- Channel Info Card --}}
             @if(isset($result['channel_info']))
-            @php $ci = $result['channel_info']; @endphp
-            <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border-radius:0.75rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);margin-bottom:1rem;">
-                <div style="width:3rem;height:3rem;border-radius:50%;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="fa-light fa-play" style="color:#fff;font-size:1rem;"></i>
+            @php
+                $ci = $result['channel_info'];
+                $channelInitial = strtoupper(substr($ci['name'] ?? 'Y', 0, 1));
+                $avatarGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
+                $channelGradient = $avatarGradients[$channelInitial] ?? '#7c3aed,#a855f7';
+            @endphp
+            <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;border-radius:0.75rem;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);margin-bottom:1rem;">
+                <div class="aith-pf-avatar" style="background:linear-gradient(135deg,{{ $channelGradient }});width:3.5rem;height:3.5rem;font-size:1.4rem;">
+                    {{ $channelInitial }}
                 </div>
                 <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;color:#fff;font-size:1rem;">{{ $ci['name'] ?? 'Your Channel' }}</div>
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">{{ $ci['handle'] ?? '' }} · {{ $ci['niche'] ?? '' }}{{ isset($ci['sub_niche']) ? ' / '.$ci['sub_niche'] : '' }}</div>
+                    <div style="font-weight:700;color:#fff;font-size:1.1rem;">{{ $ci['name'] ?? 'Your Channel' }}</div>
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:0.125rem;">{{ $ci['handle'] ?? '' }} · {{ $ci['niche'] ?? '' }}{{ isset($ci['sub_niche']) ? ' / '.$ci['sub_niche'] : '' }}</div>
+                    @if(isset($ci['estimated_subscribers']))
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:0.25rem;">{{ $ci['estimated_subscribers'] }} subscribers · {{ $ci['upload_frequency'] ?? '' }}</div>
+                    @endif
                 </div>
                 <div style="text-align:right;flex-shrink:0;">
                     @php $score = $result['placement_score'] ?? 0; @endphp
-                    <div class="aith-e-score-circle {{ $score >= 80 ? 'aith-e-score-high' : ($score >= 50 ? 'aith-e-score-medium' : 'aith-e-score-low') }}" style="width:3rem;height:3rem;font-size:0.9rem;">
+                    <div class="aith-e-score-circle {{ $score >= 80 ? 'aith-e-score-high' : ($score >= 50 ? 'aith-e-score-medium' : 'aith-e-score-low') }}" style="width:3.5rem;height:3.5rem;font-size:1rem;">
                         {{ $score }}
                     </div>
+                    <div style="font-size:0.6rem;color:rgba(255,255,255,0.3);margin-top:0.25rem;text-align:center;">SCORE</div>
                 </div>
             </div>
 
@@ -119,12 +166,12 @@
                 <div class="aith-e-summary-card aith-e-summary-card-purple">
                     <div class="aith-e-summary-label">Subscribers</div>
                     <div class="aith-e-summary-value" style="color:#c4b5fd;">{{ $ci['estimated_subscribers'] ?? '-' }}</div>
-                    <div class="aith-e-summary-sub">{{ $ci['upload_frequency'] ?? '' }}</div>
+                    <div class="aith-e-summary-sub">{{ $ci['content_style'] ?? '' }}</div>
                 </div>
                 <div class="aith-e-summary-card aith-e-summary-card-blue">
-                    <div class="aith-e-summary-label">Content Style</div>
-                    <div class="aith-e-summary-value" style="color:#93c5fd;font-size:1rem;">{{ $ci['content_style'] ?? '-' }}</div>
-                    <div class="aith-e-summary-sub">{{ $ci['audience_type'] ?? '' }}</div>
+                    <div class="aith-e-summary-label">Audience</div>
+                    <div class="aith-e-summary-value" style="color:#93c5fd;font-size:1rem;">{{ $ci['audience_type'] ?? '-' }}</div>
+                    <div class="aith-e-summary-sub">{{ $ci['upload_frequency'] ?? '' }}</div>
                 </div>
                 @if(isset($result['niche_insights']))
                 <div class="aith-e-summary-card aith-e-summary-card-green">
@@ -185,10 +232,17 @@
                 </div>
 
                 @foreach($result['placements'] as $idx => $p)
-                <div style="padding:0.875rem;border-radius:0.625rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:0.625rem;">
+                @php
+                    $pInitial = strtoupper(substr($p['channel_name'] ?? '?', 0, 1));
+                    $pGradients = ['A'=>'#e91e63,#9c27b0','B'=>'#2196f3,#00bcd4','C'=>'#ff9800,#f44336','D'=>'#4caf50,#009688','E'=>'#673ab7,#3f51b5','F'=>'#ff5722,#e91e63','G'=>'#00bcd4,#4caf50','H'=>'#9c27b0,#e91e63','I'=>'#3f51b5,#2196f3','J'=>'#f44336,#ff9800','K'=>'#009688,#00bcd4','L'=>'#e91e63,#ff5722','M'=>'#2196f3,#673ab7','N'=>'#ff9800,#4caf50','O'=>'#4caf50,#2196f3','P'=>'#673ab7,#e91e63','Q'=>'#00bcd4,#3f51b5','R'=>'#f44336,#673ab7','S'=>'#3f51b5,#00bcd4','T'=>'#ff5722,#ff9800','U'=>'#9c27b0,#2196f3','V'=>'#e91e63,#673ab7','W'=>'#4caf50,#ff9800','X'=>'#2196f3,#e91e63','Y'=>'#ff9800,#9c27b0','Z'=>'#00bcd4,#f44336'];
+                    $pGradient = $pGradients[$pInitial] ?? '#7c3aed,#a855f7';
+                @endphp
+                <div class="aith-pf-channel-card">
                     {{-- Channel header --}}
                     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
-                        <span style="width:1.75rem;height:1.75rem;border-radius:50%;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#c4b5fd;flex-shrink:0;font-weight:700;">{{ $idx + 1 }}</span>
+                        <div class="aith-pf-avatar aith-pf-avatar-sm" style="background:linear-gradient(135deg,{{ $pGradient }});">
+                            {{ $pInitial }}
+                        </div>
                         <div style="flex:1;min-width:0;">
                             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                                 <span style="font-weight:700;color:#fff;font-size:0.9rem;">{{ $p['channel_name'] ?? '' }}</span>
@@ -216,13 +270,13 @@
 
                     {{-- Match reason --}}
                     @if(isset($p['audience_match']))
-                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;padding-left:2.5rem;">
+                    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:0.5rem;padding-left:3rem;">
                         {{ $p['audience_match'] }}
                     </div>
                     @endif
 
                     {{-- Badges row --}}
-                    <div style="display:flex;flex-wrap:wrap;gap:0.375rem;padding-left:2.5rem;">
+                    <div style="display:flex;flex-wrap:wrap;gap:0.375rem;padding-left:3rem;">
                         @if(isset($p['estimated_cpm']))
                         <span class="aith-e-pill aith-e-pill-green"><i class="fa-light fa-dollar-sign" style="font-size:0.6rem;"></i> {{ $p['estimated_cpm'] }}</span>
                         @endif
@@ -232,6 +286,17 @@
                     </div>
                 </div>
                 @endforeach
+
+                {{-- Find More Button --}}
+                <button wire:click="findMore" wire:loading.attr="disabled" wire:target="findMore" class="aith-pf-find-more" style="margin-top:0.5rem;">
+                    <span wire:loading.remove wire:target="findMore">
+                        <i class="fa-light fa-plus-circle"></i> Find 10 More Channels
+                        <span style="opacity:0.6;font-size:0.75rem;margin-left:0.25rem;">3 credits</span>
+                    </span>
+                    <span wire:loading wire:target="findMore">
+                        <i class="fa-light fa-spinner-third fa-spin"></i> Finding more channels...
+                    </span>
+                </button>
             </div>
             @endif
 
@@ -293,7 +358,10 @@
             <div class="aith-e-section-card">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
                     <div class="aith-e-section-card-title" style="margin-bottom:0;"><i class="fa-light fa-tags"></i> Google Ads Keywords</div>
-                    <button onclick="enterpriseCopy('{{ collect($result['google_ads_keywords'])->implode('\n') }}', 'Keywords copied!')" class="aith-e-btn-copy" style="font-size:0.7rem;">
+                    <button onclick="
+                        var kws = @js(collect($result['google_ads_keywords'])->implode(', '));
+                        enterpriseCopy(kws, 'Keywords copied!');
+                    " class="aith-e-btn-copy" style="font-size:0.7rem;">
                         <i class="fa-light fa-copy"></i> Copy
                     </button>
                 </div>

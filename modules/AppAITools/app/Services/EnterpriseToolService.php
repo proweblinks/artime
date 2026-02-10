@@ -11,17 +11,23 @@ class EnterpriseToolService
     /**
      * Analyze a YouTube channel for Google Ads placement opportunities.
      */
-    public function analyzePlacement(string $channelUrl, string $niche = ''): array
+    public function analyzePlacement(string $channelUrl, string $niche = '', array $excludeHandles = []): array
     {
         $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $excludeLine = '';
+        if (!empty($excludeHandles)) {
+            $excludeLine = "\n\nDo NOT include these channels (already found): " . implode(', ', $excludeHandles) . ". Find completely different channels.";
+        }
 
-        $prompt = "You are a YouTube Ads placement strategist. Based on the channel below, return a JSON object with "
-            . "placement channel recommendations for Google Ads Placement Targeting.\n\n"
-            . "Channel: {$channelUrl}{$nicheLine}\n\n"
-            . "IMPORTANT: Output ONLY raw JSON. No explanation, no markdown, no code fences. Start your response with { and end with }.\n\n"
-            . "Use REAL YouTube channels you are confident exist. Include their actual @handle. "
-            . "Mix of sizes: large (1M+), medium (100K-1M), small (10K-100K). Generate exactly 10 channels. "
-            . "Keep audience_match descriptions short (under 20 words).\n\n"
+        $prompt = "You are a YouTube Ads placement strategist specializing in Google Ads Placement Targeting.\n\n"
+            . "Channel: {$channelUrl}{$nicheLine}{$excludeLine}\n\n"
+            . "RULES:\n"
+            . "1. Output ONLY raw JSON. No explanation, no markdown, no code fences. Start with { end with }.\n"
+            . "2. ONLY include YouTube channels you are 100% certain exist and are currently active (uploading in 2024-2025).\n"
+            . "3. Use well-known, established channels. Do NOT invent or guess channel names.\n"
+            . "4. Every handle must be the channel's real YouTube @handle.\n"
+            . "5. Mix: 3 large (1M+ subs), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
+            . "6. Keep audience_match under 15 words.\n\n"
             . "JSON structure:\n"
             . '{"channel_info":{"name":"","handle":"@handle","niche":"","sub_niche":"","estimated_subscribers":"1.2M",'
             . '"content_style":"","upload_frequency":"","audience_type":""},'
@@ -38,6 +44,31 @@ class EnterpriseToolService
             . '"tips":["tip1","tip2","tip3"]}';
 
         return $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 4096);
+    }
+
+    /**
+     * Find additional placement channels (excluding already found ones).
+     */
+    public function findMorePlacements(string $channelUrl, string $niche = '', array $excludeHandles = []): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $excludeLine = "\n\nEXCLUDE these channels (already found): " . implode(', ', $excludeHandles) . ".\nFind 10 completely DIFFERENT channels not in that list.";
+
+        $prompt = "You are a YouTube Ads placement strategist. Find MORE placement channels for Google Ads targeting.\n\n"
+            . "Channel: {$channelUrl}{$nicheLine}{$excludeLine}\n\n"
+            . "RULES:\n"
+            . "1. Output ONLY raw JSON. No explanation, no markdown, no code fences. Start with { end with }.\n"
+            . "2. ONLY include YouTube channels you are 100% certain exist and are currently active (uploading in 2024-2025).\n"
+            . "3. Use well-known, established channels. Do NOT invent or guess channel names.\n"
+            . "4. Every handle must be the channel's real YouTube @handle.\n"
+            . "5. Mix: 3 large (1M+), 4 medium (100K-1M), 3 small (10K-100K). Exactly 10 total.\n"
+            . "6. Keep audience_match under 15 words.\n\n"
+            . "Return ONLY the placements array:\n"
+            . '{"placements":[{"channel_name":"","handle":"@handle","channel_url":"https://youtube.com/@handle",'
+            . '"subscribers":"2.5M","relevance_score":92,"estimated_cpm":"4-8 USD","content_type":"",'
+            . '"audience_match":"Short reason","recommended_ad_format":"Skippable in-stream","tier":"large"}]}';
+
+        return $this->executeAnalysis('placement_finder', $channelUrl, $prompt, 3000);
     }
 
     /**
