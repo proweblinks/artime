@@ -3,18 +3,22 @@
 namespace Modules\AppAITools\Livewire\Enterprise;
 
 use Livewire\Component;
-use Modules\AppAITools\Models\AiToolHistory;
 use Modules\AppAITools\Services\EnterpriseToolService;
-use Carbon\Carbon;
+use Modules\AppAITools\Livewire\Enterprise\Concerns\HasEnterpriseHistory;
 
 class AffiliateFinder extends Component
 {
+    use HasEnterpriseHistory;
+
     public string $url = '';
     public string $niche = '';
     public bool $isLoading = false;
     public ?array $result = null;
-    public array $history = [];
     public int $loadingStep = 0;
+
+    protected function getToolKey(): string { return 'affiliate_finder'; }
+    protected function getScoreKey(): string { return 'affiliate_score'; }
+    protected function getScoreLabel(): string { return 'Affiliate'; }
 
     public function mount()
     {
@@ -40,32 +44,6 @@ class AffiliateFinder extends Component
         } finally {
             $this->isLoading = false;
         }
-    }
-
-    public function loadHistoryItem(int $index): void
-    {
-        if (isset($this->history[$index])) {
-            $this->result = $this->history[$index]['result_data'] ?? null;
-        }
-    }
-
-    protected function loadHistory(): void
-    {
-        $teamId = session('current_team_id');
-        if (!$teamId) return;
-
-        $this->history = AiToolHistory::forTeam($teamId)
-            ->forTool('affiliate_finder')
-            ->completed()
-            ->orderByDesc('created')
-            ->limit(10)
-            ->get()
-            ->map(fn($h) => [
-                'title' => $h->title ?? '-',
-                'time_ago' => Carbon::createFromTimestamp($h->created)->diffForHumans(),
-                'result_data' => $h->result_data,
-            ])
-            ->toArray();
     }
 
     public function render()

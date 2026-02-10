@@ -182,17 +182,6 @@
         </div>
 
         {{-- History --}}
-        @if(count($history) > 0 && !$result)
-        <div class="aith-card" style="margin-top:1rem;">
-            <div class="aith-e-section-card-title"><i class="fa-light fa-clock-rotate-left"></i> Recent Analyses</div>
-            @foreach($history as $i => $item)
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;"
-                 wire:click="loadHistoryItem({{ $i }})">
-                <span style="font-size:0.8rem;color:rgba(255,255,255,0.6);">{{ \Illuminate\Support\Str::limit($item['title'], 60) }}</span>
-                <span style="font-size:0.75rem;color:rgba(255,255,255,0.25);">{{ $item['time_ago'] }}</span>
-            </div>
-            @endforeach
-        </div>
-        @endif
+        @include('appaitools::livewire.enterprise._enterprise-history')
     </div>
 </div>
