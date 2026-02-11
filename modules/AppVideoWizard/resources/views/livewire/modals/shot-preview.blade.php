@@ -357,45 +357,79 @@
                             {{ $shot['videoPrompt'] ?? $shot['narrativeBeat']['motionDescription'] ?? __('Action prompt will be generated') }}
                         </div>
                     </div>
-                    {{-- Voice Prompt --}}
-                    <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
-                        <div style="font-size: 0.6rem; color: rgba(139, 92, 246, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🎤 {{ __('VOICE PROMPT') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(196, 181, 253, 0.95); line-height: 1.3; max-height: 60px; overflow-y: auto;">
-                            @php
-                                $voiceText = $shot['dialogue'] ?? $shot['monologue'] ?? $shot['narration'] ?? null;
-                                $emotion = $shot['emotion'] ?? $shot['emotionalTone'] ?? null;
-                                // Filter out non-voice emotions that leak from shot purpose fields
-                                $nonVoiceEmotions = ['focus', 'neutral', 'anticipation', 'recognition', 'urgency',
-                                    'tension', 'confrontation', 'revelation', 'realization', 'determination'];
-                                if ($emotion && in_array(strtolower($emotion), $nonVoiceEmotions)) {
-                                    $emotion = null;
-                                }
-                                $enhancedPrompt = null;
-                                if ($voiceText) {
+                    {{-- Voice/Narration Prompt --}}
+                    @php
+                        $hasCharacterSpeech = $hasDialogue || $hasMonologue;
+                        $voiceText = $hasCharacterSpeech
+                            ? ($shot['dialogue'] ?? $shot['monologue'])
+                            : null;
+                        $narratorText = (!$hasCharacterSpeech && $hasNarration)
+                            ? $shot['narration']
+                            : null;
+                    @endphp
+
+                    @if($hasCharacterSpeech)
+                        {{-- Character Voice Prompt (dialogue/monologue) --}}
+                        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
+                            <div style="font-size: 0.6rem; color: rgba(139, 92, 246, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🎤 {{ __('VOICE PROMPT') }}</div>
+                            <div style="font-size: 0.7rem; color: rgba(196, 181, 253, 0.95); line-height: 1.3; max-height: 60px; overflow-y: auto;">
+                                @php
+                                    $emotion = $shot['emotion'] ?? $shot['emotionalTone'] ?? null;
+                                    $nonVoiceEmotions = ['focus', 'neutral', 'anticipation', 'recognition', 'urgency',
+                                        'tension', 'confrontation', 'revelation', 'realization', 'determination'];
+                                    if ($emotion && in_array(strtolower($emotion), $nonVoiceEmotions)) {
+                                        $emotion = null;
+                                    }
                                     $enhancedPrompt = \Modules\AppVideoWizard\Services\VoicePromptBuilderService::buildSimpleEnhancedPrompt(
                                         $voiceText,
                                         $emotion,
                                         'elevenlabs'
                                     );
-                                }
-                            @endphp
-                            @if($voiceText && $enhancedPrompt)
-                                @if($emotion)
-                                    <span style="color: rgba(236, 72, 153, 0.9); font-size: 0.6rem; font-weight: 500;">[{{ $emotion }}]</span>
+                                @endphp
+                                @if($enhancedPrompt)
+                                    @if($emotion)
+                                        <span style="color: rgba(236, 72, 153, 0.9); font-size: 0.6rem; font-weight: 500;">[{{ $emotion }}]</span>
+                                    @endif
+                                    @if(!empty($enhancedPrompt['direction']))
+                                        <span style="color: rgba(251, 191, 36, 0.9); font-size: 0.55rem; font-style: italic; display: block; margin: 0.15rem 0;">
+                                            ↳ {{ $enhancedPrompt['direction'] }}
+                                        </span>
+                                    @endif
+                                    <span style="color: rgba(196, 181, 253, 0.95);">{{ $enhancedPrompt['enhanced'] }}</span>
+                                @else
+                                    {{ $voiceText }}
                                 @endif
-                                @if(!empty($enhancedPrompt['direction']))
-                                    <span style="color: rgba(251, 191, 36, 0.9); font-size: 0.55rem; font-style: italic; display: block; margin: 0.15rem 0;">
-                                        ↳ {{ $enhancedPrompt['direction'] }}
+                            </div>
+                        </div>
+                    @elseif($narratorText)
+                        {{-- Narrator Voiceover (distinct from character speech) --}}
+                        <div style="background: rgba(100, 116, 139, 0.1); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
+                            <div style="font-size: 0.6rem; color: rgba(100, 116, 139, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🔊 {{ __('NARRATOR VOICEOVER') }}</div>
+                            <div style="font-size: 0.7rem; color: rgba(148, 163, 184, 0.95); line-height: 1.3; max-height: 60px; overflow-y: auto;">
+                                @php
+                                    $narratorPrompt = \Modules\AppVideoWizard\Services\VoicePromptBuilderService::buildSimpleEnhancedPrompt(
+                                        $narratorText,
+                                        null,
+                                        'elevenlabs'
+                                    );
+                                @endphp
+                                @if($narratorPrompt && !empty($narratorPrompt['direction']))
+                                    <span style="color: rgba(148, 163, 184, 0.7); font-size: 0.55rem; font-style: italic; display: block; margin: 0.15rem 0;">
+                                        ↳ {{ $narratorPrompt['direction'] }}
                                     </span>
                                 @endif
-                                <span style="color: rgba(196, 181, 253, 0.95);">{{ $enhancedPrompt['enhanced'] }}</span>
-                            @elseif($voiceText)
-                                {{ $voiceText }}
-                            @else
-                                {{ __('Silent shot') }}
-                            @endif
+                                <span style="color: rgba(148, 163, 184, 0.95);">{{ $narratorPrompt['enhanced'] ?? $narratorText }}</span>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        {{-- No voice content --}}
+                        <div style="background: rgba(100, 116, 139, 0.05); border: 1px solid rgba(100, 116, 139, 0.2); border-radius: 0.4rem; padding: 0.4rem;">
+                            <div style="font-size: 0.6rem; color: rgba(100, 116, 139, 0.7); margin-bottom: 0.2rem; font-weight: 600;">🔇 {{ __('VOICE PROMPT') }}</div>
+                            <div style="font-size: 0.7rem; color: rgba(148, 163, 184, 0.6); line-height: 1.3;">
+                                {{ __('Silent shot') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

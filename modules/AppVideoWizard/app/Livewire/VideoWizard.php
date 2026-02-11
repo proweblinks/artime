@@ -24620,6 +24620,7 @@ PROMPT;
                     // (These may have been set by decomposer but narrator takes priority)
                     // NOTE: Unset these fields since narrator is primary for this shot
                     unset($shots[$shotIdx]['dialogue'], $shots[$shotIdx]['monologue']);
+                    $shots[$shotIdx]['speechType'] = 'narrator';
                 } else {
                     // Mixed shot: has both dialogue/monologue AND narrator overlay
                     // Keep lip-sync for dialogue, narrator is background voiceover
