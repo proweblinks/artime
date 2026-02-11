@@ -839,6 +839,9 @@ window.multiShotVideoPolling = function() {
                                 $durColor = $shotDur <= 5 ? 'green' : ($shotDur <= 6 ? 'yellow' : 'blue');
                                 // Additional features from old implementation
                                 $cameraMovement = $shot['cameraMovement'] ?? 'static';
+                                if (is_array($cameraMovement)) {
+                                    $cameraMovement = $cameraMovement['type'] ?? 'static';
+                                }
                                 $tokenCost = $shotDur <= 5 ? 100 : ($shotDur <= 6 ? 120 : 200);
                                 $needsLipSync = $shot['needsLipSync'] ?? false;
                                 $aiRecommended = $shot['aiRecommended'] ?? false;
@@ -892,6 +895,9 @@ window.multiShotVideoPolling = function() {
                                     @if(!empty($shot['cameraMovement']) || !empty($shot['suggestedMovement']))
                                         @php
                                             $movement = $shot['cameraMovement'] ?? $shot['suggestedMovement'] ?? 'static';
+                                            if (is_array($movement)) {
+                                                $movement = $movement['type'] ?? 'static';
+                                            }
                                         @endphp
                                         @if($movement !== 'static')
                                             <div class="vw-shot-badge vw-shot-badge-movement"
