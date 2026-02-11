@@ -2586,11 +2586,17 @@ class VideoWizard extends Component
      */
     public function getAvailableDurations(string $model = 'minimax'): array
     {
-        $settingSlug = $model === 'multitalk'
-            ? 'animation_multitalk_durations'
-            : 'animation_minimax_durations';
+        $settingSlug = match ($model) {
+            'multitalk' => 'animation_multitalk_durations',
+            'infinitetalk' => 'animation_infinitetalk_durations',
+            default => 'animation_minimax_durations',
+        };
 
-        $defaults = $model === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
+        $defaults = match ($model) {
+            'multitalk' => [5, 10, 15, 20],
+            'infinitetalk' => [5, 10, 15, 30, 60],
+            default => [5, 6, 10],
+        };
 
         $durations = $this->getDynamicSetting($settingSlug, $defaults);
 
@@ -2605,16 +2611,22 @@ class VideoWizard extends Component
     /**
      * Get default duration for an animation model from dynamic settings.
      *
-     * @param string $model 'minimax' or 'multitalk'
+     * @param string $model 'minimax', 'multitalk', or 'infinitetalk'
      * @return int Default duration in seconds
      */
     public function getDefaultDuration(string $model = 'minimax'): int
     {
-        $settingSlug = $model === 'multitalk'
-            ? 'animation_multitalk_default_duration'
-            : 'animation_minimax_default_duration';
+        $settingSlug = match ($model) {
+            'multitalk' => 'animation_multitalk_default_duration',
+            'infinitetalk' => 'animation_infinitetalk_default_duration',
+            default => 'animation_minimax_default_duration',
+        };
 
-        $default = $model === 'multitalk' ? 10 : 6;
+        $default = match ($model) {
+            'multitalk' => 10,
+            'infinitetalk' => 10,
+            default => 6,
+        };
 
         return (int) $this->getDynamicSetting($settingSlug, $default);
     }
@@ -28664,7 +28676,7 @@ PROMPT;
         $sceneIndex = $this->videoModelSelectorSceneIndex;
         $shotIndex = $this->videoModelSelectorShotIndex;
 
-        $validModels = ['minimax', 'multitalk'];
+        $validModels = ['minimax', 'multitalk', 'infinitetalk'];
         if (!in_array($model, $validModels)) {
             return;
         }
@@ -28674,6 +28686,15 @@ PROMPT;
             $multitalkEndpoint = get_option('runpod_multitalk_endpoint', '');
             if (empty($multitalkEndpoint)) {
                 $this->error = __('Multitalk endpoint not configured');
+                return;
+            }
+        }
+
+        // Check InfiniteTalk availability
+        if ($model === 'infinitetalk') {
+            $infinitetalkEndpoint = get_option('runpod_infinitetalk_endpoint', '');
+            if (empty($infinitetalkEndpoint)) {
+                $this->error = __('InfiniteTalk endpoint not configured');
                 return;
             }
         }
@@ -29146,17 +29167,17 @@ PROMPT;
             $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
             $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
 
-            // Get audio URL for Multitalk lip-sync
+            // Get audio URL for Multitalk/InfiniteTalk lip-sync
             $audioUrl = null;
             $audioDuration = null;
-            if ($selectedModel === 'multitalk') {
+            if (in_array($selectedModel, ['multitalk', 'infinitetalk'])) {
                 $audioUrl = $shot['audioUrl'] ?? $shot['voiceoverUrl'] ?? null;
                 $audioDuration = $shot['audioDuration'] ?? null;
             }
 
-            // For Multitalk: use audio duration + padding for smooth transitions
+            // For Multitalk/InfiniteTalk: use audio duration + padding for smooth transitions
             // For other models: use selected/shot duration
-            if ($selectedModel === 'multitalk' && $audioDuration) {
+            if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && $audioDuration) {
                 // Add 0.5 second padding at the end for smooth shot transitions
                 $endPadding = 0.5;
                 $duration = ceil($audioDuration + $endPadding);
@@ -29171,26 +29192,27 @@ PROMPT;
                 'imageUrl' => substr($shot['imageUrl'], 0, 80) . '...',
             ]);
 
-            // Validate audio availability for Multitalk
-            if ($selectedModel === 'multitalk' && empty($audioUrl)) {
+            // Validate audio availability for Multitalk/InfiniteTalk
+            if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && empty($audioUrl)) {
+                $modelName = $selectedModel === 'infinitetalk' ? 'InfiniteTalk' : 'Multitalk';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = __('Multitalk requires audio');
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = __("{$modelName} requires audio");
                 $this->isLoading = false;
                 $this->dispatch('generation-error', [
-                    'message' => __('Multitalk requires audio. Please generate voiceover first.'),
-                    'type' => 'multitalk_no_audio',
+                    'message' => __("{$modelName} requires audio. Please generate voiceover first."),
+                    'type' => 'lipsync_no_audio',
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIndex,
                 ]);
-                \Log::warning('Multitalk selected but no audio available', [
+                \Log::warning("{$modelName} selected but no audio available", [
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIndex,
                 ]);
                 return;
             }
 
-            if ($selectedModel === 'multitalk') {
-                \Log::info('🎬 Multitalk audio URL found', ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
+            if (in_array($selectedModel, ['multitalk', 'infinitetalk'])) {
+                \Log::info("🎬 {$selectedModel} audio URL found", ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
             }
 
             if ($this->projectId) {
@@ -29262,10 +29284,13 @@ PROMPT;
 
                             // Estimate rendering time based on model and duration
                             // Multitalk: ~50-60 seconds per second of video (frame-by-frame lip-sync)
+                            // InfiniteTalk: ~40-50 seconds per second of video (unlimited-length lip-sync)
                             // MiniMax: ~30-45 seconds per second of video
-                            $estimatedSeconds = $selectedModel === 'multitalk'
-                                ? ($audioDuration ?? $duration) * 55 // ~55 sec per sec for Multitalk
-                                : $duration * 35; // ~35 sec per sec for MiniMax
+                            $estimatedSeconds = match ($selectedModel) {
+                                'multitalk' => ($audioDuration ?? $duration) * 55,
+                                'infinitetalk' => ($audioDuration ?? $duration) * 45,
+                                default => $duration * 35,
+                            };
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEstimatedSeconds'] = (int) $estimatedSeconds;
 
                             \Log::info('🎬 Video task submitted - dispatching video-generation-started', [

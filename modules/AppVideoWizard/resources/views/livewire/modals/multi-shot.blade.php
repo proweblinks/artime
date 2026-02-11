@@ -1301,6 +1301,7 @@ window.multiShotVideoPolling = function() {
                 $curModel = $selShot['selectedVideoModel'] ?? 'minimax';
                 $curDur = $selShot['selectedDuration'] ?? $selShot['duration'] ?? 6;
                 $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
+                $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
                 $hasAudio = !empty($selShot['audioUrl']) && ($selShot['audioStatus'] ?? '') === 'ready';
                 $audioGenerating = ($selShot['audioStatus'] ?? '') === 'generating';
                 $needsLipSync = $selShot['needsLipSync'] ?? false;
@@ -1445,8 +1446,35 @@ window.multiShotVideoPolling = function() {
 
                     @if($needsLipSync && !$hasAudio)
                         <div class="msm-lipsync-hint">
-                            💡 {{ __('Character speaks on-screen - generate voiceover for MultiTalk lip-sync') }}
+                            💡 {{ __('Character speaks on-screen - generate voiceover for lip-sync') }}
                         </div>
+                    @endif
+                @endif
+            </div>
+
+            {{-- InfiniteTalk Option --}}
+            <div class="msm-model-opt msm-model-infinitetalk {{ $curModel === 'infinitetalk' ? 'active' : '' }} {{ !$itAvail ? 'disabled' : '' }}">
+                <div class="msm-model-header-row" @if($itAvail) wire:click="setVideoModel('infinitetalk')" @endif>
+                    <div class="msm-radio {{ $curModel === 'infinitetalk' ? 'checked' : '' }}"></div>
+                    <div>
+                        <strong>InfiniteTalk</strong>
+                        <span class="msm-badge-lip">Lip-Sync</span>
+                        <span class="msm-badge-new" style="background:#eab308;color:#000;font-size:0.6rem;padding:1px 4px;border-radius:3px;margin-left:4px;">NEW</span>
+                    </div>
+                    @if(!$itAvail)<span class="msm-warn">⚠️ {{ __('Not configured') }}</span>@endif
+                </div>
+
+                @if($itAvail)
+                    <span class="msm-model-desc" style="font-size:0.75rem;color:rgba(255,255,255,0.5);padding-left:28px;">{{ __('Unlimited-length talking video with lip-sync') }}</span>
+                    @if($hasAudio)
+                        <div class="msm-audio-ready" style="padding-left:28px;">
+                            <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
+                            @if($selShot['audioDuration'] ?? null)
+                                <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
+                            @endif
+                        </div>
+                    @elseif(!$hasAudio && !$audioGenerating)
+                        <span class="msm-audio-hint" style="padding-left:28px;font-size:0.7rem;">{{ __('Requires voiceover audio') }}</span>
                     @endif
                 @endif
             </div>
@@ -1462,9 +1490,9 @@ window.multiShotVideoPolling = function() {
             </div>
 
             {{-- Generate Animation Button --}}
-            @if($curModel === 'multitalk' && !$hasAudio)
+            @if(($curModel === 'multitalk' || $curModel === 'infinitetalk') && !$hasAudio)
                 <button type="button" disabled class="msm-gen-anim-btn msm-btn-disabled">
-                    🎬 {{ __('Generate voice first to use Multitalk') }}
+                    🎬 {{ __('Generate voice first to use lip-sync') }}
                 </button>
             @else
                 <button type="button" wire:click.stop.prevent="confirmVideoModelAndGenerate" wire:loading.attr="disabled" wire:target="confirmVideoModelAndGenerate" class="msm-gen-anim-btn">

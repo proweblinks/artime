@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Models\WizardProject;
  * Supports multiple video animation providers:
  * - MiniMax (video-01): Standard I2V animation
  * - Multitalk (RunPod): Lip-sync animation for dialogue scenes
+ * - InfiniteTalk (RunPod): Unlimited-length talking video with lip-sync
  */
 class AnimationService
 {
@@ -39,6 +40,15 @@ class AnimationService
             'description' => 'Lip-sync for dialogue scenes',
             'durations' => [5, 10, 15, 20],
             'defaultDuration' => 5,
+            'supportsLipSync' => true,
+            'provider' => 'runpod',
+            'requiresAudio' => true,
+        ],
+        'infinitetalk' => [
+            'name' => 'InfiniteTalk',
+            'description' => 'Unlimited-length talking video with lip-sync',
+            'durations' => [5, 10, 15, 30, 60],
+            'defaultDuration' => 10,
             'supportsLipSync' => true,
             'provider' => 'runpod',
             'requiresAudio' => true,
@@ -74,7 +84,9 @@ class AnimationService
 
         // Route to appropriate provider
         try {
-            if ($modelConfig['provider'] === 'runpod' && $model === 'multitalk') {
+            if ($model === 'infinitetalk') {
+                return $this->generateWithInfiniteTalk($project, $imageUrl, $prompt, $audioUrl, $duration, $options);
+            } elseif ($modelConfig['provider'] === 'runpod' && $model === 'multitalk') {
                 return $this->generateWithMultitalk($project, $imageUrl, $prompt, $audioUrl, $duration);
             } else {
                 return $this->generateWithMiniMax($project, $imageUrl, $prompt, $duration);
@@ -275,17 +287,56 @@ class AnimationService
     }
 
     /**
+     * Generate lip-sync animation using InfiniteTalk via RunPod.
+     */
+    protected function generateWithInfiniteTalk(
+        WizardProject $project,
+        string $imageUrl,
+        string $prompt,
+        ?string $audioUrl,
+        int $duration,
+        array $options = []
+    ): array {
+        if (empty($audioUrl)) {
+            return $this->errorResponse('Audio URL is required for InfiniteTalk lip-sync animation');
+        }
+
+        $infiniteTalkService = new InfiniteTalkService();
+
+        return $infiniteTalkService->generate($project, $imageUrl, $audioUrl, [
+            'prompt' => $prompt ?: 'A person is talking in a natural way with smooth lip movements.',
+            'input_type' => $options['input_type'] ?? 'image',
+            'person_count' => $options['person_count'] ?? 'single',
+            'width' => $options['width'] ?? 512,
+            'height' => $options['height'] ?? 512,
+            'max_frame' => $options['max_frame'] ?? null,
+            'audio_url_2' => $options['audio_url_2'] ?? null,
+        ]);
+    }
+
+    /**
+     * Get InfiniteTalk/RunPod task status.
+     */
+    protected function getInfiniteTalkStatus(string $taskId, ?string $endpointId = null): array
+    {
+        $infiniteTalkService = new InfiniteTalkService();
+        return $infiniteTalkService->getJobStatus($taskId, $endpointId);
+    }
+
+    /**
      * Check the status of a video generation task.
      *
      * @param string $taskId The task/job ID
-     * @param string $provider The provider (minimax or multitalk)
-     * @param string|null $endpointId RunPod endpoint ID (for multitalk)
+     * @param string $provider The provider (minimax, multitalk, or infinitetalk)
+     * @param string|null $endpointId RunPod endpoint ID (for multitalk/infinitetalk)
      * @return array Status information
      */
     public function getTaskStatus(string $taskId, string $provider, ?string $endpointId = null): array
     {
         try {
-            if ($provider === 'multitalk') {
+            if ($provider === 'infinitetalk') {
+                return $this->getInfiniteTalkStatus($taskId, $endpointId);
+            } elseif ($provider === 'multitalk') {
                 return $this->getMultitalkStatus($taskId, $endpointId);
             } else {
                 return $this->getMiniMaxStatus($taskId);
@@ -529,7 +580,10 @@ class AnimationService
             $available = true;
 
             // Check provider availability
-            if ($config['provider'] === 'runpod') {
+            if ($key === 'infinitetalk') {
+                $endpointId = (string) get_option('runpod_infinitetalk_endpoint', '');
+                $available = !empty($endpointId) && $this->runPodService->isConfigured();
+            } elseif ($config['provider'] === 'runpod') {
                 $endpointId = (string) get_option('runpod_multitalk_endpoint', '');
                 $available = !empty($endpointId) && $this->runPodService->isConfigured();
             }
@@ -547,9 +601,15 @@ class AnimationService
      */
     public function getRecommendedModel(array $shot): string
     {
-        // If shot has dialogue/audio, recommend Multitalk
+        // If shot has dialogue/audio, recommend lip-sync models
         if (!empty($shot['audioUrl']) || !empty($shot['dialogueAudio']) || !empty($shot['voiceoverUrl'])) {
+            // Prefer InfiniteTalk for longer audio, Multitalk for shorter
+            $infinitetalkAvailable = !empty(get_option('runpod_infinitetalk_endpoint', ''));
             $multitalkAvailable = !empty(get_option('runpod_multitalk_endpoint', ''));
+
+            if ($infinitetalkAvailable) {
+                return 'infinitetalk';
+            }
             if ($multitalkAvailable) {
                 return 'multitalk';
             }
