@@ -492,6 +492,241 @@ class EnterpriseToolService
         return $this->executeAnalysis('revenue_automation', $channelUrl, $prompt);
     }
 
+    // ── TikTok Tools ──────────────────────────────────────────────
+
+    /**
+     * Build TikTok hashtag strategy for a niche.
+     */
+    public function analyzeTiktokHashtagStrategy(string $niche, string $contentType = ''): array
+    {
+        $ctLine = $contentType ? " Content type: {$contentType}." : '';
+
+        $prompt = "You are a TikTok marketing expert specializing in hashtag strategy and discoverability. "
+            . "Analyze the niche and build a comprehensive hashtag strategy.\n\n"
+            . "Niche: {$niche}{$ctLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"hashtag_score":0,'
+            . '"primary_hashtags":[{"tag":"#tag","avg_views":"","competition":"low|medium|high","trending":true}],'
+            . '"secondary_hashtags":[{"tag":"#tag","avg_views":"","purpose":""}],'
+            . '"hashtag_sets":[{"name":"Set name","tags":["#tag1","#tag2"],"best_for":"","estimated_reach":""}],'
+            . '"trending_now":[{"tag":"#tag","growth_rate":"","peak_window":""}],'
+            . '"strategy_tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 8-10 primary hashtags, 5-8 secondary, 3-4 hashtag sets, and 3-5 trending. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_hashtag_strategy', $niche, $prompt);
+    }
+
+    /**
+     * Analyze TikTok SEO for a profile/caption.
+     */
+    public function analyzeTiktokSeo(string $profile, string $caption = ''): array
+    {
+        $capLine = $caption ? "\nCaption to analyze: {$caption}" : '';
+
+        $prompt = "You are a TikTok SEO expert. Analyze this profile's discoverability and provide optimization recommendations.\n\n"
+            . "Profile: {$profile}{$capLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"seo_score":0,'
+            . '"profile_analysis":{"bio_score":0,"username_score":0,"keyword_density":"","improvements":[""]},'
+            . '"caption_analysis":{"readability":"","keyword_usage":"","cta_present":true,"hashtag_placement":""},'
+            . '"keyword_opportunities":[{"keyword":"","search_volume":"","competition":"low|medium|high","recommendation":""}],'
+            . '"content_pillars":[{"topic":"","search_demand":"","content_ideas":[""]}],'
+            . '"optimization_tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 6-8 keyword opportunities and 3-4 content pillars. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_seo_analyzer', $profile, $prompt);
+    }
+
+    /**
+     * Optimize posting times for a TikTok profile.
+     */
+    public function analyzeTiktokPostingTime(string $profile, string $timezone = '', string $contentType = ''): array
+    {
+        $tzLine = $timezone ? " Timezone: {$timezone}." : '';
+        $ctLine = $contentType ? " Content type: {$contentType}." : '';
+
+        $prompt = "You are a TikTok analytics expert specializing in posting optimization. Analyze this creator's optimal posting schedule.\n\n"
+            . "Profile: {$profile}{$tzLine}{$ctLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"timing_score":0,'
+            . '"best_times":[{"day":"Monday","times":["9:00 AM","7:00 PM"],"engagement_level":"high|medium|low"}],'
+            . '"weekly_schedule":[{"day":"","post_count":0,"best_slots":[""],"content_type":""}],'
+            . '"peak_hours":{"weekday":[""],"weekend":[""]},'
+            . '"avoid_times":[{"time":"","reason":""}],'
+            . '"frequency_recommendation":{"posts_per_day":0,"posts_per_week":0,"reasoning":""},'
+            . '"tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nProvide data for all 7 days. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_posting_time', $profile, $prompt);
+    }
+
+    /**
+     * Analyze a TikTok hook for retention.
+     */
+    public function analyzeTiktokHook(string $hookText, string $niche = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+
+        $prompt = "You are a TikTok content expert specializing in viewer retention and hook psychology. Analyze this hook and provide improvements.\n\n"
+            . "Hook text: {$hookText}{$nicheLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"hook_score":0,'
+            . '"analysis":{"attention_grab":0,"curiosity_gap":0,"emotional_trigger":0,"clarity":0,"pacing":""},'
+            . '"strengths":[""],'
+            . '"weaknesses":[""],'
+            . '"improved_versions":[{"hook":"","style":"","why_better":""}],'
+            . '"hook_formulas":[{"name":"","template":"","example":""}],'
+            . '"retention_tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nScore all sub-scores 0-100. Generate 3-5 improved versions and 3-4 hook formulas. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_hook_analyzer', $hookText, $prompt);
+    }
+
+    /**
+     * Analyze trending sounds for a TikTok niche.
+     */
+    public function analyzeTiktokSoundTrends(string $niche, string $contentStyle = ''): array
+    {
+        $csLine = $contentStyle ? " Content style: {$contentStyle}." : '';
+
+        $prompt = "You are a TikTok audio trends expert. Analyze trending sounds and recommend audio strategies for this niche.\n\n"
+            . "Niche: {$niche}{$csLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"sound_score":0,'
+            . '"trending_sounds":[{"name":"","artist":"","usage_count":"","growth_rate":"","peak_status":"rising|peak|declining","best_for":""}],'
+            . '"emerging_sounds":[{"name":"","current_usage":"","predicted_peak":"","why_trending":""}],'
+            . '"evergreen_sounds":[{"name":"","category":"","best_use_case":""}],'
+            . '"sound_strategy":{"original_vs_trending":"","timing":"","niche_fit":""},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 6-8 trending sounds, 3-5 emerging, and 3-4 evergreen. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_sound_trends', $niche, $prompt);
+    }
+
+    /**
+     * Predict viral potential of TikTok content.
+     */
+    public function analyzeTiktokViralPotential(string $contentDescription, string $niche = '', string $followerCount = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $prompt = "You are a TikTok viral content analyst. Predict the viral potential of this content concept and provide optimization suggestions.\n\n"
+            . "Content concept: {$contentDescription}{$nicheLine}{$fcLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"viral_score":0,'
+            . '"prediction":{"estimated_views":"","confidence":"","viral_probability":""},'
+            . '"viral_signals":[{"signal":"","score":0,"analysis":""}],'
+            . '"strengths":[""],'
+            . '"risks":[""],'
+            . '"optimization_suggestions":[{"area":"","current":"","suggested":"","impact":"high|medium|low"}],'
+            . '"similar_viral_content":[{"description":"","views":"","why_viral":""}],'
+            . '"tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nGenerate 5-7 viral signals, 3-5 optimization suggestions, and 2-3 similar viral examples. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_viral_predictor', $contentDescription, $prompt);
+    }
+
+    /**
+     * Calculate TikTok Creator Fund earnings.
+     */
+    public function analyzeTiktokCreatorFund(string $profile, string $avgViews = '', string $followerCount = ''): array
+    {
+        $avLine = $avgViews ? " Average views: {$avgViews}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $prompt = "You are a TikTok monetization expert specializing in Creator Fund and Creativity Program. Calculate earnings and optimize revenue for this creator.\n\n"
+            . "Profile: {$profile}{$avLine}{$fcLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"fund_score":0,'
+            . '"earnings_estimate":{"daily":"","weekly":"","monthly":"","yearly":""},'
+            . '"fund_breakdown":{"creativity_program":"","creator_fund":"","estimated_rpm":""},'
+            . '"eligibility":{"status":"","requirements_met":[""],"requirements_missing":[""]},'
+            . '"revenue_comparison":[{"source":"","estimated_monthly":"","difficulty":"easy|medium|hard","status":"active|potential"}],'
+            . '"optimization_tips":[{"tip":"","potential_increase":"","effort":"easy|medium|hard"}],'
+            . '"growth_milestones":[{"followers":"","estimated_monthly":"","unlock":""}]'
+            . '}'
+            . "\n\nGenerate 4-5 revenue comparisons, 4-5 optimization tips, and 3-4 milestones. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_creator_fund', $profile, $prompt);
+    }
+
+    /**
+     * Plan duet and stitch opportunities for a TikTok creator.
+     */
+    public function analyzeTiktokDuetStitch(string $profile, string $niche = '', string $goal = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $goalLine = $goal ? " Goal: {$goal}." : '';
+
+        $prompt = "You are a TikTok collaboration strategist. Find the best duet and stitch opportunities for this creator.\n\n"
+            . "Profile: {$profile}{$nicheLine}{$goalLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"collaboration_score":0,'
+            . '"duet_opportunities":[{"creator":"","followers":"","content_type":"","engagement_rate":"","duet_idea":"","potential_reach":""}],'
+            . '"stitch_opportunities":[{"creator":"","video_topic":"","stitch_angle":"","why_effective":""}],'
+            . '"trending_duets":[{"trend":"","how_to_participate":"","timing":""}],'
+            . '"strategy":{"frequency":"","best_times":"","content_mix":""},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 5-6 duet opportunities, 4-5 stitch opportunities, and 3-4 trending duets. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_duet_stitch', $profile, $prompt);
+    }
+
+    /**
+     * Find brand partnership opportunities for a TikTok creator.
+     */
+    public function analyzeTiktokBrandPartnership(string $profile, string $niche = '', string $followerCount = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $prompt = "You are a TikTok brand partnerships expert. Find brand matches and create outreach strategies for this creator.\n\n"
+            . "Profile: {$profile}{$nicheLine}{$fcLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"partnership_score":0,'
+            . '"brand_matches":[{"brand":"","industry":"","match_score":0,"deal_type":"","estimated_rate":"","why_match":""}],'
+            . '"pitch_templates":[{"brand_type":"","subject_line":"","pitch_body":"","key_metrics_to_include":[""]}],'
+            . '"rate_card":{"sponsored_post":"","brand_integration":"","series_deal":"","affiliate":""},'
+            . '"outreach_strategy":{"best_platforms":[""],"timing":"","follow_up":""},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 6-8 brand matches and 2-3 pitch templates. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_brand_partnership', $profile, $prompt);
+    }
+
+    /**
+     * Optimize TikTok Shop strategy.
+     */
+    public function analyzeTiktokShop(string $profile, string $productType = '', string $priceRange = ''): array
+    {
+        $ptLine = $productType ? " Product type: {$productType}." : '';
+        $prLine = $priceRange ? " Price range: {$priceRange}." : '';
+
+        $prompt = "You are a TikTok Shop optimization expert. Analyze this shop and provide product, affiliate, and content strategies.\n\n"
+            . "Profile/Shop: {$profile}{$ptLine}{$prLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"shop_score":0,'
+            . '"shop_overview":{"estimated_revenue":"","product_count":"","top_category":"","conversion_rate":""},'
+            . '"product_recommendations":[{"product":"","category":"","price_range":"","demand_level":"high|medium|low","competition":"low|medium|high","profit_margin":""}],'
+            . '"affiliate_opportunities":[{"product":"","commission_rate":"","avg_sales":"","content_angle":""}],'
+            . '"content_strategy":[{"content_type":"","product_showcase":"","estimated_conversion":"","example":""}],'
+            . '"pricing_optimization":{"current_assessment":"","recommendations":[""]},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 5-6 product recommendations, 4-5 affiliate opportunities, and 3-4 content strategies. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('tiktok_shop_optimizer', $profile, $prompt);
+    }
+
     /**
      * Core execution: call AI, parse result, save history.
      */

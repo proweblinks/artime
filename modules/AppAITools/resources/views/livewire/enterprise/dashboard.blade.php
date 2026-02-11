@@ -274,6 +274,8 @@
         .aith-e-icon-yellow-orange { background: linear-gradient(135deg, #eab308, #f97316); }
         .aith-e-icon-teal-cyan { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
         .aith-e-icon-rose-pink { background: linear-gradient(135deg, #f43f5e, #ec4899); }
+        .aith-e-icon-cyan-teal { background: linear-gradient(135deg, #06b6d4, #0d9488); }
+        .aith-e-icon-yellow-amber { background: linear-gradient(135deg, #eab308, #d97706); }
 
         /* Command Palette */
         .aith-e-palette-overlay {
@@ -674,6 +676,17 @@
                         'brand-deal-matchmaker'   => 'aith-e-icon-rose-pink',
                         'licensing-scout'         => 'aith-e-icon-teal-cyan',
                         'revenue-automation'      => 'aith-e-icon-orange-red',
+                        // TikTok
+                        'tiktok-hashtag-strategy'   => 'aith-e-icon-cyan-teal',
+                        'tiktok-seo-analyzer'       => 'aith-e-icon-blue-indigo',
+                        'tiktok-posting-time'       => 'aith-e-icon-amber-orange',
+                        'tiktok-hook-analyzer'      => 'aith-e-icon-yellow-amber',
+                        'tiktok-sound-trends'       => 'aith-e-icon-pink-rose',
+                        'tiktok-viral-predictor'    => 'aith-e-icon-purple-violet',
+                        'tiktok-creator-fund'       => 'aith-e-icon-green-emerald',
+                        'tiktok-duet-stitch'        => 'aith-e-icon-indigo-purple',
+                        'tiktok-brand-partnership'  => 'aith-e-icon-rose-pink',
+                        'tiktok-shop-optimizer'     => 'aith-e-icon-orange-red',
                     ];
                     $badgeClasses = [
                         'optimization'  => 'aith-e-badge-optimization',

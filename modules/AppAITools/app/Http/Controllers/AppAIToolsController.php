@@ -96,6 +96,17 @@ class AppAIToolsController extends Controller
             'brand-deal-matchmaker'     => ['component' => 'enterprise.brand-deal-matchmaker',     'title' => 'Brand Deal Matchmaker'],
             'licensing-scout'           => ['component' => 'enterprise.licensing-scout',           'title' => 'Licensing & Syndication Scout'],
             'revenue-automation'        => ['component' => 'enterprise.revenue-automation',        'title' => 'Revenue Automation Pipeline'],
+            // TikTok
+            'tiktok-hashtag-strategy'   => ['component' => 'enterprise.tiktok-hashtag-strategy',   'title' => 'Hashtag Strategy Builder'],
+            'tiktok-seo-analyzer'       => ['component' => 'enterprise.tiktok-seo-analyzer',       'title' => 'TikTok SEO Analyzer'],
+            'tiktok-posting-time'       => ['component' => 'enterprise.tiktok-posting-time',       'title' => 'Posting Time Optimizer'],
+            'tiktok-hook-analyzer'      => ['component' => 'enterprise.tiktok-hook-analyzer',      'title' => 'Hook Analyzer'],
+            'tiktok-sound-trends'       => ['component' => 'enterprise.tiktok-sound-trends',       'title' => 'Sound Trend Analyzer'],
+            'tiktok-viral-predictor'    => ['component' => 'enterprise.tiktok-viral-predictor',    'title' => 'Viral Content Predictor'],
+            'tiktok-creator-fund'       => ['component' => 'enterprise.tiktok-creator-fund',       'title' => 'Creator Fund Calculator'],
+            'tiktok-duet-stitch'        => ['component' => 'enterprise.tiktok-duet-stitch',        'title' => 'Duet & Stitch Planner'],
+            'tiktok-brand-partnership'  => ['component' => 'enterprise.tiktok-brand-partnership',  'title' => 'Brand Partnership Finder'],
+            'tiktok-shop-optimizer'     => ['component' => 'enterprise.tiktok-shop-optimizer',     'title' => 'TikTok Shop Optimizer'],
         ];
 
         if (!isset($enterpriseToolMap[$tool])) {
