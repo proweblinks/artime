@@ -96,6 +96,18 @@ class AppAIToolsServiceProvider extends ServiceProvider
         Livewire::component('app-ai-tools::enterprise.brand-deal-matchmaker', \Modules\AppAITools\Livewire\Enterprise\BrandDealMatchmaker::class);
         Livewire::component('app-ai-tools::enterprise.licensing-scout', \Modules\AppAITools\Livewire\Enterprise\LicensingScout::class);
         Livewire::component('app-ai-tools::enterprise.revenue-automation', \Modules\AppAITools\Livewire\Enterprise\RevenueAutomation::class);
+
+        // TikTok Enterprise tools
+        Livewire::component('app-ai-tools::enterprise.tiktok-hashtag-strategy', \Modules\AppAITools\Livewire\Enterprise\TiktokHashtagStrategy::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-seo-analyzer', \Modules\AppAITools\Livewire\Enterprise\TiktokSeoAnalyzer::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-posting-time', \Modules\AppAITools\Livewire\Enterprise\TiktokPostingTime::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-hook-analyzer', \Modules\AppAITools\Livewire\Enterprise\TiktokHookAnalyzer::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-sound-trends', \Modules\AppAITools\Livewire\Enterprise\TiktokSoundTrends::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-viral-predictor', \Modules\AppAITools\Livewire\Enterprise\TiktokViralPredictor::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-creator-fund', \Modules\AppAITools\Livewire\Enterprise\TiktokCreatorFund::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-duet-stitch', \Modules\AppAITools\Livewire\Enterprise\TiktokDuetStitch::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-brand-partnership', \Modules\AppAITools\Livewire\Enterprise\TiktokBrandPartnership::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-shop-optimizer', \Modules\AppAITools\Livewire\Enterprise\TiktokShopOptimizer::class);
     }
 
     /**
