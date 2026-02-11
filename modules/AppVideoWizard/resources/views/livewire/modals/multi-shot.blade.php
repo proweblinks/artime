@@ -186,12 +186,13 @@ window.multiShotVideoPolling = function() {
                     $hasVariableDurations = count(array_unique(array_column($decomposed['shots'], 'duration'))) > 1;
                     $lipSyncCount = collect($decomposed['shots'])->filter(fn($s) => $s['needsLipSync'] ?? false)->count();
                     // Speech type determines if character lips move on screen
-                    $speechType = $scene['voiceover']['speechType'] ?? $scene['speechType'] ?? 'narrator';
+                    $speechType = $scene['speechType'] ?? $scene['voiceover']['speechType'] ?? 'narrator';
                     $speechTypeLabels = [
                         'narrator' => ['label' => '🎙️ Narrator', 'class' => 'msm-speech-narrator', 'desc' => 'External voiceover (no lip movement)'],
                         'internal' => ['label' => '💭 Internal', 'class' => 'msm-speech-internal', 'desc' => 'Character thoughts (no lip movement)'],
                         'monologue' => ['label' => '🗣️ Monologue', 'class' => 'msm-speech-monologue', 'desc' => 'Character speaks aloud (lips move)'],
                         'dialogue' => ['label' => '💬 Dialogue', 'class' => 'msm-speech-dialogue', 'desc' => 'Characters talking (lips move)'],
+                        'mixed' => ['label' => '🎭 Mixed', 'class' => 'msm-speech-mixed', 'desc' => 'Mix of dialogue, monologue, and narration'],
                     ];
                     $speechInfo = $speechTypeLabels[$speechType] ?? $speechTypeLabels['narrator'];
                 @endphp
@@ -969,7 +970,9 @@ window.multiShotVideoPolling = function() {
 
                                         // Determine what badges to show
                                         $showDialogueBadge = $actualNeedsLipSync && ($shotDialogue || $shotMonologue || $hasDialogueSegment);
-                                        $showNarratorBadge = !empty($shotNarration) || $hasNarratorOverlay || $hasNarratorSegment;
+                                        // Only show narrator badge when narrator text is meaningful (>5 words), not just overlay fragments
+                                        $narratorWordCount = str_word_count($shotNarration ?? '');
+                                        $showNarratorBadge = ($narratorWordCount > 5) || ($hasNarratorSegment && !$hasDialogueSegment && !$showDialogueBadge);
                                         $showInternalBadge = $hasInternalOverlay || !empty($internalText) || $hasInternalSegment;
 
                                         // For narrator-only shots (no dialogue)
@@ -977,13 +980,14 @@ window.multiShotVideoPolling = function() {
                                         $isInternalOnly = ($primarySegmentType === 'internal' || ($hasInternalSegment && !$hasDialogueSegment)) && !$showDialogueBadge;
                                     @endphp
                                     <div class="msm-speech-badge-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem;">
+                                        @php $speakerName = $shot['speaker'] ?? $shot['speakingCharacter'] ?? $shot['characterName'] ?? null; @endphp
                                         {{-- PRIMARY: Dialogue/Monologue badge (Multitalk lip-sync) --}}
                                         @if($showDialogueBadge)
-                                            <span class="msm-speech-type-badge dialogue" title="{{ $dialogueTooltipText }}" style="cursor: help;">💬 {{ __('Dialogue') }}</span>
+                                            <span class="msm-speech-type-badge dialogue" title="{{ $dialogueTooltipText }}" style="cursor: help;">💬 {{ $speakerName ?: __('Dialogue') }}</span>
                                             <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(236, 72, 153, 0.3); color: #f9a8d4; border-radius: 0.2rem;">Multitalk</span>
                                         @elseif($shotMonologue || $shotDialogue)
                                             {{-- Monologue without lip-sync flag (TTS only) --}}
-                                            <span class="msm-speech-type-badge monologue" title="{{ $dialogueTooltipText }}" style="cursor: help;">🗣️ {{ __('Monologue') }}</span>
+                                            <span class="msm-speech-type-badge monologue" title="{{ $dialogueTooltipText }}" style="cursor: help;">🗣️ {{ $speakerName ?: __('Monologue') }}</span>
                                             <span style="font-size: 0.5rem; padding: 0.1rem 0.25rem; background: rgba(14, 165, 233, 0.3); color: #7dd3fc; border-radius: 0.2rem;">TTS</span>
                                         @endif
 

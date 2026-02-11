@@ -364,6 +364,12 @@
                             @php
                                 $voiceText = $shot['dialogue'] ?? $shot['monologue'] ?? $shot['narration'] ?? null;
                                 $emotion = $shot['emotion'] ?? $shot['emotionalTone'] ?? null;
+                                // Filter out non-voice emotions that leak from shot purpose fields
+                                $nonVoiceEmotions = ['focus', 'neutral', 'anticipation', 'recognition', 'urgency',
+                                    'tension', 'confrontation', 'revelation', 'realization', 'determination'];
+                                if ($emotion && in_array(strtolower($emotion), $nonVoiceEmotions)) {
+                                    $emotion = null;
+                                }
                                 $enhancedPrompt = null;
                                 if ($voiceText) {
                                     $enhancedPrompt = \Modules\AppVideoWizard\Services\VoicePromptBuilderService::buildSimpleEnhancedPrompt(

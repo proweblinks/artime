@@ -20802,6 +20802,17 @@ PROMPT;
             ];
         }
 
+        // Recalculate durations based on dialogue/narration text content
+        foreach ($shots as $idx => $shot) {
+            $textForDuration = $shot['dialogue'] ?? $shot['monologue'] ?? null;
+            if (!empty($textForDuration)) {
+                $textDuration = $this->calculateDurationFromText($textForDuration);
+                $shots[$idx]['duration'] = $textDuration;
+                $shots[$idx]['selectedDuration'] = $textDuration;
+                $shots[$idx]['durationClass'] = $this->getDurationClass($textDuration);
+            }
+        }
+
         return $shots;
     }
 
@@ -24435,7 +24446,59 @@ PROMPT;
         $wordCount = str_word_count($text);
         // 2.5 words per second + 1 second buffer for natural pacing
         $duration = ceil($wordCount / 2.5) + 1;
-        return max(3, (int) $duration); // Minimum 3 seconds
+        return max(3, min(15, (int) $duration)); // 3-15 seconds range
+    }
+
+    /**
+     * Split text into N roughly-equal chunks at sentence boundaries.
+     * Avoids mid-sentence cuts that create unnatural fragments.
+     *
+     * @param string $text Full text to split
+     * @param int $chunks Number of chunks to produce
+     * @return array Array of text chunks (may contain empty strings if fewer sentences than chunks)
+     */
+    protected function splitTextBySentenceBoundary(string $text, int $chunks): array
+    {
+        if ($chunks <= 1 || empty(trim($text))) {
+            return [trim($text)];
+        }
+
+        // Split into sentences (split on . ! ? … followed by space or end-of-string)
+        $sentences = preg_split('/(?<=[.!?…])\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (count($sentences) <= 1) {
+            // Single sentence: put it all in first chunk, pad rest with empty
+            return array_pad([trim($text)], $chunks, '');
+        }
+
+        // Calculate word counts per sentence
+        $sentenceWords = array_map(fn($s) => str_word_count($s), $sentences);
+        $totalWords = array_sum($sentenceWords);
+        $targetWordsPerChunk = $totalWords / $chunks;
+
+        // Distribute sentences to chunks, keeping word counts balanced
+        $result = array_fill(0, $chunks, '');
+        $chunkIdx = 0;
+        $currentChunkWords = 0;
+
+        foreach ($sentences as $i => $sentence) {
+            $sentenceWordCount = $sentenceWords[$i];
+
+            // Move to next chunk if current is above target and not at last chunk
+            if ($currentChunkWords > 0 && $chunkIdx < $chunks - 1) {
+                $wordsIfAdded = $currentChunkWords + $sentenceWordCount;
+                if ($currentChunkWords >= $targetWordsPerChunk &&
+                    abs($currentChunkWords - $targetWordsPerChunk) < abs($wordsIfAdded - $targetWordsPerChunk)) {
+                    $chunkIdx++;
+                    $currentChunkWords = 0;
+                }
+            }
+
+            $result[$chunkIdx] = trim($result[$chunkIdx] . ' ' . $sentence);
+            $currentChunkWords += $sentenceWordCount;
+        }
+
+        return $result;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -24483,31 +24546,20 @@ PROMPT;
         $shotCount = count($shots);
         $narratorCount = count($narratorSegments);
 
-        // Combine all narrator text for distribution
+        // Combine all narrator text for distribution using sentence-boundary splitting
         $allNarratorText = implode(' ', array_column($narratorSegments, 'text'));
-        $words = preg_split('/\s+/', trim($allNarratorText));
-        $totalWords = count($words);
-        $wordsPerShot = max(1, ceil($totalWords / $shotCount));
+        $chunks = $this->splitTextBySentenceBoundary($allNarratorText, $shotCount);
+        $totalWords = str_word_count($allNarratorText);
 
-        Log::info('Distributing narrator text across all shots', [
+        Log::info('Distributing narrator text across all shots (sentence-boundary)', [
             'sceneIndex' => $sceneIndex,
             'totalWords' => $totalWords,
             'shotCount' => $shotCount,
-            'wordsPerShot' => $wordsPerShot,
+            'chunks' => count($chunks),
         ]);
 
-        $wordIndex = 0;
         foreach ($shots as $shotIdx => $shot) {
-            // Calculate this shot's portion of narrator text
-            $shotWords = array_slice($words, $wordIndex, $wordsPerShot);
-            $wordIndex += $wordsPerShot;
-
-            // If we're at the last shot, include any remaining words
-            if ($shotIdx === $shotCount - 1 && $wordIndex < $totalWords) {
-                $shotWords = array_merge($shotWords, array_slice($words, $wordIndex));
-            }
-
-            $shotNarratorText = implode(' ', $shotWords);
+            $shotNarratorText = $chunks[$shotIdx] ?? '';
 
             // Create a narrator segment for this shot
             $shotNarrators = [];
@@ -24584,13 +24636,22 @@ PROMPT;
             }
         }
 
+        // Recalculate duration for shots with narrator text based on word count
+        foreach ($shots as $shotIdx => $shot) {
+            if (!empty($shot['narratorText']) && $shot['narratorText'] !== '[Narrator continues]') {
+                $textDuration = $this->calculateDurationFromText($shot['narratorText']);
+                $shots[$shotIdx]['duration'] = max($shot['duration'] ?? 3, $textDuration);
+                $shots[$shotIdx]['selectedDuration'] = $shots[$shotIdx]['duration'];
+            }
+        }
+
         Log::info('Distributed narrator text across ALL shots', [
             'sceneIndex' => $sceneIndex,
             'originalSegments' => $narratorCount,
             'totalWords' => $totalWords,
             'shotCount' => $shotCount,
             'shotsWithNarrator' => count(array_filter($shots, fn($s) => !empty($s['narratorOverlay']))),
-            'strategy' => 'word-split-to-all-shots',
+            'strategy' => 'sentence-boundary-split',
         ]);
 
         return $shots;
@@ -24614,9 +24675,19 @@ PROMPT;
         $sceneId = $scene['id'] ?? 'scene_' . $sceneIndex;
         $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
 
+        // Pre-split narrator text into chunks for duration calculation
+        $narrationText = $scene['narration'] ?? $scene['voiceover']['text'] ?? '';
+        $narratorChunks = !empty($narrationText)
+            ? $this->splitTextBySentenceBoundary($narrationText, $shotCount)
+            : array_fill(0, $shotCount, '');
+
         $shots = [];
         for ($i = 0; $i < $shotCount; $i++) {
             $shotType = $this->selectShotTypeForNarrator($i, $shotCount);
+            // Calculate duration from narrator text chunk (falls back to 3s minimum)
+            $chunkDuration = !empty($narratorChunks[$i])
+                ? $this->calculateDurationFromText($narratorChunks[$i])
+                : 3;
 
             $shots[] = [
                 'id' => "shot-{$sceneId}-narrator-{$i}",
@@ -24624,7 +24695,7 @@ PROMPT;
                 'index' => $i,
                 'type' => $shotType,
                 'shotType' => $shotType,
-                'duration' => 3,
+                'duration' => $chunkDuration,
                 'needsLipSync' => false, // No character speaking on-screen
                 'visualOnly' => true, // Flag for visual-only shot
                 'sceneContext' => $scene['description'] ?? $visualDescription,

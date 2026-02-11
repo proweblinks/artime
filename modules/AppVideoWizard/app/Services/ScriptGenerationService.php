@@ -1237,6 +1237,18 @@ PROMPT;
         $prompt .= "- Character names MUST match those in visualDescription\n";
         $prompt .= "- For simple narrator-only scenes, you can omit tags (defaults to narrator)\n\n";
 
+        // === CRITICAL REINFORCEMENT: SEGMENT MARKERS ===
+        $prompt .= "⚠️ CRITICAL - EVERY LINE of narration MUST start with a segment marker prefix.\n";
+        $prompt .= "CORRECT FORMAT:\n";
+        $prompt .= "[NARRATOR] The city was silent.\n";
+        $prompt .= "JACK: I need to find her.\n";
+        $prompt .= "[INTERNAL: JACK] Something wasn't right.\n\n";
+        $prompt .= "❌ WRONG - DO NOT write plain prose without markers:\n";
+        $prompt .= "The city was silent. Jack walked through the alley.\n";
+        $prompt .= "He needed to find her before it was too late.\n\n";
+        $prompt .= "If a scene has ANY character dialogue, you MUST use CHARACTER: prefix for their lines.\n";
+        $prompt .= "If a scene has narration, you MUST use [NARRATOR] prefix for those lines.\n\n";
+
         // === LAYER 15: OUTPUT FORMAT ===
         $prompt .= "=== OUTPUT FORMAT ===\n";
         $prompt .= "RESPOND WITH ONLY THIS JSON (no markdown code blocks, no explanation, just pure JSON):\n";
@@ -2728,13 +2740,23 @@ JSON;
                 // Parse segmented text directly
                 $parsed = $parser->parse($text, $scene['characterBible'] ?? []);
             } else {
-                // Migrate from legacy single-type format
-                $parsed = $parser->migrateFromLegacy([
-                    'voiceover' => $voiceover,
-                    'narration' => $narrationText,
-                    'speechType' => $voiceover['speechType'] ?? 'narrator',
-                    'characterBible' => $scene['characterBible'] ?? [],
-                ]);
+                // No segment markers found - attempt dialogue extraction before falling back to legacy
+                if ($this->looksLikeDialogue($text)) {
+                    $extracted = $this->attemptDialogueExtraction($text, $scene['characterBible'] ?? []);
+                    if (!empty($extracted)) {
+                        $parsed = $extracted;
+                    }
+                }
+
+                // Fall back to legacy migration if no dialogue was extracted
+                if (empty($parsed)) {
+                    $parsed = $parser->migrateFromLegacy([
+                        'voiceover' => $voiceover,
+                        'narration' => $narrationText,
+                        'speechType' => $voiceover['speechType'] ?? 'narrator',
+                        'characterBible' => $scene['characterBible'] ?? [],
+                    ]);
+                }
             }
 
             return array_map(function ($segment, $index) {
@@ -2783,6 +2805,154 @@ JSON;
             'order' => $segment['order'] ?? $index,
             'emotion' => $segment['emotion'] ?? null,
         ];
+    }
+
+    /**
+     * Check if unmarked text looks like it contains dialogue.
+     * Looks for quotation marks, "said/asked/replied" attribution patterns, or name: patterns.
+     */
+    protected function looksLikeDialogue(string $text): bool
+    {
+        // Check for quoted speech: "Hello," she said
+        if (preg_match('/"[^"]{5,}"/', $text)) {
+            return true;
+        }
+
+        // Check for speech attribution verbs
+        if (preg_match('/\b(said|asked|replied|whispered|shouted|exclaimed|muttered|yelled|called|answered)\b/i', $text)) {
+            return true;
+        }
+
+        // Check for name-colon patterns (e.g., "Jack: Hello")
+        if (preg_match('/^[A-Z][a-z]+\s*:/m', $text)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Attempt to extract dialogue segments from unmarked text.
+     * Handles patterns like: "Hello," Jack said. / Jack: "Hello" / JACK: Hello
+     *
+     * @param string $text Raw text without segment markers
+     * @param array $characterBible Character bible for name matching
+     * @return array Extracted speech segments, or empty if extraction fails
+     */
+    protected function attemptDialogueExtraction(string $text, array $characterBible): array
+    {
+        $segments = [];
+        $order = 0;
+
+        // Build character name list from bible
+        $characterNames = [];
+        foreach ($characterBible as $char) {
+            $name = $char['name'] ?? $char['characterName'] ?? null;
+            if ($name) {
+                $characterNames[] = preg_quote($name, '/');
+            }
+        }
+
+        // Split text into lines for processing
+        $lines = preg_split('/\n+/', trim($text));
+        $narratorBuffer = '';
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            $matched = false;
+
+            // Pattern 1: "NAME: text" (e.g., "JACK: I need to find her")
+            if (!empty($characterNames)) {
+                $namePattern = '/^(' . implode('|', $characterNames) . ')\s*:\s*(.+)$/i';
+                if (preg_match($namePattern, $line, $m)) {
+                    // Flush narrator buffer
+                    if (!empty(trim($narratorBuffer))) {
+                        $segments[] = [
+                            'type' => 'narrator',
+                            'text' => trim($narratorBuffer),
+                            'speaker' => null,
+                            'needsLipSync' => false,
+                            'order' => $order++,
+                        ];
+                        $narratorBuffer = '';
+                    }
+                    $segments[] = [
+                        'type' => 'dialogue',
+                        'text' => trim($m[2], '" '),
+                        'speaker' => ucfirst(strtolower($m[1])),
+                        'needsLipSync' => true,
+                        'order' => $order++,
+                    ];
+                    $matched = true;
+                }
+            }
+
+            // Pattern 2: Quoted speech with attribution: "Hello," Jack said.
+            if (!$matched && preg_match('/^"([^"]+)"\s*,?\s*([A-Z][a-z]+)\s+(said|asked|replied|whispered|shouted|exclaimed|muttered)/i', $line, $m)) {
+                if (!empty(trim($narratorBuffer))) {
+                    $segments[] = [
+                        'type' => 'narrator',
+                        'text' => trim($narratorBuffer),
+                        'speaker' => null,
+                        'needsLipSync' => false,
+                        'order' => $order++,
+                    ];
+                    $narratorBuffer = '';
+                }
+                $segments[] = [
+                    'type' => 'dialogue',
+                    'text' => trim($m[1]),
+                    'speaker' => $m[2],
+                    'needsLipSync' => true,
+                    'order' => $order++,
+                ];
+                $matched = true;
+            }
+
+            // Pattern 3: Attribution before quote: Jack said, "Hello"
+            if (!$matched && preg_match('/^([A-Z][a-z]+)\s+(said|asked|replied|whispered|shouted),?\s*"([^"]+)"/i', $line, $m)) {
+                if (!empty(trim($narratorBuffer))) {
+                    $segments[] = [
+                        'type' => 'narrator',
+                        'text' => trim($narratorBuffer),
+                        'speaker' => null,
+                        'needsLipSync' => false,
+                        'order' => $order++,
+                    ];
+                    $narratorBuffer = '';
+                }
+                $segments[] = [
+                    'type' => 'dialogue',
+                    'text' => trim($m[3]),
+                    'speaker' => $m[1],
+                    'needsLipSync' => true,
+                    'order' => $order++,
+                ];
+                $matched = true;
+            }
+
+            // No dialogue pattern matched - accumulate as narrator
+            if (!$matched) {
+                $narratorBuffer .= ' ' . $line;
+            }
+        }
+
+        // Flush remaining narrator buffer
+        if (!empty(trim($narratorBuffer))) {
+            $segments[] = [
+                'type' => 'narrator',
+                'text' => trim($narratorBuffer),
+                'speaker' => null,
+                'needsLipSync' => false,
+                'order' => $order++,
+            ];
+        }
+
+        // Only return if we found at least one dialogue segment
+        $hasDialogue = !empty(array_filter($segments, fn($s) => $s['type'] === 'dialogue'));
+        return $hasDialogue ? $segments : [];
     }
 
     /**
