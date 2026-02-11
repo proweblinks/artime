@@ -282,6 +282,9 @@
         .aith-e-icon-violet-pink { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
         .aith-e-icon-purple-fuchsia { background: linear-gradient(135deg, #a855f7, #d946ef); }
         .aith-e-icon-indigo-violet { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .aith-e-icon-red-blue { background: linear-gradient(135deg, #ef4444, #3b82f6); }
+        .aith-e-icon-violet-blue { background: linear-gradient(135deg, #8b5cf6, #3b82f6); }
+        .aith-e-icon-cyan-blue { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
 
         /* Command Palette */
         .aith-e-palette-overlay {
@@ -708,6 +711,19 @@
                         'ig-hashtag-tracker'        => 'aith-e-icon-cyan-teal',
                         'ig-aesthetic-analyzer'     => 'aith-e-icon-pink-rose',
                         'ig-shopping-optimizer'     => 'aith-e-icon-orange-red',
+                        // Facebook
+                        'fb-yt-reels-converter'     => 'aith-e-icon-red-blue',
+                        'fb-yt-arbitrage'           => 'aith-e-icon-violet-blue',
+                        'fb-reels-bonus'            => 'aith-e-icon-green-emerald',
+                        'fb-group-monetization'     => 'aith-e-icon-blue-indigo',
+                        'fb-ad-breaks'              => 'aith-e-icon-amber-orange',
+                        'fb-page-growth'            => 'aith-e-icon-cyan-blue',
+                        'fb-shop-optimizer'         => 'aith-e-icon-orange-red',
+                        'fb-content-recycler'       => 'aith-e-icon-teal-cyan',
+                        'fb-live-monetization'      => 'aith-e-icon-rose-pink',
+                        'fb-engagement-optimizer'   => 'aith-e-icon-purple-fuchsia',
+                        'fb-audience-insights'      => 'aith-e-icon-indigo-violet',
+                        'fb-posting-scheduler'      => 'aith-e-icon-yellow-amber',
                     ];
                     $badgeClasses = [
                         'optimization'  => 'aith-e-badge-optimization',

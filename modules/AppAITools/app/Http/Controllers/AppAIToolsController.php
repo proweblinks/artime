@@ -124,6 +124,20 @@ class AppAIToolsController extends Controller
             'ig-hashtag-tracker'        => ['component' => 'enterprise.ig-hashtag-tracker',         'title' => 'Hashtag Performance Tracker'],
             'ig-aesthetic-analyzer'     => ['component' => 'enterprise.ig-aesthetic-analyzer',      'title' => 'Aesthetic & Brand Analyzer'],
             'ig-shopping-optimizer'     => ['component' => 'enterprise.ig-shopping-optimizer',      'title' => 'Shopping Tag Optimizer'],
+            // Cross-Platform YouTube↔Facebook
+            'fb-yt-reels-converter'     => ['component' => 'enterprise.fb-yt-reels-converter',     'title' => 'YouTube → FB Reels Converter'],
+            'fb-yt-arbitrage'           => ['component' => 'enterprise.fb-yt-arbitrage',            'title' => 'Cross-Platform FB Arbitrage'],
+            // Facebook
+            'fb-reels-bonus'            => ['component' => 'enterprise.fb-reels-bonus',             'title' => 'Reels Play Bonus Optimizer'],
+            'fb-group-monetization'     => ['component' => 'enterprise.fb-group-monetization',      'title' => 'Group Monetization Planner'],
+            'fb-ad-breaks'              => ['component' => 'enterprise.fb-ad-breaks',               'title' => 'Ad Break Optimizer'],
+            'fb-page-growth'            => ['component' => 'enterprise.fb-page-growth',             'title' => 'Page Growth Analyzer'],
+            'fb-shop-optimizer'         => ['component' => 'enterprise.fb-shop-optimizer',          'title' => 'Shop Listing Optimizer'],
+            'fb-content-recycler'       => ['component' => 'enterprise.fb-content-recycler',        'title' => 'Content Format Recycler'],
+            'fb-live-monetization'      => ['component' => 'enterprise.fb-live-monetization',       'title' => 'Live Monetization Planner'],
+            'fb-engagement-optimizer'   => ['component' => 'enterprise.fb-engagement-optimizer',    'title' => 'Engagement Rate Optimizer'],
+            'fb-audience-insights'      => ['component' => 'enterprise.fb-audience-insights',       'title' => 'Audience Insights Analyzer'],
+            'fb-posting-scheduler'      => ['component' => 'enterprise.fb-posting-scheduler',       'title' => 'Posting Time Optimizer'],
         ];
 
         if (!isset($enterpriseToolMap[$tool])) {

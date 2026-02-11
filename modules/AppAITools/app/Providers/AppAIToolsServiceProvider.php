@@ -128,6 +128,22 @@ class AppAIToolsServiceProvider extends ServiceProvider
         Livewire::component('app-ai-tools::enterprise.ig-hashtag-tracker', \Modules\AppAITools\Livewire\Enterprise\IgHashtagTracker::class);
         Livewire::component('app-ai-tools::enterprise.ig-aesthetic-analyzer', \Modules\AppAITools\Livewire\Enterprise\IgAestheticAnalyzer::class);
         Livewire::component('app-ai-tools::enterprise.ig-shopping-optimizer', \Modules\AppAITools\Livewire\Enterprise\IgShoppingOptimizer::class);
+
+        // Cross-Platform YouTube↔Facebook tools
+        Livewire::component('app-ai-tools::enterprise.fb-yt-reels-converter', \Modules\AppAITools\Livewire\Enterprise\FbYtReelsConverter::class);
+        Livewire::component('app-ai-tools::enterprise.fb-yt-arbitrage', \Modules\AppAITools\Livewire\Enterprise\FbYtArbitrage::class);
+
+        // Facebook Enterprise tools
+        Livewire::component('app-ai-tools::enterprise.fb-reels-bonus', \Modules\AppAITools\Livewire\Enterprise\FbReelsBonus::class);
+        Livewire::component('app-ai-tools::enterprise.fb-group-monetization', \Modules\AppAITools\Livewire\Enterprise\FbGroupMonetization::class);
+        Livewire::component('app-ai-tools::enterprise.fb-ad-breaks', \Modules\AppAITools\Livewire\Enterprise\FbAdBreaks::class);
+        Livewire::component('app-ai-tools::enterprise.fb-page-growth', \Modules\AppAITools\Livewire\Enterprise\FbPageGrowth::class);
+        Livewire::component('app-ai-tools::enterprise.fb-shop-optimizer', \Modules\AppAITools\Livewire\Enterprise\FbShopOptimizer::class);
+        Livewire::component('app-ai-tools::enterprise.fb-content-recycler', \Modules\AppAITools\Livewire\Enterprise\FbContentRecycler::class);
+        Livewire::component('app-ai-tools::enterprise.fb-live-monetization', \Modules\AppAITools\Livewire\Enterprise\FbLiveMonetization::class);
+        Livewire::component('app-ai-tools::enterprise.fb-engagement-optimizer', \Modules\AppAITools\Livewire\Enterprise\FbEngagementOptimizer::class);
+        Livewire::component('app-ai-tools::enterprise.fb-audience-insights', \Modules\AppAITools\Livewire\Enterprise\FbAudienceInsights::class);
+        Livewire::component('app-ai-tools::enterprise.fb-posting-scheduler', \Modules\AppAITools\Livewire\Enterprise\FbPostingScheduler::class);
     }
 
     /**

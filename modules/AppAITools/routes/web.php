@@ -68,5 +68,21 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/enterprise-suite/ig-hashtag-tracker', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-hashtag-tracker')->defaults('tool', 'ig-hashtag-tracker');
         Route::get('/enterprise-suite/ig-aesthetic-analyzer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-aesthetic-analyzer')->defaults('tool', 'ig-aesthetic-analyzer');
         Route::get('/enterprise-suite/ig-shopping-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-shopping-optimizer')->defaults('tool', 'ig-shopping-optimizer');
+
+        // Cross-Platform YouTube↔Facebook Tools
+        Route::get('/enterprise-suite/fb-yt-reels-converter', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-yt-reels-converter')->defaults('tool', 'fb-yt-reels-converter');
+        Route::get('/enterprise-suite/fb-yt-arbitrage', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-yt-arbitrage')->defaults('tool', 'fb-yt-arbitrage');
+
+        // Facebook Enterprise Tools
+        Route::get('/enterprise-suite/fb-reels-bonus', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-reels-bonus')->defaults('tool', 'fb-reels-bonus');
+        Route::get('/enterprise-suite/fb-group-monetization', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-group-monetization')->defaults('tool', 'fb-group-monetization');
+        Route::get('/enterprise-suite/fb-ad-breaks', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-ad-breaks')->defaults('tool', 'fb-ad-breaks');
+        Route::get('/enterprise-suite/fb-page-growth', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-page-growth')->defaults('tool', 'fb-page-growth');
+        Route::get('/enterprise-suite/fb-shop-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-shop-optimizer')->defaults('tool', 'fb-shop-optimizer');
+        Route::get('/enterprise-suite/fb-content-recycler', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-content-recycler')->defaults('tool', 'fb-content-recycler');
+        Route::get('/enterprise-suite/fb-live-monetization', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-live-monetization')->defaults('tool', 'fb-live-monetization');
+        Route::get('/enterprise-suite/fb-engagement-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-engagement-optimizer')->defaults('tool', 'fb-engagement-optimizer');
+        Route::get('/enterprise-suite/fb-audience-insights', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-audience-insights')->defaults('tool', 'fb-audience-insights');
+        Route::get('/enterprise-suite/fb-posting-scheduler', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.fb-posting-scheduler')->defaults('tool', 'fb-posting-scheduler');
     });
 });

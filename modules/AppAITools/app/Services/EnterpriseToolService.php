@@ -1330,6 +1330,368 @@ class EnterpriseToolService
         return $this->executeAnalysis('ig_shopping_optimizer', $profile, $prompt);
     }
 
+    // ── Facebook Tools ─────────────────────────────────────────
+
+    /**
+     * Convert YouTube video to Facebook Reels strategy.
+     */
+    public function convertYoutubeToFbReels(string $youtubeUrl, string $reelsStyle = ''): array
+    {
+        $ytContext = $this->fetchYouTubeVideoContext($youtubeUrl);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above to ground your analysis. Reference actual view counts, tags, and content structure.";
+        }
+
+        $styleLine = $reelsStyle ? " Preferred Reels style: {$reelsStyle}." : '';
+
+        $prompt = "You are a cross-platform content strategist specializing in adapting YouTube content for Facebook Reels. "
+            . "Analyze this YouTube video and create a comprehensive Facebook Reels adaptation plan.\n\n"
+            . "YouTube URL: {$youtubeUrl}{$styleLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"adaptation_score":0,'
+            . '"video_overview":{"title":"","channel":"","views":"","duration":"","top_tags":[""],"content_type":""},'
+            . '"reels_adaptations":[{"segment":"","duration":"15s|30s|60s|90s","hook":"","caption":"","format":"talking_head|b-roll|montage|tutorial","fb_specific_tip":""}],'
+            . '"hook_rewrites":[{"original_angle":"","fb_hook":"","style":"","why_effective":""}],'
+            . '"caption_rewrites":[{"style":"","caption":"","cta":"","hashtags":[""]}],'
+            . '"format_recommendations":[{"format":"","fb_advantage":"","best_for":""}],'
+            . '"distribution_strategy":{"best_posting_time":"","page_vs_profile":"","boost_recommendation":"","cross_post_tip":""},'
+            . '"cross_platform_tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nGenerate 3-5 reels adaptations, 3-5 hook rewrites, 3 caption rewrites, and 3-4 format recommendations. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('fb_yt_reels_converter', $youtubeUrl, $prompt, 5000);
+
+        if ($ytContext) {
+            $vd = $ytContext['video_data'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $vd['thumbnail'] ?? '',
+                'title' => $vd['title'] ?? '',
+                'channel' => $vd['channel'] ?? '',
+                'views' => number_format($vd['views'] ?? 0),
+                'likes' => number_format($vd['likes'] ?? 0),
+                'comments' => number_format($vd['comments'] ?? 0),
+                'duration' => $vd['duration'] ?? '',
+                'tags' => array_slice($vd['tags'] ?? [], 0, 10),
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Analyze YouTube-to-Facebook content arbitrage opportunities.
+     */
+    public function analyzeYoutubeFacebookArbitrage(string $youtubeChannel, string $fbNiche = ''): array
+    {
+        $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel, 20);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above. Reference actual subscriber counts, video performance, and content themes to find gaps and opportunities on Facebook.";
+        }
+
+        $nicheLine = $fbNiche ? " Facebook niche focus: {$fbNiche}." : '';
+
+        $prompt = "You are a cross-platform audience growth strategist. Analyze this YouTube channel's data and identify content gaps and first-mover opportunities on Facebook.\n\n"
+            . "YouTube Channel: {$youtubeChannel}{$nicheLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"arbitrage_score":0,'
+            . '"youtube_overview":{"channel_name":"","subscribers":"","avg_views":"","top_content_themes":[""],"posting_frequency":""},'
+            . '"content_gaps":[{"topic":"","youtube_performance":"","fb_saturation":"low|medium|high","opportunity_level":"high|medium|low","best_fb_format":"reels|post|story|live|group_post","reasoning":""}],'
+            . '"first_mover_opportunities":[{"idea":"","format":"reels|video|live|group","estimated_reach":"","urgency":"high|medium|low","reference_video":""}],'
+            . '"audience_overlap":{"estimated_overlap":"","unique_youtube_audience":"","fb_growth_potential":"","demographic_shift":""},'
+            . '"format_recommendations":[{"youtube_type":"","fb_format":"","adaptation_tips":""}],'
+            . '"cross_platform_strategy":{"content_pillars":[""],"posting_cadence":"","repurpose_ratio":"","growth_timeline":""},'
+            . '"quick_wins":[{"action":"","expected_result":"","effort":"low|medium","timeframe":""}]'
+            . '}'
+            . "\n\nGenerate 4-6 content gaps, 3-5 first-mover opportunities, 3-4 format recommendations, and 3-5 quick wins. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('fb_yt_arbitrage', $youtubeChannel, $prompt, 5000);
+
+        if ($ytContext) {
+            $cd = $ytContext['channel_data'];
+            $m = $ytContext['metrics'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $cd['thumbnail'] ?? '',
+                'title' => $cd['title'] ?? '',
+                'subscribers' => $this->formatSubscriberCount($cd['subscribers'] ?? 0),
+                'total_views' => number_format($cd['total_views'] ?? 0),
+                'video_count' => $cd['video_count'] ?? 0,
+                'avg_views' => number_format($m['avg_views'] ?? 0),
+                'avg_likes' => number_format($m['avg_likes'] ?? 0),
+                'engagement_rate' => ($m['engagement_rate'] ?? 0) . '%',
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Analyze Facebook Reels Play Bonus potential and strategy.
+     */
+    public function analyzeFbReelsBonus(string $pageUrl, string $avgViews = '', string $followerCount = '', string $youtubeChannel = ''): array
+    {
+        $avLine = $avgViews ? " Average Reels views: {$avgViews}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube data to compare YT vs FB Reels performance and benchmark earnings.";
+            }
+        }
+
+        $prompt = "You are a Facebook Reels Play Bonus expert. Analyze this page's Reels potential and provide a strategy to maximize bonus earnings.\n\n"
+            . "Facebook Page: {$pageUrl}{$avLine}{$fcLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"bonus_score":0,'
+            . '"earnings_tiers":{"current_tier":"","monthly_estimate":"","tier_breakdown":[{"tier":"","views_required":"","payout_per_1000":"","your_status":""}]},'
+            . '"bonus_eligibility":{"status":"","requirements_met":[""],"requirements_missing":[""],"time_to_qualify":""},'
+            . '"content_strategies":[{"strategy":"","expected_impact":"","implementation":"","content_example":""}],'
+            . '"optimal_posting":{"frequency":"","best_times":[""],"duration_sweet_spot":"","format_mix":""},'
+            . '"growth_milestones":[{"followers":"","monthly_bonus":"","unlock":"","timeline":""}]'
+            . '}'
+            . "\n\nGenerate 3-4 tier breakdowns, 4-5 content strategies, and 4-5 growth milestones. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_reels_bonus', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze Facebook Group monetization strategies.
+     */
+    public function analyzeFbGroupMonetization(string $groupUrl, string $memberCount = '', string $niche = ''): array
+    {
+        $mcLine = $memberCount ? " Member count: {$memberCount}." : '';
+        $niLine = $niche ? " Niche: {$niche}." : '';
+
+        $prompt = "You are a Facebook Group monetization strategist. Analyze this group and create a comprehensive monetization plan.\n\n"
+            . "Facebook Group: {$groupUrl}{$mcLine}{$niLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"group_score":0,'
+            . '"group_assessment":{"name":"","niche":"","type":"","member_count":"","engagement_level":"","growth_rate":""},'
+            . '"monetization_models":[{"model":"","estimated_monthly":"","difficulty":"","time_to_revenue":"","requirements":""}],'
+            . '"engagement_tactics":[{"tactic":"","frequency":"","expected_impact":"","implementation":""}],'
+            . '"subscription_strategy":{"price_tiers":[{"tier":"","price":"","perks":[""],"target_conversion":""}],"free_vs_paid_ratio":"","launch_strategy":""},'
+            . '"revenue_roadmap":[{"month":"","action":"","expected_revenue":"","milestone":""}]'
+            . '}'
+            . "\n\nGenerate 4-5 monetization models, 4-5 engagement tactics, 3 subscription tiers, and 6-month revenue roadmap. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_group_monetization', $groupUrl, $prompt);
+    }
+
+    /**
+     * Analyze Facebook Ad Breaks eligibility and optimization.
+     */
+    public function analyzeFbAdBreaks(string $pageUrl, string $contentType = '', string $avgVideoLength = ''): array
+    {
+        $ctLine = $contentType ? " Content type: {$contentType}." : '';
+        $vlLine = $avgVideoLength ? " Average video length: {$avgVideoLength}." : '';
+
+        $prompt = "You are a Facebook Ad Breaks optimization expert. Analyze this page's eligibility and provide strategies to maximize in-stream ad revenue.\n\n"
+            . "Facebook Page: {$pageUrl}{$ctLine}{$vlLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"ad_break_score":0,'
+            . '"eligibility_status":{"eligible":"","requirements_met":[""],"requirements_missing":[""],"followers_needed":"","watch_hours_needed":""},'
+            . '"placement_timing":[{"position":"","optimal_timestamp":"","retention_impact":"","revenue_impact":"","recommendation":""}],'
+            . '"revenue_estimates":{"per_1000_views":"","daily":"","weekly":"","monthly":"","yearly":"","compared_to_youtube":""},'
+            . '"content_format_analysis":[{"format":"","ad_break_friendly":"","optimal_length":"","placement_count":"","tips":""}],'
+            . '"optimization_tips":[{"tip":"","impact":"","effort":""}]'
+            . '}'
+            . "\n\nGenerate 3-4 placement timings, 4-5 content formats, and 5-6 optimization tips. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_ad_breaks', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze Facebook Page growth strategies.
+     */
+    public function analyzeFbPageGrowth(string $pageUrl, string $followerCount = '', string $niche = '', string $youtubeChannel = ''): array
+    {
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+        $niLine = $niche ? " Niche: {$niche}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube data to cross-reference channel growth strategies and identify content patterns.";
+            }
+        }
+
+        $prompt = "You are a Facebook Page growth strategist. Analyze this page and provide a comprehensive growth plan.\n\n"
+            . "Facebook Page: {$pageUrl}{$fcLine}{$niLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"growth_score":0,'
+            . '"page_assessment":{"name":"","niche":"","followers":"","posting_frequency":"","engagement_rate":"","content_mix":""},'
+            . '"content_performance":{"top_format":"","avg_reach":"","avg_engagement":"","best_performing":"","underperforming":""},'
+            . '"growth_opportunities":[{"opportunity":"","potential_followers":"","difficulty":"","priority":"","action_steps":[""]}],'
+            . '"competitor_benchmarks":[{"page":"","followers":"","engagement":"","content_strategy":"","advantage":""}],'
+            . '"growth_roadmap":[{"month":"","target_followers":"","actions":[""],"milestone":""}]'
+            . '}'
+            . "\n\nGenerate 4-5 growth opportunities, 3-4 competitor benchmarks, and 6-month growth roadmap. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_page_growth', $pageUrl, $prompt);
+    }
+
+    /**
+     * Optimize Facebook Shop listings and strategy.
+     */
+    public function analyzeFbShop(string $pageUrl, string $productType = '', string $priceRange = ''): array
+    {
+        $ptLine = $productType ? " Product type: {$productType}." : '';
+        $prLine = $priceRange ? " Price range: {$priceRange}." : '';
+
+        $prompt = "You are a Facebook Shop optimization expert. Analyze this shop and provide listing, product, and conversion strategies.\n\n"
+            . "Facebook Page/Shop: {$pageUrl}{$ptLine}{$prLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"shop_score":0,'
+            . '"shop_overview":{"estimated_revenue":"","product_count":"","top_category":"","conversion_rate":"","shop_rating":""},'
+            . '"listing_optimization":[{"area":"","current_assessment":"","improvement":"","impact":""}],'
+            . '"product_recommendations":[{"product":"","category":"","price_range":"","demand":"","competition":"","margin":"","content_angle":""}],'
+            . '"conversion_funnel":{"awareness":[""],"consideration":[""],"purchase":[""],"retention":[""]},'
+            . '"pricing_strategy":{"current_assessment":"","recommendations":[""],"bundle_ideas":[""],"discount_strategy":""}'
+            . '}'
+            . "\n\nGenerate 4-5 listing optimizations, 5-6 product recommendations. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_shop_optimizer', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze and recycle content across Facebook formats.
+     */
+    public function analyzeFbContentRecycler(string $pageUrl, string $contentTopic = '', string $originalFormat = '', string $youtubeChannel = ''): array
+    {
+        $ctLine = $contentTopic ? " Content topic: {$contentTopic}." : '';
+        $ofLine = $originalFormat ? " Original format: {$originalFormat}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nMap YouTube content themes and top-performing video topics to Facebook format opportunities.";
+            }
+        }
+
+        $prompt = "You are a content recycling strategist for Facebook. Analyze existing content and create a plan to repurpose it across Facebook formats.\n\n"
+            . "Facebook Page: {$pageUrl}{$ctLine}{$ofLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"recycling_score":0,'
+            . '"content_audit":{"total_recyclable":"","top_performers":[""],"underutilized_formats":[""],"evergreen_content":[""]},'
+            . '"format_conversions":[{"original_format":"","target_format":"","adaptation":"","expected_reach":"","effort":""}],'
+            . '"recycling_calendar":[{"day":"","original_content":"","new_format":"","caption_hook":"","posting_time":""}],'
+            . '"content_briefs":[{"title":"","format":"","hook":"","key_points":[""],"cta":"","hashtags":[""]}],'
+            . '"automation_tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nGenerate 5-6 format conversions, 7-day recycling calendar, 3-4 content briefs, and 4-5 automation tips. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_content_recycler', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze Facebook Live monetization with Stars, subscriptions, and live shopping.
+     */
+    public function analyzeFbLiveMonetization(string $pageUrl, string $contentType = '', string $followerCount = ''): array
+    {
+        $ctLine = $contentType ? " Content type: {$contentType}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $prompt = "You are a Facebook Live monetization expert. Analyze this page's live streaming potential and create a monetization plan with Stars, subscriptions, and live shopping.\n\n"
+            . "Facebook Page: {$pageUrl}{$ctLine}{$fcLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"live_score":0,'
+            . '"stars_earnings":{"eligibility":"","avg_stars_per_stream":"","estimated_monthly":"","top_earner_benchmark":"","boost_tactics":[""]},'
+            . '"subscription_tiers":[{"tier":"","price":"","perks":[""],"expected_subscribers":"","monthly_revenue":""}],'
+            . '"engagement_techniques":[{"technique":"","type":"","implementation":"","expected_impact":""}],'
+            . '"live_shopping_strategy":{"eligible":"","product_showcase_tips":[""],"timing":"","conversion_tactics":[""]},'
+            . '"revenue_estimate":{"stars_monthly":"","subscriptions_monthly":"","live_shopping_monthly":"","total_monthly":"","growth_trajectory":""}'
+            . '}'
+            . "\n\nGenerate 3 subscription tiers, 5-6 engagement techniques, and detailed revenue estimates. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_live_monetization', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze and optimize Facebook Page engagement patterns.
+     */
+    public function analyzeFbEngagement(string $pageUrl, string $avgEngagement = '', string $contentType = ''): array
+    {
+        $aeLine = $avgEngagement ? " Average engagement rate: {$avgEngagement}." : '';
+        $ctLine = $contentType ? " Primary content type: {$contentType}." : '';
+
+        $prompt = "You are a Facebook engagement optimization expert. Analyze this page's engagement patterns and provide strategies to boost algorithm ranking.\n\n"
+            . "Facebook Page: {$pageUrl}{$aeLine}{$ctLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"engagement_score":0,'
+            . '"current_assessment":{"avg_engagement":"","reaction_breakdown":{"likes":"","comments":"","shares":"","saves":""},"best_format":"","worst_format":""},'
+            . '"algorithm_alignment":{"distribution_score":"","ranking_signals":[""],"penalties":[""],"boost_factors":[""]},'
+            . '"engagement_triggers":[{"trigger":"","type":"","implementation":"","expected_lift":"","example":""}],'
+            . '"content_optimization":[{"format":"","current_engagement":"","optimized_engagement":"","changes":[""],"priority":""}],'
+            . '"action_plan":[{"week":"","actions":[""],"target_engagement":"","focus_format":""}]'
+            . '}'
+            . "\n\nGenerate 5-6 engagement triggers, 4-5 content optimizations, and 4-week action plan. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_engagement_optimizer', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze Facebook audience demographics and targeting insights.
+     */
+    public function analyzeFbAudienceInsights(string $pageUrl, string $niche = '', string $followerCount = '', string $youtubeChannel = ''): array
+    {
+        $niLine = $niche ? " Niche: {$niche}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube data to compare audience demographics across platforms.";
+            }
+        }
+
+        $prompt = "You are a Facebook audience insights expert. Analyze this page's audience and provide demographic, behavioral, and targeting intelligence.\n\n"
+            . "Facebook Page: {$pageUrl}{$niLine}{$fcLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"audience_score":0,'
+            . '"demographic_segments":[{"segment":"","percentage":"","age_range":"","gender_split":"","location":"","interests":[""],"spending_power":""}],'
+            . '"behavior_patterns":{"active_hours":[""],"device_split":{"mobile":"","desktop":""},"content_preferences":[""],"engagement_style":""},'
+            . '"spending_analysis":{"avg_disposable_income":"","top_purchase_categories":[""],"price_sensitivity":"","impulse_buy_likelihood":""},'
+            . '"lookalike_opportunities":[{"audience_type":"","size":"","overlap":"","targeting_suggestion":""}],'
+            . '"targeting_strategy":{"core_audience":"","expansion_targets":[""],"exclusions":[""],"ad_recommendations":[""]}'
+            . '}'
+            . "\n\nGenerate 4-5 demographic segments, 3-4 lookalike opportunities, and detailed targeting strategy. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_audience_insights', $pageUrl, $prompt);
+    }
+
+    /**
+     * Analyze optimal Facebook posting times and schedule.
+     */
+    public function analyzeFbPostingTime(string $pageUrl, string $timezone = '', string $contentType = ''): array
+    {
+        $tzLine = $timezone ? " Timezone: {$timezone}." : '';
+        $ctLine = $contentType ? " Primary content type: {$contentType}." : '';
+
+        $prompt = "You are a Facebook posting schedule optimization expert. Analyze this page and create the optimal posting schedule for maximum reach.\n\n"
+            . "Facebook Page: {$pageUrl}{$tzLine}{$ctLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"timing_score":0,'
+            . '"best_times":[{"day":"","times":[""],"engagement_level":"","best_format":""}],'
+            . '"weekly_schedule":[{"day":"","post_count":"","best_slots":[""],"content_type":"","format":""}],'
+            . '"format_timing":{"reels":{"best_times":[""],"frequency":""},"posts":{"best_times":[""],"frequency":""},"stories":{"best_times":[""],"frequency":""},"lives":{"best_times":[""],"frequency":""}},'
+            . '"avoid_times":[{"time":"","reason":"","engagement_drop":""}],'
+            . '"frequency_recommendation":{"posts_per_day":"","posts_per_week":"","reels_per_week":"","stories_per_day":"","reasoning":""}'
+            . '}'
+            . "\n\nGenerate 7 best time entries (one per day), 7-day weekly schedule, 3-4 avoid times. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('fb_posting_scheduler', $pageUrl, $prompt);
+    }
+
     /**
      * Core execution: call AI, parse result, save history.
      */
