@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
  * - [NARRATOR] text              → Narrator segment
  * - [INTERNAL: CHARACTER] text   → Internal thought segment
  * - [MONOLOGUE: CHARACTER] text  → Monologue segment
+ * - [DIALOGUE: CHARACTER] text   → Explicit dialogue segment
+ * - [CHARACTER] text             → Shorthand dialogue (e.g. [ELENA] Hello.)
  * - CHARACTER: text              → Dialogue segment
  * - "Quoted text"                → Dialogue (attributed to last speaker)
  * - Plain text                   → Defaults to narrator
@@ -91,6 +93,22 @@ class SpeechSegmentParser
                 $speaker = trim($matches[1]);
                 $currentSegment = SpeechSegment::dialogue($speaker, $matches[2]);
                 $this->enrichWithCharacterBible($currentSegment, $speaker);
+                continue;
+            }
+
+            // Check for shorthand character bracket format: [CHARACTER] text
+            // Handles AI output like [ELENA], [VICTOR KANE] instead of ELENA: or [DIALOGUE: ELENA]
+            if (preg_match('/^\[([A-Z][A-Za-z0-9\s\-\'\.#]+)\]\s*(.*)$/u', $line, $matches)) {
+                $currentSegment = $this->saveAndCreateSegment($segments, $currentSegment, $order++);
+                $speaker = trim($matches[1]);
+
+                // If it says NARRATOR in brackets, treat as narrator (already caught above, but safety check)
+                if (strtoupper($speaker) === 'NARRATOR') {
+                    $currentSegment = SpeechSegment::narrator($matches[2]);
+                } else {
+                    $currentSegment = SpeechSegment::dialogue($speaker, $matches[2]);
+                    $this->enrichWithCharacterBible($currentSegment, $speaker);
+                }
                 continue;
             }
 
