@@ -44,6 +44,21 @@ class SpeechSegmentParser
     {
         $this->characterBible = $characterBible;
         $segments = [];
+
+        // Pre-process: Insert newlines before inline markers so each segment starts on its own line.
+        // This handles cases like: "[NARRATOR] text [ELENA] more text" on a single line.
+        $text = preg_replace(
+            '/(?<=\S)\s*(\[(?:NARRATOR|INTERNAL:|MONOLOGUE:|DIALOGUE:|[A-Z][A-Za-z0-9\s\-\'\.#]+)\])/u',
+            "\n$1",
+            trim($text)
+        );
+        // Also split before implicit CHARACTER: dialogue on same line (e.g. "...text ELENA: more text")
+        $text = preg_replace(
+            '/(?<=\.)\s+([A-Z][A-Za-z\s\-\']+):\s/u',
+            "\n$1: ",
+            $text
+        );
+
         $lines = preg_split('/\n+/', trim($text));
 
         $currentSegment = null;
