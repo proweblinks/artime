@@ -2424,6 +2424,11 @@ class DialogueSceneDecomposerService
 
         // Enhance each shot with dialogue patterns
         foreach ($shots as $index => &$shot) {
+            // Skip narrator/establishing shots - they don't need dialogue enhancement
+            if (!empty($shot['narratorShot']) || ($shot['speechType'] ?? '') === 'narrator') {
+                continue;
+            }
+
             $position = $this->calculateDialoguePosition($index, $totalShots);
             $emotionalIntensity = $this->calculateEmotionalIntensityFromShot($shot, $position, $scene);
 

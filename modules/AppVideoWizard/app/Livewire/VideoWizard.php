@@ -19405,6 +19405,68 @@ PROMPT;
         $totalShots = count($dialogueShots);
 
         foreach ($dialogueShots as $i => $dialogueShot) {
+            // Narrator/establishing shots: preserve their structure without dialogue processing
+            if (!empty($dialogueShot['narratorShot']) || ($dialogueShot['speechType'] ?? '') === 'narrator') {
+                $narratorText = $dialogueShot['narration'] ?? $dialogueShot['narratorText'] ?? '';
+                $cameraMovement = $this->getCameraMovementForDialogueShot($dialogueShot);
+                $shots[] = [
+                    'id' => "shot-{$sceneId}-{$i}",
+                    'sceneId' => $sceneId,
+                    'index' => $i,
+                    'type' => $dialogueShot['type'] ?? 'wide',
+                    'shotType' => $dialogueShot['type'] ?? 'wide',
+                    'description' => 'Establishing shot',
+                    'purpose' => 'establishing',
+                    'lens' => $this->getLensForShotType($dialogueShot['type'] ?? 'wide'),
+                    'imagePrompt' => $narratorText ?: $visualDescription,
+                    'videoPrompt' => $cameraMovement['motion'] ?? 'Slow cinematic pan',
+                    'prompt' => $narratorText ?: $visualDescription,
+                    'uniqueVisualDescription' => $narratorText ?: $visualDescription,
+                    'imageUrl' => null,
+                    'imageStatus' => 'pending',
+                    'status' => 'pending',
+                    'videoUrl' => null,
+                    'videoStatus' => 'pending',
+                    'fromSceneImage' => $i === 0,
+                    'fromFrameCapture' => $i > 0,
+                    'capturedFrameUrl' => null,
+                    'duration' => $dialogueShot['duration'] ?? 5,
+                    'selectedDuration' => $dialogueShot['duration'] ?? 5,
+                    'durationClass' => $this->getDurationClass($dialogueShot['duration'] ?? 5),
+                    'cameraMovement' => $cameraMovement,
+                    'selectedVideoModel' => 'minimax',
+                    'needsLipSync' => false,
+                    'useMultitalk' => false,
+                    'speakingCharacter' => null,
+                    'charactersInShot' => [],
+                    'dialogue' => null,
+                    'monologue' => null,
+                    'narration' => $narratorText,
+                    'narratorText' => $narratorText,
+                    'hasNarratorVoiceover' => true,
+                    'speechType' => 'narrator',
+                    'narratorShot' => true,
+                    'narratorVoiceId' => $dialogueShot['narratorVoiceId'] ?? null,
+                    'voiceId' => $dialogueShot['narratorVoiceId'] ?? null,
+                    'audioUrl' => null,
+                    'audioDuration' => null,
+                    'audioStatus' => 'pending',
+                    'speechSegments' => $dialogueShot['speechSegments'] ?? [],
+                    'narrativeBeat' => [
+                        'motionDescription' => $cameraMovement['motion'] ?? 'slow cinematic movement',
+                        'action' => 'establishing scene',
+                        'emotion' => 0.3,
+                    ],
+                    'engineAnalysis' => [
+                        'sceneType' => 'narrator',
+                        'confidence' => 0.9,
+                        'decompositionType' => 'narrator_establishing',
+                    ],
+                    'dialogueShotData' => $dialogueShot,
+                ];
+                continue;
+            }
+
             $shotType = $dialogueShot['type'] ?? 'close-up';
             $isSpeaking = $dialogueShot['useMultitalk'] ?? false;
             $speakingCharacter = $dialogueShot['speakingCharacter'] ?? null;
@@ -24468,16 +24530,50 @@ PROMPT;
             }
             $segType = strtolower($segType);
 
-            // ONLY dialogue and monologue create visual shots
-            // Narrator and internal thought are handled as voiceover overlays (Plan 11-02)
+            // Narrator segments create visual shots WITHOUT lip-sync (establishing/cinematic)
+            // Internal thought segments are skipped (voiceover overlay only)
             if (!in_array($segType, $lipSyncTypes)) {
-                Log::debug('Skipping non-visual segment in shot creation', [
-                    'sceneIndex' => $sceneIndex,
-                    'segmentIndex' => $segmentIndex,
-                    'type' => $segType,
-                    'reason' => 'Narrator and internal thought handled as voiceover overlays',
-                ]);
-                $skippedCount++;
+                if ($segType === 'narrator' && !empty(trim($segment['text'] ?? ''))) {
+                    $narratorText = trim($segment['text']);
+                    $narratorShot = [
+                        'id' => uniqid('shot_'),
+                        'speechSegments' => [$segment],
+                        'needsLipSync' => false,
+                        'useMultitalk' => false,
+                        'narration' => $narratorText,
+                        'narratorText' => $narratorText,
+                        'hasNarratorVoiceover' => true,
+                        'speechType' => 'narrator',
+                        'narratorShot' => true,
+                        'selectedVideoModel' => self::VIDEO_MODEL_MINIMAX,
+                        'type' => 'wide',
+                        'purpose' => 'establishing',
+                        'segmentIndex' => $segmentIndex,
+                        'duration' => $this->calculateDurationFromText($narratorText),
+                    ];
+
+                    // Assign narrator voice
+                    $narratorShot['narratorVoiceId'] = $this->voiceRegistry
+                        ? $this->voiceRegistry->getNarratorVoice()
+                        : $this->getNarratorVoice();
+
+                    $shots[] = $narratorShot;
+
+                    Log::debug('Created narrator visual shot', [
+                        'sceneIndex' => $sceneIndex,
+                        'segmentIndex' => $segmentIndex,
+                        'textLength' => strlen($narratorText),
+                        'duration' => $narratorShot['duration'],
+                    ]);
+                } else {
+                    Log::debug('Skipping non-visual segment in shot creation', [
+                        'sceneIndex' => $sceneIndex,
+                        'segmentIndex' => $segmentIndex,
+                        'type' => $segType,
+                        'reason' => 'Internal thought handled as voiceover overlay',
+                    ]);
+                    $skippedCount++;
+                }
                 continue;
             }
 
@@ -24651,6 +24747,17 @@ PROMPT;
     protected function overlayNarratorSegments(int $sceneIndex, array $shots, array $speechSegments): array
     {
         if (empty($shots) || empty($speechSegments)) {
+            return $shots;
+        }
+
+        // If narrator segments already have dedicated visual shots (speech-driven path),
+        // skip the overlay entirely to avoid duplicate narrator content
+        $existingNarratorShots = array_filter($shots, fn($s) => !empty($s['narratorShot']));
+        if (!empty($existingNarratorShots)) {
+            Log::info('Narrator segments already have dedicated shots, skipping overlay', [
+                'sceneIndex' => $sceneIndex,
+                'narratorShotCount' => count($existingNarratorShots),
+            ]);
             return $shots;
         }
 
