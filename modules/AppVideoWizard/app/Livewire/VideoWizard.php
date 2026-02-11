@@ -18400,13 +18400,12 @@ PROMPT;
                 throw new \Exception(__('Scene not found'));
             }
 
-            // CRITICAL: Ensure speech segments are parsed BEFORE decomposition
-            // This ensures narrator/dialogue/monologue segments are properly distributed to shots
-            if (empty($scene['speechSegments'])) {
-                $this->parseSceneNarrationForDecomposition($sceneIndex);
-                // Re-read scene after parsing
-                $scene = $this->script['scenes'][$sceneIndex];
-            }
+            // CRITICAL: Always re-parse speech segments before decomposition.
+            // The parser may have been updated (e.g. new format support), and cached
+            // segments from prior decompositions could be stale/incorrect.
+            $this->parseSceneNarrationForDecomposition($sceneIndex);
+            // Re-read scene after parsing
+            $scene = $this->script['scenes'][$sceneIndex];
 
             // Get visual description for decomposition
             $visualDescription = $scene['visualDescription'] ?? $scene['visual'] ?? $scene['narration'] ?? '';
