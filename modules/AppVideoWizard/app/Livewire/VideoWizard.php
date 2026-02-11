@@ -6962,6 +6962,8 @@ PROMPT;
                 return is_array($c) ? ($c['name'] ?? 'Character') : (string) $c;
             }, $characters);
             $characterList = implode(', ', $characterNames);
+            $char1 = $characterNames[0] ?? 'CHARACTER_1';
+            $char2 = $characterNames[1] ?? 'CHARACTER_2';
 
             $prompt = <<<PROMPT
 You are a script conversion expert. Convert the following narrator prose into a mixed narration/dialogue script.
@@ -6981,8 +6983,8 @@ RULES:
 
 OUTPUT FORMAT (no markdown, no JSON, just the script text):
 [NARRATOR] Scene description text.
-{$characterNames[0]}: Their spoken dialogue here.
-{$characterNames[1] ?? 'CHARACTER'}: Their response here.
+{$char1}: Their spoken dialogue here.
+{$char2}: Their response here.
 [NARRATOR] More description.
 
 Convert the prose now:
