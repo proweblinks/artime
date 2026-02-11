@@ -6872,6 +6872,38 @@ PROMPT;
                         'originalSpeechType' => $speechType,
                         'detectedSpeechType' => $scene['speechType'],
                     ]);
+
+                    // DIALOGUE EXTRACTION FALLBACK: If parser found only narrator segments
+                    // but scene has multiple characters, attempt AI-based dialogue extraction
+                    if (!$hasDialogue) {
+                        $sceneCharacters = $scene['characters'] ?? [];
+                        if (empty($sceneCharacters)) {
+                            $sceneCharacters = $this->getCharactersForScene($sceneIndex);
+                        }
+
+                        if (count($sceneCharacters) >= 2) {
+                            Log::info('VideoWizard: Multi-character scene has only narrator segments, attempting dialogue extraction', [
+                                'sceneIndex' => $sceneIndex,
+                                'characterCount' => count($sceneCharacters),
+                                'characters' => array_map(fn($c) => is_array($c) ? ($c['name'] ?? 'unknown') : $c, $sceneCharacters),
+                            ]);
+
+                            $dialogueSegments = $this->extractDialogueFromNarratorProse($sceneIndex, $textToParse, $sceneCharacters);
+                            if (!empty($dialogueSegments)) {
+                                $scene['speechSegments'] = $dialogueSegments;
+                                $dialogueTypes = array_unique(array_column($dialogueSegments, 'type'));
+                                $scene['speechType'] = count($dialogueTypes) > 1 ? 'mixed' : ($dialogueTypes[0] ?? 'narrator');
+
+                                Log::info('VideoWizard: Dialogue extraction succeeded', [
+                                    'sceneIndex' => $sceneIndex,
+                                    'segmentCount' => count($dialogueSegments),
+                                    'types' => $dialogueTypes,
+                                ]);
+                                return;
+                            }
+                        }
+                    }
+
                     return;
                 }
             } catch (\Exception $e) {
@@ -6910,6 +6942,97 @@ PROMPT;
         // If still no segments, create empty array
         if (!isset($scene['speechSegments'])) {
             $scene['speechSegments'] = [];
+        }
+    }
+
+    /**
+     * Extract dialogue from narrator prose using AI when the scene has multiple characters
+     * but the script was generated without dialogue markers.
+     *
+     * @param int $sceneIndex Scene index
+     * @param string $narratorProse The narrator-only text
+     * @param array $characters Characters in the scene
+     * @return array Speech segments with dialogue, or empty array on failure
+     */
+    protected function extractDialogueFromNarratorProse(int $sceneIndex, string $narratorProse, array $characters): array
+    {
+        try {
+            // Build character names list
+            $characterNames = array_map(function ($c) {
+                return is_array($c) ? ($c['name'] ?? 'Character') : (string) $c;
+            }, $characters);
+            $characterList = implode(', ', $characterNames);
+
+            $prompt = <<<PROMPT
+You are a script conversion expert. Convert the following narrator prose into a mixed narration/dialogue script.
+
+CHARACTERS IN SCENE: {$characterList}
+
+NARRATOR PROSE:
+{$narratorProse}
+
+RULES:
+1. Identify any actions or descriptions that imply a character is SPEAKING, and convert them to actual dialogue lines
+2. Keep scene-setting descriptions as [NARRATOR] lines
+3. Use CHARACTER_NAME: format for spoken dialogue (name must match exactly from the character list)
+4. Aim for at least 40% dialogue, 60% narrator
+5. Make dialogue natural and in-character
+6. If the prose describes confrontation, argument, questioning, or conversation, create ACTUAL dialogue
+
+OUTPUT FORMAT (no markdown, no JSON, just the script text):
+[NARRATOR] Scene description text.
+{$characterNames[0]}: Their spoken dialogue here.
+{$characterNames[1] ?? 'CHARACTER'}: Their response here.
+[NARRATOR] More description.
+
+Convert the prose now:
+PROMPT;
+
+            $teamId = session('current_team_id', 0);
+            $result = \AI::process($prompt, 'text_generation', [
+                'teamId' => $teamId,
+                'maxResult' => 1,
+                'max_tokens' => 2000,
+            ]);
+
+            $convertedText = $result['content'] ?? $result['text'] ?? '';
+            if (empty(trim($convertedText))) {
+                Log::warning('VideoWizard: Dialogue extraction returned empty', ['sceneIndex' => $sceneIndex]);
+                return [];
+            }
+
+            // Re-parse the converted text with SpeechSegmentParser
+            $parser = new \Modules\AppVideoWizard\Services\SpeechSegmentParser();
+            $characterBible = $this->sceneMemory['characterBible'] ?? [];
+            $segments = $parser->parse($convertedText, $characterBible);
+
+            if (empty($segments)) {
+                return [];
+            }
+
+            $segmentArrays = $parser->toArray($segments);
+
+            // Verify we actually got dialogue segments
+            $hasDialogue = !empty(array_filter($segmentArrays, function ($s) {
+                return in_array(strtolower($s['type'] ?? ''), ['dialogue', 'monologue']);
+            }));
+
+            if (!$hasDialogue) {
+                Log::info('VideoWizard: Dialogue extraction did not produce dialogue segments', [
+                    'sceneIndex' => $sceneIndex,
+                    'types' => array_unique(array_column($segmentArrays, 'type')),
+                ]);
+                return [];
+            }
+
+            return $segmentArrays;
+
+        } catch (\Throwable $e) {
+            Log::warning('VideoWizard: Dialogue extraction failed', [
+                'sceneIndex' => $sceneIndex,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
         }
     }
 
@@ -24609,17 +24732,17 @@ PROMPT;
                     return $type !== null && in_array(strtolower($type), self::LIPSYNC_TYPES);
                 }));
 
-                // If shot has NO dialogue/monologue, narrator is PRIMARY → set video model to minimax
-                if (!$hasDialogueSegments) {
+                // Also check if dialogue/monologue text fields were set by decomposer
+                $hasDialogueTextField = !empty($shots[$shotIdx]['dialogue']) || !empty($shots[$shotIdx]['monologue']);
+                $hasAnyDialogue = $hasDialogueSegments || $hasDialogueTextField;
+
+                // If shot has NO dialogue/monologue at all, narrator is PRIMARY
+                if (!$hasAnyDialogue) {
                     // Narrator-only shot: use TTS voiceover, NOT Multitalk lip-sync
                     $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
                     $shots[$shotIdx]['needsLipSync'] = false;
                     $shots[$shotIdx]['selectedVideoModel'] = self::VIDEO_MODEL_MINIMAX;
                     $shots[$shotIdx]['useMultitalk'] = false;
-                    // Clear misleading dialogue/monologue text if present
-                    // (These may have been set by decomposer but narrator takes priority)
-                    // NOTE: Unset these fields since narrator is primary for this shot
-                    unset($shots[$shotIdx]['dialogue'], $shots[$shotIdx]['monologue']);
                     $shots[$shotIdx]['speechType'] = 'narrator';
                 } else {
                     // Mixed shot: has both dialogue/monologue AND narrator overlay

@@ -616,6 +616,22 @@ speechType determines whether character's lips move on screen:
 
 DEFAULT: Use "narrator" unless the script clearly shows a character speaking aloud.
 
+=== SPEECH SEGMENT MARKERS (USE IN NARRATION FIELD) ===
+Each scene's narration can mix narrator text with character dialogue using these markers:
+[NARRATOR] Text here         → External narrator voiceover (no lip-sync)
+[INTERNAL: CHARACTER] Text   → Character's inner thoughts (no lip-sync)
+[MONOLOGUE: CHARACTER] Text  → Character speaking alone/to camera (lip-sync)
+CHARACTER_NAME: Text         → Character dialogue (lip-sync required)
+
+EXAMPLE of mixed narration:
+[NARRATOR] The interrogation room falls silent.
+DETECTIVE: Where were you last night?
+SUSPECT: I was at home. Alone.
+[NARRATOR] The detective slides a photograph across the table.
+
+⚠️ CRITICAL: If a scene involves 2+ characters interacting (conversation, confrontation, argument),
+the narration MUST include CHARACTER_NAME: dialogue lines. Do NOT reduce dialogue to narrator prose.
+
 === JSON FORMAT ===
 Respond with ONLY valid JSON (no markdown, no explanation):
 {
@@ -623,13 +639,13 @@ Respond with ONLY valid JSON (no markdown, no explanation):
     {
       "id": "scene-{$startScene}",
       "title": "Descriptive scene title (2-5 words)",
-      "narration": "Full narrator script for this scene (~{$wordsPerScene} words)",
+      "narration": "Mixed narration using [NARRATOR] and CHARACTER: markers (~{$wordsPerScene} words)",
       "visualDescription": "Detailed visual description for AI image generation (50-100 words)",
       "mood": "Scene emotional tone (one word: inspiring, dramatic, peaceful, exciting, etc.)",
       "transition": "cut",
       "voiceover": {
-        "speechType": "narrator",
-        "speakingCharacter": null
+        "speechType": "dialogue or narrator (use dialogue if scene has character speech)",
+        "speakingCharacter": "Name of primary speaking character, or null for narrator"
       }
     }
   ]
@@ -1248,6 +1264,25 @@ PROMPT;
         $prompt .= "He needed to find her before it was too late.\n\n";
         $prompt .= "If a scene has ANY character dialogue, you MUST use CHARACTER: prefix for their lines.\n";
         $prompt .= "If a scene has narration, you MUST use [NARRATOR] prefix for those lines.\n\n";
+
+        // === LAYER 14B: DIALOGUE ENFORCEMENT FOR MULTI-CHARACTER SCENES ===
+        $prompt .= "=== DIALOGUE ENFORCEMENT (CRITICAL FOR MULTI-CHARACTER SCENES) ===\n";
+        $prompt .= "⚠️ MANDATORY RULE: If a scene has 2 or more characters PRESENT and INTERACTING:\n";
+        $prompt .= "- The narration MUST include actual spoken dialogue using CHARACTER_NAME: format\n";
+        $prompt .= "- At MINIMUM 40% of the scene's narration should be CHARACTER dialogue lines\n";
+        $prompt .= "- Do NOT describe what characters say in third person (❌ 'Elena tells Victor his alibi fails')\n";
+        $prompt .= "- Instead, WRITE their actual dialogue (✅ 'ELENA REYES: Your alibi doesn't hold up, Victor.')\n\n";
+        $prompt .= "EXAMPLE - INTERROGATION SCENE WITH 2 CHARACTERS:\n";
+        $prompt .= "❌ WRONG (all narrator prose):\n";
+        $prompt .= "Elena confronts Victor about the murder weapon. Victor denies involvement. The tension rises.\n\n";
+        $prompt .= "✅ CORRECT (mixed narrator + dialogue):\n";
+        $prompt .= "[NARRATOR] Elena slides a photograph across the scarred metal table.\n";
+        $prompt .= "ELENA REYES: Where were you on the night of June 12th?\n";
+        $prompt .= "VICTOR KANE: I was home. Alone.\n";
+        $prompt .= "[NARRATOR] Elena's eyes narrow as she detects the lie.\n";
+        $prompt .= "ELENA REYES: That's interesting, because we have footage of you at the warehouse.\n\n";
+        $prompt .= "RULE: Scenes with confrontation, conversation, argument, interrogation, negotiation, or any\n";
+        $prompt .= "direct character interaction MUST use CHARACTER_NAME: dialogue lines. Never reduce dialogue to narrator description.\n\n";
 
         // === LAYER 15: OUTPUT FORMAT ===
         $prompt .= "=== OUTPUT FORMAT ===\n";
