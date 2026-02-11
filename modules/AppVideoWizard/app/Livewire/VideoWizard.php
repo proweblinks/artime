@@ -29573,12 +29573,15 @@ PROMPT;
 
     /**
      * Build prompt for InfiniteTalk single-person mode.
+     * When multiple characters are in the frame, explicitly identifies the speaker
+     * and instructs non-speaking characters to remain still (no lip movement).
      */
     protected function buildInfiniteTalkPrompt(array $shot, array $scene): string
     {
-        $character = $shot['speakingCharacter'] ?? $scene['characters'][0] ?? 'the person';
+        $speakerName = $shot['speakingCharacter'] ?? null;
+        $charactersInShot = $shot['charactersInShot'] ?? [];
         $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
-        $action = $shot['subjectAction'] ?? 'speaking';
+        $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
 
         $emotionMap = [
             'tense' => 'focused expression with slight tension',
@@ -29588,28 +29591,113 @@ PROMPT;
             'angry' => 'fierce, intense gaze',
             'neutral' => 'calm, natural expression',
         ];
-
         $expressionDesc = $emotionMap[$emotion] ?? $emotionMap['neutral'];
 
-        return "{$character} speaking naturally with clear lip movements, {$expressionDesc}, "
-             . "subtle head movement and natural gestures, smooth breathing motion, "
-             . "realistic facial micro-expressions";
+        // Build a brief physical identifier for a character from the bible
+        $describeCharacter = function(?string $name) use ($characterBible): string {
+            if (!$name) return '';
+            foreach ($characterBible as $char) {
+                if (strcasecmp($char['name'] ?? '', $name) === 0) {
+                    $gender = $char['gender'] ?? '';
+                    $appearance = $char['appearance'] ?? $char['description'] ?? '';
+                    // Extract brief identifier: gender + key visual traits
+                    if ($gender && $appearance) {
+                        // Take first sentence of appearance for brevity
+                        $brief = strtok($appearance, '.') ?: $appearance;
+                        return strtolower($gender) . ', ' . trim($brief);
+                    }
+                    if ($gender) return strtolower($gender);
+                }
+            }
+            return '';
+        };
+
+        $multipleInFrame = count($charactersInShot) >= 2
+            || count($scene['characters'] ?? []) >= 2;
+
+        // Single character in frame - simple prompt
+        if (!$multipleInFrame) {
+            $who = $speakerName ?: 'the person';
+            return "{$who} speaking naturally with clear lip movements, {$expressionDesc}, "
+                 . "subtle head movement and natural gestures, smooth breathing motion, "
+                 . "realistic facial micro-expressions";
+        }
+
+        // Multiple characters in frame - must specify who speaks and who stays silent
+        $speakerDesc = $describeCharacter($speakerName);
+        $speakerLabel = $speakerName ?: 'the speaking character';
+        if ($speakerDesc) {
+            $speakerLabel = "{$speakerName} ({$speakerDesc})";
+        }
+
+        // Build silent character descriptions
+        $silentParts = [];
+        $otherNames = array_filter($charactersInShot, fn($n) => strcasecmp($n, $speakerName ?? '') !== 0);
+        if (empty($otherNames)) {
+            // Fallback: use scene characters minus speaker
+            foreach ($scene['characters'] ?? [] as $charName) {
+                $name = is_array($charName) ? ($charName['name'] ?? '') : $charName;
+                if ($name && strcasecmp($name, $speakerName ?? '') !== 0) {
+                    $otherNames[] = $name;
+                }
+            }
+        }
+        foreach ($otherNames as $otherName) {
+            $otherDesc = $describeCharacter($otherName);
+            $silentParts[] = $otherDesc
+                ? "{$otherName} ({$otherDesc})"
+                : $otherName;
+        }
+
+        $prompt = "Only {$speakerLabel} is speaking with natural lip movements and {$expressionDesc}, "
+                . "subtle head gestures and realistic facial micro-expressions. ";
+
+        if (!empty($silentParts)) {
+            $silentList = implode(' and ', $silentParts);
+            $prompt .= "{$silentList} remains completely still and silent with no lip movement, "
+                     . "listening attentively with a still expression.";
+        }
+
+        return $prompt;
     }
 
     /**
-     * Build prompt for InfiniteTalk two-person dialogue mode.
+     * Build prompt for InfiniteTalk two-person dialogue mode (multi).
+     * Describes a natural conversation between two characters with turn-taking.
      */
     protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
     {
         $speakers = $shot['dialogueSpeakers'] ?? [];
-        $char1 = $speakers[0]['name'] ?? $scene['characters'][0] ?? 'Person A';
-        $char2 = $speakers[1]['name'] ?? $scene['characters'][1] ?? 'Person B';
+        $charactersInShot = $shot['charactersInShot'] ?? [];
+        $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
         $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
 
-        return "Two people in conversation: {$char1} and {$char2} talking naturally, "
-             . "turn-taking dialogue with clear lip movements for both characters, "
+        // Resolve character names
+        $char1 = $speakers[0]['name'] ?? ($charactersInShot[0] ?? ($scene['characters'][0] ?? 'Person A'));
+        $char2 = $speakers[1]['name'] ?? ($charactersInShot[1] ?? ($scene['characters'][1] ?? 'Person B'));
+        if (is_array($char1)) $char1 = $char1['name'] ?? 'Person A';
+        if (is_array($char2)) $char2 = $char2['name'] ?? 'Person B';
+
+        // Get brief physical descriptors from character bible
+        $describeCharacter = function(string $name) use ($characterBible): string {
+            foreach ($characterBible as $char) {
+                if (strcasecmp($char['name'] ?? '', $name) === 0) {
+                    $gender = $char['gender'] ?? '';
+                    if ($gender) return strtolower($gender);
+                }
+            }
+            return '';
+        };
+
+        $desc1 = $describeCharacter($char1);
+        $desc2 = $describeCharacter($char2);
+        $label1 = $desc1 ? "{$char1} ({$desc1})" : $char1;
+        $label2 = $desc2 ? "{$char2} ({$desc2})" : $char2;
+
+        return "Two people in conversation: {$label1} and {$label2} talking naturally with turn-taking dialogue, "
+             . "each character has clear lip movements synchronized to their own speech, "
              . "natural eye contact between speakers, realistic head turns and gestures, "
-             . "smooth transitions between who is speaking, "
+             . "the active speaker moves lips while the listener remains attentive and still, "
              . "{$emotion} tone, natural breathing and facial micro-expressions";
     }
 
