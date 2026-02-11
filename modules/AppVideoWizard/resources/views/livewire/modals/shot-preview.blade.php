@@ -104,7 +104,8 @@
                     @endif
                 </div>
                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 0.15rem;">
-                    {{ $shot['cameraMovement'] ?? 'static' }} • {{ $shot['selectedDuration'] ?? $shot['duration'] ?? 6 }}s
+                    @php $camMove = $shot['cameraMovement'] ?? 'static'; if (is_array($camMove)) $camMove = $camMove['type'] ?? 'static'; @endphp
+                    {{ $camMove }} • {{ $shot['selectedDuration'] ?? $shot['duration'] ?? 6 }}s
                     @if($wasTransferred)
                         • <span style="color: #10b981;">🔗 {{ __('Frame from Shot') }} {{ $shot['transferredFrom'] + 1 }}</span>
                     @endif

@@ -413,6 +413,7 @@
                                     $shotType = $shot['type'] ?? 'medium';
                                     $shotAbbrev = $shotTypeAbbrev[$shotType] ?? strtoupper(substr($shotType, 0, 3));
                                     $cameraMove = $shot['cameraMovement'] ?? 'static';
+                                    if (is_array($cameraMove)) $cameraMove = $cameraMove['type'] ?? 'static';
                                     $cameraIcon = $cameraIcons[$cameraMove] ?? '';
                                     $imagePrompt = $shot['imagePrompt'] ?? '';
                                     $videoPrompt = $shot['videoPrompt'] ?? ($shot['narrativeBeat']['motionDescription'] ?? '');
