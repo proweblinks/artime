@@ -1216,6 +1216,8 @@ window.multiShotVideoPolling = function() {
                                                 <span class="msm-render-provider">
                                                     @if($videoProvider === 'multitalk')
                                                         🎤 Multitalk
+                                                    @elseif($videoProvider === 'infinitetalk')
+                                                        🎤 InfiniteTalk
                                                     @else
                                                         🎬 MiniMax
                                                     @endif
