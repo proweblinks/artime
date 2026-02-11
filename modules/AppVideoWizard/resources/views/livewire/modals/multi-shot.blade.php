@@ -1530,15 +1530,128 @@ window.multiShotVideoPolling = function() {
                                 </button>
                             @endif
                         </div>
-                    @elseif($hasAudio && $curModel === 'infinitetalk')
+                    @elseif($hasAudio && !$showVoiceRegenerateOptions && $curModel === 'infinitetalk')
+                        {{-- Audio Ready - Show status with regenerate option --}}
                         <div class="msm-audio-ready" style="padding-left:28px;">
                             <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
                             @if($selShot['audioDuration'] ?? null)
                                 <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
                             @endif
+                            <button type="button" wire:click.stop.prevent="toggleVoiceRegenerateOptions" class="msm-btn-regen-small" title="{{ __('Regenerate with different voice') }}">
+                                🔄 {{ __('Regenerate') }}
+                            </button>
+                        </div>
+                    @elseif($hasAudio && $showVoiceRegenerateOptions && $curModel === 'infinitetalk')
+                        {{-- Audio Regenerate Mode - Show voice options --}}
+                        <div class="msm-audio-setup msm-audio-regenerate" style="padding-left:28px;">
+                            <div class="msm-regen-header">
+                                <span class="msm-regen-title">🔄 {{ __('Regenerate Voiceover') }}</span>
+                                <button type="button" wire:click.stop.prevent="toggleVoiceRegenerateOptions" class="msm-btn-cancel-small">✕</button>
+                            </div>
+
+                            {{-- Voice Selection --}}
+                            <div class="msm-voice-select">
+                                <label>
+                                    {{ __('Voice') }}
+                                    @if($activeTtsProvider === 'kokoro')
+                                        <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                    @else
+                                        <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                    @endif
+                                </label>
+                                <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
+                                    @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                        <option value="{{ $voiceId }}">
+                                            {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                            ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Monologue Preview/Edit --}}
+                            <div class="msm-monologue-edit">
+                                <label>{{ __('Dialogue/Monologue') }}:</label>
+                                <textarea wire:model.blur="shotMonologueEdit"
+                                          class="msm-monologue-textarea"
+                                          rows="2"
+                                          placeholder="{{ __('Leave empty to keep existing text') }}"></textarea>
+                            </div>
+
+                            {{-- Regenerate Voice Button --}}
+                            <button type="button"
+                                    wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="generateShotVoiceover"
+                                    class="msm-btn msm-btn-voice msm-btn-regen">
+                                <span wire:loading.remove wire:target="generateShotVoiceover">
+                                    🎤 {{ __('Regenerate Voice') }}
+                                </span>
+                                <span wire:loading wire:target="generateShotVoiceover">
+                                    ⏳ {{ __('Generating...') }}
+                                </span>
+                            </button>
+                        </div>
+                    @elseif($audioGenerating && $curModel === 'infinitetalk')
+                        {{-- Audio Generating --}}
+                        <div class="msm-audio-generating" style="padding-left:28px;">
+                            <div class="msm-spinner-small"></div>
+                            <span>{{ __('Generating voiceover...') }}</span>
                         </div>
                     @elseif(!$hasAudio && !$audioGenerating && $curModel === 'infinitetalk')
-                        <span class="msm-audio-hint" style="padding-left:28px;font-size:0.7rem;">{{ __('Requires voiceover audio') }}</span>
+                        {{-- No Audio - Show Generation Options (same as Multitalk) --}}
+                        <div class="msm-audio-setup" style="padding-left:28px;">
+                            <span class="msm-audio-hint">{{ __('Lip-sync requires voiceover audio') }}</span>
+
+                            {{-- Voice Selection --}}
+                            <div class="msm-voice-select">
+                                <label>
+                                    {{ __('Voice') }}
+                                    @if($activeTtsProvider === 'kokoro')
+                                        <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                    @else
+                                        <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                    @endif
+                                </label>
+                                <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
+                                    @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                        <option value="{{ $voiceId }}">
+                                            {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                            ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Monologue Preview/Edit --}}
+                            <div class="msm-monologue-edit">
+                                <label>{{ __('Dialogue/Monologue') }}:</label>
+                                <textarea wire:model.blur="shotMonologueEdit"
+                                          class="msm-monologue-textarea"
+                                          rows="2"
+                                          placeholder="{{ __('Leave empty to auto-generate from scene context') }}"></textarea>
+                            </div>
+
+                            {{-- Generate Voice Button --}}
+                            <button type="button"
+                                    wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="generateShotVoiceover"
+                                    class="msm-btn msm-btn-voice">
+                                <span wire:loading.remove wire:target="generateShotVoiceover">
+                                    🎤 {{ __('Generate Voice') }}
+                                </span>
+                                <span wire:loading wire:target="generateShotVoiceover">
+                                    ⏳ {{ __('Generating...') }}
+                                </span>
+                            </button>
+                        </div>
+                    @endif
+
+                    @if($curModel === 'infinitetalk' && $needsLipSync && !$hasAudio)
+                        <div class="msm-lipsync-hint" style="padding-left:28px;">
+                            💡 {{ __('Character speaks on-screen - generate voiceover for lip-sync') }}
+                        </div>
                     @endif
                 @endif
             </div>
