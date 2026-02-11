@@ -185,10 +185,17 @@ class AppVideoWizardServiceProvider extends ServiceProvider
             fn () => new \Modules\AppVideoWizard\Services\CameraMovementService()
         );
 
-        // Phase 2: Video Prompt Builder Service
+        // Phase 2: Video Prompt Builder Service (auto-resolve 6 dependencies)
         $this->app->singleton(
             \Modules\AppVideoWizard\Services\VideoPromptBuilderService::class,
-            fn () => new \Modules\AppVideoWizard\Services\VideoPromptBuilderService()
+            fn ($app) => new \Modules\AppVideoWizard\Services\VideoPromptBuilderService(
+                $app->make(\Modules\AppVideoWizard\Services\CameraMovementService::class),
+                $app->make(\Modules\AppVideoWizard\Services\VideoTemporalService::class),
+                $app->make(\Modules\AppVideoWizard\Services\MicroMovementService::class),
+                $app->make(\Modules\AppVideoWizard\Services\CharacterDynamicsService::class),
+                $app->make(\Modules\AppVideoWizard\Services\CharacterPathService::class),
+                $app->make(\Modules\AppVideoWizard\Services\TransitionVocabulary::class)
+            )
         );
 
         // Phase 3: Shot Continuity Service (depends on Phase 1)
