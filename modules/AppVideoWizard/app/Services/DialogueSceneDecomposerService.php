@@ -886,8 +886,13 @@ class DialogueSceneDecomposerService
      * @param array $shots Shots to enforce constraint on
      * @return array Modified shots with single-character constraint applied
      */
-    protected function enforceSingleCharacterConstraint(array $shots): array
+    protected function enforceSingleCharacterConstraint(array $shots, array $options = []): array
     {
+        if (($options['animationModel'] ?? null) === 'infinitetalk') {
+            Log::info('DialogueSceneDecomposer: Skipping single-character constraint for InfiniteTalk dialogue mode');
+            return $shots;
+        }
+
         $conversions = [];
 
         foreach ($shots as $index => &$shot) {
@@ -2401,7 +2406,7 @@ class DialogueSceneDecomposerService
      * @param array $characterBible Character Bible for character lookup
      * @return array Enhanced shots with dialogue patterns applied
      */
-    public function enhanceShotsWithDialoguePatterns(array $shots, array $scene, array $characterBible = []): array
+    public function enhanceShotsWithDialoguePatterns(array $shots, array $scene, array $characterBible = [], array $options = []): array
     {
         if (empty($shots)) {
             return [];
@@ -2487,7 +2492,9 @@ class DialogueSceneDecomposerService
         $shots = $this->pairReverseShots($shots);
 
         // Phase 12: Enforce single-character constraint (FLOW-02)
-        $shots = $this->enforceSingleCharacterConstraint($shots);
+        $shots = $this->enforceSingleCharacterConstraint($shots, [
+            'animationModel' => $options['animationModel'] ?? null,
+        ]);
 
         // Phase 12: Validate 180-degree rule (SCNE-04)
         $axisViolations = $this->validate180DegreeRule($shots);

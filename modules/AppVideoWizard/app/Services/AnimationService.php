@@ -50,6 +50,7 @@ class AnimationService
             'durations' => [5, 10, 15, 30, 60],
             'defaultDuration' => 10,
             'supportsLipSync' => true,
+            'supportsMultiPerson' => true,
             'provider' => 'runpod',
             'requiresAudio' => true,
         ],
@@ -307,8 +308,7 @@ class AnimationService
             'prompt' => $prompt ?: 'A person is talking in a natural way with smooth lip movements.',
             'input_type' => $options['input_type'] ?? 'image',
             'person_count' => $options['person_count'] ?? 'single',
-            'width' => $options['width'] ?? 512,
-            'height' => $options['height'] ?? 512,
+            'aspect_ratio' => $options['aspect_ratio'] ?? '16:9',
             'max_frame' => $options['max_frame'] ?? null,
             'audio_url_2' => $options['audio_url_2'] ?? null,
         ]);

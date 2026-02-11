@@ -863,6 +863,7 @@ window.multiShotVideoPolling = function() {
                                         @if($aiRecommended)<span class="msm-badge-ai" title="{{ __('AI recommended') }}">🤖</span>@endif
                                         @if($hasDialogue && !$needsLipSync)<span class="msm-badge-voiceover" title="{{ __('Voiceover only: Text spoken off-screen (no lip movement)') }}">🎙️</span>@endif
                                         @if($hasDialogue && $needsLipSync)<span class="msm-badge-dialog" title="{{ __('Has dialogue text') }}">💬</span>@endif
+                                        @if($shot['isDialogueShot'] ?? false)<span class="msm-badge-dialogue" title="{{ __('Two-character dialogue') }}" style="background:rgba(168,85,247,0.2);color:#c084fc;font-size:0.6rem;padding:1px 3px;border-radius:3px;">💬2</span>@endif
                                         @if($hasAudioReady)<span class="msm-badge-audio" title="{{ __('Voiceover ready') }}">🎤</span>@endif
                                         @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
@@ -1305,6 +1306,11 @@ window.multiShotVideoPolling = function() {
                 $hasAudio = !empty($selShot['audioUrl']) && ($selShot['audioStatus'] ?? '') === 'ready';
                 $audioGenerating = ($selShot['audioStatus'] ?? '') === 'generating';
                 $needsLipSync = $selShot['needsLipSync'] ?? false;
+                $shotCharCount = count($selShot['charactersInShot'] ?? []);
+                $isDialogueShot = ($selShot['isDialogueShot'] ?? false);
+                $hasAudio2 = !empty($selShot['audioUrl2']);
+                $speaker1Name = $selShot['dialogueSpeakers'][0]['name'] ?? null;
+                $speaker2Name = $selShot['dialogueSpeakers'][1]['name'] ?? null;
             @endphp
 
             {{-- MiniMax Option --}}
@@ -1466,14 +1472,68 @@ window.multiShotVideoPolling = function() {
 
                 @if($itAvail)
                     <span class="msm-model-desc" style="font-size:0.75rem;color:rgba(255,255,255,0.5);padding-left:28px;">{{ __('Unlimited-length talking video with lip-sync') }}</span>
-                    @if($hasAudio)
+
+                    {{-- Two-Character Dialogue Mode Toggle --}}
+                    @if($curModel === 'infinitetalk' && $shotCharCount >= 2)
+                        <label class="msm-dialogue-toggle" style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0 0.25rem 28px;cursor:pointer;">
+                            <input type="checkbox" wire:model.live="infiniteTalkDialogueMode" class="toggle toggle-sm toggle-primary" />
+                            <span style="font-size:0.75rem;color:rgba(255,255,255,0.7);">{{ __('Two-Character Dialogue Mode') }}</span>
+                            @if($speaker1Name && $speaker2Name && $isDialogueShot)
+                                <span style="font-size:0.65rem;color:rgba(255,255,255,0.4);">({{ $speaker1Name }} & {{ $speaker2Name }})</span>
+                            @endif
+                        </label>
+                    @endif
+
+                    {{-- Dual Audio Status for Dialogue Mode --}}
+                    @if($isDialogueShot && $curModel === 'infinitetalk')
+                        <div class="msm-dialogue-audio" style="padding-left:28px;margin-top:0.25rem;">
+                            {{-- Speaker 1 --}}
+                            <div class="msm-speaker-audio" style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:rgba(255,255,255,0.6);margin-bottom:0.2rem;">
+                                <span class="msm-speaker-label" style="min-width:60px;font-weight:500;">{{ $speaker1Name ?? 'Speaker 1' }}:</span>
+                                @if(!empty($selShot['audioUrl']))
+                                    <span style="color:#22c55e;">✓</span>
+                                    <span>{{ $selShot['voiceId'] ?? 'voice' }}</span>
+                                    @if($selShot['audioDuration'] ?? null)
+                                        <span>({{ number_format($selShot['audioDuration'], 1) }}s)</span>
+                                    @endif
+                                @else
+                                    <span style="color:#ef4444;">✗ {{ __('Not generated') }}</span>
+                                @endif
+                            </div>
+                            {{-- Speaker 2 --}}
+                            <div class="msm-speaker-audio" style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:rgba(255,255,255,0.6);">
+                                <span class="msm-speaker-label" style="min-width:60px;font-weight:500;">{{ $speaker2Name ?? 'Speaker 2' }}:</span>
+                                @if($hasAudio2)
+                                    <span style="color:#22c55e;">✓</span>
+                                    <span>{{ $selShot['voiceId2'] ?? 'voice' }}</span>
+                                    @if($selShot['audioDuration2'] ?? null)
+                                        <span>({{ number_format($selShot['audioDuration2'], 1) }}s)</span>
+                                    @endif
+                                @else
+                                    <span style="color:#ef4444;">✗ {{ __('Not generated') }}</span>
+                                @endif
+                            </div>
+                            {{-- Generate Dialogue Audio Button --}}
+                            @if(!$hasAudio || !$hasAudio2)
+                                <button type="button"
+                                        wire:click.stop.prevent="generateDialogueVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="generateDialogueVoiceover"
+                                        class="msm-btn msm-btn-voice"
+                                        style="margin-top:0.4rem;font-size:0.75rem;">
+                                    <span wire:loading.remove wire:target="generateDialogueVoiceover">🎤 {{ __('Generate Dialogue Audio') }}</span>
+                                    <span wire:loading wire:target="generateDialogueVoiceover">⏳ {{ __('Generating...') }}</span>
+                                </button>
+                            @endif
+                        </div>
+                    @elseif($hasAudio && $curModel === 'infinitetalk')
                         <div class="msm-audio-ready" style="padding-left:28px;">
                             <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
                             @if($selShot['audioDuration'] ?? null)
                                 <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
                             @endif
                         </div>
-                    @elseif(!$hasAudio && !$audioGenerating)
+                    @elseif(!$hasAudio && !$audioGenerating && $curModel === 'infinitetalk')
                         <span class="msm-audio-hint" style="padding-left:28px;font-size:0.7rem;">{{ __('Requires voiceover audio') }}</span>
                     @endif
                 @endif
@@ -1490,7 +1550,11 @@ window.multiShotVideoPolling = function() {
             </div>
 
             {{-- Generate Animation Button --}}
-            @if(($curModel === 'multitalk' || $curModel === 'infinitetalk') && !$hasAudio)
+            @if($curModel === 'infinitetalk' && $isDialogueShot && !$hasAudio2)
+                <button type="button" disabled class="msm-gen-anim-btn msm-btn-disabled">
+                    🎬 {{ __('Generate both dialogue voices first') }}
+                </button>
+            @elseif(($curModel === 'multitalk' || $curModel === 'infinitetalk') && !$hasAudio)
                 <button type="button" disabled class="msm-gen-anim-btn msm-btn-disabled">
                     🎬 {{ __('Generate voice first to use lip-sync') }}
                 </button>

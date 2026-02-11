@@ -52,12 +52,26 @@ class InfiniteTalkService
     }
 
     /**
+     * Map aspect ratio string to pixel resolution.
+     */
+    public static function getResolutionForAspectRatio(string $aspectRatio): array
+    {
+        return match ($aspectRatio) {
+            '16:9'  => ['width' => 1280, 'height' => 720],
+            '9:16'  => ['width' => 720, 'height' => 1280],
+            '1:1'   => ['width' => 1024, 'height' => 1024],
+            '4:5'   => ['width' => 720, 'height' => 900],
+            default => ['width' => 1280, 'height' => 720],
+        };
+    }
+
+    /**
      * Generate a talking video using InfiniteTalk.
      *
      * @param WizardProject $project The wizard project
      * @param string $imageUrl URL to the source portrait image
      * @param string $audioUrl URL to the WAV audio file
-     * @param array $options Additional options (prompt, width, height, max_frame, person_count, input_type)
+     * @param array $options Additional options (prompt, width, height, max_frame, person_count, input_type, aspect_ratio)
      * @return array Result with taskId, provider, status, endpointId
      */
     public function generate(
@@ -80,8 +94,10 @@ class InfiniteTalkService
         $inputType = $options['input_type'] ?? 'image';
         $personCount = $options['person_count'] ?? 'single';
         $prompt = $options['prompt'] ?? 'A person is talking in a natural way with smooth lip movements.';
-        $width = $options['width'] ?? 512;
-        $height = $options['height'] ?? 512;
+        $aspectRatio = $options['aspect_ratio'] ?? '16:9';
+        $resolution = self::getResolutionForAspectRatio($aspectRatio);
+        $width = $options['width'] ?? $resolution['width'];
+        $height = $options['height'] ?? $resolution['height'];
 
         // Build InfiniteTalk input payload
         $input = [

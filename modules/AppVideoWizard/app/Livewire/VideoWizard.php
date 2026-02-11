@@ -1272,6 +1272,9 @@ class VideoWizard extends Component
     public int $editingCharacterIndex = 0;
     public bool $isGeneratingPortrait = false;
     public bool $isSyncingCharacterBible = false;
+
+    // InfiniteTalk Dialogue Mode
+    public bool $infiniteTalkDialogueMode = false;
     public ?string $previewEmotion = null;  // VOC-12: Emotion for voice preview
 
     // Location Bible Modal state
@@ -18406,7 +18409,8 @@ PROMPT;
                 $enhancedShots = $dialogueDecomposer->enhanceShotsWithDialoguePatterns(
                     $shotsFromSpeech,
                     $scene,
-                    $characterBible
+                    $characterBible,
+                    ['animationModel' => $this->getPreferredAnimationModel()]
                 );
 
                 // Convert to standard shot format
@@ -18493,6 +18497,7 @@ PROMPT;
             $dialogueShots = $dialogueDecomposer->decomposeDialogueScene($scene, $characterBible, [
                 'includeEstablishing' => true,
                 'includeReactionShots' => true,
+                'animationModel' => $this->getPreferredAnimationModel(),
             ]);
 
             if (!empty($dialogueShots)) {
@@ -29215,6 +29220,29 @@ PROMPT;
                 \Log::info("🎬 {$selectedModel} audio URL found", ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
             }
 
+            // Detect InfiniteTalk dialogue mode (two-character with dual audio tracks)
+            $isDialogueShot = ($selectedModel === 'infinitetalk')
+                && ($shot['isDialogueShot'] ?? false)
+                && !empty($shot['audioUrl2']);
+
+            $extraAnimOptions = [];
+            if ($isDialogueShot) {
+                $extraAnimOptions['person_count'] = 'multi';
+                $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+                $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
+            } elseif ($selectedModel === 'infinitetalk') {
+                $extraAnimOptions['person_count'] = 'single';
+                $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
+            }
+
+            // InfiniteTalk max_frame safety cap (base64 output size guard)
+            if ($selectedModel === 'infinitetalk') {
+                $fps = 24;
+                $maxSafeDuration = 30;
+                $requestedDuration = $audioDuration ?? $duration;
+                $extraAnimOptions['max_frame'] = min((int)($requestedDuration * $fps), $maxSafeDuration * $fps);
+            }
+
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
@@ -29222,14 +29250,14 @@ PROMPT;
                     $scene = $this->script['scenes'][$sceneIndex] ?? [];
                     $motionPrompt = $this->buildShotMotionPrompt($shot, $selectedModel, $scene);
 
-                    $result = $animationService->generateAnimation($project, [
+                    $result = $animationService->generateAnimation($project, array_merge([
                         'imageUrl' => $shot['imageUrl'],
                         'prompt' => $motionPrompt,
                         'model' => $selectedModel,
                         'duration' => $duration,
                         'audioUrl' => $audioUrl,
-                        'audioDuration' => $audioDuration, // For Multitalk: actual audio length (duration includes padding)
-                    ]);
+                        'audioDuration' => $audioDuration,
+                    ], $extraAnimOptions));
 
                     \Log::info('🎬 Animation result', [
                         'success' => $result['success'] ?? false,
@@ -29391,6 +29419,16 @@ PROMPT;
      */
     protected function buildShotMotionPrompt(array $shot, string $model = 'minimax', array $scene = []): string
     {
+        // For InfiniteTalk dialogue (two-person), use specialized prompt
+        if ($model === 'infinitetalk' && ($shot['isDialogueShot'] ?? false)) {
+            return $this->buildInfiniteTalkDialoguePrompt($shot, $scene);
+        }
+
+        // For InfiniteTalk single-person, use single-person prompt
+        if ($model === 'infinitetalk') {
+            return $this->buildInfiniteTalkPrompt($shot, $scene);
+        }
+
         // For Multitalk, use specialized lip-sync optimized prompt
         if ($model === 'multitalk') {
             return $this->buildMultitalkPrompt($shot, $scene);
@@ -29459,6 +29497,259 @@ PROMPT;
         $prompt .= "natural breathing motion";
 
         return $prompt;
+    }
+
+    /**
+     * Build prompt for InfiniteTalk single-person mode.
+     */
+    protected function buildInfiniteTalkPrompt(array $shot, array $scene): string
+    {
+        $character = $shot['speakingCharacter'] ?? $scene['characters'][0] ?? 'the person';
+        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
+        $action = $shot['subjectAction'] ?? 'speaking';
+
+        $emotionMap = [
+            'tense' => 'focused expression with slight tension',
+            'dramatic' => 'intense emotional expression',
+            'happy' => 'warm expression with natural smile',
+            'sad' => 'thoughtful, melancholic expression',
+            'angry' => 'fierce, intense gaze',
+            'neutral' => 'calm, natural expression',
+        ];
+
+        $expressionDesc = $emotionMap[$emotion] ?? $emotionMap['neutral'];
+
+        return "{$character} speaking naturally with clear lip movements, {$expressionDesc}, "
+             . "subtle head movement and natural gestures, smooth breathing motion, "
+             . "realistic facial micro-expressions";
+    }
+
+    /**
+     * Build prompt for InfiniteTalk two-person dialogue mode.
+     */
+    protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
+    {
+        $speakers = $shot['dialogueSpeakers'] ?? [];
+        $char1 = $speakers[0]['name'] ?? $scene['characters'][0] ?? 'Person A';
+        $char2 = $speakers[1]['name'] ?? $scene['characters'][1] ?? 'Person B';
+        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
+
+        return "Two people in conversation: {$char1} and {$char2} talking naturally, "
+             . "turn-taking dialogue with clear lip movements for both characters, "
+             . "natural eye contact between speakers, realistic head turns and gestures, "
+             . "smooth transitions between who is speaking, "
+             . "{$emotion} tone, natural breathing and facial micro-expressions";
+    }
+
+    /**
+     * Get the preferred animation model based on InfiniteTalk dialogue mode.
+     */
+    protected function getPreferredAnimationModel(): ?string
+    {
+        $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
+        if ($itAvail && $this->infiniteTalkDialogueMode) {
+            return 'infinitetalk';
+        }
+        return null;
+    }
+
+    /**
+     * Generate dual-track dialogue voiceover for InfiniteTalk multi-person mode.
+     * Generates separate audio for each speaker and stores as audioUrl / audioUrl2.
+     */
+    public function generateDialogueVoiceover(int $sceneIndex, int $shotIndex): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $shot = $decomposed['shots'][$shotIndex];
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'generating';
+
+        try {
+            $speakers = $this->buildSpeakersForDialogueShot($sceneIndex, $shotIndex);
+
+            if (count($speakers) < 2) {
+                $this->error = __('Need at least 2 characters for dialogue mode');
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+                return;
+            }
+
+            $voiceoverService = app(\Modules\AppVideoWizard\Services\VoiceoverService::class);
+            $project = WizardProject::find($this->projectId);
+
+            if (!$project) {
+                $this->error = __('Project not found');
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+                return;
+            }
+
+            // Build shot data with speakers array for processMultiSpeakerShot
+            $shotForVoiceover = array_merge($shot, [
+                'speakers' => $speakers,
+            ]);
+
+            $result = $voiceoverService->processMultiSpeakerShot($project, $shotForVoiceover, [
+                'sceneIndex' => $sceneIndex,
+            ]);
+
+            if (!($result['success'] ?? false) || empty($result['speakers'])) {
+                $this->error = $result['error'] ?? __('Failed to generate dialogue voiceover');
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+                return;
+            }
+
+            $audioSegments = $result['speakers'];
+
+            // Store Speaker 1 in standard fields
+            $speaker1 = $audioSegments[0] ?? null;
+            if ($speaker1 && !empty($speaker1['audioUrl'])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $speaker1['audioUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration'] = $speaker1['duration'] ?? 0;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $speaker1['voiceId'] ?? null;
+            }
+
+            // Store Speaker 2 in new fields
+            $speaker2 = $audioSegments[1] ?? null;
+            if ($speaker2 && !empty($speaker2['audioUrl'])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] = $speaker2['audioUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $speaker2['duration'] ?? 0;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = $speaker2['voiceId'] ?? null;
+            }
+
+            // Mark as dialogue shot
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakerCount'] = count($audioSegments);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dialogueSpeakers'] = array_map(fn($s) => [
+                'name' => $s['name'] ?? 'Speaker',
+                'voiceId' => $s['voiceId'] ?? null,
+            ], $audioSegments);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+
+            $this->saveProject();
+            $this->dispatch('shot-audio-ready', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'isDialogue' => true,
+            ]);
+
+            \Log::info('VideoWizard: Dialogue voiceover generated', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'speakerCount' => count($audioSegments),
+                'speaker1Duration' => $speaker1['duration'] ?? 0,
+                'speaker2Duration' => $speaker2['duration'] ?? 0,
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('VideoWizard: Dialogue voiceover failed', [
+                'error' => $e->getMessage(),
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+            ]);
+            $this->error = __('Dialogue voiceover generation failed: ') . $e->getMessage();
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+        }
+    }
+
+    /**
+     * Build speakers array for a dialogue shot from character data.
+     */
+    protected function buildSpeakersForDialogueShot(int $sceneIndex, int $shotIndex): array
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
+        $charactersInShot = $shot['charactersInShot'] ?? [];
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+
+        if (count($charactersInShot) < 2) {
+            return [];
+        }
+
+        $speakers = [];
+        $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? $scene['narration'] ?? '';
+
+        // Try to split dialogue by character names
+        $dialogueParts = $this->splitDialogueByCharacter($dialogue, $charactersInShot);
+
+        foreach ($charactersInShot as $index => $characterName) {
+            $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible);
+            $text = $dialogueParts[$characterName] ?? ($index === 0 ? $dialogue : '');
+
+            if (!empty($text)) {
+                $speakers[] = [
+                    'name' => $characterName,
+                    'voiceId' => $voiceId ?? 'echo',
+                    'text' => $text,
+                    'order' => $index,
+                ];
+            }
+        }
+
+        return $speakers;
+    }
+
+    /**
+     * Split dialogue text by character name markers (e.g. "JOHN: Hello" / "JANE: Hi").
+     */
+    protected function splitDialogueByCharacter(string $dialogue, array $characters): array
+    {
+        $parts = [];
+        $pattern = '/\b(' . implode('|', array_map('preg_quote', $characters)) . ')\s*[:]\s*/i';
+
+        $segments = preg_split($pattern, $dialogue, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        $currentChar = null;
+        foreach ($segments as $segment) {
+            $segment = trim($segment);
+            if (empty($segment)) continue;
+
+            // Check if this segment is a character name
+            $isCharName = false;
+            foreach ($characters as $char) {
+                if (strcasecmp($segment, $char) === 0) {
+                    $currentChar = $char;
+                    $isCharName = true;
+                    break;
+                }
+            }
+
+            if (!$isCharName && $currentChar) {
+                $parts[$currentChar] = ($parts[$currentChar] ?? '') . ' ' . $segment;
+                $parts[$currentChar] = trim($parts[$currentChar]);
+            }
+        }
+
+        // If no character markers found, split roughly in half
+        if (empty($parts) && count($characters) >= 2) {
+            $sentences = preg_split('/(?<=[.!?])\s+/', $dialogue, -1, PREG_SPLIT_NO_EMPTY);
+            $midpoint = (int) ceil(count($sentences) / 2);
+
+            $parts[$characters[0]] = implode(' ', array_slice($sentences, 0, $midpoint));
+            $parts[$characters[1]] = implode(' ', array_slice($sentences, $midpoint));
+        }
+
+        return $parts;
+    }
+
+    /**
+     * Look up voice ID for a character name from Character Bible.
+     */
+    protected function getVoiceIdForCharacterName(string $name, array $characterBible): ?string
+    {
+        $characters = $characterBible['characters'] ?? [];
+        $nameLower = strtolower(trim($name));
+
+        foreach ($characters as $character) {
+            $charName = strtolower(trim($character['name'] ?? ''));
+            if ($charName === $nameLower || str_contains($charName, $nameLower) || str_contains($nameLower, $charName)) {
+                return $character['voiceId'] ?? $character['voice_id'] ?? null;
+            }
+        }
+
+        return null;
     }
 
     /**
