@@ -278,6 +278,10 @@
         .aith-e-icon-yellow-amber { background: linear-gradient(135deg, #eab308, #d97706); }
         .aith-e-icon-red-cyan { background: linear-gradient(135deg, #ef4444, #06b6d4); }
         .aith-e-icon-violet-cyan { background: linear-gradient(135deg, #8b5cf6, #06b6d4); }
+        .aith-e-icon-red-pink { background: linear-gradient(135deg, #ef4444, #ec4899); }
+        .aith-e-icon-violet-pink { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+        .aith-e-icon-purple-fuchsia { background: linear-gradient(135deg, #a855f7, #d946ef); }
+        .aith-e-icon-indigo-violet { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 
         /* Command Palette */
         .aith-e-palette-overlay {
@@ -691,6 +695,19 @@
                         'tiktok-duet-stitch'        => 'aith-e-icon-indigo-purple',
                         'tiktok-brand-partnership'  => 'aith-e-icon-rose-pink',
                         'tiktok-shop-optimizer'     => 'aith-e-icon-orange-red',
+                        // Instagram
+                        'ig-yt-reels-converter'     => 'aith-e-icon-red-pink',
+                        'ig-yt-arbitrage'           => 'aith-e-icon-violet-pink',
+                        'ig-reels-monetization'     => 'aith-e-icon-green-emerald',
+                        'ig-seo-optimizer'          => 'aith-e-icon-blue-indigo',
+                        'ig-story-planner'          => 'aith-e-icon-purple-fuchsia',
+                        'ig-carousel-builder'       => 'aith-e-icon-amber-orange',
+                        'ig-collab-matcher'         => 'aith-e-icon-teal-cyan',
+                        'ig-link-bio'               => 'aith-e-icon-rose-pink',
+                        'ig-dm-automation'          => 'aith-e-icon-indigo-violet',
+                        'ig-hashtag-tracker'        => 'aith-e-icon-cyan-teal',
+                        'ig-aesthetic-analyzer'     => 'aith-e-icon-pink-rose',
+                        'ig-shopping-optimizer'     => 'aith-e-icon-orange-red',
                     ];
                     $badgeClasses = [
                         'optimization'  => 'aith-e-badge-optimization',

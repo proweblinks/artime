@@ -110,6 +110,20 @@ class AppAIToolsController extends Controller
             'tiktok-duet-stitch'        => ['component' => 'enterprise.tiktok-duet-stitch',        'title' => 'Duet & Stitch Planner'],
             'tiktok-brand-partnership'  => ['component' => 'enterprise.tiktok-brand-partnership',  'title' => 'Brand Partnership Finder'],
             'tiktok-shop-optimizer'     => ['component' => 'enterprise.tiktok-shop-optimizer',     'title' => 'TikTok Shop Optimizer'],
+            // Cross-Platform YouTube↔Instagram
+            'ig-yt-reels-converter'     => ['component' => 'enterprise.ig-yt-reels-converter',     'title' => 'YouTube → Reels Converter'],
+            'ig-yt-arbitrage'           => ['component' => 'enterprise.ig-yt-arbitrage',            'title' => 'Cross-Platform IG Arbitrage'],
+            // Instagram
+            'ig-reels-monetization'     => ['component' => 'enterprise.ig-reels-monetization',     'title' => 'Reels Monetization Analyzer'],
+            'ig-seo-optimizer'          => ['component' => 'enterprise.ig-seo-optimizer',           'title' => 'Instagram SEO Optimizer'],
+            'ig-story-planner'          => ['component' => 'enterprise.ig-story-planner',           'title' => 'Story Engagement Planner'],
+            'ig-carousel-builder'       => ['component' => 'enterprise.ig-carousel-builder',        'title' => 'Carousel Content Builder'],
+            'ig-collab-matcher'         => ['component' => 'enterprise.ig-collab-matcher',          'title' => 'Collab Post Matcher'],
+            'ig-link-bio'               => ['component' => 'enterprise.ig-link-bio',                'title' => 'Link-in-Bio Optimizer'],
+            'ig-dm-automation'          => ['component' => 'enterprise.ig-dm-automation',           'title' => 'DM Automation Strategist'],
+            'ig-hashtag-tracker'        => ['component' => 'enterprise.ig-hashtag-tracker',         'title' => 'Hashtag Performance Tracker'],
+            'ig-aesthetic-analyzer'     => ['component' => 'enterprise.ig-aesthetic-analyzer',      'title' => 'Aesthetic & Brand Analyzer'],
+            'ig-shopping-optimizer'     => ['component' => 'enterprise.ig-shopping-optimizer',      'title' => 'Shopping Tag Optimizer'],
         ];
 
         if (!isset($enterpriseToolMap[$tool])) {

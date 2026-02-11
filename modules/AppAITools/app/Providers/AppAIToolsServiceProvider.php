@@ -112,6 +112,22 @@ class AppAIToolsServiceProvider extends ServiceProvider
         Livewire::component('app-ai-tools::enterprise.tiktok-duet-stitch', \Modules\AppAITools\Livewire\Enterprise\TiktokDuetStitch::class);
         Livewire::component('app-ai-tools::enterprise.tiktok-brand-partnership', \Modules\AppAITools\Livewire\Enterprise\TiktokBrandPartnership::class);
         Livewire::component('app-ai-tools::enterprise.tiktok-shop-optimizer', \Modules\AppAITools\Livewire\Enterprise\TiktokShopOptimizer::class);
+
+        // Cross-Platform YouTube↔Instagram tools
+        Livewire::component('app-ai-tools::enterprise.ig-yt-reels-converter', \Modules\AppAITools\Livewire\Enterprise\IgYtReelsConverter::class);
+        Livewire::component('app-ai-tools::enterprise.ig-yt-arbitrage', \Modules\AppAITools\Livewire\Enterprise\IgYtArbitrage::class);
+
+        // Instagram Enterprise tools
+        Livewire::component('app-ai-tools::enterprise.ig-reels-monetization', \Modules\AppAITools\Livewire\Enterprise\IgReelsMonetization::class);
+        Livewire::component('app-ai-tools::enterprise.ig-seo-optimizer', \Modules\AppAITools\Livewire\Enterprise\IgSeoOptimizer::class);
+        Livewire::component('app-ai-tools::enterprise.ig-story-planner', \Modules\AppAITools\Livewire\Enterprise\IgStoryPlanner::class);
+        Livewire::component('app-ai-tools::enterprise.ig-carousel-builder', \Modules\AppAITools\Livewire\Enterprise\IgCarouselBuilder::class);
+        Livewire::component('app-ai-tools::enterprise.ig-collab-matcher', \Modules\AppAITools\Livewire\Enterprise\IgCollabMatcher::class);
+        Livewire::component('app-ai-tools::enterprise.ig-link-bio', \Modules\AppAITools\Livewire\Enterprise\IgLinkBio::class);
+        Livewire::component('app-ai-tools::enterprise.ig-dm-automation', \Modules\AppAITools\Livewire\Enterprise\IgDmAutomation::class);
+        Livewire::component('app-ai-tools::enterprise.ig-hashtag-tracker', \Modules\AppAITools\Livewire\Enterprise\IgHashtagTracker::class);
+        Livewire::component('app-ai-tools::enterprise.ig-aesthetic-analyzer', \Modules\AppAITools\Livewire\Enterprise\IgAestheticAnalyzer::class);
+        Livewire::component('app-ai-tools::enterprise.ig-shopping-optimizer', \Modules\AppAITools\Livewire\Enterprise\IgShoppingOptimizer::class);
     }
 
     /**

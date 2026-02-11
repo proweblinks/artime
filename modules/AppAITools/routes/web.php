@@ -52,5 +52,21 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/enterprise-suite/tiktok-duet-stitch', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-duet-stitch')->defaults('tool', 'tiktok-duet-stitch');
         Route::get('/enterprise-suite/tiktok-brand-partnership', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-brand-partnership')->defaults('tool', 'tiktok-brand-partnership');
         Route::get('/enterprise-suite/tiktok-shop-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-shop-optimizer')->defaults('tool', 'tiktok-shop-optimizer');
+
+        // Cross-Platform YouTube↔Instagram Tools
+        Route::get('/enterprise-suite/ig-yt-reels-converter', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-yt-reels-converter')->defaults('tool', 'ig-yt-reels-converter');
+        Route::get('/enterprise-suite/ig-yt-arbitrage', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-yt-arbitrage')->defaults('tool', 'ig-yt-arbitrage');
+
+        // Instagram Enterprise Tools
+        Route::get('/enterprise-suite/ig-reels-monetization', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-reels-monetization')->defaults('tool', 'ig-reels-monetization');
+        Route::get('/enterprise-suite/ig-seo-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-seo-optimizer')->defaults('tool', 'ig-seo-optimizer');
+        Route::get('/enterprise-suite/ig-story-planner', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-story-planner')->defaults('tool', 'ig-story-planner');
+        Route::get('/enterprise-suite/ig-carousel-builder', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-carousel-builder')->defaults('tool', 'ig-carousel-builder');
+        Route::get('/enterprise-suite/ig-collab-matcher', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-collab-matcher')->defaults('tool', 'ig-collab-matcher');
+        Route::get('/enterprise-suite/ig-link-bio', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-link-bio')->defaults('tool', 'ig-link-bio');
+        Route::get('/enterprise-suite/ig-dm-automation', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-dm-automation')->defaults('tool', 'ig-dm-automation');
+        Route::get('/enterprise-suite/ig-hashtag-tracker', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-hashtag-tracker')->defaults('tool', 'ig-hashtag-tracker');
+        Route::get('/enterprise-suite/ig-aesthetic-analyzer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-aesthetic-analyzer')->defaults('tool', 'ig-aesthetic-analyzer');
+        Route::get('/enterprise-suite/ig-shopping-optimizer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.ig-shopping-optimizer')->defaults('tool', 'ig-shopping-optimizer');
     });
 });

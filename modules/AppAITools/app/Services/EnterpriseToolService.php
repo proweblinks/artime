@@ -965,6 +965,371 @@ class EnterpriseToolService
         return $this->executeAnalysis('tiktok_shop_optimizer', $profile, $prompt);
     }
 
+    // ── Instagram Cross-Platform Tools ─────────────────────────
+
+    /**
+     * Convert a YouTube video into Instagram Reels strategy.
+     */
+    public function convertYoutubeToReels(string $youtubeUrl, string $reelsStyle = ''): array
+    {
+        $ytContext = $this->fetchYouTubeVideoContext($youtubeUrl);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above to ground your analysis. Reference actual view counts, tags, and content structure.";
+        }
+
+        $styleLine = $reelsStyle ? " Preferred Reels style: {$reelsStyle}." : '';
+
+        $prompt = "You are a cross-platform content strategist specializing in adapting YouTube content for Instagram Reels. "
+            . "Analyze this YouTube video and create a comprehensive Reels adaptation plan.\n\n"
+            . "YouTube URL: {$youtubeUrl}{$styleLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"adaptation_score":0,'
+            . '"video_overview":{"title":"","channel":"","views":"","duration":"","top_tags":[""],"content_type":""},'
+            . '"reels_adaptations":[{"segment":"","duration":"15s|30s|60s|90s","hook":"","caption":"","format":"talking_head|b-roll|montage|tutorial"}],'
+            . '"hook_rewrites":[{"original_angle":"","reels_hook":"","style":"","why_effective":""}],'
+            . '"hashtag_strategy":{"primary":["#tag"],"niche":["#tag"],"trending":["#tag"]},'
+            . '"audio_suggestions":[{"type":"original|trending","description":"","why_fits":""}],'
+            . '"caption_rewrites":[{"style":"","caption":"","cta":""}],'
+            . '"cover_image_tips":[{"tip":"","style":""}],'
+            . '"cross_platform_tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nGenerate 3-5 reels adaptations, 3-5 hook rewrites, 3 caption rewrites, and 3-5 audio suggestions. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('ig_yt_reels_converter', $youtubeUrl, $prompt, 5000);
+
+        if ($ytContext) {
+            $vd = $ytContext['video_data'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $vd['thumbnail'] ?? '',
+                'title' => $vd['title'] ?? '',
+                'channel' => $vd['channel'] ?? '',
+                'views' => number_format($vd['views'] ?? 0),
+                'likes' => number_format($vd['likes'] ?? 0),
+                'comments' => number_format($vd['comments'] ?? 0),
+                'duration' => $vd['duration'] ?? '',
+                'tags' => array_slice($vd['tags'] ?? [], 0, 10),
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Analyze cross-platform audience arbitrage between YouTube and Instagram.
+     */
+    public function analyzeYoutubeInstagramArbitrage(string $youtubeChannel, string $igNiche = ''): array
+    {
+        $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel, 20);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above. Reference actual subscriber counts, video performance, and content themes to find gaps and opportunities on Instagram.";
+        }
+
+        $nicheLine = $igNiche ? " Instagram niche focus: {$igNiche}." : '';
+
+        $prompt = "You are a cross-platform audience growth strategist. Analyze this YouTube channel's data and identify content gaps and first-mover opportunities on Instagram.\n\n"
+            . "YouTube Channel: {$youtubeChannel}{$nicheLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"arbitrage_score":0,'
+            . '"youtube_overview":{"channel_name":"","subscribers":"","avg_views":"","top_content_themes":[""],"posting_frequency":""},'
+            . '"content_gaps":[{"topic":"","youtube_performance":"","ig_saturation":"low|medium|high","opportunity_level":"high|medium|low","best_ig_format":"reels|carousel|story|post","reasoning":""}],'
+            . '"first_mover_opportunities":[{"idea":"","format":"reels|carousel|story","estimated_reach":"","urgency":"high|medium|low","reference_video":""}],'
+            . '"audience_overlap":{"estimated_overlap":"","unique_youtube_audience":"","ig_growth_potential":"","demographic_shift":""},'
+            . '"cross_platform_strategy":{"content_pillars":[""],"posting_cadence":"","repurpose_ratio":"","growth_timeline":""},'
+            . '"format_recommendations":[{"youtube_type":"","ig_format":"","adaptation_tips":""}],'
+            . '"quick_wins":[{"action":"","expected_result":"","effort":"low|medium","timeframe":""}]'
+            . '}'
+            . "\n\nGenerate 4-6 content gaps, 3-5 first-mover opportunities, 3-4 format recommendations, and 3-5 quick wins. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('ig_yt_arbitrage', $youtubeChannel, $prompt, 5000);
+
+        if ($ytContext) {
+            $cd = $ytContext['channel_data'];
+            $m = $ytContext['metrics'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $cd['thumbnail'] ?? '',
+                'title' => $cd['title'] ?? '',
+                'subscribers' => $this->formatSubscriberCount($cd['subscribers'] ?? 0),
+                'total_views' => number_format($cd['total_views'] ?? 0),
+                'video_count' => $cd['video_count'] ?? 0,
+                'avg_views' => number_format($m['avg_views'] ?? 0),
+                'avg_likes' => number_format($m['avg_likes'] ?? 0),
+                'engagement_rate' => ($m['engagement_rate'] ?? 0) . '%',
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
+    // ── Instagram Tools ─────────────────────────────────────────
+
+    /**
+     * Analyze Instagram Reels monetization potential.
+     */
+    public function analyzeInstagramReelsMonetization(string $profile, string $avgViews = '', string $followerCount = '', string $youtubeChannel = ''): array
+    {
+        $avLine = $avgViews ? " Average Reels views: {$avgViews}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube data to compare cross-platform monetization opportunities and benchmark earnings.";
+            }
+        }
+
+        $prompt = "You are an Instagram monetization expert specializing in Reels revenue optimization. Analyze this creator's Reels monetization potential.\n\n"
+            . "Profile: {$profile}{$avLine}{$fcLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"reels_score":0,'
+            . '"earnings_estimate":{"daily":"","weekly":"","monthly":""},'
+            . '"monetization_paths":[{"source":"","estimated_monthly":"","eligibility":"","action":""}],'
+            . '"content_optimization":[{"tip":"","impact":"high|medium|low","effort":"low|medium|high"}],'
+            . '"benchmark_comparison":{"your_metrics":"","niche_avg":"","top_creators":""},'
+            . '"growth_milestones":[{"followers":"","monthly_estimate":"","unlock":""}]'
+            . '}'
+            . "\n\nGenerate 4-6 monetization paths, 4-5 optimization tips, and 4 growth milestones. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_reels_monetization', $profile, $prompt);
+    }
+
+    /**
+     * Analyze Instagram SEO for a profile/caption.
+     */
+    public function analyzeInstagramSeo(string $profile, string $caption = '', string $youtubeChannel = ''): array
+    {
+        $capLine = $caption ? "\nCaption to analyze: {$caption}" : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nMap YouTube keywords and tags to Instagram SEO opportunities. Use real YouTube data to inform keyword strategy.";
+            }
+        }
+
+        $prompt = "You are an Instagram SEO expert. Analyze this profile's discoverability and provide optimization recommendations for Instagram search.\n\n"
+            . "Profile: {$profile}{$capLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"seo_score":0,'
+            . '"profile_analysis":{"bio_score":0,"username_score":0,"keyword_density":"","improvements":[""]},'
+            . '"search_optimization":{"keywords_found":[""],"missing_keywords":[""],"alt_text_score":""},'
+            . '"caption_analysis":{"readability":"","keyword_usage":"","cta_present":true,"hashtag_placement":""},'
+            . '"keyword_opportunities":[{"keyword":"","search_volume":"","competition":"low|medium|high","recommendation":""}],'
+            . '"content_pillars":[{"topic":"","search_demand":"","content_ideas":[""]}],'
+            . '"optimization_tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 6-8 keyword opportunities and 3-4 content pillars. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_seo_optimizer', $profile, $prompt);
+    }
+
+    /**
+     * Plan Instagram Story engagement strategy.
+     */
+    public function analyzeInstagramStoryEngagement(string $profile, string $goal = '', string $industry = ''): array
+    {
+        $goalLine = $goal ? " Story goal: {$goal}." : '';
+        $indLine = $industry ? " Industry: {$industry}." : '';
+
+        $prompt = "You are an Instagram Stories engagement expert. Build a comprehensive story strategy that drives interaction and conversions.\n\n"
+            . "Profile: {$profile}{$goalLine}{$indLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"engagement_score":0,'
+            . '"story_framework":[{"day":"Monday","theme":"","sticker_type":"poll|quiz|question|slider|countdown","cta":"","goal":""}],'
+            . '"interactive_elements":[{"type":"poll|quiz|question|slider|countdown|link","usage":"","expected_engagement":"","best_for":""}],'
+            . '"funnel_strategy":{"awareness":[""],"consideration":[""],"conversion":[""]},'
+            . '"content_calendar":[{"time_slot":"","content_type":"","hook":""}],'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nProvide a 7-day story framework, 5-6 interactive elements, and 5-6 content calendar slots. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_story_planner', $profile, $prompt);
+    }
+
+    /**
+     * Build Instagram Carousel content strategy.
+     */
+    public function analyzeInstagramCarousel(string $topic, string $niche = '', string $slideCount = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $slideLine = $slideCount ? " Preferred slides: {$slideCount}." : '';
+
+        $prompt = "You are an Instagram carousel content expert specializing in high-save, high-share carousel posts. Build carousel strategies for this topic.\n\n"
+            . "Topic: {$topic}{$nicheLine}{$slideLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"carousel_score":0,'
+            . '"carousel_templates":[{"title":"","hook_slide":"","slides":[{"slide_num":1,"headline":"","content":"","visual_tip":""}],"cta_slide":"","estimated_saves":""}],'
+            . '"design_tips":[{"tip":"","impact":"high|medium|low"}],'
+            . '"caption_templates":[{"style":"","caption":"","hashtags":[""]}],'
+            . '"posting_strategy":{"best_times":"","frequency":"","series_ideas":[""]},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 3 carousel templates (each with 5-10 slides), 4-5 design tips, and 3 caption templates. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_carousel_builder', $topic, $prompt);
+    }
+
+    /**
+     * Find Instagram collaboration partners.
+     */
+    public function analyzeInstagramCollab(string $profile, string $niche = '', string $followerCount = '', string $youtubeChannel = ''): array
+    {
+        $nicheLine = $niche ? " Niche: {$niche}." : '';
+        $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube collaboration data to find Instagram partners. Cross-reference YouTube collab patterns with Instagram opportunities.";
+            }
+        }
+
+        $prompt = "You are an Instagram collaboration strategist. Find ideal collab partners and build outreach strategies.\n\n"
+            . "Profile: {$profile}{$nicheLine}{$fcLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"collab_score":0,'
+            . '"creator_matches":[{"handle":"","followers":"","niche":"","engagement_rate":"","overlap_score":0,"collab_idea":"","collab_format":"reels|carousel|story|live|post"}],'
+            . '"outreach_templates":[{"approach":"","message":"","key_points":[""]}],'
+            . '"collab_formats":[{"format":"","benefits":"","effort":"low|medium|high","reach_multiplier":""}],'
+            . '"strategy":{"frequency":"","content_split":"","cross_promotion":""},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 5-6 creator matches, 3 outreach templates, and 4-5 collab formats. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_collab_matcher', $profile, $prompt);
+    }
+
+    /**
+     * Optimize Instagram Link-in-Bio.
+     */
+    public function analyzeInstagramLinkBio(string $profile, string $currentLinks = ''): array
+    {
+        $linksLine = $currentLinks ? "\nCurrent link-in-bio URLs:\n{$currentLinks}" : '';
+
+        $prompt = "You are an Instagram bio and link-in-bio conversion expert. Analyze and optimize the bio and link strategy for maximum conversions.\n\n"
+            . "Profile: {$profile}{$linksLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"bio_score":0,'
+            . '"bio_analysis":{"current_assessment":"","improvements":[""],"keyword_usage":"","cta_effectiveness":""},'
+            . '"link_structure":[{"position":1,"link_type":"","label":"","purpose":"","expected_ctr":""}],'
+            . '"conversion_tips":[{"tip":"","impact":"high|medium|low","effort":"low|medium|high"}],'
+            . '"funnel_design":{"awareness_links":[""],"consideration_links":[""],"conversion_links":[""]},'
+            . '"ab_test_ideas":[{"element":"","variant_a":"","variant_b":"","hypothesis":""}],'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 5-6 link structure recommendations, 4-5 conversion tips, and 3-4 A/B test ideas. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_link_bio', $profile, $prompt);
+    }
+
+    /**
+     * Design Instagram DM automation strategy.
+     */
+    public function analyzeInstagramDmAutomation(string $profile, string $productType = '', string $audienceSize = ''): array
+    {
+        $ptLine = $productType ? " Product/service type: {$productType}." : '';
+        $asLine = $audienceSize ? " Audience size: {$audienceSize}." : '';
+
+        $prompt = "You are an Instagram DM automation strategist specializing in keyword-triggered funnels and lead generation. Design a DM automation strategy.\n\n"
+            . "Profile: {$profile}{$ptLine}{$asLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"automation_score":0,'
+            . '"keyword_triggers":[{"keyword":"","response_type":"","message_template":"","conversion_goal":""}],'
+            . '"funnel_blueprints":[{"name":"","trigger":"","steps":[{"step":1,"action":"","delay":"","message":""}],"expected_conversion":""}],'
+            . '"compliance":{"rules":[""],"best_practices":[""],"risks":[""]},'
+            . '"revenue_estimate":{"leads_per_month":"","conversion_rate":"","estimated_revenue":""},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 5-6 keyword triggers, 2-3 funnel blueprints (each with 3-5 steps), and compliance guidance. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_dm_automation', $profile, $prompt);
+    }
+
+    /**
+     * Track and optimize Instagram hashtag strategy.
+     */
+    public function analyzeInstagramHashtag(string $niche, string $contentType = '', string $youtubeChannel = ''): array
+    {
+        $ctLine = $contentType ? " Content type: {$contentType}." : '';
+
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nMap YouTube tags and content themes to Instagram hashtag opportunities. Use real YouTube data to inform hashtag relevance.";
+            }
+        }
+
+        $prompt = "You are an Instagram hashtag expert specializing in discoverability and reach optimization. Build a comprehensive hashtag strategy.\n\n"
+            . "Niche: {$niche}{$ctLine}{$ytContextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"hashtag_score":0,'
+            . '"primary_hashtags":[{"tag":"#tag","avg_reach":"","competition":"low|medium|high","trending":true}],'
+            . '"secondary_hashtags":[{"tag":"#tag","avg_reach":"","purpose":""}],'
+            . '"hashtag_sets":[{"name":"Set name","tags":["#tag1","#tag2"],"best_for":"","estimated_reach":""}],'
+            . '"banned_shadowban_check":[{"tag":"#tag","status":"safe|risky|banned","risk":""}],'
+            . '"strategy_tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 8-10 primary hashtags, 5-8 secondary, 3-4 hashtag sets, and 4-5 shadowban checks. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_hashtag_tracker', $niche, $prompt);
+    }
+
+    /**
+     * Analyze Instagram aesthetic and brand cohesion.
+     */
+    public function analyzeInstagramAesthetic(string $profile, string $brandStyle = ''): array
+    {
+        $bsLine = $brandStyle ? " Brand style: {$brandStyle}." : '';
+
+        $prompt = "You are an Instagram visual branding expert. Analyze this profile's aesthetic consistency and brand cohesion.\n\n"
+            . "Profile: {$profile}{$bsLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"aesthetic_score":0,'
+            . '"grid_analysis":{"consistency_score":0,"color_palette":[""],"dominant_style":"","mood":""},'
+            . '"brand_cohesion":{"logo_presence":"","font_consistency":"","color_adherence":"","voice_consistency":""},'
+            . '"content_mix":{"reels_pct":0,"carousels_pct":0,"stories_pct":0,"posts_pct":0,"recommended_mix":{"reels":0,"carousels":0,"stories":0,"posts":0}},'
+            . '"improvement_areas":[{"area":"","current":"","recommended":"","impact":"high|medium|low"}],'
+            . '"style_recommendations":[{"element":"","suggestion":"","examples":[""]}],'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 4-5 improvement areas and 4-5 style recommendations. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_aesthetic_analyzer', $profile, $prompt);
+    }
+
+    /**
+     * Optimize Instagram Shopping tags and strategy.
+     */
+    public function analyzeInstagramShopping(string $profile, string $productType = '', string $priceRange = ''): array
+    {
+        $ptLine = $productType ? " Product type: {$productType}." : '';
+        $prLine = $priceRange ? " Price range: {$priceRange}." : '';
+
+        $prompt = "You are an Instagram Shopping optimization expert. Analyze this shop and provide tagging, product, and content strategies.\n\n"
+            . "Profile/Shop: {$profile}{$ptLine}{$prLine}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"shop_score":0,'
+            . '"shop_overview":{"estimated_revenue":"","product_visibility":"","tag_usage":"","conversion_rate":""},'
+            . '"tagging_strategy":[{"content_type":"reels|carousel|post|story","tag_placement":"","products_per_post":"","best_practices":""}],'
+            . '"product_recommendations":[{"product":"","category":"","price_range":"","demand":"high|medium|low","competition":"low|medium|high","margin":""}],'
+            . '"content_integration":[{"format":"reels|carousel|story|live","shopping_feature":"","conversion_tip":"","example":""}],'
+            . '"pricing_optimization":{"assessment":"","recommendations":[""]},'
+            . '"tips":["tip1","tip2","tip3"]'
+            . '}'
+            . "\n\nGenerate 4 tagging strategies, 5-6 product recommendations, and 4 content integrations. Respond with ONLY valid JSON.";
+
+        return $this->executeAnalysis('ig_shopping_optimizer', $profile, $prompt);
+    }
+
     /**
      * Core execution: call AI, parse result, save history.
      */
