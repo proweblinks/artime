@@ -1326,7 +1326,7 @@ window.multiShotVideoPolling = function() {
 
             {{-- Multitalk Option with Audio Controls --}}
             <div class="msm-model-opt msm-model-multitalk {{ $curModel === 'multitalk' ? 'active' : '' }} {{ !$mtAvail ? 'disabled' : '' }}"
-                 x-data="{ expanded: {{ $curModel === 'multitalk' ? 'true' : 'false' }} }"
+                 x-data="{ expanded: {{ $curModel === 'multitalk' ? 'true' : 'false' }} }">
                 <div class="msm-model-header-row" @if($mtAvail) wire:click="setVideoModel('multitalk')" x-on:click="expanded = true" @endif>
                     <div class="msm-radio {{ $curModel === 'multitalk' ? 'checked' : '' }}"></div>
                     <div>
@@ -1473,7 +1473,7 @@ window.multiShotVideoPolling = function() {
 
             {{-- InfiniteTalk Option --}}
             <div class="msm-model-opt msm-model-infinitetalk {{ $curModel === 'infinitetalk' ? 'active' : '' }} {{ !$itAvail ? 'disabled' : '' }}"
-                 x-data="{ expanded: {{ $curModel === 'infinitetalk' ? 'true' : 'false' }} }"
+                 x-data="{ expanded: {{ $curModel === 'infinitetalk' ? 'true' : 'false' }} }">
                 <div class="msm-model-header-row" @if($itAvail) wire:click="setVideoModel('infinitetalk')" x-on:click="expanded = true" @endif>
                     <div class="msm-radio {{ $curModel === 'infinitetalk' ? 'checked' : '' }}"></div>
                     <div>
