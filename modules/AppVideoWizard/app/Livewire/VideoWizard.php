@@ -29292,19 +29292,36 @@ PROMPT;
                 \Log::info("🎬 {$selectedModel} audio URL found", ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
             }
 
-            // Detect InfiniteTalk dialogue mode (two-character with dual audio tracks)
-            $isDialogueShot = ($selectedModel === 'infinitetalk')
-                && ($shot['isDialogueShot'] ?? false)
-                && !empty($shot['audioUrl2']);
-
+            // InfiniteTalk mode detection: dialogue (dual audio), multi-face single-speaker, or single face
             $extraAnimOptions = [];
-            if ($isDialogueShot) {
-                $extraAnimOptions['person_count'] = 'multi';
-                $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+            if ($selectedModel === 'infinitetalk') {
                 $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
-            } elseif ($selectedModel === 'infinitetalk') {
-                $extraAnimOptions['person_count'] = 'single';
-                $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
+
+                $isDialogueShot = ($shot['isDialogueShot'] ?? false) && !empty($shot['audioUrl2']);
+
+                // Detect if image has multiple faces (characters in shot or scene)
+                $charactersInShot = $shot['charactersInShot'] ?? [];
+                $sceneCharacters = $this->script['scenes'][$sceneIndex]['characters'] ?? [];
+                $hasMultipleFaces = count($charactersInShot) >= 2 || count($sceneCharacters) >= 2;
+
+                if ($isDialogueShot) {
+                    // Dialogue: two separate audio tracks for two speaking characters
+                    $extraAnimOptions['person_count'] = 'multi';
+                    $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+                    \Log::info('InfiniteTalk: MULTI mode (dialogue) - two audio tracks');
+                } elseif ($hasMultipleFaces) {
+                    // Multi-face image but only one speaker: send silent audio to mute face 2
+                    $extraAnimOptions['person_count'] = 'multi';
+                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64(0.1);
+                    \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio for face 2', [
+                        'charactersInShot' => $charactersInShot,
+                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                    ]);
+                } else {
+                    // Single face in image: standard single mode
+                    $extraAnimOptions['person_count'] = 'single';
+                    \Log::info('InfiniteTalk: SINGLE mode - one face in image');
+                }
             }
 
             // InfiniteTalk max_frame safety cap (base64 output size guard)

@@ -311,6 +311,7 @@ class AnimationService
             'aspect_ratio' => $options['aspect_ratio'] ?? '16:9',
             'max_frame' => $options['max_frame'] ?? null,
             'audio_url_2' => $options['audio_url_2'] ?? null,
+            'wav_base64_2' => $options['wav_base64_2'] ?? null,
         ]);
     }
 

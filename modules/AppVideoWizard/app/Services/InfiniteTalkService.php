@@ -119,9 +119,13 @@ class InfiniteTalkService
         // Audio (primary person)
         $input['wav_url'] = $audioUrl;
 
-        // Second audio for multi-person mode
-        if ($personCount === 'multi' && !empty($options['audio_url_2'])) {
-            $input['wav_url_2'] = $options['audio_url_2'];
+        // Second audio for multi-person mode (URL or inline base64)
+        if ($personCount === 'multi') {
+            if (!empty($options['audio_url_2'])) {
+                $input['wav_url_2'] = $options['audio_url_2'];
+            } elseif (!empty($options['wav_base64_2'])) {
+                $input['wav_base64_2'] = $options['wav_base64_2'];
+            }
         }
 
         // Optional max_frame to cap video length
@@ -134,6 +138,8 @@ class InfiniteTalkService
             'endpoint' => $this->endpointId,
             'input_type' => $inputType,
             'person_count' => $personCount,
+            'has_wav_url_2' => isset($input['wav_url_2']),
+            'has_wav_base64_2' => isset($input['wav_base64_2']),
             'width' => $width,
             'height' => $height,
         ]);
@@ -363,6 +369,29 @@ class InfiniteTalkService
         }
 
         return $this->errorResponse('Failed to process InfiniteTalk video output');
+    }
+
+    /**
+     * Generate a minimal silent WAV file as base64.
+     * Used to mute the second face in multi mode when only one character speaks.
+     */
+    public static function generateSilentWavBase64(float $durationSeconds = 0.1): string
+    {
+        $sampleRate = 44100;
+        $bitsPerSample = 16;
+        $channels = 1;
+        $numSamples = max(1, (int)($sampleRate * $durationSeconds));
+        $bytesPerSample = $bitsPerSample / 8;
+        $dataSize = $numSamples * $bytesPerSample * $channels;
+        $byteRate = $sampleRate * $channels * $bytesPerSample;
+        $blockAlign = $channels * $bytesPerSample;
+
+        // RIFF header + fmt chunk + data chunk
+        $header = pack('A4VA4', 'RIFF', 36 + $dataSize, 'WAVE');
+        $fmt = pack('A4VvvVVvv', 'fmt ', 16, 1, $channels, $sampleRate, $byteRate, $blockAlign, $bitsPerSample);
+        $data = pack('A4V', 'data', $dataSize) . str_repeat("\x00", $dataSize);
+
+        return base64_encode($header . $fmt . $data);
     }
 
     /**
