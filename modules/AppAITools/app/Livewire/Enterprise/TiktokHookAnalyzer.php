@@ -12,6 +12,7 @@ class TiktokHookAnalyzer extends Component
 
     public string $hookText = '';
     public string $niche = '';
+    public string $youtubeChannel = '';
     public bool $isLoading = false;
     public ?array $result = null;
     public int $loadingStep = 0;
@@ -24,6 +25,7 @@ class TiktokHookAnalyzer extends Component
     {
         $this->hookText = '';
         $this->niche = '';
+        $this->youtubeChannel = '';
         $this->result = null;
         $this->isLoading = false;
         $this->loadingStep = 0;
@@ -46,7 +48,7 @@ class TiktokHookAnalyzer extends Component
 
         try {
             $service = app(EnterpriseToolService::class);
-            $this->result = $service->analyzeTiktokHook($this->hookText, $this->niche);
+            $this->result = $service->analyzeTiktokHook($this->hookText, $this->niche, $this->youtubeChannel);
             $this->loadHistory();
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());

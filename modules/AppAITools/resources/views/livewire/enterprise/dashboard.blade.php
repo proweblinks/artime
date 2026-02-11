@@ -276,6 +276,8 @@
         .aith-e-icon-rose-pink { background: linear-gradient(135deg, #f43f5e, #ec4899); }
         .aith-e-icon-cyan-teal { background: linear-gradient(135deg, #06b6d4, #0d9488); }
         .aith-e-icon-yellow-amber { background: linear-gradient(135deg, #eab308, #d97706); }
+        .aith-e-icon-red-cyan { background: linear-gradient(135deg, #ef4444, #06b6d4); }
+        .aith-e-icon-violet-cyan { background: linear-gradient(135deg, #8b5cf6, #06b6d4); }
 
         /* Command Palette */
         .aith-e-palette-overlay {
@@ -677,6 +679,8 @@
                         'licensing-scout'         => 'aith-e-icon-teal-cyan',
                         'revenue-automation'      => 'aith-e-icon-orange-red',
                         // TikTok
+                        'tiktok-yt-converter'       => 'aith-e-icon-red-cyan',
+                        'tiktok-yt-arbitrage'       => 'aith-e-icon-violet-cyan',
                         'tiktok-hashtag-strategy'   => 'aith-e-icon-cyan-teal',
                         'tiktok-seo-analyzer'       => 'aith-e-icon-blue-indigo',
                         'tiktok-posting-time'       => 'aith-e-icon-amber-orange',

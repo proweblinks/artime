@@ -97,6 +97,10 @@ class AppAIToolsServiceProvider extends ServiceProvider
         Livewire::component('app-ai-tools::enterprise.licensing-scout', \Modules\AppAITools\Livewire\Enterprise\LicensingScout::class);
         Livewire::component('app-ai-tools::enterprise.revenue-automation', \Modules\AppAITools\Livewire\Enterprise\RevenueAutomation::class);
 
+        // Cross-Platform YouTube↔TikTok tools
+        Livewire::component('app-ai-tools::enterprise.tiktok-yt-converter', \Modules\AppAITools\Livewire\Enterprise\TiktokYtConverter::class);
+        Livewire::component('app-ai-tools::enterprise.tiktok-yt-arbitrage', \Modules\AppAITools\Livewire\Enterprise\TiktokYtArbitrage::class);
+
         // TikTok Enterprise tools
         Livewire::component('app-ai-tools::enterprise.tiktok-hashtag-strategy', \Modules\AppAITools\Livewire\Enterprise\TiktokHashtagStrategy::class);
         Livewire::component('app-ai-tools::enterprise.tiktok-seo-analyzer', \Modules\AppAITools\Livewire\Enterprise\TiktokSeoAnalyzer::class);

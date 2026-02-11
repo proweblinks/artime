@@ -492,18 +492,232 @@ class EnterpriseToolService
         return $this->executeAnalysis('revenue_automation', $channelUrl, $prompt);
     }
 
+    // ── YouTube Context Helpers (reused by cross-platform tools) ──
+
+    /**
+     * Fetch real YouTube video data and format as context for AI prompts.
+     */
+    protected function fetchYouTubeVideoContext(string $youtubeUrl): ?array
+    {
+        try {
+            $ytService = app(YouTubeDataService::class);
+            $videoData = $ytService->getVideoData($youtubeUrl);
+            if (!$videoData) return null;
+
+            $tags = array_slice($videoData['tags'] ?? [], 0, 15);
+            $description = mb_substr($videoData['description'] ?? '', 0, 300);
+            $views = number_format($videoData['views'] ?? 0);
+            $likes = number_format($videoData['likes'] ?? 0);
+            $comments = number_format($videoData['comments'] ?? 0);
+
+            $contextText = "=== REAL YOUTUBE VIDEO DATA (from YouTube API) ===\n"
+                . "Title: {$videoData['title']}\n"
+                . "Channel: {$videoData['channel']}\n"
+                . "Views: {$views}\n"
+                . "Likes: {$likes}\n"
+                . "Comments: {$comments}\n"
+                . "Duration: {$videoData['duration']}\n"
+                . "Tags: " . implode(', ', $tags) . "\n"
+                . "Description: {$description}\n"
+                . "=== END REAL DATA ===";
+
+            return [
+                'context_text' => $contextText,
+                'video_data' => $videoData,
+            ];
+        } catch (\Exception $e) {
+            Log::debug("fetchYouTubeVideoContext failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Fetch real YouTube channel data + recent videos and format as context for AI prompts.
+     */
+    protected function fetchYouTubeChannelContext(string $channelUrl, int $videoLimit = 15): ?array
+    {
+        try {
+            $ytService = app(YouTubeDataService::class);
+            $channelData = $ytService->getChannelData($channelUrl);
+            if (!$channelData) return null;
+
+            $videos = [];
+            if (!empty($channelData['id'])) {
+                $videos = $ytService->getChannelVideos($channelData['id'], $videoLimit);
+            }
+
+            // Calculate metrics from videos
+            $totalViews = 0;
+            $totalLikes = 0;
+            $videoCount = count($videos);
+            foreach ($videos as $v) {
+                $totalViews += $v['views'] ?? 0;
+                $totalLikes += $v['likes'] ?? 0;
+            }
+            $avgViews = $videoCount > 0 ? round($totalViews / $videoCount) : 0;
+            $avgLikes = $videoCount > 0 ? round($totalLikes / $videoCount) : 0;
+            $engagementRate = $avgViews > 0 ? round(($avgLikes / $avgViews) * 100, 2) : 0;
+
+            $subs = $this->formatSubscriberCount($channelData['subscribers'] ?? 0);
+
+            // Build top 10 video lines
+            $topVideos = array_slice($videos, 0, 10);
+            $videoLines = '';
+            foreach ($topVideos as $i => $v) {
+                $vViews = number_format($v['views'] ?? 0);
+                $vLikes = number_format($v['likes'] ?? 0);
+                $videoLines .= ($i + 1) . ". \"{$v['title']}\" — {$vViews} views, {$vLikes} likes\n";
+            }
+
+            $contextText = "=== REAL YOUTUBE CHANNEL DATA (from YouTube API) ===\n"
+                . "Channel: {$channelData['title']}\n"
+                . "Subscribers: {$subs}\n"
+                . "Total Views: " . number_format($channelData['total_views'] ?? 0) . "\n"
+                . "Video Count: {$channelData['video_count']}\n"
+                . "Avg Views (recent {$videoCount}): " . number_format($avgViews) . "\n"
+                . "Avg Likes (recent {$videoCount}): " . number_format($avgLikes) . "\n"
+                . "Engagement Rate: {$engagementRate}%\n"
+                . "Top Videos:\n{$videoLines}"
+                . "=== END REAL DATA ===";
+
+            return [
+                'context_text' => $contextText,
+                'channel_data' => $channelData,
+                'videos' => $videos,
+                'metrics' => [
+                    'avg_views' => $avgViews,
+                    'avg_likes' => $avgLikes,
+                    'engagement_rate' => $engagementRate,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::debug("fetchYouTubeChannelContext failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // ── Cross-Platform YouTube↔TikTok Tools ──────────────────────
+
+    /**
+     * Convert a YouTube video into TikTok content strategy.
+     */
+    public function convertYoutubeToTiktok(string $youtubeUrl, string $tiktokStyle = ''): array
+    {
+        $ytContext = $this->fetchYouTubeVideoContext($youtubeUrl);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above to ground your analysis. Reference actual view counts, tags, and content structure.";
+        }
+
+        $styleLine = $tiktokStyle ? " Preferred TikTok style: {$tiktokStyle}." : '';
+
+        $prompt = "You are a cross-platform content strategist specializing in adapting YouTube content for TikTok. "
+            . "Analyze this YouTube video and create a comprehensive TikTok adaptation plan.\n\n"
+            . "YouTube URL: {$youtubeUrl}{$styleLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"adaptation_score":0,'
+            . '"video_overview":{"title":"","channel":"","views":"","duration":"","top_tags":[""],"content_type":""},'
+            . '"hook_rewrites":[{"original_angle":"","tiktok_hook":"","style":"","why_effective":""}],'
+            . '"clip_suggestions":[{"segment":"","timestamp_hint":"","duration":"","tiktok_format":"","hook":""}],'
+            . '"hashtag_strategy":{"primary":["#tag"],"secondary":["#tag"],"trending":["#tag"]},'
+            . '"sound_suggestions":[{"type":"original|trending","description":"","why_fits":""}],'
+            . '"caption_rewrites":[{"style":"","caption":"","cta":""}],'
+            . '"format_tips":[{"tip":"","impact":"high|medium|low"}],'
+            . '"cross_platform_tips":["tip1","tip2"]'
+            . '}'
+            . "\n\nGenerate 3-5 hook rewrites, 3-5 clip suggestions, 3 caption rewrites, and 3-5 format tips. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('tiktok_yt_converter', $youtubeUrl, $prompt, 5000);
+
+        // Merge real YouTube data into result
+        if ($ytContext) {
+            $vd = $ytContext['video_data'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $vd['thumbnail'] ?? '',
+                'title' => $vd['title'] ?? '',
+                'channel' => $vd['channel'] ?? '',
+                'views' => number_format($vd['views'] ?? 0),
+                'likes' => number_format($vd['likes'] ?? 0),
+                'comments' => number_format($vd['comments'] ?? 0),
+                'duration' => $vd['duration'] ?? '',
+                'tags' => array_slice($vd['tags'] ?? [], 0, 10),
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Analyze cross-platform audience arbitrage between YouTube and TikTok.
+     */
+    public function analyzeYoutubeTiktokArbitrage(string $youtubeChannel, string $tiktokNiche = ''): array
+    {
+        $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel, 20);
+
+        $contextBlock = '';
+        if ($ytContext) {
+            $contextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse the REAL YouTube data above. Reference actual subscriber counts, video performance, and content themes to find gaps and opportunities on TikTok.";
+        }
+
+        $nicheLine = $tiktokNiche ? " TikTok niche focus: {$tiktokNiche}." : '';
+
+        $prompt = "You are a cross-platform audience growth strategist. Analyze this YouTube channel's data and identify content gaps and first-mover opportunities on TikTok.\n\n"
+            . "YouTube Channel: {$youtubeChannel}{$nicheLine}{$contextBlock}\n\n"
+            . "Provide analysis as JSON:\n"
+            . '{"arbitrage_score":0,'
+            . '"youtube_overview":{"channel_name":"","subscribers":"","avg_views":"","top_content_themes":[""],"posting_frequency":""},'
+            . '"content_gaps":[{"topic":"","youtube_performance":"","tiktok_saturation":"low|medium|high","opportunity_level":"high|medium|low","reasoning":""}],'
+            . '"first_mover_opportunities":[{"idea":"","format":"","estimated_reach":"","urgency":"high|medium|low","reference_video":""}],'
+            . '"audience_overlap":{"estimated_overlap":"","unique_youtube_audience":"","tiktok_growth_potential":"","demographic_shift":""},'
+            . '"cross_platform_strategy":{"content_pillars":[""],"posting_cadence":"","repurpose_ratio":"","growth_timeline":""},'
+            . '"quick_wins":[{"action":"","expected_result":"","effort":"low|medium","timeframe":""}]'
+            . '}'
+            . "\n\nGenerate 4-6 content gaps, 3-5 first-mover opportunities, and 3-5 quick wins. Respond with ONLY valid JSON.";
+
+        $result = $this->executeAnalysis('tiktok_yt_arbitrage', $youtubeChannel, $prompt, 5000);
+
+        // Merge real YouTube data into result
+        if ($ytContext) {
+            $cd = $ytContext['channel_data'];
+            $m = $ytContext['metrics'];
+            $result['youtube_insights'] = [
+                'thumbnail' => $cd['thumbnail'] ?? '',
+                'title' => $cd['title'] ?? '',
+                'subscribers' => $this->formatSubscriberCount($cd['subscribers'] ?? 0),
+                'total_views' => number_format($cd['total_views'] ?? 0),
+                'video_count' => $cd['video_count'] ?? 0,
+                'avg_views' => number_format($m['avg_views'] ?? 0),
+                'avg_likes' => number_format($m['avg_likes'] ?? 0),
+                'engagement_rate' => ($m['engagement_rate'] ?? 0) . '%',
+            ];
+            $this->persistEnrichedResult($result);
+        }
+
+        return $result;
+    }
+
     // ── TikTok Tools ──────────────────────────────────────────────
 
     /**
      * Build TikTok hashtag strategy for a niche.
      */
-    public function analyzeTiktokHashtagStrategy(string $niche, string $contentType = ''): array
+    public function analyzeTiktokHashtagStrategy(string $niche, string $contentType = '', string $youtubeChannel = ''): array
     {
         $ctLine = $contentType ? " Content type: {$contentType}." : '';
 
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nMap YouTube tags and content themes to TikTok hashtag opportunities. Use real YouTube data to inform hashtag relevance.";
+            }
+        }
+
         $prompt = "You are a TikTok marketing expert specializing in hashtag strategy and discoverability. "
             . "Analyze the niche and build a comprehensive hashtag strategy.\n\n"
-            . "Niche: {$niche}{$ctLine}\n\n"
+            . "Niche: {$niche}{$ctLine}{$ytContextBlock}\n\n"
             . "Provide analysis as JSON:\n"
             . '{"hashtag_score":0,'
             . '"primary_hashtags":[{"tag":"#tag","avg_views":"","competition":"low|medium|high","trending":true}],'
@@ -542,13 +756,21 @@ class EnterpriseToolService
     /**
      * Optimize posting times for a TikTok profile.
      */
-    public function analyzeTiktokPostingTime(string $profile, string $timezone = '', string $contentType = ''): array
+    public function analyzeTiktokPostingTime(string $profile, string $timezone = '', string $contentType = '', string $youtubeChannel = ''): array
     {
         $tzLine = $timezone ? " Timezone: {$timezone}." : '';
         $ctLine = $contentType ? " Content type: {$contentType}." : '';
 
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube publishing patterns to infer audience activity windows. Cross-reference YouTube upload times with engagement data.";
+            }
+        }
+
         $prompt = "You are a TikTok analytics expert specializing in posting optimization. Analyze this creator's optimal posting schedule.\n\n"
-            . "Profile: {$profile}{$tzLine}{$ctLine}\n\n"
+            . "Profile: {$profile}{$tzLine}{$ctLine}{$ytContextBlock}\n\n"
             . "Provide analysis as JSON:\n"
             . '{"timing_score":0,'
             . '"best_times":[{"day":"Monday","times":["9:00 AM","7:00 PM"],"engagement_level":"high|medium|low"}],'
@@ -566,12 +788,20 @@ class EnterpriseToolService
     /**
      * Analyze a TikTok hook for retention.
      */
-    public function analyzeTiktokHook(string $hookText, string $niche = ''): array
+    public function analyzeTiktokHook(string $hookText, string $niche = '', string $youtubeChannel = ''): array
     {
         $nicheLine = $niche ? " Niche: {$niche}." : '';
 
+        $ytContextBlock = '';
+        if ($youtubeChannel) {
+            $ytContext = $this->fetchYouTubeChannelContext($youtubeChannel);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nReference YouTube intro patterns from this channel's top-performing videos. Suggest hooks that leverage proven YouTube engagement patterns for TikTok.";
+            }
+        }
+
         $prompt = "You are a TikTok content expert specializing in viewer retention and hook psychology. Analyze this hook and provide improvements.\n\n"
-            . "Hook text: {$hookText}{$nicheLine}\n\n"
+            . "Hook text: {$hookText}{$nicheLine}{$ytContextBlock}\n\n"
             . "Provide analysis as JSON:\n"
             . '{"hook_score":0,'
             . '"analysis":{"attention_grab":0,"curiosity_gap":0,"emotional_trigger":0,"clarity":0,"pacing":""},'
@@ -611,13 +841,21 @@ class EnterpriseToolService
     /**
      * Predict viral potential of TikTok content.
      */
-    public function analyzeTiktokViralPotential(string $contentDescription, string $niche = '', string $followerCount = ''): array
+    public function analyzeTiktokViralPotential(string $contentDescription, string $niche = '', string $followerCount = '', string $youtubeUrl = ''): array
     {
         $nicheLine = $niche ? " Niche: {$niche}." : '';
         $fcLine = $followerCount ? " Follower count: {$followerCount}." : '';
 
+        $ytContextBlock = '';
+        if ($youtubeUrl) {
+            $ytContext = $this->fetchYouTubeVideoContext($youtubeUrl);
+            if ($ytContext) {
+                $ytContextBlock = "\n\n" . $ytContext['context_text'] . "\n\nUse YouTube performance data to calibrate viral prediction. If the YouTube video performed well, factor that into TikTok viral probability.";
+            }
+        }
+
         $prompt = "You are a TikTok viral content analyst. Predict the viral potential of this content concept and provide optimization suggestions.\n\n"
-            . "Content concept: {$contentDescription}{$nicheLine}{$fcLine}\n\n"
+            . "Content concept: {$contentDescription}{$nicheLine}{$fcLine}{$ytContextBlock}\n\n"
             . "Provide analysis as JSON:\n"
             . '{"viral_score":0,'
             . '"prediction":{"estimated_views":"","confidence":"","viral_probability":""},'

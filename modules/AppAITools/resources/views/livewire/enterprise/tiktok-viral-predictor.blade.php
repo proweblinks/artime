@@ -40,6 +40,7 @@
                        placeholder="e.g. 10K, 50K, 1M">
                 @error('followerCount') <span class="aith-e-field-error">{{ $message }}</span> @enderror
             </div>
+            @include('appaitools::livewire.enterprise._youtube-connect', ['youtubeField' => 'youtubeUrl'])
             <button wire:click="analyze" wire:loading.attr="disabled" class="aith-btn-primary" style="width:100%;margin-top:1rem;">
                 <span wire:loading.remove wire:target="analyze">
                     <i class="fa-light fa-crystal-ball"></i> Predict Viral Potential

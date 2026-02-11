@@ -37,6 +37,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/enterprise-suite/licensing-scout', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.licensing-scout')->defaults('tool', 'licensing-scout');
         Route::get('/enterprise-suite/revenue-automation', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.revenue-automation')->defaults('tool', 'revenue-automation');
 
+        // Cross-Platform YouTube↔TikTok Tools
+        Route::get('/enterprise-suite/tiktok-yt-converter', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-yt-converter')->defaults('tool', 'tiktok-yt-converter');
+        Route::get('/enterprise-suite/tiktok-yt-arbitrage', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-yt-arbitrage')->defaults('tool', 'tiktok-yt-arbitrage');
+
         // TikTok Enterprise Tools
         Route::get('/enterprise-suite/tiktok-hashtag-strategy', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-hashtag-strategy')->defaults('tool', 'tiktok-hashtag-strategy');
         Route::get('/enterprise-suite/tiktok-seo-analyzer', [AppAIToolsController::class, 'enterpriseTool'])->name('app.ai-tools.enterprise.tiktok-seo-analyzer')->defaults('tool', 'tiktok-seo-analyzer');

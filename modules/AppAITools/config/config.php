@@ -341,7 +341,7 @@ return [
             'emoji' => "\xF0\x9F\x8E\xB5",
             'status' => 'active',
             'description' => 'Grow & monetize on TikTok',
-            'tool_count' => 10,
+            'tool_count' => 12,
             'planned_tools' => [],
         ],
         'instagram' => [
@@ -833,6 +833,65 @@ return [
             ],
             'result_sections' => ['automation_score', 'tool_stack', 'revenue_streams', 'implementation_timeline'],
             'estimated_seconds' => 22,
+        ],
+
+        // ── Cross-Platform YouTube↔TikTok Tools ────────────────────
+
+        'tiktok-yt-converter' => [
+            'name' => 'YouTube → TikTok Converter',
+            'description' => 'Convert YouTube videos into TikTok content strategies using real video data',
+            'icon' => 'fa-light fa-arrow-right-arrow-left',
+            'emoji' => "\xF0\x9F\x94\x84",
+            'color' => 'from-red-500 to-cyan-500',
+            'category' => 'content',
+            'platform' => 'tiktok',
+            'credits' => 3,
+            'route' => 'app.ai-tools.enterprise.tiktok-yt-converter',
+            'is_existing' => false,
+            'loading_steps' => ['Fetching YouTube video data', 'Analyzing content structure', 'Identifying best clips', 'Building TikTok adaptation', 'Generating hashtag strategy', 'Creating hook rewrites'],
+            'tiers' => [
+                'quick'    => ['credits' => 1, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 3, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 5, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'tiktok-hook-analyzer', 'reason' => 'Perfect your TikTok hooks'],
+                ['tool' => 'tiktok-hashtag-strategy', 'reason' => 'Build a deeper hashtag strategy'],
+            ],
+            'inputs' => [
+                ['key' => 'youtube_url', 'type' => 'url', 'label' => 'YouTube Video URL', 'required' => true],
+                ['key' => 'tiktok_style', 'type' => 'text', 'label' => 'TikTok Style', 'required' => false],
+            ],
+            'result_sections' => ['adaptation_score', 'video_overview', 'hook_rewrites', 'clip_suggestions', 'hashtag_strategy', 'sound_suggestions', 'caption_rewrites', 'format_tips'],
+            'estimated_seconds' => 20,
+        ],
+        'tiktok-yt-arbitrage' => [
+            'name' => 'Cross-Platform Arbitrage',
+            'description' => 'Find content gaps between YouTube and TikTok using real channel data',
+            'icon' => 'fa-light fa-chart-network',
+            'emoji' => "\xF0\x9F\x93\x8A",
+            'color' => 'from-violet-500 to-cyan-500',
+            'category' => 'analytics',
+            'platform' => 'tiktok',
+            'credits' => 4,
+            'route' => 'app.ai-tools.enterprise.tiktok-yt-arbitrage',
+            'is_existing' => false,
+            'loading_steps' => ['Fetching YouTube channel data', 'Analyzing top videos', 'Calculating performance metrics', 'Identifying content gaps', 'Finding TikTok opportunities', 'Building cross-platform strategy'],
+            'tiers' => [
+                'quick'    => ['credits' => 2, 'label' => 'Quick Scan',    'max_tokens' => 2000, 'icon' => 'fa-light fa-bolt'],
+                'standard' => ['credits' => 4, 'label' => 'Full Analysis', 'max_tokens' => 5000, 'icon' => 'fa-light fa-chart-bar'],
+                'deep'     => ['credits' => 6, 'label' => 'Deep Dive',     'max_tokens' => 8000, 'icon' => 'fa-light fa-microscope'],
+            ],
+            'next_steps' => [
+                ['tool' => 'tiktok-yt-converter', 'reason' => 'Convert your best YouTube videos'],
+                ['tool' => 'tiktok-viral-predictor', 'reason' => 'Predict viral potential of gap content'],
+            ],
+            'inputs' => [
+                ['key' => 'youtube_channel', 'type' => 'url', 'label' => 'YouTube Channel URL', 'required' => true],
+                ['key' => 'tiktok_niche', 'type' => 'text', 'label' => 'TikTok Niche', 'required' => false],
+            ],
+            'result_sections' => ['arbitrage_score', 'content_gaps', 'first_mover_opportunities', 'audience_overlap', 'cross_platform_strategy', 'quick_wins'],
+            'estimated_seconds' => 25,
         ],
 
         // ── TikTok Tools ──────────────────────────────────────────────

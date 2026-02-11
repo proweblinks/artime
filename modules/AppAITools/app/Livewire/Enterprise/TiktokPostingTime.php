@@ -13,6 +13,7 @@ class TiktokPostingTime extends Component
     public string $profile = '';
     public string $timezone = '';
     public string $contentType = '';
+    public string $youtubeChannel = '';
     public bool $isLoading = false;
     public ?array $result = null;
     public int $loadingStep = 0;
@@ -26,6 +27,7 @@ class TiktokPostingTime extends Component
         $this->profile = '';
         $this->timezone = '';
         $this->contentType = '';
+        $this->youtubeChannel = '';
         $this->result = null;
         $this->isLoading = false;
         $this->loadingStep = 0;
@@ -48,7 +50,7 @@ class TiktokPostingTime extends Component
 
         try {
             $service = app(EnterpriseToolService::class);
-            $this->result = $service->analyzeTiktokPostingTime($this->profile, $this->timezone, $this->contentType);
+            $this->result = $service->analyzeTiktokPostingTime($this->profile, $this->timezone, $this->contentType, $this->youtubeChannel);
             $this->loadHistory();
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());

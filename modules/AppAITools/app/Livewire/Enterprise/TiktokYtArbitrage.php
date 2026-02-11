@@ -6,28 +6,24 @@ use Livewire\Component;
 use Modules\AppAITools\Services\EnterpriseToolService;
 use Modules\AppAITools\Livewire\Enterprise\Concerns\HasEnterpriseHistory;
 
-class TiktokViralPredictor extends Component
+class TiktokYtArbitrage extends Component
 {
     use HasEnterpriseHistory;
 
-    public string $contentDescription = '';
-    public string $niche = '';
-    public string $followerCount = '';
-    public string $youtubeUrl = '';
+    public string $youtubeChannel = '';
+    public string $tiktokNiche = '';
     public bool $isLoading = false;
     public ?array $result = null;
     public int $loadingStep = 0;
 
-    protected function getToolKey(): string { return 'tiktok_viral_predictor'; }
-    protected function getScoreKey(): string { return 'viral_score'; }
-    protected function getScoreLabel(): string { return 'Viral'; }
+    protected function getToolKey(): string { return 'tiktok_yt_arbitrage'; }
+    protected function getScoreKey(): string { return 'arbitrage_score'; }
+    protected function getScoreLabel(): string { return 'Arbitrage'; }
 
     public function resetForm(): void
     {
-        $this->contentDescription = '';
-        $this->niche = '';
-        $this->followerCount = '';
-        $this->youtubeUrl = '';
+        $this->youtubeChannel = '';
+        $this->tiktokNiche = '';
         $this->result = null;
         $this->isLoading = false;
         $this->loadingStep = 0;
@@ -37,13 +33,17 @@ class TiktokViralPredictor extends Component
 
     public function analyze()
     {
-        $this->validate(['contentDescription' => 'required|string|min:10']);
+        $this->validate([
+            'youtubeChannel' => 'required|url',
+        ]);
+
         $this->isLoading = true;
         $this->result = null;
         $this->loadingStep = 0;
+
         try {
             $service = app(EnterpriseToolService::class);
-            $this->result = $service->analyzeTiktokViralPotential($this->contentDescription, $this->niche, $this->followerCount, $this->youtubeUrl);
+            $this->result = $service->analyzeYoutubeTiktokArbitrage($this->youtubeChannel, $this->tiktokNiche);
             $this->loadHistory();
         } catch (\Exception $e) {
             session()->flash('error', 'Analysis failed: ' . $e->getMessage());
@@ -55,8 +55,8 @@ class TiktokViralPredictor extends Component
 
     public function render()
     {
-        return view('appaitools::livewire.enterprise.tiktok-viral-predictor', [
-            'loadingSteps' => config('appaitools.enterprise_tools.tiktok-viral-predictor.loading_steps', []),
+        return view('appaitools::livewire.enterprise.tiktok-yt-arbitrage', [
+            'loadingSteps' => config('appaitools.enterprise_tools.tiktok-yt-arbitrage.loading_steps', []),
         ]);
     }
 }

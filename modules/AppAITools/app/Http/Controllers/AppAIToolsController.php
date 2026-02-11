@@ -96,6 +96,9 @@ class AppAIToolsController extends Controller
             'brand-deal-matchmaker'     => ['component' => 'enterprise.brand-deal-matchmaker',     'title' => 'Brand Deal Matchmaker'],
             'licensing-scout'           => ['component' => 'enterprise.licensing-scout',           'title' => 'Licensing & Syndication Scout'],
             'revenue-automation'        => ['component' => 'enterprise.revenue-automation',        'title' => 'Revenue Automation Pipeline'],
+            // Cross-Platform
+            'tiktok-yt-converter'       => ['component' => 'enterprise.tiktok-yt-converter',       'title' => 'YouTube → TikTok Converter'],
+            'tiktok-yt-arbitrage'       => ['component' => 'enterprise.tiktok-yt-arbitrage',       'title' => 'Cross-Platform Arbitrage'],
             // TikTok
             'tiktok-hashtag-strategy'   => ['component' => 'enterprise.tiktok-hashtag-strategy',   'title' => 'Hashtag Strategy Builder'],
             'tiktok-seo-analyzer'       => ['component' => 'enterprise.tiktok-seo-analyzer',       'title' => 'TikTok SEO Analyzer'],
