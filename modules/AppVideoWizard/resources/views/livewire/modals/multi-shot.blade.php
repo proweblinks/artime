@@ -1325,17 +1325,26 @@ window.multiShotVideoPolling = function() {
             </div>
 
             {{-- Multitalk Option with Audio Controls --}}
-            <div class="msm-model-opt msm-model-multitalk {{ $curModel === 'multitalk' ? 'active' : '' }} {{ !$mtAvail ? 'disabled' : '' }}">
-                <div class="msm-model-header-row" @if($mtAvail) wire:click="setVideoModel('multitalk')" @endif>
+            <div class="msm-model-opt msm-model-multitalk {{ $curModel === 'multitalk' ? 'active' : '' }} {{ !$mtAvail ? 'disabled' : '' }}"
+                 x-data="{ expanded: {{ $curModel === 'multitalk' ? 'true' : 'false' }} }"
+                 x-init="$watch('{{ $curModel }}', v => expanded = v === 'multitalk')">
+                <div class="msm-model-header-row" @if($mtAvail) wire:click="setVideoModel('multitalk')" x-on:click="expanded = true" @endif>
                     <div class="msm-radio {{ $curModel === 'multitalk' ? 'checked' : '' }}"></div>
                     <div>
                         <strong>Multitalk</strong>
                         <span class="msm-badge-lip">Lip-Sync</span>
                     </div>
-                    @if(!$mtAvail)<span class="msm-warn">⚠️ {{ __('Not configured') }}</span>@endif
+                    @if(!$mtAvail)
+                        <span class="msm-warn">⚠️ {{ __('Not configured') }}</span>
+                    @else
+                        <button type="button" class="msm-expand-btn" x-on:click.stop="expanded = !expanded" x-bind:class="{ 'open': expanded }">
+                            <span x-text="expanded ? '−' : '+'"></span>
+                        </button>
+                    @endif
                 </div>
 
                 @if($mtAvail)
+                <div x-show="expanded" x-collapse>
                     @if($hasAudio && !$showVoiceRegenerateOptions)
                         {{-- Audio Ready - Show status with regenerate option --}}
                         <div class="msm-audio-ready">
@@ -1459,62 +1468,72 @@ window.multiShotVideoPolling = function() {
                             💡 {{ __('Character speaks on-screen - generate voiceover for lip-sync') }}
                         </div>
                     @endif
+                </div>
                 @endif
             </div>
 
             {{-- InfiniteTalk Option --}}
-            <div class="msm-model-opt msm-model-infinitetalk {{ $curModel === 'infinitetalk' ? 'active' : '' }} {{ !$itAvail ? 'disabled' : '' }}">
-                <div class="msm-model-header-row" @if($itAvail) wire:click="setVideoModel('infinitetalk')" @endif>
+            <div class="msm-model-opt msm-model-infinitetalk {{ $curModel === 'infinitetalk' ? 'active' : '' }} {{ !$itAvail ? 'disabled' : '' }}"
+                 x-data="{ expanded: {{ $curModel === 'infinitetalk' ? 'true' : 'false' }} }"
+                 x-init="$watch('{{ $curModel }}', v => expanded = v === 'infinitetalk')">
+                <div class="msm-model-header-row" @if($itAvail) wire:click="setVideoModel('infinitetalk')" x-on:click="expanded = true" @endif>
                     <div class="msm-radio {{ $curModel === 'infinitetalk' ? 'checked' : '' }}"></div>
                     <div>
                         <strong>InfiniteTalk</strong>
                         <span class="msm-badge-lip">Lip-Sync</span>
-                        <span class="msm-badge-new" style="background:#eab308;color:#000;font-size:0.6rem;padding:1px 4px;border-radius:3px;margin-left:4px;">NEW</span>
+                        <span class="msm-badge-new">NEW</span>
                     </div>
-                    @if(!$itAvail)<span class="msm-warn">⚠️ {{ __('Not configured') }}</span>@endif
+                    @if(!$itAvail)
+                        <span class="msm-warn">⚠️ {{ __('Not configured') }}</span>
+                    @else
+                        <button type="button" class="msm-expand-btn" x-on:click.stop="expanded = !expanded" x-bind:class="{ 'open': expanded }">
+                            <span x-text="expanded ? '−' : '+'"></span>
+                        </button>
+                    @endif
                 </div>
 
                 @if($itAvail)
-                    <span class="msm-model-desc" style="font-size:0.75rem;color:rgba(255,255,255,0.5);padding-left:28px;">{{ __('Unlimited-length talking video with lip-sync') }}</span>
+                <div x-show="expanded" x-collapse>
+                    <span class="msm-model-desc">{{ __('Unlimited-length talking video with lip-sync') }}</span>
 
                     {{-- Two-Character Dialogue Mode Toggle --}}
                     @if($curModel === 'infinitetalk' && $shotCharCount >= 2)
-                        <label class="msm-dialogue-toggle" style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0 0.25rem 28px;cursor:pointer;">
+                        <label class="msm-dialogue-toggle">
                             <input type="checkbox" wire:model.live="infiniteTalkDialogueMode" class="toggle toggle-sm toggle-primary" />
-                            <span style="font-size:0.75rem;color:rgba(255,255,255,0.7);">{{ __('Two-Character Dialogue Mode') }}</span>
+                            <span>{{ __('Two-Character Dialogue Mode') }}</span>
                             @if($speaker1Name && $speaker2Name && $isDialogueShot)
-                                <span style="font-size:0.65rem;color:rgba(255,255,255,0.4);">({{ $speaker1Name }} & {{ $speaker2Name }})</span>
+                                <span class="msm-dialogue-names">({{ $speaker1Name }} & {{ $speaker2Name }})</span>
                             @endif
                         </label>
                     @endif
 
                     {{-- Dual Audio Status for Dialogue Mode --}}
                     @if($isDialogueShot && $curModel === 'infinitetalk')
-                        <div class="msm-dialogue-audio" style="padding-left:28px;margin-top:0.25rem;">
+                        <div class="msm-dialogue-audio">
                             {{-- Speaker 1 --}}
-                            <div class="msm-speaker-audio" style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:rgba(255,255,255,0.6);margin-bottom:0.2rem;">
-                                <span class="msm-speaker-label" style="min-width:60px;font-weight:500;">{{ $speaker1Name ?? 'Speaker 1' }}:</span>
+                            <div class="msm-speaker-row">
+                                <span class="msm-speaker-label">{{ $speaker1Name ?? 'Speaker 1' }}:</span>
                                 @if(!empty($selShot['audioUrl']))
-                                    <span style="color:#22c55e;">✓</span>
+                                    <span class="msm-speaker-ready">✓</span>
                                     <span>{{ $selShot['voiceId'] ?? 'voice' }}</span>
                                     @if($selShot['audioDuration'] ?? null)
                                         <span>({{ number_format($selShot['audioDuration'], 1) }}s)</span>
                                     @endif
                                 @else
-                                    <span style="color:#ef4444;">✗ {{ __('Not generated') }}</span>
+                                    <span class="msm-speaker-missing">✗ {{ __('Not generated') }}</span>
                                 @endif
                             </div>
                             {{-- Speaker 2 --}}
-                            <div class="msm-speaker-audio" style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:rgba(255,255,255,0.6);">
-                                <span class="msm-speaker-label" style="min-width:60px;font-weight:500;">{{ $speaker2Name ?? 'Speaker 2' }}:</span>
+                            <div class="msm-speaker-row">
+                                <span class="msm-speaker-label">{{ $speaker2Name ?? 'Speaker 2' }}:</span>
                                 @if($hasAudio2)
-                                    <span style="color:#22c55e;">✓</span>
+                                    <span class="msm-speaker-ready">✓</span>
                                     <span>{{ $selShot['voiceId2'] ?? 'voice' }}</span>
                                     @if($selShot['audioDuration2'] ?? null)
                                         <span>({{ number_format($selShot['audioDuration2'], 1) }}s)</span>
                                     @endif
                                 @else
-                                    <span style="color:#ef4444;">✗ {{ __('Not generated') }}</span>
+                                    <span class="msm-speaker-missing">✗ {{ __('Not generated') }}</span>
                                 @endif
                             </div>
                             {{-- Generate Dialogue Audio Button --}}
@@ -1524,7 +1543,7 @@ window.multiShotVideoPolling = function() {
                                         wire:loading.attr="disabled"
                                         wire:target="generateDialogueVoiceover"
                                         class="msm-btn msm-btn-voice"
-                                        style="margin-top:0.4rem;font-size:0.75rem;">
+                                        style="margin-top:0.4rem;">
                                     <span wire:loading.remove wire:target="generateDialogueVoiceover">🎤 {{ __('Generate Dialogue Audio') }}</span>
                                     <span wire:loading wire:target="generateDialogueVoiceover">⏳ {{ __('Generating...') }}</span>
                                 </button>
@@ -1532,7 +1551,7 @@ window.multiShotVideoPolling = function() {
                         </div>
                     @elseif($hasAudio && !$showVoiceRegenerateOptions && $curModel === 'infinitetalk')
                         {{-- Audio Ready - Show status with regenerate option --}}
-                        <div class="msm-audio-ready" style="padding-left:28px;">
+                        <div class="msm-audio-ready">
                             <span class="msm-audio-status msm-status-ready">✓ {{ __('Audio ready') }} ({{ $selShot['voiceId'] ?? 'voice' }})</span>
                             @if($selShot['audioDuration'] ?? null)
                                 <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'], 1) }}s</span>
@@ -1542,14 +1561,13 @@ window.multiShotVideoPolling = function() {
                             </button>
                         </div>
                     @elseif($hasAudio && $showVoiceRegenerateOptions && $curModel === 'infinitetalk')
-                        {{-- Audio Regenerate Mode - Show voice options --}}
-                        <div class="msm-audio-setup msm-audio-regenerate" style="padding-left:28px;">
+                        {{-- Audio Regenerate Mode --}}
+                        <div class="msm-audio-setup msm-audio-regenerate">
                             <div class="msm-regen-header">
                                 <span class="msm-regen-title">🔄 {{ __('Regenerate Voiceover') }}</span>
                                 <button type="button" wire:click.stop.prevent="toggleVoiceRegenerateOptions" class="msm-btn-cancel-small">✕</button>
                             </div>
 
-                            {{-- Voice Selection --}}
                             <div class="msm-voice-select">
                                 <label>
                                     {{ __('Voice') }}
@@ -1569,7 +1587,6 @@ window.multiShotVideoPolling = function() {
                                 </select>
                             </div>
 
-                            {{-- Monologue Preview/Edit --}}
                             <div class="msm-monologue-edit">
                                 <label>{{ __('Dialogue/Monologue') }}:</label>
                                 <textarea wire:model.blur="shotMonologueEdit"
@@ -1578,7 +1595,6 @@ window.multiShotVideoPolling = function() {
                                           placeholder="{{ __('Leave empty to keep existing text') }}"></textarea>
                             </div>
 
-                            {{-- Regenerate Voice Button --}}
                             <button type="button"
                                     wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
                                     wire:loading.attr="disabled"
@@ -1594,16 +1610,15 @@ window.multiShotVideoPolling = function() {
                         </div>
                     @elseif($audioGenerating && $curModel === 'infinitetalk')
                         {{-- Audio Generating --}}
-                        <div class="msm-audio-generating" style="padding-left:28px;">
+                        <div class="msm-audio-generating">
                             <div class="msm-spinner-small"></div>
                             <span>{{ __('Generating voiceover...') }}</span>
                         </div>
                     @elseif(!$hasAudio && !$audioGenerating && $curModel === 'infinitetalk')
-                        {{-- No Audio - Show Generation Options (same as Multitalk) --}}
-                        <div class="msm-audio-setup" style="padding-left:28px;">
+                        {{-- No Audio - Show Generation Options --}}
+                        <div class="msm-audio-setup">
                             <span class="msm-audio-hint">{{ __('Lip-sync requires voiceover audio') }}</span>
 
-                            {{-- Voice Selection --}}
                             <div class="msm-voice-select">
                                 <label>
                                     {{ __('Voice') }}
@@ -1623,7 +1638,6 @@ window.multiShotVideoPolling = function() {
                                 </select>
                             </div>
 
-                            {{-- Monologue Preview/Edit --}}
                             <div class="msm-monologue-edit">
                                 <label>{{ __('Dialogue/Monologue') }}:</label>
                                 <textarea wire:model.blur="shotMonologueEdit"
@@ -1632,7 +1646,6 @@ window.multiShotVideoPolling = function() {
                                           placeholder="{{ __('Leave empty to auto-generate from scene context') }}"></textarea>
                             </div>
 
-                            {{-- Generate Voice Button --}}
                             <button type="button"
                                     wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
                                     wire:loading.attr="disabled"
@@ -1649,10 +1662,11 @@ window.multiShotVideoPolling = function() {
                     @endif
 
                     @if($curModel === 'infinitetalk' && $needsLipSync && !$hasAudio)
-                        <div class="msm-lipsync-hint" style="padding-left:28px;">
+                        <div class="msm-lipsync-hint">
                             💡 {{ __('Character speaks on-screen - generate voiceover for lip-sync') }}
                         </div>
                     @endif
+                </div>
                 @endif
             </div>
 
@@ -2177,11 +2191,23 @@ window.multiShotVideoPolling = function() {
 .msm-gen-anim-btn.msm-btn-disabled { opacity: 0.5; cursor: not-allowed; background: rgba(100,100,120,0.5); box-shadow: none; }
 .msm-gen-anim-btn.msm-btn-disabled:hover { transform: none; }
 
-/* Multitalk Audio Controls */
+/* Multitalk & InfiniteTalk Audio Controls */
 .msm-popup-lg { width: 440px; }
-.msm-model-multitalk { flex-direction: column; align-items: stretch; }
+.msm-model-multitalk, .msm-model-infinitetalk { flex-direction: column; align-items: stretch; }
 .msm-model-header-row { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; width: 100%; }
 .msm-badge-lip { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600; margin-left: 0.5rem; }
+.msm-badge-new { background: #eab308; color: #000; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-weight: 600; }
+.msm-model-desc { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem; }
+.msm-expand-btn { margin-left: auto; width: 26px; height: 26px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: rgba(255,255,255,0.7); font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0; line-height: 1; }
+.msm-expand-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.msm-expand-btn.open { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.3); color: #67e8f9; }
+.msm-dialogue-toggle { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0 0.25rem 0; cursor: pointer; font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+.msm-dialogue-names { font-size: 0.65rem; color: rgba(255,255,255,0.4); }
+.msm-dialogue-audio { margin-top: 0.25rem; }
+.msm-speaker-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 0.2rem; }
+.msm-speaker-row .msm-speaker-label { min-width: 60px; font-weight: 500; }
+.msm-speaker-ready { color: #22c55e; }
+.msm-speaker-missing { color: #ef4444; }
 .msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); flex-wrap: wrap; }
 .msm-audio-status { font-size: 0.85rem; font-weight: 500; }
 .msm-status-ready { color: #10b981; }
