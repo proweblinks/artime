@@ -9,6 +9,7 @@ use Carbon\Carbon;
 class EnterpriseDashboard extends Component
 {
     public string $activeCategory = 'all';
+    public string $activePlatform = 'youtube';
     public string $viewMode = 'dashboard'; // dashboard | grid
     public array $recentActivity = [];
 
@@ -26,6 +27,13 @@ class EnterpriseDashboard extends Component
         $this->viewMode = 'grid';
     }
 
+    public function setPlatform(string $platform): void
+    {
+        $this->activePlatform = $platform;
+        $this->activeCategory = 'all';
+        $this->viewMode = 'grid';
+    }
+
     public function setViewMode(string $mode): void
     {
         $this->viewMode = $mode;
@@ -39,11 +47,16 @@ class EnterpriseDashboard extends Component
 
     protected function loadRecentActivity(int $teamId): void
     {
-        $this->recentActivity = AiToolHistory::forTeam($teamId)
+        $query = AiToolHistory::forTeam($teamId)
             ->completed()
             ->orderByDesc('created')
-            ->limit(5)
-            ->get()
+            ->limit(5);
+
+        if ($this->activePlatform !== 'all') {
+            $query->where('platform', $this->activePlatform);
+        }
+
+        $this->recentActivity = $query->get()
             ->map(function ($h) {
                 return [
                     'tool'       => $h->tool,
@@ -59,17 +72,24 @@ class EnterpriseDashboard extends Component
     {
         $tools = config('appaitools.enterprise_tools', []);
         $categories = config('appaitools.enterprise_categories', []);
+        $platforms = config('appaitools.enterprise_platforms', []);
 
-        // Filter tools by category
-        $filteredTools = $tools;
+        // Filter tools by platform first
+        $platformTools = array_filter($tools, fn($t) => ($t['platform'] ?? 'youtube') === $this->activePlatform);
+
+        // Then filter by category
+        $filteredTools = $platformTools;
         if ($this->activeCategory !== 'all') {
-            $filteredTools = array_filter($tools, fn($t) => ($t['category'] ?? '') === $this->activeCategory);
+            $filteredTools = array_filter($platformTools, fn($t) => ($t['category'] ?? '') === $this->activeCategory);
         }
 
         return view('appaitools::livewire.enterprise.dashboard', [
             'tools' => $tools,
+            'platformTools' => $platformTools,
             'filteredTools' => $filteredTools,
             'categories' => $categories,
+            'platforms' => $platforms,
+            'currentPlatform' => $platforms[$this->activePlatform] ?? $platforms['youtube'],
         ]);
     }
 }

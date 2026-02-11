@@ -420,6 +420,56 @@
         /* Result sections preview */
         .aith-e-card-sections { display:flex; gap:0.25rem; margin-top:0.375rem; flex-wrap:wrap; }
         .aith-e-section-dot { width:0.375rem; height:0.375rem; border-radius:50%; background:rgba(139,92,246,0.4); }
+
+        /* Platform navigation bar */
+        .aith-e-platforms { display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+        .aith-e-platform-btn {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            padding:0.5rem 1rem; border-radius:0.75rem;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            color:rgba(255,255,255,0.4); font-size:0.8rem; font-weight:500;
+            cursor:pointer; transition:all 0.2s; white-space:nowrap;
+        }
+        .aith-e-platform-btn:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.6); }
+        .aith-e-platform-btn.active { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd; }
+        .aith-e-platform-btn .aith-e-platform-count {
+            font-size:0.65rem; padding:0.1rem 0.4rem; border-radius:9999px;
+            background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3);
+        }
+        .aith-e-platform-btn.active .aith-e-platform-count {
+            background:rgba(139,92,246,0.2); color:#c4b5fd;
+        }
+        .aith-e-platform-btn .aith-e-coming-badge {
+            font-size:0.55rem; padding:0.05rem 0.35rem; border-radius:9999px;
+            background:rgba(251,191,36,0.15); color:rgba(251,191,36,0.7);
+            text-transform:uppercase; letter-spacing:0.05em;
+        }
+
+        /* Coming soon grid */
+        .aith-e-coming-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+        .aith-e-coming-card {
+            padding:1.25rem; border-radius:0.75rem;
+            background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.08);
+            opacity:0.6; transition:opacity 0.2s;
+        }
+        .aith-e-coming-card:hover { opacity:0.8; }
+        .aith-e-coming-card-emoji { font-size:1.5rem; margin-bottom:0.5rem; }
+        .aith-e-coming-card-name { font-size:0.85rem; font-weight:600; color:rgba(255,255,255,0.5); margin-bottom:0.25rem; }
+        .aith-e-coming-card-desc { font-size:0.7rem; color:rgba(255,255,255,0.25); line-height:1.4; }
+        .aith-e-coming-header {
+            text-align:center; padding:2rem 1rem 1.5rem;
+        }
+        .aith-e-coming-header h3 { font-size:1.1rem; font-weight:600; color:rgba(255,255,255,0.5); margin-bottom:0.5rem; }
+        .aith-e-coming-header p { font-size:0.8rem; color:rgba(255,255,255,0.25); }
+
+        @media (max-width: 768px) {
+            .aith-e-coming-grid { grid-template-columns: repeat(2, 1fr); }
+            .aith-e-platforms { gap:0.375rem; }
+            .aith-e-platform-btn { padding:0.4rem 0.75rem; font-size:0.75rem; }
+        }
+        @media (max-width: 480px) {
+            .aith-e-coming-grid { grid-template-columns: 1fr; }
+        }
     </style>
 
     {{-- Aurora Background --}}
@@ -440,7 +490,12 @@
                     </a>
                     <h1 class="aith-e-title">Enterprise Suite</h1>
                 </div>
-                <p class="aith-e-subtitle">15 premium AI tools to grow and monetize your channel</p>
+                <p class="aith-e-subtitle">
+                    {{ $currentPlatform['description'] ?? '15 premium AI tools to grow and monetize your channel' }}
+                    @if(($currentPlatform['status'] ?? 'active') === 'active')
+                        &mdash; {{ count($platformTools ?? []) }} tools
+                    @endif
+                </p>
             </div>
             <div style="display:flex; align-items:center; gap:0.75rem;">
                 {{-- View Toggle --}}
@@ -463,8 +518,25 @@
             </div>
         </div>
 
+        {{-- Platform Navigation --}}
+        <div class="aith-e-platforms">
+            @foreach($platforms as $pKey => $platform)
+            <div class="aith-e-platform-btn {{ $activePlatform === $pKey ? 'active' : '' }}"
+                 wire:click="setPlatform('{{ $pKey }}')"
+                 style="{{ $activePlatform === $pKey ? 'border-color:' . $platform['color'] . '40;' : '' }}">
+                <i class="{{ $platform['icon'] }}"></i>
+                {{ $platform['name'] }}
+                @if($platform['status'] === 'active')
+                    <span class="aith-e-platform-count">{{ count($platformTools ?? []) }}</span>
+                @else
+                    <span class="aith-e-coming-badge">Soon</span>
+                @endif
+            </div>
+            @endforeach
+        </div>
+
         {{-- ============ SMART DASHBOARD VIEW ============ --}}
-        @if($viewMode === 'dashboard')
+        @if($viewMode === 'dashboard' && ($currentPlatform['status'] ?? 'active') === 'active')
 
             {{-- Recent Tools --}}
             @if(count($recentTools ?? []) > 0 || true)
@@ -516,7 +588,7 @@
             <div class="aith-e-section">
                 <div class="aith-e-browse-all" wire:click="browseAll">
                     <i class="fa-light fa-grid-2-plus"></i>
-                    Browse All 15 Tools
+                    Browse All {{ count($platformTools ?? $tools) }} Tools
                 </div>
             </div>
 
@@ -545,6 +617,23 @@
             </div>
             @endif
 
+        @elseif(($currentPlatform['status'] ?? 'active') !== 'active')
+
+        {{-- ============ COMING SOON VIEW ============ --}}
+            <div class="aith-e-coming-header">
+                <h3>{{ $currentPlatform['emoji'] ?? '' }} {{ $currentPlatform['name'] }} Tools &mdash; Coming Soon</h3>
+                <p>{{ count($currentPlatform['planned_tools'] ?? []) }} tools planned for this platform</p>
+            </div>
+            <div class="aith-e-coming-grid">
+                @foreach($currentPlatform['planned_tools'] ?? [] as $planned)
+                <div class="aith-e-coming-card">
+                    <div class="aith-e-coming-card-emoji">{{ $planned['emoji'] }}</div>
+                    <div class="aith-e-coming-card-name">{{ $planned['name'] }}</div>
+                    <div class="aith-e-coming-card-desc">{{ $planned['description'] }}</div>
+                </div>
+                @endforeach
+            </div>
+
         @else
 
         {{-- ============ GRID VIEW ============ --}}
@@ -554,8 +643,8 @@
                 @foreach($categories as $catKey => $cat)
                 @php
                     $count = $catKey === 'all'
-                        ? count($tools)
-                        : count(array_filter($tools, fn($t) => ($t['category'] ?? '') === $catKey));
+                        ? count($platformTools)
+                        : count(array_filter($platformTools, fn($t) => ($t['category'] ?? '') === $catKey));
                 @endphp
                 <div class="aith-e-tab {{ $activeCategory === $catKey ? 'active' : '' }}"
                      wire:click="setCategory('{{ $catKey }}')">
@@ -739,6 +828,7 @@
             'description' => $tool['description'],
             'emoji' => $tool['emoji'],
             'category' => $tool['category'] ?? '',
+            'platform' => $tool['platform'] ?? 'youtube',
             'route' => route($tool['route']),
             'credits' => $tool['credits'] ?? 0,
             'estimated_seconds' => $tool['estimated_seconds'] ?? null,
@@ -752,22 +842,28 @@
 <script>
 function enterpriseDashboard() {
     const allTools = @json($toolsJson);
+    const activePlatform = @json($activePlatform ?? 'youtube');
 
     return {
         paletteOpen: false,
         paletteQuery: '',
         allTools: allTools,
 
-        // Recent tools from localStorage
-        get recentTools() {
-            const keys = JSON.parse(localStorage.getItem('aith_enterprise_recent') || '[]');
-            return keys.map(k => this.allTools.find(t => t.key === k)).filter(Boolean);
+        // Filter allTools to only current platform's tools
+        get platformTools() {
+            return this.allTools.filter(t => t.platform === activePlatform);
         },
 
-        // Recommended: tools not in recent, monetization first
+        // Recent tools from localStorage (scoped to platform)
+        get recentTools() {
+            const keys = JSON.parse(localStorage.getItem('aith_enterprise_recent') || '[]');
+            return keys.map(k => this.platformTools.find(t => t.key === k)).filter(Boolean);
+        },
+
+        // Recommended: tools not in recent, monetization first (scoped to platform)
         get recommendedTools() {
             const recentKeys = JSON.parse(localStorage.getItem('aith_enterprise_recent') || '[]');
-            return this.allTools
+            return this.platformTools
                 .filter(t => !recentKeys.includes(t.key))
                 .sort((a, b) => {
                     if (a.category === 'monetization' && b.category !== 'monetization') return -1;
@@ -776,11 +872,12 @@ function enterpriseDashboard() {
                 });
         },
 
-        // Filtered tools for command palette
+        // Filtered tools for command palette (scoped to platform)
         get filteredPaletteTools() {
-            if (!this.paletteQuery) return this.allTools;
+            const base = this.platformTools;
+            if (!this.paletteQuery) return base;
             const q = this.paletteQuery.toLowerCase();
-            return this.allTools.filter(t =>
+            return base.filter(t =>
                 t.name.toLowerCase().includes(q) ||
                 t.description.toLowerCase().includes(q) ||
                 t.key.toLowerCase().includes(q)

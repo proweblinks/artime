@@ -512,7 +512,7 @@ class EnterpriseToolService
             'team_id' => $teamId,
             'user_id' => $userId,
             'tool' => $toolKey,
-            'platform' => 'youtube',
+            'platform' => config("appaitools.enterprise_tools.{$configKey}.platform", 'youtube'),
             'title' => $input,
             'input_data' => ['url' => $input, 'tool' => $toolKey],
             'status' => 2,
