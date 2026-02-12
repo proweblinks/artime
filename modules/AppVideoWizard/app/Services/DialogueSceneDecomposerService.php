@@ -2506,6 +2506,11 @@ class DialogueSceneDecomposerService
             'animationModel' => $options['animationModel'] ?? null,
         ]);
 
+        // Phase 14: Merge adjacent dialogue pairs for InfiniteTalk multi-face mode
+        if (($options['animationModel'] ?? null) === 'infinitetalk') {
+            $shots = $this->mergeDialoguePairsForMultiFace($shots);
+        }
+
         // Phase 12: Validate 180-degree rule (SCNE-04)
         $axisViolations = $this->validate180DegreeRule($shots);
         if (!empty($axisViolations)) {
@@ -3149,5 +3154,93 @@ class DialogueSceneDecomposerService
         // Action scenes: ~2 words per second visual pacing + 2s buffer
         $duration = ceil($wordCount / 2) + 2;
         return max(3, min(10, (int) $duration)); // 3-10 seconds per beat
+    }
+
+    /**
+     * Merge adjacent dialogue pairs into multi-face shots for InfiniteTalk.
+     *
+     * Pairs consecutive shots from different speakers (A speaks, B responds)
+     * into a single shot with both characters. The combined dialogue uses
+     * "CHARACTER: text" format so buildSpeakersForDialogueShot() can split it.
+     *
+     * Example: Shot(SARAH speaks) + Shot(MARCUS responds) → Shot(both, combined dialogue)
+     */
+    protected function mergeDialoguePairsForMultiFace(array $shots): array
+    {
+        if (count($shots) < 2) {
+            return $shots;
+        }
+
+        $merged = [];
+        $i = 0;
+
+        while ($i < count($shots)) {
+            $current = $shots[$i];
+
+            // Skip non-dialogue shots (narrator, establishing, etc.)
+            $currentSpeaker = $current['speakingCharacter'] ?? null;
+            if (!$currentSpeaker || !($current['needsLipSync'] ?? false)) {
+                $merged[] = $current;
+                $i++;
+                continue;
+            }
+
+            // Check if next shot is from a different speaker (dialogue pair)
+            $next = $shots[$i + 1] ?? null;
+            $nextSpeaker = $next['speakingCharacter'] ?? null;
+
+            if ($next && $nextSpeaker && $nextSpeaker !== $currentSpeaker && ($next['needsLipSync'] ?? false)) {
+                // Merge: current shot absorbs the next shot's dialogue
+                $text1 = $current['dialogue'] ?? $current['monologue'] ?? '';
+                $text2 = $next['dialogue'] ?? $next['monologue'] ?? '';
+                $combinedDialogue = $currentSpeaker . ': ' . $text1 . "\n" . $nextSpeaker . ': ' . $text2;
+
+                $current['dialogue'] = $combinedDialogue;
+                $current['monologue'] = $combinedDialogue;
+
+                // Both characters in shot
+                $current['charactersInShot'] = [$currentSpeaker, $nextSpeaker];
+                $current['speakingCharacters'] = [$currentSpeaker, $nextSpeaker];
+                $current['speakerCount'] = 2;
+                $current['selectedVideoModel'] = 'infinitetalk';
+
+                // Preserve voice IDs from both shots
+                $current['voiceId2'] = $next['voiceId'] ?? null;
+
+                // Use OTS framing for both characters visible
+                if (in_array($current['type'] ?? '', ['close-up', 'medium-close'])) {
+                    $current['type'] = 'over-the-shoulder';
+                }
+
+                // Combined duration: sum of both speech durations + buffer
+                $dur1 = $current['duration'] ?? 5;
+                $dur2 = $next['duration'] ?? 5;
+                $current['duration'] = $dur1 + $dur2 + 1; // Both speak in sequence
+
+                Log::info('DialogueSceneDecomposer: Merged dialogue pair for InfiniteTalk multi-face', [
+                    'speaker1' => $currentSpeaker,
+                    'speaker2' => $nextSpeaker,
+                    'voiceId1' => $current['voiceId'] ?? null,
+                    'voiceId2' => $current['voiceId2'] ?? null,
+                    'merged_type' => $current['type'],
+                    'combined_duration' => $current['duration'],
+                ]);
+
+                $merged[] = $current;
+                $i += 2; // Skip the next shot (merged)
+            } else {
+                // No pair — keep as single-speaker shot
+                $merged[] = $current;
+                $i++;
+            }
+        }
+
+        Log::info('DialogueSceneDecomposer: Multi-face merge result', [
+            'original_shots' => count($shots),
+            'merged_shots' => count($merged),
+            'pairs_merged' => count($shots) - count($merged),
+        ]);
+
+        return $merged;
     }
 }
