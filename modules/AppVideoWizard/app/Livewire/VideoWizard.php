@@ -23927,12 +23927,12 @@ PROMPT;
             foreach ($charBible as $idx => $char) {
                 $bibleName = strtoupper(trim($char['name'] ?? ''));
                 if ($bibleName === '' || $nameUpper === '') continue;
-                // Check if input is first name of bible entry, or bible entry starts with input
                 if (str_starts_with($bibleName, $nameUpper . ' ') || str_starts_with($nameUpper, $bibleName . ' ')) {
                     if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
                     if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
                     $matchedChar = $char;
                     $charIndex = $idx;
+                    Log::debug('Voice: partial name match', ['input' => $nameUpper, 'matched' => $bibleName, 'index' => $idx]);
                     break;
                 }
             }
@@ -23954,9 +23954,16 @@ PROMPT;
         }
 
         // Use character index (not name hash) for within-pool selection -> guarantees diversity
-        if ($detectedGender === 'female') return $femaleVoices[$charIndex % count($femaleVoices)];
-        if ($detectedGender === 'male') return $maleVoices[$charIndex % count($maleVoices)];
-        return $allVoices[$charIndex % count($allVoices)];
+        $voice = $allVoices[$charIndex % count($allVoices)];
+        if ($detectedGender === 'female') $voice = $femaleVoices[$charIndex % count($femaleVoices)];
+        elseif ($detectedGender === 'male') $voice = $maleVoices[$charIndex % count($maleVoices)];
+
+        Log::debug('Voice assignment result', [
+            'input' => $nameUpper, 'matched' => $matchedChar ? ($matchedChar['name'] ?? '?') : 'none',
+            'gender' => $detectedGender, 'index' => $charIndex, 'voice' => $voice,
+        ]);
+
+        return $voice;
     }
 
     /**
