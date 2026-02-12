@@ -1250,6 +1250,8 @@ class VideoWizard extends Component
     public bool $preConfigureWaitingShots = false;
     public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk (or Kokoro equivalent)
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
+    public string $shotVoiceSelection2 = 'nova'; // Voice for second character (dialogue mode)
+    public string $shotMonologueEdit2 = ''; // Dialogue text for second character
     public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
     public string $activeTtsProvider = 'openai'; // Active TTS provider: openai, kokoro
     #[Locked]
@@ -29102,6 +29104,38 @@ PROMPT;
         // Initialize monologue text if available
         $this->shotMonologueEdit = $shot['monologue'] ?? '';
 
+        // Initialize second character voice/text for dialogue shots
+        $charactersInShot = $shot['charactersInShot'] ?? [];
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+        if (count($charactersInShot) >= 2) {
+            $char1Name = $charactersInShot[0] ?? '';
+            $char2Name = $charactersInShot[1] ?? '';
+
+            // Set voice for character 1 (from shot or character bible)
+            $this->shotVoiceSelection = $shot['voiceId']
+                ?? $this->getVoiceIdForCharacterName($char1Name, $characterBible)
+                ?? $this->getCharacterVoice($sceneIndex, $shotIndex);
+
+            // Set voice for character 2
+            $this->shotVoiceSelection2 = $shot['voiceId2']
+                ?? $this->getVoiceIdForCharacterName($char2Name, $characterBible)
+                ?? 'echo';
+
+            // Split dialogue text between characters if available
+            $dialogue = $shot['monologue'] ?? $shot['dialogue'] ?? '';
+            if (!empty($dialogue)) {
+                $parts = $this->splitDialogueByCharacter($dialogue, $charactersInShot);
+                $this->shotMonologueEdit = $parts[$char1Name] ?? $dialogue;
+                $this->shotMonologueEdit2 = $parts[$char2Name] ?? '';
+            } else {
+                $this->shotMonologueEdit = '';
+                $this->shotMonologueEdit2 = '';
+            }
+        } else {
+            $this->shotMonologueEdit2 = '';
+            $this->shotVoiceSelection2 = 'nova';
+        }
+
         // Reset regenerate options
         $this->showVoiceRegenerateOptions = false;
 
@@ -29115,6 +29149,7 @@ PROMPT;
     {
         $this->showVideoModelSelector = false;
         $this->shotMonologueEdit = '';
+        $this->shotMonologueEdit2 = '';
         $this->showVoiceRegenerateOptions = false;
     }
 
@@ -29712,7 +29747,7 @@ PROMPT;
 
                 $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
 
-                $isDialogueShot = ($shot['isDialogueShot'] ?? false) && !empty($shot['audioUrl2']);
+                $isDialogueShot = !empty($shot['audioUrl2']) && (($shot['isDialogueShot'] ?? false) || count($shot['charactersInShot'] ?? []) >= 2);
 
                 // Count characters visible in this shot's image
                 $charactersInShot = $shot['charactersInShot'] ?? [];
@@ -30189,7 +30224,34 @@ PROMPT;
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'generating';
 
         try {
-            $speakers = $this->buildSpeakersForDialogueShot($sceneIndex, $shotIndex);
+            $charactersInShot = $shot['charactersInShot'] ?? [];
+
+            // Use user-provided voice/text from the popup if available
+            $hasUserInput = !empty($this->shotMonologueEdit) || !empty($this->shotMonologueEdit2);
+            if ($hasUserInput && count($charactersInShot) >= 2) {
+                $speakers = [
+                    [
+                        'name' => $charactersInShot[0],
+                        'voiceId' => $this->shotVoiceSelection ?: 'echo',
+                        'text' => trim($this->shotMonologueEdit),
+                        'order' => 0,
+                    ],
+                    [
+                        'name' => $charactersInShot[1],
+                        'voiceId' => $this->shotVoiceSelection2 ?: 'echo',
+                        'text' => trim($this->shotMonologueEdit2),
+                        'order' => 1,
+                    ],
+                ];
+
+                // Store the user-provided dialogue text back to the shot
+                $combinedDialogue = $charactersInShot[0] . ': ' . trim($this->shotMonologueEdit)
+                    . "\n" . $charactersInShot[1] . ': ' . trim($this->shotMonologueEdit2);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $combinedDialogue;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dialogue'] = $combinedDialogue;
+            } else {
+                $speakers = $this->buildSpeakersForDialogueShot($sceneIndex, $shotIndex);
+            }
 
             if (count($speakers) < 2) {
                 $this->error = __('Need at least 2 characters for dialogue mode');

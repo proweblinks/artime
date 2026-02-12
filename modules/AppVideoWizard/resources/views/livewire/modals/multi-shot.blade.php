@@ -1514,59 +1514,106 @@ window.multiShotVideoPolling = function() {
                 <div x-show="expanded" x-collapse>
                     <span class="msm-model-desc">{{ __('Unlimited-length talking video with lip-sync') }}</span>
 
-                    {{-- Two-Character Dialogue Mode Toggle --}}
-                    @if($curModel === 'infinitetalk' && $shotCharCount >= 2)
-                        <label class="msm-dialogue-toggle">
-                            <input type="checkbox" wire:model.live="infiniteTalkDialogueMode" class="toggle toggle-sm toggle-primary" />
-                            <span>{{ __('Two-Character Dialogue Mode') }}</span>
-                            @if($speaker1Name && $speaker2Name)
-                                <span class="msm-dialogue-names">({{ $speaker1Name }} & {{ $speaker2Name }})</span>
-                            @endif
-                        </label>
-                    @endif
-
-                    {{-- Dual Audio Status for Dialogue Mode --}}
+                    {{-- ============================================= --}}
+                    {{-- DIALOGUE MODE: Two-Character Voice Panels     --}}
+                    {{-- ============================================= --}}
                     @if($shotCharCount >= 2 && $curModel === 'infinitetalk')
-                        <div class="msm-dialogue-audio">
-                            {{-- Speaker 1 --}}
-                            <div class="msm-speaker-row">
-                                <span class="msm-speaker-label">{{ $speaker1Name ?? 'Speaker 1' }}:</span>
-                                @if(!empty($selShot['audioUrl']))
-                                    <span class="msm-speaker-ready">✓</span>
-                                    <span>{{ $selShot['voiceId'] ?? 'voice' }}</span>
-                                    @if($selShot['audioDuration'] ?? null)
-                                        <span>({{ number_format($selShot['audioDuration'], 1) }}s)</span>
-                                    @endif
-                                @else
-                                    <span class="msm-speaker-missing">✗ {{ __('Not generated') }}</span>
-                                @endif
+                        @if($audioGenerating)
+                            <div class="msm-audio-generating">
+                                <div class="msm-spinner-small"></div>
+                                <span>{{ __('Generating dialogue voiceovers...') }}</span>
                             </div>
-                            {{-- Speaker 2 --}}
-                            <div class="msm-speaker-row">
-                                <span class="msm-speaker-label">{{ $speaker2Name ?? 'Speaker 2' }}:</span>
-                                @if($hasAudio2)
-                                    <span class="msm-speaker-ready">✓</span>
-                                    <span>{{ $selShot['voiceId2'] ?? 'voice' }}</span>
-                                    @if($selShot['audioDuration2'] ?? null)
-                                        <span>({{ number_format($selShot['audioDuration2'], 1) }}s)</span>
-                                    @endif
-                                @else
-                                    <span class="msm-speaker-missing">✗ {{ __('Not generated') }}</span>
-                                @endif
-                            </div>
-                            {{-- Generate Dialogue Audio Button --}}
-                            @if(!$hasAudio || !$hasAudio2)
+                        @else
+                            <div class="msm-dialogue-panels">
+                                {{-- Character 1 Panel --}}
+                                <div class="msm-char-panel">
+                                    <div class="msm-char-panel-header">
+                                        <span class="msm-char-name">{{ $speaker1Name ?? 'Character 1' }}</span>
+                                        @if(!empty($selShot['audioUrl']))
+                                            <span class="msm-speaker-ready">✓ {{ number_format($selShot['audioDuration'] ?? 0, 1) }}s</span>
+                                        @else
+                                            <span class="msm-speaker-missing">✗</span>
+                                        @endif
+                                    </div>
+                                    <div class="msm-voice-select">
+                                        <label>
+                                            {{ __('Voice') }}
+                                            @if($activeTtsProvider === 'kokoro')
+                                                <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                            @else
+                                                <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                            @endif
+                                        </label>
+                                        <select wire:model.live="shotVoiceSelection" class="msm-voice-dropdown">
+                                            @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                                <option value="{{ $voiceId }}">
+                                                    {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                                    ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="msm-monologue-edit">
+                                        <label>{{ __('Dialogue') }}:</label>
+                                        <textarea wire:model.blur="shotMonologueEdit"
+                                                  class="msm-monologue-textarea"
+                                                  rows="2"
+                                                  placeholder="{{ $speaker1Name ? $speaker1Name . '\'s lines...' : __('Character 1 dialogue...') }}"></textarea>
+                                    </div>
+                                </div>
+
+                                {{-- Character 2 Panel --}}
+                                <div class="msm-char-panel">
+                                    <div class="msm-char-panel-header">
+                                        <span class="msm-char-name">{{ $speaker2Name ?? 'Character 2' }}</span>
+                                        @if($hasAudio2)
+                                            <span class="msm-speaker-ready">✓ {{ number_format($selShot['audioDuration2'] ?? 0, 1) }}s</span>
+                                        @else
+                                            <span class="msm-speaker-missing">✗</span>
+                                        @endif
+                                    </div>
+                                    <div class="msm-voice-select">
+                                        <label>
+                                            {{ __('Voice') }}
+                                            @if($activeTtsProvider === 'kokoro')
+                                                <span class="msm-provider-badge msm-provider-kokoro">Kokoro</span>
+                                            @else
+                                                <span class="msm-provider-badge msm-provider-openai">OpenAI</span>
+                                            @endif
+                                        </label>
+                                        <select wire:model.live="shotVoiceSelection2" class="msm-voice-dropdown">
+                                            @foreach($availableTtsVoices as $voiceId => $voiceConfig)
+                                                <option value="{{ $voiceId }}">
+                                                    {{ $voiceConfig['name'] ?? ucfirst($voiceId) }}
+                                                    ({{ $voiceConfig['accent'] ?? ucfirst($voiceConfig['gender'] ?? 'neutral') }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="msm-monologue-edit">
+                                        <label>{{ __('Dialogue') }}:</label>
+                                        <textarea wire:model.blur="shotMonologueEdit2"
+                                                  class="msm-monologue-textarea"
+                                                  rows="2"
+                                                  placeholder="{{ $speaker2Name ? $speaker2Name . '\'s lines...' : __('Character 2 dialogue...') }}"></textarea>
+                                    </div>
+                                </div>
+
+                                {{-- Generate Both Voices Button --}}
                                 <button type="button"
                                         wire:click.stop.prevent="generateDialogueVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
                                         wire:loading.attr="disabled"
                                         wire:target="generateDialogueVoiceover"
-                                        class="msm-btn msm-btn-voice"
-                                        style="margin-top:0.4rem;">
-                                    <span wire:loading.remove wire:target="generateDialogueVoiceover">🎤 {{ __('Generate Dialogue Audio') }}</span>
+                                        class="msm-btn msm-btn-voice msm-btn-dialogue-gen">
+                                    <span wire:loading.remove wire:target="generateDialogueVoiceover">🎤 {{ __('Generate Both Voices') }}</span>
                                     <span wire:loading wire:target="generateDialogueVoiceover">⏳ {{ __('Generating...') }}</span>
                                 </button>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
+
+                    {{-- ============================================= --}}
+                    {{-- SINGLE MODE: One-Character Voice Panel        --}}
+                    {{-- ============================================= --}}
                     @elseif($hasAudio && !$showVoiceRegenerateOptions && $curModel === 'infinitetalk')
                         {{-- Audio Ready - Show status with regenerate option --}}
                         <div class="msm-audio-ready">
@@ -1633,7 +1680,7 @@ window.multiShotVideoPolling = function() {
                             <span>{{ __('Generating voiceover...') }}</span>
                         </div>
                     @elseif(!$hasAudio && !$audioGenerating && $curModel === 'infinitetalk')
-                        {{-- No Audio - Show Generation Options --}}
+                        {{-- No Audio - Single character voice generation --}}
                         <div class="msm-audio-setup">
                             <span class="msm-audio-hint">{{ __('Lip-sync requires voiceover audio') }}</span>
 
@@ -1713,7 +1760,7 @@ window.multiShotVideoPolling = function() {
             </div>
 
             {{-- Generate Animation Button --}}
-            @if($curModel === 'infinitetalk' && $isDialogueShot && !$hasAudio2)
+            @if($curModel === 'infinitetalk' && $shotCharCount >= 2 && (!$hasAudio || !$hasAudio2))
                 <button type="button" disabled class="msm-gen-anim-btn msm-btn-disabled">
                     🎬 {{ __('Generate both dialogue voices first') }}
                 </button>
@@ -2238,8 +2285,13 @@ window.multiShotVideoPolling = function() {
 .msm-dialogue-audio { margin-top: 0.25rem; }
 .msm-speaker-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-bottom: 0.2rem; }
 .msm-speaker-row .msm-speaker-label { min-width: 60px; font-weight: 500; }
-.msm-speaker-ready { color: #22c55e; }
-.msm-speaker-missing { color: #ef4444; }
+.msm-speaker-ready { color: #22c55e; font-size: 0.7rem; }
+.msm-speaker-missing { color: #ef4444; font-size: 0.7rem; }
+.msm-dialogue-panels { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.msm-char-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.5rem 0.6rem; }
+.msm-char-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.msm-char-name { font-size: 0.8rem; font-weight: 600; color: #67e8f9; }
+.msm-btn-dialogue-gen { width: 100%; margin-top: 0.25rem; }
 .msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); flex-wrap: wrap; }
 .msm-audio-status { font-size: 0.85rem; font-weight: 500; }
 .msm-status-ready { color: #10b981; }
