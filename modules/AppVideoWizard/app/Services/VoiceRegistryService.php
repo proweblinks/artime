@@ -180,9 +180,23 @@ class VoiceRegistryService
     {
         $key = strtoupper(trim($characterName));
 
-        // Return from registry if exists
+        // Exact match in registry
         if (isset($this->characterVoices[$key])) {
             return $this->characterVoices[$key]['voiceId'];
+        }
+
+        // Partial match: SARAH matches SARAH COLE, or SARAH COLE matches SARAH
+        foreach ($this->characterVoices as $registeredKey => $data) {
+            if (str_starts_with($registeredKey, $key . ' ') || str_starts_with($key, $registeredKey . ' ')) {
+                Log::debug('VoiceRegistry: partial name match', [
+                    'input' => $key,
+                    'matched' => $registeredKey,
+                    'voiceId' => $data['voiceId'],
+                ]);
+                // Also register the alias for future exact lookups
+                $this->characterVoices[$key] = $data;
+                return $data['voiceId'];
+            }
         }
 
         // Fallback lookup and register

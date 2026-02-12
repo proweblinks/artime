@@ -23932,7 +23932,7 @@ PROMPT;
                     if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
                     $matchedChar = $char;
                     $charIndex = $idx;
-                    Log::debug('Voice: partial name match', ['input' => $nameUpper, 'matched' => $bibleName, 'index' => $idx]);
+                    Log::info('Voice: partial name match', ['input' => $nameUpper, 'matched' => $bibleName, 'index' => $idx]);
                     break;
                 }
             }
@@ -23941,7 +23941,8 @@ PROMPT;
         // Enhanced gender detection: gender field -> voice.gender -> description/appearance keywords
         $detectedGender = null;
         if ($matchedChar) {
-            $gender = strtolower($matchedChar['gender'] ?? $matchedChar['voice']['gender'] ?? '');
+            $voiceData = is_array($matchedChar['voice'] ?? null) ? $matchedChar['voice'] : [];
+            $gender = strtolower($matchedChar['gender'] ?? $voiceData['gender'] ?? '');
             if (str_contains($gender, 'female')) $detectedGender = 'female';
             elseif (str_contains($gender, 'male')) $detectedGender = 'male';
             else {
@@ -23958,9 +23959,10 @@ PROMPT;
         if ($detectedGender === 'female') $voice = $femaleVoices[$charIndex % count($femaleVoices)];
         elseif ($detectedGender === 'male') $voice = $maleVoices[$charIndex % count($maleVoices)];
 
-        Log::debug('Voice assignment result', [
+        Log::info('Voice assignment result', [
             'input' => $nameUpper, 'matched' => $matchedChar ? ($matchedChar['name'] ?? '?') : 'none',
             'gender' => $detectedGender, 'index' => $charIndex, 'voice' => $voice,
+            'bibleSize' => count($charBible),
         ]);
 
         return $voice;
