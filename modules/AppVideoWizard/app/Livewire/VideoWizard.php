@@ -29570,8 +29570,8 @@ PROMPT;
                     // Silent WAV MUST match primary audio duration so face 2 stays silent the entire time
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
-                    // InfiniteTalk API requires data URL prefix for base64 audio
-                    $extraAnimOptions['wav_base64_2'] = 'data:audio/wav;base64,' . \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
+                    // InfiniteTalk handler's save_base64_to_file() expects raw base64 (no data URL prefix)
+                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
                     \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio for face 2', [
                         'charactersInShot' => $charactersInShot,
                         'sceneCharacters' => $sceneCharacters,
