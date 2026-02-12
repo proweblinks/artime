@@ -23911,6 +23911,7 @@ PROMPT;
         $matchedChar = null;
         $charIndex = 0;
 
+        // Pass 1: exact match
         foreach ($charBible as $idx => $char) {
             if (strtoupper(trim($char['name'] ?? '')) === $nameUpper) {
                 if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
@@ -23918,6 +23919,22 @@ PROMPT;
                 $matchedChar = $char;
                 $charIndex = $idx;
                 break;
+            }
+        }
+
+        // Pass 2: partial match (SARAH matches SARAH COLE, MARCUS matches MARCUS WEBB)
+        if (!$matchedChar) {
+            foreach ($charBible as $idx => $char) {
+                $bibleName = strtoupper(trim($char['name'] ?? ''));
+                if ($bibleName === '' || $nameUpper === '') continue;
+                // Check if input is first name of bible entry, or bible entry starts with input
+                if (str_starts_with($bibleName, $nameUpper . ' ') || str_starts_with($nameUpper, $bibleName . ' ')) {
+                    if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
+                    if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
+                    $matchedChar = $char;
+                    $charIndex = $idx;
+                    break;
+                }
             }
         }
 
