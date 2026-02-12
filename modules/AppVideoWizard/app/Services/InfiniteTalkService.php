@@ -430,6 +430,183 @@ class InfiniteTalkService
     }
 
     /**
+     * Build timeline-synchronized audio tracks for multi-person dialogue.
+     *
+     * Instead of playing both speakers simultaneously, this creates tracks where:
+     * - Speaker 1's track: [speech][silence during speaker 2's turn]
+     * - Speaker 2's track: [silence during speaker 1's turn][speech]
+     *
+     * This ensures proper turn-taking in the generated video.
+     *
+     * @param int $projectId Project ID for file storage
+     * @param string $audioUrl1 URL to speaker 1's audio
+     * @param float $duration1 Duration of speaker 1's audio in seconds
+     * @param string $audioUrl2 URL to speaker 2's audio
+     * @param float $duration2 Duration of speaker 2's audio in seconds
+     * @param float $pauseBetween Pause between turns in seconds
+     * @return array ['success' => bool, 'audioUrl1' => string, 'audioUrl2' => string, 'totalDuration' => float]
+     */
+    public static function buildTimelineSyncedAudio(
+        int $projectId,
+        string $audioUrl1,
+        float $duration1,
+        string $audioUrl2,
+        float $duration2,
+        float $pauseBetween = 0.3
+    ): array {
+        $totalDuration = $duration1 + $pauseBetween + $duration2;
+        $fallback = [
+            'success' => false,
+            'audioUrl1' => $audioUrl1,
+            'audioUrl2' => $audioUrl2,
+            'totalDuration' => max($duration1, $duration2),
+        ];
+
+        try {
+            $tempDir = storage_path('app/temp/timeline-sync');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            $uid = uniqid('tl_', true);
+
+            // Resolve audio file paths (convert URLs to local paths)
+            $localPath1 = self::resolveAudioPath($audioUrl1);
+            $localPath2 = self::resolveAudioPath($audioUrl2);
+
+            if (!$localPath1 || !$localPath2) {
+                Log::warning('InfiniteTalk timeline sync: could not resolve audio paths', [
+                    'url1' => substr($audioUrl1, 0, 80),
+                    'url2' => substr($audioUrl2, 0, 80),
+                ]);
+                return $fallback;
+            }
+
+            $outputPath1 = $tempDir . "/synced1_{$uid}.wav";
+            $outputPath2 = $tempDir . "/synced2_{$uid}.wav";
+
+            // Speaker 1: [speech] + [silence for pause + duration2]
+            $silenceDur1 = number_format($pauseBetween + $duration2, 3, '.', '');
+            $cmd1 = sprintf(
+                'ffmpeg -y -i %s -f lavfi -t %s -i anullsrc=r=44100:cl=mono '
+                . '-filter_complex "[0:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono[a];'
+                . '[1:a]aformat=sample_fmts=s16:channel_layouts=mono[s];'
+                . '[a][s]concat=n=2:v=0:a=1[out]" '
+                . '-map "[out]" %s 2>&1',
+                escapeshellarg($localPath1),
+                $silenceDur1,
+                escapeshellarg($outputPath1)
+            );
+
+            // Speaker 2: [silence for duration1 + pause] + [speech]
+            $silenceDur2 = number_format($duration1 + $pauseBetween, 3, '.', '');
+            $cmd2 = sprintf(
+                'ffmpeg -y -f lavfi -t %s -i anullsrc=r=44100:cl=mono -i %s '
+                . '-filter_complex "[0:a]aformat=sample_fmts=s16:channel_layouts=mono[s];'
+                . '[1:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono[a];'
+                . '[s][a]concat=n=2:v=0:a=1[out]" '
+                . '-map "[out]" %s 2>&1',
+                $silenceDur2,
+                escapeshellarg($localPath2),
+                escapeshellarg($outputPath2)
+            );
+
+            Log::info('InfiniteTalk timeline sync: building tracks', [
+                'duration1' => $duration1,
+                'duration2' => $duration2,
+                'pauseBetween' => $pauseBetween,
+                'totalDuration' => $totalDuration,
+            ]);
+
+            exec($cmd1, $output1, $ret1);
+            exec($cmd2, $output2, $ret2);
+
+            if ($ret1 !== 0 || $ret2 !== 0 || !file_exists($outputPath1) || !file_exists($outputPath2)) {
+                Log::error('InfiniteTalk timeline sync: FFmpeg failed', [
+                    'ret1' => $ret1,
+                    'ret2' => $ret2,
+                    'output1' => implode("\n", array_slice($output1 ?? [], -5)),
+                    'output2' => implode("\n", array_slice($output2 ?? [], -5)),
+                ]);
+                return $fallback;
+            }
+
+            // Store synced audio to public storage
+            $storagePath1 = "wizard-audio/{$projectId}/timeline_speaker1_{$uid}.wav";
+            $storagePath2 = "wizard-audio/{$projectId}/timeline_speaker2_{$uid}.wav";
+
+            Storage::disk('public')->put($storagePath1, file_get_contents($outputPath1));
+            Storage::disk('public')->put($storagePath2, file_get_contents($outputPath2));
+
+            $syncedUrl1 = url('/files/' . $storagePath1);
+            $syncedUrl2 = url('/files/' . $storagePath2);
+
+            // Cleanup temp files
+            @unlink($outputPath1);
+            @unlink($outputPath2);
+
+            Log::info('InfiniteTalk timeline sync: tracks built successfully', [
+                'totalDuration' => $totalDuration,
+                'syncedUrl1' => substr($syncedUrl1, 0, 80),
+                'syncedUrl2' => substr($syncedUrl2, 0, 80),
+            ]);
+
+            return [
+                'success' => true,
+                'audioUrl1' => $syncedUrl1,
+                'audioUrl2' => $syncedUrl2,
+                'totalDuration' => $totalDuration,
+            ];
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk timeline sync: exception', ['error' => $e->getMessage()]);
+            return $fallback;
+        }
+    }
+
+    /**
+     * Resolve an audio URL to a local file path.
+     * Converts same-site public URLs to local storage paths, or downloads external URLs.
+     */
+    protected static function resolveAudioPath(string $audioUrl): ?string
+    {
+        // Check if it's a local URL (same site)
+        $baseUrl = rtrim(url('/files'), '/') . '/';
+        if (str_starts_with($audioUrl, $baseUrl)) {
+            $relativePath = ltrim(str_replace($baseUrl, '', $audioUrl), '/');
+            $localPath = Storage::disk('public')->path($relativePath);
+
+            if (file_exists($localPath)) {
+                return $localPath;
+            }
+        }
+
+        // Try downloading external URL to temp file
+        try {
+            $tempDir = storage_path('app/temp/timeline-sync');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            $ext = pathinfo(parse_url($audioUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'wav';
+            $tempPath = $tempDir . '/download_' . md5($audioUrl) . '.' . $ext;
+
+            $contents = file_get_contents($audioUrl);
+            if ($contents !== false && strlen($contents) > 0) {
+                file_put_contents($tempPath, $contents);
+                return $tempPath;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('InfiniteTalk: failed to download audio for timeline sync', [
+                'url' => substr($audioUrl, 0, 80),
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Error response format.
      */
     protected function errorResponse(string $message): array

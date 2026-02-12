@@ -29827,12 +29827,38 @@ PROMPT;
                 $hasMultipleFaces = count($charactersInShot) >= 2;
 
                 if ($isDialogueShot && $hasMultipleFaces) {
-                    // Dialogue: two separate audio tracks for two speaking characters
+                    // Dialogue: build timeline-synchronized audio tracks for turn-taking
+                    // Instead of both speakers talking simultaneously, each speaker's
+                    // audio is positioned at the correct time offset with silence padding
                     $extraAnimOptions['person_count'] = 'multi';
-                    $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
-                    \Log::info('InfiniteTalk: MULTI mode (dialogue) - two audio tracks', [
-                        'charactersInShot' => $charactersInShot,
-                    ]);
+                    $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
+
+                    $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
+                        $this->projectId ?? 0,
+                        $audioUrl,
+                        (float) $audioDuration,
+                        $shot['audioUrl2'],
+                        $audioDuration2Val
+                    );
+
+                    if ($timelineSync['success']) {
+                        // Use timeline-synced audio tracks (proper turn-taking)
+                        $audioUrl = $timelineSync['audioUrl1'];
+                        $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
+                        // Override duration to match full dialogue timeline
+                        $duration = (int) ceil($timelineSync['totalDuration'] + 0.5);
+                        \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
+                            'totalDuration' => $timelineSync['totalDuration'],
+                            'videoDuration' => $duration,
+                            'charactersInShot' => $charactersInShot,
+                        ]);
+                    } else {
+                        // Fallback: send raw audio tracks (both play simultaneously)
+                        $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+                        \Log::warning('InfiniteTalk: MULTI mode (dialogue) - timeline sync failed, using raw audio', [
+                            'charactersInShot' => $charactersInShot,
+                        ]);
+                    }
                 } elseif ($hasMultipleFaces) {
                     // Multi-face image but only one speaker: send silent audio to mute face 2
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
@@ -29875,12 +29901,11 @@ PROMPT;
             }
 
             // InfiniteTalk max_frame safety cap (base64 output size guard)
+            // $duration already accounts for timeline-synced total when dialogue is active
             if ($selectedModel === 'infinitetalk') {
                 $fps = 24;
                 $maxSafeDuration = 30;
-                $audioDuration2ForFrame = $shot['audioDuration2'] ?? null;
-                $requestedDuration = $audioDuration2ForFrame ? max($audioDuration ?? $duration, $audioDuration2ForFrame) : ($audioDuration ?? $duration);
-                $extraAnimOptions['max_frame'] = min((int)($requestedDuration * $fps), $maxSafeDuration * $fps);
+                $extraAnimOptions['max_frame'] = min((int)($duration * $fps), $maxSafeDuration * $fps);
             }
 
             if ($this->projectId) {
