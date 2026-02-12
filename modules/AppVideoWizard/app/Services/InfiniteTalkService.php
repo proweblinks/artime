@@ -377,6 +377,14 @@ class InfiniteTalkService
      */
     public static function generateSilentWavBase64(float $durationSeconds = 0.1): string
     {
+        return base64_encode(self::generateSilentWavBytes($durationSeconds));
+    }
+
+    /**
+     * Generate raw bytes for a silent WAV file.
+     */
+    public static function generateSilentWavBytes(float $durationSeconds = 0.1): string
+    {
         $sampleRate = 44100;
         $bitsPerSample = 16;
         $channels = 1;
@@ -391,7 +399,22 @@ class InfiniteTalkService
         $fmt = pack('A4VvvVVvv', 'fmt ', 16, 1, $channels, $sampleRate, $byteRate, $blockAlign, $bitsPerSample);
         $data = pack('A4V', 'data', $dataSize) . str_repeat("\x00", $dataSize);
 
-        return base64_encode($header . $fmt . $data);
+        return $header . $fmt . $data;
+    }
+
+    /**
+     * Generate a silent WAV file, save to public storage, and return its URL.
+     * More reliable than base64 inline for multi-person mode.
+     */
+    public static function generateSilentWavUrl(int $projectId, float $durationSeconds = 0.1): string
+    {
+        $wavBytes = self::generateSilentWavBytes($durationSeconds);
+        $filename = 'silent_' . md5($durationSeconds . '_' . $projectId) . '.wav';
+        $storagePath = "wizard-audio/{$projectId}/{$filename}";
+
+        Storage::disk('public')->put($storagePath, $wavBytes);
+
+        return url('/files/' . $storagePath);
     }
 
     /**

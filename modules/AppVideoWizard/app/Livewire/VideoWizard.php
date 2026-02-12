@@ -29570,15 +29570,17 @@ PROMPT;
                     // Silent WAV MUST match primary audio duration so face 2 stays silent the entire time
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
-                    // InfiniteTalk handler's save_base64_to_file() expects raw base64 (no data URL prefix)
-                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
-                    \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio for face 2', [
+                    // Use URL (saved file) instead of base64 for reliability with RunPod handler
+                    $projectId = $this->projectId ?? 0;
+                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                    \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio URL for face 2', [
                         'charactersInShot' => $charactersInShot,
                         'sceneCharacters' => $sceneCharacters,
                         'uniqueSceneSpeakers' => array_keys($uniqueSceneSpeakers),
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
                         'silentDuration' => $silentDuration,
                         'primaryAudioDuration' => $audioDuration,
+                        'silentWavUrl' => $extraAnimOptions['audio_url_2'],
                     ]);
                 } else {
                     // Single face in image: standard single mode
