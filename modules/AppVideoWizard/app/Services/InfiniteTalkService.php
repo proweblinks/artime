@@ -101,8 +101,8 @@ class InfiniteTalkService
 
         // Multi-mode processes 2 faces = ~2x VRAM; RunPod docs default to 512x512
         if ($personCount === 'multi') {
-            $width = min((int) $width, 512);
-            $height = min((int) $height, 512);
+            $width = min((int) $width, 768);
+            $height = min((int) $height, 768);
         }
 
         // Build InfiniteTalk input payload
