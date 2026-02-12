@@ -30626,7 +30626,9 @@ PROMPT;
         }
 
         $skippedLipSync = 0;
+        $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
         $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
+        $lipSyncAvail = $itAvail || $mtAvail;
 
         foreach ($decomposed['shots'] as $shotIndex => $shot) {
             if (!empty($shot['imageUrl']) && ($shot['videoStatus'] ?? 'pending') !== 'ready') {
@@ -30634,10 +30636,19 @@ PROMPT;
                 $needsLipSync = $shot['needsLipSync'] ?? false;
                 $hasAudio = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
 
-                if ($needsLipSync && $mtAvail) {
+                if ($needsLipSync && $lipSyncAvail) {
                     if ($hasAudio) {
-                        // Has audio - use Multitalk
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
+                        // Has audio - respect existing model selection, or pick best available
+                        $currentModel = $shot['selectedVideoModel'] ?? null;
+                        if ($currentModel === 'infinitetalk' && $itAvail) {
+                            // Already set to InfiniteTalk and it's available - keep it
+                        } elseif ($itAvail) {
+                            // Prefer InfiniteTalk when available
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'infinitetalk';
+                        } elseif ($mtAvail) {
+                            // Fall back to Multitalk
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
+                        }
                         $this->generateShotVideo($sceneIndex, $shotIndex);
                     } else {
                         // Needs lip-sync but no audio - skip and warn
