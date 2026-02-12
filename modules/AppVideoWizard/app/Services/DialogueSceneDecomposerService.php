@@ -900,6 +900,11 @@ class DialogueSceneDecomposerService
             $charactersInShot = $shot['charactersInShot'] ?? [];
             $characterCount = count($charactersInShot);
 
+            // Save original multi-character list before constraint strips them
+            if ($characterCount > 1 && empty($shot['allSceneCharacters'])) {
+                $shot['allSceneCharacters'] = $charactersInShot;
+            }
+
             // Skip shots that already have single character
             if ($characterCount <= 1) {
                 continue;

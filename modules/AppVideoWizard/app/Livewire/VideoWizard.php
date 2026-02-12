@@ -19538,6 +19538,8 @@ PROMPT;
                 'speakingCharacter' => $speakingCharacter,
                 'characterIndex' => $dialogueShot['characterIndex'] ?? null,
                 'charactersInShot' => $dialogueShot['charactersInShot'] ?? ($speakingCharacter ? [$speakingCharacter] : []),
+                'speakingCharacters' => $dialogueShot['speakingCharacters'] ?? ($speakingCharacter ? [$speakingCharacter] : []),
+                'allSceneCharacters' => $dialogueShot['allSceneCharacters'] ?? null,
 
                 // Dialogue/monologue text (for Multitalk lip-sync)
                 'dialogue' => $dialogueShot['dialogue'] ?? null,
@@ -23898,33 +23900,46 @@ PROMPT;
         $charBible = $this->sceneMemory['characterBible']['characters'] ?? [];
         $nameUpper = strtoupper(trim($characterName));
 
-        // Special case: narrator uses narrator voice
         if ($nameUpper === 'NARRATOR') {
             return $this->animation['narrator']['voice'] ?? 'fable';
         }
 
-        foreach ($charBible as $char) {
-            $charNameUpper = strtoupper(trim($char['name'] ?? ''));
-            if ($charNameUpper === $nameUpper) {
-                // New voice array structure
-                if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) {
-                    return $char['voice']['id'];
-                }
-                // Legacy string
-                if (is_string($char['voice'] ?? null) && !empty($char['voice'])) {
-                    return $char['voice'];
-                }
-                // Gender-based fallback
-                $gender = strtolower($char['gender'] ?? $char['voice']['gender'] ?? '');
-                if (str_contains($gender, 'female')) return 'nova';
-                if (str_contains($gender, 'male')) return 'onyx';
+        $maleVoices = ['onyx', 'echo'];
+        $femaleVoices = ['nova', 'shimmer'];
+        $allVoices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
+
+        $matchedChar = null;
+        $charIndex = 0;
+
+        foreach ($charBible as $idx => $char) {
+            if (strtoupper(trim($char['name'] ?? '')) === $nameUpper) {
+                if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
+                if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
+                $matchedChar = $char;
+                $charIndex = $idx;
+                break;
             }
         }
 
-        // Consistent fallback based on name hash
-        $hash = crc32($nameUpper);
-        $voices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
-        return $voices[$hash % count($voices)];
+        // Enhanced gender detection: gender field -> voice.gender -> description/appearance keywords
+        $detectedGender = null;
+        if ($matchedChar) {
+            $gender = strtolower($matchedChar['gender'] ?? $matchedChar['voice']['gender'] ?? '');
+            if (str_contains($gender, 'female')) $detectedGender = 'female';
+            elseif (str_contains($gender, 'male')) $detectedGender = 'male';
+            else {
+                $desc = strtolower($matchedChar['description'] ?? $matchedChar['appearance'] ?? '');
+                if (preg_match('/\b(woman|female|girl|she|her|mother|sister|wife|queen|princess|actress|heroine)\b/', $desc))
+                    $detectedGender = 'female';
+                elseif (preg_match('/\b(man|male|boy|he|his|father|brother|husband|king|prince|actor|hero)\b/', $desc))
+                    $detectedGender = 'male';
+            }
+        }
+
+        // Use character index (not name hash) for within-pool selection -> guarantees diversity
+        if ($detectedGender === 'female') return $femaleVoices[$charIndex % count($femaleVoices)];
+        if ($detectedGender === 'male') return $maleVoices[$charIndex % count($maleVoices)];
+        return $allVoices[$charIndex % count($allVoices)];
     }
 
     /**
@@ -24276,6 +24291,31 @@ PROMPT;
         // DIALOGUE NARRATION STYLE: Distribute dialogue segments to shots
         // When user selected "Dialogue" style, parse speaker lines and assign
         // ═══════════════════════════════════════════════════════════════════
+        // Check if speech-driven path already populated dialogue (has both dialogue AND speechSegments)
+        $currentShots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+        $hasDialogueFromSpeechPath = false;
+        foreach ($currentShots as $shot) {
+            if (!empty($shot['dialogue']) && !empty($shot['speechSegments'])) {
+                $hasDialogueFromSpeechPath = true;
+                break;
+            }
+        }
+
+        if ($hasDialogueFromSpeechPath) {
+            Log::info('Skipping legacy dialogue re-assignment: speech-driven path already populated dialogue', [
+                'sceneIndex' => $sceneIndex,
+                'shotCount' => count($currentShots),
+            ]);
+            // Ensure voiceId is populated for shots that need it
+            foreach ($currentShots as $index => $shot) {
+                if (!empty($shot['needsLipSync']) && !empty($shot['speakingCharacter']) && empty($shot['voiceId'])) {
+                    $voice = $this->getVoiceForCharacterName($shot['speakingCharacter']);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$index]['voiceId'] = $voice;
+                }
+            }
+            return;
+        }
+
         if ($this->isDialogueNarrationStyle()) {
             $scene = $this->script['scenes'][$sceneIndex] ?? [];
             $narration = $scene['narration'] ?? '';
@@ -25142,6 +25182,13 @@ PROMPT;
             // Auto-generate silent WAV for non-speaking face in InfiniteTalk multi-face shots
             $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? $shot;
             $isInfiniteTalk = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk']);
+
+            // Restore multi-character data for InfiniteTalk if constraint stripped it
+            if ($isInfiniteTalk && !empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['charactersInShot'] = $shot['allSceneCharacters'];
+                $shot['charactersInShot'] = $shot['allSceneCharacters'];
+            }
+
             $hasMultipleFaces = count($shot['charactersInShot'] ?? []) >= 2;
             $hasNoSecondAudio = empty($shot['audioUrl2']);
             $hasFirstAudio = !empty($shot['audioUrl']);
@@ -29560,6 +29607,16 @@ PROMPT;
             // For multi-face + single speaker: send silent WAV to mute the non-speaking face
             $extraAnimOptions = [];
             if ($selectedModel === 'infinitetalk') {
+                // Restore multi-character data if constraint stripped it
+                if (!empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
+                    $shot['charactersInShot'] = $shot['allSceneCharacters'];
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['charactersInShot'] = $shot['allSceneCharacters'];
+                    \Log::info('Restored multi-character data for InfiniteTalk', [
+                        'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
+                        'characters' => $shot['allSceneCharacters'],
+                    ]);
+                }
+
                 $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
 
                 $isDialogueShot = ($shot['isDialogueShot'] ?? false) && !empty($shot['audioUrl2']);
