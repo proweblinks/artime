@@ -443,9 +443,14 @@ class DialogueSceneDecomposerService
             $hasNarration = !empty($shot['narration']);
             $hasNarratorText = $shot['hasNarratorText'] ?? false;
 
-            // Calculate speech indicator
+            // Calculate speech indicator — use segmentType if available (speech-driven path)
             if ($hasDialogue || $hasMonologue) {
-                $shot['speechIndicator'] = $shot['needsLipSync'] ?? false ? 'dialogue' : 'monologue';
+                $segType = $shot['segmentType'] ?? null;
+                if ($segType) {
+                    $shot['speechIndicator'] = $segType; // 'dialogue' or 'monologue'
+                } else {
+                    $shot['speechIndicator'] = ($hasDialogue && !$hasMonologue) ? 'dialogue' : 'monologue';
+                }
             } elseif ($hasNarration || $hasNarratorText) {
                 $shot['speechIndicator'] = 'narrator';
             } elseif ($speechType === 'narrator' && $voiceoverText) {
@@ -1433,6 +1438,7 @@ class DialogueSceneDecomposerService
         $shot = [
             'type' => $shotType,
             'purpose' => 'dialogue',
+            'segmentType' => 'dialogue', // Exchange-based shots are always dialogue
             'speakingCharacter' => $speaker,
             'characterIndex' => $charData['characterIndex'] ?? null,
             'dialogue' => $exchange['text'],

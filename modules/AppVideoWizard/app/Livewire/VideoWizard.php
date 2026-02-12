@@ -19554,6 +19554,9 @@ PROMPT;
                 'speakingCharacters' => $dialogueShot['speakingCharacters'] ?? ($speakingCharacter ? [$speakingCharacter] : []),
                 'allSceneCharacters' => $dialogueShot['allSceneCharacters'] ?? null,
 
+                // Segment type for monologue vs dialogue routing
+                'segmentType' => $dialogueShot['segmentType'] ?? null,
+
                 // Dialogue/monologue text (for Multitalk lip-sync)
                 'dialogue' => $dialogueShot['dialogue'] ?? null,
                 'monologue' => $dialogueShot['monologue'] ?? $dialogueShot['dialogue'] ?? null,
@@ -24800,19 +24803,24 @@ PROMPT;
             }
 
             // Create one shot for this segment (1:1 mapping)
+            // Determine if this is a dialogue or monologue segment for correct routing
+            $isDialogueSegment = ($segType === 'dialogue');
+
             $shot = [
                 'id' => uniqid('shot_'),
                 'speechSegments' => [$segment], // Single segment per shot
                 'needsLipSync' => true,
-                'dialogue' => $text,
-                'monologue' => $text,
+                'segmentType' => $segType, // 'dialogue' or 'monologue' — from speech segment
+                'dialogue' => $isDialogueSegment ? $text : null,
+                'monologue' => !$isDialogueSegment ? $text : null,
                 'emotion' => $segment['emotion'] ?? null,
                 'speakingCharacter' => $speaker,
                 'speakingCharacters' => [$speaker],
-                'charactersInShot' => $allCharNames, // ALL scene characters for multi-face detection
+                'charactersInShot' => $isDialogueSegment ? $allCharNames : [$speaker], // Monologue: only the speaker
+                'allSceneCharacters' => $allCharNames, // Keep backup for later use
                 'selectedVideoModel' => $this->getPreferredAnimationModel() ?? self::VIDEO_MODEL_MULTITALK,
                 'type' => SpeechSegment::TYPE_DIALOGUE, // Will be refined by DialogueSceneDecomposerService
-                'purpose' => 'dialogue',
+                'purpose' => $isDialogueSegment ? 'dialogue' : 'monologue',
                 'segmentIndex' => $segmentIndex,
                 'duration' => $this->calculateDurationFromText($text),
             ];
@@ -25323,29 +25331,34 @@ PROMPT;
             if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
                 $skipped++;
             } elseif ($needsLipSync || $force) {
+                $segmentType = $shot['segmentType'] ?? null;
+                $isDialogueSegment = ($segmentType === 'dialogue');
                 $isInfiniteTalkShot = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK]);
                 $hasMultipleChars = count($shot['charactersInShot'] ?? []) >= 2;
 
-                if ($isInfiniteTalkShot && $hasMultipleChars) {
-                    // InfiniteTalk multi-face: generate dual audio (speaking + silent)
+                if ($isInfiniteTalkShot && $isDialogueSegment && $hasMultipleChars) {
+                    // Dialogue: generate dual audio (speaker + non-speaker)
                     $this->generateDialogueVoiceover($sceneIndex, $shotIndex);
                     Log::info('Routed to dialogue voiceover for InfiniteTalk multi-face', [
                         'sceneIndex' => $sceneIndex,
                         'shotIndex' => $shotIndex,
+                        'segmentType' => $segmentType,
                         'characters' => $shot['charactersInShot'],
                     ]);
                 } else {
+                    // Monologue, narrator, or non-InfiniteTalk: single speaker voiceover
                     $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
                 }
                 $generated++;
             }
 
-            // Auto-generate silent WAV for non-speaking face in InfiniteTalk multi-face shots
+            // Auto-generate silent WAV for non-speaking face in InfiniteTalk DIALOGUE shots
             $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? $shot;
             $isInfiniteTalk = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk']);
+            $shotSegType = $shot['segmentType'] ?? null;
 
-            // Restore multi-character data for InfiniteTalk if constraint stripped it
-            if ($isInfiniteTalk && !empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
+            // Restore multi-character data for InfiniteTalk DIALOGUE shots only
+            if ($isInfiniteTalk && $shotSegType === 'dialogue' && !empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['charactersInShot'] = $shot['allSceneCharacters'];
                 $shot['charactersInShot'] = $shot['allSceneCharacters'];
             }
@@ -25354,7 +25367,7 @@ PROMPT;
             $hasNoSecondAudio = empty($shot['audioUrl2']);
             $hasFirstAudio = !empty($shot['audioUrl']);
 
-            if ($isInfiniteTalk && $hasMultipleFaces && $hasNoSecondAudio && $hasFirstAudio) {
+            if ($isInfiniteTalk && $shotSegType === 'dialogue' && $hasMultipleFaces && $hasNoSecondAudio && $hasFirstAudio) {
                 $silentDuration = max($shot['audioDuration'] ?? 5, 1.0);
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] =
                     \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
@@ -29808,11 +29821,13 @@ PROMPT;
             // For multi-face + single speaker: send silent WAV to mute the non-speaking face
             $extraAnimOptions = [];
             if ($selectedModel === 'infinitetalk') {
-                // Restore multi-character data if constraint stripped it
-                if (!empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
+                $segmentType = $shot['segmentType'] ?? null;
+
+                // For dialogue segments, restore multi-character data if constraint stripped it
+                if ($segmentType === 'dialogue' && !empty($shot['allSceneCharacters']) && count($shot['charactersInShot'] ?? []) < 2) {
                     $shot['charactersInShot'] = $shot['allSceneCharacters'];
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['charactersInShot'] = $shot['allSceneCharacters'];
-                    \Log::info('Restored multi-character data for InfiniteTalk', [
+                    \Log::info('Restored multi-character data for InfiniteTalk dialogue', [
                         'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
                         'characters' => $shot['allSceneCharacters'],
                     ]);
@@ -29820,63 +29835,73 @@ PROMPT;
 
                 $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
 
-                $isDialogueShot = !empty($shot['audioUrl2']) && (($shot['isDialogueShot'] ?? false) || count($shot['charactersInShot'] ?? []) >= 2);
-
-                // Count characters visible in this shot's image
-                $charactersInShot = $shot['charactersInShot'] ?? [];
-                $hasMultipleFaces = count($charactersInShot) >= 2;
-
-                if ($isDialogueShot && $hasMultipleFaces) {
-                    // Dialogue: build timeline-synchronized audio tracks for turn-taking
-                    // Instead of both speakers talking simultaneously, each speaker's
-                    // audio is positioned at the correct time offset with silence padding
-                    $extraAnimOptions['person_count'] = 'multi';
-                    $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
-
-                    $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
-                        $this->projectId ?? 0,
-                        $audioUrl,
-                        (float) $audioDuration,
-                        $shot['audioUrl2'],
-                        $audioDuration2Val
-                    );
-
-                    if ($timelineSync['success']) {
-                        // Use timeline-synced audio tracks (proper turn-taking)
-                        $audioUrl = $timelineSync['audioUrl1'];
-                        $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
-                        // Override duration to match full dialogue timeline
-                        $duration = (int) ceil($timelineSync['totalDuration'] + 0.5);
-                        \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
-                            'totalDuration' => $timelineSync['totalDuration'],
-                            'videoDuration' => $duration,
-                            'charactersInShot' => $charactersInShot,
-                        ]);
-                    } else {
-                        // Fallback: send raw audio tracks (both play simultaneously)
-                        $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
-                        \Log::warning('InfiniteTalk: MULTI mode (dialogue) - timeline sync failed, using raw audio', [
-                            'charactersInShot' => $charactersInShot,
-                        ]);
-                    }
-                } elseif ($hasMultipleFaces) {
-                    // Multi-face image but only one speaker: send silent audio to mute face 2
-                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
-                    $extraAnimOptions['person_count'] = 'multi';
-                    $projectId = $this->projectId ?? 0;
-                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                    \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent WAV for face 2', [
-                        'charactersInShot' => $charactersInShot,
+                // If segment is explicitly monologue, force single mode regardless of charactersInShot
+                if ($segmentType === 'monologue') {
+                    $extraAnimOptions['person_count'] = 'single';
+                    \Log::info('InfiniteTalk: SINGLE mode (monologue segment)', [
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
-                        'silentDuration' => $silentDuration,
+                        'segmentType' => $segmentType,
                     ]);
                 } else {
-                    // Single face in image: standard single mode
-                    $extraAnimOptions['person_count'] = 'single';
-                    \Log::info('InfiniteTalk: SINGLE mode - one face in image', [
-                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
-                    ]);
-                }
+                    // Dialogue or unknown segmentType: use existing multi-face logic
+                    $isDialogueShot = !empty($shot['audioUrl2']) && (($shot['isDialogueShot'] ?? false) || count($shot['charactersInShot'] ?? []) >= 2);
+
+                    // Count characters visible in this shot's image
+                    $charactersInShot = $shot['charactersInShot'] ?? [];
+                    $hasMultipleFaces = count($charactersInShot) >= 2;
+
+                    if ($isDialogueShot && $hasMultipleFaces) {
+                        // Dialogue: build timeline-synchronized audio tracks for turn-taking
+                        // Instead of both speakers talking simultaneously, each speaker's
+                        // audio is positioned at the correct time offset with silence padding
+                        $extraAnimOptions['person_count'] = 'multi';
+                        $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
+
+                        $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
+                            $this->projectId ?? 0,
+                            $audioUrl,
+                            (float) $audioDuration,
+                            $shot['audioUrl2'],
+                            $audioDuration2Val
+                        );
+
+                        if ($timelineSync['success']) {
+                            // Use timeline-synced audio tracks (proper turn-taking)
+                            $audioUrl = $timelineSync['audioUrl1'];
+                            $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
+                            // Override duration to match full dialogue timeline
+                            $duration = (int) ceil($timelineSync['totalDuration'] + 0.5);
+                            \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
+                                'totalDuration' => $timelineSync['totalDuration'],
+                                'videoDuration' => $duration,
+                                'charactersInShot' => $charactersInShot,
+                            ]);
+                        } else {
+                            // Fallback: send raw audio tracks (both play simultaneously)
+                            $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+                            \Log::warning('InfiniteTalk: MULTI mode (dialogue) - timeline sync failed, using raw audio', [
+                                'charactersInShot' => $charactersInShot,
+                            ]);
+                        }
+                    } elseif ($hasMultipleFaces) {
+                        // Multi-face image but only one speaker: send silent audio to mute face 2
+                        $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
+                        $extraAnimOptions['person_count'] = 'multi';
+                        $projectId = $this->projectId ?? 0;
+                        $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                        \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent WAV for face 2', [
+                            'charactersInShot' => $charactersInShot,
+                            'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                            'silentDuration' => $silentDuration,
+                        ]);
+                    } else {
+                        // Single face in image: standard single mode
+                        $extraAnimOptions['person_count'] = 'single';
+                        \Log::info('InfiniteTalk: SINGLE mode - one face in image', [
+                            'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                        ]);
+                    }
+                } // end else (dialogue/unknown segmentType)
             }
 
             // Validate InfiniteTalk multi-mode has all required data
@@ -30351,9 +30376,19 @@ PROMPT;
                 $speakers = $this->buildSpeakersForDialogueShot($sceneIndex, $shotIndex);
             }
 
-            if (count($speakers) < 2) {
-                $this->error = __('Need at least 2 characters for dialogue mode');
+            if (empty($speakers)) {
+                $this->error = __('No speakers found for voiceover generation');
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'error';
+                return;
+            }
+
+            // Single speaker: redirect to single voiceover path
+            if (count($speakers) < 2) {
+                \Log::info('generateDialogueVoiceover: single speaker detected, redirecting to single voiceover', [
+                    'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
+                    'segmentType' => $shot['segmentType'] ?? 'unknown',
+                ]);
+                $this->generateShotVoiceover($sceneIndex, $shotIndex);
                 return;
             }
 
@@ -30445,7 +30480,21 @@ PROMPT;
         $scene = $this->script['scenes'][$sceneIndex] ?? [];
 
         if (count($charactersInShot) < 2) {
-            return [];
+            // Single-character shot (monologue): build single speaker instead of empty array
+            $singleChar = $charactersInShot[0] ?? $shot['speakingCharacter'] ?? 'Character';
+            $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? $scene['narration'] ?? '';
+            $voiceId = $this->getVoiceIdForCharacterName($singleChar, $characterBible)
+                ?? $shot['voiceId'] ?? 'echo';
+            \Log::info('buildSpeakersForDialogueShot: single-character fallback', [
+                'character' => $singleChar,
+                'segmentType' => $shot['segmentType'] ?? 'unknown',
+            ]);
+            return [[
+                'name' => $singleChar,
+                'voiceId' => $voiceId,
+                'text' => $dialogue,
+                'order' => 0,
+            ]];
         }
 
         $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? $scene['narration'] ?? '';
