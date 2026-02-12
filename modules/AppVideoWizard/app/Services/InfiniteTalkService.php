@@ -381,7 +381,9 @@ class InfiniteTalkService
     }
 
     /**
-     * Generate raw bytes for a silent WAV file.
+     * Generate raw bytes for a near-silent WAV file.
+     * Uses a very low amplitude sine wave (imperceptible) instead of pure silence,
+     * because some lip-sync workflows crash on zero-amplitude audio.
      */
     public static function generateSilentWavBytes(float $durationSeconds = 0.1): string
     {
@@ -394,10 +396,20 @@ class InfiniteTalkService
         $byteRate = $sampleRate * $channels * $bytesPerSample;
         $blockAlign = $channels * $bytesPerSample;
 
-        // RIFF header + fmt chunk + data chunk
+        // RIFF header + fmt chunk
         $header = pack('A4VA4', 'RIFF', 36 + $dataSize, 'WAVE');
         $fmt = pack('A4VvvVVvv', 'fmt ', 16, 1, $channels, $sampleRate, $byteRate, $blockAlign, $bitsPerSample);
-        $data = pack('A4V', 'data', $dataSize) . str_repeat("\x00", $dataSize);
+
+        // Generate near-silent audio: very low amplitude 100Hz sine wave (amplitude ~10 out of 32767)
+        $samples = '';
+        $amplitude = 10; // Imperceptible volume
+        $frequency = 100;
+        for ($i = 0; $i < $numSamples; $i++) {
+            $value = (int)($amplitude * sin(2 * M_PI * $frequency * $i / $sampleRate));
+            $samples .= pack('v', $value & 0xFFFF);
+        }
+
+        $data = pack('A4V', 'data', $dataSize) . $samples;
 
         return $header . $fmt . $data;
     }
