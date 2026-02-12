@@ -1319,7 +1319,12 @@ window.multiShotVideoPolling = function() {
             @php
                 $selShot = $multiShotMode['decomposedScenes'][$videoModelSelectorSceneIndex ?? 0]['shots'][$videoModelSelectorShotIndex ?? 0] ?? [];
                 $curModel = $selShot['selectedVideoModel'] ?? 'minimax';
+                // For lip-sync models with audio, derive duration from audio
                 $curDur = $selShot['selectedDuration'] ?? $selShot['duration'] ?? 6;
+                if (in_array($curModel, ['multitalk', 'infinitetalk']) && !empty($selShot['audioDuration'])) {
+                    $maxAudioDur = !empty($selShot['audioDuration2']) ? max($selShot['audioDuration'], $selShot['audioDuration2']) : $selShot['audioDuration'];
+                    $curDur = (int) ceil($maxAudioDur + 0.5);
+                }
                 $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
                 $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
                 $hasAudio = !empty($selShot['audioUrl']) && ($selShot['audioStatus'] ?? '') === 'ready';
@@ -1687,7 +1692,21 @@ window.multiShotVideoPolling = function() {
             <div class="msm-dur-selector">
                 <label>{{ __('Duration') }}</label>
                 <div class="msm-dur-opts">
-                    @foreach($this->getAvailableDurations($curModel) as $d)
+                    @php
+                        $availDurs = $this->getAvailableDurations($curModel);
+                        $isLipSync = in_array($curModel, ['multitalk', 'infinitetalk']);
+                        $audioDur = $selShot['audioDuration'] ?? null;
+                        $audioDur2 = $selShot['audioDuration2'] ?? null;
+                        $autoDur = null;
+                        if ($isLipSync && $audioDur) {
+                            $maxAudio = $audioDur2 ? max($audioDur, $audioDur2) : $audioDur;
+                            $autoDur = (int) ceil($maxAudio + 0.5);
+                        }
+                    @endphp
+                    @if($autoDur && !in_array($autoDur, $availDurs))
+                        <button wire:click="setVideoModelDuration({{ $autoDur }})" class="{{ $curDur == $autoDur ? 'active' : '' }}" title="{{ __('Auto-calculated from audio duration') }}">{{ $autoDur }}s ✓</button>
+                    @endif
+                    @foreach($availDurs as $d)
                         <button wire:click="setVideoModelDuration({{ $d }})" class="{{ $curDur == $d ? 'active' : '' }}">{{ $d }}s</button>
                     @endforeach
                 </div>
