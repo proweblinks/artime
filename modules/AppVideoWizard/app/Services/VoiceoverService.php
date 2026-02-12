@@ -194,15 +194,19 @@ class VoiceoverService
         $currentTime = 0;
         $successCount = 0;
 
+        $silentSpeakerIndices = [];
+
         foreach ($speakers as $index => $speaker) {
             $speakerText = trim($speaker['text'] ?? '');
 
-            // Skip empty text (VOC-02 validation)
+            // Track empty-text speakers for silent WAV generation (processed after TTS)
             if (empty($speakerText)) {
-                Log::debug('Skipping speaker with empty text in processMultiSpeakerShot', [
+                Log::debug('Deferring silent WAV for non-speaking character in processMultiSpeakerShot', [
                     'speaker' => $speaker['name'] ?? 'unknown',
                     'order' => $index,
                 ]);
+                $silentSpeakerIndices[] = $index;
+                $audioSegments[$index] = null; // Placeholder to maintain order
                 continue;
             }
 
@@ -220,7 +224,7 @@ class VoiceoverService
                     $audioUrl = $result['url'] ?? $result['audioUrl'];
                     $duration = $result['duration'] ?? $this->estimateDuration($speakerText);
 
-                    $audioSegments[] = [
+                    $audioSegments[$index] = [
                         'name' => $speaker['name'],
                         'voiceId' => $speaker['voiceId'],
                         'text' => $speakerText,
@@ -239,6 +243,32 @@ class VoiceoverService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Generate silent WAV for non-speaking faces, matching the speaking character's duration
+        if (!empty($silentSpeakerIndices)) {
+            $silentDuration = max(1.0, $currentTime);
+            foreach ($silentSpeakerIndices as $idx) {
+                $speaker = $speakers[$idx];
+                $silentUrl = InfiniteTalkService::generateSilentWavUrl($project->id, $silentDuration);
+                $audioSegments[$idx] = [
+                    'name' => $speaker['name'],
+                    'voiceId' => 'silent',
+                    'text' => '',
+                    'order' => $idx,
+                    'startTime' => 0,
+                    'duration' => $silentDuration,
+                    'audioUrl' => $silentUrl,
+                ];
+                $successCount++;
+                Log::info('Generated silent WAV for non-speaking face in processMultiSpeakerShot', [
+                    'speaker' => $speaker['name'] ?? 'unknown',
+                    'duration' => $silentDuration,
+                ]);
+            }
+            // Re-index to maintain original speaker order
+            ksort($audioSegments);
+            $audioSegments = array_values(array_filter($audioSegments));
         }
 
         Log::info('Multi-speaker shot TTS complete (VOC-06)', [

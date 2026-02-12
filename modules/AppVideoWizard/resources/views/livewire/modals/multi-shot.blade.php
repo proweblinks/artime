@@ -868,6 +868,13 @@ window.multiShotVideoPolling = function() {
                                         @if($hasDialogue && !$needsLipSync)<span class="msm-badge-voiceover" title="{{ __('Voiceover only: Text spoken off-screen (no lip movement)') }}">🎙️</span>@endif
                                         @if($hasDialogue && $needsLipSync)<span class="msm-badge-dialog" title="{{ __('Has dialogue text') }}">💬</span>@endif
                                         @if($shot['isDialogueShot'] ?? false)<span class="msm-badge-dialogue" title="{{ __('Two-character dialogue') }}" style="background:rgba(168,85,247,0.2);color:#c084fc;font-size:0.6rem;padding:1px 3px;border-radius:3px;">💬2</span>@endif
+                                        @if(in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk']) && count($shot['charactersInShot'] ?? []) >= 2)
+                                            @if(!empty($shot['audioUrl2']))
+                                                <span class="msm-badge" title="{{ __('InfiniteTalk multi-face: both audio tracks ready') }}" style="background:rgba(34,197,94,0.2);color:#4ade80;font-size:0.6rem;padding:1px 3px;border-radius:3px;">🎭✓</span>
+                                            @else
+                                                <span class="msm-badge" title="{{ __('InfiniteTalk multi-face: needs face 2 audio') }}" style="background:rgba(234,179,8,0.2);color:#facc15;font-size:0.6rem;padding:1px 3px;border-radius:3px;">🎭⚠</span>
+                                            @endif
+                                        @endif
                                         @if($hasAudioReady)<span class="msm-badge-audio" title="{{ __('Voiceover ready') }}">🎤</span>@endif
                                         @if($audioGenerating)<span class="msm-badge-audio-gen" title="{{ __('Generating voiceover...') }}">⏳🎤</span>@endif
                                         <span class="msm-dur {{ $durColor }}">{{ $shotDur }}s</span>
@@ -1321,8 +1328,8 @@ window.multiShotVideoPolling = function() {
                 $shotCharCount = count($selShot['charactersInShot'] ?? []);
                 $isDialogueShot = ($selShot['isDialogueShot'] ?? false);
                 $hasAudio2 = !empty($selShot['audioUrl2']);
-                $speaker1Name = $selShot['dialogueSpeakers'][0]['name'] ?? null;
-                $speaker2Name = $selShot['dialogueSpeakers'][1]['name'] ?? null;
+                $speaker1Name = $selShot['dialogueSpeakers'][0]['name'] ?? ($selShot['charactersInShot'][0] ?? null);
+                $speaker2Name = $selShot['dialogueSpeakers'][1]['name'] ?? ($selShot['charactersInShot'][1] ?? null);
             @endphp
 
             {{-- MiniMax Option --}}
@@ -1507,14 +1514,14 @@ window.multiShotVideoPolling = function() {
                         <label class="msm-dialogue-toggle">
                             <input type="checkbox" wire:model.live="infiniteTalkDialogueMode" class="toggle toggle-sm toggle-primary" />
                             <span>{{ __('Two-Character Dialogue Mode') }}</span>
-                            @if($speaker1Name && $speaker2Name && $isDialogueShot)
+                            @if($speaker1Name && $speaker2Name)
                                 <span class="msm-dialogue-names">({{ $speaker1Name }} & {{ $speaker2Name }})</span>
                             @endif
                         </label>
                     @endif
 
                     {{-- Dual Audio Status for Dialogue Mode --}}
-                    @if($isDialogueShot && $curModel === 'infinitetalk')
+                    @if($shotCharCount >= 2 && $curModel === 'infinitetalk')
                         <div class="msm-dialogue-audio">
                             {{-- Speaker 1 --}}
                             <div class="msm-speaker-row">

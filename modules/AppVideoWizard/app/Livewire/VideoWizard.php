@@ -25133,13 +25133,33 @@ PROMPT;
             // Skip if already has audio (unless force regenerate)
             if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
                 $skipped++;
-                continue;
-            }
-
-            // Only generate for shots that need lip-sync OR if force is true
-            if ($needsLipSync || $force) {
+            } elseif ($needsLipSync || $force) {
+                // Only generate for shots that need lip-sync OR if force is true
                 $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
                 $generated++;
+            }
+
+            // Auto-generate silent WAV for non-speaking face in InfiniteTalk multi-face shots
+            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? $shot;
+            $isInfiniteTalk = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk']);
+            $hasMultipleFaces = count($shot['charactersInShot'] ?? []) >= 2;
+            $hasNoSecondAudio = empty($shot['audioUrl2']);
+            $hasFirstAudio = !empty($shot['audioUrl']);
+
+            if ($isInfiniteTalk && $hasMultipleFaces && $hasNoSecondAudio && $hasFirstAudio) {
+                $silentDuration = max($shot['audioDuration'] ?? 5, 1.0);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] =
+                    \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $silentDuration;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = 'silent';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakerCount'] = 2;
+                Log::info('Auto-generated silent WAV for non-speaking face', [
+                    'sceneIndex' => $sceneIndex,
+                    'shotIndex' => $shotIndex,
+                    'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                    'silentDuration' => $silentDuration,
+                ]);
             }
         }
 
@@ -30096,24 +30116,45 @@ PROMPT;
             return [];
         }
 
-        $speakers = [];
         $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? $scene['narration'] ?? '';
+        $speakingChar = $shot['speakingCharacter'] ?? null;
+        $speakingCharacters = $shot['speakingCharacters'] ?? [];
 
-        // Try to split dialogue by character names
+        // Single-speaker shot: assign full text to the speaking character, empty to non-speaker
+        // The non-speaker will get a silent WAV in processMultiSpeakerShot()
+        if ($speakingChar && count($speakingCharacters) <= 1) {
+            $speakers = [];
+            foreach ($charactersInShot as $index => $characterName) {
+                $isSpeaker = (strtoupper(trim($characterName)) === strtoupper(trim($speakingChar)));
+                $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible);
+                $speakers[] = [
+                    'name' => $characterName,
+                    'voiceId' => $isSpeaker ? ($voiceId ?? 'echo') : 'silent',
+                    'text' => $isSpeaker ? $dialogue : '', // Empty text → silent audio
+                    'order' => $index,
+                ];
+            }
+            \Log::info('buildSpeakersForDialogueShot: single-speaker mode', [
+                'speakingChar' => $speakingChar,
+                'charactersInShot' => $charactersInShot,
+            ]);
+            return $speakers;
+        }
+
+        // Multi-speaker shot: split dialogue between characters
+        $speakers = [];
         $dialogueParts = $this->splitDialogueByCharacter($dialogue, $charactersInShot);
 
         foreach ($charactersInShot as $index => $characterName) {
             $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible);
             $text = $dialogueParts[$characterName] ?? ($index === 0 ? $dialogue : '');
 
-            if (!empty($text)) {
-                $speakers[] = [
-                    'name' => $characterName,
-                    'voiceId' => $voiceId ?? 'echo',
-                    'text' => $text,
-                    'order' => $index,
-                ];
-            }
+            $speakers[] = [
+                'name' => $characterName,
+                'voiceId' => !empty($text) ? ($voiceId ?? 'echo') : 'silent',
+                'text' => $text,
+                'order' => $index,
+            ];
         }
 
         return $speakers;
