@@ -29544,9 +29544,10 @@ PROMPT;
                 $charactersInShot = $shot['charactersInShot'] ?? [];
                 $sceneCharacters = $this->script['scenes'][$sceneIndex]['characters'] ?? [];
 
-                // Robust fallback: scan ALL shots in this scene for unique non-narrator speakers
+                // Robust fallback: scan ALL decomposed shots in this scene for unique non-narrator speakers
                 // This catches multi-character scenes even when charactersInShot/sceneCharacters are incomplete
-                $sceneShots = $this->script['scenes'][$sceneIndex]['shots'] ?? [];
+                // Shots live in multiShotMode.decomposedScenes, NOT in script.scenes
+                $sceneShots = $decomposed['shots'] ?? [];
                 $uniqueSceneSpeakers = [];
                 foreach ($sceneShots as $s) {
                     $sp = $s['speakingCharacter'] ?? null;
