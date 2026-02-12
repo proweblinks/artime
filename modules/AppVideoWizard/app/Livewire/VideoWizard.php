@@ -1250,7 +1250,7 @@ class VideoWizard extends Component
     public bool $preConfigureWaitingShots = false;
     public string $shotVoiceSelection = 'nova'; // Default voice for Multitalk (or Kokoro equivalent)
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
-    public string $shotVoiceSelection2 = 'nova'; // Voice for second character (dialogue mode)
+    public string $shotVoiceSelection2 = 'echo'; // Voice for second character (dialogue mode) - male default for contrast
     public string $shotMonologueEdit2 = ''; // Dialogue text for second character
     public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
     public string $activeTtsProvider = 'openai'; // Active TTS provider: openai, kokoro
@@ -30480,13 +30480,22 @@ PROMPT;
         $speakers = [];
         $dialogueParts = $this->splitDialogueByCharacter($dialogue, $charactersInShot);
 
+        // Fallback chain: character bible → shot's pre-assigned voiceIds → distinct defaults
+        $shotVoiceIds = [
+            0 => $shot['voiceId'] ?? null,
+            1 => $shot['voiceId2'] ?? null,
+        ];
+        $defaultVoices = ['nova', 'echo']; // female, male — ensures distinct voices
+
         foreach ($charactersInShot as $index => $characterName) {
-            $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible);
+            $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible)
+                ?? $shotVoiceIds[$index]
+                ?? $defaultVoices[$index % count($defaultVoices)];
             $text = $dialogueParts[$characterName] ?? ($index === 0 ? $dialogue : '');
 
             $speakers[] = [
                 'name' => $characterName,
-                'voiceId' => !empty($text) ? ($voiceId ?? 'echo') : 'silent',
+                'voiceId' => !empty($text) ? $voiceId : 'silent',
                 'text' => $text,
                 'order' => $index,
             ];
