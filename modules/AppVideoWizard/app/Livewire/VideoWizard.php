@@ -23908,33 +23908,64 @@ PROMPT;
         $femaleVoices = ['nova', 'shimmer'];
         $allVoices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
 
-        $matchedChar = null;
-        $charIndex = 0;
+        // Find best match: prefer partial matches at lower indices over exact matches at higher indices.
+        // This handles stale bible entries: e.g. "SARAH" at index 17 (stale) vs "SARAH COLE" at index 0 (intended).
+        $exactMatch = null;
+        $exactIndex = PHP_INT_MAX;
+        $partialMatch = null;
+        $partialIndex = PHP_INT_MAX;
 
-        // Pass 1: exact match
         foreach ($charBible as $idx => $char) {
-            if (strtoupper(trim($char['name'] ?? '')) === $nameUpper) {
-                if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
-                if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
-                $matchedChar = $char;
-                $charIndex = $idx;
-                break;
+            $bibleName = strtoupper(trim($char['name'] ?? ''));
+            if ($bibleName === '') continue;
+
+            // Exact match
+            if ($bibleName === $nameUpper && $exactMatch === null) {
+                $exactMatch = $char;
+                $exactIndex = $idx;
+            }
+
+            // Partial match (SARAH matches SARAH COLE, or SARAH COLE matches SARAH)
+            if ($partialMatch === null && $bibleName !== $nameUpper) {
+                if (str_starts_with($bibleName, $nameUpper . ' ') || str_starts_with($nameUpper, $bibleName . ' ')) {
+                    $partialMatch = $char;
+                    $partialIndex = $idx;
+                }
             }
         }
 
-        // Pass 2: partial match (SARAH matches SARAH COLE, MARCUS matches MARCUS WEBB)
-        if (!$matchedChar) {
-            foreach ($charBible as $idx => $char) {
-                $bibleName = strtoupper(trim($char['name'] ?? ''));
-                if ($bibleName === '' || $nameUpper === '') continue;
-                if (str_starts_with($bibleName, $nameUpper . ' ') || str_starts_with($nameUpper, $bibleName . ' ')) {
-                    if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) return $char['voice']['id'];
-                    if (is_string($char['voice'] ?? null) && !empty($char['voice'])) return $char['voice'];
-                    $matchedChar = $char;
-                    $charIndex = $idx;
-                    Log::info('Voice: partial name match', ['input' => $nameUpper, 'matched' => $bibleName, 'index' => $idx]);
-                    break;
-                }
+        // Choose best match: prefer lower-index match (closer to top of bible = intended character)
+        $matchedChar = null;
+        $charIndex = 0;
+        $matchType = 'none';
+
+        if ($partialMatch !== null && $partialIndex < $exactIndex) {
+            // Partial match at lower index wins (e.g., "SARAH COLE" at 0 beats "SARAH" at 17)
+            $matchedChar = $partialMatch;
+            $charIndex = $partialIndex;
+            $matchType = 'partial-priority';
+        } elseif ($exactMatch !== null) {
+            $matchedChar = $exactMatch;
+            $charIndex = $exactIndex;
+            $matchType = 'exact';
+        } elseif ($partialMatch !== null) {
+            $matchedChar = $partialMatch;
+            $charIndex = $partialIndex;
+            $matchType = 'partial';
+        }
+
+        // If matched char has an explicit voice ID, return it
+        if ($matchedChar) {
+            if (is_array($matchedChar['voice'] ?? null) && !empty($matchedChar['voice']['id'])) {
+                Log::info('Voice: explicit voice.id from bible', [
+                    'input' => $nameUpper, 'matched' => $matchedChar['name'] ?? '?',
+                    'matchType' => $matchType, 'index' => $charIndex,
+                    'voiceId' => $matchedChar['voice']['id'],
+                ]);
+                return $matchedChar['voice']['id'];
+            }
+            if (is_string($matchedChar['voice'] ?? null) && !empty($matchedChar['voice'])) {
+                return $matchedChar['voice'];
             }
         }
 
@@ -23961,8 +23992,8 @@ PROMPT;
 
         Log::info('Voice assignment result', [
             'input' => $nameUpper, 'matched' => $matchedChar ? ($matchedChar['name'] ?? '?') : 'none',
-            'gender' => $detectedGender, 'index' => $charIndex, 'voice' => $voice,
-            'bibleSize' => count($charBible),
+            'matchType' => $matchType, 'gender' => $detectedGender,
+            'index' => $charIndex, 'voice' => $voice,
         ]);
 
         return $voice;
