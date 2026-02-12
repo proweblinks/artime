@@ -29543,7 +29543,21 @@ PROMPT;
                 // Detect if image has multiple faces (characters in shot or scene)
                 $charactersInShot = $shot['charactersInShot'] ?? [];
                 $sceneCharacters = $this->script['scenes'][$sceneIndex]['characters'] ?? [];
-                $hasMultipleFaces = count($charactersInShot) >= 2 || count($sceneCharacters) >= 2;
+
+                // Robust fallback: scan ALL shots in this scene for unique non-narrator speakers
+                // This catches multi-character scenes even when charactersInShot/sceneCharacters are incomplete
+                $sceneShots = $this->script['scenes'][$sceneIndex]['shots'] ?? [];
+                $uniqueSceneSpeakers = [];
+                foreach ($sceneShots as $s) {
+                    $sp = $s['speakingCharacter'] ?? null;
+                    if ($sp && strtoupper($sp) !== 'NARRATOR') {
+                        $uniqueSceneSpeakers[$sp] = true;
+                    }
+                }
+
+                $hasMultipleFaces = count($charactersInShot) >= 2
+                    || count($sceneCharacters) >= 2
+                    || count($uniqueSceneSpeakers) >= 2;
 
                 if ($isDialogueShot) {
                     // Dialogue: two separate audio tracks for two speaking characters
@@ -29555,10 +29569,12 @@ PROMPT;
                     // Silent WAV MUST match primary audio duration so face 2 stays silent the entire time
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
-                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
+                    // InfiniteTalk API requires data URL prefix for base64 audio
+                    $extraAnimOptions['wav_base64_2'] = 'data:audio/wav;base64,' . \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
                     \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio for face 2', [
                         'charactersInShot' => $charactersInShot,
                         'sceneCharacters' => $sceneCharacters,
+                        'uniqueSceneSpeakers' => array_keys($uniqueSceneSpeakers),
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
                         'silentDuration' => $silentDuration,
                         'primaryAudioDuration' => $audioDuration,
@@ -29571,6 +29587,8 @@ PROMPT;
                         'charactersInShotCount' => count($charactersInShot),
                         'sceneCharacters' => $sceneCharacters,
                         'sceneCharactersCount' => count($sceneCharacters),
+                        'uniqueSceneSpeakers' => array_keys($uniqueSceneSpeakers),
+                        'uniqueSceneSpeakersCount' => count($uniqueSceneSpeakers),
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
                     ]);
                 }
