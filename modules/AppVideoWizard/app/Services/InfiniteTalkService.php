@@ -381,9 +381,9 @@ class InfiniteTalkService
     }
 
     /**
-     * Generate raw bytes for a near-silent WAV file.
-     * Uses a very low amplitude sine wave (imperceptible) instead of pure silence,
-     * because some lip-sync workflows crash on zero-amplitude audio.
+     * Generate raw bytes for a truly silent WAV file.
+     * All samples are zero-amplitude (digital silence) to prevent any lip movement
+     * on the non-speaking face in multi-person InfiniteTalk mode.
      */
     public static function generateSilentWavBytes(float $durationSeconds = 0.1): string
     {
@@ -400,14 +400,8 @@ class InfiniteTalkService
         $header = pack('A4VA4', 'RIFF', 36 + $dataSize, 'WAVE');
         $fmt = pack('A4VvvVVvv', 'fmt ', 16, 1, $channels, $sampleRate, $byteRate, $blockAlign, $bitsPerSample);
 
-        // Generate near-silent audio: very low amplitude 100Hz sine wave (amplitude ~10 out of 32767)
-        $samples = '';
-        $amplitude = 10; // Imperceptible volume
-        $frequency = 100;
-        for ($i = 0; $i < $numSamples; $i++) {
-            $value = (int)($amplitude * sin(2 * M_PI * $frequency * $i / $sampleRate));
-            $samples .= pack('v', $value & 0xFFFF);
-        }
+        // True silence: all zero samples (no lip movement trigger)
+        $samples = str_repeat("\x00\x00", $numSamples);
 
         $data = pack('A4V', 'data', $dataSize) . $samples;
 
