@@ -24600,6 +24600,15 @@ PROMPT;
                 ]);
             }
 
+            // Collect ALL scene characters for multi-face detection (InfiniteTalk)
+            $sceneChars = $this->script['scenes'][$sceneIndex]['characters'] ?? [];
+            $allCharNames = array_map(function($c) {
+                return is_array($c) ? ($c['name'] ?? $c[0] ?? 'Character') : $c;
+            }, $sceneChars);
+            if (empty($allCharNames)) {
+                $allCharNames = [$speaker];
+            }
+
             // Create one shot for this segment (1:1 mapping)
             $shot = [
                 'id' => uniqid('shot_'),
@@ -24610,6 +24619,7 @@ PROMPT;
                 'emotion' => $segment['emotion'] ?? null,
                 'speakingCharacter' => $speaker,
                 'speakingCharacters' => [$speaker],
+                'charactersInShot' => $allCharNames, // ALL scene characters for multi-face detection
                 'selectedVideoModel' => self::VIDEO_MODEL_MULTITALK,
                 'type' => SpeechSegment::TYPE_DIALOGUE, // Will be refined by DialogueSceneDecomposerService
                 'purpose' => 'dialogue',
@@ -29542,16 +29552,27 @@ PROMPT;
                     \Log::info('InfiniteTalk: MULTI mode (dialogue) - two audio tracks');
                 } elseif ($hasMultipleFaces) {
                     // Multi-face image but only one speaker: send silent audio to mute face 2
+                    // Silent WAV MUST match primary audio duration so face 2 stays silent the entire time
+                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
-                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64(0.1);
+                    $extraAnimOptions['wav_base64_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavBase64($silentDuration);
                     \Log::info('InfiniteTalk: MULTI mode (single speaker, multi-face) - silent audio for face 2', [
                         'charactersInShot' => $charactersInShot,
+                        'sceneCharacters' => $sceneCharacters,
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                        'silentDuration' => $silentDuration,
+                        'primaryAudioDuration' => $audioDuration,
                     ]);
                 } else {
                     // Single face in image: standard single mode
                     $extraAnimOptions['person_count'] = 'single';
-                    \Log::info('InfiniteTalk: SINGLE mode - one face in image');
+                    \Log::info('InfiniteTalk: SINGLE mode - one face in image', [
+                        'charactersInShot' => $charactersInShot,
+                        'charactersInShotCount' => count($charactersInShot),
+                        'sceneCharacters' => $sceneCharacters,
+                        'sceneCharactersCount' => count($sceneCharacters),
+                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                    ]);
                 }
             }
 
