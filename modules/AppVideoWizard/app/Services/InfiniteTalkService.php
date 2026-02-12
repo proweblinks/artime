@@ -463,92 +463,57 @@ class InfiniteTalkService
         ];
 
         try {
-            $tempDir = storage_path('app/temp/timeline-sync');
-            if (!is_dir($tempDir)) {
-                mkdir($tempDir, 0755, true);
-            }
+            // Read both WAV files
+            $wavData1 = self::readWavFile($audioUrl1);
+            $wavData2 = self::readWavFile($audioUrl2);
 
-            $uid = uniqid('tl_', true);
-
-            // Resolve audio file paths (convert URLs to local paths)
-            $localPath1 = self::resolveAudioPath($audioUrl1);
-            $localPath2 = self::resolveAudioPath($audioUrl2);
-
-            if (!$localPath1 || !$localPath2) {
-                Log::warning('InfiniteTalk timeline sync: could not resolve audio paths', [
+            if (!$wavData1 || !$wavData2) {
+                Log::warning('InfiniteTalk timeline sync: could not read WAV files', [
                     'url1' => substr($audioUrl1, 0, 80),
                     'url2' => substr($audioUrl2, 0, 80),
                 ]);
                 return $fallback;
             }
 
-            $outputPath1 = $tempDir . "/synced1_{$uid}.wav";
-            $outputPath2 = $tempDir . "/synced2_{$uid}.wav";
-
-            // Speaker 1: [speech] + [silence for pause + duration2]
-            $silenceDur1 = number_format($pauseBetween + $duration2, 3, '.', '');
-            $cmd1 = sprintf(
-                'ffmpeg -y -i %s -f lavfi -t %s -i anullsrc=r=44100:cl=mono '
-                . '-filter_complex "[0:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono[a];'
-                . '[1:a]aformat=sample_fmts=s16:channel_layouts=mono[s];'
-                . '[a][s]concat=n=2:v=0:a=1[out]" '
-                . '-map "[out]" %s 2>&1',
-                escapeshellarg($localPath1),
-                $silenceDur1,
-                escapeshellarg($outputPath1)
-            );
-
-            // Speaker 2: [silence for duration1 + pause] + [speech]
-            $silenceDur2 = number_format($duration1 + $pauseBetween, 3, '.', '');
-            $cmd2 = sprintf(
-                'ffmpeg -y -f lavfi -t %s -i anullsrc=r=44100:cl=mono -i %s '
-                . '-filter_complex "[0:a]aformat=sample_fmts=s16:channel_layouts=mono[s];'
-                . '[1:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono[a];'
-                . '[s][a]concat=n=2:v=0:a=1[out]" '
-                . '-map "[out]" %s 2>&1',
-                $silenceDur2,
-                escapeshellarg($localPath2),
-                escapeshellarg($outputPath2)
-            );
-
-            Log::info('InfiniteTalk timeline sync: building tracks', [
+            Log::info('InfiniteTalk timeline sync: building tracks (pure PHP)', [
                 'duration1' => $duration1,
                 'duration2' => $duration2,
                 'pauseBetween' => $pauseBetween,
                 'totalDuration' => $totalDuration,
+                'wav1_sampleRate' => $wavData1['sampleRate'],
+                'wav2_sampleRate' => $wavData2['sampleRate'],
             ]);
 
-            exec($cmd1, $output1, $ret1);
-            exec($cmd2, $output2, $ret2);
+            // Generate silence PCM bytes matching each file's format
+            $silence1Dur = $pauseBetween + $duration2;
+            $silence1Pcm = self::generateSilencePcm($wavData1, $silence1Dur);
 
-            if ($ret1 !== 0 || $ret2 !== 0 || !file_exists($outputPath1) || !file_exists($outputPath2)) {
-                Log::error('InfiniteTalk timeline sync: FFmpeg failed', [
-                    'ret1' => $ret1,
-                    'ret2' => $ret2,
-                    'output1' => implode("\n", array_slice($output1 ?? [], -5)),
-                    'output2' => implode("\n", array_slice($output2 ?? [], -5)),
-                ]);
-                return $fallback;
-            }
+            $silence2Dur = $duration1 + $pauseBetween;
+            $silence2Pcm = self::generateSilencePcm($wavData2, $silence2Dur);
 
-            // Store synced audio to public storage
+            // Speaker 1: [speech PCM] + [silence PCM]
+            $synced1Pcm = $wavData1['pcmData'] . $silence1Pcm;
+            $synced1Wav = self::buildWavFromPcm($wavData1, $synced1Pcm);
+
+            // Speaker 2: [silence PCM] + [speech PCM]
+            $synced2Pcm = $silence2Pcm . $wavData2['pcmData'];
+            $synced2Wav = self::buildWavFromPcm($wavData2, $synced2Pcm);
+
+            // Store to public storage
+            $uid = uniqid('tl_', true);
             $storagePath1 = "wizard-audio/{$projectId}/timeline_speaker1_{$uid}.wav";
             $storagePath2 = "wizard-audio/{$projectId}/timeline_speaker2_{$uid}.wav";
 
-            Storage::disk('public')->put($storagePath1, file_get_contents($outputPath1));
-            Storage::disk('public')->put($storagePath2, file_get_contents($outputPath2));
+            Storage::disk('public')->put($storagePath1, $synced1Wav);
+            Storage::disk('public')->put($storagePath2, $synced2Wav);
 
             $syncedUrl1 = url('/files/' . $storagePath1);
             $syncedUrl2 = url('/files/' . $storagePath2);
 
-            // Cleanup temp files
-            @unlink($outputPath1);
-            @unlink($outputPath2);
-
             Log::info('InfiniteTalk timeline sync: tracks built successfully', [
                 'totalDuration' => $totalDuration,
-                'syncedUrl1' => substr($syncedUrl1, 0, 80),
-                'syncedUrl2' => substr($syncedUrl2, 0, 80),
+                'synced1Size' => strlen($synced1Wav),
+                'synced2Size' => strlen($synced2Wav),
             ]);
 
             return [
@@ -562,6 +527,106 @@ class InfiniteTalkService
             Log::error('InfiniteTalk timeline sync: exception', ['error' => $e->getMessage()]);
             return $fallback;
         }
+    }
+
+    /**
+     * Read a WAV file from URL or local path and parse its header + PCM data.
+     *
+     * @return array|null Parsed WAV info: sampleRate, bitsPerSample, channels, pcmData
+     */
+    protected static function readWavFile(string $audioUrl): ?array
+    {
+        // Resolve to local path first
+        $localPath = self::resolveAudioPath($audioUrl);
+        if (!$localPath) {
+            return null;
+        }
+
+        $raw = file_get_contents($localPath);
+        if ($raw === false || strlen($raw) < 44) {
+            return null;
+        }
+
+        // Verify RIFF/WAVE header
+        if (substr($raw, 0, 4) !== 'RIFF' || substr($raw, 8, 4) !== 'WAVE') {
+            Log::warning('InfiniteTalk: not a valid WAV file', ['url' => substr($audioUrl, 0, 80)]);
+            return null;
+        }
+
+        // Parse fmt chunk — find it by scanning (it's usually at offset 12)
+        $pos = 12;
+        $sampleRate = 44100;
+        $bitsPerSample = 16;
+        $channels = 1;
+        $pcmData = '';
+
+        while ($pos < strlen($raw) - 8) {
+            $chunkId = substr($raw, $pos, 4);
+            $chunkSize = unpack('V', substr($raw, $pos + 4, 4))[1];
+
+            if ($chunkId === 'fmt ') {
+                $fmt = unpack('vaudioFormat/vchannels/VsampleRate/VbyteRate/vblockAlign/vbitsPerSample', substr($raw, $pos + 8, 16));
+                $sampleRate = $fmt['sampleRate'];
+                $bitsPerSample = $fmt['bitsPerSample'];
+                $channels = $fmt['channels'];
+            } elseif ($chunkId === 'data') {
+                $pcmData = substr($raw, $pos + 8, $chunkSize);
+                break;
+            }
+
+            $pos += 8 + $chunkSize;
+            // Chunks must be word-aligned
+            if ($chunkSize % 2 !== 0) {
+                $pos++;
+            }
+        }
+
+        if (empty($pcmData)) {
+            Log::warning('InfiniteTalk: no data chunk in WAV', ['url' => substr($audioUrl, 0, 80)]);
+            return null;
+        }
+
+        return [
+            'sampleRate' => $sampleRate,
+            'bitsPerSample' => $bitsPerSample,
+            'channels' => $channels,
+            'pcmData' => $pcmData,
+        ];
+    }
+
+    /**
+     * Generate silent PCM bytes matching the format of a parsed WAV file.
+     */
+    protected static function generateSilencePcm(array $wavInfo, float $durationSeconds): string
+    {
+        $bytesPerSample = $wavInfo['bitsPerSample'] / 8;
+        $numSamples = max(1, (int) ($wavInfo['sampleRate'] * $durationSeconds));
+        $silencePerSample = str_repeat("\x00", (int) $bytesPerSample * $wavInfo['channels']);
+
+        return str_repeat($silencePerSample, $numSamples);
+    }
+
+    /**
+     * Build a complete WAV file from header info + raw PCM data.
+     */
+    protected static function buildWavFromPcm(array $wavInfo, string $pcmData): string
+    {
+        $sampleRate = $wavInfo['sampleRate'];
+        $bitsPerSample = $wavInfo['bitsPerSample'];
+        $channels = $wavInfo['channels'];
+        $bytesPerSample = $bitsPerSample / 8;
+        $byteRate = $sampleRate * $channels * $bytesPerSample;
+        $blockAlign = $channels * $bytesPerSample;
+        $dataSize = strlen($pcmData);
+
+        // RIFF header
+        $header = pack('A4VA4', 'RIFF', 36 + $dataSize, 'WAVE');
+        // fmt chunk
+        $fmt = pack('A4VvvVVvv', 'fmt ', 16, 1, $channels, $sampleRate, $byteRate, $blockAlign, $bitsPerSample);
+        // data chunk
+        $data = pack('A4V', 'data', $dataSize) . $pcmData;
+
+        return $header . $fmt . $data;
     }
 
     /**
