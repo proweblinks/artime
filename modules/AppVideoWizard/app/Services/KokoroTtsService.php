@@ -157,7 +157,7 @@ class KokoroTtsService
 
         try {
             // Generate upload URL for the audio
-            $filename = 'kokoro_' . time() . '_' . Str::random(8) . '.wav';
+            $filename = 'kokoro_' . time() . '_' . Str::random(8) . '.flac';
             $uploadData = AppVideoWizardController::generateAudioUploadUrl($projectId, $filename);
 
             Log::info('KokoroTTS: Generated upload URL', [
@@ -269,7 +269,7 @@ class KokoroTtsService
 
         try {
             // Generate upload URL
-            $filename = 'kokoro_' . time() . '_' . Str::random(8) . '.wav';
+            $filename = 'kokoro_' . time() . '_' . Str::random(8) . '.flac';
             $uploadData = AppVideoWizardController::generateAudioUploadUrl($projectId, $filename);
 
             // Submit job

@@ -24293,6 +24293,79 @@ PROMPT;
     }
 
     /**
+     * Generate voiceover for the SECOND character in a dialogue shot.
+     * Stores result in audioUrl2 / audioDuration2 / voiceId2 fields.
+     * This is a separate, independent TTS call — same as generateShotVoiceover but for character 2.
+     */
+    public function generateShotVoiceover2(int $sceneIndex, int $shotIndex): void
+    {
+        if (!isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            $this->error = __('Shot not found');
+            return;
+        }
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'generating';
+
+        try {
+            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+            $text = !empty($this->shotMonologueEdit2) ? trim($this->shotMonologueEdit2) : '';
+
+            if (empty($text)) {
+                throw new \Exception('No dialogue text for second character');
+            }
+
+            $voiceId = $this->shotVoiceSelection2 ?: 'echo';
+
+            $project = \Modules\AppVideoWizard\Models\WizardProject::findOrFail($this->projectId);
+            $voiceoverService = app(VoiceoverService::class);
+
+            $result = $voiceoverService->generateSceneVoiceover($project, [
+                'id' => "shot_{$sceneIndex}_{$shotIndex}_speaker2",
+                'narration' => $text,
+                'title' => "Scene {$sceneIndex} Shot {$shotIndex} Speaker 2",
+            ], [
+                'voice' => $voiceId,
+                'speed' => 1.0,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => session('current_team_id', 0),
+            ]);
+
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] = $result['audioUrl'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $result['duration'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = $voiceId;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
+
+            // Store character names for dialogue speakers
+            $charactersInShot = $shot['charactersInShot'] ?? [];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dialogueSpeakers'] = [
+                ['name' => $charactersInShot[0] ?? 'Speaker 1', 'voiceId' => $shot['voiceId'] ?? null],
+                ['name' => $charactersInShot[1] ?? 'Speaker 2', 'voiceId' => $voiceId],
+            ];
+
+            $this->saveProject();
+
+            Log::info('Shot voiceover 2 generated successfully', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'audioUrl2' => $result['audioUrl'],
+                'duration2' => $result['duration'],
+                'voiceId2' => $voiceId,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Shot voiceover 2 generation failed', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+            ]);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'error';
+            $this->error = $e->getMessage();
+        }
+    }
+
+
+    /**
      * Enrich stored shots with monologue text after decomposition.
      * Pre-extracts monologue for shots marked as needing lip-sync.
      * When narrationStyle is "dialogue", distributes dialogue segments to shots.

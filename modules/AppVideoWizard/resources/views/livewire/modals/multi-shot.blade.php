@@ -1560,6 +1560,14 @@ window.multiShotVideoPolling = function() {
                                                   rows="2"
                                                   placeholder="{{ $speaker1Name ? $speaker1Name . '\'s lines...' : __('Character 1 dialogue...') }}"></textarea>
                                     </div>
+                                    <button type="button"
+                                            wire:click.stop.prevent="generateShotVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="generateShotVoiceover"
+                                            class="msm-btn msm-btn-voice msm-btn-char-gen">
+                                        <span wire:loading.remove wire:target="generateShotVoiceover">🎤 {{ __('Generate Voice') }}</span>
+                                        <span wire:loading wire:target="generateShotVoiceover">⏳ {{ __('Generating...') }}</span>
+                                    </button>
                                 </div>
 
                                 {{-- Character 2 Panel --}}
@@ -1597,17 +1605,15 @@ window.multiShotVideoPolling = function() {
                                                   rows="2"
                                                   placeholder="{{ $speaker2Name ? $speaker2Name . '\'s lines...' : __('Character 2 dialogue...') }}"></textarea>
                                     </div>
+                                    <button type="button"
+                                            wire:click.stop.prevent="generateShotVoiceover2({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="generateShotVoiceover2"
+                                            class="msm-btn msm-btn-voice msm-btn-char-gen">
+                                        <span wire:loading.remove wire:target="generateShotVoiceover2">🎤 {{ __('Generate Voice') }}</span>
+                                        <span wire:loading wire:target="generateShotVoiceover2">⏳ {{ __('Generating...') }}</span>
+                                    </button>
                                 </div>
-
-                                {{-- Generate Both Voices Button --}}
-                                <button type="button"
-                                        wire:click.stop.prevent="generateDialogueVoiceover({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="generateDialogueVoiceover"
-                                        class="msm-btn msm-btn-voice msm-btn-dialogue-gen">
-                                    <span wire:loading.remove wire:target="generateDialogueVoiceover">🎤 {{ __('Generate Both Voices') }}</span>
-                                    <span wire:loading wire:target="generateDialogueVoiceover">⏳ {{ __('Generating...') }}</span>
-                                </button>
                             </div>
                         @endif
 
@@ -2291,7 +2297,7 @@ window.multiShotVideoPolling = function() {
 .msm-char-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.5rem 0.6rem; }
 .msm-char-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .msm-char-name { font-size: 0.8rem; font-weight: 600; color: #67e8f9; }
-.msm-btn-dialogue-gen { width: 100%; margin-top: 0.25rem; }
+.msm-btn-char-gen { width: 100%; margin-top: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.6rem; }
 .msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); flex-wrap: wrap; }
 .msm-audio-status { font-size: 0.85rem; font-weight: 500; }
 .msm-status-ready { color: #10b981; }
