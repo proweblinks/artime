@@ -62,6 +62,7 @@ class VideoWizard extends Component
      */
     public const VIDEO_MODEL_MINIMAX = 'minimax';
     public const VIDEO_MODEL_MULTITALK = 'multitalk';
+    public const VIDEO_MODEL_INFINITETALK = 'infinitetalk';
 
     /**
      * Speech types that require lip-sync animation.
@@ -18522,6 +18523,14 @@ PROMPT;
                 'lip_sync_segments' => count($lipSyncSegments),
             ]);
 
+            // Auto-enable InfiniteTalk dialogue mode when endpoint is available and scene has dialogue
+            if (!$this->infiniteTalkDialogueMode && !empty(get_option('runpod_infinitetalk_endpoint', ''))) {
+                $this->infiniteTalkDialogueMode = true;
+                Log::info('Auto-enabled InfiniteTalk dialogue mode for dialogue scene', [
+                    'sceneIndex' => $sceneIndex,
+                ]);
+            }
+
             // Create shots FROM speech segments (1:1 mapping)
             $shotsFromSpeech = $this->createShotsFromSpeechSegments($sceneIndex, $speechSegments);
 
@@ -19531,7 +19540,9 @@ PROMPT;
                 // ═══════════════════════════════════════════════════════════════════
 
                 // Video model selection
-                'selectedVideoModel' => $isSpeaking ? 'multitalk' : 'minimax',
+                'selectedVideoModel' => $isSpeaking
+                    ? ($dialogueShot['selectedVideoModel'] ?? 'multitalk')
+                    : 'minimax',
                 'needsLipSync' => $isSpeaking,
 
                 // Speaking character info
@@ -19547,6 +19558,12 @@ PROMPT;
 
                 // Voice configuration
                 'voiceId' => $dialogueShot['voiceId'] ?? null,
+                'audioUrl2' => $dialogueShot['audioUrl2'] ?? null,
+                'audioDuration2' => $dialogueShot['audioDuration2'] ?? null,
+                'voiceId2' => $dialogueShot['voiceId2'] ?? null,
+                'isDialogueShot' => $dialogueShot['isDialogueShot'] ?? false,
+                'speakerCount' => $dialogueShot['speakerCount'] ?? 1,
+                'speakers' => $dialogueShot['speakers'] ?? null,
                 'audioUrl' => null,
                 'audioDuration' => null,
                 'audioStatus' => 'pending',
@@ -24718,7 +24735,7 @@ PROMPT;
                 'speakingCharacter' => $speaker,
                 'speakingCharacters' => [$speaker],
                 'charactersInShot' => $allCharNames, // ALL scene characters for multi-face detection
-                'selectedVideoModel' => self::VIDEO_MODEL_MULTITALK,
+                'selectedVideoModel' => $this->getPreferredAnimationModel() ?? self::VIDEO_MODEL_MULTITALK,
                 'type' => SpeechSegment::TYPE_DIALOGUE, // Will be refined by DialogueSceneDecomposerService
                 'purpose' => 'dialogue',
                 'segmentIndex' => $segmentIndex,
@@ -25231,8 +25248,20 @@ PROMPT;
             if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
                 $skipped++;
             } elseif ($needsLipSync || $force) {
-                // Only generate for shots that need lip-sync OR if force is true
-                $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
+                $isInfiniteTalkShot = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK]);
+                $hasMultipleChars = count($shot['charactersInShot'] ?? []) >= 2;
+
+                if ($isInfiniteTalkShot && $hasMultipleChars) {
+                    // InfiniteTalk multi-face: generate dual audio (speaking + silent)
+                    $this->generateDialogueVoiceover($sceneIndex, $shotIndex);
+                    Log::info('Routed to dialogue voiceover for InfiniteTalk multi-face', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'characters' => $shot['charactersInShot'],
+                    ]);
+                } else {
+                    $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
+                }
                 $generated++;
             }
 
@@ -29623,7 +29652,9 @@ PROMPT;
             if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && $audioDuration) {
                 // Add 0.5 second padding at the end for smooth shot transitions
                 $endPadding = 0.5;
-                $duration = ceil($audioDuration + $endPadding);
+                $audioDuration2 = $shot['audioDuration2'] ?? null;
+                $maxDuration = $audioDuration2 ? max($audioDuration, $audioDuration2) : $audioDuration;
+                $duration = ceil($maxDuration + $endPadding);
             } else {
                 $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
             }
@@ -29632,7 +29663,12 @@ PROMPT;
                 'model' => $selectedModel,
                 'duration' => $duration,
                 'audioDuration' => $audioDuration,
-                'imageUrl' => substr($shot['imageUrl'], 0, 80) . '...',
+                'audioDuration2' => $shot['audioDuration2'] ?? null,
+                'isDialogueShot' => $shot['isDialogueShot'] ?? false,
+                'hasAudioUrl2' => !empty($shot['audioUrl2']),
+                'charactersInShot' => $shot['charactersInShot'] ?? [],
+                'speakingCharacter' => $shot['speakingCharacter'] ?? null,
+                'imageUrl' => substr($shot['imageUrl'] ?? '', 0, 80) . '...',
             ]);
 
             // Validate audio availability for Multitalk/InfiniteTalk
@@ -29709,11 +29745,33 @@ PROMPT;
                 }
             }
 
+            // Validate InfiniteTalk multi-mode has all required data
+            if ($selectedModel === 'infinitetalk' && ($extraAnimOptions['person_count'] ?? '') === 'multi') {
+                if (empty($audioUrl)) {
+                    \Log::error('InfiniteTalk multi-mode: missing primary audio', [
+                        'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
+                    ]);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Missing primary audio for InfiniteTalk';
+                    $this->isLoading = false;
+                    return;
+                }
+                $audioUrl2Check = $extraAnimOptions['audio_url_2'] ?? null;
+                if (empty($audioUrl2Check)) {
+                    \Log::warning('InfiniteTalk multi-mode: missing audio_url_2, generating silent fallback', [
+                        'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
+                    ]);
+                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
+                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
+                }
+            }
+
             // InfiniteTalk max_frame safety cap (base64 output size guard)
             if ($selectedModel === 'infinitetalk') {
                 $fps = 24;
                 $maxSafeDuration = 30;
-                $requestedDuration = $audioDuration ?? $duration;
+                $audioDuration2ForFrame = $shot['audioDuration2'] ?? null;
+                $requestedDuration = $audioDuration2ForFrame ? max($audioDuration ?? $duration, $audioDuration2ForFrame) : ($audioDuration ?? $duration);
                 $extraAnimOptions['max_frame'] = min((int)($requestedDuration * $fps), $maxSafeDuration * $fps);
             }
 
@@ -30240,10 +30298,13 @@ PROMPT;
             $speakers = [];
             foreach ($charactersInShot as $index => $characterName) {
                 $isSpeaker = (strtoupper(trim($characterName)) === strtoupper(trim($speakingChar)));
-                $voiceId = $this->getVoiceIdForCharacterName($characterName, $characterBible);
+                // For speaking character, prefer the shot's pre-assigned voiceId
+                $voiceId = $isSpeaker
+                    ? ($shot['voiceId'] ?? $this->getVoiceIdForCharacterName($characterName, $characterBible) ?? 'echo')
+                    : ($this->getVoiceIdForCharacterName($characterName, $characterBible) ?? 'echo');
                 $speakers[] = [
                     'name' => $characterName,
-                    'voiceId' => $isSpeaker ? ($voiceId ?? 'echo') : 'silent',
+                    'voiceId' => $isSpeaker ? $voiceId : 'silent',
                     'text' => $isSpeaker ? $dialogue : '', // Empty text → silent audio
                     'order' => $index,
                 ];
