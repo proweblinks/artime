@@ -99,6 +99,12 @@ class InfiniteTalkService
         $width = $options['width'] ?? $resolution['width'];
         $height = $options['height'] ?? $resolution['height'];
 
+        // Multi-mode processes 2 faces = ~2x VRAM; RunPod docs default to 512x512
+        if ($personCount === 'multi') {
+            $width = min((int) $width, 512);
+            $height = min((int) $height, 512);
+        }
+
         // Build InfiniteTalk input payload
         $input = [
             'input_type' => $inputType,
