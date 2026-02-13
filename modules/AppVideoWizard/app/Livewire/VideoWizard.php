@@ -19668,7 +19668,17 @@ PROMPT;
         $parts = [$baseDescription];
 
         // Add character-specific framing
-        if ($speakingCharacter) {
+        $charactersInShot = $dialogueShot['charactersInShot'] ?? [];
+        $isMultiCharDialogue = count($charactersInShot) >= 2 && ($dialogueShot['isDialogueShot'] ?? false);
+
+        if ($isMultiCharDialogue) {
+            // Multi-character dialogue: BOTH characters must be clearly visible for InfiniteTalk
+            $char1 = $charactersInShot[0];
+            $char2 = $charactersInShot[1];
+            $parts[] = "TWO-PERSON DIALOGUE SCENE: {$char1} and {$char2} facing each other in conversation";
+            $parts[] = "Both characters must be clearly visible with distinct faces, {$shotType} framing";
+            $parts[] = "{$char1} is speaking while {$char2} listens intently, natural mid-conversation moment";
+        } elseif ($speakingCharacter) {
             if ($dialogueShot['useMultitalk'] ?? false) {
                 // Speaking shot - emphasize mouth/expression
                 $parts[] = "Focus on {$speakingCharacter}, {$shotType} framing";
@@ -19686,15 +19696,20 @@ PROMPT;
         }
 
         // Add shot type specific framing
-        $framingHint = match($shotType) {
-            'extreme-close-up' => 'Extreme close-up on face, eyes and mouth prominent, every detail visible',
-            'close-up' => 'Close-up shot, face fills most of frame, clear view of expression',
-            'medium-close' => 'Medium close-up, head and shoulders visible, natural conversation framing',
-            'over-the-shoulder' => 'Over-the-shoulder angle, foreground shoulder slightly blurred',
-            'medium' => 'Medium shot, waist up visible, body language included',
-            'two-shot' => 'Two-shot showing both characters, establishing their spatial relationship',
-            default => "{$shotType} shot",
-        };
+        if ($isMultiCharDialogue) {
+            // For multi-character dialogue, always use two-shot framing
+            $framingHint = 'Two-shot showing both characters side by side or facing each other, both faces clearly visible';
+        } else {
+            $framingHint = match($shotType) {
+                'extreme-close-up' => 'Extreme close-up on face, eyes and mouth prominent, every detail visible',
+                'close-up' => 'Close-up shot, face fills most of frame, clear view of expression',
+                'medium-close' => 'Medium close-up, head and shoulders visible, natural conversation framing',
+                'over-the-shoulder' => 'Over-the-shoulder angle, foreground shoulder slightly blurred',
+                'medium' => 'Medium shot, waist up visible, body language included',
+                'two-shot' => 'Two-shot showing both characters, establishing their spatial relationship',
+                default => "{$shotType} shot",
+            };
+        }
         $parts[] = $framingHint;
 
         // Add emotional intensity cue
