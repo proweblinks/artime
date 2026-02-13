@@ -30244,9 +30244,12 @@ PROMPT;
         $expressionDesc = $emotionExpressions[$emotion] ?? $emotionExpressions['neutral'];
 
         // Multitalk works best with minimal, focused prompts
+        // Use scene-aware physicality for consistent movement direction
+        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
+
         $prompt = "{$character} speaking with natural lip movement, ";
         $prompt .= "{$expressionDesc}, ";
-        $prompt .= "subtle head movement, ";
+        $prompt .= "{$speakerPhysicality}, ";
         $prompt .= "eyes alive with thought, ";
         $prompt .= "realistic facial micro-expressions, ";
         $prompt .= "natural breathing motion";
@@ -30298,11 +30301,13 @@ PROMPT;
         $multipleInFrame = count($charactersInShot) >= 2
             || count($scene['characters'] ?? []) >= 2;
 
+        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
+
         // Single character in frame - simple prompt
         if (!$multipleInFrame) {
             $who = $speakerName ?: 'the person';
             return "{$who} speaking naturally with clear lip movements, {$expressionDesc}, "
-                 . "very minimal head movement and mostly still posture, smooth breathing motion, "
+                 . "{$speakerPhysicality}, smooth breathing motion, "
                  . "subtle facial micro-expressions";
         }
 
@@ -30332,16 +30337,74 @@ PROMPT;
                 : $otherName;
         }
 
+        $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
+
         $prompt = "Only {$speakerLabel} is speaking with natural lip movements and {$expressionDesc}, "
-                . "very minimal head movement and mostly still posture, subtle facial micro-expressions. ";
+                . "{$speakerPhysicality}, subtle facial micro-expressions. ";
 
         if (!empty($silentParts)) {
             $silentList = implode(' and ', $silentParts);
-            $prompt .= "{$silentList} remains completely still and silent with no lip movement, "
-                     . "listening attentively with a still expression.";
+            $prompt .= "{$silentList} {$listenerPhysicality}, "
+                     . "no lip movement.";
         }
 
         return $prompt;
+    }
+
+    /**
+     * Get scene-aware physicality direction for InfiniteTalk prompts.
+     * Returns specific body/head movement instructions based on scene context.
+     * InfiniteTalk responds much better to explicit "NO X" instructions and
+     * cinematic archetypes than vague "minimal movement" phrases.
+     */
+    protected function getPhysicalityDirection(array $shot, array $scene, string $role = 'speaker'): string
+    {
+        $emotion = strtolower($shot['emotion'] ?? $scene['mood'] ?? 'neutral');
+        $shotType = strtolower($shot['type'] ?? $shot['shotType'] ?? 'medium');
+        $dialogue = $shot['dialogue'] ?? $shot['narration'] ?? '';
+
+        // Listener is always near-frozen regardless of scene mood
+        if ($role === 'listener') {
+            return 'completely still and frozen like a statue, NO head nodding, NO swaying, NO movement at all, '
+                 . 'only occasional subtle eye blinks, fixed attentive gaze';
+        }
+
+        // Scene mood → specific physicality archetype (for speaker)
+        $moodPhysicality = [
+            'tense'      => 'rigid locked posture, jaw tight, unflinching stare, NO head nodding or bobbing, NO swaying',
+            'dramatic'   => 'controlled intensity, squared shoulders, deliberate stillness, NO rocking or nodding',
+            'mysterious' => 'eerily still, measured and deliberate, NO unnecessary movement, piercing gaze',
+            'dark'       => 'brooding stillness, heavy presence, NO fidgeting or head bobbing, stone-faced',
+            'angry'      => 'tense jaw, leaning slightly forward, NO head nodding, sharp controlled gestures only',
+            'sad'        => 'weighted stillness, downcast but steady, NO swaying or rocking, subtle breathing only',
+            'romantic'   => 'soft stillness, warm steady gaze, NO excessive nodding, gentle and composed',
+            'happy'      => 'relaxed but mostly still, occasional subtle expression shift, NO exaggerated nodding',
+            'hopeful'    => 'upright composure, steady forward gaze, NO bobbing or swaying, quiet confidence',
+            'action'     => 'alert and locked in position, NO unnecessary motion, coiled readiness',
+            'neutral'    => 'calm and composed, steady gaze, NO head nodding or bobbing, natural stillness',
+        ];
+
+        $moodDir = $moodPhysicality[$emotion] ?? $moodPhysicality['neutral'];
+
+        // Shot type adjustments
+        $shotAdjust = '';
+        if (in_array($shotType, ['close-up', 'extreme-close-up', 'closeup'])) {
+            $shotAdjust = 'only lip and jaw movement visible, micro-expressions in the eyes, absolutely NO head movement';
+        } elseif (in_array($shotType, ['over-shoulder', 'over-the-shoulder', 'ots'])) {
+            $shotAdjust = 'speaker barely visible, focus on voice presence, minimal physical animation';
+        } elseif ($shotType === 'wide' || $shotType === 'establishing') {
+            $shotAdjust = 'small figure in frame, body mostly static, movement reads as unnatural at this distance';
+        }
+
+        $parts = [$moodDir];
+        if ($shotAdjust) {
+            $parts[] = $shotAdjust;
+        }
+
+        // Universal negative reinforcement — InfiniteTalk responds strongly to these
+        $parts[] = 'NO repetitive head nodding';
+
+        return implode(', ', $parts);
     }
 
     /**
@@ -30377,10 +30440,13 @@ PROMPT;
         $label1 = $desc1 ? "{$char1} ({$desc1})" : $char1;
         $label2 = $desc2 ? "{$char2} ({$desc2})" : $char2;
 
+        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
+        $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
+
         return "Two people in conversation: {$label1} and {$label2} talking naturally with turn-taking dialogue, "
              . "each character has clear lip movements synchronized to their own speech, "
-             . "steady gaze between speakers, very minimal head movement and mostly still posture, "
-             . "the active speaker moves lips while the listener remains completely still and attentive, "
+             . "the active speaker: {$speakerPhysicality}, "
+             . "the listener: {$listenerPhysicality}, "
              . "{$emotion} tone, natural breathing and subtle facial micro-expressions";
     }
 
