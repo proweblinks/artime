@@ -24794,7 +24794,8 @@ PROMPT;
 
             // Collect ALL scene characters for multi-face detection (InfiniteTalk)
             // person_count must match faces in the IMAGE, not number of speakers
-            $sceneChars = $this->script['scenes'][$sceneIndex]['characters'] ?? [];
+            // Use Character Bible (getCharactersForScene) — script['scenes'] does NOT have 'characters' field
+            $sceneChars = $this->getCharactersForScene($sceneIndex);
             $allCharNames = array_map(function($c) {
                 return is_array($c) ? ($c['name'] ?? $c[0] ?? 'Character') : $c;
             }, $sceneChars);
