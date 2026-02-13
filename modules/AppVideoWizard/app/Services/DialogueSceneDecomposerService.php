@@ -3203,6 +3203,10 @@ class DialogueSceneDecomposerService
                 $current['dialogue'] = $combinedDialogue;
                 $current['monologue'] = $combinedDialogue;
 
+                // Mark as dialogue speech type for shot-preview display
+                $current['speechType'] = 'dialogue';
+                $current['segmentType'] = 'dialogue';
+
                 // Both characters in shot
                 $current['charactersInShot'] = [$currentSpeaker, $nextSpeaker];
                 $current['speakingCharacters'] = [$currentSpeaker, $nextSpeaker];
@@ -3210,7 +3214,9 @@ class DialogueSceneDecomposerService
                 $current['selectedVideoModel'] = 'infinitetalk';
 
                 // Preserve voice IDs from both shots
-                $current['voiceId2'] = $next['voiceId'] ?? null;
+                $voiceId1 = $current['voiceId'] ?? null;
+                $voiceId2 = $next['voiceId'] ?? null;
+                $current['voiceId2'] = $voiceId2;
 
                 // Keep the original shot type — medium/close-up work fine as two-shots
                 // OTS is only used when explicitly selected by intensity scoring
@@ -3218,18 +3224,40 @@ class DialogueSceneDecomposerService
                     $current['type'] = 'medium-close'; // close-up too tight for 2 faces
                 }
 
-                // Combined duration: sum of both speech durations + buffer
+                // Combined duration: sum of both speech durations + pause between
                 $dur1 = $current['duration'] ?? 5;
                 $dur2 = $next['duration'] ?? 5;
+                $pauseBetween = 0.3;
                 $current['duration'] = $dur1 + $dur2 + 1; // Both speak in sequence
+
+                // Build per-character speechSegments for shot-preview display
+                // Characters speak SEQUENTIALLY, never at the same time
+                $current['speechSegments'] = [
+                    [
+                        'speaker' => $currentSpeaker,
+                        'text' => $text1,
+                        'voiceId' => $voiceId1,
+                        'duration' => (float) $dur1,
+                        'startTime' => 0.0,
+                    ],
+                    [
+                        'speaker' => $nextSpeaker,
+                        'text' => $text2,
+                        'voiceId' => $voiceId2,
+                        'duration' => (float) $dur2,
+                        'startTime' => round($dur1 + $pauseBetween, 1),
+                    ],
+                ];
 
                 Log::info('DialogueSceneDecomposer: Merged dialogue pair for InfiniteTalk multi-face', [
                     'speaker1' => $currentSpeaker,
                     'speaker2' => $nextSpeaker,
-                    'voiceId1' => $current['voiceId'] ?? null,
-                    'voiceId2' => $current['voiceId2'] ?? null,
+                    'voiceId1' => $voiceId1,
+                    'voiceId2' => $voiceId2,
                     'merged_type' => $current['type'],
                     'combined_duration' => $current['duration'],
+                    'speaker1_time' => '0-' . $dur1 . 's',
+                    'speaker2_time' => round($dur1 + $pauseBetween, 1) . '-' . round($dur1 + $pauseBetween + $dur2, 1) . 's',
                 ]);
 
                 $merged[] = $current;
