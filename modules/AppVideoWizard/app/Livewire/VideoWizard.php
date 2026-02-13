@@ -24275,6 +24275,14 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
 
+            // Update speechSegments with actual voiceId and duration
+            $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
+            if (!empty($existingSegments)) {
+                $existingSegments[0]['voiceId'] = $voiceId;
+                $existingSegments[0]['duration'] = (float) ($result['duration'] ?? 0);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
+            }
+
             // Reset regenerate options UI after successful generation
             $this->showVoiceRegenerateOptions = false;
 
@@ -24362,6 +24370,16 @@ PROMPT;
                 ['name' => $charactersInShot[0] ?? 'Speaker 1', 'voiceId' => $shot['voiceId'] ?? null],
                 ['name' => $charactersInShot[1] ?? 'Speaker 2', 'voiceId' => $voiceId],
             ];
+
+            // Update second speaker in speechSegments with actual data
+            $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
+            if (count($existingSegments) >= 2) {
+                $existingSegments[1]['voiceId'] = $voiceId;
+                $existingSegments[1]['duration'] = (float) ($result['duration'] ?? 0);
+                // Recalculate startTime based on actual speaker 1 duration
+                $existingSegments[1]['startTime'] = round(($existingSegments[0]['duration'] ?? 0) + 0.3, 1);
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
+            }
 
             $this->saveProject();
 
@@ -30577,6 +30595,25 @@ PROMPT;
                 'voiceId' => $s['voiceId'] ?? null,
             ], $audioSegments);
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+
+            // Update speechSegments with actual TTS data (voiceIds, durations, startTimes)
+            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+            $charactersInShot = $shot['charactersInShot'] ?? [];
+            $pauseBetween = 0.3;
+            $updatedSegments = [];
+
+            foreach ($audioSegments as $idx => $segment) {
+                $startTime = ($idx === 0) ? 0.0 : round(($audioSegments[0]['duration'] ?? 0) + $pauseBetween, 1);
+                $updatedSegments[] = [
+                    'speaker'   => $segment['name'] ?? ($charactersInShot[$idx] ?? 'Speaker ' . ($idx + 1)),
+                    'text'      => $segment['text'] ?? '',
+                    'voiceId'   => $segment['voiceId'] ?? null,
+                    'duration'  => (float) ($segment['duration'] ?? 0),
+                    'startTime' => $startTime,
+                ];
+            }
+
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $updatedSegments;
 
             $this->saveProject();
             $this->dispatch('shot-audio-ready', [
