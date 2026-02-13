@@ -19569,6 +19569,10 @@ PROMPT;
 
                 // Segment type for monologue vs dialogue routing
                 'segmentType' => $dialogueShot['segmentType'] ?? null,
+                'speechType' => $dialogueShot['speechType'] ?? ($isSpeaking ? 'dialogue' : 'narrator'),
+
+                // Per-character speech segments with timing (for shot-preview display)
+                'speechSegments' => $dialogueShot['speechSegments'] ?? [],
 
                 // Dialogue/monologue text (for Multitalk lip-sync)
                 'dialogue' => $dialogueShot['dialogue'] ?? null,
