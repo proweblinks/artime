@@ -29783,8 +29783,8 @@ PROMPT;
             // For Multitalk/InfiniteTalk: use audio duration + padding for smooth transitions
             // For other models: use selected/shot duration
             if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && $audioDuration) {
-                // Add 0.5 second padding at the end for smooth shot transitions
-                $endPadding = 0.5;
+                // Add 2.0 second padding to prevent last word cutoff (matches dialogue padding)
+                $endPadding = 2.0;
                 $audioDuration2 = $shot['audioDuration2'] ?? null;
                 $maxDuration = $audioDuration2 ? max($audioDuration, $audioDuration2) : $audioDuration;
                 $duration = ceil($maxDuration + $endPadding);

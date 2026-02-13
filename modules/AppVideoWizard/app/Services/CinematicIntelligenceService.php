@@ -330,7 +330,7 @@ class CinematicIntelligenceService
         }
 
         if ($characterCount === 2) {
-            return $sceneType === 'dialogue' ? 'over-shoulder' : 'two-shot';
+            return $sceneType === 'dialogue' ? 'medium' : 'two-shot';
         }
 
         return $characterCount <= 5 ? 'medium' : 'wide';

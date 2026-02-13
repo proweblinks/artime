@@ -38,8 +38,8 @@ class DialogueSceneDecomposerService
         'two-shot' => ['intensity' => 0.2, 'forSpeaking' => false],
         'wide' => ['intensity' => 0.25, 'forSpeaking' => true],
         'medium' => ['intensity' => 0.4, 'forSpeaking' => true],
-        'over-the-shoulder' => ['intensity' => 0.5, 'forSpeaking' => true],
         'medium-close' => ['intensity' => 0.6, 'forSpeaking' => true],
+        'over-the-shoulder' => ['intensity' => 0.75, 'forSpeaking' => true],
         'close-up' => ['intensity' => 0.8, 'forSpeaking' => true],
         'extreme-close-up' => ['intensity' => 0.95, 'forSpeaking' => true],
     ];
@@ -82,8 +82,8 @@ class DialogueSceneDecomposerService
         // Required shot types
         'requiredTypes' => [
             'establishing' => 1,      // At least 1 establishing/two-shot
-            'over-the-shoulder' => 2, // At least 2 OTS (one per character direction)
             'close-up' => 1,          // At least 1 close-up for emphasis
+            // OTS is NOT required — reserved for rare dramatic accents only
         ],
 
         // Per-character minimums
@@ -94,7 +94,7 @@ class DialogueSceneDecomposerService
 
         // Pattern requirements
         'patterns' => [
-            'maxConsecutiveOTS' => 4, // Break up OTS with two-shot after 4
+            'maxConsecutiveOTS' => 2, // Break up OTS quickly if it does appear
             'minVariety' => 3,        // At least 3 different shot types
         ],
     ];
@@ -1525,18 +1525,14 @@ class DialogueSceneDecomposerService
      */
     protected function shouldUseOTS(string $shotType, float $intensity, int $exchangeIndex): bool
     {
-        // Explicit OTS shot type
+        // OTS is reserved for rare dramatic accents only — NOT a standard dialogue tool.
+        // Only use OTS when explicitly selected by the intensity engine (very high intensity).
         if ($shotType === 'over-the-shoulder') {
             return true;
         }
 
-        // Medium shots in dialogue often work well as OTS
-        // OTS creates depth and shows spatial relationship
-        if (in_array($shotType, ['medium', 'medium-close']) && $intensity >= 0.3 && $intensity <= 0.7) {
-            // Use OTS for alternating shots (creates shot/reverse-shot rhythm)
-            return $exchangeIndex % 2 === 1;
-        }
-
+        // No longer convert medium/medium-close shots to OTS.
+        // Standard dialogue uses: wide → medium → medium-close → close-up progression.
         return false;
     }
 
@@ -1619,14 +1615,17 @@ class DialogueSceneDecomposerService
             $adjustedIntensity = min(1.0, $intensity + 0.15);
         }
 
-        if ($adjustedIntensity >= 0.75) {
+        // OTS only at very high intensity (rare dramatic accent, just below close-up)
+        if ($adjustedIntensity >= 0.8) {
             return 'close-up';
+        } elseif ($adjustedIntensity >= 0.72) {
+            return 'over-the-shoulder';
         } elseif ($adjustedIntensity >= 0.55) {
             return 'medium-close';
-        } elseif ($adjustedIntensity >= 0.4) {
-            return 'over-the-shoulder';
-        } elseif ($adjustedIntensity >= 0.25) {
+        } elseif ($adjustedIntensity >= 0.35) {
             return 'medium';
+        } elseif ($adjustedIntensity >= 0.2) {
+            return 'wide';
         }
 
         return 'wide';
