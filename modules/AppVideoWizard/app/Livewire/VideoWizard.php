@@ -29855,19 +29855,49 @@ PROMPT;
                 $isOTSShot = in_array($shotTypeStr, ['over-shoulder', 'over-the-shoulder', 'ots']);
 
                 if ($isOTSShot && $hasMultipleFaces) {
-                    // OTS shot: speaker's face may not be visible (back to camera)
-                    // Send silent audio to all faces to avoid lip-syncing wrong character
+                    // OTS shot: speaker's face is behind camera (back visible, face hidden)
+                    // Route speaker's audio to speaker's FACE POSITION → lip-sync targets back of head (invisible)
+                    // Route silent WAV to visible face (listener) → no incorrect lip-sync
+                    // InfiniteTalk mixes both audio tracks into output → speaker's voice is heard
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
                     $projectId = $this->projectId ?? 0;
-                    $silentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                    $extraAnimOptions['audio_url_2'] = $silentUrl;
-                    $audioUrl = $silentUrl; // Override primary audio with silence too
-                    \Log::info('InfiniteTalk: MULTI mode (OTS shot - no lip-sync, natural movement)', [
-                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+
+                    // Determine face ordering (same as monologue: prompt-based left-to-right)
+                    $speakingChar = $shot['speakingCharacter'] ?? null;
+                    $imagePrompt = $shot['hollywoodPrompt'] ?? $shot['imagePrompt'] ?? '';
+                    if (empty($imagePrompt)) {
+                        $sceneData = $this->generatedScenes[$sceneIndex] ?? [];
+                        $imagePrompt = $sceneData['hollywoodPrompt'] ?? $sceneData['imagePrompt'] ?? '';
+                    }
+                    if (!empty($imagePrompt) && count($charactersInShot) >= 2) {
+                        $facePositions = [];
+                        foreach ($charactersInShot as $charName) {
+                            $pos = stripos($imagePrompt, $charName);
+                            $facePositions[$charName] = ($pos !== false) ? $pos : PHP_INT_MAX;
+                        }
+                        asort($facePositions);
+                        $orderedChars = array_values(array_keys($facePositions));
+                        $speakerIndex = $speakingChar ? array_search($speakingChar, $orderedChars) : 0;
+                    } else {
+                        $speakerIndex = $speakingChar ? array_search($speakingChar, $charactersInShot) : 0;
+                    }
+                    if ($speakerIndex === false) $speakerIndex = 0;
+
+                    if ($speakerIndex === 0) {
+                        // Speaker is Face 0 (back to camera): audio stays on wav_url, silence on wav_url_2
+                        $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                    } else {
+                        // Speaker is Face 1+ (back to camera): silence on wav_url, speaker audio on wav_url_2
+                        $extraAnimOptions['audio_url_2'] = $audioUrl;
+                        $audioUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                    }
+                    \Log::info('InfiniteTalk: MULTI mode (OTS - speaker audio preserved, visible face silent)', [
+                        'speakingCharacter' => $speakingChar,
+                        'speakerIndex' => $speakerIndex,
                         'charactersInShot' => $charactersInShot,
+                        'faceOrder' => $orderedChars ?? $charactersInShot,
                         'shotType' => $shotTypeStr,
-                        'reason' => 'OTS: speaker face may not be visible, avoiding incorrect lip-sync',
                     ]);
                 } elseif ($isDialogueShot && $hasMultipleFaces) {
                     // Full dialogue (2 audio tracks, 2+ faces): timeline-synced audio
