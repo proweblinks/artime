@@ -853,7 +853,22 @@ class StructuredPromptBuilderService
         $totalShots = $options['total_shots'] ?? null;
         $isMultiShot = $options['is_multi_shot'] ?? false;
 
-        // Build subject from character bible
+        // Filter character bible to shot-specific characters when provided
+        $shotCharacters = $options['shot_characters'] ?? [];
+        if ($characterBible && !empty($shotCharacters) && !empty($characterBible['characters'])) {
+            $filteredChars = array_filter($characterBible['characters'], function ($char) use ($shotCharacters) {
+                $charName = strtoupper($char['name'] ?? '');
+                foreach ($shotCharacters as $shotChar) {
+                    if (strtoupper($shotChar) === $charName || str_contains($charName, strtoupper($shotChar)) || str_contains(strtoupper($shotChar), $charName)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            $characterBible['characters'] = array_values($filteredChars);
+        }
+
+        // Build subject from character bible (filtered to shot-specific characters)
         $subject = $this->buildSubjectDescription($characterBible, $sceneIndex, $sceneDescription);
 
         // Build environment from location bible
@@ -998,7 +1013,31 @@ class StructuredPromptBuilderService
         $totalShots = $options['total_shots'] ?? null;
         $isMultiShot = $options['is_multi_shot'] ?? false;
 
-        // Build subject from Scene DNA characters
+        // Filter Scene DNA characters to shot-specific characters when provided
+        $shotCharacters = $options['shot_characters'] ?? [];
+        if (!empty($shotCharacters) && !empty($sceneDNAEntry['characters'])) {
+            $sceneDNAEntry['characters'] = array_values(array_filter($sceneDNAEntry['characters'], function ($char) use ($shotCharacters) {
+                $charName = strtoupper($char['name'] ?? '');
+                foreach ($shotCharacters as $shotChar) {
+                    if (strtoupper($shotChar) === $charName || str_contains($charName, strtoupper($shotChar)) || str_contains(strtoupper($shotChar), $charName)) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+            if (!empty($sceneDNAEntry['characterNames'])) {
+                $sceneDNAEntry['characterNames'] = array_values(array_filter($sceneDNAEntry['characterNames'], function ($name) use ($shotCharacters) {
+                    foreach ($shotCharacters as $shotChar) {
+                        if (stripos($name, $shotChar) !== false || stripos($shotChar, $name) !== false) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }));
+            }
+        }
+
+        // Build subject from Scene DNA characters (filtered to shot-specific)
         $subject = $this->buildSubjectFromSceneDNA($sceneDNAEntry, $sceneDescription);
 
         // Build environment from Scene DNA location

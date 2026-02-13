@@ -20060,10 +20060,25 @@ PROMPT;
         $shotType = $shot['type'] ?? 'medium';
         $parts[] = $this->getHollywoodShotDescription($shotType);
 
-        // 1.5. CHARACTER BIBLE (Characters in this scene) - from buildScenePrompt Layer 2
+        // 1.5. CHARACTER BIBLE - filtered to ONLY characters in THIS shot (not all scene characters)
         if ($this->sceneMemory['characterBible']['enabled'] ?? false) {
             $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
             $sceneCharacters = $this->getCharactersForSceneIndex($characters, $sceneIndex);
+
+            // Filter to only characters that should appear in this specific shot
+            $shotCharacterNames = $shot['charactersInShot'] ?? [];
+            if (!empty($shotCharacterNames)) {
+                $sceneCharacters = array_filter($sceneCharacters, function ($character) use ($shotCharacterNames) {
+                    $charName = strtoupper($character['name'] ?? '');
+                    foreach ($shotCharacterNames as $shotChar) {
+                        if (strtoupper($shotChar) === $charName || str_contains($charName, strtoupper($shotChar)) || str_contains(strtoupper($shotChar), $charName)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+                $sceneCharacters = array_values($sceneCharacters);
+            }
 
             if (!empty($sceneCharacters)) {
                 $characterDescriptions = [];
@@ -24373,13 +24388,22 @@ PROMPT;
 
             // Update second speaker in speechSegments with actual data
             $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
-            if (count($existingSegments) >= 2) {
-                $existingSegments[1]['voiceId'] = $voiceId;
-                $existingSegments[1]['duration'] = (float) ($result['duration'] ?? 0);
-                // Recalculate startTime based on actual speaker 1 duration
-                $existingSegments[1]['startTime'] = round(($existingSegments[0]['duration'] ?? 0) + 0.3, 1);
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
+            if (count($existingSegments) < 2) {
+                // Create missing segment if decomposition only produced one
+                $existingSegments[1] = [
+                    'speaker' => $charactersInShot[1] ?? 'Speaker 2',
+                    'text' => $text,
+                    'voiceId' => null,
+                    'duration' => 0,
+                    'startTime' => 0,
+                ];
             }
+            $existingSegments[1]['voiceId'] = $voiceId;
+            $existingSegments[1]['duration'] = (float) ($result['duration'] ?? 0);
+            // Recalculate startTime based on actual speaker 1 audio duration
+            $speaker1Duration = $shot['audioDuration'] ?? $existingSegments[0]['duration'] ?? 0;
+            $existingSegments[1]['startTime'] = round((float) $speaker1Duration + 0.3, 1);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
 
             $this->saveProject();
 
@@ -26228,6 +26252,8 @@ PROMPT;
                         'total_shots' => count($decomposed['shots'] ?? []),
                         'story_beat' => $shot['storyBeat'] ?? $shot['emotionalBeat'] ?? null,
                         'is_multi_shot' => true,
+                        // Shot-specific characters for accurate character count in prompt
+                        'shot_characters' => $shot['charactersInShot'] ?? [],
                         // CRITICAL: Pass sceneMemory for Reference Cascade face consistency
                         'sceneMemory' => $this->sceneMemory,
                         'storyboard' => $this->storyboard,
