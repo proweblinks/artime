@@ -2028,12 +2028,16 @@ class StructuredPromptBuilderService
 
         // Shot-type specific negatives
         $shotType = $options['shot_type'] ?? null;
+        $shotCharacters = $options['shot_characters'] ?? [];
         if ($shotType) {
             $singleCharacterShots = ['close-up', 'extreme-close-up', 'medium-close', 'reaction', 'pov'];
             if (in_array($shotType, $singleCharacterShots)) {
-                // For close shots, emphasize single subject
-                $negativePrompt[] = 'multiple people in close-up';
-                $negativePrompt[] = 'crowded frame';
+                // Only add "multiple people" negative when shot actually has 1 character
+                // Avoids conflicting with positive prompt that describes 2+ characters in dialogue shots
+                if (empty($shotCharacters) || count($shotCharacters) <= 1) {
+                    $negativePrompt[] = 'multiple people in close-up';
+                    $negativePrompt[] = 'crowded frame';
+                }
             }
         }
 

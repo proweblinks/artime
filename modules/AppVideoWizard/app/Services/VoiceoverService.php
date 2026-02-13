@@ -301,6 +301,47 @@ class VoiceoverService
     }
 
     /**
+     * Get actual audio duration from a stored file using ffprobe.
+     * Falls back to null if ffprobe is unavailable or fails.
+     *
+     * @param string $storagePath Full filesystem path to the audio file
+     * @return float|null Actual duration in seconds, or null if probing failed
+     */
+    protected function getAudioDurationFromFile(string $storagePath): ?float
+    {
+        if (!file_exists($storagePath)) {
+            return null;
+        }
+
+        try {
+            // Try server ffprobe first, then system path
+            $ffprobePaths = ['/home/artime/bin/ffprobe', 'ffprobe'];
+            foreach ($ffprobePaths as $ffprobe) {
+                $cmd = sprintf(
+                    '%s -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s 2>/dev/null',
+                    escapeshellcmd($ffprobe),
+                    escapeshellarg($storagePath)
+                );
+
+                $output = @shell_exec($cmd);
+                if ($output !== null && is_numeric(trim($output))) {
+                    $duration = round((float) trim($output), 2);
+                    if ($duration > 0) {
+                        return $duration;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::debug('VoiceoverService: Could not probe audio duration via ffprobe', [
+                'file' => $storagePath,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Generate voiceover using Kokoro TTS.
      */
     protected function generateWithKokoro(WizardProject $project, array $scene, string $narration, string $voice, float $speed, array $options = []): array
@@ -330,6 +371,12 @@ class VoiceoverService
         $wordCount = str_word_count($narration);
         $estimatedDuration = $result['duration'] ?? (($wordCount / 150) * 60 / $speed);
 
+        // Probe actual duration from the generated file
+        $audioFilePath = $result['audioPath'] ?? '';
+        $storagePath = !empty($audioFilePath) ? Storage::disk('public')->path($audioFilePath) : null;
+        $actualDuration = $storagePath ? $this->getAudioDurationFromFile($storagePath) : null;
+        $duration = $actualDuration ?? $estimatedDuration;
+
         // Create asset record
         $asset = WizardAsset::create([
             'project_id' => $project->id,
@@ -348,6 +395,7 @@ class VoiceoverService
                 'narration' => $narration,
                 'wordCount' => $wordCount,
                 'estimatedDuration' => $estimatedDuration,
+                'actualDuration' => $actualDuration,
                 'provider' => 'kokoro',
                 'jobId' => $result['jobId'] ?? null,
             ],
@@ -357,7 +405,7 @@ class VoiceoverService
             'success' => true,
             'audioUrl' => $asset->url,
             'assetId' => $asset->id,
-            'duration' => $estimatedDuration,
+            'duration' => $duration,
             'voice' => $kokoroVoice,
             'provider' => 'kokoro',
         ];
@@ -392,9 +440,13 @@ class VoiceoverService
 
         Storage::disk('public')->put($path, $audioContent);
 
-        // Get audio duration (approximate based on word count)
+        // Get audio duration - probe actual file, fall back to word-count estimate
         $wordCount = str_word_count($narration);
         $estimatedDuration = ($wordCount / 150) * 60 / $speed; // 150 words per minute
+
+        $storagePath = Storage::disk('public')->path($path);
+        $actualDuration = $this->getAudioDurationFromFile($storagePath);
+        $duration = $actualDuration ?? $estimatedDuration;
 
         // Create asset record
         $asset = WizardAsset::create([
@@ -413,6 +465,7 @@ class VoiceoverService
                 'narration' => $narration,
                 'wordCount' => $wordCount,
                 'estimatedDuration' => $estimatedDuration,
+                'actualDuration' => $actualDuration,
                 'provider' => 'openai',
             ],
         ]);
@@ -421,7 +474,7 @@ class VoiceoverService
             'success' => true,
             'audioUrl' => $asset->url,
             'assetId' => $asset->id,
-            'duration' => $estimatedDuration,
+            'duration' => $duration,
             'voice' => $voice,
             'provider' => 'openai',
         ];

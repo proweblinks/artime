@@ -288,8 +288,20 @@
                 <div style="background: rgba(0,0,0,0.3); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
                     @php
                         $speechSegments = $shot['speechSegments'] ?? [];
-                        $hasSegments = !empty($speechSegments) && ($hasDialogue || $hasMonologue);
                         $charactersInShot = $shot['charactersInShot'] ?? [];
+
+                        // A4: Fallback - construct minimal speechSegments from shot data when empty
+                        if (empty($speechSegments) && ($hasDialogue || $hasMonologue)) {
+                            $speechSegments = [[
+                                'speaker' => $shot['speakingCharacter'] ?? ($charactersInShot[0] ?? 'Character'),
+                                'text' => $shot['dialogue'] ?? $shot['monologue'] ?? '',
+                                'voiceId' => $shot['voiceId'] ?? null,
+                                'duration' => $shot['audioDuration'] ?? null,
+                                'startTime' => 0,
+                            ]];
+                        }
+
+                        $hasSegments = !empty($speechSegments) && ($hasDialogue || $hasMonologue);
                     @endphp
 
                     @if($hasSegments)

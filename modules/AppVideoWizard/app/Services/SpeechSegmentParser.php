@@ -53,8 +53,9 @@ class SpeechSegmentParser
             trim($text)
         );
         // Also split before implicit CHARACTER: dialogue on same line (e.g. "...text ELENA: more text")
+        // Broadened to trigger after any sentence-ending punctuation (. ! ? " ')
         $text = preg_replace(
-            '/(?<=\.)\s+([A-Z][A-Za-z\s\-\']+):\s/u',
+            '/(?<=[\.\!\?\"\'])\s+([A-Z][A-Za-z\s\-\']+):\s/u',
             "\n$1: ",
             $text
         );

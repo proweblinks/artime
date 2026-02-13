@@ -6893,16 +6893,43 @@ PROMPT;
 
                             $dialogueSegments = $this->extractDialogueFromNarratorProse($sceneIndex, $textToParse, $sceneCharacters);
                             if (!empty($dialogueSegments)) {
-                                $scene['speechSegments'] = $dialogueSegments;
-                                $dialogueTypes = array_unique(array_column($dialogueSegments, 'type'));
-                                $scene['speechType'] = count($dialogueTypes) > 1 ? 'mixed' : ($dialogueTypes[0] ?? 'narrator');
+                                // D3: Validate extracted speakers against Character Bible
+                                $knownCharNames = array_map(function($c) {
+                                    $name = is_array($c) ? ($c['name'] ?? '') : (string) $c;
+                                    return strtoupper(trim($name));
+                                }, $sceneCharacters);
 
-                                Log::info('VideoWizard: Dialogue extraction succeeded', [
-                                    'sceneIndex' => $sceneIndex,
-                                    'segmentCount' => count($dialogueSegments),
-                                    'types' => $dialogueTypes,
-                                ]);
-                                return;
+                                $dialogueSegments = array_values(array_filter($dialogueSegments, function($seg) use ($knownCharNames) {
+                                    $speaker = strtoupper(trim($seg['speaker'] ?? ''));
+                                    // Always keep narrator/internal segments
+                                    if (empty($speaker) || $speaker === 'NARRATOR' || ($seg['type'] ?? '') === 'narrator') {
+                                        return true;
+                                    }
+                                    // Keep segments whose speaker matches a known character
+                                    foreach ($knownCharNames as $known) {
+                                        if ($speaker === $known || str_contains($known, $speaker) || str_contains($speaker, $known)) {
+                                            return true;
+                                        }
+                                    }
+                                    Log::warning('VideoWizard: Rejected AI-extracted speaker not in Character Bible', [
+                                        'speaker' => $seg['speaker'],
+                                        'knownCharacters' => $knownCharNames,
+                                    ]);
+                                    return false;
+                                }));
+
+                                if (!empty($dialogueSegments)) {
+                                    $scene['speechSegments'] = $dialogueSegments;
+                                    $dialogueTypes = array_unique(array_column($dialogueSegments, 'type'));
+                                    $scene['speechType'] = count($dialogueTypes) > 1 ? 'mixed' : ($dialogueTypes[0] ?? 'narrator');
+
+                                    Log::info('VideoWizard: Dialogue extraction succeeded', [
+                                        'sceneIndex' => $sceneIndex,
+                                        'segmentCount' => count($dialogueSegments),
+                                        'types' => $dialogueTypes,
+                                    ]);
+                                    return;
+                                }
                             }
                         }
                     }
@@ -24102,6 +24129,7 @@ PROMPT;
     /**
      * Check if narration style requires dialogue processing.
      *
+     * @deprecated Phase 1.5 - Kept for backward compatibility. New system uses speechSegments.
      * @return bool True if dialogue narration style is active
      */
     public function isDialogueNarrationStyle(): bool
@@ -24871,6 +24899,7 @@ PROMPT;
                 'speechSegments' => [$segment], // Single segment per shot
                 'needsLipSync' => true,
                 'segmentType' => $segType, // 'dialogue' or 'monologue' — from speech segment
+                'isDialogueShot' => $isDialogueSegment, // Set during decomposition for UI badge
                 'dialogue' => $isDialogueSegment ? $text : null,
                 'monologue' => !$isDialogueSegment ? $text : null,
                 'emotion' => $segment['emotion'] ?? null,

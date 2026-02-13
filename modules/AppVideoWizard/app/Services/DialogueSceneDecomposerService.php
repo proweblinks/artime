@@ -1439,7 +1439,9 @@ class DialogueSceneDecomposerService
             'type' => $shotType,
             'purpose' => 'dialogue',
             'segmentType' => 'dialogue', // Exchange-based shots are always dialogue
+            'isDialogueShot' => true, // Set during decomposition for UI badge
             'speakingCharacter' => $speaker,
+            'speakingCharacters' => [$speaker], // For audio/lip-sync targeting
             'characterIndex' => $charData['characterIndex'] ?? null,
             'dialogue' => $exchange['text'],
             'monologue' => $exchange['text'], // Same as dialogue for Multitalk
