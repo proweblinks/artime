@@ -3212,9 +3212,10 @@ class DialogueSceneDecomposerService
                 // Preserve voice IDs from both shots
                 $current['voiceId2'] = $next['voiceId'] ?? null;
 
-                // Use OTS framing for both characters visible
-                if (in_array($current['type'] ?? '', ['close-up', 'medium-close'])) {
-                    $current['type'] = 'over-the-shoulder';
+                // Keep the original shot type — medium/close-up work fine as two-shots
+                // OTS is only used when explicitly selected by intensity scoring
+                if ($current['type'] === 'close-up') {
+                    $current['type'] = 'medium-close'; // close-up too tight for 2 faces
                 }
 
                 // Combined duration: sum of both speech durations + buffer
