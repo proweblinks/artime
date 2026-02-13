@@ -463,12 +463,13 @@ class InfiniteTalkService
         float $duration2,
         float $pauseBetween = 0.3
     ): array {
-        $totalDuration = $duration1 + $pauseBetween + $duration2;
+        $endPaddingSec = 1.0; // Extra silence after last speaker to prevent cutoff
+        $totalDuration = $duration1 + $pauseBetween + $duration2 + $endPaddingSec;
         $fallback = [
             'success' => false,
             'audioUrl1' => $audioUrl1,
             'audioUrl2' => $audioUrl2,
-            'totalDuration' => $duration1 + $pauseBetween + $duration2,
+            'totalDuration' => $totalDuration,
         ];
 
         try {
@@ -494,18 +495,21 @@ class InfiniteTalkService
             ]);
 
             // Generate silence PCM bytes matching each file's format
-            $silence1Dur = $pauseBetween + $duration2;
+            // End padding prevents InfiniteTalk from clipping the last speech segment
+            $endPadding = 1.0;
+            $silence1Dur = $pauseBetween + $duration2 + $endPadding;
             $silence1Pcm = self::generateSilencePcm($wavData1, $silence1Dur);
 
             $silence2Dur = $duration1 + $pauseBetween;
             $silence2Pcm = self::generateSilencePcm($wavData2, $silence2Dur);
+            $endSilence2 = self::generateSilencePcm($wavData2, $endPadding);
 
-            // Speaker 1: [speech PCM] + [silence PCM]
+            // Speaker 1: [speech PCM] + [silence for pause+speaker2+end]
             $synced1Pcm = $wavData1['pcmData'] . $silence1Pcm;
             $synced1Wav = self::buildWavFromPcm($wavData1, $synced1Pcm);
 
-            // Speaker 2: [silence PCM] + [speech PCM]
-            $synced2Pcm = $silence2Pcm . $wavData2['pcmData'];
+            // Speaker 2: [silence for speaker1+pause] + [speech PCM] + [end padding]
+            $synced2Pcm = $silence2Pcm . $wavData2['pcmData'] . $endSilence2;
             $synced2Wav = self::buildWavFromPcm($wavData2, $synced2Pcm);
 
             // Store to public storage

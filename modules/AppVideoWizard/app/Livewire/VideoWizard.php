@@ -29863,7 +29863,7 @@ PROMPT;
                     if ($timelineSync['success']) {
                         $audioUrl = $timelineSync['audioUrl1'];
                         $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
-                        $duration = (int) ceil($timelineSync['totalDuration'] + 0.5);
+                        $duration = (int) ceil($timelineSync['totalDuration'] + 1.0);
                         \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
                             'totalDuration' => $timelineSync['totalDuration'],
                             'videoDuration' => $duration,

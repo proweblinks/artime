@@ -5,7 +5,7 @@
     $shots = $decomposed['shots'] ?? [];
     $shot = $shots[$shotPreviewShotIndex] ?? null;
     $hasImage = $shot && ($shot['status'] ?? '') === 'ready' && !empty($shot['imageUrl']);
-    $hasVideo = $shot && ($shot['videoStatus'] ?? '') === 'ready' && !empty($shot['videoUrl']);
+    $hasVideo = $shot && !empty($shot['videoUrl']);
     $isLastShot = $shot && $shotPreviewShotIndex === count($shots) - 1;
     $wasTransferred = isset($shot['transferredFrom']);
 
