@@ -286,7 +286,79 @@
 
                 {{-- Content Box --}}
                 <div style="background: rgba(0,0,0,0.3); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
-                    @if($hasDialogue || $hasMonologue)
+                    @php
+                        $speechSegments = $shot['speechSegments'] ?? [];
+                        $hasSegments = !empty($speechSegments) && ($hasDialogue || $hasMonologue);
+                        $charactersInShot = $shot['charactersInShot'] ?? [];
+                    @endphp
+
+                    @if($hasSegments)
+                        {{-- Per-character dialogue breakdown with timing --}}
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            @foreach($speechSegments as $segIdx => $segment)
+                                @php
+                                    $segSpeaker = $segment['speaker'] ?? 'Unknown';
+                                    $segText = $segment['text'] ?? '';
+                                    $segDuration = $segment['duration'] ?? null;
+                                    $segStartTime = $segment['startTime'] ?? null;
+                                    $segVoiceId = $segment['voiceId'] ?? '';
+                                    // Determine gender from voice ID prefix or character bible
+                                    $isMale = str_starts_with($segVoiceId, 'am_') || str_starts_with($segVoiceId, 'bm_') || in_array($segVoiceId, ['onyx', 'echo', 'alloy']);
+                                    $isFemale = str_starts_with($segVoiceId, 'af_') || str_starts_with($segVoiceId, 'bf_') || in_array($segVoiceId, ['nova', 'shimmer']);
+                                    $genderIcon = $isMale ? '♂' : ($isFemale ? '♀' : '');
+                                    $genderColor = $isMale ? '#60a5fa' : ($isFemale ? '#f472b6' : '#94a3b8');
+                                    $speakerColor = $segIdx === 0 ? '#60a5fa' : '#f472b6';
+                                    // Face position info
+                                    $faceIdx = array_search($segSpeaker, $charactersInShot);
+                                    $faceLabel = $faceIdx !== false ? 'Face ' . ($faceIdx + 1) : '';
+                                @endphp
+                                <div style="display: flex; flex-direction: column; gap: 0.2rem; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 0.3rem; border-left: 2px solid {{ $speakerColor }};">
+                                    {{-- Speaker header with gender & timing --}}
+                                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                                        <span style="font-weight: 700; font-size: 0.8rem; color: {{ $speakerColor }};">{{ $segSpeaker }}</span>
+                                        @if($genderIcon)
+                                            <span style="font-size: 0.7rem; color: {{ $genderColor }}; padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.08); border-radius: 0.15rem;">{{ $genderIcon }}</span>
+                                        @endif
+                                        @if($segVoiceId)
+                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.05); border-radius: 0.15rem;">🎤 {{ $segVoiceId }}</span>
+                                        @endif
+                                        @if($faceLabel)
+                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.05); border-radius: 0.15rem;">👤 {{ $faceLabel }}</span>
+                                        @endif
+                                        @if($segDuration)
+                                            <span style="font-size: 0.6rem; color: #fbbf24; padding: 0.1rem 0.25rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.15rem;">⏱ {{ number_format($segDuration, 1) }}s</span>
+                                        @endif
+                                        @if($segStartTime !== null)
+                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.35);">@ {{ number_format($segStartTime, 1) }}s</span>
+                                        @endif
+                                    </div>
+                                    {{-- Dialogue text --}}
+                                    <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; line-height: 1.4; margin: 0; font-style: italic;">
+                                        "{{ $segText }}"
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Total duration summary --}}
+                        @php
+                            $totalAudioDuration = ($shot['audioDuration'] ?? 0) + ($shot['audioDuration2'] ?? 0);
+                            $hasAudio2 = !empty($shot['audioUrl2']);
+                        @endphp
+                        @if($totalAudioDuration > 0)
+                            <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">
+                                    ⏱ {{ __('Total audio') }}: {{ number_format($totalAudioDuration, 1) }}s
+                                </span>
+                                @if($hasAudio2)
+                                    <span style="font-size: 0.65rem; color: #34d399;">✓ {{ __('Both audio tracks ready') }}</span>
+                                @endif
+                                @if(count($charactersInShot) >= 2)
+                                    <span style="font-size: 0.65rem; color: #a78bfa;">👥 {{ implode(' & ', $charactersInShot) }}</span>
+                                @endif
+                            </div>
+                        @endif
+                    @elseif($hasDialogue || $hasMonologue)
                         <p style="color: rgba(255,255,255,0.95); font-size: 0.95rem; line-height: 1.5; margin: 0; font-style: italic;">
                             "{{ $shot['dialogue'] ?? $shot['monologue'] }}"
                         </p>

@@ -99,10 +99,19 @@ class InfiniteTalkService
         $width = $options['width'] ?? $resolution['width'];
         $height = $options['height'] ?? $resolution['height'];
 
-        // Multi-mode processes 2 faces = ~2x VRAM; RunPod docs default to 512x512
+        // Multi-mode processes 2 faces = ~2x VRAM; scale proportionally to fit within max dimension
         if ($personCount === 'multi') {
-            $width = min((int) $width, 768);
-            $height = min((int) $height, 768);
+            $maxDim = 768;
+            $w = (int) $width;
+            $h = (int) $height;
+            if ($w > $maxDim || $h > $maxDim) {
+                $scale = min($maxDim / $w, $maxDim / $h);
+                $width = (int) round($w * $scale);
+                $height = (int) round($h * $scale);
+                // Ensure dimensions are divisible by 8 (required by video models)
+                $width = (int) (floor($width / 8) * 8);
+                $height = (int) (floor($height / 8) * 8);
+            }
         }
 
         // Build InfiniteTalk input payload

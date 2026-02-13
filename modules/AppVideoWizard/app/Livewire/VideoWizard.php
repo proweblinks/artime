@@ -7139,25 +7139,38 @@ PROMPT;
      */
     protected function determineVoiceForSpeaker(string $name, ?string $gender, ?string $role): string
     {
-        // Narrator gets storytelling voice
-        if ($role === 'narrator') {
-            return 'fable';
+        // Check if Kokoro TTS is the active provider
+        $isKokoro = false;
+        try {
+            $voiceoverService = app(\Modules\AppVideoWizard\app\Services\VoiceoverService::class);
+            $isKokoro = $voiceoverService->getProvider() === 'kokoro';
+        } catch (\Throwable $e) {
+            // Fallback to OpenAI voices
         }
 
-        // Gender-based assignment
+        // Narrator gets storytelling voice
+        if ($role === 'narrator') {
+            return $isKokoro ? 'bm_george' : 'fable';
+        }
+
+        // Gender-based assignment with Kokoro support
         if ($gender) {
             $genderLower = strtolower($gender);
             if (str_contains($genderLower, 'female') || str_contains($genderLower, 'woman')) {
-                return 'nova';
+                return $isKokoro ? 'af_nicole' : 'nova';
             }
             if (str_contains($genderLower, 'male') || str_contains($genderLower, 'man')) {
-                return 'onyx';
+                return $isKokoro ? 'am_michael' : 'onyx';
             }
         }
 
-        // Use name hash for consistent assignment
+        // Use name hash for consistent assignment with gender-appropriate voices
         $hash = crc32(strtoupper(trim($name)));
-        $voices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
+        if ($isKokoro) {
+            $voices = ['am_michael', 'am_adam', 'af_nicole', 'af_bella', 'bm_lewis'];
+        } else {
+            $voices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
+        }
         return $voices[$hash % count($voices)];
     }
 
