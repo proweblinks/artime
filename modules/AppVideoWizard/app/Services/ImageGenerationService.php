@@ -273,16 +273,45 @@ class ImageGenerationService
 
                 // COLLAGE OPTIMIZATION: Limit references for collage shots to prevent Gemini timeout
                 // Collage shots generate multiple images rapidly, so we reduce payload size
+                // For dialogue shots with 2+ characters, keep 2 character references for proper multi-face generation
                 $isCollageShot = $options['is_collage_shot'] ?? false;
                 if ($isCollageShot && $references['totalImages'] > 2) {
+                    $shotCharacters = $options['shot_characters'] ?? [];
+                    $maxCharRefs = (count($shotCharacters) >= 2) ? min(2, count($references['characters'])) : 1;
+
                     Log::info('[generateSceneImage] Limiting references for collage shot (timeout prevention)', [
                         'originalTotal' => $references['totalImages'],
                         'originalCharacters' => count($references['characters']),
+                        'shotCharacters' => count($shotCharacters),
+                        'maxCharRefs' => $maxCharRefs,
                     ]);
 
-                    // Keep only 1 primary character reference
-                    if (count($references['characters']) > 1) {
-                        $references['characters'] = [$references['characters'][0]];
+                    // Keep character references based on shot character count
+                    // Prioritize references matching the shot's specific characters
+                    if (count($references['characters']) > $maxCharRefs) {
+                        if (!empty($shotCharacters) && $maxCharRefs >= 2) {
+                            // Sort references: shot characters first, then others
+                            $shotMatched = [];
+                            $shotUnmatched = [];
+                            foreach ($references['characters'] as $ref) {
+                                $refName = strtoupper($ref['characterName'] ?? '');
+                                $matched = false;
+                                foreach ($shotCharacters as $sc) {
+                                    if (strtoupper($sc) === $refName || str_contains($refName, strtoupper($sc)) || str_contains(strtoupper($sc), $refName)) {
+                                        $matched = true;
+                                        break;
+                                    }
+                                }
+                                if ($matched) {
+                                    $shotMatched[] = $ref;
+                                } else {
+                                    $shotUnmatched[] = $ref;
+                                }
+                            }
+                            $references['characters'] = array_slice(array_merge($shotMatched, $shotUnmatched), 0, $maxCharRefs);
+                        } else {
+                            $references['characters'] = array_slice($references['characters'], 0, $maxCharRefs);
+                        }
                     }
                     // Keep location but skip style and continuity for collage
                     $references['style'] = null;
@@ -1423,19 +1452,32 @@ class ImageGenerationService
             "- Professional cinematography lighting\n" .
             "- Sharp focus with cinematic depth of field\n\n";
 
-        $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
-            "- The character's FACE must be IDENTICAL to the reference image\n" .
-            "- Same facial structure, same eyes, same nose, same mouth, same jawline\n" .
-            "- Same skin tone, same complexion, same facial proportions\n" .
-            "- This is the SAME PERSON, not a similar-looking person\n\n";
+        if ($characterCount > 1) {
+            $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
+                "- Each character's FACE must be IDENTICAL to their respective reference image\n" .
+                "- Same facial structure, same eyes, same nose, same mouth, same jawline for EACH person\n" .
+                "- Same skin tone, same complexion, same facial proportions for EACH person\n" .
+                "- These are the SAME PEOPLE from the references, not similar-looking people\n" .
+                "- Both characters must appear in the image with their own distinct face\n\n";
+        } else {
+            $enhancedPrompt .= "CRITICAL FACE CONSISTENCY:\n" .
+                "- The character's FACE must be IDENTICAL to the reference image\n" .
+                "- Same facial structure, same eyes, same nose, same mouth, same jawline\n" .
+                "- Same skin tone, same complexion, same facial proportions\n" .
+                "- This is the SAME PERSON, not a similar-looking person\n\n";
+        }
 
         $enhancedPrompt .= "PROP/OBJECT CONSISTENCY:\n" .
-            "- Any objects the character is holding, wearing, or interacting with must maintain CONSISTENT SIZE\n" .
+            "- Any objects characters are holding, wearing, or interacting with must maintain CONSISTENT SIZE\n" .
             "- A handheld object should remain the SAME SIZE relative to the character's hands/body\n" .
             "- Artifacts, weapons, tools, or props must keep their exact proportions across shots\n" .
             "- If the reference shows an object, generate it at the SAME scale and dimensions\n\n";
 
-        $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT facial features, hair, clothing, and any props/objects at consistent sizes from the reference.";
+        if ($characterCount > 1) {
+            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THESE EXACT SAME PEOPLE (not similar people, THE SAME people) from the reference images. Both characters must be clearly visible with their EXACT facial features, hair, and clothing.";
+        } else {
+            $enhancedPrompt .= "OUTPUT: Generate a single high-quality image showing THIS EXACT SAME PERSON (not a similar person, THE SAME person) with their EXACT facial features, hair, clothing, and any props/objects at consistent sizes from the reference.";
+        }
 
         return $enhancedPrompt;
     }
