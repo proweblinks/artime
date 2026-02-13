@@ -30618,7 +30618,34 @@ PROMPT;
         foreach ($characters as $character) {
             $charName = strtolower(trim($character['name'] ?? ''));
             if ($charName === $nameLower || str_contains($charName, $nameLower) || str_contains($nameLower, $charName)) {
-                return $character['voiceId'] ?? $character['voice_id'] ?? null;
+                $voiceId = $character['voiceId'] ?? $character['voice_id'] ?? $character['voice']['id'] ?? null;
+
+                // Validate voice matches character gender (prevent female voice on male character)
+                if ($voiceId) {
+                    $gender = strtolower($character['gender'] ?? $character['voice']['gender'] ?? '');
+                    $isMaleChar = str_contains($gender, 'male') && !str_contains($gender, 'female');
+                    $isFemaleVoice = str_starts_with($voiceId, 'af_') || str_starts_with($voiceId, 'bf_') || in_array($voiceId, ['nova', 'shimmer']);
+                    $isMaleVoice = str_starts_with($voiceId, 'am_') || str_starts_with($voiceId, 'bm_') || in_array($voiceId, ['onyx', 'echo']);
+
+                    if ($isMaleChar && $isFemaleVoice) {
+                        // Gender mismatch: male character with female voice - auto-correct
+                        $voiceId = 'am_michael';
+                        \Log::warning('Voice gender mismatch corrected', [
+                            'character' => $name, 'gender' => $gender,
+                            'originalVoice' => $character['voiceId'] ?? $character['voice']['id'] ?? 'unknown',
+                            'correctedVoice' => $voiceId,
+                        ]);
+                    } elseif (!$isMaleChar && str_contains($gender, 'female') && $isMaleVoice) {
+                        $voiceId = 'af_nicole';
+                        \Log::warning('Voice gender mismatch corrected', [
+                            'character' => $name, 'gender' => $gender,
+                            'originalVoice' => $character['voiceId'] ?? $character['voice']['id'] ?? 'unknown',
+                            'correctedVoice' => $voiceId,
+                        ]);
+                    }
+                }
+
+                return $voiceId;
             }
         }
 
