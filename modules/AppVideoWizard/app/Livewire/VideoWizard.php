@@ -19664,35 +19664,45 @@ PROMPT;
         $speakingCharacter = $dialogueShot['speakingCharacter'] ?? null;
         $visualAddition = $dialogueShot['visualPromptAddition'] ?? '';
 
-        // Start with base scene description
-        $parts = [$baseDescription];
-
         // Add character-specific framing
         $charactersInShot = $dialogueShot['charactersInShot'] ?? [];
         $isMultiCharDialogue = count($charactersInShot) >= 2 && ($dialogueShot['isDialogueShot'] ?? false);
 
         if ($isMultiCharDialogue) {
-            // Multi-character dialogue: BOTH characters must be clearly visible for InfiniteTalk
+            // Multi-character dialogue: restructure prompt to put two-character framing FIRST
+            // The base description often starts with single-character MCU which biases the model
             $char1 = $charactersInShot[0];
             $char2 = $charactersInShot[1];
-            $parts[] = "TWO-PERSON DIALOGUE SCENE: {$char1} and {$char2} facing each other in conversation";
-            $parts[] = "Both characters must be clearly visible with distinct faces, {$shotType} framing";
-            $parts[] = "{$char1} is speaking while {$char2} listens intently, natural mid-conversation moment";
-        } elseif ($speakingCharacter) {
-            if ($dialogueShot['useMultitalk'] ?? false) {
-                // Speaking shot - emphasize mouth/expression
-                $parts[] = "Focus on {$speakingCharacter}, {$shotType} framing";
-                $parts[] = "{$speakingCharacter} is speaking, mouth slightly open, engaged expression";
-            } else {
-                // Reaction shot - emphasize listening/processing
-                $parts[] = "Focus on {$speakingCharacter}, {$shotType} framing";
-                $parts[] = "{$speakingCharacter} listening intently, subtle emotional reaction visible";
-            }
-        }
 
-        // Add the visual prompt addition from decomposer
-        if (!empty($visualAddition)) {
-            $parts[] = $visualAddition;
+            // Strip leading shot type prefix from base description (MCU, CU, MS, WS, etc.)
+            $cleanBase = preg_replace('/^(MCU|CU|MS|WS|ECU|MLS|EWS|FS|OTS)\s+/i', '', $baseDescription);
+
+            // Lead with two-shot framing, THEN add scene context
+            $parts = [
+                "TWO-SHOT DIALOGUE: {$char1} and {$char2} in intense face-to-face conversation",
+                "Both characters clearly visible with distinct faces in the same frame",
+                $cleanBase,
+                "{$char1} is speaking while {$char2} listens, natural mid-conversation moment",
+            ];
+            // Skip visualAddition for multi-char dialogue - it often contains single-character framing
+        } else {
+            // Single character: use base description as-is
+            $parts = [$baseDescription];
+
+            if ($speakingCharacter) {
+                if ($dialogueShot['useMultitalk'] ?? false) {
+                    $parts[] = "Focus on {$speakingCharacter}, {$shotType} framing";
+                    $parts[] = "{$speakingCharacter} is speaking, mouth slightly open, engaged expression";
+                } else {
+                    $parts[] = "Focus on {$speakingCharacter}, {$shotType} framing";
+                    $parts[] = "{$speakingCharacter} listening intently, subtle emotional reaction visible";
+                }
+            }
+
+            // Add the visual prompt addition from decomposer (single-character only)
+            if (!empty($visualAddition)) {
+                $parts[] = $visualAddition;
+            }
         }
 
         // Add shot type specific framing
@@ -26662,6 +26672,14 @@ PROMPT;
 
                             // Build CINEMATIC prompt - emphasizing action and story moment
                             // CRITICAL: Put framing FIRST so AI models prioritize it
+                            // For dialogue shots with 2+ characters, override framing to two-shot
+                            $isDialogueMultiChar = ($shot['isDialogueShot'] ?? false) && count($shot['charactersInShot'] ?? []) >= 2;
+                            if ($isDialogueMultiChar) {
+                                $dChar1 = $shot['charactersInShot'][0] ?? 'Character 1';
+                                $dChar2 = $shot['charactersInShot'][1] ?? 'Character 2';
+                                $framing = "TWO-SHOT DIALOGUE: {$dChar1} and {$dChar2} both clearly visible in the same frame, facing each other in conversation. " .
+                                    "BOTH characters must have distinct, visible faces. Medium shot showing both people";
+                            }
                             $shotPrompt = "{$framing} " .
                                 "CINEMATIC FILM STILL - freeze-frame from a movie in progress, NOT a posed photograph. " .
                                 "{$environmentConstraint} {$locationConstraint}";
