@@ -25441,10 +25441,16 @@ PROMPT;
             // Check if shot needs lip-sync
             $needsLipSync = $shot['needsLipSync'] ?? false;
 
-            // Skip if already has audio (unless force regenerate)
-            if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
+            // For InfiniteTalk dialogue with 2 chars, also require audioUrl2
+            $isDialogueMissingAudio2 = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK])
+                && ($shot['isDialogueShot'] ?? false)
+                && count($shot['charactersInShot'] ?? []) >= 2
+                && empty($shot['audioUrl2']);
+
+            // Skip if already has audio (unless force regenerate or dialogue missing speaker 2)
+            if (!$force && !$isDialogueMissingAudio2 && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
                 $skipped++;
-            } elseif ($needsLipSync || $force) {
+            } elseif ($needsLipSync || $force || $isDialogueMissingAudio2) {
                 $segmentType = $shot['segmentType'] ?? null;
                 $isDialogueSegment = ($segmentType === 'dialogue');
                 $isInfiniteTalkShot = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK]);
@@ -31016,6 +31022,16 @@ PROMPT;
             if ($needsLipSync) {
                 $total++;
                 $audioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
+
+                // For InfiniteTalk dialogue shots with 2 characters, also require audioUrl2
+                $isInfiniteTalkDialogue = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk'])
+                    && ($shot['isDialogueShot'] ?? false)
+                    && count($shot['charactersInShot'] ?? []) >= 2;
+
+                if ($audioReady && $isInfiniteTalkDialogue && empty($shot['audioUrl2'])) {
+                    $audioReady = false; // Speaker 2 still needs audio
+                }
+
                 if ($audioReady) {
                     $hasAudio++;
                 } else {
