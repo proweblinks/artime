@@ -29884,9 +29884,29 @@ PROMPT;
 
                     // Face ordering: FaceDetectMask sorts faces left-to-right
                     // wav_url → Face 0 (leftmost), wav_url_2 → Face 1
-                    // Determine speaker's face position from charactersInShot order
+                    // Determine speaker's face position from image prompt order
+                    // (characters mentioned first in the prompt are typically on the left)
                     $speakingChar = $shot['speakingCharacter'] ?? null;
-                    $speakerIndex = $speakingChar ? array_search($speakingChar, $charactersInShot) : 0;
+
+                    // Use image/Hollywood prompt to determine left-to-right face order
+                    $imagePrompt = $shot['hollywoodPrompt'] ?? $shot['imagePrompt'] ?? '';
+                    if (empty($imagePrompt)) {
+                        $sceneData = $this->generatedScenes[$sceneIndex] ?? [];
+                        $imagePrompt = $sceneData['hollywoodPrompt'] ?? $sceneData['imagePrompt'] ?? '';
+                    }
+                    if (!empty($imagePrompt) && count($charactersInShot) >= 2) {
+                        // Find position of each character name in the prompt
+                        $facePositions = [];
+                        foreach ($charactersInShot as $charName) {
+                            $pos = stripos($imagePrompt, $charName);
+                            $facePositions[$charName] = ($pos !== false) ? $pos : PHP_INT_MAX;
+                        }
+                        asort($facePositions);
+                        $orderedChars = array_values(array_keys($facePositions));
+                        $speakerIndex = $speakingChar ? array_search($speakingChar, $orderedChars) : 0;
+                    } else {
+                        $speakerIndex = $speakingChar ? array_search($speakingChar, $charactersInShot) : 0;
+                    }
                     if ($speakerIndex === false) $speakerIndex = 0;
 
                     if ($speakerIndex === 0) {
@@ -29895,6 +29915,7 @@ PROMPT;
                         \Log::info('InfiniteTalk: MULTI mode (monologue, speaker=Face0)', [
                             'speakingCharacter' => $speakingChar,
                             'charactersInShot' => $charactersInShot,
+                            'faceOrder' => $orderedChars ?? $charactersInShot,
                         ]);
                     } else {
                         // Speaker is Face 1+: silence → wav_url (Face 0), speaker audio → wav_url_2
@@ -29904,6 +29925,7 @@ PROMPT;
                             'speakingCharacter' => $speakingChar,
                             'speakerIndex' => $speakerIndex,
                             'charactersInShot' => $charactersInShot,
+                            'faceOrder' => $orderedChars ?? $charactersInShot,
                         ]);
                     }
                 } else {
@@ -30248,8 +30270,8 @@ PROMPT;
         if (!$multipleInFrame) {
             $who = $speakerName ?: 'the person';
             return "{$who} speaking naturally with clear lip movements, {$expressionDesc}, "
-                 . "subtle head movement and natural gestures, smooth breathing motion, "
-                 . "realistic facial micro-expressions";
+                 . "very minimal head movement and mostly still posture, smooth breathing motion, "
+                 . "subtle facial micro-expressions";
         }
 
         // Multiple characters in frame - must specify who speaks and who stays silent
@@ -30279,7 +30301,7 @@ PROMPT;
         }
 
         $prompt = "Only {$speakerLabel} is speaking with natural lip movements and {$expressionDesc}, "
-                . "subtle head gestures and realistic facial micro-expressions. ";
+                . "very minimal head movement and mostly still posture, subtle facial micro-expressions. ";
 
         if (!empty($silentParts)) {
             $silentList = implode(' and ', $silentParts);
@@ -30325,9 +30347,9 @@ PROMPT;
 
         return "Two people in conversation: {$label1} and {$label2} talking naturally with turn-taking dialogue, "
              . "each character has clear lip movements synchronized to their own speech, "
-             . "natural eye contact between speakers, realistic head turns and gestures, "
-             . "the active speaker moves lips while the listener remains attentive and still, "
-             . "{$emotion} tone, natural breathing and facial micro-expressions";
+             . "steady gaze between speakers, very minimal head movement and mostly still posture, "
+             . "the active speaker moves lips while the listener remains completely still and attentive, "
+             . "{$emotion} tone, natural breathing and subtle facial micro-expressions";
     }
 
     /**
