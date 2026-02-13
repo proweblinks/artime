@@ -24430,7 +24430,7 @@ PROMPT;
             $existingSegments[1]['duration'] = (float) ($result['duration'] ?? 0);
             // Recalculate startTime based on actual speaker 1 audio duration
             $speaker1Duration = $shot['audioDuration'] ?? $existingSegments[0]['duration'] ?? 0;
-            $existingSegments[1]['startTime'] = round((float) $speaker1Duration + 0.3, 1);
+            $existingSegments[1]['startTime'] = round((float) $speaker1Duration + 0.5, 1);
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
 
             $this->saveProject();
@@ -26661,8 +26661,39 @@ PROMPT;
                             $shotPrompt .= "{$narrativeContext} " .
                                 "STYLE: {$style} cinematography. ";
 
-                            // Add character consistency
-                            if (!empty($consistencyContext['characters'])) {
+                            // Add character consistency - filtered to THIS shot's characters only
+                            $shotChars = $shot['charactersInShot'] ?? [];
+                            if (!empty($shotChars) && !empty($consistencyContext['characters'])) {
+                                // Filter character descriptions to only those in this shot
+                                $allCharDescs = $this->sceneMemory['characterBible']['characters'] ?? [];
+                                $filteredCharDescs = [];
+                                foreach ($allCharDescs as $charName => $charData) {
+                                    if (!is_array($charData)) continue;
+                                    $charNameUpper = strtoupper(is_string($charName) ? $charName : ($charData['name'] ?? ''));
+                                    foreach ($shotChars as $sc) {
+                                        if (strtoupper($sc) === $charNameUpper || str_contains($charNameUpper, strtoupper($sc)) || str_contains(strtoupper($sc), $charNameUpper)) {
+                                            $desc = $charData['appearance'] ?? $charData['description'] ?? '';
+                                            if (is_array($desc)) $desc = implode(' ', array_filter($desc));
+                                            if ($desc && is_string($desc)) {
+                                                $cName = is_string($charName) ? $charName : ($charData['name'] ?? 'Character');
+                                                $filteredCharDescs[] = "{$cName}: {$desc}";
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!empty($filteredCharDescs)) {
+                                    $shotPrompt .= "CHARACTERS: " . implode('. ', $filteredCharDescs) . " ";
+                                } else {
+                                    $shotPrompt .= "CHARACTERS: {$consistencyContext['characters']} ";
+                                }
+                                // Add explicit character count instruction for multi-character shots
+                                $charCount = count($shotChars);
+                                if ($charCount >= 2) {
+                                    $charNames = implode(' and ', array_slice($shotChars, 0, 2));
+                                    $shotPrompt .= "IMPORTANT: Exactly {$charCount} distinct people in this image - {$charNames}. Both characters must be clearly visible and interacting. ";
+                                }
+                            } elseif (!empty($consistencyContext['characters'])) {
                                 $shotPrompt .= "CHARACTERS: {$consistencyContext['characters']} ";
                             }
 
@@ -26691,6 +26722,8 @@ PROMPT;
                                 'shot_index' => $shotIndex,
                                 'is_multi_shot' => true,
                                 'is_collage_shot' => true, // New flag to indicate individual collage shot
+                                // Shot-specific characters for accurate character count in prompt
+                                'shot_characters' => $shot['charactersInShot'] ?? [],
                                 // CRITICAL: Pass sceneMemory for Reference Cascade face consistency
                                 'sceneMemory' => $this->sceneMemory,
                                 'storyboard' => $this->storyboard,
@@ -30654,7 +30687,7 @@ PROMPT;
             // Update speechSegments with actual TTS data (voiceIds, durations, startTimes)
             $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
             $charactersInShot = $shot['charactersInShot'] ?? [];
-            $pauseBetween = 0.3;
+            $pauseBetween = 0.5;
             $updatedSegments = [];
 
             foreach ($audioSegments as $idx => $segment) {

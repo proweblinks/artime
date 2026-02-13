@@ -220,6 +220,7 @@ class ImageGenerationService
                 'total_shots' => $options['total_shots'] ?? null,
                 'story_beat' => $options['story_beat'] ?? null,
                 'is_multi_shot' => $options['is_multi_shot'] ?? false,
+                'shot_characters' => $options['shot_characters'] ?? [],
             ];
 
             // Regular scene: build prompt with all Bible integrations
@@ -2577,6 +2578,7 @@ EOT;
             'total_shots' => $shotContext['total_shots'] ?? null,
             'story_beat' => $shotContext['story_beat'] ?? null,
             'is_multi_shot' => $shotContext['is_multi_shot'] ?? false,
+            'shot_characters' => $shotContext['shot_characters'] ?? [],
         ];
 
         // Build structured prompt

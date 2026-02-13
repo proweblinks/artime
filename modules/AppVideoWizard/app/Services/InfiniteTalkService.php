@@ -491,7 +491,7 @@ class InfiniteTalkService
         float $duration1,
         string $audioUrl2,
         float $duration2,
-        float $pauseBetween = 0.3
+        float $pauseBetween = 0.5
     ): array {
         $endPaddingSec = 2.0; // Extra silence after last speaker to prevent cutoff
         $totalDuration = $duration1 + $pauseBetween + $duration2 + $endPaddingSec;
@@ -515,11 +515,25 @@ class InfiniteTalkService
                 return $fallback;
             }
 
+            // Calculate ACTUAL duration from PCM data to prevent overlap
+            // TTS providers return estimated durations that may not match actual audio length
+            $bytesPerSample1 = max(1, $wavData1['bitsPerSample'] / 8);
+            $bytesPerSample2 = max(1, $wavData2['bitsPerSample'] / 8);
+            $actualDuration1 = strlen($wavData1['pcmData']) / ($wavData1['sampleRate'] * $wavData1['channels'] * $bytesPerSample1);
+            $actualDuration2 = strlen($wavData2['pcmData']) / ($wavData2['sampleRate'] * $wavData2['channels'] * $bytesPerSample2);
+
+            // Use MAX of reported and actual duration to ensure no overlap
+            $duration1 = max($duration1, $actualDuration1);
+            $duration2 = max($duration2, $actualDuration2);
+            $totalDuration = $duration1 + $pauseBetween + $duration2 + $endPaddingSec;
+
             Log::info('InfiniteTalk timeline sync: building tracks (pure PHP)', [
-                'duration1' => $duration1,
-                'duration2' => $duration2,
+                'reportedDuration1' => round($duration1, 2),
+                'reportedDuration2' => round($duration2, 2),
+                'actualDuration1' => round($actualDuration1, 2),
+                'actualDuration2' => round($actualDuration2, 2),
                 'pauseBetween' => $pauseBetween,
-                'totalDuration' => $totalDuration,
+                'totalDuration' => round($totalDuration, 2),
                 'wav1_sampleRate' => $wavData1['sampleRate'],
                 'wav2_sampleRate' => $wavData2['sampleRate'],
             ]);
