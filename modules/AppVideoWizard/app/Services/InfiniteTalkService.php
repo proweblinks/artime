@@ -463,7 +463,7 @@ class InfiniteTalkService
         float $duration2,
         float $pauseBetween = 0.3
     ): array {
-        $endPaddingSec = 1.0; // Extra silence after last speaker to prevent cutoff
+        $endPaddingSec = 2.0; // Extra silence after last speaker to prevent cutoff
         $totalDuration = $duration1 + $pauseBetween + $duration2 + $endPaddingSec;
         $fallback = [
             'success' => false,
@@ -496,7 +496,7 @@ class InfiniteTalkService
 
             // Generate silence PCM bytes matching each file's format
             // End padding prevents InfiniteTalk from clipping the last speech segment
-            $endPadding = 1.0;
+            $endPadding = 2.0;
             $silence1Dur = $pauseBetween + $duration2 + $endPadding;
             $silence1Pcm = self::generateSilencePcm($wavData1, $silence1Dur);
 
