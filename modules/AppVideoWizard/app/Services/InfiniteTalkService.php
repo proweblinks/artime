@@ -468,7 +468,7 @@ class InfiniteTalkService
             'success' => false,
             'audioUrl1' => $audioUrl1,
             'audioUrl2' => $audioUrl2,
-            'totalDuration' => max($duration1, $duration2),
+            'totalDuration' => $duration1 + $pauseBetween + $duration2,
         ];
 
         try {
@@ -540,6 +540,7 @@ class InfiniteTalkService
 
     /**
      * Read a WAV file from URL or local path and parse its header + PCM data.
+     * Automatically converts non-WAV formats (FLAC, MP3, OGG) to WAV using ffmpeg.
      *
      * @return array|null Parsed WAV info: sampleRate, bitsPerSample, channels, pcmData
      */
@@ -556,10 +557,17 @@ class InfiniteTalkService
             return null;
         }
 
-        // Verify RIFF/WAVE header
+        // If not WAV, try converting via ffmpeg (supports FLAC, MP3, OGG, etc.)
         if (substr($raw, 0, 4) !== 'RIFF' || substr($raw, 8, 4) !== 'WAVE') {
-            Log::warning('InfiniteTalk: not a valid WAV file', ['url' => substr($audioUrl, 0, 80)]);
-            return null;
+            $localPath = self::convertToWav($localPath);
+            if (!$localPath) {
+                Log::warning('InfiniteTalk: not a WAV file and ffmpeg conversion failed', ['url' => substr($audioUrl, 0, 80)]);
+                return null;
+            }
+            $raw = file_get_contents($localPath);
+            if ($raw === false || strlen($raw) < 44 || substr($raw, 0, 4) !== 'RIFF') {
+                return null;
+            }
         }
 
         // Parse fmt chunk — find it by scanning (it's usually at offset 12)
@@ -644,14 +652,21 @@ class InfiniteTalkService
      */
     protected static function resolveAudioPath(string $audioUrl): ?string
     {
-        // Check if it's a local URL (same site)
-        $baseUrl = rtrim(url('/files'), '/') . '/';
-        if (str_starts_with($audioUrl, $baseUrl)) {
-            $relativePath = ltrim(str_replace($baseUrl, '', $audioUrl), '/');
-            $localPath = Storage::disk('public')->path($relativePath);
+        // Check if it's a local URL (same site) — handle both /files/ and /public/ paths
+        $siteUrl = rtrim(url('/'), '/');
+        $localPrefixes = [
+            $siteUrl . '/files/' => fn($rel) => Storage::disk('public')->path($rel),
+            $siteUrl . '/public/' => fn($rel) => public_path($rel),
+        ];
 
-            if (file_exists($localPath)) {
-                return $localPath;
+        foreach ($localPrefixes as $prefix => $resolver) {
+            if (str_starts_with($audioUrl, $prefix)) {
+                $relativePath = ltrim(str_replace($prefix, '', $audioUrl), '/');
+                $localPath = $resolver($relativePath);
+
+                if (file_exists($localPath)) {
+                    return $localPath;
+                }
             }
         }
 
@@ -678,6 +693,63 @@ class InfiniteTalkService
         }
 
         return null;
+    }
+
+    /**
+     * Convert a non-WAV audio file to WAV using ffmpeg.
+     * Returns path to the converted WAV file, or null on failure.
+     */
+    protected static function convertToWav(string $inputPath): ?string
+    {
+        // Look for ffmpeg binary in common locations
+        $ffmpeg = null;
+        foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                $ffmpeg = $path;
+                break;
+            }
+        }
+
+        if (!$ffmpeg) {
+            Log::warning('InfiniteTalk: ffmpeg not found, cannot convert audio');
+            return null;
+        }
+
+        $tempDir = storage_path('app/temp/timeline-sync');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $outputPath = $tempDir . '/converted_' . md5($inputPath) . '_' . time() . '.wav';
+
+        // Convert to 16-bit PCM WAV, mono, 24kHz (standard for speech)
+        $cmd = sprintf(
+            '%s -i %s -f wav -acodec pcm_s16le -ac 1 -ar 24000 %s -y 2>&1',
+            escapeshellarg($ffmpeg),
+            escapeshellarg($inputPath),
+            escapeshellarg($outputPath)
+        );
+
+        $output = [];
+        $returnCode = 0;
+        exec($cmd, $output, $returnCode);
+
+        if ($returnCode !== 0 || !file_exists($outputPath)) {
+            Log::warning('InfiniteTalk: ffmpeg conversion failed', [
+                'input' => basename($inputPath),
+                'returnCode' => $returnCode,
+                'output' => implode("\n", array_slice($output, -3)),
+            ]);
+            return null;
+        }
+
+        Log::info('InfiniteTalk: converted audio to WAV', [
+            'input' => basename($inputPath),
+            'output' => basename($outputPath),
+            'size' => filesize($outputPath),
+        ]);
+
+        return $outputPath;
     }
 
     /**
