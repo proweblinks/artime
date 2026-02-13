@@ -25370,8 +25370,10 @@ PROMPT;
                     \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $silentDuration;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = 'silent';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakerCount'] = 2;
+                // Do NOT set isDialogueShot=true for monologue — the animation block must
+                // distinguish real dialogue (2 speakers) from monologue+silent-WAV (1 speaker)
+                // so it can use the position-aware monologue path instead of the dialogue path
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['hasAutoSilentWav'] = true;
                 Log::info('Auto-generated silent WAV for non-speaking face', [
                     'sceneIndex' => $sceneIndex,
                     'shotIndex' => $shotIndex,
@@ -29823,7 +29825,12 @@ PROMPT;
                 // person_count MUST match faces in the IMAGE, not speech type
                 // I2V_single.json has no face masking → lip-syncs ALL faces (broken for 2-face images)
                 // I2V_multi.json uses FaceDetectMask → separate audio per face (correct)
-                $isDialogueShot = !empty($shot['audioUrl2']) && (($shot['isDialogueShot'] ?? false) || count($shot['charactersInShot'] ?? []) >= 2);
+                // Use segmentType + speakingCharacters to distinguish REAL dialogue (2 speakers)
+                // from monologue+silent-WAV (1 speaker, position-aware audio routing)
+                // Dialogue: segmentType=dialogue OR speakingCharacters>=2 (merged dialogue pairs)
+                // Monologue: segmentType=monologue AND speakingCharacters=1 (even with audioUrl2 silent WAV)
+                $isRealDialogue = ($shot['segmentType'] ?? '') === 'dialogue' || count($shot['speakingCharacters'] ?? []) >= 2;
+                $isDialogueShot = !empty($shot['audioUrl2']) && $isRealDialogue && count($shot['charactersInShot'] ?? []) >= 2;
                 $charactersInShot = $shot['charactersInShot'] ?? [];
                 $hasMultipleFaces = count($charactersInShot) >= 2;
 
