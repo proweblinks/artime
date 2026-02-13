@@ -347,11 +347,27 @@ class ImageGenerationService
 
                 // Use cascade generation if we have multiple references (more powerful consistency)
                 // Cascade triggers when: 2+ characters, OR character + location, OR total 2+ images
-                $shouldUseCascade = (
+                // EXCEPTION: For multi-character dialogue without character references, skip cascade
+                // The continuity reference biases toward single-character generation
+                $shotCharactersForCascade = $options['shot_characters'] ?? [];
+                $isMultiCharDialogueWithoutRefs = (
+                    count($shotCharactersForCascade) >= 2 &&
+                    count($references['characters']) === 0
+                );
+
+                $shouldUseCascade = !$isMultiCharDialogueWithoutRefs && (
                     count($references['characters']) >= 2 ||
                     (count($references['characters']) >= 1 && !empty($references['location'])) ||
                     $references['totalImages'] >= 2
                 );
+
+                if ($isMultiCharDialogueWithoutRefs) {
+                    Log::info('[generateSceneImage] Skipping cascade for multi-char dialogue without character refs', [
+                        'shotCharacters' => $shotCharactersForCascade,
+                        'totalImages' => $references['totalImages'],
+                        'reason' => 'Continuity reference biases toward single character - using text-to-image instead',
+                    ]);
+                }
 
                 if ($shouldUseCascade && $modelConfig['provider'] !== 'runpod') {
                     // Phase 22: Apply prompt adaptation for cascade path (Gemini passes through unchanged)
