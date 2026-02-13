@@ -29368,8 +29368,9 @@ PROMPT;
                 ?? $this->getVoiceIdForCharacterName($char2Name, $characterBible)
                 ?? 'echo';
 
-            // Split dialogue text between characters if available
-            $dialogue = $shot['monologue'] ?? $shot['dialogue'] ?? '';
+            // For dialogue shots, prefer 'dialogue' field (has character markers)
+            // over 'monologue' (which may only have one speaker's partial text)
+            $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? '';
             if (!empty($dialogue)) {
                 $parts = $this->splitDialogueByCharacter($dialogue, $charactersInShot);
                 $this->shotMonologueEdit = $parts[$char1Name] ?? $dialogue;
@@ -29381,6 +29382,17 @@ PROMPT;
         } else {
             $this->shotMonologueEdit2 = '';
             $this->shotVoiceSelection2 = 'nova';
+        }
+
+        // Map OpenAI voice IDs to Kokoro equivalents when Kokoro is active
+        if ($this->activeTtsProvider === 'kokoro') {
+            $kokoroService = app(\Modules\AppVideoWizard\Services\KokoroTtsService::class);
+            if (!isset($this->availableTtsVoices[$this->shotVoiceSelection])) {
+                $this->shotVoiceSelection = $kokoroService->mapOpenAIVoice($this->shotVoiceSelection);
+            }
+            if (!isset($this->availableTtsVoices[$this->shotVoiceSelection2])) {
+                $this->shotVoiceSelection2 = $kokoroService->mapOpenAIVoice($this->shotVoiceSelection2);
+            }
         }
 
         // Reset regenerate options
