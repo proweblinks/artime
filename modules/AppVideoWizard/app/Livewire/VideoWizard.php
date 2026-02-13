@@ -29858,23 +29858,26 @@ PROMPT;
                     // OTS shot: speaker's back is to camera, listener's face is visible
                     // FaceDetectMask only detects the VISIBLE face (listener) as Face 0
                     // Speaker's face is NOT detectable (back of head) — no Face slot for speaker
-                    // Strategy: silent audio → Face 0 (visible listener, no lip-sync)
-                    //           speaker audio → Face 1 (no face detected, but audio plays in mix)
+                    // Problem: audio assigned to undetectable Face 1 gets DROPPED by the worker
+                    // Solution: silent audio on BOTH faces (no lip-sync), then overlay speaker
+                    //           audio onto the output video via ffmpeg post-processing
                     $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
                     $extraAnimOptions['person_count'] = 'multi';
                     $projectId = $this->projectId ?? 0;
 
-                    // Always: Face 0 = visible face (listener) → silence
-                    //         Face 1 = speaker (back to camera) → actual audio
-                    $speakerAudioUrl = $audioUrl;
-                    $audioUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                    $extraAnimOptions['audio_url_2'] = $speakerAudioUrl;
+                    // Save speaker's audio URL for post-processing overlay
+                    $extraAnimOptions['ots_overlay_audio'] = $audioUrl;
 
-                    \Log::info('InfiniteTalk: MULTI mode (OTS - visible face silent, speaker audio on Face 1)', [
+                    // Both faces get silent audio (worker drops undetectable Face 1 audio anyway)
+                    $audioUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+
+                    \Log::info('InfiniteTalk: MULTI mode (OTS - silent both faces, audio overlay post-process)', [
                         'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
                         'charactersInShot' => $charactersInShot,
                         'shotType' => $shotTypeStr,
-                        'reason' => 'FaceDetectMask only finds visible face (Face 0 = listener). Speaker audio on Face 1 plays in mix without lip-sync.',
+                        'otsOverlayAudio' => substr($extraAnimOptions['ots_overlay_audio'], 0, 80),
+                        'reason' => 'OTS: speaker back to camera, listener visible. Silent on both faces, ffmpeg overlay after generation.',
                     ]);
                 } elseif ($isDialogueShot && $hasMultipleFaces) {
                     // Full dialogue (2 audio tracks, 2+ faces): timeline-synced audio

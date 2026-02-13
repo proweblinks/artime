@@ -168,11 +168,18 @@ class InfiniteTalkService
         $taskId = $result['id'];
 
         // Cache project info for later video storage
-        Cache::put("infinitetalk_project:{$taskId}", [
+        $cacheData = [
             'project_id' => $project->id,
             'user_id' => $project->user_id,
             'team_id' => $teamId,
-        ], now()->addHours(3));
+        ];
+
+        // OTS shots: cache the speaker's audio URL for post-processing overlay
+        if (!empty($options['ots_overlay_audio'])) {
+            $cacheData['ots_overlay_audio'] = $options['ots_overlay_audio'];
+        }
+
+        Cache::put("infinitetalk_project:{$taskId}", $cacheData, now()->addHours(3));
 
         return [
             'success' => true,
@@ -313,6 +320,29 @@ class InfiniteTalkService
                 'size' => strlen($videoBytes),
                 'url' => $publicUrl,
             ]);
+
+            // OTS post-processing: overlay speaker audio onto the silent video
+            $otsOverlayAudio = $projectInfo['ots_overlay_audio'] ?? null;
+            if (!empty($otsOverlayAudio)) {
+                Log::info('InfiniteTalkService: OTS post-processing - overlaying speaker audio', [
+                    'taskId' => $taskId,
+                    'videoPath' => $storagePath,
+                    'audioUrl' => substr($otsOverlayAudio, 0, 80),
+                ]);
+
+                $mergedUrl = $this->overlayAudioOnVideo($storagePath, $otsOverlayAudio, $projectId);
+                if ($mergedUrl) {
+                    $publicUrl = $mergedUrl;
+                    Log::info('InfiniteTalkService: OTS audio overlay successful', [
+                        'taskId' => $taskId,
+                        'mergedUrl' => $mergedUrl,
+                    ]);
+                } else {
+                    Log::warning('InfiniteTalkService: OTS audio overlay failed, returning silent video', [
+                        'taskId' => $taskId,
+                    ]);
+                }
+            }
 
             // Clean up cache
             Cache::forget("infinitetalk_project:{$taskId}");
@@ -754,6 +784,94 @@ class InfiniteTalkService
         ]);
 
         return $outputPath;
+    }
+
+    /**
+     * Overlay audio onto a video file using ffmpeg.
+     * Used for OTS shots where InfiniteTalk generates a silent video
+     * and the speaker's audio needs to be merged in post-processing.
+     *
+     * @param string $videoStoragePath Storage path of the silent video (relative to public disk)
+     * @param string $audioUrl URL of the speaker's audio to overlay
+     * @param int $projectId Project ID for storage path
+     * @return string|null Public URL of the merged video, or null on failure
+     */
+    protected function overlayAudioOnVideo(string $videoStoragePath, string $audioUrl, int $projectId): ?string
+    {
+        try {
+            // Find ffmpeg binary
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk OTS: ffmpeg not found, cannot overlay audio');
+                return null;
+            }
+
+            // Resolve video path on disk
+            $videoPath = Storage::disk('public')->path($videoStoragePath);
+            if (!file_exists($videoPath)) {
+                Log::error('InfiniteTalk OTS: video file not found', ['path' => $videoPath]);
+                return null;
+            }
+
+            // Resolve audio to local path
+            $audioPath = static::resolveAudioPath($audioUrl);
+            if (!$audioPath || !file_exists($audioPath)) {
+                Log::error('InfiniteTalk OTS: audio file not found', ['url' => substr($audioUrl, 0, 80)]);
+                return null;
+            }
+
+            // Output merged video
+            $mergedFilename = 'infinitetalk_ots_' . time() . '_' . uniqid() . '.mp4';
+            $mergedStoragePath = "wizard-videos/{$projectId}/{$mergedFilename}";
+            $mergedDiskPath = Storage::disk('public')->path($mergedStoragePath);
+
+            // Ensure output directory exists
+            $outputDir = dirname($mergedDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // ffmpeg: copy video stream, encode audio as AAC, merge
+            $cmd = sprintf(
+                '%s -i %s -i %s -c:v copy -c:a aac -b:a 128k -map 0:v:0 -map 1:a:0 -shortest %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($videoPath),
+                escapeshellarg($audioPath),
+                escapeshellarg($mergedDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($mergedDiskPath)) {
+                Log::error('InfiniteTalk OTS: ffmpeg merge failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk OTS: audio overlay complete', [
+                'mergedPath' => $mergedStoragePath,
+                'mergedSize' => filesize($mergedDiskPath),
+            ]);
+
+            return url('/files/' . $mergedStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk OTS: overlay error', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /**
