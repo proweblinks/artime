@@ -29847,7 +29847,29 @@ PROMPT;
                 $charactersInShot = $shot['charactersInShot'] ?? [];
                 $hasMultipleFaces = count($charactersInShot) >= 2;
 
-                if ($isDialogueShot && $hasMultipleFaces) {
+                // OTS (over-the-shoulder) detection: one character faces camera, other seen from behind
+                // Speaker may be behind camera → lip-syncing would animate the WRONG face
+                // Solution: silent audio on all faces → natural movement, no incorrect lip-sync
+                // Voiceover audio is overlaid during assembly/export
+                $shotTypeStr = strtolower($shot['type'] ?? $shot['shotType'] ?? '');
+                $isOTSShot = in_array($shotTypeStr, ['over-shoulder', 'over-the-shoulder', 'ots']);
+
+                if ($isOTSShot && $hasMultipleFaces) {
+                    // OTS shot: speaker's face may not be visible (back to camera)
+                    // Send silent audio to all faces to avoid lip-syncing wrong character
+                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
+                    $extraAnimOptions['person_count'] = 'multi';
+                    $projectId = $this->projectId ?? 0;
+                    $silentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
+                    $extraAnimOptions['audio_url_2'] = $silentUrl;
+                    $audioUrl = $silentUrl; // Override primary audio with silence too
+                    \Log::info('InfiniteTalk: MULTI mode (OTS shot - no lip-sync, natural movement)', [
+                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
+                        'charactersInShot' => $charactersInShot,
+                        'shotType' => $shotTypeStr,
+                        'reason' => 'OTS: speaker face may not be visible, avoiding incorrect lip-sync',
+                    ]);
+                } elseif ($isDialogueShot && $hasMultipleFaces) {
                     // Full dialogue (2 audio tracks, 2+ faces): timeline-synced audio
                     $extraAnimOptions['person_count'] = 'multi';
                     $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
