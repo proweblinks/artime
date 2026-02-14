@@ -1535,6 +1535,26 @@ window.multiShotVideoPolling = function() {
                                             <span class="msm-speaker-missing">✗</span>
                                         @endif
                                     </div>
+
+                                    @if(!empty($selShot['audioUrl']))
+                                        {{-- Audio Ready State --}}
+                                        <div class="msm-char-audio-ready">
+                                            <div class="msm-char-audio-status">
+                                                <span class="msm-audio-status msm-status-ready">✅ {{ __('Voice Ready') }}</span>
+                                                <span class="msm-audio-voice-label">{{ $availableTtsVoices[$selShot['voiceId'] ?? '']['name'] ?? ucfirst($selShot['voiceId'] ?? 'voice') }}</span>
+                                                <span class="msm-audio-duration">{{ number_format($selShot['audioDuration'] ?? 0, 1) }}s</span>
+                                            </div>
+                                            <div class="msm-char-audio-controls">
+                                                <button type="button" class="msm-btn-play-small" onclick="(function(btn){var a=btn.parentElement.querySelector('audio');if(!a)return;if(a.paused){a.play();btn.textContent='⏸ Stop'}else{a.pause();a.currentTime=0;btn.textContent='▶ Play'}a.onended=function(){btn.textContent='▶ Play'}})(this)">▶ {{ __('Play') }}</button>
+                                                <audio preload="none" src="{{ $selShot['audioUrl'] }}"></audio>
+                                            </div>
+                                        </div>
+                                        {{-- Regenerate section (collapsed by default) --}}
+                                        <details class="msm-char-regen-details">
+                                            <summary class="msm-btn-regen-toggle">🔄 {{ __('Change Voice') }}</summary>
+                                            <div class="msm-char-regen-content">
+                                    @endif
+
                                     <div class="msm-voice-select">
                                         <label>
                                             {{ __('Voice') }}
@@ -1565,9 +1585,14 @@ window.multiShotVideoPolling = function() {
                                             wire:loading.attr="disabled"
                                             wire:target="generateShotVoiceover"
                                             class="msm-btn msm-btn-voice msm-btn-char-gen">
-                                        <span wire:loading.remove wire:target="generateShotVoiceover">🎤 {{ __('Generate Voice') }}</span>
+                                        <span wire:loading.remove wire:target="generateShotVoiceover">🎤 {{ !empty($selShot['audioUrl']) ? __('Regenerate Voice') : __('Generate Voice') }}</span>
                                         <span wire:loading wire:target="generateShotVoiceover">⏳ {{ __('Generating...') }}</span>
                                     </button>
+
+                                    @if(!empty($selShot['audioUrl']))
+                                            </div>
+                                        </details>
+                                    @endif
                                 </div>
 
                                 {{-- Character 2 Panel --}}
@@ -1580,6 +1605,26 @@ window.multiShotVideoPolling = function() {
                                             <span class="msm-speaker-missing">✗</span>
                                         @endif
                                     </div>
+
+                                    @if($hasAudio2)
+                                        {{-- Audio Ready State --}}
+                                        <div class="msm-char-audio-ready">
+                                            <div class="msm-char-audio-status">
+                                                <span class="msm-audio-status msm-status-ready">✅ {{ __('Voice Ready') }}</span>
+                                                <span class="msm-audio-voice-label">{{ $availableTtsVoices[$selShot['voiceId2'] ?? '']['name'] ?? ucfirst($selShot['voiceId2'] ?? 'voice') }}</span>
+                                                <span class="msm-audio-duration">{{ number_format($selShot['audioDuration2'] ?? 0, 1) }}s</span>
+                                            </div>
+                                            <div class="msm-char-audio-controls">
+                                                <button type="button" class="msm-btn-play-small" onclick="(function(btn){var a=btn.parentElement.querySelector('audio');if(!a)return;if(a.paused){a.play();btn.textContent='⏸ Stop'}else{a.pause();a.currentTime=0;btn.textContent='▶ Play'}a.onended=function(){btn.textContent='▶ Play'}})(this)">▶ {{ __('Play') }}</button>
+                                                <audio preload="none" src="{{ $selShot['audioUrl2'] }}"></audio>
+                                            </div>
+                                        </div>
+                                        {{-- Regenerate section (collapsed by default) --}}
+                                        <details class="msm-char-regen-details">
+                                            <summary class="msm-btn-regen-toggle">🔄 {{ __('Change Voice') }}</summary>
+                                            <div class="msm-char-regen-content">
+                                    @endif
+
                                     <div class="msm-voice-select">
                                         <label>
                                             {{ __('Voice') }}
@@ -1610,9 +1655,14 @@ window.multiShotVideoPolling = function() {
                                             wire:loading.attr="disabled"
                                             wire:target="generateShotVoiceover2"
                                             class="msm-btn msm-btn-voice msm-btn-char-gen">
-                                        <span wire:loading.remove wire:target="generateShotVoiceover2">🎤 {{ __('Generate Voice') }}</span>
+                                        <span wire:loading.remove wire:target="generateShotVoiceover2">🎤 {{ $hasAudio2 ? __('Regenerate Voice') : __('Generate Voice') }}</span>
                                         <span wire:loading wire:target="generateShotVoiceover2">⏳ {{ __('Generating...') }}</span>
                                     </button>
+
+                                    @if($hasAudio2)
+                                            </div>
+                                        </details>
+                                    @endif
                                 </div>
                             </div>
                         @endif
@@ -2298,6 +2348,20 @@ window.multiShotVideoPolling = function() {
 .msm-char-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .msm-char-name { font-size: 0.8rem; font-weight: 600; color: #67e8f9; }
 .msm-btn-char-gen { width: 100%; margin-top: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.6rem; }
+.msm-char-audio-ready { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.4rem 0; padding: 0.5rem 0.6rem; background: rgba(16,185,129,0.12); border-radius: 6px; border: 1px solid rgba(16,185,129,0.3); }
+.msm-char-audio-status { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.msm-char-audio-status .msm-audio-status { font-size: 0.8rem; font-weight: 600; }
+.msm-char-audio-status .msm-audio-voice-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); padding: 0.1rem 0.4rem; background: rgba(255,255,255,0.08); border-radius: 4px; }
+.msm-char-audio-status .msm-audio-duration { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+.msm-char-audio-controls { display: flex; align-items: center; gap: 0.4rem; }
+.msm-btn-play-small { padding: 0.3rem 0.6rem; background: rgba(16,185,129,0.25); border: 1px solid rgba(16,185,129,0.4); border-radius: 5px; color: #10b981; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+.msm-btn-play-small:hover { background: rgba(16,185,129,0.35); transform: translateY(-1px); }
+.msm-char-regen-details { margin-top: 0.35rem; }
+.msm-char-regen-details summary { list-style: none; cursor: pointer; font-size: 0.75rem; color: #fbbf24; padding: 0.25rem 0; opacity: 0.8; }
+.msm-char-regen-details summary:hover { opacity: 1; }
+.msm-char-regen-details summary::-webkit-details-marker { display: none; }
+.msm-char-regen-details[open] summary { margin-bottom: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.35rem; }
+.msm-char-regen-content { padding-top: 0.2rem; }
 .msm-audio-ready { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(16,185,129,0.12); border-radius: 8px; border: 1px solid rgba(16,185,129,0.3); flex-wrap: wrap; }
 .msm-audio-status { font-size: 0.85rem; font-weight: 500; }
 .msm-status-ready { color: #10b981; }
