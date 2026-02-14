@@ -367,7 +367,7 @@
     }
 </style>
 
-<div class="vw-export-step" x-data="{ exporting: false, progress: 0, status: 'idle', exportedUrl: null }">
+<div class="vw-export-step" x-data="{ exporting: false, progress: 0, status: 'idle', exportedUrl: null, quality: '1080p', format: 'mp4' }">
     <div class="vw-export-card">
         {{-- Header --}}
         <div class="vw-export-header">
@@ -517,7 +517,7 @@
             <div class="vw-success-icon">🎉</div>
             <div class="vw-success-title">{{ __('Export Complete!') }}</div>
             <div class="vw-success-subtitle">{{ __('Your video is ready for download') }}</div>
-            <button type="button" class="vw-download-btn" @click="downloadVideo()">
+            <button type="button" class="vw-download-btn" @click="window.downloadVideo && window.downloadVideo()">
                 📥 {{ __('Download Video') }}
             </button>
         </div>
@@ -526,7 +526,7 @@
         <div class="vw-export-btn-container" x-show="!exporting && !exportedUrl">
             <button type="button"
                     class="vw-export-btn"
-                    @click="startExport()"
+                    @click="exporting = true; progress = 0; status = 'Preparing assets...'; window.startExport && window.startExport()"
                     wire:click="$dispatch('start-export')">
                 <span class="vw-export-btn-icon">🚀</span>
                 <span>{{ __('Export Video') }}</span>
@@ -546,10 +546,13 @@
 </div>
 
 <script>
-function startExport() {
-    Alpine.$data(document.querySelector('.vw-export-step')).exporting = true;
-    Alpine.$data(document.querySelector('.vw-export-step')).progress = 0;
-    Alpine.$data(document.querySelector('.vw-export-step')).status = 'Preparing assets...';
+window.startExport = function() {
+    const el = document.querySelector('.vw-export-step');
+    if (!el) return;
+    const data = Alpine.$data(el);
+    data.exporting = true;
+    data.progress = 0;
+    data.status = 'Preparing assets...';
 
     // Simulate export progress (in production, this would be real API calls)
     let progress = 0;
@@ -578,7 +581,7 @@ function startExport() {
     }, 500);
 }
 
-function downloadVideo() {
+window.downloadVideo = function() {
     // In production, this would download the actual video file
     alert('Video download starting... (This is a demo)');
 }

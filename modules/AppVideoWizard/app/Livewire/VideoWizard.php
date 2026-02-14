@@ -3165,6 +3165,12 @@ class VideoWizard extends Component
 
             // Social Content: Auto-generate script + auto-decompose when entering Create step
             if ($this->isSocialContentMode() && $step === 4 && $previousStep <= 2) {
+                // Ensure aspect ratio matches format
+                $formats = config('appvideowizard.formats');
+                if (isset($formats[$this->format]['aspectRatio'])) {
+                    $this->aspectRatio = $formats[$this->format]['aspectRatio'];
+                }
+
                 $this->autoGenerateSocialScript();
                 $this->autoDecomposeSocialScene();
                 // Mark intermediate steps as reached for data consistency
