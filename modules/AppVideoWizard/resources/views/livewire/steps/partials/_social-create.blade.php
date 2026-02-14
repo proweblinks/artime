@@ -352,16 +352,14 @@
     }
 </style>
 
-<script>
-window.socialContentPolling = function() {
-    return {
+<div class="vw-social-create"
+     x-data="{
         audioTab: '{{ ($audioSource === "music_upload") ? "music" : "voice" }}',
         pollingInterval: null,
         isPolling: false,
         pollCount: 0,
         maxPolls: 120,
         POLL_INTERVAL: 5000,
-
         initPolling() {
             const status = '{{ $videoStatus }}';
             if (status === 'generating' || status === 'processing') {
@@ -387,12 +385,9 @@ window.socialContentPolling = function() {
         stopPolling() {
             if (this.pollingInterval) { clearInterval(this.pollingInterval); this.pollingInterval = null; }
             this.isPolling = false;
-        },
-    };
-};
-</script>
-
-<div class="vw-social-create" x-data="socialContentPolling()" x-init="initPolling()">
+        }
+     }"
+     x-init="initPolling()">
     {{-- Header Bar --}}
     <div class="vw-social-create-header">
         <h2>
