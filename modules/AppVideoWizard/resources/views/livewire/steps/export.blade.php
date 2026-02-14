@@ -428,7 +428,8 @@
             @endif
         @endif
 
-        {{-- Summary Stats --}}
+        {{-- Summary Stats (hidden for social content) --}}
+        @if(!($isSocialContent ?? false))
         @php
             $exportStats = $this->getAssemblyStats();
             $isMultiShotExport = $exportStats['mode'] === 'multi-shot';
@@ -471,9 +472,10 @@
                 </div>
             @endif
         </div>
+        @endif
 
         {{-- Hollywood Multi-Shot Mode Badge (not for social content) --}}
-        @if($isMultiShotExport && !($isSocialContent ?? false))
+        @if(!($isSocialContent ?? false) && ($isMultiShotExport ?? false))
             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                 <span style="font-size: 1.25rem;">🎬</span>
                 <div style="flex: 1;">
@@ -497,7 +499,8 @@
         @endif
 
         {{-- Export Settings (hidden for social content — video is already ready) --}}
-        <div class="vw-export-settings" x-show="!exporting && !exportedUrl" @if($isSocialContent ?? false) style="display: none;" @endif>
+        @if(!($isSocialContent ?? false))
+        <div class="vw-export-settings" x-show="!exporting && !exportedUrl">
             {{-- Quality Selection --}}
             <div class="vw-setting-group">
                 <div class="vw-setting-label">🎯 {{ __('Quality') }}</div>
@@ -546,7 +549,9 @@
                 </div>
             </div>
         </div>
+        @endif
 
+        @if(!($isSocialContent ?? false))
         {{-- Export Progress --}}
         <div class="vw-export-progress" x-show="exporting" x-cloak>
             <div class="vw-progress-header">
@@ -572,8 +577,8 @@
             </button>
         </div>
 
-        {{-- Export Button (hidden for social content) --}}
-        <div class="vw-export-btn-container" x-show="!exporting && !exportedUrl" @if($isSocialContent ?? false) style="display: none;" @endif>
+        {{-- Export Button --}}
+        <div class="vw-export-btn-container" x-show="!exporting && !exportedUrl">
             <button type="button"
                     class="vw-export-btn"
                     @click="exporting = true; progress = 0; status = 'Preparing assets...'; window.startExport && window.startExport()"
@@ -592,6 +597,7 @@
                 {{ __('credits') }}
             </span>
         </div>
+        @endif
     </div>
 </div>
 
