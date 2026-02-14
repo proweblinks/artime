@@ -3146,8 +3146,19 @@ class VideoWizard extends Component
             return;
         }
 
-        // Can only go to steps we've reached or the next step
-        if ($step <= $this->maxReachedStep + 1) {
+        // Social content mode: allow skipping hidden steps
+        $maxAllowedStep = $this->maxReachedStep + 1;
+        if ($this->isSocialContentMode()) {
+            // Allow jumping to any step in the social content flow (1, 2, 4, 7)
+            $socialSteps = [1, 2, 4, 7];
+            $currentIdx = array_search($this->currentStep, $socialSteps);
+            $targetIdx = array_search($step, $socialSteps);
+            if ($currentIdx !== false && $targetIdx !== false && $targetIdx <= $currentIdx + 1) {
+                $maxAllowedStep = $step;
+            }
+        }
+
+        if ($step <= $maxAllowedStep) {
             $previousStep = $this->currentStep;
             $this->currentStep = $step;
             $this->maxReachedStep = max($this->maxReachedStep, $step);
