@@ -3273,7 +3273,7 @@ class VideoWizard extends Component
             'speakingCharacter' => $character,
             'charactersInShot' => [$character],
             'needsLipSync' => true,
-            'selectedVideoModel' => 'multitalk',
+            'selectedVideoModel' => 'infinitetalk',
             'cameraMovement' => [
                 'type' => 'static',
                 'motion' => 'hold',
