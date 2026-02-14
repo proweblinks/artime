@@ -24352,20 +24352,15 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
 
-            // Warn if audio duration differs significantly from shot duration
-            $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? null;
-            if ($shotDuration && $result['duration']) {
-                $ratio = $result['duration'] / $shotDuration;
-                if ($ratio > 1.3 || $ratio < 0.5) {
-                    Log::warning('Monologue audio duration mismatch', [
-                        'sceneIndex' => $sceneIndex,
-                        'shotIndex' => $shotIndex,
-                        'audioDuration' => $result['duration'],
-                        'shotDuration' => $shotDuration,
-                        'ratio' => round($ratio, 2),
-                    ]);
-                }
+            // Auto-set duration based on audio length (speaker1 + optional speaker2 + buffer)
+            $audioDur2 = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] ?? 0;
+            if ($audioDur2 > 0) {
+                $totalAudio = $result['duration'] + 0.5 + $audioDur2;
+            } else {
+                $totalAudio = $result['duration'];
             }
+            $autoDuration = (int) ceil($totalAudio + 1.0);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $autoDuration;
 
             // Update speechSegments with actual voiceId and duration
             $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
@@ -24455,6 +24450,12 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = $voiceId;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'ready';
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
+
+            // Auto-set duration based on total dialogue audio (speaker1 + pause + speaker2 + buffer)
+            $audioDur1 = $shot['audioDuration'] ?? 0;
+            $totalAudio = $audioDur1 + 0.5 + $result['duration'];
+            $autoDuration = (int) ceil($totalAudio + 1.0);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $autoDuration;
 
             // Store character names for dialogue speakers
             $charactersInShot = $shot['charactersInShot'] ?? [];
@@ -30744,6 +30745,13 @@ PROMPT;
                 'voiceId' => $s['voiceId'] ?? null,
             ], $audioSegments);
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+
+            // Auto-set duration based on total dialogue audio
+            $dur1 = $speaker1['duration'] ?? 0;
+            $dur2 = $speaker2['duration'] ?? 0;
+            $totalAudio = $dur2 > 0 ? ($dur1 + 0.5 + $dur2) : $dur1;
+            $autoDuration = (int) ceil($totalAudio + 1.0);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $autoDuration;
 
             // Update speechSegments with actual TTS data (voiceIds, durations, startTimes)
             $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];

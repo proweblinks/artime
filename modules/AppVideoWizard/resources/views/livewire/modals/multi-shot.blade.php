@@ -1802,8 +1802,14 @@ window.multiShotVideoPolling = function() {
                         $audioDur2 = $selShot['audioDuration2'] ?? null;
                         $autoDur = null;
                         if ($isLipSync && $audioDur) {
-                            $maxAudio = $audioDur2 ? max($audioDur, $audioDur2) : $audioDur;
-                            $autoDur = (int) ceil($maxAudio + 0.5);
+                            if ($audioDur2) {
+                                // Dialogue: sequential speech with pause between
+                                $totalAudio = $audioDur + 0.5 + $audioDur2;
+                            } else {
+                                // Monologue: single speaker
+                                $totalAudio = $audioDur;
+                            }
+                            $autoDur = (int) ceil($totalAudio + 1.0); // +1s buffer
                         }
                     @endphp
                     @if($autoDur && !in_array($autoDur, $availDurs))
