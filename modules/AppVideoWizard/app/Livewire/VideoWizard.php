@@ -3360,6 +3360,7 @@ class VideoWizard extends Component
             'speechType' => $speechType,
             'speakingCharacter' => $speakingCharacter,
             'charactersInShot' => $charactersInShot,
+            'faceOrder' => $charactersInShot, // Default to Character Bible order; updated by Gemini Vision after image generation
             'needsLipSync' => true,
             'selectedVideoModel' => 'infinitetalk',
             'cameraMovement' => [
@@ -25035,6 +25036,165 @@ PROMPT;
     }
 
     /**
+     * Detect the left-to-right order of characters in a generated image.
+     * Uses Gemini Vision to analyze which character is on which side.
+     * This is critical for InfiniteTalk multi-face dialogue: wav_url → Face 0 (left), wav_url_2 → Face 1 (right).
+     *
+     * @param string $imageUrl URL of the generated image
+     * @param array $characters Character data from concept (with name, description)
+     * @return array Character names in left-to-right order, or empty if detection fails
+     */
+    protected function detectCharacterFaceOrder(string $imageUrl, array $characters): array
+    {
+        if (count($characters) < 2) return [];
+
+        try {
+            // Download image as base64
+            $imageContent = @file_get_contents($imageUrl);
+            if (!$imageContent) {
+                \Log::warning('detectCharacterFaceOrder: Could not download image', ['url' => substr($imageUrl, 0, 100)]);
+                return [];
+            }
+            $base64 = base64_encode($imageContent);
+            $mimeType = str_contains($imageUrl, '.png') ? 'image/png' : 'image/jpeg';
+
+            // Build character descriptions for the prompt
+            $charDescriptions = [];
+            $charNames = [];
+            foreach (array_slice($characters, 0, 2) as $c) {
+                $name = $c['name'] ?? 'Character';
+                $desc = $c['description'] ?? $name;
+                $charDescriptions[] = "- {$name}: {$desc}";
+                $charNames[] = $name;
+            }
+            $charList = implode("\n", $charDescriptions);
+
+            $prompt = "This image shows two characters side by side. Here are their descriptions:\n{$charList}\n\n"
+                . "Look at the image carefully. Which character is on the LEFT side and which is on the RIGHT side?\n"
+                . "You MUST use the exact character names from above.\n"
+                . "Respond with ONLY a JSON object, no other text:\n"
+                . "{\"left\": \"character name\", \"right\": \"character name\"}";
+
+            $gemini = app(\App\Services\GeminiService::class);
+            $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+            ]);
+
+            if (!$result['success'] || empty($result['text'])) {
+                \Log::warning('detectCharacterFaceOrder: Gemini analysis failed', [
+                    'error' => $result['error'] ?? 'empty response',
+                ]);
+                return [];
+            }
+
+            // Parse JSON response (may be wrapped in markdown code blocks)
+            $text = $result['text'];
+            if (preg_match('/\{[^}]+\}/', $text, $matches)) {
+                $json = json_decode($matches[0], true);
+                if ($json && isset($json['left']) && isset($json['right'])) {
+                    // Validate that returned names match our character names (fuzzy match)
+                    $leftName = $this->fuzzyMatchCharacterName($json['left'], $charNames);
+                    $rightName = $this->fuzzyMatchCharacterName($json['right'], $charNames);
+
+                    if ($leftName && $rightName && $leftName !== $rightName) {
+                        $faceOrder = [$leftName, $rightName];
+                        \Log::info('detectCharacterFaceOrder: Detected face order', [
+                            'faceOrder' => $faceOrder,
+                            'rawResponse' => $text,
+                        ]);
+                        return $faceOrder;
+                    }
+                }
+            }
+
+            \Log::warning('detectCharacterFaceOrder: Could not parse response', ['text' => $text]);
+            return [];
+
+        } catch (\Exception $e) {
+            \Log::error('detectCharacterFaceOrder: Exception', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Fuzzy-match a character name from AI response to known character names.
+     */
+    protected function fuzzyMatchCharacterName(string $aiName, array $knownNames): ?string
+    {
+        $aiLower = strtolower(trim($aiName));
+        foreach ($knownNames as $name) {
+            $nameLower = strtolower(trim($name));
+            if ($aiLower === $nameLower) return $name;
+            if (str_contains($aiLower, $nameLower) || str_contains($nameLower, $aiLower)) return $name;
+        }
+        // Try partial match (first word)
+        $aiFirst = explode(' ', $aiLower)[0] ?? '';
+        foreach ($knownNames as $name) {
+            $nameFirst = strtolower(explode(' ', trim($name))[0] ?? '');
+            if ($aiFirst === $nameFirst && strlen($aiFirst) > 2) return $name;
+        }
+        return null;
+    }
+
+    /**
+     * Manually swap the face order for a shot (swaps which audio goes to which face).
+     * Called from the UI when the auto-detection got the face positions wrong.
+     */
+    public function swapSpeakerFaces(int $sceneIndex = 0, int $shotIndex = 0): void
+    {
+        $decomposed = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? null;
+        if (!$decomposed || !isset($decomposed['shots'][$shotIndex])) return;
+
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $charactersInShot = $shot['charactersInShot'] ?? [];
+        if (count($charactersInShot) < 2) return;
+
+        // Swap faceOrder (or create it reversed from charactersInShot)
+        $currentFaceOrder = $shot['faceOrder'] ?? $charactersInShot;
+        $shot['faceOrder'] = array_reverse($currentFaceOrder);
+
+        // Also swap audio URLs and durations if already generated
+        if (!empty($shot['audioUrl']) && !empty($shot['audioUrl2'])) {
+            $tempUrl = $shot['audioUrl'];
+            $tempDuration = $shot['audioDuration'] ?? null;
+            $tempVoiceId = $shot['voiceId'] ?? null;
+
+            $shot['audioUrl'] = $shot['audioUrl2'];
+            $shot['audioDuration'] = $shot['audioDuration2'] ?? null;
+            $shot['voiceId'] = $shot['voiceId2'] ?? null;
+
+            $shot['audioUrl2'] = $tempUrl;
+            $shot['audioDuration2'] = $tempDuration;
+            $shot['voiceId2'] = $tempVoiceId;
+        }
+
+        // Swap dialogueSpeakers
+        if (!empty($shot['dialogueSpeakers']) && count($shot['dialogueSpeakers']) >= 2) {
+            $shot['dialogueSpeakers'] = array_reverse($shot['dialogueSpeakers']);
+        }
+
+        // Swap speakingCharacters
+        if (!empty($shot['speakingCharacters']) && count($shot['speakingCharacters']) >= 2) {
+            $shot['speakingCharacters'] = array_reverse($shot['speakingCharacters']);
+        }
+
+        // Reset video status since audio mapping changed
+        if (($shot['videoStatus'] ?? '') === 'ready') {
+            $shot['videoStatus'] = 'pending';
+            $shot['videoUrl'] = null;
+        }
+
+        $this->saveProject();
+
+        \Log::info('swapSpeakerFaces: Swapped face order', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'newFaceOrder' => $shot['faceOrder'],
+        ]);
+    }
+
+    /**
      * Get a voice ID for a specific speaker name.
      * Tries character bible, then infers from character description in the viral idea.
      */
@@ -27068,6 +27228,21 @@ PROMPT;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+
+                            // Auto-detect character face order for multi-character dialogue shots
+                            $shotChars = $shot['charactersInShot'] ?? [];
+                            if (count($shotChars) >= 2 && $this->isSocialContentMode()) {
+                                $idea = $this->concept['socialContent']
+                                    ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+                                    ?? [];
+                                $characters = $idea['characters'] ?? [];
+                                if (count($characters) >= 2) {
+                                    $faceOrder = $this->detectCharacterFaceOrder($result['imageUrl'], $characters);
+                                    if (!empty($faceOrder)) {
+                                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['faceOrder'] = $faceOrder;
+                                    }
+                                }
+                            }
                         } elseif (isset($result['jobId'])) {
                             // Async job - store for polling
                             $this->pendingJobs["shot_{$sceneIndex}_{$shotIndex}"] = [
@@ -30786,11 +30961,48 @@ PROMPT;
                     $extraAnimOptions['person_count'] = 'multi';
                     $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
 
+                    // Face-order correction: faceOrder stores the actual left-to-right character order
+                    // detected by Gemini Vision after image generation. If it differs from charactersInShot
+                    // order (which determines speaker1→audioUrl, speaker2→audioUrl2), swap audio tracks
+                    // so that each voice plays from the correct face.
+                    // wav_url → Face 0 (leftmost), wav_url_2 → Face 1 (rightmost)
+                    $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
+                    $speaker1Name = $charactersInShot[0] ?? '';
+                    $audioUrl2ForSync = $shot['audioUrl2'];
+
+                    if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
+                        $leftFace = strtolower(trim($faceOrder[0]));
+                        $sp1Lower = strtolower(trim($speaker1Name));
+
+                        // Check if speaker1 (whose audio is in $audioUrl) matches the left face
+                        $speaker1IsLeftFace = ($leftFace === $sp1Lower)
+                            || str_contains($leftFace, $sp1Lower)
+                            || str_contains($sp1Lower, $leftFace);
+
+                        if (!$speaker1IsLeftFace) {
+                            // Speaker1's audio should go to Face 1 (right), not Face 0 (left)
+                            // Swap audio tracks so correct voice goes to correct face
+                            \Log::info('InfiniteTalk: SWAPPING audio tracks — face order differs from speaker order', [
+                                'faceOrder' => $faceOrder,
+                                'speaker1' => $speaker1Name,
+                                'speaker2' => $charactersInShot[1] ?? '',
+                                'action' => 'audioUrl↔audioUrl2 swapped before timeline sync',
+                            ]);
+
+                            $tempAudioUrl = $audioUrl;
+                            $tempDuration = $audioDuration;
+                            $audioUrl = $audioUrl2ForSync;
+                            $audioDuration = $audioDuration2Val;
+                            $audioUrl2ForSync = $tempAudioUrl;
+                            $audioDuration2Val = $tempDuration;
+                        }
+                    }
+
                     $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
                         $this->projectId ?? 0,
                         $audioUrl,
                         (float) $audioDuration,
-                        $shot['audioUrl2'],
+                        $audioUrl2ForSync,
                         $audioDuration2Val
                     );
 
@@ -30802,11 +31014,13 @@ PROMPT;
                             'totalDuration' => $timelineSync['totalDuration'],
                             'videoDuration' => $duration,
                             'charactersInShot' => $charactersInShot,
+                            'faceOrder' => $faceOrder,
                         ]);
                     } else {
-                        $extraAnimOptions['audio_url_2'] = $shot['audioUrl2'];
+                        $extraAnimOptions['audio_url_2'] = $audioUrl2ForSync;
                         \Log::warning('InfiniteTalk: MULTI mode (dialogue) - timeline sync failed, using raw audio', [
                             'charactersInShot' => $charactersInShot,
+                            'faceOrder' => $faceOrder,
                         ]);
                     }
                 } elseif ($hasMultipleFaces) {
@@ -30818,12 +31032,13 @@ PROMPT;
 
                     // Face ordering: FaceDetectMask sorts faces left-to-right
                     // wav_url → Face 0 (leftmost), wav_url_2 → Face 1
+                    // Use faceOrder (from Gemini Vision detection) if available, fallback to charactersInShot
                     $speakingChar = $shot['speakingCharacter'] ?? null;
+                    $faceOrderMono = $shot['faceOrder'] ?? $charactersInShot;
 
-                    if (count($charactersInShot) >= 2) {
-                        // charactersInShot order = prompt order = left-to-right face order
-                        // (buildSubjectComponent outputs "two people, CharA and CharB" — CharA is left)
-                        $speakerIndex = $speakingChar ? array_search($speakingChar, $charactersInShot) : 0;
+                    if (count($faceOrderMono) >= 2) {
+                        // Use detected face order for accurate speaker-to-face mapping
+                        $speakerIndex = $speakingChar ? array_search($speakingChar, $faceOrderMono) : 0;
                     } else {
                         $speakerIndex = 0;
                     }

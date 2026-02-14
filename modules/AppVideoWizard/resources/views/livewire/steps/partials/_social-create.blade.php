@@ -12,6 +12,8 @@
     $audioSource = $shot['audioSource'] ?? null;
     $isDialogueShot = ($shot['speechType'] ?? '') === 'dialogue' && count($shot['charactersInShot'] ?? []) >= 2;
     $selectedIdea = $concept['socialContent'] ?? ($conceptVariations[$selectedConceptIndex ?? 0] ?? []);
+    $charactersInShot = $shot['charactersInShot'] ?? [];
+    $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
 @endphp
 
 <style>
@@ -203,6 +205,15 @@
     .vw-social-status-badge.processing { background: rgba(249,115,22,0.2); color: #fb923c; animation: vw-pulse-badge 1.5s infinite; }
     .vw-social-status-badge.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
     @keyframes vw-pulse-badge { 0%,100%{opacity:0.6} 50%{opacity:1} }
+    .vw-social-swap-btn {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.2rem 0.5rem; border-radius: 0.3rem;
+        background: rgba(139,92,246,0.15); color: #a78bfa;
+        border: 1px solid rgba(139,92,246,0.3);
+        font-size: 0.7rem; font-weight: 600; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .vw-social-swap-btn:hover { background: rgba(139,92,246,0.3); color: #c4b5fd; }
 
     .vw-social-progress-bar {
         margin-top: 0.75rem;
@@ -617,6 +628,23 @@
                         </span>
                     @endif
                 </button>
+
+                {{-- Swap Speaker Faces button for dialogue shots --}}
+                @if($isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')
+                    <div class="vw-social-face-order" style="margin-top: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
+                            <span><i class="fa-solid fa-arrow-left"></i> {{ $faceOrder[0] ?? '?' }}</span>
+                            <span style="color: #475569;">|</span>
+                            <span>{{ $faceOrder[1] ?? '?' }} <i class="fa-solid fa-arrow-right"></i></span>
+                            <button class="vw-social-swap-btn"
+                                    wire:click="swapSpeakerFaces(0, 0)"
+                                    wire:loading.attr="disabled"
+                                    title="{{ __('Swap which voice plays on which face') }}">
+                                <i class="fa-solid fa-right-left"></i> {{ __('Swap') }}
+                            </button>
+                        </div>
+                    </div>
+                @endif
 
                 @if(in_array($videoStatus, ['generating', 'processing']))
                     <div class="vw-social-progress-bar">
