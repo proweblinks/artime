@@ -31542,18 +31542,40 @@ PROMPT;
      */
     protected function getCharacterSpecies(string $characterName, array $characterBible): string
     {
+        // Check character bible first
         $characters = $characterBible['characters'] ?? $characterBible;
         foreach ($characters as $char) {
             if (strcasecmp($char['name'] ?? '', $characterName) !== 0) continue;
             $desc = strtolower(($char['description'] ?? '') . ' ' . ($char['appearance'] ?? ''));
-            if (preg_match('/\b(cat|kitten|feline)\b/', $desc)) return 'cat';
-            if (preg_match('/\b(dog|puppy|canine)\b/', $desc)) return 'dog';
-            if (preg_match('/\b(bird|parrot|owl|eagle)\b/', $desc)) return 'bird';
-            if (preg_match('/\b(robot|android|cyborg|ai)\b/', $desc)) return 'robot';
-            if (preg_match('/\b(fish|shark|dolphin)\b/', $desc)) return 'fish';
-            if (preg_match('/\b(bear|gorilla|monkey|ape)\b/', $desc)) return 'animal';
+            if ($detected = $this->detectSpeciesFromDesc($desc)) return $detected;
         }
+
+        // Fallback: check social content idea characters (descriptions are often here, not in bible)
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        foreach ($idea['characters'] ?? [] as $char) {
+            if (strcasecmp($char['name'] ?? '', $characterName) !== 0) continue;
+            $desc = strtolower(($char['description'] ?? '') . ' ' . ($char['appearance'] ?? ''));
+            if ($detected = $this->detectSpeciesFromDesc($desc)) return $detected;
+        }
+
         return 'human';
+    }
+
+    /**
+     * Detect species from a description string.
+     */
+    protected function detectSpeciesFromDesc(string $desc): ?string
+    {
+        if (empty(trim($desc))) return null;
+        if (preg_match('/\b(cat|kitten|feline|tabby)\b/', $desc)) return 'cat';
+        if (preg_match('/\b(dog|puppy|canine)\b/', $desc)) return 'dog';
+        if (preg_match('/\b(bird|parrot|owl|eagle)\b/', $desc)) return 'bird';
+        if (preg_match('/\b(robot|android|cyborg|ai)\b/', $desc)) return 'robot';
+        if (preg_match('/\b(fish|shark|dolphin)\b/', $desc)) return 'fish';
+        if (preg_match('/\b(bear|gorilla|monkey|ape)\b/', $desc)) return 'animal';
+        return null;
     }
 
     /**
@@ -31614,8 +31636,18 @@ PROMPT;
      */
     protected function findCharacterInBible(string $name): array
     {
+        // Check character bible first
         $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
         foreach ($characters as $char) {
+            if (strcasecmp($char['name'] ?? '', $name) === 0 && !empty($char['description'] ?? '')) {
+                return $char;
+            }
+        }
+        // Fallback: social content idea characters (often have richer descriptions)
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        foreach ($idea['characters'] ?? [] as $char) {
             if (strcasecmp($char['name'] ?? '', $name) === 0) return $char;
         }
         return ['name' => $name, 'description' => ''];
