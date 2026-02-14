@@ -31462,8 +31462,9 @@ PROMPT;
 
     /**
      * Build prompt for InfiniteTalk single-person mode.
-     * When multiple characters are in the frame, explicitly identifies the speaker
-     * and instructs non-speaking characters to remain still (no lip movement).
+     * Creates rich scene direction from actual script content, character description,
+     * and species-specific animation. When multiple characters are in frame,
+     * explicitly identifies the speaker and keeps others still.
      */
     protected function buildInfiniteTalkPrompt(array $shot, array $scene): string
     {
@@ -31474,18 +31475,26 @@ PROMPT;
 
         $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
 
-        // Build a brief physical identifier for a character from the bible
-        $describeCharacter = function(?string $name) use ($characterBible): string {
+        // Pull rich context from social content idea
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        $situation = $idea['situation'] ?? $scene['visualDescription'] ?? '';
+        $ideaCharacters = $idea['characters'] ?? [];
+
+        // Get full character description
+        $getCharDesc = function(?string $name) use ($ideaCharacters, $characterBible): string {
             if (!$name) return '';
-            foreach ($characterBible as $char) {
-                if (strcasecmp($char['name'] ?? '', $name) === 0) {
-                    $gender = $char['gender'] ?? '';
-                    $appearance = $char['appearance'] ?? $char['description'] ?? '';
-                    if ($gender && $appearance) {
-                        $brief = strtok($appearance, '.') ?: $appearance;
-                        return strtolower($gender) . ', ' . trim($brief);
-                    }
-                    if ($gender) return strtolower($gender);
+            foreach ($ideaCharacters as $c) {
+                if (strcasecmp($c['name'] ?? '', $name) === 0) {
+                    $desc = $c['description'] ?? '';
+                    $expr = $c['expression'] ?? '';
+                    return $expr ? "{$desc}, {$expr}" : $desc;
+                }
+            }
+            foreach ($characterBible as $c) {
+                if (strcasecmp($c['name'] ?? '', $name) === 0) {
+                    return $c['appearance'] ?? $c['description'] ?? '';
                 }
             }
             return '';
@@ -31494,31 +31503,78 @@ PROMPT;
         $multipleInFrame = count($charactersInShot) >= 2
             || count($scene['characters'] ?? []) >= 2;
 
-        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
+        // Get monologue text for emotional arc
+        $speechSegments = $scene['speechSegments'] ?? [];
+        $monoText = '';
+        foreach ($speechSegments as $seg) {
+            if (strcasecmp($seg['speaker'] ?? '', $speakerName ?? '') === 0) {
+                $monoText = $seg['text'] ?? '';
+                break;
+            }
+        }
+        if (!$monoText) {
+            $monoText = $idea['audioDescription'] ?? '';
+        }
 
-        // Single character in frame — rich emotional prompt with species-aware animation
+        $species = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
+        $speciesDirection = $this->getSpeciesAnimationDirection($species, 'speaker');
+        $speakerDesc = $getCharDesc($speakerName);
+
+        // Single character in frame
         if (!$multipleInFrame) {
-            $who = $speakerName ?: 'the person';
-            $species = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
-            $speciesDirection = $this->getSpeciesAnimationDirection($species, 'speaker');
+            $who = $speakerName ?: 'the character';
+            $parts = [];
 
-            return "{$who} speaking with passionate intensity, {$speciesDirection}, "
-                 . "{$emotionIntensity}, "
-                 . "{$speakerPhysicality}, "
-                 . ($species === 'human'
-                     ? "eyes alive with thought, breathing naturally between phrases, micro-expressions shifting with each emotional beat"
-                     : "exaggerated facial movements for clear visual speech, whole face animated with character personality");
+            // Scene setting
+            $sceneSummary = $this->condenseToSentence($situation, 100);
+            if ($sceneSummary) {
+                $parts[] = "SCENE: {$sceneSummary}";
+            }
+
+            // Character direction
+            $charBlock = "{$who}";
+            if ($speakerDesc) $charBlock .= " ({$this->condenseToSentence($speakerDesc, 80)})";
+            $charBlock .= " delivering a monologue: {$speciesDirection}, {$emotionIntensity}";
+            if ($monoText) {
+                $arc = $this->detectLineEmotion($monoText);
+                $charBlock .= ". Performance: {$arc}";
+            }
+            $parts[] = $charBlock;
+
+            $parts[] = ($species === 'human')
+                ? "Eyes alive with thought, breathing naturally between phrases, micro-expressions shifting with each emotional beat, NO repetitive head nodding"
+                : "Exaggerated facial movements for clear visual speech, whole face animated with character personality, NO repetitive head nodding";
+
+            return implode(". \n", $parts);
         }
 
         // Multiple characters in frame — specify speaker + silent characters
-        $speakerDesc = $describeCharacter($speakerName);
         $speakerLabel = $speakerName ?: 'the speaking character';
         if ($speakerDesc) {
-            $speakerLabel = "{$speakerName} ({$speakerDesc})";
+            $speakerLabel = "{$speakerName} ({$this->condenseToSentence($speakerDesc, 60)})";
         }
 
-        $silentParts = [];
-        $otherNames = array_filter($charactersInShot, fn($n) => strcasecmp($n, $speakerName ?? '') !== 0);
+        $speakerSpecies = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
+        $speakerAnimation = $this->getSpeciesAnimationDirection($speakerSpecies, 'speaker');
+
+        $parts = [];
+
+        // Scene setting
+        $sceneSummary = $this->condenseToSentence($situation, 100);
+        if ($sceneSummary) {
+            $parts[] = "SCENE: {$sceneSummary}";
+        }
+
+        // Speaker direction
+        $speakerBlock = "Only {$speakerLabel} is speaking — {$speakerAnimation}, {$emotionIntensity}";
+        if ($monoText) {
+            $arc = $this->detectLineEmotion($monoText);
+            $speakerBlock .= ". Performance: {$arc}";
+        }
+        $parts[] = $speakerBlock;
+
+        // Silent characters
+        $otherNames = array_values(array_filter($charactersInShot, fn($n) => strcasecmp($n, $speakerName ?? '') !== 0));
         if (empty($otherNames)) {
             foreach ($scene['characters'] ?? [] as $charName) {
                 $name = is_array($charName) ? ($charName['name'] ?? '') : $charName;
@@ -31527,33 +31583,20 @@ PROMPT;
                 }
             }
         }
-        foreach ($otherNames as $otherName) {
-            $otherDesc = $describeCharacter($otherName);
-            $silentParts[] = $otherDesc
-                ? "{$otherName} ({$otherDesc})"
-                : $otherName;
+
+        if (!empty($otherNames)) {
+            foreach ($otherNames as $otherName) {
+                $otherDesc = $getCharDesc($otherName);
+                $listenerSpecies = $this->getCharacterSpecies($otherName, $characterBible);
+                $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
+                $label = $otherDesc ? "{$otherName} ({$this->condenseToSentence($otherDesc, 50)})" : $otherName;
+                $parts[] = "{$label}: {$listenerAnimation}, absolutely NO speaking or mouth opening";
+            }
         }
 
-        $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
+        $parts[] = "NO repetitive head nodding from any character";
 
-        // Species-aware speaker animation
-        $speakerSpecies = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
-        $speakerAnimation = $this->getSpeciesAnimationDirection($speakerSpecies, 'speaker');
-
-        $prompt = "Only {$speakerLabel} is speaking — {$speakerAnimation}, {$emotionIntensity}, "
-                . "{$speakerPhysicality}. ";
-
-        if (!empty($silentParts)) {
-            $silentList = implode(' and ', $silentParts);
-            // Get listener species for species-appropriate idle animation
-            $firstListenerName = $otherNames[0] ?? '';
-            $listenerSpecies = $this->getCharacterSpecies($firstListenerName, $characterBible);
-            $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
-
-            $prompt .= "{$silentList}: {$listenerAnimation}, absolutely no speaking or mouth opening.";
-        }
-
-        return $prompt;
+        return implode(". \n", $parts);
     }
 
     /**
@@ -31763,7 +31806,8 @@ PROMPT;
 
     /**
      * Build prompt for InfiniteTalk two-person dialogue mode (multi).
-     * Describes an intense conversation between two characters with turn-taking.
+     * Creates a rich, cinematic scene direction from the actual script content,
+     * character descriptions, emotional arc, and species-specific animation.
      */
     protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
     {
@@ -31778,37 +31822,155 @@ PROMPT;
         if (is_array($char1)) $char1 = $char1['name'] ?? 'Person A';
         if (is_array($char2)) $char2 = $char2['name'] ?? 'Person B';
 
-        // Get brief physical descriptors from character bible
-        $describeCharacter = function(string $name) use ($characterBible): string {
-            foreach ($characterBible as $char) {
-                if (strcasecmp($char['name'] ?? '', $name) === 0) {
-                    $gender = $char['gender'] ?? '';
-                    if ($gender) return strtolower($gender);
+        // Pull rich scene context from social content idea
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        $situation = $idea['situation'] ?? $scene['visualDescription'] ?? '';
+        $dialogueLines = $idea['dialogueLines'] ?? [];
+        $ideaCharacters = $idea['characters'] ?? [];
+
+        // Get full character descriptions (appearance + expression)
+        $getCharDesc = function(string $name) use ($ideaCharacters, $characterBible): string {
+            foreach ($ideaCharacters as $c) {
+                if (strcasecmp($c['name'] ?? '', $name) === 0) {
+                    $desc = $c['description'] ?? '';
+                    $expr = $c['expression'] ?? '';
+                    return $expr ? "{$desc}, expression: {$expr}" : $desc;
+                }
+            }
+            foreach ($characterBible as $c) {
+                if (strcasecmp($c['name'] ?? '', $name) === 0) {
+                    return $c['appearance'] ?? $c['description'] ?? '';
                 }
             }
             return '';
         };
 
-        $desc1 = $describeCharacter($char1);
-        $desc2 = $describeCharacter($char2);
-        $label1 = $desc1 ? "{$char1} ({$desc1})" : $char1;
-        $label2 = $desc2 ? "{$char2} ({$desc2})" : $char2;
+        $desc1 = $getCharDesc($char1);
+        $desc2 = $getCharDesc($char2);
 
-        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
-        $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
-        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
-
-        // Species-aware animation for each character
+        // Species detection
         $species1 = $this->getCharacterSpecies($char1, $characterBible);
         $species2 = $this->getCharacterSpecies($char2, $characterBible);
         $anim1 = $this->getSpeciesAnimationDirection($species1, 'speaker');
         $anim2 = $this->getSpeciesAnimationDirection($species2, 'speaker');
+        $listen1 = $this->getSpeciesAnimationDirection($species1, 'listener');
+        $listen2 = $this->getSpeciesAnimationDirection($species2, 'listener');
 
-        return "Intense two-person conversation between {$label1} and {$label2}: "
-             . "when {$char1} speaks — {$anim1}, {$speakerPhysicality}, "
-             . "when {$char2} speaks — {$anim2}, "
-             . "the listener reacts with subtle body language but NO mouth movement, "
-             . "{$emotionIntensity}, dynamic facial expressions reacting to each word";
+        // Build dialogue arc summary — what each character says and how emotion escalates
+        $char1Lines = [];
+        $char2Lines = [];
+        foreach ($dialogueLines as $line) {
+            $speaker = $line['speaker'] ?? '';
+            $text = $line['text'] ?? '';
+            if (strcasecmp($speaker, $char1) === 0) {
+                $char1Lines[] = $text;
+            } elseif (strcasecmp($speaker, $char2) === 0) {
+                $char2Lines[] = $text;
+            }
+        }
+
+        // Condense each character's dialogue to a brief emotional arc
+        $arcSummary1 = !empty($char1Lines) ? $this->summarizeDialogueArc($char1Lines) : '';
+        $arcSummary2 = !empty($char2Lines) ? $this->summarizeDialogueArc($char2Lines) : '';
+
+        // Build the cinematic prompt
+        $parts = [];
+
+        // Scene setting
+        $sceneSummary = $this->condenseToSentence($situation, 120);
+        if ($sceneSummary) {
+            $parts[] = "SCENE: {$sceneSummary}";
+        }
+
+        // Character 1 direction
+        $c1Block = "{$char1}";
+        if ($desc1) $c1Block .= " ({$this->condenseToSentence($desc1, 80)})";
+        $c1Block .= " — when speaking: {$anim1}";
+        if ($arcSummary1) $c1Block .= ". Emotional arc: {$arcSummary1}";
+        $c1Block .= ". When listening: {$listen1}, absolutely NO mouth movement";
+        $parts[] = $c1Block;
+
+        // Character 2 direction
+        $c2Block = "{$char2}";
+        if ($desc2) $c2Block .= " ({$this->condenseToSentence($desc2, 80)})";
+        $c2Block .= " — when speaking: {$anim2}";
+        if ($arcSummary2) $c2Block .= ". Emotional arc: {$arcSummary2}";
+        $c2Block .= ". When listening: {$listen2}, absolutely NO mouth movement";
+        $parts[] = $c2Block;
+
+        // Dynamics
+        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
+        $parts[] = "DYNAMICS: conversation escalates with each exchange, {$emotionIntensity}, "
+                 . "active speaker has dramatic expressive mouth movement synced to audio, "
+                 . "NO repetitive head nodding from either character";
+
+        return implode(". \n", $parts);
+    }
+
+    /**
+     * Summarize a character's dialogue lines into a brief emotional arc description.
+     */
+    protected function summarizeDialogueArc(array $lines): string
+    {
+        if (empty($lines)) return '';
+
+        $count = count($lines);
+        if ($count === 1) {
+            return $this->detectLineEmotion($lines[0]);
+        }
+
+        $first = $this->detectLineEmotion($lines[0]);
+        $last = $this->detectLineEmotion($lines[$count - 1]);
+
+        if ($first === $last) return $first;
+        return "starts {$first}, escalates to {$last}";
+    }
+
+    /**
+     * Detect the emotional quality of a dialogue line from its content.
+     */
+    protected function detectLineEmotion(string $line): string
+    {
+        $upper = strtoupper($line);
+        $lowerLine = strtolower($line);
+
+        // Count emphasis markers
+        $exclamations = substr_count($line, '!');
+        $caps = preg_match_all('/[A-Z]{3,}/', $line);
+        $questions = substr_count($line, '?');
+
+        if ($exclamations >= 2 || $caps >= 2) return 'explosive rage — screaming, face contorted with fury';
+        if ($exclamations >= 1 && $caps >= 1) return 'angry outburst — voice raised, aggressive gestures';
+        if ($questions >= 1 && $exclamations >= 1) return 'incredulous disbelief — demanding answers';
+        if ($questions >= 1) return 'questioning with rising frustration';
+
+        if (preg_match('/\b(worst|hate|terrible|horrible|disgusting)\b/i', $line)) return 'bitter contempt — sneering with disgust';
+        if (preg_match('/\b(love|beautiful|amazing|perfect|masterpiece)\b/i', $line)) return 'passionate pride — chest puffing with conviction';
+        if (preg_match('/\b(meow|hiss|purr|growl|bark|roar)\b/i', $line)) return 'primal fury — losing composure completely';
+        if (preg_match('/\b(sir|please|excuse)\b/i', $line)) return 'strained politeness — barely containing frustration';
+
+        return 'measured delivery with building intensity';
+    }
+
+    /**
+     * Condense a text to a max character length, cutting at sentence/phrase boundary.
+     */
+    protected function condenseToSentence(string $text, int $maxLen): string
+    {
+        $text = trim($text);
+        if (strlen($text) <= $maxLen) return $text;
+
+        $cut = substr($text, 0, $maxLen);
+        // Cut at last sentence boundary or comma
+        $lastPeriod = strrpos($cut, '.');
+        $lastComma = strrpos($cut, ',');
+        $cutAt = max($lastPeriod, $lastComma);
+        if ($cutAt > $maxLen * 0.4) {
+            return trim(substr($cut, 0, $cutAt));
+        }
+        return trim($cut);
     }
 
     /**
