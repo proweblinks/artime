@@ -31879,7 +31879,7 @@ PROMPT;
         $parts = [];
 
         // Scene setting
-        $sceneSummary = $this->condenseToSentence($situation, 120);
+        $sceneSummary = $this->condenseToSentence($situation, 250);
         if ($sceneSummary) {
             $parts[] = "SCENE: {$sceneSummary}";
         }
@@ -31966,9 +31966,12 @@ PROMPT;
         // Cut at last sentence boundary or comma
         $lastPeriod = strrpos($cut, '.');
         $lastComma = strrpos($cut, ',');
-        $cutAt = max($lastPeriod, $lastComma);
-        if ($cutAt > $maxLen * 0.4) {
-            return trim(substr($cut, 0, $cutAt));
+        // Prefer sentence boundary (period) first, then comma
+        if ($lastPeriod !== false && $lastPeriod > 20) {
+            return trim(substr($cut, 0, $lastPeriod + 1));
+        }
+        if ($lastComma !== false && $lastComma > 20) {
+            return trim(substr($cut, 0, $lastComma));
         }
         return trim($cut);
     }
