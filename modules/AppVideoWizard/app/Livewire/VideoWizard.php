@@ -23768,20 +23768,19 @@ PROMPT;
     protected function generateAIMonologue(string $prompt): array
     {
         try {
-            $aiProvider = $this->content['aiModelTier'] ?? 'economy';
-
             // Use the AI facade for text generation
-            $result = \App\Facades\AI::process($prompt, 'text', [
-                'model' => $this->getAIModelForTier($aiProvider),
-                'maxTokens' => 400,
+            $result = \AI::process($prompt, 'text_generation', [
+                'teamId' => session('current_team_id', 0),
+                'maxResult' => 1,
+                'max_tokens' => 400,
                 'temperature' => 0.7,
-            ], session('current_team_id', 0));
+            ]);
 
             if (!empty($result['error'])) {
                 throw new \Exception($result['error']);
             }
 
-            $text = $result['data'][0] ?? $result['text'] ?? '';
+            $text = $result['content'] ?? $result['data'][0] ?? $result['text'] ?? '';
 
             // Clean up the response
             $text = trim($text);
