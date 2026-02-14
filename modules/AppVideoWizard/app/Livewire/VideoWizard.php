@@ -31057,58 +31057,65 @@ PROMPT;
                     $extraAnimOptions['person_count'] = 'multi';
                     $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
 
-                    // Face-order correction: faceOrder stores the actual left-to-right character order
-                    // detected by Gemini Vision after image generation. If it differs from charactersInShot
-                    // order (which determines speaker1→audioUrl, speaker2→audioUrl2), swap audio tracks
-                    // so that each voice plays from the correct face.
-                    // wav_url → Face 0 (leftmost), wav_url_2 → Face 1 (rightmost)
+                    // Face-order detection: faceOrder stores left-to-right character positions
+                    // from Gemini Vision. We need to:
+                    // 1. Build timeline in SCRIPT ORDER (speaker1 first, speaker2 second)
+                    // 2. Then assign output tracks to the correct face positions
                     $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
                     $speaker1Name = $charactersInShot[0] ?? '';
+                    $speaker2Name = $charactersInShot[1] ?? '';
                     $audioUrl2ForSync = $shot['audioUrl2'];
 
+                    // Determine if speaker1 is on the left or right face
+                    $speaker1IsLeftFace = true; // default: assume script order matches face order
                     if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
                         $leftFace = strtolower(trim($faceOrder[0]));
                         $sp1Lower = strtolower(trim($speaker1Name));
-
-                        // Check if speaker1 (whose audio is in $audioUrl) matches the left face
                         $speaker1IsLeftFace = ($leftFace === $sp1Lower)
                             || str_contains($leftFace, $sp1Lower)
                             || str_contains($sp1Lower, $leftFace);
-
-                        if (!$speaker1IsLeftFace) {
-                            // Speaker1's audio should go to Face 1 (right), not Face 0 (left)
-                            // Swap audio tracks so correct voice goes to correct face
-                            \Log::info('InfiniteTalk: SWAPPING audio tracks — face order differs from speaker order', [
-                                'faceOrder' => $faceOrder,
-                                'speaker1' => $speaker1Name,
-                                'speaker2' => $charactersInShot[1] ?? '',
-                                'action' => 'audioUrl↔audioUrl2 swapped before timeline sync',
-                            ]);
-
-                            $tempAudioUrl = $audioUrl;
-                            $tempDuration = $audioDuration;
-                            $audioUrl = $audioUrl2ForSync;
-                            $audioDuration = $audioDuration2Val;
-                            $audioUrl2ForSync = $tempAudioUrl;
-                            $audioDuration2Val = $tempDuration;
-                        }
                     }
 
+                    // Step 1: Build timeline in SCRIPT ORDER — speaker1 always speaks first in time
+                    // audioUrl = speaker1's raw audio, audioUrl2ForSync = speaker2's raw audio
                     $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
                         $this->projectId ?? 0,
-                        $audioUrl,
+                        $audioUrl,              // speaker1 audio → plays first (0 to duration1)
                         (float) $audioDuration,
-                        $audioUrl2ForSync,
+                        $audioUrl2ForSync,      // speaker2 audio → plays second (duration1+pause to end)
                         $audioDuration2Val
                     );
 
                     if ($timelineSync['success']) {
-                        $audioUrl = $timelineSync['audioUrl1'];
-                        $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
+                        // timelineSync['audioUrl1'] = Track with [speaker1 audio][silence]
+                        // timelineSync['audioUrl2'] = Track with [silence][speaker2 audio]
+
+                        if ($speaker1IsLeftFace) {
+                            // Speaker1 is left face → Track1 to wav_url (Face 0), Track2 to wav_url_2 (Face 1)
+                            $audioUrl = $timelineSync['audioUrl1'];
+                            $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
+                        } else {
+                            // Speaker1 is RIGHT face → swap output tracks
+                            // Track1 (speaker1 audio first) → wav_url_2 (Face 1 / right = speaker1)
+                            // Track2 (speaker2 audio second) → wav_url (Face 0 / left = speaker2)
+                            $audioUrl = $timelineSync['audioUrl2'];
+                            $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl1'];
+
+                            \Log::info('InfiniteTalk: SWAPPING timeline tracks — speaker1 is on the right face', [
+                                'faceOrder' => $faceOrder,
+                                'speaker1' => $speaker1Name,
+                                'speaker2' => $speaker2Name,
+                                'action' => 'Track1→wav_url_2 (right/speaker1), Track2→wav_url (left/speaker2)',
+                                'timeline' => "0-{$audioDuration}s: {$speaker1Name} speaks (right), then {$speaker2Name} speaks (left)",
+                            ]);
+                        }
+
                         $duration = (int) ceil($timelineSync['totalDuration'] + 1.0);
                         \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
                             'totalDuration' => $timelineSync['totalDuration'],
                             'videoDuration' => $duration,
+                            'speakingOrder' => "{$speaker1Name} first, {$speaker2Name} second",
+                            'speaker1Face' => $speaker1IsLeftFace ? 'left (Face 0)' : 'right (Face 1)',
                             'charactersInShot' => $charactersInShot,
                             'faceOrder' => $faceOrder,
                         ]);
@@ -31189,11 +31196,11 @@ PROMPT;
                 }
             }
 
-            // InfiniteTalk max_frame safety cap (base64 output size guard)
-            // $duration already accounts for timeline-synced total when dialogue is active
+            // InfiniteTalk max_frame — must cover full dialogue duration
+            // For dialogue shots, $duration includes both speakers + pause + padding
             if ($selectedModel === 'infinitetalk') {
                 $fps = 24;
-                $maxSafeDuration = 30;
+                $maxSafeDuration = ($isDialogueShot && $hasMultipleFaces) ? 35 : 30;
                 $extraAnimOptions['max_frame'] = min((int)($duration * $fps), $maxSafeDuration * $fps);
             }
 
@@ -31806,8 +31813,9 @@ PROMPT;
 
     /**
      * Build prompt for InfiniteTalk two-person dialogue mode (multi).
-     * Creates a rich, cinematic scene direction from the actual script content,
-     * character descriptions, emotional arc, and species-specific animation.
+     * Creates a TIMELINE-BASED cinematic scene direction that tells the model
+     * exactly what each character does in each phase of the dialogue.
+     * The timeline matches the audio track order: speaker1 (charactersInShot[0]) speaks first.
      */
     protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
     {
@@ -31816,13 +31824,13 @@ PROMPT;
         $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
         $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
 
-        // Resolve character names
+        // char1 speaks FIRST in the timeline, char2 speaks SECOND
         $char1 = $speakers[0]['name'] ?? ($charactersInShot[0] ?? ($scene['characters'][0] ?? 'Person A'));
         $char2 = $speakers[1]['name'] ?? ($charactersInShot[1] ?? ($scene['characters'][1] ?? 'Person B'));
         if (is_array($char1)) $char1 = $char1['name'] ?? 'Person A';
         if (is_array($char2)) $char2 = $char2['name'] ?? 'Person B';
 
-        // Pull rich scene context from social content idea
+        // Pull rich context
         $idea = $this->concept['socialContent']
             ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
             ?? [];
@@ -31830,13 +31838,11 @@ PROMPT;
         $dialogueLines = $idea['dialogueLines'] ?? [];
         $ideaCharacters = $idea['characters'] ?? [];
 
-        // Get full character descriptions (appearance + expression)
+        // Character descriptions
         $getCharDesc = function(string $name) use ($ideaCharacters, $characterBible): string {
             foreach ($ideaCharacters as $c) {
                 if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    $desc = $c['description'] ?? '';
-                    $expr = $c['expression'] ?? '';
-                    return $expr ? "{$desc}, expression: {$expr}" : $desc;
+                    return $c['description'] ?? '';
                 }
             }
             foreach ($characterBible as $c) {
@@ -31847,10 +31853,21 @@ PROMPT;
             return '';
         };
 
+        $getCharExpression = function(string $name) use ($ideaCharacters): string {
+            foreach ($ideaCharacters as $c) {
+                if (strcasecmp($c['name'] ?? '', $name) === 0) {
+                    return $c['expression'] ?? '';
+                }
+            }
+            return '';
+        };
+
         $desc1 = $getCharDesc($char1);
         $desc2 = $getCharDesc($char2);
+        $expr1 = $getCharExpression($char1);
+        $expr2 = $getCharExpression($char2);
 
-        // Species detection
+        // Species + animation directions
         $species1 = $this->getCharacterSpecies($char1, $characterBible);
         $species2 = $this->getCharacterSpecies($char2, $characterBible);
         $anim1 = $this->getSpeciesAnimationDirection($species1, 'speaker');
@@ -31858,7 +31875,7 @@ PROMPT;
         $listen1 = $this->getSpeciesAnimationDirection($species1, 'listener');
         $listen2 = $this->getSpeciesAnimationDirection($species2, 'listener');
 
-        // Build dialogue arc summary — what each character says and how emotion escalates
+        // Extract what each character actually SAYS for action direction
         $char1Lines = [];
         $char2Lines = [];
         foreach ($dialogueLines as $line) {
@@ -31871,42 +31888,96 @@ PROMPT;
             }
         }
 
-        // Condense each character's dialogue to a brief emotional arc
-        $arcSummary1 = !empty($char1Lines) ? $this->summarizeDialogueArc($char1Lines) : '';
-        $arcSummary2 = !empty($char2Lines) ? $this->summarizeDialogueArc($char2Lines) : '';
+        // Build physical action cues from dialogue content
+        $char1Actions = $this->extractPhysicalActions($char1Lines, $expr1, $species1);
+        $char2Actions = $this->extractPhysicalActions($char2Lines, $expr2, $species2);
 
-        // Build the cinematic prompt
+        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
+
+        // Build TIMELINE prompt
         $parts = [];
 
-        // Scene setting
-        $sceneSummary = $this->condenseToSentence($situation, 250);
+        // Scene context
+        $sceneSummary = $this->condenseToSentence($situation, 200);
         if ($sceneSummary) {
             $parts[] = "SCENE: {$sceneSummary}";
         }
 
-        // Character 1 direction
-        $c1Block = "{$char1}";
-        if ($desc1) $c1Block .= " ({$this->condenseToSentence($desc1, 80)})";
-        $c1Block .= " — when speaking: {$anim1}";
-        if ($arcSummary1) $c1Block .= ". Emotional arc: {$arcSummary1}";
-        $c1Block .= ". When listening: {$listen1}, absolutely NO mouth movement";
-        $parts[] = $c1Block;
+        // PHASE 1: char1 speaks first
+        $phase1 = "FIRST HALF — {$char1} speaks";
+        if ($desc1) $phase1 .= " ({$this->condenseToSentence($desc1, 60)})";
+        $phase1 .= ": {$anim1}, {$char1Actions}";
+        $phase1 .= ". Meanwhile {$char2} LISTENS in silence: {$listen2}, absolutely NO mouth movement, NO speaking";
+        $parts[] = $phase1;
 
-        // Character 2 direction
-        $c2Block = "{$char2}";
-        if ($desc2) $c2Block .= " ({$this->condenseToSentence($desc2, 80)})";
-        $c2Block .= " — when speaking: {$anim2}";
-        if ($arcSummary2) $c2Block .= ". Emotional arc: {$arcSummary2}";
-        $c2Block .= ". When listening: {$listen2}, absolutely NO mouth movement";
-        $parts[] = $c2Block;
+        // PHASE 2: char2 responds
+        $phase2 = "SECOND HALF — {$char2} responds";
+        if ($desc2) $phase2 .= " ({$this->condenseToSentence($desc2, 60)})";
+        $phase2 .= ": {$anim2}, {$char2Actions}";
+        $phase2 .= ". Meanwhile {$char1} LISTENS in silence: {$listen1}, absolutely NO mouth movement, NO speaking";
+        $parts[] = $phase2;
 
-        // Dynamics
-        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
-        $parts[] = "DYNAMICS: conversation escalates with each exchange, {$emotionIntensity}, "
-                 . "active speaker has dramatic expressive mouth movement synced to audio, "
+        // Global rules
+        $parts[] = "RULES: only the active speaker moves their mouth synced to audio, "
+                 . "{$emotionIntensity}, "
+                 . "body movement escalates with emotion, "
                  . "NO repetitive head nodding from either character";
 
         return implode(". \n", $parts);
+    }
+
+    /**
+     * Extract physical action cues from dialogue lines and character expression.
+     * Returns a description of what the character physically DOES while speaking.
+     */
+    protected function extractPhysicalActions(array $lines, string $expression, string $species): string
+    {
+        $actions = [];
+
+        // Expression-based actions
+        if ($expression) {
+            $exprLower = strtolower($expression);
+            if (str_contains($exprLower, 'yell') || str_contains($exprLower, 'scream')) {
+                $actions[] = 'leaning forward aggressively, gesturing with hands';
+            }
+            if (str_contains($exprLower, 'frustrat') || str_contains($exprLower, 'angry')) {
+                $actions[] = 'shoulders tensed, sharp jabbing gestures';
+            }
+            if (str_contains($exprLower, 'sarcas') || str_contains($exprLower, 'deadpan')) {
+                $actions[] = 'one eyebrow raised, slow deliberate head movements';
+            }
+            if (str_contains($exprLower, 'smug') || str_contains($exprLower, 'proud')) {
+                $actions[] = 'chin lifted with pride, chest puffed out';
+            }
+        }
+
+        // Dialogue content analysis
+        $allText = strtolower(implode(' ', $lines));
+        $exclamations = 0;
+        foreach ($lines as $line) { $exclamations += substr_count($line, '!'); }
+        $capsWords = 0;
+        foreach ($lines as $line) { $capsWords += preg_match_all('/[A-Z]{3,}/', $line); }
+
+        if ($capsWords >= 2) $actions[] = 'explosive physical energy, whole body emphasizing words';
+        elseif ($exclamations >= 2) $actions[] = 'animated gestures getting bigger with each outburst';
+
+        if (preg_match('/\b(slam|punch|bang|pound|hit)\b/', $allText)) $actions[] = 'slamming hands down with emphasis';
+        if (preg_match('/\b(wave|point|gesture|throw)\b/', $allText)) $actions[] = 'waving and pointing dramatically';
+        if (preg_match('/\b(hiss|arch|leap|claw|scratch)\b/', $allText)) $actions[] = 'arching body aggressively, hackles raised';
+        if (preg_match('/\b(meow|purr|growl)\b/', $allText)) $actions[] = 'primal physical intensity, whole body vibrating';
+
+        // Species-specific physical actions
+        if ($species === 'cat' && empty($actions)) {
+            $actions[] = 'tail lashing, ears flat, body coiled with feline intensity';
+        } elseif ($species === 'dog' && empty($actions)) {
+            $actions[] = 'whole body animated, ears perked, head bobbing with enthusiasm';
+        }
+
+        if (empty($actions)) {
+            $actions[] = 'expressive body language matching the emotional delivery';
+        }
+
+        return implode(', ', $actions);
     }
 
     /**
