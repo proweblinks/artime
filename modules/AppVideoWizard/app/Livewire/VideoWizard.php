@@ -23769,12 +23769,12 @@ PROMPT;
     {
         try {
             // Use the AI facade for text generation
-            $result = \AI::process($prompt, 'text_generation', [
-                'teamId' => session('current_team_id', 0),
+            $teamId = session('current_team_id', 0);
+            $result = \AI::process($prompt, 'text', [
                 'maxResult' => 1,
                 'max_tokens' => 400,
                 'temperature' => 0.7,
-            ]);
+            ], $teamId);
 
             if (!empty($result['error'])) {
                 throw new \Exception($result['error']);
