@@ -23662,7 +23662,8 @@ PROMPT;
 
         // Get character in this shot
         $characters = $scene['characters'] ?? [];
-        $mainCharacter = $characters[0] ?? 'the character';
+        $shotCharacters = $shot['charactersInShot'] ?? $shot['speakingCharacters'] ?? [];
+        $mainCharacter = $shot['speakingCharacter'] ?? $shotCharacters[0] ?? $characters[0] ?? 'the character';
 
         // Get shot's narrative beat/action
         $narrativeBeat = $shot['narrativeBeat'] ?? [];
@@ -23772,8 +23773,8 @@ PROMPT;
             // Use the AI facade for text generation
             $result = \App\Facades\AI::process($prompt, 'text', [
                 'model' => $this->getAIModelForTier($aiProvider),
-                'maxTokens' => 200,
-                'temperature' => 0.8,
+                'maxTokens' => 400,
+                'temperature' => 0.7,
             ], session('current_team_id', 0));
 
             if (!empty($result['error'])) {
@@ -24326,13 +24327,22 @@ PROMPT;
             $project = \Modules\AppVideoWizard\Models\WizardProject::findOrFail($this->projectId);
             $voiceoverService = app(VoiceoverService::class);
 
+            // Get full voice config for speed/style from Character Bible
+            $sceneForVoice = $this->script['scenes'][$sceneIndex] ?? [];
+            $sceneCharacters = $sceneForVoice['characters'] ?? [];
+            $characterName = $shot['speakingCharacter'] ?? $sceneCharacters[0] ?? '';
+            $voiceConfig = !empty($characterName) ? $this->getCharacterVoiceConfig($characterName) : [];
+            $speed = $options['speed'] ?? $voiceConfig['speed'] ?? 1.0;
+            $emotion = $sceneForVoice['mood'] ?? null;
+
             $result = $voiceoverService->generateSceneVoiceover($project, [
                 'id' => "shot_{$sceneIndex}_{$shotIndex}",
                 'narration' => $text,
                 'title' => "Scene {$sceneIndex} Shot {$shotIndex} Voiceover",
             ], [
                 'voice' => $voiceId,
-                'speed' => $options['speed'] ?? 1.0,
+                'speed' => $speed,
+                'emotion' => $emotion,
                 'sceneIndex' => $sceneIndex,
                 'teamId' => session('current_team_id', 0),
             ]);
@@ -24342,6 +24352,21 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration'] = $result['duration'];
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+
+            // Warn if audio duration differs significantly from shot duration
+            $shotDuration = $shot['selectedDuration'] ?? $shot['duration'] ?? null;
+            if ($shotDuration && $result['duration']) {
+                $ratio = $result['duration'] / $shotDuration;
+                if ($ratio > 1.3 || $ratio < 0.5) {
+                    Log::warning('Monologue audio duration mismatch', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'audioDuration' => $result['duration'],
+                        'shotDuration' => $shotDuration,
+                        'ratio' => round($ratio, 2),
+                    ]);
+                }
+            }
 
             // Update speechSegments with actual voiceId and duration
             $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
@@ -30077,28 +30102,14 @@ PROMPT;
 
                     // Face ordering: FaceDetectMask sorts faces left-to-right
                     // wav_url → Face 0 (leftmost), wav_url_2 → Face 1
-                    // Determine speaker's face position from image prompt order
-                    // (characters mentioned first in the prompt are typically on the left)
                     $speakingChar = $shot['speakingCharacter'] ?? null;
 
-                    // Use image/Hollywood prompt to determine left-to-right face order
-                    $imagePrompt = $shot['hollywoodPrompt'] ?? $shot['imagePrompt'] ?? '';
-                    if (empty($imagePrompt)) {
-                        $sceneData = $this->generatedScenes[$sceneIndex] ?? [];
-                        $imagePrompt = $sceneData['hollywoodPrompt'] ?? $sceneData['imagePrompt'] ?? '';
-                    }
-                    if (!empty($imagePrompt) && count($charactersInShot) >= 2) {
-                        // Find position of each character name in the prompt
-                        $facePositions = [];
-                        foreach ($charactersInShot as $charName) {
-                            $pos = stripos($imagePrompt, $charName);
-                            $facePositions[$charName] = ($pos !== false) ? $pos : PHP_INT_MAX;
-                        }
-                        asort($facePositions);
-                        $orderedChars = array_values(array_keys($facePositions));
-                        $speakerIndex = $speakingChar ? array_search($speakingChar, $orderedChars) : 0;
-                    } else {
+                    if (count($charactersInShot) >= 2) {
+                        // charactersInShot order = prompt order = left-to-right face order
+                        // (buildSubjectComponent outputs "two people, CharA and CharB" — CharA is left)
                         $speakerIndex = $speakingChar ? array_search($speakingChar, $charactersInShot) : 0;
+                    } else {
+                        $speakerIndex = 0;
                     }
                     if ($speakerIndex === false) $speakerIndex = 0;
 
@@ -30108,7 +30119,7 @@ PROMPT;
                         \Log::info('InfiniteTalk: MULTI mode (monologue, speaker=Face0)', [
                             'speakingCharacter' => $speakingChar,
                             'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $orderedChars ?? $charactersInShot,
+                            'faceOrder' => $charactersInShot,
                         ]);
                     } else {
                         // Speaker is Face 1+: silence → wav_url (Face 0), speaker audio → wav_url_2
@@ -30118,7 +30129,7 @@ PROMPT;
                             'speakingCharacter' => $speakingChar,
                             'speakerIndex' => $speakerIndex,
                             'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $orderedChars ?? $charactersInShot,
+                            'faceOrder' => $charactersInShot,
                         ]);
                     }
                 } else {
