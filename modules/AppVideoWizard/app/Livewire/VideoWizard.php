@@ -30677,7 +30677,8 @@ PROMPT;
      */
     protected function buildMultitalkPrompt(array $shot, array $scene): string
     {
-        $character = $scene['characters'][0] ?? 'the subject';
+        $charData = $scene['characters'][0] ?? 'the subject';
+        $character = is_array($charData) ? ($charData['name'] ?? 'the subject') : $charData;
         $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
         $action = $shot['subjectAction'] ?? $shot['action'] ?? 'speaking';
 
