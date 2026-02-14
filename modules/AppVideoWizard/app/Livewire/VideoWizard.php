@@ -3211,38 +3211,107 @@ class VideoWizard extends Component
 
         if (!$idea) return;
 
-        $character = $idea['character'] ?? 'Character';
-        $situation = $idea['situation'] ?? '';
-        $audioType = $idea['audioType'] ?? 'voiceover';
-        $audioDesc = $idea['audioDescription'] ?? '';
         $duration = min($this->targetDuration, 10);
+        $isDialogue = ($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['dialogueLines']);
 
-        $this->script = [
-            'title' => $idea['title'] ?? 'Viral Content',
-            'hook' => $idea['viralHook'] ?? '',
-            'scenes' => [
-                [
-                    'id' => 'scene_0',
-                    'title' => $idea['title'] ?? 'Scene 1',
-                    'narration' => "[MONOLOGUE: {$character}] {$audioDesc}",
-                    'visualDescription' => "{$character}, {$situation}",
-                    'mood' => $idea['mood'] ?? 'funny',
-                    'duration' => $duration,
-                    'characters' => [['name' => $character, 'role' => 'main']],
-                    'speechSegments' => [[
-                        'type' => 'monologue',
-                        'speaker' => $character,
-                        'text' => $audioDesc,
+        if ($isDialogue) {
+            // Dialogue mode: multiple characters with alternating lines
+            $characters = $idea['characters'] ?? [];
+            $dialogueLines = $idea['dialogueLines'] ?? [];
+            $charCount = count($dialogueLines);
+            $perLineDuration = $charCount > 0 ? round($duration / $charCount, 2) : $duration;
+
+            $speechSegments = [];
+            $narrationParts = [];
+            $characterList = [];
+            $seenCharacters = [];
+
+            foreach ($dialogueLines as $i => $line) {
+                $speaker = $line['speaker'] ?? 'Character';
+                $text = $line['text'] ?? '';
+                $speechSegments[] = [
+                    'type' => 'dialogue',
+                    'speaker' => $speaker,
+                    'text' => $text,
+                    'duration' => $perLineDuration,
+                ];
+                $narrationParts[] = "[{$speaker}] {$text}";
+
+                if (!in_array($speaker, $seenCharacters)) {
+                    $seenCharacters[] = $speaker;
+                    // Find character description from characters array
+                    $charDesc = '';
+                    foreach ($characters as $c) {
+                        if (($c['name'] ?? '') === $speaker) {
+                            $charDesc = $c['description'] ?? '';
+                            break;
+                        }
+                    }
+                    $characterList[] = ['name' => $speaker, 'role' => $i === 0 ? 'main' : 'supporting'];
+                }
+            }
+
+            // Build visual description from all characters
+            $visualParts = [];
+            foreach ($characters as $c) {
+                $visualParts[] = ($c['description'] ?? $c['name'] ?? 'character');
+            }
+            $visualDescription = implode(' and ', $visualParts) . ', ' . ($idea['situation'] ?? '');
+
+            $this->script = [
+                'title' => $idea['title'] ?? 'Viral Content',
+                'hook' => $idea['viralHook'] ?? '',
+                'scenes' => [
+                    [
+                        'id' => 'scene_0',
+                        'title' => $idea['title'] ?? 'Scene 1',
+                        'narration' => implode("\n", $narrationParts),
+                        'visualDescription' => $visualDescription,
+                        'mood' => $idea['mood'] ?? 'funny',
                         'duration' => $duration,
-                    ]],
-                    'transition' => 'none',
-                    'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+                        'characters' => $characterList,
+                        'speechSegments' => $speechSegments,
+                        'transition' => 'none',
+                        'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+                    ],
                 ],
-            ],
-            'cta' => '',
-            'totalDuration' => $duration,
-            '_meta' => ['source' => 'social_content_auto'],
-        ];
+                'cta' => '',
+                'totalDuration' => $duration,
+                '_meta' => ['source' => 'social_content_auto'],
+            ];
+        } else {
+            // Monologue mode: single character
+            $character = $idea['character'] ?? 'Character';
+            $situation = $idea['situation'] ?? '';
+            $audioDesc = $idea['audioDescription'] ?? '';
+
+            $this->script = [
+                'title' => $idea['title'] ?? 'Viral Content',
+                'hook' => $idea['viralHook'] ?? '',
+                'scenes' => [
+                    [
+                        'id' => 'scene_0',
+                        'title' => $idea['title'] ?? 'Scene 1',
+                        'narration' => "[MONOLOGUE: {$character}] {$audioDesc}",
+                        'visualDescription' => "{$character}, {$situation}",
+                        'mood' => $idea['mood'] ?? 'funny',
+                        'duration' => $duration,
+                        'characters' => [['name' => $character, 'role' => 'main']],
+                        'speechSegments' => [[
+                            'type' => 'monologue',
+                            'speaker' => $character,
+                            'text' => $audioDesc,
+                            'duration' => $duration,
+                        ]],
+                        'transition' => 'none',
+                        'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+                    ],
+                ],
+                'cta' => '',
+                'totalDuration' => $duration,
+                '_meta' => ['source' => 'social_content_auto'],
+            ];
+        }
     }
 
     /**
@@ -3254,14 +3323,26 @@ class VideoWizard extends Component
         if (empty($this->script['scenes'])) return;
 
         $scene = $this->script['scenes'][0];
-        $character = $scene['characters'][0]['name'] ?? 'Character';
         $duration = $scene['duration'] ?? 10;
+        $speechSegments = $scene['speechSegments'] ?? [];
+        $speechType = $speechSegments[0]['type'] ?? 'monologue';
+
+        // Collect all character names from the scene
+        $charactersInShot = [];
+        foreach ($scene['characters'] ?? [] as $c) {
+            $charactersInShot[] = $c['name'] ?? 'Character';
+        }
+        if (empty($charactersInShot)) {
+            $charactersInShot = ['Character'];
+        }
+
+        $speakingCharacter = $charactersInShot[0];
 
         $shot = [
             'id' => 'shot_social_' . uniqid(),
             'sceneId' => 'scene_0',
             'shotIndex' => 0,
-            'type' => 'medium',
+            'type' => $speechType === 'dialogue' ? 'medium-wide' : 'medium',
             'description' => $scene['visualDescription'] ?? '',
             'duration' => $duration,
             'selectedDuration' => $duration,
@@ -3274,10 +3355,10 @@ class VideoWizard extends Component
             'audioStatus' => 'pending',
             'audioDuration' => null,
             'status' => 'pending',
-            'speechSegments' => $scene['speechSegments'] ?? [],
-            'speechType' => $scene['speechSegments'][0]['type'] ?? 'monologue',
-            'speakingCharacter' => $character,
-            'charactersInShot' => [$character],
+            'speechSegments' => $speechSegments,
+            'speechType' => $speechType,
+            'speakingCharacter' => $speakingCharacter,
+            'charactersInShot' => $charactersInShot,
             'needsLipSync' => true,
             'selectedVideoModel' => 'infinitetalk',
             'cameraMovement' => [
@@ -3322,17 +3403,53 @@ class VideoWizard extends Component
             ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
             ?? [];
 
-        $character = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
-        $situation = $idea['situation'] ?? ($shot['description'] ?? '');
         $mood = $idea['mood'] ?? 'funny';
+        $situation = $idea['situation'] ?? ($shot['description'] ?? '');
+        $setting = $idea['setting'] ?? '';
+        $isDialogue = ($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['characters']);
+        $characters = $idea['characters'] ?? [];
 
-        return "VERTICAL 9:16 COMPOSITION. Single frame, centered subject. "
-            . "{$character}, {$situation}. "
-            . "Expression: {$mood}, exaggerated and expressive, mouth slightly open. "
-            . "Close-up to medium shot, eye-level angle, shallow depth of field. "
-            . "Photorealistic, cinematic lighting, high detail. "
-            . "Background: contextual environment matching the situation. "
-            . "NO text overlays, NO watermarks, NO borders, NO split screens.";
+        if ($isDialogue && count($characters) >= 2) {
+            // Multi-character dialogue scene — detailed two-person composition
+            $charParts = [];
+            foreach ($characters as $i => $c) {
+                $name = $c['name'] ?? 'Character ' . ($i + 1);
+                $desc = $c['description'] ?? $name;
+                $role = $c['role'] ?? '';
+                $position = $i === 0 ? 'on the left side of frame' : 'on the right side of frame';
+                $expression = $c['expression'] ?? ($i === 0 ? 'deadpan, slightly annoyed, mouth slightly open as if speaking' : 'animated, expressive, gesturing');
+                $charParts[] = "{$desc}, {$position}, expression: {$expression}";
+            }
+
+            $characterBlock = implode('. ', $charParts);
+            $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
+            $propsBlock = !empty($idea['props']) ? "Props and details: {$idea['props']}. " : '';
+
+            return "VERTICAL 9:16 PHOTOGRAPH COMPOSITION, 720x1280 resolution. "
+                . "Two characters in a single continuous frame, medium-wide shot showing both from waist up. "
+                . "{$characterBlock}. "
+                . "They face each other in a conversation, natural interaction pose. "
+                . "{$settingBlock}"
+                . "{$propsBlock}"
+                . "Mood: {$mood}, comedic contrast between the characters. "
+                . "Photorealistic, cinematic lighting with warm interior tones, high detail on faces and clothing. "
+                . "Shallow depth of field on background, sharp focus on both characters. "
+                . "Eye-level camera angle, slight perspective depth. "
+                . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos.";
+        } else {
+            // Single character monologue scene
+            $character = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
+            $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
+
+            return "VERTICAL 9:16 PHOTOGRAPH COMPOSITION, 720x1280 resolution. "
+                . "Single character centered in frame: {$character}, {$situation}. "
+                . "Expression: {$mood}, exaggerated and expressive, mouth slightly open as if speaking. "
+                . "Medium shot from waist up, eye-level angle, shallow depth of field. "
+                . "{$settingBlock}"
+                . "Photorealistic, cinematic lighting, high detail on face and clothing. "
+                . "Background: detailed contextual environment matching the situation. "
+                . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos.";
+        }
     }
 
     /**

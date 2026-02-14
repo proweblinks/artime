@@ -291,16 +291,27 @@
                          wire:click="selectViralIdea({{ $index }})">
                         <div class="vw-idea-title">{{ $idea['title'] ?? 'Untitled' }}</div>
                         <div class="vw-idea-character">
-                            {{ $idea['character'] ?? '' }} &mdash; {{ $idea['situation'] ?? '' }}
+                            @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['characters']))
+                                @foreach($idea['characters'] as $ci => $char)
+                                    {{ $char['name'] ?? '' }}{{ $ci < count($idea['characters']) - 1 ? ' vs ' : '' }}
+                                @endforeach
+                                &mdash; {{ $idea['situation'] ?? '' }}
+                            @else
+                                {{ $idea['character'] ?? '' }} &mdash; {{ $idea['situation'] ?? '' }}
+                            @endif
                         </div>
                         <div class="vw-idea-badges">
-                            @if(($idea['audioType'] ?? '') === 'music-lipsync')
+                            @if(($idea['speechType'] ?? '') === 'dialogue')
+                                <span class="vw-idea-badge audio-voice">
+                                    <i class="fa-solid fa-comments"></i> Dialogue
+                                </span>
+                            @elseif(($idea['audioType'] ?? '') === 'music-lipsync')
                                 <span class="vw-idea-badge audio-music">
                                     <i class="fa-solid fa-music"></i> Music Lip-Sync
                                 </span>
                             @else
                                 <span class="vw-idea-badge audio-voice">
-                                    <i class="fa-solid fa-microphone"></i> Voiceover
+                                    <i class="fa-solid fa-microphone"></i> Monologue
                                 </span>
                             @endif
                             @php $mood = strtolower($idea['mood'] ?? 'funny'); @endphp
@@ -308,7 +319,18 @@
                                 {{ ucfirst($mood) }}
                             </span>
                         </div>
-                        <div class="vw-idea-desc">{{ $idea['audioDescription'] ?? '' }}</div>
+                        @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['dialogueLines']))
+                            <div class="vw-idea-desc" style="font-size: 0.8rem;">
+                                @foreach(array_slice($idea['dialogueLines'], 0, 3) as $line)
+                                    <div style="margin-bottom: 0.2rem;"><strong>{{ $line['speaker'] ?? '' }}:</strong> "{{ $line['text'] ?? '' }}"</div>
+                                @endforeach
+                                @if(count($idea['dialogueLines']) > 3)
+                                    <div style="color: #64748b;">+ {{ count($idea['dialogueLines']) - 3 }} more...</div>
+                                @endif
+                            </div>
+                        @else
+                            <div class="vw-idea-desc">{{ $idea['audioDescription'] ?? '' }}</div>
+                        @endif
                         <div class="vw-idea-hook">{{ $idea['viralHook'] ?? '' }}</div>
                     </div>
                 @endforeach

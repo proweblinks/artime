@@ -283,24 +283,47 @@ Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST f
 - An ANIMAL or quirky CHARACTER in an absurd/funny human situation
 - Single continuous shot (NO scene changes, NO transitions)
 - 8-10 seconds duration
-- The character's mouth will be LIP-SYNCED to audio
+- Characters' mouths will be LIP-SYNCED to audio
 
-For each concept, choose ONE audio type:
-- "music-lipsync": The character "sings" a catchy song snippet (specify what kind of song)
-- "voiceover": The character "speaks" a funny monologue or dialogue (write the actual short text, max 20 words)
+IMPORTANT: Mix of TWO types:
+1. DIALOGUE scenes (at least half): TWO characters interacting — e.g., an animal employee and a human customer, a cat boss and a dog intern. The comedy comes from the interaction.
+2. MONOLOGUE scenes: One character speaking directly to camera or doing a solo bit.
 
-Think like the most creative viral content creators. What would get millions of views?
+For DIALOGUE concepts:
+- "speechType": "dialogue"
+- "characters": array of 2 character objects with name, description, role, expression
+- "dialogueLines": array of 3-4 short alternating lines (speaker + text, max 12 words per line)
+- The dialogue must be FUNNY — deadpan humor, sarcasm, absurd complaints, unexpected responses
+
+For MONOLOGUE concepts:
+- "speechType": "monologue"
+- "character": single character description
+- "audioDescription": what they say (max 20 words)
+
+For ALL concepts, also specify:
+- "audioType": "voiceover" (spoken dialogue/monologue) or "music-lipsync" (character sings)
+- Detailed "setting" with specific props, decor, brand elements, and environmental details
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
   {
     "title": "Catchy title (max 6 words)",
-    "concept": "One sentence describing the visual scene",
-    "character": "Specific character description (e.g., 'a fluffy orange tabby cat', 'a tiny hamster')",
-    "situation": "The absurd human situation (e.g., 'working as a sushi chef', 'teaching a yoga class')",
-    "setting": "Location description (e.g., 'a busy restaurant kitchen', 'a yoga studio')",
-    "audioType": "music-lipsync" or "voiceover",
-    "audioDescription": "What they sing/say (for voiceover: write the actual text; for music: describe the song style)",
+    "concept": "One sentence describing the full visual scene with all characters",
+    "speechType": "dialogue" or "monologue",
+    "characters": [
+      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "employee/customer/boss/etc", "expression": "deadpan, slightly annoyed"},
+      {"name": "Character 2 Name", "description": "detailed visual description", "role": "role", "expression": "expression description"}
+    ],
+    "character": "For monologue only: single character description",
+    "situation": "The scene action and character interaction",
+    "setting": "Detailed location with specific props, brand elements, decor, lighting (e.g., 'Papa John's counter with red pizza boxes, menu boards with pizza images, cash register, drink cups, warm fluorescent lighting')",
+    "props": "Key visual props in the scene (e.g., 'open pizza box, green uniform with cap, branded counter')",
+    "audioType": "voiceover",
+    "audioDescription": "For monologue: the spoken text. For dialogue: brief scene description",
+    "dialogueLines": [
+      {"speaker": "Character Name", "text": "Short punchy line"},
+      {"speaker": "Character 2 Name", "text": "Funny response"}
+    ],
     "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
     "viralHook": "Why this would go viral (one sentence)"
   }
