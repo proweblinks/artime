@@ -378,6 +378,56 @@
             </div>
         </div>
 
+        {{-- Social Content: Direct Video Preview & Download --}}
+        @if($isSocialContent ?? false)
+            @php
+                $socialShot = $multiShotMode['decomposedScenes'][0]['shots'][0] ?? [];
+                $socialVideoUrl = $socialShot['videoUrl'] ?? null;
+                $socialVideoStatus = $socialShot['videoStatus'] ?? 'pending';
+            @endphp
+
+            @if($socialVideoUrl && $socialVideoStatus === 'ready')
+                <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-start;">
+                    {{-- Video Preview --}}
+                    <div style="width: 240px; min-width: 240px; aspect-ratio: 9/16; border-radius: 0.75rem; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3); background: #000;">
+                        <video src="{{ $socialVideoUrl }}" controls loop playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    </div>
+                    {{-- Info & Download --}}
+                    <div style="flex: 1;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.5rem;">
+                            {{ $script['title'] ?? __('Your Video') }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.5;">
+                            {{ $concept['socialContent']['character'] ?? '' }} &mdash;
+                            {{ $concept['socialContent']['situation'] ?? '' }}
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <div style="padding: 0.5rem 0.75rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; font-size: 0.75rem; color: #a78bfa;">
+                                📐 {{ $aspectRatio }}
+                            </div>
+                            <div style="padding: 0.5rem 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.5rem; font-size: 0.75rem; color: #6ee7b7;">
+                                ✓ {{ __('Ready to download') }}
+                            </div>
+                        </div>
+                        <a href="{{ $socialVideoUrl }}" download="{{ Str::slug($script['title'] ?? 'viral-video') }}.mp4"
+                           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border-radius: 0.75rem; font-weight: 600; font-size: 1rem; text-decoration: none; transition: all 0.2s; cursor: pointer;"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(139, 92, 246, 0.4)'"
+                           onmouseout="this.style.transform=''; this.style.boxShadow=''">
+                            📥 {{ __('Download Video') }}
+                        </a>
+                    </div>
+                </div>
+            @else
+                <div style="text-align: center; padding: 2rem; color: #94a3b8; margin-bottom: 1.5rem;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+                    <div>{{ __('No video available. Go back to the Create step and animate your content first.') }}</div>
+                    <button type="button" wire:click="previousStep" style="margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.5rem; color: #a78bfa; cursor: pointer;">
+                        ← {{ __('Back to Create') }}
+                    </button>
+                </div>
+            @endif
+        @endif
+
         {{-- Summary Stats --}}
         @php
             $exportStats = $this->getAssemblyStats();
@@ -422,8 +472,8 @@
             @endif
         </div>
 
-        {{-- Hollywood Multi-Shot Mode Badge --}}
-        @if($isMultiShotExport)
+        {{-- Hollywood Multi-Shot Mode Badge (not for social content) --}}
+        @if($isMultiShotExport && !($isSocialContent ?? false))
             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                 <span style="font-size: 1.25rem;">🎬</span>
                 <div style="flex: 1;">
@@ -446,8 +496,8 @@
             </div>
         @endif
 
-        {{-- Export Settings --}}
-        <div class="vw-export-settings" x-show="!exporting && !exportedUrl">
+        {{-- Export Settings (hidden for social content — video is already ready) --}}
+        <div class="vw-export-settings" x-show="!exporting && !exportedUrl" @if($isSocialContent ?? false) style="display: none;" @endif>
             {{-- Quality Selection --}}
             <div class="vw-setting-group">
                 <div class="vw-setting-label">🎯 {{ __('Quality') }}</div>
@@ -522,8 +572,8 @@
             </button>
         </div>
 
-        {{-- Export Button --}}
-        <div class="vw-export-btn-container" x-show="!exporting && !exportedUrl">
+        {{-- Export Button (hidden for social content) --}}
+        <div class="vw-export-btn-container" x-show="!exporting && !exportedUrl" @if($isSocialContent ?? false) style="display: none;" @endif>
             <button type="button"
                     class="vw-export-btn"
                     @click="exporting = true; progress = 0; status = 'Preparing assets...'; window.startExport && window.startExport()"
