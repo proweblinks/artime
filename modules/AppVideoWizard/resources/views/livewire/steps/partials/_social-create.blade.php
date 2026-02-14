@@ -200,7 +200,69 @@
     .vw-social-status-badge.pending { background: rgba(100,100,140,0.2); color: #94a3b8; }
     .vw-social-status-badge.generating { background: rgba(139,92,246,0.2); color: #a78bfa; animation: vw-pulse-badge 1.5s infinite; }
     .vw-social-status-badge.ready { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .vw-social-status-badge.processing { background: rgba(249,115,22,0.2); color: #fb923c; animation: vw-pulse-badge 1.5s infinite; }
+    .vw-social-status-badge.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
     @keyframes vw-pulse-badge { 0%,100%{opacity:0.6} 50%{opacity:1} }
+
+    .vw-social-progress-bar {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(249,115,22,0.08);
+        border: 1px solid rgba(249,115,22,0.2);
+        border-radius: 0.5rem;
+    }
+    .vw-social-progress-text {
+        font-size: 0.8rem;
+        color: #fb923c;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .vw-social-progress-track {
+        height: 3px;
+        background: rgba(249,115,22,0.15);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .vw-social-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f97316, #fb923c);
+        border-radius: 2px;
+        animation: vw-progress-indeterminate 2s ease-in-out infinite;
+    }
+    @keyframes vw-progress-indeterminate {
+        0% { width: 0%; margin-left: 0%; }
+        50% { width: 40%; margin-left: 30%; }
+        100% { width: 0%; margin-left: 100%; }
+    }
+    .vw-social-progress-hint {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        margin-top: 0.4rem;
+    }
+
+    .vw-social-preview-generating {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .vw-social-preview-generating img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .vw-social-generating-overlay {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        color: #fb923c;
+        font-weight: 700;
+        font-size: 1rem;
+    }
 
     .vw-social-audio-tabs {
         display: flex;
@@ -290,7 +352,47 @@
     }
 </style>
 
-<div class="vw-social-create" x-data="{ audioTab: '{{ ($audioSource === 'music_upload') ? 'music' : 'voice' }}' }">
+<script>
+window.socialContentPolling = function() {
+    return {
+        audioTab: '{{ ($audioSource === "music_upload") ? "music" : "voice" }}',
+        pollingInterval: null,
+        isPolling: false,
+        pollCount: 0,
+        maxPolls: 120,
+        POLL_INTERVAL: 5000,
+
+        initPolling() {
+            const status = '{{ $videoStatus }}';
+            if (status === 'generating' || status === 'processing') {
+                this.startPolling();
+            }
+            Livewire.on('video-generation-started', () => this.startPolling());
+            Livewire.on('video-generation-complete', () => this.stopPolling());
+        },
+        startPolling() {
+            if (this.isPolling) return;
+            this.isPolling = true;
+            this.pollCount = 0;
+            this.pollingInterval = setInterval(() => {
+                if (this.pollCount >= this.maxPolls) { this.stopPolling(); return; }
+                this.pollCount++;
+                if (this.$wire) {
+                    this.$wire.pollVideoJobs().then((r) => {
+                        if (r && r.pendingJobs === 0) this.stopPolling();
+                    }).catch(() => {});
+                }
+            }, this.POLL_INTERVAL);
+        },
+        stopPolling() {
+            if (this.pollingInterval) { clearInterval(this.pollingInterval); this.pollingInterval = null; }
+            this.isPolling = false;
+        },
+    };
+};
+</script>
+
+<div class="vw-social-create" x-data="socialContentPolling()" x-init="initPolling()">
     {{-- Header Bar --}}
     <div class="vw-social-create-header">
         <h2>
@@ -309,6 +411,16 @@
             <div class="vw-social-preview-frame">
                 @if($videoUrl && $videoStatus === 'ready')
                     <video src="{{ $videoUrl }}" controls loop playsinline></video>
+                @elseif(in_array($videoStatus, ['generating', 'processing']))
+                    <div class="vw-social-preview-generating">
+                        @if($imageUrl)
+                            <img src="{{ $imageUrl }}" alt="Base image" style="opacity: 0.4;" />
+                        @endif
+                        <div class="vw-social-generating-overlay">
+                            <i class="fa-solid fa-wand-magic-sparkles fa-2x" style="animation: vw-pulse-badge 1.5s infinite;"></i>
+                            <div>{{ __('Animating...') }}</div>
+                        </div>
+                    </div>
                 @elseif($imageUrl && $imageStatus === 'ready')
                     <img src="{{ $imageUrl }}" alt="Generated image" />
                 @else
@@ -493,15 +605,36 @@
                         wire:click="generateShotVideo(0, 0)"
                         wire:loading.attr="disabled"
                         wire:target="generateShotVideo"
-                        @if($imageStatus !== 'ready' || $audioStatus !== 'ready') disabled title="{{ __('Image and audio required') }}" @endif>
-                    <span wire:loading.remove wire:target="generateShotVideo">
-                        <i class="fa-solid fa-film"></i>
-                        {{ ($videoStatus === 'ready') ? __('Re-Animate') : __('Animate with Lip-Sync') }}
-                    </span>
-                    <span wire:loading wire:target="generateShotVideo">
-                        <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Animating...') }}
-                    </span>
+                        @if($imageStatus !== 'ready' || $audioStatus !== 'ready') disabled title="{{ __('Image and audio required') }}"
+                        @elseif(in_array($videoStatus, ['generating', 'processing'])) disabled
+                        @endif>
+                    @if(in_array($videoStatus, ['generating', 'processing']))
+                        <span>
+                            <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Rendering video...') }}
+                        </span>
+                    @else
+                        <span wire:loading.remove wire:target="generateShotVideo">
+                            <i class="fa-solid fa-film"></i>
+                            {{ ($videoStatus === 'ready') ? __('Re-Animate') : __('Animate with Lip-Sync') }}
+                        </span>
+                        <span wire:loading wire:target="generateShotVideo">
+                            <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Submitting...') }}
+                        </span>
+                    @endif
                 </button>
+
+                @if(in_array($videoStatus, ['generating', 'processing']))
+                    <div class="vw-social-progress-bar">
+                        <div class="vw-social-progress-text">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            {{ __('AI is animating your character...') }}
+                        </div>
+                        <div class="vw-social-progress-track">
+                            <div class="vw-social-progress-fill"></div>
+                        </div>
+                        <div class="vw-social-progress-hint">{{ __('This usually takes 2-5 minutes') }}</div>
+                    </div>
+                @endif
             </div>
 
             {{-- Section 4: Export --}}
