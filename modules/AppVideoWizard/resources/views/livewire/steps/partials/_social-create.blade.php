@@ -14,6 +14,7 @@
     $selectedIdea = $concept['socialContent'] ?? ($conceptVariations[$selectedConceptIndex ?? 0] ?? []);
     $charactersInShot = $shot['charactersInShot'] ?? [];
     $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
+    $creationDetails = $this->getCreationDetails();
 @endphp
 
 <style>
@@ -356,6 +357,27 @@
     }
     .vw-social-idea-summary strong { color: #a78bfa; }
 
+    /* Creation Details Debug Panel */
+    .vw-social-debug-panel { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem; }
+    .vw-social-debug-toggle { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.15); border-radius: 0.5rem; color: #a78bfa; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .vw-social-debug-toggle:hover { background: rgba(139,92,246,0.15); }
+    .vw-social-debug-toggle span { flex: 1; text-align: left; }
+    .vw-debug-section { margin-top: 0.5rem; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 0.5rem; overflow: hidden; }
+    .vw-debug-section summary { padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+    .vw-debug-section summary:hover { color: #e2e8f0; }
+    .vw-debug-section summary::-webkit-details-marker { display: none; }
+    .vw-debug-section summary::after { content: '+'; margin-left: auto; font-size: 0.9rem; color: #64748b; }
+    .vw-debug-section[open] summary::after { content: '\2212'; }
+    .vw-debug-content { padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); }
+    .vw-debug-field { display: flex; gap: 0.5rem; margin-bottom: 0.35rem; font-size: 0.7rem; }
+    .vw-debug-label { color: #64748b; min-width: 80px; flex-shrink: 0; }
+    .vw-debug-value { color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+    .vw-debug-prompt { color: #a78bfa; font-size: 0.65rem; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 0.375rem; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; word-break: break-word; max-height: 120px; overflow-y: auto; }
+    .vw-debug-speaker { padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 0.375rem; margin-bottom: 0.35rem; }
+    .vw-debug-speaker-name { font-size: 0.7rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.25rem; }
+    .vw-debug-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; display: inline-block; margin: 0.25rem 0; }
+    .vw-debug-badge.swap { background: rgba(249,115,22,0.15); color: #fb923c; }
+
     @media (max-width: 768px) {
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: 40vh; }
@@ -669,6 +691,117 @@
                     </button>
                 </div>
             @endif
+
+            {{-- Creation Details Debug Panel --}}
+            <div class="vw-social-debug-panel" x-data="{ open: false }">
+                <button class="vw-social-debug-toggle" @click="open = !open">
+                    <i class="fa-solid fa-code"></i>
+                    <span>{{ __('Creation Details') }}</span>
+                    <i class="fa-solid" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+
+                <div x-show="open" x-collapse x-cloak>
+                    {{-- Image Section --}}
+                    <details class="vw-debug-section" open>
+                        <summary><i class="fa-solid fa-image"></i> {{ __('Image Generation') }}</summary>
+                        <div class="vw-debug-content">
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Model') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['image']['model'] }}</span>
+                            </div>
+                            @if($creationDetails['image']['prompt'])
+                                <div class="vw-debug-field">
+                                    <span class="vw-debug-label">{{ __('Prompt') }}</span>
+                                </div>
+                                <div class="vw-debug-prompt">{{ $creationDetails['image']['prompt'] }}</div>
+                            @else
+                                <div class="vw-debug-field">
+                                    <span class="vw-debug-label">{{ __('Prompt') }}</span>
+                                    <span class="vw-debug-value" style="color: #64748b;">{{ __('Generate image to see prompt') }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    </details>
+
+                    {{-- Voice Section --}}
+                    <details class="vw-debug-section">
+                        <summary><i class="fa-solid fa-microphone"></i> {{ __('Voice Generation') }}</summary>
+                        <div class="vw-debug-content">
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Provider') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['voice']['provider'] }}</span>
+                            </div>
+                            @foreach(['speaker1', 'speaker2'] as $speaker)
+                                @if($creationDetails['voice'][$speaker])
+                                    <div class="vw-debug-speaker">
+                                        <div class="vw-debug-speaker-name">{{ $creationDetails['voice'][$speaker]['name'] }}</div>
+                                        <div class="vw-debug-field">
+                                            <span class="vw-debug-label">{{ __('Voice ID') }}</span>
+                                            <span class="vw-debug-value">{{ $creationDetails['voice'][$speaker]['voiceId'] ?? 'auto' }}</span>
+                                        </div>
+                                        <div class="vw-debug-field">
+                                            <span class="vw-debug-label">{{ __('Species') }}</span>
+                                            <span class="vw-debug-value">{{ $creationDetails['voice'][$speaker]['species'] }}</span>
+                                        </div>
+                                        <div class="vw-debug-field">
+                                            <span class="vw-debug-label">{{ __('Duration') }}</span>
+                                            <span class="vw-debug-value">{{ $creationDetails['voice'][$speaker]['duration'] ? number_format($creationDetails['voice'][$speaker]['duration'], 1) . 's' : __('pending') }}</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                            @if($creationDetails['voice']['stylePrompt1'])
+                                <div class="vw-debug-field">
+                                    <span class="vw-debug-label">{{ __('Style (Speaker 1)') }}</span>
+                                </div>
+                                <div class="vw-debug-prompt">{{ $creationDetails['voice']['stylePrompt1'] }}</div>
+                            @endif
+                            @if($creationDetails['voice']['stylePrompt2'] ?? null)
+                                <div class="vw-debug-field">
+                                    <span class="vw-debug-label">{{ __('Style (Speaker 2)') }}</span>
+                                </div>
+                                <div class="vw-debug-prompt">{{ $creationDetails['voice']['stylePrompt2'] }}</div>
+                            @endif
+                        </div>
+                    </details>
+
+                    {{-- Animation Section --}}
+                    <details class="vw-debug-section">
+                        <summary><i class="fa-solid fa-film"></i> {{ __('Animation') }}</summary>
+                        <div class="vw-debug-content">
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Model') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['animation']['model'] }}</span>
+                            </div>
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Mode') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['animation']['personCount'] }} / {{ $creationDetails['animation']['speechType'] }}</span>
+                            </div>
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Duration') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['animation']['duration'] }}s</span>
+                            </div>
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Emotion') }}</span>
+                                <span class="vw-debug-value">{{ $creationDetails['animation']['emotion'] }}</span>
+                            </div>
+                            <div class="vw-debug-field">
+                                <span class="vw-debug-label">{{ __('Face Order') }}</span>
+                                <span class="vw-debug-value">{{ implode(' → ', $creationDetails['animation']['faceOrder']) }}</span>
+                            </div>
+                            @if($creationDetails['animation']['swapped'])
+                                <div class="vw-debug-badge swap">{{ __('Audio tracks swapped to match face positions') }}</div>
+                            @endif
+                            @if($creationDetails['animation']['prompt'])
+                                <div class="vw-debug-field">
+                                    <span class="vw-debug-label">{{ __('Prompt') }}</span>
+                                </div>
+                                <div class="vw-debug-prompt">{{ $creationDetails['animation']['prompt'] }}</div>
+                            @endif
+                        </div>
+                    </details>
+                </div>
+            </div>
         </div>
     </div>
 </div>

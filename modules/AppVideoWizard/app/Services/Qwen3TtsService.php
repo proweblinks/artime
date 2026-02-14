@@ -153,9 +153,8 @@ class Qwen3TtsService
                 unset($falOptions['voice']);
             }
 
-            if (isset($options['temperature'])) {
-                $falOptions['temperature'] = $options['temperature'];
-            }
+            // Dynamic temperature: expressive characters get higher variation
+            $falOptions['temperature'] = $options['temperature'] ?? $this->getVoiceTemperature($options);
 
             $result = $this->falService->textToSpeech($text, $falOptions);
 
@@ -308,6 +307,17 @@ class Qwen3TtsService
             $parts[] = 'rich authoritative storytelling voice, painting pictures with words';
         }
 
+        // Speech rhythm differentiation for maximum contrast between characters
+        if (preg_match('/\b(cat|feline|kitten)\b/', $descLower)) {
+            $parts[] = 'elongate vowels with a lazy drawl, pause mid-sentence with audible contempt, occasional low rumbling purr between words';
+        }
+        if (preg_match('/\b(grumpy|cranky|angry|bitter)\b/', $descLower)) {
+            $parts[] = 'mutter under breath between sentences, heavy sighing, words punched out with irritation, gravelly raspy edge';
+        }
+        if (preg_match('/\b(chef|cook|culinary)\b/', $descLower)) {
+            $parts[] = 'passionate rapid-fire delivery about food, kiss-the-fingertips energy, dramatic gasps of delight';
+        }
+
         return implode(', ', $parts) ?: "natural, expressive delivery for {$name}";
     }
 
@@ -444,5 +454,28 @@ class Qwen3TtsService
 
         // Default to male voice (most narration skews male)
         return 'Dylan';
+    }
+
+    /**
+     * Get dynamic voice temperature based on character type.
+     * Animal/fantasy characters need more expressiveness for audible differentiation.
+     */
+    protected function getVoiceTemperature(array $options): float
+    {
+        $desc = strtolower($options['characterDescription'] ?? '');
+        // Animal/fantasy characters need more expressiveness
+        if (preg_match('/\b(cat|dog|bird|robot|animal|feline|canine)\b/', $desc)) return 0.9;
+        // Grumpy/dramatic characters need more variation
+        if (preg_match('/\b(grumpy|dramatic|chaotic|angry)\b/', $desc)) return 0.85;
+        return 0.7;
+    }
+
+    /**
+     * Public wrapper for buildStylePrompt() — used by VideoWizard to store
+     * the style prompt in shot data for the debug UI.
+     */
+    public function buildStylePromptPublic(array $options): string
+    {
+        return $this->buildStylePrompt($options);
     }
 }

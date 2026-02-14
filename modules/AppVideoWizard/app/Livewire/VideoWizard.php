@@ -9246,6 +9246,57 @@ PROMPT;
     }
 
     /**
+     * Get creation details for the debug UI panel in social content mode.
+     * Returns structured data about prompts, parameters, and logic used in each generation step.
+     */
+    public function getCreationDetails(): array
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][0]['shots'][0] ?? [];
+        $scene = $this->script['scenes'][0] ?? [];
+        $characterBible = $this->sceneMemory['characterBible'] ?? [];
+        $selectedIdea = $this->concept['socialContent'] ?? ($this->conceptVariations[$this->selectedConceptIndex ?? 0] ?? []);
+
+        $speaker1Name = $shot['charactersInShot'][0] ?? 'Unknown';
+        $speaker2Name = (count($shot['charactersInShot'] ?? []) >= 2) ? ($shot['charactersInShot'][1] ?? 'Unknown') : null;
+
+        return [
+            'image' => [
+                'model' => $this->storyboard['imageModel'] ?? 'nanobanana',
+                'prompt' => $shot['imagePrompt'] ?? null,
+                'status' => $shot['imageStatus'] ?? 'pending',
+            ],
+            'voice' => [
+                'provider' => app(VoiceoverService::class)->getActiveProvider(),
+                'speaker1' => [
+                    'name' => $speaker1Name,
+                    'voiceId' => $shot['voiceId'] ?? $shot['voiceId1'] ?? null,
+                    'duration' => $shot['audioDuration'] ?? null,
+                    'species' => $this->getCharacterSpecies($speaker1Name, $characterBible),
+                ],
+                'speaker2' => $speaker2Name ? [
+                    'name' => $speaker2Name,
+                    'voiceId' => $shot['voiceId2'] ?? null,
+                    'duration' => $shot['audioDuration2'] ?? null,
+                    'species' => $this->getCharacterSpecies($speaker2Name, $characterBible),
+                ] : null,
+                'stylePrompt1' => $shot['stylePrompt1'] ?? null,
+                'stylePrompt2' => $shot['stylePrompt2'] ?? null,
+            ],
+            'animation' => [
+                'model' => $shot['selectedVideoModel'] ?? 'infinitetalk',
+                'prompt' => null, // Built dynamically at render time in the blade
+                'faceOrder' => $shot['faceOrder'] ?? $shot['charactersInShot'] ?? [],
+                'charactersInShot' => $shot['charactersInShot'] ?? [],
+                'swapped' => ($shot['faceOrder'] ?? []) !== ($shot['charactersInShot'] ?? []),
+                'personCount' => count($shot['charactersInShot'] ?? []) >= 2 ? 'multi' : 'single',
+                'speechType' => $shot['speechType'] ?? 'monologue',
+                'duration' => $shot['selectedDuration'] ?? $shot['duration'] ?? 10,
+                'emotion' => $shot['emotion'] ?? $scene['mood'] ?? 'neutral',
+            ],
+        ];
+    }
+
+    /**
      * Get the maximum step number.
      */
     public function getMaxSteps(): int
@@ -24901,11 +24952,16 @@ PROMPT;
         $voiceId1 = $this->getVoiceForSpeaker($speaker1Name, $sceneIndex);
         $voiceId2 = $this->getVoiceForSpeaker($speaker2Name, $sceneIndex);
 
-        // Ensure speakers have different voices
+        // Ensure speakers have different voices — use contrast-aware pairing
         if ($voiceId1 === $voiceId2) {
             $provider = app(VoiceoverService::class)->getActiveProvider();
             if ($provider === 'qwen3tts') {
-                $voiceId2 = ($voiceId1 === 'Dylan') ? 'Vivian' : 'Dylan';
+                // Look up character data for contrast pairing
+                $char1Data = $this->findCharacterInBible($speaker1Name);
+                $char2Data = $this->findCharacterInBible($speaker2Name);
+                $contrastPair = $this->getContrastingVoicePair($char1Data, $char2Data);
+                $voiceId1 = $contrastPair[0];
+                $voiceId2 = $contrastPair[1];
             } else {
                 $voiceId2 = ($voiceId1 === 'onyx') ? 'nova' : 'onyx';
             }
@@ -24955,6 +25011,16 @@ PROMPT;
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration'] = $result1['duration'];
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId1;
 
+        // Store style prompt for debug UI (reconstruct from same options passed to TTS)
+        $stylePrompt1 = app(Qwen3TtsService::class)->buildStylePromptPublic([
+            'emotion' => $ideaMood,
+            'characterDescription' => $charDescs[$speaker1Name] ?? null,
+            'speechType' => 'dialogue',
+            'characterName' => $speaker1Name,
+            'dialogueText' => $speaker1Text,
+        ]);
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['stylePrompt1'] = $stylePrompt1;
+
         // Generate Speaker 2 audio (if there's text)
         $result2 = null;
         if (!empty($speaker2Text)) {
@@ -24978,6 +25044,16 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $result2['duration'];
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = $voiceId2;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'ready';
+
+            // Store style prompt 2 for debug UI
+            $stylePrompt2 = app(Qwen3TtsService::class)->buildStylePromptPublic([
+                'emotion' => $ideaMood,
+                'characterDescription' => $charDescs[$speaker2Name] ?? null,
+                'speechType' => 'dialogue',
+                'characterName' => $speaker2Name,
+                'dialogueText' => $speaker2Text,
+            ]);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['stylePrompt2'] = $stylePrompt2;
         }
 
         // Mark as dialogue shot — this triggers buildTimelineSyncedAudio() in animation
@@ -27190,6 +27266,9 @@ PROMPT;
                 if ($project) {
                     // Use enhanced prompt with shot context (pass shot array directly)
                     $enhancedPrompt = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
+
+                    // Store image prompt for debug UI
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imagePrompt'] = $enhancedPrompt;
 
                     // =================================================================
                     // PHASE 3: Pass shot context for duplicate prevention
@@ -31397,14 +31476,18 @@ PROMPT;
 
         $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
 
-        // Single character in frame — rich emotional prompt
+        // Single character in frame — rich emotional prompt with species-aware animation
         if (!$multipleInFrame) {
             $who = $speakerName ?: 'the person';
-            return "{$who} speaking with passionate intensity and clear lip movements, "
+            $species = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
+            $speciesDirection = $this->getSpeciesAnimationDirection($species, 'speaker');
+
+            return "{$who} speaking with passionate intensity, {$speciesDirection}, "
                  . "{$emotionIntensity}, "
                  . "{$speakerPhysicality}, "
-                 . "eyes alive with thought, breathing naturally between phrases, "
-                 . "micro-expressions shifting with each emotional beat";
+                 . ($species === 'human'
+                     ? "eyes alive with thought, breathing naturally between phrases, micro-expressions shifting with each emotional beat"
+                     : "exaggerated facial movements for clear visual speech, whole face animated with character personality");
         }
 
         // Multiple characters in frame — specify speaker + silent characters
@@ -31433,16 +31516,109 @@ PROMPT;
 
         $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
 
-        $prompt = "Only {$speakerLabel} is speaking with animated lip movements and {$emotionIntensity}, "
-                . "{$speakerPhysicality}, vivid emotional micro-expressions. ";
+        // Species-aware speaker animation
+        $speakerSpecies = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
+        $speakerAnimation = $this->getSpeciesAnimationDirection($speakerSpecies, 'speaker');
+
+        $prompt = "Only {$speakerLabel} is speaking — {$speakerAnimation}, {$emotionIntensity}, "
+                . "{$speakerPhysicality}. ";
 
         if (!empty($silentParts)) {
             $silentList = implode(' and ', $silentParts);
-            $prompt .= "{$silentList} {$listenerPhysicality}, "
-                     . "no lip movement.";
+            // Get listener species for species-appropriate idle animation
+            $firstListenerName = $otherNames[0] ?? '';
+            $listenerSpecies = $this->getCharacterSpecies($firstListenerName, $characterBible);
+            $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
+
+            $prompt .= "{$silentList}: {$listenerAnimation}, absolutely no speaking or mouth opening.";
         }
 
         return $prompt;
+    }
+
+    /**
+     * Detect character species from the Character Bible description.
+     * Returns a species keyword used to select species-appropriate animation directions.
+     */
+    protected function getCharacterSpecies(string $characterName, array $characterBible): string
+    {
+        $characters = $characterBible['characters'] ?? $characterBible;
+        foreach ($characters as $char) {
+            if (strcasecmp($char['name'] ?? '', $characterName) !== 0) continue;
+            $desc = strtolower(($char['description'] ?? '') . ' ' . ($char['appearance'] ?? ''));
+            if (preg_match('/\b(cat|kitten|feline)\b/', $desc)) return 'cat';
+            if (preg_match('/\b(dog|puppy|canine)\b/', $desc)) return 'dog';
+            if (preg_match('/\b(bird|parrot|owl|eagle)\b/', $desc)) return 'bird';
+            if (preg_match('/\b(robot|android|cyborg|ai)\b/', $desc)) return 'robot';
+            if (preg_match('/\b(fish|shark|dolphin)\b/', $desc)) return 'fish';
+            if (preg_match('/\b(bear|gorilla|monkey|ape)\b/', $desc)) return 'animal';
+        }
+        return 'human';
+    }
+
+    /**
+     * Get species-appropriate animation direction for InfiniteTalk prompts.
+     * Non-human characters need fundamentally different motion descriptions.
+     */
+    protected function getSpeciesAnimationDirection(string $species, string $role = 'speaker'): string
+    {
+        if ($role === 'listener') {
+            return match($species) {
+                'cat' => 'ears twitching and rotating attentively, tail tip slowly swaying, eyes narrowing and widening in reaction, whiskers sensing the air',
+                'dog' => 'ears perked forward, head tilting side to side, tail wagging gently, tongue occasionally visible',
+                'bird' => 'head bobbing and tilting with interest, feathers ruffling slightly, blinking alertly',
+                'robot' => 'LED indicators pulsing, minimal mechanical adjustments, sensor array focused',
+                default => 'completely still and frozen, NO head nodding, only occasional subtle eye blinks',
+            };
+        }
+        return match($species) {
+            'cat' => 'mouth opening wide showing teeth with each word, jaw dropping dramatically for emphasis, whiskers fanning out expressively, ears rotating with emotion, head tilting with attitude, eyes narrowing smugly between phrases',
+            'dog' => 'mouth opening wide with eager panting between phrases, tongue visible during pauses, ears flopping with enthusiasm, head bobbing with excitement, whole face animated',
+            'bird' => 'beak opening and closing sharply with each syllable, head jerking with emphasis, crest feathers rising with emotion',
+            'robot' => 'mouth panel sliding open with mechanical precision, LED mouth lights syncing to speech, head rotating smoothly between phrases',
+            default => 'vivid lip movements perfectly synchronized to speech, jaw moving naturally, expressive mouth shapes',
+        };
+    }
+
+    /**
+     * Get maximally contrasting voice pair based on character species/personality.
+     * Ensures two speakers sound distinctly different.
+     */
+    protected function getContrastingVoicePair(array $char1Data, array $char2Data): array
+    {
+        $desc1 = strtolower(($char1Data['description'] ?? '') . ' ' . ($char1Data['appearance'] ?? ''));
+        $desc2 = strtolower(($char2Data['description'] ?? '') . ' ' . ($char2Data['appearance'] ?? ''));
+
+        $isAnimal1 = preg_match('/\b(cat|dog|bird|animal|kitten|puppy|feline|canine)\b/', $desc1);
+        $isAnimal2 = preg_match('/\b(cat|dog|bird|animal|kitten|puppy|feline|canine)\b/', $desc2);
+
+        // One animal + one human → max contrast
+        if ($isAnimal1 && !$isAnimal2) return ['Uncle_Fu', 'Dylan'];
+        if (!$isAnimal1 && $isAnimal2) return ['Dylan', 'Uncle_Fu'];
+
+        // Both different species → deep vs clear
+        if ($isAnimal1 && $isAnimal2) return ['Uncle_Fu', 'Eric'];
+
+        // Both human — personality-based contrast
+        $isGrumpy1 = preg_match('/\b(grumpy|angry|cranky|bitter)\b/', $desc1);
+        $isGrumpy2 = preg_match('/\b(grumpy|angry|cranky|bitter)\b/', $desc2);
+        if ($isGrumpy1) return ['Uncle_Fu', 'Ryan'];
+        if ($isGrumpy2) return ['Ryan', 'Uncle_Fu'];
+
+        // Default: maximum contrast pair
+        return ['Eric', 'Uncle_Fu'];
+    }
+
+    /**
+     * Find a character in the Character Bible by name.
+     */
+    protected function findCharacterInBible(string $name): array
+    {
+        $characters = $this->sceneMemory['characterBible']['characters'] ?? [];
+        foreach ($characters as $char) {
+            if (strcasecmp($char['name'] ?? '', $name) === 0) return $char;
+        }
+        return ['name' => $name, 'description' => ''];
     }
 
     /**
@@ -31570,11 +31746,17 @@ PROMPT;
         $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
         $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
 
-        return "Heated two-person conversation: {$label1} and {$label2} in intense face-to-face dialogue, "
-             . "each character has vivid lip movements perfectly synchronized to their speech, "
-             . "the active speaker: {$speakerPhysicality}, eyes locked on the other, expressive gestures, "
-             . "the listener: {$listenerPhysicality}, "
-             . "{$emotionIntensity}, natural breathing rhythm, dynamic facial expressions reacting to each word";
+        // Species-aware animation for each character
+        $species1 = $this->getCharacterSpecies($char1, $characterBible);
+        $species2 = $this->getCharacterSpecies($char2, $characterBible);
+        $anim1 = $this->getSpeciesAnimationDirection($species1, 'speaker');
+        $anim2 = $this->getSpeciesAnimationDirection($species2, 'speaker');
+
+        return "Intense two-person conversation between {$label1} and {$label2}: "
+             . "when {$char1} speaks — {$anim1}, {$speakerPhysicality}, "
+             . "when {$char2} speaks — {$anim2}, "
+             . "the listener reacts with subtle body language but NO mouth movement, "
+             . "{$emotionIntensity}, dynamic facial expressions reacting to each word";
     }
 
     /**
