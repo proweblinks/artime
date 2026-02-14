@@ -24705,6 +24705,17 @@ PROMPT;
         try {
             $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
 
+            // === DIALOGUE DETECTION: Auto-split by speaker for dialogue shots ===
+            $isDialogueShot = ($shot['speechType'] ?? '') === 'dialogue'
+                && count($shot['charactersInShot'] ?? []) >= 2
+                && !empty($shot['speechSegments']);
+
+            if ($isDialogueShot) {
+                $this->generateDialogueVoiceovers($sceneIndex, $shotIndex);
+                return;
+            }
+            // === END DIALOGUE DETECTION ===
+
             // Check if user provided custom monologue text via the modal
             $customText = !empty($this->shotMonologueEdit) ? trim($this->shotMonologueEdit) : null;
 
@@ -24811,6 +24822,225 @@ PROMPT;
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Generate separate TTS audio for each speaker in a dialogue shot.
+     * Splits speechSegments by speaker, generates Speaker 1 → audioUrl, Speaker 2 → audioUrl2.
+     * Sets isDialogueShot = true so animation code triggers buildTimelineSyncedAudio().
+     */
+    protected function generateDialogueVoiceovers(int $sceneIndex, int $shotIndex): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $segments = $shot['speechSegments'] ?? [];
+        $charactersInShot = $shot['charactersInShot'] ?? [];
+
+        if (count($charactersInShot) < 2 || empty($segments)) {
+            throw new \Exception('Dialogue shot requires at least 2 characters with speech segments');
+        }
+
+        // Group dialogue lines by speaker
+        $speaker1Name = $charactersInShot[0];
+        $speaker2Name = $charactersInShot[1];
+        $speaker1Lines = [];
+        $speaker2Lines = [];
+
+        foreach ($segments as $seg) {
+            $speaker = $seg['speaker'] ?? '';
+            $text = $seg['text'] ?? '';
+            if (empty($text)) continue;
+
+            if ($speaker === $speaker1Name) {
+                $speaker1Lines[] = $text;
+            } elseif ($speaker === $speaker2Name) {
+                $speaker2Lines[] = $text;
+            } else {
+                // Unknown speaker — assign to whichever has fewer lines
+                if (count($speaker1Lines) <= count($speaker2Lines)) {
+                    $speaker1Lines[] = $text;
+                } else {
+                    $speaker2Lines[] = $text;
+                }
+            }
+        }
+
+        $speaker1Text = implode('. ', $speaker1Lines);
+        $speaker2Text = implode('. ', $speaker2Lines);
+
+        if (empty($speaker1Text) && empty($speaker2Text)) {
+            throw new \Exception('No dialogue text found for either speaker');
+        }
+
+        // If one speaker has no lines, fall back — put all text in speaker1
+        if (empty($speaker1Text)) {
+            $speaker1Text = $speaker2Text;
+            $speaker2Text = '';
+        }
+
+        $project = \Modules\AppVideoWizard\Models\WizardProject::findOrFail($this->projectId);
+        $voiceoverService = app(VoiceoverService::class);
+        $teamId = session('current_team_id', 0);
+
+        // Determine voice IDs for each speaker
+        $voiceId1 = $this->getVoiceForSpeaker($speaker1Name, $sceneIndex);
+        $voiceId2 = $this->getVoiceForSpeaker($speaker2Name, $sceneIndex);
+
+        // Ensure speakers have different voices
+        if ($voiceId1 === $voiceId2) {
+            $voiceId2 = ($voiceId1 === 'onyx') ? 'nova' : 'onyx';
+        }
+
+        Log::info('Generating dialogue voiceovers', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'speaker1' => $speaker1Name,
+            'speaker2' => $speaker2Name,
+            'voice1' => $voiceId1,
+            'voice2' => $voiceId2,
+            'text1_len' => strlen($speaker1Text),
+            'text2_len' => strlen($speaker2Text),
+        ]);
+
+        // Generate Speaker 1 audio
+        $result1 = $voiceoverService->generateSceneVoiceover($project, [
+            'id' => "shot_{$sceneIndex}_{$shotIndex}_speaker1",
+            'narration' => $speaker1Text,
+            'title' => "{$speaker1Name} dialogue",
+        ], [
+            'voice' => $voiceId1,
+            'speed' => 1.0,
+            'sceneIndex' => $sceneIndex,
+            'teamId' => $teamId,
+        ]);
+
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $result1['audioUrl'];
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration'] = $result1['duration'];
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId'] = $voiceId1;
+
+        // Generate Speaker 2 audio (if there's text)
+        $result2 = null;
+        if (!empty($speaker2Text)) {
+            $result2 = $voiceoverService->generateSceneVoiceover($project, [
+                'id' => "shot_{$sceneIndex}_{$shotIndex}_speaker2",
+                'narration' => $speaker2Text,
+                'title' => "{$speaker2Name} dialogue",
+            ], [
+                'voice' => $voiceId2,
+                'speed' => 1.0,
+                'sceneIndex' => $sceneIndex,
+                'teamId' => $teamId,
+            ]);
+
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] = $result2['audioUrl'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $result2['duration'];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = $voiceId2;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus2'] = 'ready';
+        }
+
+        // Mark as dialogue shot — this triggers buildTimelineSyncedAudio() in animation
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['isDialogueShot'] = true;
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+        // segmentType + speakingCharacters are checked by animation code (line ~30663)
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segmentType'] = 'dialogue';
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speakingCharacters'] = [$speaker1Name, $speaker2Name];
+
+        // Store dialogue speaker info
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dialogueSpeakers'] = [
+            ['name' => $speaker1Name, 'voiceId' => $voiceId1],
+            ['name' => $speaker2Name, 'voiceId' => $voiceId2 ?? null],
+        ];
+
+        // Calculate total duration: speaker1 + pause + speaker2 + buffer
+        $dur1 = $result1['duration'] ?? 0;
+        $dur2 = $result2 ? ($result2['duration'] ?? 0) : 0;
+        $totalAudio = $dur1 + 0.5 + $dur2;
+        $autoDuration = (int) ceil($totalAudio + 1.0);
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $autoDuration;
+
+        // Update speechSegments with actual voice/duration data
+        $existingSegments = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] ?? [];
+        if (count($existingSegments) >= 1) {
+            $existingSegments[0]['voiceId'] = $voiceId1;
+            $existingSegments[0]['duration'] = (float) $dur1;
+        }
+        if (count($existingSegments) >= 2) {
+            $existingSegments[1]['voiceId'] = $voiceId2;
+            $existingSegments[1]['duration'] = (float) $dur2;
+            $existingSegments[1]['startTime'] = round((float) $dur1 + 0.5, 1);
+        }
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['speechSegments'] = $existingSegments;
+
+        $this->showVoiceRegenerateOptions = false;
+        $this->saveProject();
+
+        Log::info('Dialogue voiceovers generated successfully', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'audioUrl1' => $result1['audioUrl'],
+            'duration1' => $dur1,
+            'audioUrl2' => $result2 ? ($result2['audioUrl'] ?? null) : null,
+            'duration2' => $dur2,
+            'isDialogueShot' => true,
+            'totalDuration' => $autoDuration,
+        ]);
+
+        $this->dispatch('shot-audio-ready', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'audioUrl' => $result1['audioUrl'],
+            'duration' => $dur1,
+        ]);
+    }
+
+    /**
+     * Get a voice ID for a specific speaker name.
+     * Tries character bible, then infers from character description in the viral idea.
+     */
+    protected function getVoiceForSpeaker(string $speakerName, int $sceneIndex): string
+    {
+        // First check Character Bible
+        $charBible = $this->sceneMemory['characterBible']['characters'] ?? [];
+        foreach ($charBible as $char) {
+            if (($char['name'] ?? '') === $speakerName) {
+                if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) {
+                    return $char['voice']['id'];
+                }
+                if (is_string($char['voice'] ?? null) && !empty($char['voice'])) {
+                    return $char['voice'];
+                }
+            }
+        }
+
+        // Try to infer from viral idea character data
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        $characters = $idea['characters'] ?? [];
+
+        foreach ($characters as $i => $c) {
+            if (($c['name'] ?? '') === $speakerName) {
+                $desc = strtolower($c['description'] ?? '');
+                // Animal characters get distinct voices
+                if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) {
+                    return 'nova'; // Higher-pitched for cats
+                }
+                if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) {
+                    return 'echo'; // Mid-range for dogs
+                }
+                // Gender inference from description
+                if (preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess)\b/', $desc)) {
+                    return 'nova';
+                }
+                if (preg_match('/\b(he|his|him|man|male|boy|guy|father|husband|king|prince)\b/', $desc)) {
+                    return 'onyx';
+                }
+                // Default: first character gets 'alloy', second gets 'echo'
+                return $i === 0 ? 'alloy' : 'echo';
+            }
+        }
+
+        // Fallback
+        return 'alloy';
     }
 
     /**

@@ -7,8 +7,10 @@
     $videoUrl = $shot['videoUrl'] ?? null;
     $videoStatus = $shot['videoStatus'] ?? 'pending';
     $audioUrl = $shot['audioUrl'] ?? null;
+    $audioUrl2 = $shot['audioUrl2'] ?? null;
     $audioStatus = $shot['audioStatus'] ?? 'pending';
     $audioSource = $shot['audioSource'] ?? null;
+    $isDialogueShot = ($shot['speechType'] ?? '') === 'dialogue' && count($shot['charactersInShot'] ?? []) >= 2;
     $selectedIdea = $concept['socialContent'] ?? ($conceptVariations[$selectedConceptIndex ?? 0] ?? []);
 @endphp
 
@@ -410,6 +412,15 @@
 
                 {{-- Voice Tab --}}
                 <div x-show="audioTab === 'voice'" x-cloak>
+                    @if($isDialogueShot)
+                        <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.5rem;">
+                            <i class="fa-solid fa-comments" style="color: #a78bfa;"></i>
+                            {{ __('Generates separate voices for') }}
+                            <strong style="color: #a78bfa;">{{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}</strong>
+                            {{ __('and') }}
+                            <strong style="color: #67e8f9;">{{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}</strong>
+                        </div>
+                    @endif
                     <button class="vw-social-action-btn"
                             wire:click="generateShotVoiceover(0, 0)"
                             wire:loading.attr="disabled"
@@ -417,7 +428,11 @@
                             @if($imageStatus !== 'ready') disabled title="{{ __('Generate image first') }}" @endif>
                         <span wire:loading.remove wire:target="generateShotVoiceover">
                             <i class="fa-solid fa-volume-high"></i>
-                            {{ ($audioStatus === 'ready' && $audioSource !== 'music_upload') ? __('Regenerate Voice') : __('Generate Voice') }}
+                            @if($isDialogueShot)
+                                {{ ($audioStatus === 'ready' && $audioSource !== 'music_upload') ? __('Regenerate Dialogue') : __('Generate Dialogue Voices') }}
+                            @else
+                                {{ ($audioStatus === 'ready' && $audioSource !== 'music_upload') ? __('Regenerate Voice') : __('Generate Voice') }}
+                            @endif
                         </span>
                         <span wire:loading wire:target="generateShotVoiceover">
                             <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Generating...') }}
@@ -444,7 +459,18 @@
 
                 {{-- Audio Player --}}
                 @if($audioUrl && $audioStatus === 'ready')
+                    @if($isDialogueShot && $audioUrl2)
+                        <div style="font-size: 0.75rem; color: #a78bfa; margin-bottom: 0.25rem; font-weight: 600;">
+                            <i class="fa-solid fa-comments"></i> {{ __('Dialogue Mode') }} &mdash; {{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}
+                        </div>
+                    @endif
                     <audio src="{{ $audioUrl }}" controls class="vw-social-audio-player"></audio>
+                    @if($isDialogueShot && $audioUrl2)
+                        <div style="font-size: 0.75rem; color: #67e8f9; margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600;">
+                            <i class="fa-solid fa-comments"></i> {{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}
+                        </div>
+                        <audio src="{{ $audioUrl2 }}" controls class="vw-social-audio-player"></audio>
+                    @endif
                 @endif
             </div>
 
