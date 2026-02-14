@@ -24946,6 +24946,8 @@ PROMPT;
             'emotion' => $ideaMood,
             'characterDescription' => $charDescs[$speaker1Name] ?? null,
             'speechType' => 'dialogue',
+            'characterName' => $speaker1Name,
+            'dialogueText' => $speaker1Text,
         ]);
 
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $result1['audioUrl'];
@@ -24967,6 +24969,8 @@ PROMPT;
                 'emotion' => $ideaMood,
                 'characterDescription' => $charDescs[$speaker2Name] ?? null,
                 'speechType' => 'dialogue',
+                'characterName' => $speaker2Name,
+                'dialogueText' => $speaker2Text,
             ]);
 
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] = $result2['audioUrl'];
@@ -25071,38 +25075,46 @@ PROMPT;
             if (($c['name'] ?? '') === $speakerName) {
                 $desc = strtolower($c['description'] ?? '');
 
-                if ($isQwen3) {
-                    // Qwen3 voice selection based on character description
-                    if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) {
-                        return 'Serena'; // Bright female for cats
+                // Step 1: Detect gender from description keywords (BEFORE species)
+                $isFemale = (bool) preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess|actress|waitress)\b/', $desc);
+                $isMale = (bool) preg_match('/\b(he|his|him|man|male|boy|guy|father|husband|king|prince|grumpy|chef)\b/', $desc);
+
+                // Step 2: If no gender keywords, check character bible for explicit gender
+                if (!$isFemale && !$isMale) {
+                    foreach ($charBible as $bibleChar) {
+                        if (strcasecmp($bibleChar['name'] ?? '', $speakerName) === 0) {
+                            $bibleGender = strtolower($bibleChar['gender'] ?? '');
+                            if (str_contains($bibleGender, 'female')) $isFemale = true;
+                            elseif (str_contains($bibleGender, 'male')) $isMale = true;
+                            break;
+                        }
                     }
-                    if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) {
-                        return 'Ryan'; // Warm male for dogs
-                    }
-                    if (preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess)\b/', $desc)) {
-                        return 'Vivian';
-                    }
-                    if (preg_match('/\b(he|his|him|man|male|boy|guy|father|husband|king|prince)\b/', $desc)) {
-                        return 'Dylan';
-                    }
-                    return $i === 0 ? 'Vivian' : 'Dylan';
                 }
 
-                // OpenAI/Kokoro voice selection (existing logic)
-                if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) {
-                    return 'nova'; // Higher-pitched for cats
+                if ($isQwen3) {
+                    // Step 3: Choose Qwen3 voice based on gender + species personality
+                    if ($isFemale) {
+                        if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'Serena'; // bright female for cats
+                        if (preg_match('/\b(old|elderly|grandma|wise)\b/', $desc)) return 'Ono_Anna'; // warm mature
+                        return 'Vivian'; // default female
+                    }
+                    // Male or default
+                    if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'Aiden'; // storytelling for smug cat
+                    if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) return 'Ryan'; // warm for dogs
+                    if (preg_match('/\b(old|elderly|grandpa|wise|deep)\b/', $desc)) return 'Uncle_Fu'; // deep male
+                    if (preg_match('/\b(grumpy|angry|tough)\b/', $desc)) return 'Eric'; // clear, direct
+                    return $i === 0 ? 'Dylan' : 'Aiden';
                 }
-                if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) {
-                    return 'echo'; // Mid-range for dogs
-                }
-                // Gender inference from description
-                if (preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess)\b/', $desc)) {
+
+                // OpenAI/Kokoro: gender-first, then species personality
+                if ($isFemale) {
+                    if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'nova'; // bright female
                     return 'nova';
                 }
-                if (preg_match('/\b(he|his|him|man|male|boy|guy|father|husband|king|prince)\b/', $desc)) {
-                    return 'onyx';
-                }
-                // Default: first character gets 'alloy', second gets 'echo'
+                // Male or default
+                if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'echo'; // mid-range for male cats
+                if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) return 'echo';
+                if ($isMale) return 'onyx';
                 return $i === 0 ? 'alloy' : 'echo';
             }
         }
@@ -31146,15 +31158,7 @@ PROMPT;
         $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
         $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
 
-        $emotionMap = [
-            'tense' => 'focused expression with slight tension',
-            'dramatic' => 'intense emotional expression',
-            'happy' => 'warm expression with natural smile',
-            'sad' => 'thoughtful, melancholic expression',
-            'angry' => 'fierce, intense gaze',
-            'neutral' => 'calm, natural expression',
-        ];
-        $expressionDesc = $emotionMap[$emotion] ?? $emotionMap['neutral'];
+        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
 
         // Build a brief physical identifier for a character from the bible
         $describeCharacter = function(?string $name) use ($characterBible): string {
@@ -31163,9 +31167,7 @@ PROMPT;
                 if (strcasecmp($char['name'] ?? '', $name) === 0) {
                     $gender = $char['gender'] ?? '';
                     $appearance = $char['appearance'] ?? $char['description'] ?? '';
-                    // Extract brief identifier: gender + key visual traits
                     if ($gender && $appearance) {
-                        // Take first sentence of appearance for brevity
                         $brief = strtok($appearance, '.') ?: $appearance;
                         return strtolower($gender) . ', ' . trim($brief);
                     }
@@ -31180,26 +31182,26 @@ PROMPT;
 
         $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
 
-        // Single character in frame - simple prompt
+        // Single character in frame — rich emotional prompt
         if (!$multipleInFrame) {
             $who = $speakerName ?: 'the person';
-            return "{$who} speaking naturally with clear lip movements, {$expressionDesc}, "
-                 . "{$speakerPhysicality}, smooth breathing motion, "
-                 . "subtle facial micro-expressions";
+            return "{$who} speaking with passionate intensity and clear lip movements, "
+                 . "{$emotionIntensity}, "
+                 . "{$speakerPhysicality}, "
+                 . "eyes alive with thought, breathing naturally between phrases, "
+                 . "micro-expressions shifting with each emotional beat";
         }
 
-        // Multiple characters in frame - must specify who speaks and who stays silent
+        // Multiple characters in frame — specify speaker + silent characters
         $speakerDesc = $describeCharacter($speakerName);
         $speakerLabel = $speakerName ?: 'the speaking character';
         if ($speakerDesc) {
             $speakerLabel = "{$speakerName} ({$speakerDesc})";
         }
 
-        // Build silent character descriptions
         $silentParts = [];
         $otherNames = array_filter($charactersInShot, fn($n) => strcasecmp($n, $speakerName ?? '') !== 0);
         if (empty($otherNames)) {
-            // Fallback: use scene characters minus speaker
             foreach ($scene['characters'] ?? [] as $charName) {
                 $name = is_array($charName) ? ($charName['name'] ?? '') : $charName;
                 if ($name && strcasecmp($name, $speakerName ?? '') !== 0) {
@@ -31216,8 +31218,8 @@ PROMPT;
 
         $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
 
-        $prompt = "Only {$speakerLabel} is speaking with natural lip movements and {$expressionDesc}, "
-                . "{$speakerPhysicality}, subtle facial micro-expressions. ";
+        $prompt = "Only {$speakerLabel} is speaking with animated lip movements and {$emotionIntensity}, "
+                . "{$speakerPhysicality}, vivid emotional micro-expressions. ";
 
         if (!empty($silentParts)) {
             $silentList = implode(' and ', $silentParts);
@@ -31246,19 +31248,22 @@ PROMPT;
                  . 'only occasional subtle eye blinks, fixed attentive gaze';
         }
 
-        // Scene mood → specific physicality archetype (for speaker)
+        // Scene mood → specific physicality archetype (for speaker) — cinematic action + anti-nodding
         $moodPhysicality = [
-            'tense'      => 'rigid locked posture, jaw tight, unflinching stare, NO head nodding or bobbing, NO swaying',
-            'dramatic'   => 'controlled intensity, squared shoulders, deliberate stillness, NO rocking or nodding',
-            'mysterious' => 'eerily still, measured and deliberate, NO unnecessary movement, piercing gaze',
-            'dark'       => 'brooding stillness, heavy presence, NO fidgeting or head bobbing, stone-faced',
-            'angry'      => 'tense jaw, leaning slightly forward, NO head nodding, sharp controlled gestures only',
-            'sad'        => 'weighted stillness, downcast but steady, NO swaying or rocking, subtle breathing only',
-            'romantic'   => 'soft stillness, warm steady gaze, NO excessive nodding, gentle and composed',
-            'happy'      => 'relaxed but mostly still, occasional subtle expression shift, NO exaggerated nodding',
-            'hopeful'    => 'upright composure, steady forward gaze, NO bobbing or swaying, quiet confidence',
-            'action'     => 'alert and locked in position, NO unnecessary motion, coiled readiness',
-            'neutral'    => 'calm and composed, steady gaze, NO head nodding or bobbing, natural stillness',
+            'tense'      => 'rigid locked posture with coiled energy, jaw tight, hands gripping, unflinching intense stare, NO head nodding or bobbing, NO swaying',
+            'dramatic'   => 'powerful presence radiating emotion, chest heaving with labored breath, deliberate controlled movements, squared shoulders, NO rocking or nodding',
+            'mysterious' => 'eerily still, measured and deliberate, eyes scanning knowingly, NO unnecessary movement, piercing gaze',
+            'dark'       => 'brooding stillness, heavy presence, shadows playing across the face, NO fidgeting or head bobbing, stone-faced',
+            'angry'      => 'leaning aggressively forward, shoulders squared for confrontation, finger pointing, sharp head turns, NO mindless nodding',
+            'sad'        => 'weighted stillness, eyes glistening, downcast but steady, chest rising with deep sighs, NO swaying or rocking, subtle breathing only',
+            'romantic'   => 'soft stillness, warm steady gaze, slightly parted lips, gentle lean toward the other, NO excessive nodding, gentle and composed',
+            'happy'      => 'relaxed open posture, genuine smile playing on lips, eyes bright and engaged, minimal natural movement, NO exaggerated nodding',
+            'hopeful'    => 'upright composure, chin lifting with rising optimism, steady forward gaze, NO bobbing or swaying, quiet confidence',
+            'action'     => 'alert and locked in position, muscles tensed for explosive movement, NO unnecessary motion, coiled readiness',
+            'funny'      => 'expressive face barely containing laughter, subtle body shakes from suppressed giggles, twinkling eyes, NO repetitive bobbing',
+            'absurd'     => 'head tilting with bewilderment, eyes widening progressively, jaw loosening with disbelief, NO mindless nodding',
+            'sarcastic'  => 'one eyebrow raised, arms crossed, weight shifted to one hip, deliberately unimpressed posture, NO swaying',
+            'neutral'    => 'calm and composed, steady gaze, natural breathing rhythm, NO head nodding or bobbing, natural stillness',
         ];
 
         $moodDir = $moodPhysicality[$emotion] ?? $moodPhysicality['neutral'];
@@ -31285,8 +31290,37 @@ PROMPT;
     }
 
     /**
+     * Map emotions to intense, cinematic facial expression descriptions for InfiniteTalk.
+     */
+    protected function getEmotionIntensityDirection(string $emotion): string
+    {
+        $intensityMap = [
+            'tense'      => 'jaw clenched with barely contained tension, eyes narrowing with suspicion',
+            'dramatic'   => 'burning intensity in the eyes, face contorting with raw emotion',
+            'happy'      => 'radiating genuine warmth, crow-feet crinkling with authentic joy',
+            'sad'        => 'eyes glistening with held-back tears, mouth trembling slightly',
+            'angry'      => 'nostrils flaring, veins visible, face flushed with rage',
+            'neutral'    => 'calm composed expression with subtle shifts of thought',
+            'funny'      => 'struggling to keep a straight face, eyes twinkling with mischief',
+            'absurd'     => 'wide-eyed disbelief, jaw dropping, head tilting in confusion',
+            'sarcastic'  => 'one eyebrow raised, smirking, exaggerated eye-roll energy',
+            'mysterious' => 'hooded eyes, knowing half-smile, enigmatic presence',
+            'romantic'   => 'soft gaze, slightly parted lips, gentle warmth in the eyes',
+            'dark'       => 'shadow-cast features, hollow stare, unsettling stillness in the face',
+            'hopeful'    => 'eyes brightening, chin lifting, the faintest hopeful smile forming',
+            'chaotic'    => 'wild darting eyes, manic grin, face cycling through emotions rapidly',
+            'excited'    => 'eyes wide and sparkling, mouth open with barely contained excitement',
+            'wholesome'  => 'soft crinkled eyes, warm genuine smile, face glowing with kindness',
+            'cute'       => 'big innocent eyes, slight head tilt, adorable pouty expression',
+            'confident'  => 'steady unwavering gaze, strong jawline set with authority, commanding presence',
+        ];
+
+        return $intensityMap[$emotion] ?? 'expressive and emotionally engaged';
+    }
+
+    /**
      * Build prompt for InfiniteTalk two-person dialogue mode (multi).
-     * Describes a natural conversation between two characters with turn-taking.
+     * Describes an intense conversation between two characters with turn-taking.
      */
     protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
     {
@@ -31319,12 +31353,13 @@ PROMPT;
 
         $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
         $listenerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'listener');
+        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
 
-        return "Two people in conversation: {$label1} and {$label2} talking naturally with turn-taking dialogue, "
-             . "each character has clear lip movements synchronized to their own speech, "
-             . "the active speaker: {$speakerPhysicality}, "
+        return "Heated two-person conversation: {$label1} and {$label2} in intense face-to-face dialogue, "
+             . "each character has vivid lip movements perfectly synchronized to their speech, "
+             . "the active speaker: {$speakerPhysicality}, eyes locked on the other, expressive gestures, "
              . "the listener: {$listenerPhysicality}, "
-             . "{$emotion} tone, natural breathing and subtle facial micro-expressions";
+             . "{$emotionIntensity}, natural breathing rhythm, dynamic facial expressions reacting to each word";
     }
 
     /**

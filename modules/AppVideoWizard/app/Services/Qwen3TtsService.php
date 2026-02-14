@@ -214,67 +214,158 @@ class Qwen3TtsService
     }
 
     /**
-     * Build a natural-language style prompt from character/emotion context.
-     * This is where Qwen3 TTS shines — expressive voice direction.
+     * Build a rich, multi-layer natural-language style prompt from character/emotion context.
+     * Qwen3 TTS's killer feature is the `prompt` parameter — we generate cinematic voice direction.
      */
     protected function buildStylePrompt(array $options): string
     {
         $parts = [];
-
         $emotion = $options['emotion'] ?? $options['mood'] ?? null;
         $characterDesc = $options['characterDescription'] ?? null;
+        $characterName = $options['characterName'] ?? null;
         $speechType = $options['speechType'] ?? 'monologue';
         $instructions = $options['instructions'] ?? '';
+        $dialogueText = $options['dialogueText'] ?? '';
 
-        // Use explicit instructions if provided (from VoicePromptBuilderService)
+        // Layer 1: Explicit instructions from VoicePromptBuilderService
         if (!empty($instructions)) {
             $parts[] = $instructions;
         }
 
-        // Character voice style from description
+        // Layer 2: Character identity and vocal quality from description
         if ($characterDesc) {
-            if (preg_match('/\b(cat|kitten|feline|kitty)\b/i', $characterDesc)) {
-                $parts[] = 'Speak with a slightly high-pitched, smug quality';
-            } elseif (preg_match('/\b(dog|puppy|canine|pup)\b/i', $characterDesc)) {
-                $parts[] = 'Speak with an eager, enthusiastic quality';
-            } elseif (preg_match('/\b(robot|android|ai|cyborg)\b/i', $characterDesc)) {
-                $parts[] = 'Speak with a slightly mechanical, precise diction';
-            } elseif (preg_match('/\b(old|elderly|grandpa|grandma|ancient)\b/i', $characterDesc)) {
-                $parts[] = 'Speak with a wise, weathered voice quality';
-            } elseif (preg_match('/\b(child|kid|baby|toddler|young)\b/i', $characterDesc)) {
-                $parts[] = 'Speak with a youthful, innocent voice quality';
-            }
+            $parts[] = $this->buildCharacterVocalIdentity($characterDesc, $characterName);
         }
 
-        // Emotional direction — mapped to natural language
+        // Layer 3: Emotional delivery with intensity
         if ($emotion) {
-            $emotionMap = [
-                'funny'     => 'comedic timing with deadpan delivery, slight pauses before punchlines',
-                'absurd'    => 'exaggerated bewilderment, escalating disbelief',
-                'wholesome' => 'warm, gentle sincerity with soft tone',
-                'chaotic'   => 'fast-paced, unhinged energy, raising voice unpredictably',
-                'cute'      => 'adorable, slightly squeaky with playful inflections',
-                'sarcastic' => 'heavy sarcasm, eye-roll energy, flat affect with sharp emphasis',
-                'dramatic'  => 'theatrical intensity, building tension with pauses',
-                'angry'     => 'controlled anger, sharp consonants, clipped sentences',
-                'sad'       => 'melancholic tone, slower pace, wavering quality',
-                'excited'   => 'high energy, faster pace, rising intonation',
-                'mysterious'=> 'hushed, conspiratorial tone with deliberate pacing',
-                'confident' => 'strong, assured delivery with steady pacing',
-            ];
-            $parts[] = $emotionMap[$emotion] ?? "Speak with {$emotion} emotion";
+            $parts[] = $this->buildEmotionalDelivery($emotion, $speechType);
         }
 
-        // Dialogue-specific direction
+        // Layer 4: Dialogue-aware pacing
         if ($speechType === 'dialogue') {
-            $parts[] = 'conversational pace, natural reactions';
+            $parts[] = $this->buildDialoguePacing($dialogueText, $emotion);
         }
 
         if (empty($parts)) {
-            return '';
+            return 'Natural, conversational delivery with clear articulation.';
         }
 
-        return implode('. ', $parts) . '.';
+        return implode('. ', array_filter($parts)) . '.';
+    }
+
+    /**
+     * Extract species, age, personality traits from character description
+     * and generate a unique vocal identity prompt.
+     */
+    protected function buildCharacterVocalIdentity(string $desc, ?string $name): string
+    {
+        $descLower = strtolower($desc);
+        $parts = [];
+
+        // Species-specific vocal qualities
+        if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $descLower)) {
+            $parts[] = 'smug, slightly condescending delivery with a self-satisfied purring quality';
+            if (preg_match('/\b(grumpy|annoyed|angry)\b/', $descLower)) {
+                $parts[] = 'irritated hissing undertone, sharp clipped words';
+            }
+        } elseif (preg_match('/\b(dog|puppy|canine|pup)\b/', $descLower)) {
+            $parts[] = 'eager, panting enthusiasm, bursts of excited energy';
+        } elseif (preg_match('/\b(robot|android|ai|cyborg)\b/', $descLower)) {
+            $parts[] = 'precise mechanical diction, slight digital resonance';
+        } elseif (preg_match('/\b(bird|parrot|crow|raven)\b/', $descLower)) {
+            $parts[] = 'sharp staccato delivery, clipped chirpy cadence';
+        } elseif (preg_match('/\b(snake|serpent|lizard|reptile)\b/', $descLower)) {
+            $parts[] = 'drawn-out sibilant hiss on S sounds, slithering smooth delivery';
+        }
+
+        // Personality traits
+        if (preg_match('/\b(grumpy|grouchy|cranky)\b/', $descLower)) {
+            $parts[] = 'perpetually annoyed, sighing between sentences';
+        } elseif (preg_match('/\b(cheerful|happy|bubbly)\b/', $descLower)) {
+            $parts[] = 'bright, upbeat energy lifting every word';
+        } elseif (preg_match('/\b(nervous|anxious|worried)\b/', $descLower)) {
+            $parts[] = 'slightly trembling, hesitant, swallowing nervously';
+        } elseif (preg_match('/\b(shy|timid|quiet)\b/', $descLower)) {
+            $parts[] = 'soft-spoken, trailing off at sentence ends, reluctant volume';
+        } elseif (preg_match('/\b(arrogant|smug|proud)\b/', $descLower)) {
+            $parts[] = 'self-important, elongating vowels with superiority';
+        }
+
+        // Age/experience traits
+        if (preg_match('/\b(old|elderly|grandpa|grandma|ancient|wise)\b/', $descLower)) {
+            $parts[] = 'weathered, gravelly wisdom, slow deliberate pacing';
+        } elseif (preg_match('/\b(child|kid|young|little|baby|toddler)\b/', $descLower)) {
+            $parts[] = 'high-pitched, innocent wonder, breathless excitement';
+        }
+
+        // Profession traits
+        if (preg_match('/\b(chef|cook)\b/', $descLower)) {
+            $parts[] = 'passionate about food, Italian-chef-like intensity when discussing cooking';
+        } elseif (preg_match('/\b(detective|investigator|spy)\b/', $descLower)) {
+            $parts[] = 'noir-style measured delivery, suspicious of everything';
+        } elseif (preg_match('/\b(narrator)\b/', $descLower)) {
+            $parts[] = 'rich authoritative storytelling voice, painting pictures with words';
+        }
+
+        return implode(', ', $parts) ?: "natural, expressive delivery for {$name}";
+    }
+
+    /**
+     * Generate intense, layered emotional delivery direction.
+     */
+    protected function buildEmotionalDelivery(string $emotion, string $speechType): string
+    {
+        $emotionMap = [
+            'funny'     => 'masterful comedic timing — deadpan delivery with micro-pauses before punchlines, slight smirk in the voice, let the absurdity land',
+            'absurd'    => 'escalating bewilderment — start measured then spiral into incredulous disbelief, voice cracking with "are you serious?" energy',
+            'wholesome' => 'genuine warmth radiating through every word, gentle smile in the voice, tender pauses that let the sweetness breathe',
+            'chaotic'   => 'unhinged manic energy — volume swings wildly, words tumble over each other, barely controlled chaos',
+            'cute'      => 'adorably squeaky with playful pitch jumps, infectious giggling energy',
+            'sarcastic' => 'weaponized sarcasm — flat affect with devastating emphasis on key words, eye-roll energy dripping from every syllable',
+            'dramatic'  => 'theatrical intensity building to a crescendo — pregnant pauses, voice dropping to a whisper then exploding with emotion',
+            'angry'     => 'white-hot controlled fury — jaw tight, words bitten off sharp, volume rising dangerously',
+            'sad'       => 'aching melancholy — voice heavy with unshed tears, words trailing off into silence',
+            'excited'   => 'barely contained explosive joy — voice climbing higher, words accelerating, infectious enthusiasm',
+            'mysterious'=> 'conspiratorial whisper — deliberate pacing, each word placed like a chess piece, heavy with meaning',
+            'confident' => 'commanding authority — chest-voice resonance, measured powerful pacing, every word lands like a verdict',
+            'tense'     => 'coiled spring about to snap — tight throat, clipped breathing, words coming through gritted teeth',
+            'romantic'  => 'intimate velvet warmth — soft breathy quality, lingering on vowels, pillow-talk intimacy',
+            'dark'      => 'ominous gravitas — low rumbling undertone, words dripping with foreboding',
+            'hopeful'   => 'quiet rising optimism — voice brightening with each phrase, dawn breaking through the tone',
+        ];
+
+        return $emotionMap[$emotion] ?? "intense {$emotion} emotion — fully committed, emotionally raw delivery";
+    }
+
+    /**
+     * Build dialogue-specific pacing direction based on the actual text content.
+     */
+    protected function buildDialoguePacing(string $dialogueText, ?string $emotion): string
+    {
+        $parts = ['conversational rhythm with natural turn-taking energy'];
+
+        // Detect question marks → rising intonation
+        if (str_contains($dialogueText, '?')) {
+            $parts[] = 'rising intonation on questions, genuine curiosity';
+        }
+
+        // Detect exclamation → emphatic delivery
+        if (str_contains($dialogueText, '!')) {
+            $parts[] = 'emphatic bursts of energy on exclamations';
+        }
+
+        // Detect ellipsis → trailing off
+        if (str_contains($dialogueText, '...') || str_contains($dialogueText, '…')) {
+            $parts[] = 'trailing off thoughtfully at ellipses, pregnant pauses';
+        }
+
+        // Short dialogue → punchy
+        if (strlen($dialogueText) < 50) {
+            $parts[] = 'punchy and direct, every word counts';
+        }
+
+        return implode(', ', $parts);
     }
 
     /**
@@ -344,13 +435,14 @@ class Qwen3TtsService
     {
         $gender = strtolower($gender);
 
-        if (str_contains($gender, 'female') || str_contains($gender, 'woman')) {
+        if (str_contains($gender, 'female') || str_contains($gender, 'woman') || str_contains($gender, 'girl')) {
             return 'Vivian';
         }
-        if (str_contains($gender, 'male') || str_contains($gender, 'man')) {
+        if (str_contains($gender, 'male') || str_contains($gender, 'man') || str_contains($gender, 'boy')) {
             return 'Dylan';
         }
 
-        return 'Vivian';
+        // Default to male voice (most narration skews male)
+        return 'Dylan';
     }
 }

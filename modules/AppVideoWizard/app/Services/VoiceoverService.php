@@ -456,6 +456,8 @@ class VoiceoverService
             'instructions' => $options['instructions'] ?? '',
             'characterDescription' => $options['characterDescription'] ?? null,
             'speechType' => $options['speechType'] ?? 'monologue',
+            'characterName' => $options['characterName'] ?? null,
+            'dialogueText' => $options['dialogueText'] ?? $narration,
         ]);
 
         if (!$result['success']) {
