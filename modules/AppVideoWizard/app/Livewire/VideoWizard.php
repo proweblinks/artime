@@ -79,6 +79,10 @@ class VideoWizard extends Component
     // Import file for project import
     public $importFile;
 
+    // Social content: music upload for lip-sync
+    public $musicUpload;
+    public ?string $uploadedMusicUrl = null;
+
     // Reference image uploads for Character/Location/Style Bible
     public $characterImageUpload;
     public $locationImageUpload;
@@ -3148,6 +3152,20 @@ class VideoWizard extends Component
             $this->currentStep = $step;
             $this->maxReachedStep = max($this->maxReachedStep, $step);
 
+            // Social Content: Auto-generate script + auto-decompose when entering Create step
+            if ($this->isSocialContentMode() && $step === 4 && $previousStep <= 2) {
+                $this->autoGenerateSocialScript();
+                $this->autoDecomposeSocialScene();
+                // Mark intermediate steps as reached for data consistency
+                $this->maxReachedStep = max($this->maxReachedStep, 4);
+
+                // Only save if user is authenticated
+                if (auth()->check()) {
+                    $this->saveProject();
+                }
+                return;
+            }
+
             // Step Transition Hook: Auto-populate Scene Memory when entering Storyboard (step 4)
             if ($step === 4 && $previousStep !== 4 && !empty($this->script['scenes'])) {
                 $this->isTransitioning = true;
@@ -3162,6 +3180,140 @@ class VideoWizard extends Component
                 $this->saveProject();
             }
         }
+    }
+
+    /**
+     * Auto-generate a 1-scene, 1-shot script for social content mode.
+     * No AI call — builds script structure from the selected viral idea.
+     */
+    protected function autoGenerateSocialScript(): void
+    {
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? null;
+
+        if (!$idea) return;
+
+        $character = $idea['character'] ?? 'Character';
+        $situation = $idea['situation'] ?? '';
+        $audioType = $idea['audioType'] ?? 'voiceover';
+        $audioDesc = $idea['audioDescription'] ?? '';
+        $duration = min($this->targetDuration, 10);
+
+        $this->script = [
+            'title' => $idea['title'] ?? 'Viral Content',
+            'hook' => $idea['viralHook'] ?? '',
+            'scenes' => [
+                [
+                    'id' => 'scene_0',
+                    'title' => $idea['title'] ?? 'Scene 1',
+                    'narration' => "[MONOLOGUE: {$character}] {$audioDesc}",
+                    'visualDescription' => "{$character}, {$situation}",
+                    'mood' => $idea['mood'] ?? 'funny',
+                    'duration' => $duration,
+                    'characters' => [['name' => $character, 'role' => 'main']],
+                    'speechSegments' => [[
+                        'type' => 'monologue',
+                        'speaker' => $character,
+                        'text' => $audioDesc,
+                        'duration' => $duration,
+                    ]],
+                    'transition' => 'none',
+                    'kenBurns' => ['startScale' => 1.0, 'endScale' => 1.0, 'startX' => 0.5, 'startY' => 0.5, 'endX' => 0.5, 'endY' => 0.5],
+                ],
+            ],
+            'cta' => '',
+            'totalDuration' => $duration,
+            '_meta' => ['source' => 'social_content_auto'],
+        ];
+    }
+
+    /**
+     * Auto-decompose a single-shot scene for social content mode.
+     * Creates decomposed scene structure expected by storyboard/animation steps.
+     */
+    protected function autoDecomposeSocialScene(): void
+    {
+        if (empty($this->script['scenes'])) return;
+
+        $scene = $this->script['scenes'][0];
+        $character = $scene['characters'][0]['name'] ?? 'Character';
+        $duration = $scene['duration'] ?? 10;
+
+        $shot = [
+            'id' => 'shot_social_' . uniqid(),
+            'sceneId' => 'scene_0',
+            'shotIndex' => 0,
+            'type' => 'medium',
+            'description' => $scene['visualDescription'] ?? '',
+            'duration' => $duration,
+            'selectedDuration' => $duration,
+            'imageUrl' => null,
+            'imageStatus' => 'pending',
+            'videoUrl' => null,
+            'videoStatus' => 'pending',
+            'audioUrl' => null,
+            'audioUrl2' => null,
+            'audioDuration' => null,
+            'status' => 'pending',
+            'speechSegments' => $scene['speechSegments'] ?? [],
+            'speechType' => $scene['speechSegments'][0]['type'] ?? 'monologue',
+            'speakingCharacter' => $character,
+            'charactersInShot' => [$character],
+            'needsLipSync' => true,
+            'cameraMovement' => [
+                'type' => 'static',
+                'motion' => 'hold',
+                'speed' => 'normal',
+                'intensity' => 0.2,
+            ],
+            'emotionalIntensity' => 0.7,
+            'subjectAction' => $scene['visualDescription'] ?? '',
+        ];
+
+        $this->multiShotMode['enabled'] = true;
+        $this->multiShotMode['decomposedScenes'][0] = [
+            'sceneId' => 'scene_0',
+            'sceneIndex' => 0,
+            'shots' => [$shot],
+            'shotCount' => 1,
+            'totalDuration' => $duration,
+            'selectedShot' => 0,
+            'status' => 'ready',
+            'consistencyAnchors' => [],
+            'sceneTitle' => $scene['title'] ?? '',
+            'sceneNarration' => $scene['narration'] ?? '',
+        ];
+
+        // Initialize storyboard entry
+        $this->storyboard['scenes'][0] = [
+            'imageUrl' => null,
+            'status' => 'pending',
+            'prompt' => '',
+            'source' => 'ai',
+        ];
+    }
+
+    /**
+     * Build viral-optimized image prompt for social content shots.
+     */
+    protected function buildViralImagePrompt(array $shot, int $sceneIndex): string
+    {
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+
+        $character = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
+        $situation = $idea['situation'] ?? ($shot['description'] ?? '');
+        $mood = $idea['mood'] ?? 'funny';
+
+        return "VERTICAL 9:16 COMPOSITION. Single frame, centered subject. "
+            . "{$character}, {$situation}. "
+            . "Expression: {$mood}, exaggerated and expressive, mouth slightly open. "
+            . "Close-up to medium shot, eye-level angle, shallow depth of field. "
+            . "Photorealistic, cinematic lighting, high detail. "
+            . "Background: contextual environment matching the situation. "
+            . "NO text overlays, NO watermarks, NO borders, NO split screens.";
     }
 
     /**
@@ -3249,7 +3401,12 @@ class VideoWizard extends Component
      */
     public function nextStep(): void
     {
-        $this->goToStep($this->currentStep + 1);
+        if ($this->isSocialContentMode()) {
+            $nextMap = [1 => 2, 2 => 4, 4 => 7];
+            $this->goToStep($nextMap[$this->currentStep] ?? $this->currentStep + 1);
+        } else {
+            $this->goToStep($this->currentStep + 1);
+        }
     }
 
     /**
@@ -3257,7 +3414,12 @@ class VideoWizard extends Component
      */
     public function previousStep(): void
     {
-        $this->goToStep($this->currentStep - 1);
+        if ($this->isSocialContentMode()) {
+            $prevMap = [7 => 4, 4 => 2, 2 => 1];
+            $this->goToStep($prevMap[$this->currentStep] ?? $this->currentStep - 1);
+        } else {
+            $this->goToStep($this->currentStep - 1);
+        }
     }
 
     /**
@@ -4404,6 +4566,57 @@ PROMPT;
             $this->error = __('Failed to generate concepts: ') . $e->getMessage();
         } finally {
             $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Generate viral content ideas for social content mode.
+     * Delegates to ConceptService::generateViralIdeas().
+     */
+    public function generateViralIdeas(?string $theme = null): void
+    {
+        $this->isLoading = true;
+        $this->error = null;
+
+        try {
+            $conceptService = app(ConceptService::class);
+            $result = $conceptService->generateViralIdeas(
+                $theme ?? $this->concept['rawInput'] ?? '',
+                [
+                    'teamId' => session('current_team_id', 0),
+                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                    'count' => 6,
+                ]
+            );
+
+            $this->conceptVariations = $result['variations'] ?? [];
+            if (!empty($this->conceptVariations)) {
+                $this->selectedConceptIndex = 0;
+                // Auto-select first idea
+                $this->selectViralIdea(0);
+            }
+            $this->saveProject();
+        } catch (\Exception $e) {
+            $this->error = __('Failed to generate ideas: ') . $e->getMessage();
+            Log::error('VideoWizard: Viral idea generation failed', ['error' => $e->getMessage()]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    /**
+     * Select a viral idea from the generated concepts.
+     */
+    public function selectViralIdea(int $index): void
+    {
+        if (isset($this->conceptVariations[$index])) {
+            $this->selectedConceptIndex = $index;
+            $idea = $this->conceptVariations[$index];
+            // Populate concept fields from selected idea
+            $this->concept['rawInput'] = $idea['concept'] ?? '';
+            $this->concept['refinedConcept'] = $idea['concept'] ?? '';
+            $this->concept['suggestedMood'] = $idea['mood'] ?? 'funny';
+            $this->concept['socialContent'] = $idea; // Store full idea data
         }
     }
 
@@ -8860,6 +9073,18 @@ PROMPT;
      */
     public function getStepTitles(): array
     {
+        if ($this->isSocialContentMode()) {
+            return [
+                1 => 'Format',
+                2 => 'Idea',
+                3 => '',        // Script — hidden, auto-generated
+                4 => 'Create',
+                5 => '',        // Animation — hidden, done in storyboard
+                6 => '',        // Assembly — hidden, single shot
+                7 => 'Export',
+            ];
+        }
+
         return [
             1 => 'Platform & Format',
             2 => 'Concept',
@@ -8869,6 +9094,17 @@ PROMPT;
             6 => 'Assembly',
             7 => 'Export',
         ];
+    }
+
+    /**
+     * Check if current configuration is Social Content mode (viral/meme-comedy).
+     * When true, the 7-step wizard collapses to 4 visible steps.
+     */
+    public function isSocialContentMode(): bool
+    {
+        return $this->format === 'vertical'
+            && $this->productionType === 'social'
+            && in_array($this->productionSubtype, ['viral', 'meme-comedy']);
     }
 
     /**
@@ -8886,7 +9122,9 @@ PROMPT;
     {
         return match ($step) {
             1 => !empty($this->platform) || !empty($this->format),
-            2 => !empty($this->concept['rawInput']) || !empty($this->concept['refinedConcept']),
+            2 => $this->isSocialContentMode()
+                ? !empty($this->conceptVariations) && isset($this->selectedConceptIndex)
+                : (!empty($this->concept['rawInput']) || !empty($this->concept['refinedConcept'])),
             3 => !empty($this->script['scenes']),
             4 => $this->hasStoryboardImages(),
             5 => $this->hasAnimationData(),
@@ -20106,6 +20344,11 @@ PROMPT;
      */
     protected function buildEnhancedShotImagePrompt(array $shot, int $sceneIndex = 0): string
     {
+        // Social content: use viral-optimized prompt
+        if ($this->isSocialContentMode()) {
+            return $this->buildViralImagePrompt($shot, $sceneIndex);
+        }
+
         $parts = [];
 
         // 1. Shot type description
@@ -24263,6 +24506,33 @@ PROMPT;
         }
 
         return $defaultConfig;
+    }
+
+    /**
+     * Upload a music file for social content lip-sync.
+     * Sets the audio on the specified shot.
+     */
+    public function uploadMusicForShot(int $sceneIndex = 0, int $shotIndex = 0): void
+    {
+        $this->validate(['musicUpload' => 'required|file|mimes:mp3,wav,flac,m4a,ogg|max:10240']);
+
+        $path = $this->musicUpload->store(
+            "wizard-projects/{$this->projectId}/music",
+            'public'
+        );
+
+        $musicUrl = Storage::disk('public')->url($path);
+
+        if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $musicUrl;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioStatus'] = 'ready';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioSource'] = 'music_upload';
+
+            // Duration will be determined during animation processing
+        }
+
+        $this->saveProject();
+        $this->uploadedMusicUrl = $musicUrl;
     }
 
     /**
@@ -32986,6 +33256,7 @@ PROMPT;
             'productionTypes' => config('appvideowizard.production_types'),
             'captionStyles' => config('appvideowizard.caption_styles'),
             'stepTitles' => $this->getStepTitles(),
+            'isSocialContent' => $this->isSocialContentMode(),
         ]);
     }
 }

@@ -259,4 +259,81 @@ PROMPT;
             ],
         ];
     }
+
+    /**
+     * Generate viral social content ideas for 9:16 vertical format.
+     * Returns 6 concept cards with character, situation, audio type, and viral hook.
+     */
+    public function generateViralIdeas(string $theme, array $options = []): array
+    {
+        $count = $options['count'] ?? 6;
+        $teamId = $options['teamId'] ?? 0;
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+
+        $themeContext = !empty($theme)
+            ? "The user wants ideas related to: \"{$theme}\". Incorporate this theme creatively."
+            : "Generate completely original ideas with diverse themes.";
+
+        $prompt = <<<PROMPT
+You are a viral content specialist who creates massively shareable short-form video concepts.
+
+{$themeContext}
+
+Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
+- An ANIMAL or quirky CHARACTER in an absurd/funny human situation
+- Single continuous shot (NO scene changes, NO transitions)
+- 8-10 seconds duration
+- The character's mouth will be LIP-SYNCED to audio
+
+For each concept, choose ONE audio type:
+- "music-lipsync": The character "sings" a catchy song snippet (specify what kind of song)
+- "voiceover": The character "speaks" a funny monologue or dialogue (write the actual short text, max 20 words)
+
+Think like the most creative viral content creators. What would get millions of views?
+
+Return ONLY a JSON array (no markdown, no explanation):
+[
+  {
+    "title": "Catchy title (max 6 words)",
+    "concept": "One sentence describing the visual scene",
+    "character": "Specific character description (e.g., 'a fluffy orange tabby cat', 'a tiny hamster')",
+    "situation": "The absurd human situation (e.g., 'working as a sushi chef', 'teaching a yoga class')",
+    "setting": "Location description (e.g., 'a busy restaurant kitchen', 'a yoga studio')",
+    "audioType": "music-lipsync" or "voiceover",
+    "audioDescription": "What they sing/say (for voiceover: write the actual text; for music: describe the song style)",
+    "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
+    "viralHook": "Why this would go viral (one sentence)"
+  }
+]
+PROMPT;
+
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 4000,
+        ]);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = trim($result['data'][0] ?? '');
+        $response = preg_replace('/```json\s*/i', '', $response);
+        $response = preg_replace('/```\s*/', '', $response);
+
+        $variations = json_decode($response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            \Log::warning('ConceptService: Viral ideas JSON parse failed, attempting repair');
+            $response = $this->repairTruncatedJson($response);
+            $variations = json_decode($response, true);
+        }
+
+        return [
+            'variations' => $variations ?? [],
+            '_meta' => [
+                'tokens_used' => $result['totalTokens'] ?? null,
+                'model' => $result['model'] ?? null,
+            ],
+        ];
+    }
 }

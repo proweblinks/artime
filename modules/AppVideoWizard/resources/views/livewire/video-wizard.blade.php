@@ -360,11 +360,12 @@
     </div>
 
     {{-- Stepper --}}
-    @php $maxSteps = $this->getMaxSteps(); @endphp
+    @php $maxSteps = $this->getMaxSteps(); $displayNum = 0; @endphp
     <div class="vw-stepper">
         @foreach($stepTitles as $step => $title)
             @if($step <= $maxSteps && !empty($title))
             @php
+                $displayNum++;
                 $isActive = $currentStep === $step;
                 $isCompleted = $currentStep > $step;
                 $isReachable = $step <= $maxReachedStep + 1;
@@ -377,14 +378,22 @@
                     @if($isCompleted)
                         ✓
                     @else
-                        {{ $step }}
+                        {{ $displayNum }}
                     @endif
                 </div>
                 <span class="vw-step-label">{{ $title }}</span>
             </div>
 
-            @if($step < $maxSteps)
-                <div class="vw-connector {{ $isCompleted ? 'completed' : '' }}"></div>
+            @if(!$loop->last)
+                @php
+                    $hasNextVisible = false;
+                    foreach(array_slice($stepTitles, $step, null, true) as $ns => $nt) {
+                        if ($ns > $step && !empty($nt)) { $hasNextVisible = true; break; }
+                    }
+                @endphp
+                @if($hasNextVisible)
+                    <div class="vw-connector {{ $isCompleted ? 'completed' : '' }}"></div>
+                @endif
             @endif
             @endif
         @endforeach

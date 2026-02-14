@@ -4149,6 +4149,9 @@ function getCameraMovementIcon($movement) {
 }
 @endphp
 
+@if($isSocialContent ?? false)
+    @include('appvideowizard::livewire.steps.partials._social-create')
+@else
 <div class="vw-storyboard-fullscreen" x-data="{
     showSettings: true,
     selectedModel: '{{ $storyboard['imageModel'] ?? 'nanobanana' }}',
@@ -6972,3 +6975,4 @@ function getCameraMovementIcon($movement) {
         }, 1000);
     });
 </script>
+@endif {{-- end @else (non-social storyboard) --}}

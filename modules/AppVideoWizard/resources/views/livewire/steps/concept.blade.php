@@ -572,6 +572,9 @@
 </style>
 
 <div class="vw-concept-step">
+    @if($isSocialContent ?? false)
+        @include('appvideowizard::livewire.steps.partials._social-concept')
+    @else
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -910,4 +913,5 @@
         @endif
     </div>
     @endif
+    @endif {{-- end @else (non-social content) --}}
 </div>
