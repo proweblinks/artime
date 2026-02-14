@@ -3265,6 +3265,7 @@ class VideoWizard extends Component
             'videoStatus' => 'pending',
             'audioUrl' => null,
             'audioUrl2' => null,
+            'audioStatus' => 'pending',
             'audioDuration' => null,
             'status' => 'pending',
             'speechSegments' => $scene['speechSegments'] ?? [],
@@ -3272,6 +3273,7 @@ class VideoWizard extends Component
             'speakingCharacter' => $character,
             'charactersInShot' => [$character],
             'needsLipSync' => true,
+            'selectedVideoModel' => 'multitalk',
             'cameraMovement' => [
                 'type' => 'static',
                 'motion' => 'hold',

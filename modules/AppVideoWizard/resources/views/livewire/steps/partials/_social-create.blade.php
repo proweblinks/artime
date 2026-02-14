@@ -464,15 +464,15 @@
                 </div>
 
                 <button class="vw-social-action-btn orange"
-                        wire:click="animateShot(0, 0)"
+                        wire:click="generateShotVideo(0, 0)"
                         wire:loading.attr="disabled"
-                        wire:target="animateShot"
+                        wire:target="generateShotVideo"
                         @if($imageStatus !== 'ready' || $audioStatus !== 'ready') disabled title="{{ __('Image and audio required') }}" @endif>
-                    <span wire:loading.remove wire:target="animateShot">
+                    <span wire:loading.remove wire:target="generateShotVideo">
                         <i class="fa-solid fa-film"></i>
                         {{ ($videoStatus === 'ready') ? __('Re-Animate') : __('Animate with Lip-Sync') }}
                     </span>
-                    <span wire:loading wire:target="animateShot">
+                    <span wire:loading wire:target="generateShotVideo">
                         <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Animating...') }}
                     </span>
                 </button>
