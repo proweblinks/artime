@@ -9284,7 +9284,7 @@ PROMPT;
             ],
             'animation' => [
                 'model' => $shot['selectedVideoModel'] ?? 'infinitetalk',
-                'prompt' => null, // Built dynamically at render time in the blade
+                'prompt' => $shot['animationPrompt'] ?? $this->buildAnimationDebugPrompt($shot, $scene),
                 'faceOrder' => $shot['faceOrder'] ?? $shot['charactersInShot'] ?? [],
                 'charactersInShot' => $shot['charactersInShot'] ?? [],
                 'swapped' => ($shot['faceOrder'] ?? []) !== ($shot['charactersInShot'] ?? []),
@@ -9294,6 +9294,23 @@ PROMPT;
                 'emotion' => $shot['emotion'] ?? $scene['mood'] ?? 'neutral',
             ],
         ];
+    }
+
+    /**
+     * Build the animation prompt for display in the Creation Details debug panel.
+     */
+    protected function buildAnimationDebugPrompt(array $shot, array $scene): ?string
+    {
+        if (empty($shot)) return null;
+        try {
+            $speechType = $shot['speechType'] ?? 'monologue';
+            if ($speechType === 'dialogue' && count($shot['charactersInShot'] ?? []) >= 2) {
+                return $this->buildInfiniteTalkDialoguePrompt($shot, $scene);
+            }
+            return $this->buildInfiniteTalkPrompt($shot, $scene);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -31186,6 +31203,9 @@ PROMPT;
                     // Build motion description for the shot, optimized for selected model
                     $scene = $this->script['scenes'][$sceneIndex] ?? [];
                     $motionPrompt = $this->buildShotMotionPrompt($shot, $selectedModel, $scene);
+
+                    // Store the prompt for debug panel display
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $motionPrompt;
 
                     $result = $animationService->generateAnimation($project, array_merge([
                         'imageUrl' => $shot['imageUrl'],
