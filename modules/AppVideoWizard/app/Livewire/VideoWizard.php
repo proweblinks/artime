@@ -16,6 +16,7 @@ use Modules\AppVideoWizard\Services\ConceptService;
 use Modules\AppVideoWizard\Services\ScriptGenerationService;
 use Modules\AppVideoWizard\Services\ImageGenerationService;
 use Modules\AppVideoWizard\Services\VoiceoverService;
+use Modules\AppVideoWizard\Services\Qwen3TtsService;
 use Modules\AppVideoWizard\Services\KokoroTtsService;
 use Modules\AppVideoWizard\Services\StockMediaService;
 use Modules\AppVideoWizard\Services\CharacterExtractionService;
@@ -24751,6 +24752,18 @@ PROMPT;
             $speed = $options['speed'] ?? $voiceConfig['speed'] ?? 1.0;
             $emotion = $sceneForVoice['mood'] ?? null;
 
+            // Gather character description for expressive TTS (Qwen3)
+            $charDesc = null;
+            $ideaData = $this->concept['socialContent']
+                ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+                ?? [];
+            foreach ($ideaData['characters'] ?? [] as $ch) {
+                if (($ch['name'] ?? '') === $characterName) {
+                    $charDesc = $ch['description'] ?? null;
+                    break;
+                }
+            }
+
             $result = $voiceoverService->generateSceneVoiceover($project, [
                 'id' => "shot_{$sceneIndex}_{$shotIndex}",
                 'narration' => $text,
@@ -24759,6 +24772,8 @@ PROMPT;
                 'voice' => $voiceId,
                 'speed' => $speed,
                 'emotion' => $emotion,
+                'characterDescription' => $charDesc,
+                'speechType' => 'monologue',
                 'sceneIndex' => $sceneIndex,
                 'teamId' => session('current_team_id', 0),
             ]);
@@ -24887,7 +24902,12 @@ PROMPT;
 
         // Ensure speakers have different voices
         if ($voiceId1 === $voiceId2) {
-            $voiceId2 = ($voiceId1 === 'onyx') ? 'nova' : 'onyx';
+            $provider = app(VoiceoverService::class)->getActiveProvider();
+            if ($provider === 'qwen3tts') {
+                $voiceId2 = ($voiceId1 === 'Dylan') ? 'Vivian' : 'Dylan';
+            } else {
+                $voiceId2 = ($voiceId1 === 'onyx') ? 'nova' : 'onyx';
+            }
         }
 
         Log::info('Generating dialogue voiceovers', [
@@ -24901,6 +24921,18 @@ PROMPT;
             'text2_len' => strlen($speaker2Text),
         ]);
 
+        // Gather character descriptions and mood for expressive TTS (Qwen3)
+        $idea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? [];
+        $ideaMood = $idea['mood'] ?? null;
+        $charDescs = [];
+        foreach ($idea['characters'] ?? [] as $c) {
+            if (!empty($c['name'])) {
+                $charDescs[$c['name']] = $c['description'] ?? null;
+            }
+        }
+
         // Generate Speaker 1 audio
         $result1 = $voiceoverService->generateSceneVoiceover($project, [
             'id' => "shot_{$sceneIndex}_{$shotIndex}_speaker1",
@@ -24911,6 +24943,9 @@ PROMPT;
             'speed' => 1.0,
             'sceneIndex' => $sceneIndex,
             'teamId' => $teamId,
+            'emotion' => $ideaMood,
+            'characterDescription' => $charDescs[$speaker1Name] ?? null,
+            'speechType' => 'dialogue',
         ]);
 
         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl'] = $result1['audioUrl'];
@@ -24929,6 +24964,9 @@ PROMPT;
                 'speed' => 1.0,
                 'sceneIndex' => $sceneIndex,
                 'teamId' => $teamId,
+                'emotion' => $ideaMood,
+                'characterDescription' => $charDescs[$speaker2Name] ?? null,
+                'speechType' => 'dialogue',
             ]);
 
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] = $result2['audioUrl'];
@@ -24998,15 +25036,27 @@ PROMPT;
      */
     protected function getVoiceForSpeaker(string $speakerName, int $sceneIndex): string
     {
+        // Check if Qwen3 TTS is the active provider — use Qwen3 voice names
+        $provider = app(VoiceoverService::class)->getActiveProvider();
+        $isQwen3 = $provider === 'qwen3tts';
+
         // First check Character Bible
         $charBible = $this->sceneMemory['characterBible']['characters'] ?? [];
         foreach ($charBible as $char) {
             if (($char['name'] ?? '') === $speakerName) {
                 if (is_array($char['voice'] ?? null) && !empty($char['voice']['id'])) {
-                    return $char['voice']['id'];
+                    $voiceId = $char['voice']['id'];
+                    if ($isQwen3) {
+                        return app(Qwen3TtsService::class)->mapOpenAIVoice($voiceId);
+                    }
+                    return $voiceId;
                 }
                 if (is_string($char['voice'] ?? null) && !empty($char['voice'])) {
-                    return $char['voice'];
+                    $voiceId = $char['voice'];
+                    if ($isQwen3) {
+                        return app(Qwen3TtsService::class)->mapOpenAIVoice($voiceId);
+                    }
+                    return $voiceId;
                 }
             }
         }
@@ -25020,7 +25070,25 @@ PROMPT;
         foreach ($characters as $i => $c) {
             if (($c['name'] ?? '') === $speakerName) {
                 $desc = strtolower($c['description'] ?? '');
-                // Animal characters get distinct voices
+
+                if ($isQwen3) {
+                    // Qwen3 voice selection based on character description
+                    if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) {
+                        return 'Serena'; // Bright female for cats
+                    }
+                    if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) {
+                        return 'Ryan'; // Warm male for dogs
+                    }
+                    if (preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess)\b/', $desc)) {
+                        return 'Vivian';
+                    }
+                    if (preg_match('/\b(he|his|him|man|male|boy|guy|father|husband|king|prince)\b/', $desc)) {
+                        return 'Dylan';
+                    }
+                    return $i === 0 ? 'Vivian' : 'Dylan';
+                }
+
+                // OpenAI/Kokoro voice selection (existing logic)
                 if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) {
                     return 'nova'; // Higher-pitched for cats
                 }
@@ -25040,7 +25108,7 @@ PROMPT;
         }
 
         // Fallback
-        return 'alloy';
+        return $isQwen3 ? 'Dylan' : 'alloy';
     }
 
     /**

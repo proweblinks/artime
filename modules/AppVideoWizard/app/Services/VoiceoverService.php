@@ -38,6 +38,11 @@ class VoiceoverService
      */
     protected ?KokoroTtsService $kokoroService = null;
 
+    /**
+     * Qwen3 TTS service instance.
+     */
+    protected ?Qwen3TtsService $qwen3TtsService = null;
+
     public function __construct()
     {
         $this->voices = $this->openaiVoices;
@@ -112,6 +117,17 @@ class VoiceoverService
     }
 
     /**
+     * Get the Qwen3 TTS service instance.
+     */
+    protected function getQwen3TtsService(): Qwen3TtsService
+    {
+        if ($this->qwen3TtsService === null) {
+            $this->qwen3TtsService = app(Qwen3TtsService::class);
+        }
+        return $this->qwen3TtsService;
+    }
+
+    /**
      * Check if Kokoro TTS is the active provider and configured.
      */
     public function isKokoroActive(): bool
@@ -157,6 +173,11 @@ class VoiceoverService
         // Use Kokoro TTS if configured and selected
         if ($provider === 'kokoro' && $this->getKokoroService()->isConfigured()) {
             return $this->generateWithKokoro($project, $scene, $narration, $voice, $speed, array_merge($options, ['instructions' => $instructions]));
+        }
+
+        // Use Qwen3 TTS via FAL if configured and selected
+        if ($provider === 'qwen3tts' && $this->getQwen3TtsService()->isConfigured()) {
+            return $this->generateWithQwen3Tts($project, $scene, $narration, $voice, $speed, array_merge($options, ['instructions' => $instructions]));
         }
 
         // Fallback to OpenAI TTS
@@ -412,6 +433,71 @@ class VoiceoverService
     }
 
     /**
+     * Generate voiceover using Qwen3 TTS via FAL.AI.
+     */
+    protected function generateWithQwen3Tts(WizardProject $project, array $scene, string $narration, string $voice, float $speed, array $options = []): array
+    {
+        $qwen3Service = $this->getQwen3TtsService();
+
+        // Map voice if it's an OpenAI voice
+        $qwenVoice = $voice;
+        if (isset($this->openaiVoices[$voice])) {
+            $qwenVoice = $qwen3Service->mapOpenAIVoice($voice);
+        }
+
+        Log::info('VoiceoverService: Using Qwen3 TTS', [
+            'original_voice' => $voice,
+            'qwen_voice' => $qwenVoice,
+        ]);
+
+        $result = $qwen3Service->generateSpeech($narration, $qwenVoice, $project->id, [
+            'emotion' => $options['emotion'] ?? null,
+            'mood' => $options['mood'] ?? null,
+            'instructions' => $options['instructions'] ?? '',
+            'characterDescription' => $options['characterDescription'] ?? null,
+            'speechType' => $options['speechType'] ?? 'monologue',
+        ]);
+
+        if (!$result['success']) {
+            throw new \Exception($result['error'] ?? 'Qwen3 TTS generation failed');
+        }
+
+        $wordCount = str_word_count($narration);
+        $duration = $result['duration'] ?? (($wordCount / 150) * 60 / $speed);
+
+        // Create asset record
+        $asset = WizardAsset::create([
+            'project_id' => $project->id,
+            'user_id' => $project->user_id,
+            'type' => WizardAsset::TYPE_VOICEOVER,
+            'name' => ($scene['title'] ?? $scene['id']) . ' - Voiceover (Qwen3)',
+            'path' => $result['audioPath'],
+            'url' => $result['audioUrl'],
+            'mime_type' => 'audio/mpeg',
+            'scene_index' => $options['sceneIndex'] ?? null,
+            'scene_id' => $scene['id'],
+            'metadata' => [
+                'voice' => $qwenVoice,
+                'voiceConfig' => $result['voiceConfig'] ?? null,
+                'speed' => $speed,
+                'narration' => $narration,
+                'wordCount' => $wordCount,
+                'duration' => $duration,
+                'provider' => 'qwen3tts',
+            ],
+        ]);
+
+        return [
+            'success' => true,
+            'audioUrl' => $asset->url,
+            'assetId' => $asset->id,
+            'duration' => $duration,
+            'voice' => $qwenVoice,
+            'provider' => 'qwen3tts',
+        ];
+    }
+
+    /**
      * Generate voiceover using OpenAI TTS.
      */
     protected function generateWithOpenAI(WizardProject $project, array $scene, string $narration, string $voice, float $speed, $teamId, array $options = []): array
@@ -527,6 +613,10 @@ class VoiceoverService
             return $this->getKokoroService()->getAvailableVoices();
         }
 
+        if ($provider === 'qwen3tts' && $this->getQwen3TtsService()->isConfigured()) {
+            return $this->getQwen3TtsService()->getAvailableVoices();
+        }
+
         return $this->openaiVoices;
     }
 
@@ -538,6 +628,7 @@ class VoiceoverService
         return [
             'kokoro' => $this->getKokoroService()->getAvailableVoices(),
             'openai' => $this->openaiVoices,
+            'qwen3tts' => $this->getQwen3TtsService()->getAvailableVoices(),
         ];
     }
 
@@ -687,11 +778,15 @@ class VoiceoverService
         $speakerUpper = strtoupper(trim($speakerName));
         $provider = $this->getProvider();
         $isKokoro = $provider === 'kokoro' && $this->getKokoroService()->isConfigured();
+        $isQwen3 = $provider === 'qwen3tts' && $this->getQwen3TtsService()->isConfigured();
 
         // Narrator uses designated narrator voice
         if ($speakerUpper === 'NARRATOR') {
             if ($isKokoro) {
                 return $this->getKokoroService()->mapOpenAIVoice($narratorVoice);
+            }
+            if ($isQwen3) {
+                return $this->getQwen3TtsService()->mapOpenAIVoice($narratorVoice);
             }
             return $narratorVoice;
         }
@@ -708,6 +803,9 @@ class VoiceoverService
                     if ($isKokoro && isset($this->openaiVoices[$voiceId])) {
                         return $this->getKokoroService()->mapOpenAIVoice($voiceId);
                     }
+                    if ($isQwen3 && isset($this->openaiVoices[$voiceId])) {
+                        return $this->getQwen3TtsService()->mapOpenAIVoice($voiceId);
+                    }
                     return $voiceId;
                 }
                 // Legacy string voice
@@ -716,14 +814,17 @@ class VoiceoverService
                     if ($isKokoro && isset($this->openaiVoices[$voiceId])) {
                         return $this->getKokoroService()->mapOpenAIVoice($voiceId);
                     }
+                    if ($isQwen3 && isset($this->openaiVoices[$voiceId])) {
+                        return $this->getQwen3TtsService()->mapOpenAIVoice($voiceId);
+                    }
                     return $voiceId;
                 }
                 // Determine by gender
                 $gender = strtolower($char['gender'] ?? $char['voice']['gender'] ?? '');
                 if (str_contains($gender, 'female') || str_contains($gender, 'woman')) {
-                    return $isKokoro ? 'af_nicole' : 'nova';
+                    return $isKokoro ? 'af_nicole' : ($isQwen3 ? 'Vivian' : 'nova');
                 } elseif (str_contains($gender, 'male') || str_contains($gender, 'man')) {
-                    return $isKokoro ? 'am_michael' : 'onyx';
+                    return $isKokoro ? 'am_michael' : ($isQwen3 ? 'Dylan' : 'onyx');
                 }
             }
         }
@@ -732,6 +833,8 @@ class VoiceoverService
         $hash = crc32($speakerUpper);
         if ($isKokoro) {
             $characterVoices = ['am_michael', 'am_adam', 'af_nicole', 'af_bella', 'bm_lewis'];
+        } elseif ($isQwen3) {
+            $characterVoices = ['Dylan', 'Ryan', 'Vivian', 'Serena', 'Aiden'];
         } else {
             $characterVoices = ['echo', 'onyx', 'nova', 'shimmer', 'alloy'];
         }

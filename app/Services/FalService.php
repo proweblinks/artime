@@ -17,6 +17,7 @@ class FalService
     protected array $fallbacks = [
         'image' => 'fal-ai/flux-pro/v1.1',
         'video' => 'fal-ai/kling-video/v1/standard/text-to-video',
+        'speech' => 'fal-ai/qwen-3-tts/text-to-speech/1.7b',
     ];
 
     public function __construct()
@@ -299,11 +300,82 @@ class FalService
         return $this->errorResponse('fal', new \Exception("FAL does not support vision"), $category);
     }
 
-    // --- Speech/Audio (not supported by FAL) ---
+    // --- Speech/Audio (Qwen 3 TTS via FAL) ---
 
+    /**
+     * Generate speech using Qwen 3 TTS.
+     *
+     * @param string $text Text to speak
+     * @param array $options {
+     *     model: string,         // FAL model path (default: qwen-3-tts/text-to-speech/1.7b)
+     *     prompt: string,        // Natural language style guide (KEY differentiator)
+     *     voice: string,         // Built-in voice: Vivian, Serena, Uncle_Fu, Dylan, Eric, Ryan, Aiden, Ono_Anna, Sohee
+     *     speaker_voice_embedding_file_url: string,  // Cloned voice embedding URL
+     *     reference_text: string, // Reference text for cloned voice
+     *     language: string,      // Auto, English, Chinese, etc.
+     *     temperature: float,    // 0-1 (default 0.9)
+     *     max_new_tokens: int,   // 1-8192 (default 2048)
+     * }
+     * @param string $category
+     * @return array
+     */
     public function textToSpeech(string $text, array $options = [], string $category = 'speech'): array
     {
-        return $this->errorResponse('fal', new \Exception("FAL does not support text-to-speech"), $category);
+        $model = $options['model'] ?? $this->getModel($category);
+
+        $payload = [
+            'text' => $text,
+            'language' => $options['language'] ?? 'Auto',
+            'max_new_tokens' => $options['max_new_tokens'] ?? 2048,
+        ];
+
+        // Style prompt — the key differentiator for expressive speech
+        if (!empty($options['prompt'])) {
+            $payload['prompt'] = $options['prompt'];
+        }
+
+        // Voice selection: cloned embedding OR built-in voice
+        if (!empty($options['speaker_voice_embedding_file_url'])) {
+            $payload['speaker_voice_embedding_file_url'] = $options['speaker_voice_embedding_file_url'];
+            if (!empty($options['reference_text'])) {
+                $payload['reference_text'] = $options['reference_text'];
+            }
+        } elseif (!empty($options['voice'])) {
+            $payload['voice'] = $options['voice'];
+        }
+
+        // Sampling parameters
+        if (isset($options['temperature'])) {
+            $payload['temperature'] = $options['temperature'];
+        }
+
+        try {
+            $body = $this->makeAPICall($model, $payload);
+
+            $audio = $body['audio'] ?? [];
+            return $this->successResponse($model, [$audio], [], 0);
+
+        } catch (\Throwable $e) {
+            return $this->errorResponse($model, $e, $category);
+        }
+    }
+
+    /**
+     * Clone a voice by extracting speaker embedding from audio.
+     *
+     * @param string $audioUrl URL of the audio sample to clone
+     * @param string|null $referenceText Transcript of the audio sample
+     * @return array Speaker embedding data with url, file_size, content_type
+     */
+    public function cloneVoice(string $audioUrl, ?string $referenceText = null): array
+    {
+        $payload = ['audio_url' => $audioUrl];
+        if ($referenceText) {
+            $payload['reference_text'] = $referenceText;
+        }
+
+        $body = $this->makeAPICall('fal-ai/qwen-3-tts/clone-voice/1.7b', $payload);
+        return $body; // Returns speaker_embedding with url, file_size, content_type
     }
 
     public function speechToText(string $filePath, array $options = [], string $category = 'speech_to_text'): array
