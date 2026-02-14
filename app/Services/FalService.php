@@ -51,7 +51,7 @@ class FalService
             try {
                 DB::table('options')->updateOrInsert(
                     ['name' => $optionKey],
-                    ['value' => $default, 'updated_at' => now()]
+                    ['value' => $default]
                 );
             } catch (\Throwable $e) {
                 Log::warning("Failed to update default FAL model for {$category}: " . $e->getMessage());

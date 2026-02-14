@@ -192,7 +192,7 @@ class Qwen3TtsService
 
             return [
                 'success' => true,
-                'audioUrl' => Storage::disk('public')->url($localPath),
+                'audioUrl' => url('/files/' . $localPath),
                 'audioPath' => $localPath,
                 'duration' => $duration,
                 'voice' => $voice,
