@@ -25485,7 +25485,8 @@ PROMPT;
 
         foreach ($characters as $i => $c) {
             if (($c['name'] ?? '') === $speakerName) {
-                $desc = strtolower($c['description'] ?? '');
+                // Include character name in description for keyword matching
+                $desc = strtolower(($c['name'] ?? '') . ' ' . ($c['description'] ?? ''));
 
                 // Step 1: Detect gender from description keywords (BEFORE species)
                 $isFemale = (bool) preg_match('/\b(she|her|woman|female|girl|lady|mother|wife|queen|princess|actress|waitress)\b/', $desc);
@@ -25503,8 +25504,16 @@ PROMPT;
                     }
                 }
 
+                // Step 3a: Child/toddler/baby — use highest-pitched voice (overrides gender)
+                $isChild = (bool) preg_match('/\b(child|kid|toddler|baby|infant|little\s+boy|little\s+girl|young\s+boy|young\s+girl)\b/', $desc);
+                if ($isChild) {
+                    // Children need the brightest, highest-pitched voice available
+                    if ($isQwen3) return 'Serena'; // bright female — closest to child pitch
+                    return 'shimmer'; // OpenAI shimmer = bright female
+                }
+
                 if ($isQwen3) {
-                    // Step 3: Choose Qwen3 voice based on gender + species personality
+                    // Step 3b: Choose Qwen3 voice based on gender + species personality
                     if ($isFemale) {
                         if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'Serena'; // bright female for cats
                         if (preg_match('/\b(old|elderly|grandma|wise)\b/', $desc)) return 'Ono_Anna'; // warm mature
@@ -25513,6 +25522,7 @@ PROMPT;
                     // Male or default
                     if (preg_match('/\b(cat|kitten|feline|kitty)\b/', $desc)) return 'Aiden'; // storytelling for smug cat
                     if (preg_match('/\b(dog|puppy|canine|pup)\b/', $desc)) return 'Ryan'; // warm for dogs
+                    if (preg_match('/\b(fish|goldfish|aquatic)\b/', $desc)) return 'Eric'; // clear, direct for fish
                     if (preg_match('/\b(old|elderly|grandpa|wise|deep)\b/', $desc)) return 'Uncle_Fu'; // deep male
                     if (preg_match('/\b(grumpy|angry|tough)\b/', $desc)) return 'Eric'; // clear, direct
                     return $i === 0 ? 'Dylan' : 'Aiden';
