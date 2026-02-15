@@ -4956,7 +4956,16 @@ PROMPT;
         array_unshift($this->conceptVariations, $idea);
         $this->selectedConceptIndex = 0;
         $this->selectViralIdea(0);
-        $this->saveProject();
+
+        // Clear any stale errors from previous project polling
+        $this->error = null;
+
+        // Navigate directly to Create step (triggers autoGenerateSocialScript + autoDecomposeSocialScene)
+        if ($this->isSocialContentMode()) {
+            $this->goToStep(4);
+        } else {
+            $this->saveProject();
+        }
     }
 
     /**

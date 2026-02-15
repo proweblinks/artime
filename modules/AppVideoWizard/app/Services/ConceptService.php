@@ -683,12 +683,16 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Overall narrative arc: setup → action → punchline/reaction
    - Physical comedy beats, surprise moments, emotional shifts
 
-3b. WHO IS SPEAKING (critical for audio):
-   - Which character's MOUTH IS OPEN or moving in the frames? This is the SPEAKER.
-   - Is it a monologue (one character talking) or dialogue (two characters taking turns)?
-   - Which character speaks FIRST based on the frame sequence?
-   - What is the emotional tone of each speaker? (screaming, whispering, calm, angry, surprised)
-   - Are the characters ARGUING, chatting casually, one lecturing the other?
+3b. AUDIO & MOUTH ANALYSIS (critical for realistic output):
+   - Which character's MOUTH IS OPEN or moving in the frames?
+   - CRITICAL: Is the mouth movement HUMAN SPEECH or ANIMAL VOCALIZATION?
+     * If a cat's mouth is open → it's MEOWING, HISSING, or SCREAMING (cat sounds) — NOT speaking human words
+     * If a dog's mouth is open → it's BARKING, GROWLING, WHINING — NOT speaking
+     * Only HUMANS speak actual words. Animals make ANIMAL SOUNDS.
+   - Is there likely a VOICEOVER/NARRATION dubbed over the video? (common in TikTok: human voice added as comedy narration while the animal just makes animal sounds)
+   - Which character appears to be the MAIN FOCUS of the scene?
+   - What is the emotional state? (angry, scared, confused, playful, aggressive)
+   - Describe the ACTUAL sounds each character would make based on their species
 
 4. CAMERA & VISUAL STYLE:
    - Camera angle per frame (eye-level, low-angle, high-angle, overhead)
@@ -778,26 +782,27 @@ PROMPT;
     protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
     {
         $transcriptSection = $transcript
-            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nIMPORTANT: Match this transcript to the VISUAL ANALYSIS to determine WHO is speaking. The character whose mouth is OPEN in the frames is the one saying these words. If the visual analysis shows the cat/animal with mouth open, the transcript belongs to THAT character. Do NOT assume the human is speaking just because it sounds human — in viral videos, animals are given human voices. Split the transcript into short attributed dialogue lines (max 10 words each)."
+            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- For the video prompt: describe the animal making REALISTIC ANIMAL SOUNDS, NOT speaking the transcript words.\n- You may include the transcript content as a VOICEOVER/NARRATION element, separate from the character actions."
             : "AUDIO: No speech detected in video. Assume visual comedy / silent humor with environmental sounds only.";
 
         $videoPromptInstruction = $videoEngine === 'seedance'
             ? <<<'SEEDANCE'
 Also generate a "videoPrompt" field — a single-paragraph Seedance prompt using this 4-layer format:
 (1) Subject & action — describe ALL characters, their positions, and the main action.
-(2) ATTRIBUTED dialogue — CRITICAL: Each character's speech must be attributed by name/description.
-    Format: "The cat screams 'Give me my money!' while the woman gasps 'What is happening?!'"
-    The CHARACTER WHO SPEAKS FIRST in the video must appear FIRST in the prompt.
-    Keep each character's line to max 10 words. Do NOT dump the full transcript.
-    If one character is the main speaker (mouth open, yelling), they should have more/louder dialogue.
+(2) CHARACTER SOUNDS — describe what each character ACTUALLY does:
+    - Animals: use REALISTIC animal sounds. "The cat meows loudly and hisses", "the cat opens its mouth and screams", "the dog barks aggressively"
+    - Humans: use human reactions. "The woman gasps in shock", "the man laughs nervously"
+    - NEVER write an animal speaking human words. Cats meow. Dogs bark. Only humans speak.
+    - If there's a comedic voiceover narration, add it as: "voiceover narrates 'Short funny line'"
 (3) Environmental audio cues — comma-separated background sounds.
 (4) Visual style & mood.
 
 IMPORTANT SEEDANCE RULES:
-- Seedance auto-generates DIFFERENT VOICES for each attributed character. The order in the prompt = the order they speak.
-- NEVER put all dialogue in one unattributed quote block. ALWAYS write "Character A says '...' while Character B replies '...'"
-- Keep total dialogue SHORT (2-3 attributed lines max). Seedance works best with brief punchy exchanges.
-- If the video has a screaming/angry character, describe the emotional delivery: "screams", "yells", "hisses", "shouts"
+- Seedance generates audio FROM the prompt text. If you write "cat says 'hello'" it will make the cat speak — which looks FAKE and WRONG.
+- For REALISTIC animal videos: describe animal sounds (meowing, hissing, barking) + human reactions (gasping, laughing)
+- Voiceover narration can be added separately: "voiceover narrates 'Funny commentary here'"
+- Keep the prompt focused on VISUAL ACTION + REALISTIC SOUNDS, not dubbed dialogue
+- The main character should be described FIRST in the prompt
 SEEDANCE
             : 'Do NOT generate a "videoPrompt" field.';
 
@@ -815,9 +820,10 @@ CRITICAL RULES:
 - Preserve the EXACT mood, humor type, and viral formula.
 - Character names can be creative/fun, but species, appearance, setting, and actions must be FAITHFUL to the source.
 - The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action, same camera angle.
-- DIALOGUE ATTRIBUTION: Based on the visual analysis (who has mouth open, who is gesticulating), determine WHICH character is the main speaker. The transcript audio belongs to the character whose mouth is open/moving in the frames.
-- SPEAKER ORDER: The character who speaks FIRST in the video must be FIRST in both "dialogueLines" and in the videoPrompt dialogue section.
-- If two characters are present, they MUST have distinctly different speaking styles (e.g., one screams angrily, the other responds shocked/confused).
+- ANIMAL SOUNDS ARE REAL: If an animal character has its mouth open, describe it making ANIMAL SOUNDS (meowing, hissing, barking, growling, screaming) — NEVER describe an animal speaking human words. Animals do NOT talk.
+- VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video for comedy. The animal characters make their natural sounds. Include voiceover as a separate narration element if needed.
+- SPEAKER ORDER: The main character (the one the camera focuses on) should be described FIRST in the videoPrompt.
+- If two characters are present, describe their REALISTIC reactions (e.g., cat hisses and meows angrily, woman gasps in shock).
 
 {$videoPromptInstruction}
 
@@ -836,10 +842,10 @@ Return ONLY a JSON object (no markdown, no explanation):
   "audioType": "voiceover",
   "audioDescription": "Brief description of what happens",
   "dialogueLines": [
-    {"speaker": "First Speaker Name", "text": "Their line (max 10 words, matching transcript tone)"},
-    {"speaker": "Second Speaker Name", "text": "Their response (max 10 words)"}
+    {"speaker": "Character Name", "text": "Realistic sound/action (e.g., 'meows angrily and hisses' for cat, 'gasps in shock' for human)"},
+    {"speaker": "Voiceover", "text": "Optional comedic narration from the transcript (if applicable)"}
   ],
-  "videoPrompt": "SINGLE PARAGRAPH: (1) Characters & action scene description. (2) The cat screams 'Line here!' while the woman gasps 'Response here!' (3) background sounds, ambient noise. (4) Visual style, camera, mood. — MUST attribute each line to a specific character. First speaker in video = first in prompt.",
+  "videoPrompt": "SINGLE PARAGRAPH: (1) Characters & action scene. (2) REALISTIC SOUNDS: The cat meows loudly and hisses while the woman gasps 'Oh my god!', voiceover narrates 'Short funny line' (3) background sounds. (4) Visual style, mood. — Animals make ANIMAL sounds, NOT human speech.",
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
   "source": "cloned"
