@@ -1051,6 +1051,174 @@ class InfiniteTalkService
     }
 
     /**
+     * Extract the last frame from a video file as a PNG image.
+     * Used by Dual Take sequential mode: Take 1's last frame becomes Take 2's input image,
+     * ensuring perfect visual continuity at the transition point.
+     *
+     * @param string $videoUrl Public URL of the video
+     * @param int $projectId Project ID for storage path
+     * @return string|null Public URL of the extracted frame image, or null on failure
+     */
+    public static function extractLastFrame(string $videoUrl, int $projectId): ?string
+    {
+        try {
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk: ffmpeg not found for last frame extraction');
+                return null;
+            }
+
+            // Resolve video URL to local disk path
+            $parsed = parse_url($videoUrl);
+            $urlPath = $parsed['path'] ?? '';
+            if (!str_starts_with($urlPath, '/files/')) {
+                Log::error('InfiniteTalk: cannot resolve video URL for frame extraction', ['url' => substr($videoUrl, 0, 80)]);
+                return null;
+            }
+            $storagePath = substr($urlPath, 7);
+            $videoDiskPath = Storage::disk('public')->path($storagePath);
+            if (!file_exists($videoDiskPath)) {
+                Log::error('InfiniteTalk: video file not found for frame extraction', ['path' => $videoDiskPath]);
+                return null;
+            }
+
+            // Output frame image
+            $frameFilename = 'lastframe_' . time() . '_' . uniqid() . '.png';
+            $frameStoragePath = "wizard-videos/{$projectId}/{$frameFilename}";
+            $frameDiskPath = Storage::disk('public')->path($frameStoragePath);
+
+            $outputDir = dirname($frameDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // Extract last frame: seek to 0.1s before end, grab 1 frame
+            $cmd = sprintf(
+                '%s -sseof -0.1 -i %s -frames:v 1 -update 1 %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($videoDiskPath),
+                escapeshellarg($frameDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($frameDiskPath)) {
+                Log::error('InfiniteTalk: last frame extraction failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk: last frame extracted', [
+                'framePath' => $frameStoragePath,
+                'frameSize' => filesize($frameDiskPath),
+            ]);
+
+            return url('/files/' . $frameStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk: last frame extraction error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Add a subtle noise floor to an audio file to prevent InfiniteTalk from
+     * freezing character animation during natural speech pauses.
+     * Mixes very low pink noise into the existing audio so that even during
+     * silent gaps between sentences, there's enough signal to keep animation active.
+     *
+     * @param string $audioUrl Public URL of the speaker's audio WAV
+     * @param int $projectId Project ID for storage path
+     * @return string|null Public URL of the enhanced audio, or null on failure (caller should use original)
+     */
+    public static function addNoiseFloorToAudio(string $audioUrl, int $projectId): ?string
+    {
+        try {
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk: ffmpeg not found for noise floor');
+                return null;
+            }
+
+            // Resolve audio URL to local disk path
+            $parsed = parse_url($audioUrl);
+            $urlPath = $parsed['path'] ?? '';
+            if (!str_starts_with($urlPath, '/files/')) {
+                Log::warning('InfiniteTalk: cannot resolve audio URL for noise floor', ['url' => substr($audioUrl, 0, 80)]);
+                return null;
+            }
+            $storagePath = substr($urlPath, 7);
+            $audioDiskPath = Storage::disk('public')->path($storagePath);
+            if (!file_exists($audioDiskPath)) {
+                Log::warning('InfiniteTalk: audio file not found for noise floor', ['path' => $audioDiskPath]);
+                return null;
+            }
+
+            // Output enhanced audio
+            $enhancedFilename = 'noisefloor_' . time() . '_' . uniqid() . '.wav';
+            $enhancedStoragePath = "wizard-audio/{$projectId}/{$enhancedFilename}";
+            $enhancedDiskPath = Storage::disk('public')->path($enhancedStoragePath);
+
+            $dir = dirname($enhancedDiskPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            // Mix original audio with very low pink noise (amplitude 0.006 ≈ -44dB)
+            // Using amix with duration=first so output matches original audio length
+            // The noise is inaudible but keeps InfiniteTalk's animation engine active during speech pauses
+            $cmd = sprintf(
+                '%s -i %s -f lavfi -i anoisesrc=c=pink:r=44100:a=0.006:d=60 -filter_complex "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=0" -c:a pcm_s16le %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($audioDiskPath),
+                escapeshellarg($enhancedDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($enhancedDiskPath)) {
+                Log::warning('InfiniteTalk: noise floor mixing failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk: noise floor added to speaker audio', [
+                'originalPath' => $storagePath,
+                'enhancedPath' => $enhancedStoragePath,
+                'enhancedSize' => filesize($enhancedDiskPath),
+            ]);
+
+            return url('/files/' . $enhancedStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk: noise floor error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
      * Error response format.
      */
     protected function errorResponse(string $message): array

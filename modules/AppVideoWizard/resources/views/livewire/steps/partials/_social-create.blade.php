@@ -686,7 +686,7 @@
                         </div>
                         <div class="vw-mode-hint">
                             {{ $dialogueAnimMode === 'dual_take'
-                                ? __('Two separate renders per speaker, then joined. Better body movement control.')
+                                ? __('Sequential renders per speaker with smooth transition. Better body movement control.')
                                 : __('One continuous render for both speakers.') }}
                         </div>
                     </div>
@@ -702,11 +702,9 @@
                                 @endphp
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 @if(!$t1Done && !$t2Done)
-                                    {{ __('Rendering Take 1 & Take 2...') }}
+                                    {{ __('Rendering Take 1...') }}
                                 @elseif($t1Done && !$t2Done)
-                                    {{ __('Take 1 done! Waiting for Take 2...') }}
-                                @elseif(!$t1Done && $t2Done)
-                                    {{ __('Take 2 done! Waiting for Take 1...') }}
+                                    {{ __('Take 1 done! Rendering Take 2...') }}
                                 @else
                                     {{ __('Joining takes...') }}
                                 @endif
