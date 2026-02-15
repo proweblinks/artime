@@ -121,7 +121,7 @@ class WaveSpeedService
         }
 
         try {
-            $response = $this->client->request('GET', "predictions/{$taskId}", [
+            $response = $this->client->request('GET', "predictions/{$taskId}/result", [
                 'timeout' => 30,
             ]);
 
