@@ -917,6 +917,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   ],
   "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
   "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
+  "imageStartState": "The CALM INITIAL state of the scene for the starting image — characters in their starting positions BEFORE any action begins. NO action, NO chaos, NO objects flying. Just characters standing/sitting in position with neutral-to-mild expressions. Example: 'A woman stands at the counter looking at the cat. The cat stands calmly on the counter behind the glass barrier. The employee stands in the background watching.'",
   "situation": "The FULL action sequence with EXTREME physical actions: ALL phases from calm setup to WILD climax — e.g. 'Cat starts calmly at counter, then EXPLODES into action — leaping, swatting dishes off the counter, sending food flying, smashing cups to the floor while the woman ducks and scrambles back in terror'",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",

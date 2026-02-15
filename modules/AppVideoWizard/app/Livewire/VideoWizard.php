@@ -3553,10 +3553,13 @@ class VideoWizard extends Component
             $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
             $propsBlock = !empty($idea['props']) ? "Props: {$idea['props']}. " : '';
 
+            // Use imageStartState (calm initial state) for the starting frame, NOT the full action situation
+            $imageState = $idea['imageStartState'] ?? $situation;
+
             return "ONE SINGLE CONTINUOUS VERTICAL 9:16 PHOTOGRAPH, 720x1280 resolution. "
                 . "CRITICAL: This must be ONE single image — absolutely NO collage, NO grid, NO panels, NO multiple frames, NO split layout, NO montage. "
                 . $compositionNote
-                . "Medium-wide shot showing: {$characterBlock}. Situation: {$situation}. "
+                . "Medium-wide shot showing: {$characterBlock}. Scene: {$imageState}. "
                 . "{$settingBlock}"
                 . "{$propsBlock}"
                 . "Emphasis on scene composition, props, and environment — characters should be in context within the scene. "
