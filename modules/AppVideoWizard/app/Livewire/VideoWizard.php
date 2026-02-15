@@ -1097,6 +1097,9 @@ class VideoWizard extends Component
         ],
     ];
 
+    // Dialogue animation mode: 'single_take' (one continuous render) or 'dual_take' (two renders per speaker, concatenated)
+    public string $dialogueAnimMode = 'single_take';
+
     // RunPod job polling state
     public array $pendingJobs = [];
 
@@ -8232,7 +8235,7 @@ PROMPT;
         foreach ($this->pendingJobs as $jobKey => $job) {
             $jobType = $job['type'] ?? '';
 
-            if ($jobType !== 'shot_video') {
+            if ($jobType !== 'shot_video' && $jobType !== 'dual_take') {
                 \Log::info('📡 Skipping non-video job', ['jobKey' => $jobKey, 'type' => $jobType]);
                 continue;
             }
@@ -8314,15 +8317,41 @@ PROMPT;
                             }
                         }
 
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                        $hasUpdates = true;
+                        // --- DUAL TAKE: Store individual take video, check if both done ---
+                        if ($jobType === 'dual_take') {
+                            $takeUrlKey = str_contains($jobKey, 'take1') ? 'dualTake1VideoUrl' : 'dualTake2VideoUrl';
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex][$takeUrlKey] = $finalVideoUrl;
+                            unset($this->pendingJobs[$jobKey]);
+                            $hasUpdates = true;
 
-                        \Log::info('📡 ✅ Video READY!', [
-                            'sceneIndex' => $sceneIndex,
-                            'shotIndex' => $shotIndex,
-                            'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
-                        ]);
+                            $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
+                            $t1Done = !empty($shotData['dualTake1VideoUrl']);
+                            $t2Done = !empty($shotData['dualTake2VideoUrl']);
+
+                            \Log::info("📡 ✅ DualTake: {$takeUrlKey} ready", [
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                                'take1Done' => $t1Done,
+                                'take2Done' => $t2Done,
+                                'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
+                            ]);
+
+                            // Both takes complete — assemble final video
+                            if ($t1Done && $t2Done) {
+                                $this->assembleDualTakeVideo($sceneIndex, $shotIndex);
+                            }
+                        } else {
+                            // --- STANDARD SINGLE TAKE ---
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                            $hasUpdates = true;
+
+                            \Log::info('📡 ✅ Video READY!', [
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                                'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
+                            ]);
+                        }
                     } else {
                         // Job completed but no video URL - mark as error
                         \Log::warning('📡 Completed but no videoUrl - marking as error', ['result' => $result]);
@@ -8330,14 +8359,32 @@ PROMPT;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Video upload failed - no video URL received';
                         $hasUpdates = true;
                     }
-                    unset($this->pendingJobs[$jobKey]);
+                    if ($jobType !== 'dual_take') {
+                        unset($this->pendingJobs[$jobKey]);
+                    }
 
                 } elseif (in_array($status, ['failed', 'cancelled', 'timeout', 'error'])) {
                     // Video generation failed
+                    if ($jobType === 'dual_take') {
+                        // For dual take, mark the whole shot as failed
+                        \Log::warning('📡 ❌ DualTake job FAILED — marking shot as error', [
+                            'jobKey' => $jobKey,
+                            'status' => $status,
+                            'error' => $result['error'] ?? 'Unknown error',
+                        ]);
+                    }
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Generation failed';
                     unset($this->pendingJobs[$jobKey]);
                     $hasUpdates = true;
+
+                    // If dual take failed, also remove the other take's pending job
+                    if ($jobType === 'dual_take') {
+                        $otherKey = str_contains($jobKey, 'take1')
+                            ? str_replace('take1', 'take2', $jobKey)
+                            : str_replace('take2', 'take1', $jobKey);
+                        unset($this->pendingJobs[$otherKey]);
+                    }
 
                     \Log::warning('📡 ❌ Video generation FAILED', [
                         'sceneIndex' => $sceneIndex,
@@ -31053,6 +31100,14 @@ PROMPT;
                         'reason' => 'OTS: speaker back to camera, listener visible. Silent on both faces, ffmpeg overlay after generation.',
                     ]);
                 } elseif ($isDialogueShot && $hasMultipleFaces) {
+                    // --- DUAL TAKE MODE CHECK ---
+                    if ($this->dialogueAnimMode === 'dual_take') {
+                        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+                        $this->dispatchDualTakeJobs($sceneIndex, $shotIndex, $shot, $scene, $animationService, $audioUrl, $audioDuration, $selectedModel);
+                        $this->isLoading = false;
+                        return;
+                    }
+
                     // Full dialogue (2 audio tracks, 2+ faces): timeline-synced audio
                     $extraAnimOptions['person_count'] = 'multi';
                     $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
@@ -31315,6 +31370,243 @@ PROMPT;
     }
 
     /**
+     * Dispatch two separate InfiniteTalk jobs for Dual Take mode.
+     * Take 1: Speaker 1 speaks, Speaker 2 listens (silent).
+     * Take 2: Speaker 2 speaks, Speaker 1 listens (silent).
+     * Both jobs run in parallel on separate RunPod workers.
+     */
+    protected function dispatchDualTakeJobs(
+        int $sceneIndex,
+        int $shotIndex,
+        array $shot,
+        array $scene,
+        $animationService,
+        string $audioUrl,
+        ?float $audioDuration,
+        string $selectedModel
+    ): void {
+        try {
+            $projectId = $this->projectId ?? 0;
+            $project = \Modules\AppVideoWizard\Models\WizardProject::find($projectId);
+            if (!$project) {
+                throw new \Exception('Project not found for dual take dispatch');
+            }
+
+            $charactersInShot = $shot['charactersInShot'] ?? [];
+            $speaker1Name = $charactersInShot[0] ?? '';
+            $speaker2Name = $charactersInShot[1] ?? '';
+            $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
+            $audioUrl2 = $shot['audioUrl2'] ?? '';
+            $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
+            $fps = 24;
+
+            // Determine face positions
+            $speaker1IsLeftFace = true;
+            if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
+                $leftFace = strtolower(trim($faceOrder[0]));
+                $sp1Lower = strtolower(trim($speaker1Name));
+                $speaker1IsLeftFace = ($leftFace === $sp1Lower)
+                    || str_contains($leftFace, $sp1Lower)
+                    || str_contains($sp1Lower, $leftFace);
+            }
+
+            \Log::info('🎬 DualTake: Dispatching two separate jobs', [
+                'speaker1' => $speaker1Name,
+                'speaker2' => $speaker2Name,
+                'speaker1IsLeftFace' => $speaker1IsLeftFace,
+                'audioDuration1' => $audioDuration,
+                'audioDuration2' => $audioDuration2Val,
+            ]);
+
+            $takes = [];
+
+            // --- TAKE 1: Speaker 1 speaks, Speaker 2 listens ---
+            $take1Duration = (int) ceil(($audioDuration ?? 5.0) + 2.0);
+            $take1MaxFrame = min($take1Duration * $fps, 30 * $fps);
+            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $audioDuration ?? 5.0);
+
+            // Build monologue-style prompt focused on speaker 1
+            $take1Shot = array_merge($shot, [
+                'speakingCharacter' => $speaker1Name,
+                'isDialogueShot' => false, // Force monologue prompt path
+            ]);
+            $take1Prompt = $this->buildInfiniteTalkPrompt($take1Shot, $scene);
+
+            // Assign audio to correct faces
+            if ($speaker1IsLeftFace) {
+                $take1AudioFace0 = $audioUrl;       // Speaker 1 on left
+                $take1AudioFace1 = $take1SilentUrl;  // Speaker 2 silent on right
+            } else {
+                $take1AudioFace0 = $take1SilentUrl;  // Speaker 2 silent on left
+                $take1AudioFace1 = $audioUrl;        // Speaker 1 on right
+            }
+
+            $takes[] = [
+                'takeKey' => "dual_take1_{$sceneIndex}_{$shotIndex}",
+                'prompt' => $take1Prompt,
+                'duration' => $take1Duration,
+                'maxFrame' => $take1MaxFrame,
+                'audioUrl' => $take1AudioFace0,
+                'audioUrl2' => $take1AudioFace1,
+                'audioDuration' => $audioDuration ?? 5.0,
+                'label' => "Take1 ({$speaker1Name} speaks)",
+            ];
+
+            // --- TAKE 2: Speaker 2 speaks, Speaker 1 listens ---
+            $take2Duration = (int) ceil($audioDuration2Val + 2.0);
+            $take2MaxFrame = min($take2Duration * $fps, 30 * $fps);
+            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $audioDuration2Val);
+
+            // Build monologue-style prompt focused on speaker 2
+            $take2Shot = array_merge($shot, [
+                'speakingCharacter' => $speaker2Name,
+                'isDialogueShot' => false, // Force monologue prompt path
+            ]);
+            $take2Prompt = $this->buildInfiniteTalkPrompt($take2Shot, $scene);
+
+            // Assign audio to correct faces
+            if ($speaker1IsLeftFace) {
+                // Speaker 1 is left, speaker 2 is right
+                $take2AudioFace0 = $take2SilentUrl;  // Speaker 1 silent on left
+                $take2AudioFace1 = $audioUrl2;       // Speaker 2 on right
+            } else {
+                // Speaker 1 is right, speaker 2 is left
+                $take2AudioFace0 = $audioUrl2;       // Speaker 2 on left
+                $take2AudioFace1 = $take2SilentUrl;  // Speaker 1 silent on right
+            }
+
+            $takes[] = [
+                'takeKey' => "dual_take2_{$sceneIndex}_{$shotIndex}",
+                'prompt' => $take2Prompt,
+                'duration' => $take2Duration,
+                'maxFrame' => $take2MaxFrame,
+                'audioUrl' => $take2AudioFace0,
+                'audioUrl2' => $take2AudioFace1,
+                'audioDuration' => $audioDuration2Val,
+                'label' => "Take2 ({$speaker2Name} speaks)",
+            ];
+
+            // Mark shot as dual take mode
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode'] = true;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+
+            // Store prompts for debug panel
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] =
+                "DUAL TAKE MODE\n\n--- Take 1 ({$speaker1Name}) ---\n{$takes[0]['prompt']}\n\n--- Take 2 ({$speaker2Name}) ---\n{$takes[1]['prompt']}";
+
+            // Dispatch both takes in parallel
+            foreach ($takes as $take) {
+                $result = $animationService->generateAnimation($project, [
+                    'imageUrl' => $shot['imageUrl'],
+                    'prompt' => $take['prompt'],
+                    'model' => $selectedModel,
+                    'duration' => $take['duration'],
+                    'audioUrl' => $take['audioUrl'],
+                    'audioDuration' => $take['audioDuration'],
+                    'audio_url_2' => $take['audioUrl2'],
+                    'person_count' => 'multi',
+                    'max_frame' => $take['maxFrame'],
+                ]);
+
+                \Log::info("🎬 DualTake: {$take['label']} dispatch result", [
+                    'success' => $result['success'] ?? false,
+                    'taskId' => $result['taskId'] ?? 'none',
+                    'error' => $result['error'] ?? null,
+                ]);
+
+                if ($result['success'] && isset($result['taskId'])) {
+                    $this->pendingJobs[$take['takeKey']] = [
+                        'taskId' => $result['taskId'],
+                        'type' => 'dual_take',
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'provider' => $result['provider'] ?? 'infinitetalk',
+                        'endpointId' => $result['endpointId'] ?? null,
+                        'takeKey' => $take['takeKey'],
+                    ];
+
+                    // Store task IDs on the shot
+                    if (str_contains($take['takeKey'], 'take1')) {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId'] = $result['taskId'];
+                    } else {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId'] = $result['taskId'];
+                    }
+                } else {
+                    throw new \Exception("Failed to dispatch {$take['label']}: " . ($result['error'] ?? 'Unknown error'));
+                }
+            }
+
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
+            $this->saveProject();
+
+            // Dispatch event to start polling
+            $this->dispatch('video-generation-started', [
+                'taskId' => 'dual_take',
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+            ]);
+
+            \Log::info('🎬 DualTake: Both jobs dispatched successfully', [
+                'pendingJobKeys' => array_keys($this->pendingJobs),
+            ]);
+
+        } catch (\Exception $e) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take dispatch failed: ' . $e->getMessage();
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode']);
+            $this->error = __('Dual Take failed: ') . $e->getMessage();
+            \Log::error('🎬 DualTake: Dispatch error', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Assemble a Dual Take video by concatenating Take 1 + Take 2 via ffmpeg.
+     * Called when both dual_take jobs have completed and their video URLs are stored.
+     */
+    protected function assembleDualTakeVideo(int $sceneIndex, int $shotIndex): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
+        $videoUrl1 = $shot['dualTake1VideoUrl'] ?? '';
+        $videoUrl2 = $shot['dualTake2VideoUrl'] ?? '';
+
+        if (empty($videoUrl1) || empty($videoUrl2)) {
+            \Log::error('🎬 DualTake assembly: missing video URLs', [
+                'hasUrl1' => !empty($videoUrl1),
+                'hasUrl2' => !empty($videoUrl2),
+            ]);
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take assembly failed: missing video URLs';
+            return;
+        }
+
+        \Log::info('🎬 DualTake: Assembling final video', [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'take1Url' => substr($videoUrl1, 0, 80),
+            'take2Url' => substr($videoUrl2, 0, 80),
+        ]);
+
+        $projectId = $this->projectId ?? 0;
+        $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateVideos($videoUrl1, $videoUrl2, $projectId);
+
+        if ($finalUrl) {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalUrl;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+
+            \Log::info('🎬 DualTake: Assembly complete — video READY!', [
+                'finalUrl' => substr($finalUrl, 0, 100),
+            ]);
+        } else {
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take assembly failed: ffmpeg concatenation error';
+
+            \Log::error('🎬 DualTake: Assembly FAILED');
+        }
+
+        $this->saveProject();
+    }
+
+    /**
      * Reset a stuck video generation job.
      * Clears the videoStatus and removes any pending job for this shot.
      */
@@ -31331,13 +31623,22 @@ PROMPT;
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError']);
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId']);
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider']);
+            // Clear dual take metadata
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1VideoUrl']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2VideoUrl']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId']);
         }
 
-        // Remove any pending job for this shot
+        // Remove any pending job for this shot (single take + dual take keys)
         $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
         if (isset($this->pendingJobs[$jobKey])) {
             unset($this->pendingJobs[$jobKey]);
         }
+        $dualKey1 = "dual_take1_{$sceneIndex}_{$shotIndex}";
+        $dualKey2 = "dual_take2_{$sceneIndex}_{$shotIndex}";
+        unset($this->pendingJobs[$dualKey1], $this->pendingJobs[$dualKey2]);
 
         $this->saveProject();
         $this->dispatch('generation-status', ['message' => __('Video job reset. You can try generating again.')]);
@@ -31363,11 +31664,20 @@ PROMPT;
                 unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError']);
                 unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId']);
                 unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider']);
+                // Clear dual take metadata
+                unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode']);
+                unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1VideoUrl']);
+                unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2VideoUrl']);
+                unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId']);
+                unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId']);
 
                 $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
                 if (isset($this->pendingJobs[$jobKey])) {
                     unset($this->pendingJobs[$jobKey]);
                 }
+                // Also remove dual take pending jobs
+                unset($this->pendingJobs["dual_take1_{$sceneIndex}_{$shotIndex}"]);
+                unset($this->pendingJobs["dual_take2_{$sceneIndex}_{$shotIndex}"]);
                 $resetCount++;
             }
         }

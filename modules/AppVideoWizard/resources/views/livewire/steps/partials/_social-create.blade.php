@@ -216,6 +216,11 @@
     }
     .vw-social-swap-btn:hover { background: rgba(139,92,246,0.3); color: #c4b5fd; }
 
+    .vw-mode-btn { padding: 0.35rem 0.75rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.2s; font-size: 0.75rem; }
+    .vw-mode-btn.active { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.4); color: #a78bfa; }
+    .vw-mode-btn:hover { border-color: rgba(139,92,246,0.3); color: #a78bfa; }
+    .vw-mode-hint { font-size: 0.65rem; color: #64748b; margin-top: 0.25rem; }
+
     .vw-social-progress-bar {
         margin-top: 0.75rem;
         padding: 0.75rem;
@@ -666,18 +671,56 @@
                             </button>
                         </div>
                     </div>
+
+                    {{-- Dialogue Animation Mode Toggle --}}
+                    <div class="vw-social-anim-mode" style="margin-top: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem; font-size: 0.75rem;">
+                            <button wire:click="$set('dialogueAnimMode', 'single_take')"
+                                    class="vw-mode-btn {{ $dialogueAnimMode === 'single_take' ? 'active' : '' }}">
+                                Single Take
+                            </button>
+                            <button wire:click="$set('dialogueAnimMode', 'dual_take')"
+                                    class="vw-mode-btn {{ $dialogueAnimMode === 'dual_take' ? 'active' : '' }}">
+                                Dual Take
+                            </button>
+                        </div>
+                        <div class="vw-mode-hint">
+                            {{ $dialogueAnimMode === 'dual_take'
+                                ? __('Two separate renders per speaker, then joined. Better body movement control.')
+                                : __('One continuous render for both speakers.') }}
+                        </div>
+                    </div>
                 @endif
 
                 @if(in_array($videoStatus, ['generating', 'processing']))
                     <div class="vw-social-progress-bar">
                         <div class="vw-social-progress-text">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            {{ __('AI is animating your character...') }}
+                            @if($shot['dualTakeMode'] ?? false)
+                                @php
+                                    $t1Done = !empty($shot['dualTake1VideoUrl']);
+                                    $t2Done = !empty($shot['dualTake2VideoUrl']);
+                                @endphp
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                @if(!$t1Done && !$t2Done)
+                                    {{ __('Rendering Take 1 & Take 2...') }}
+                                @elseif($t1Done && !$t2Done)
+                                    {{ __('Take 1 done! Waiting for Take 2...') }}
+                                @elseif(!$t1Done && $t2Done)
+                                    {{ __('Take 2 done! Waiting for Take 1...') }}
+                                @else
+                                    {{ __('Joining takes...') }}
+                                @endif
+                            @else
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                {{ __('AI is animating your character...') }}
+                            @endif
                         </div>
                         <div class="vw-social-progress-track">
                             <div class="vw-social-progress-fill"></div>
                         </div>
-                        <div class="vw-social-progress-hint">{{ __('This usually takes 2-5 minutes') }}</div>
+                        <div class="vw-social-progress-hint">
+                            {{ ($shot['dualTakeMode'] ?? false) ? __('Two renders running in parallel — same wait time as single') : __('This usually takes 2-5 minutes') }}
+                        </div>
                     </div>
                 @endif
             </div>

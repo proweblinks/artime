@@ -889,6 +889,114 @@ class InfiniteTalkService
     }
 
     /**
+     * Concatenate two video files using ffmpeg concat demuxer (no re-encoding).
+     * Used by Dual Take mode to join two separate speaker renders into one video.
+     *
+     * @param string $videoUrl1 Public URL of first video (Take 1)
+     * @param string $videoUrl2 Public URL of second video (Take 2)
+     * @param int $projectId Project ID for storage path
+     * @return string|null Public URL of the concatenated video, or null on failure
+     */
+    public static function concatenateVideos(string $videoUrl1, string $videoUrl2, int $projectId): ?string
+    {
+        try {
+            // Find ffmpeg binary
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk DualTake: ffmpeg not found, cannot concatenate videos');
+                return null;
+            }
+
+            // Resolve video URLs to local disk paths
+            $resolveVideoPath = function(string $url): ?string {
+                // Extract storage path from /files/ URL
+                $parsed = parse_url($url);
+                $path = $parsed['path'] ?? '';
+                if (str_starts_with($path, '/files/')) {
+                    $storagePath = substr($path, 7); // Remove '/files/'
+                    $diskPath = Storage::disk('public')->path($storagePath);
+                    if (file_exists($diskPath)) {
+                        return $diskPath;
+                    }
+                }
+                return null;
+            };
+
+            $videoPath1 = $resolveVideoPath($videoUrl1);
+            $videoPath2 = $resolveVideoPath($videoUrl2);
+
+            if (!$videoPath1 || !$videoPath2) {
+                Log::error('InfiniteTalk DualTake: video file(s) not found', [
+                    'url1' => substr($videoUrl1, 0, 80),
+                    'url2' => substr($videoUrl2, 0, 80),
+                    'path1Exists' => $videoPath1 ? 'yes' : 'no',
+                    'path2Exists' => $videoPath2 ? 'yes' : 'no',
+                ]);
+                return null;
+            }
+
+            // Output concatenated video
+            $outputFilename = 'dual_take_' . time() . '_' . uniqid() . '.mp4';
+            $outputStoragePath = "wizard-videos/{$projectId}/{$outputFilename}";
+            $outputDiskPath = Storage::disk('public')->path($outputStoragePath);
+
+            // Ensure output directory exists
+            $outputDir = dirname($outputDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // Create concat list file
+            $concatListPath = $outputDiskPath . '.concat.txt';
+            $concatContent = "file " . escapeshellarg($videoPath1) . "\nfile " . escapeshellarg($videoPath2);
+            file_put_contents($concatListPath, $concatContent);
+
+            // ffmpeg: concat demuxer — no re-encoding, fast lossless join
+            $cmd = sprintf(
+                '%s -f concat -safe 0 -i %s -c copy %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($concatListPath),
+                escapeshellarg($outputDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            // Clean up concat list file
+            @unlink($concatListPath);
+
+            if ($returnCode !== 0 || !file_exists($outputDiskPath)) {
+                Log::error('InfiniteTalk DualTake: ffmpeg concat failed', [
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk DualTake: concatenation complete', [
+                'outputPath' => $outputStoragePath,
+                'outputSize' => filesize($outputDiskPath),
+            ]);
+
+            return url('/files/' . $outputStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk DualTake: concat error', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Error response format.
      */
     protected function errorResponse(string $message): array
