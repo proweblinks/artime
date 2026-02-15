@@ -683,6 +683,13 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Overall narrative arc: setup → action → punchline/reaction
    - Physical comedy beats, surprise moments, emotional shifts
 
+3b. WHO IS SPEAKING (critical for audio):
+   - Which character's MOUTH IS OPEN or moving in the frames? This is the SPEAKER.
+   - Is it a monologue (one character talking) or dialogue (two characters taking turns)?
+   - Which character speaks FIRST based on the frame sequence?
+   - What is the emotional tone of each speaker? (screaming, whispering, calm, angry, surprised)
+   - Are the characters ARGUING, chatting casually, one lecturing the other?
+
 4. CAMERA & VISUAL STYLE:
    - Camera angle per frame (eye-level, low-angle, high-angle, overhead)
    - Camera movement (static, slow pan, quick zoom, handheld shake)
@@ -771,11 +778,27 @@ PROMPT;
     protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
     {
         $transcriptSection = $transcript
-            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nUse this transcript to determine speechType (monologue/dialogue), identify speakers, and generate dialogueLines."
-            : "AUDIO: No speech detected in video. Assume monologue or narrator style based on visual cues.";
+            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nIMPORTANT: Match this transcript to the VISUAL ANALYSIS to determine WHO is speaking. The character whose mouth is OPEN in the frames is the one saying these words. If the visual analysis shows the cat/animal with mouth open, the transcript belongs to THAT character. Do NOT assume the human is speaking just because it sounds human — in viral videos, animals are given human voices. Split the transcript into short attributed dialogue lines (max 10 words each)."
+            : "AUDIO: No speech detected in video. Assume visual comedy / silent humor with environmental sounds only.";
 
         $videoPromptInstruction = $videoEngine === 'seedance'
-            ? 'Also generate a "videoPrompt" field — a detailed 4-layer Seedance prompt: (1) Subject & action, (2) Dialogue in "quotes" if any, (3) Environmental audio cues, (4) Visual style & mood.'
+            ? <<<'SEEDANCE'
+Also generate a "videoPrompt" field — a single-paragraph Seedance prompt using this 4-layer format:
+(1) Subject & action — describe ALL characters, their positions, and the main action.
+(2) ATTRIBUTED dialogue — CRITICAL: Each character's speech must be attributed by name/description.
+    Format: "The cat screams 'Give me my money!' while the woman gasps 'What is happening?!'"
+    The CHARACTER WHO SPEAKS FIRST in the video must appear FIRST in the prompt.
+    Keep each character's line to max 10 words. Do NOT dump the full transcript.
+    If one character is the main speaker (mouth open, yelling), they should have more/louder dialogue.
+(3) Environmental audio cues — comma-separated background sounds.
+(4) Visual style & mood.
+
+IMPORTANT SEEDANCE RULES:
+- Seedance auto-generates DIFFERENT VOICES for each attributed character. The order in the prompt = the order they speak.
+- NEVER put all dialogue in one unattributed quote block. ALWAYS write "Character A says '...' while Character B replies '...'"
+- Keep total dialogue SHORT (2-3 attributed lines max). Seedance works best with brief punchy exchanges.
+- If the video has a screaming/angry character, describe the emotional delivery: "screams", "yells", "hisses", "shouts"
+SEEDANCE
             : 'Do NOT generate a "videoPrompt" field.';
 
         $prompt = <<<PROMPT
@@ -792,6 +815,9 @@ CRITICAL RULES:
 - Preserve the EXACT mood, humor type, and viral formula.
 - Character names can be creative/fun, but species, appearance, setting, and actions must be FAITHFUL to the source.
 - The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action, same camera angle.
+- DIALOGUE ATTRIBUTION: Based on the visual analysis (who has mouth open, who is gesticulating), determine WHICH character is the main speaker. The transcript audio belongs to the character whose mouth is open/moving in the frames.
+- SPEAKER ORDER: The character who speaks FIRST in the video must be FIRST in both "dialogueLines" and in the videoPrompt dialogue section.
+- If two characters are present, they MUST have distinctly different speaking styles (e.g., one screams angrily, the other responds shocked/confused).
 
 {$videoPromptInstruction}
 
@@ -810,9 +836,10 @@ Return ONLY a JSON object (no markdown, no explanation):
   "audioType": "voiceover",
   "audioDescription": "Brief description of what happens",
   "dialogueLines": [
-    {"speaker": "Character Name", "text": "Short punchy line matching the tone/content from transcript"}
+    {"speaker": "First Speaker Name", "text": "Their line (max 10 words, matching transcript tone)"},
+    {"speaker": "Second Speaker Name", "text": "Their response (max 10 words)"}
   ],
-  "videoPrompt": "Detailed Seedance 4-layer prompt: (1) EXACT subject & action — same species, same movement, (2) Dialogue in quotes if any, (3) Environmental audio cues, (4) EXACT visual style & mood from analysis. Must be faithful to the source video.",
+  "videoPrompt": "SINGLE PARAGRAPH: (1) Characters & action scene description. (2) The cat screams 'Line here!' while the woman gasps 'Response here!' (3) background sounds, ambient noise. (4) Visual style, camera, mood. — MUST attribute each line to a specific character. First speaker in video = first in prompt.",
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
   "source": "cloned"
