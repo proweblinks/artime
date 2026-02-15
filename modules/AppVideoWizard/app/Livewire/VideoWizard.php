@@ -2741,6 +2741,77 @@ class VideoWizard extends Component
     }
 
     /**
+     * Recover video pending jobs from shot metadata after page refresh.
+     * Returns the count of jobs that were timed out (not recovered).
+     */
+    protected function recoverVideoJobs(): int
+    {
+        $timedOut = 0;
+        $timeoutMinutes = 15;
+        $scenes = $this->multiShotMode['decomposedScenes'] ?? [];
+
+        foreach ($scenes as $sceneIndex => $scene) {
+            foreach (($scene['shots'] ?? []) as $shotIndex => $shot) {
+                $status = $shot['videoStatus'] ?? 'pending';
+                if (!in_array($status, ['processing', 'generating'])) {
+                    continue;
+                }
+
+                $taskId = $shot['videoTaskId'] ?? null;
+                $startedAt = $shot['videoJobStartedAt'] ?? 0;
+                $elapsed = $startedAt ? (now()->timestamp - $startedAt) : 0;
+
+                // Timeout: reset stuck jobs older than threshold
+                if ($startedAt && $elapsed > ($timeoutMinutes * 60)) {
+                    \Log::warning('📡 Video job timed out, resetting to error', [
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'taskId' => $taskId,
+                        'elapsed' => $elapsed . 's',
+                    ]);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = "Job timed out after {$timeoutMinutes} minutes";
+                    $timedOut++;
+                    continue;
+                }
+
+                // Recover: reconstruct pendingJob from stored metadata
+                if ($taskId) {
+                    $provider = $shot['videoProvider'] ?? 'infinitetalk';
+                    $endpointId = $shot['videoEndpointId'] ?? null;
+                    $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
+
+                    $this->pendingJobs[$jobKey] = [
+                        'taskId' => $taskId,
+                        'type' => 'shot_video',
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'provider' => $provider,
+                        'endpointId' => $endpointId,
+                    ];
+
+                    \Log::info('📡 Recovered video pending job from metadata', [
+                        'jobKey' => $jobKey,
+                        'taskId' => $taskId,
+                        'elapsed' => $elapsed . 's',
+                    ]);
+                } else {
+                    // No taskId stored — can't recover, reset
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Lost job reference';
+                    $timedOut++;
+                }
+            }
+        }
+
+        if ($timedOut > 0) {
+            $this->saveProject();
+        }
+
+        return $timedOut;
+    }
+
+    /**
      * Clean up scenes that are stuck in "generating" status without valid pending jobs.
      */
     protected function cleanupStuckScenes(WizardProject $project, $pendingJobs): void
@@ -8227,8 +8298,12 @@ PROMPT;
         ]);
 
         if (empty($this->pendingJobs)) {
-            \Log::info('📡 No pending jobs to poll');
-            return ['pendingJobs' => 0, 'polled' => 0, 'message' => 'No pending jobs'];
+            // Recover video jobs from shot metadata (handles page refresh / lost state)
+            $recovered = $this->recoverVideoJobs();
+            if (empty($this->pendingJobs)) {
+                \Log::info('📡 No pending jobs to poll' . ($recovered ? " ($recovered timed out)" : ''));
+                return ['pendingJobs' => 0, 'polled' => 0, 'message' => 'No pending jobs'];
+            }
         }
 
         $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
@@ -31541,6 +31616,7 @@ PROMPT;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = $result['provider'] ?? 'minimax';
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEndpointId'] = $result['endpointId'] ?? null;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
 
                             // Estimate rendering time based on model and duration
@@ -31931,6 +32007,7 @@ PROMPT;
                     'takeKey' => $take1Key,
                 ];
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId'] = $result['taskId'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEndpointId'] = $result['endpointId'] ?? null;
 
                 // --- Diagnostic: DISPATCH_TAKE1 ---
                 \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'DISPATCH_TAKE1', 'done', [
