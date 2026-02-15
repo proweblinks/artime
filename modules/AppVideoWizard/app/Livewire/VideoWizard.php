@@ -8415,7 +8415,7 @@ PROMPT;
         }
 
         // Dispatch completion event if no more pending video jobs
-        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => ($job['type'] ?? '') === 'shot_video');
+        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take']));
         if (!$hasVideoJobs) {
             \Log::info('📡 All video jobs complete - dispatching video-generation-complete');
             $this->dispatch('video-generation-complete');
