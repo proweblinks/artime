@@ -473,6 +473,7 @@ PROMPT;
         Log::info('ConceptCloner: Stage 1 complete — Visual analysis received', [
             'textLength' => strlen($visualAnalysis),
             'frameCount' => count($frames),
+            'analysisPreview' => mb_substr($visualAnalysis, 0, 500),
         ]);
 
         // Stage 2: Extract audio + transcribe (if audio exists)
@@ -491,55 +492,91 @@ PROMPT;
     /**
      * Extract key frames from a video using ffmpeg.
      * Returns an array of temp file paths (JPEG images).
-     * Extracts ~1 frame per 2 seconds, max 6 frames.
+     *
+     * Strategy: Extract exactly 8 frames evenly spaced across the video.
+     * Uses two-pass approach — first detects total frames via ffprobe stream,
+     * then extracts every Nth frame. This avoids the unreliable duration-based
+     * approach which fails on Livewire temp files.
      */
-    protected function extractKeyFrames(string $videoPath, int $maxFrames = 6): array
+    protected function extractKeyFrames(string $videoPath, int $maxFrames = 8): array
     {
         $ffmpegPath = PHP_OS_FAMILY === 'Windows' ? 'ffmpeg' : '/home/artime/bin/ffmpeg';
         $ffprobePath = PHP_OS_FAMILY === 'Windows' ? 'ffprobe' : '/home/artime/bin/ffprobe';
         $tempDir = sys_get_temp_dir();
         $prefix = 'concept_frame_' . uniqid();
 
-        // Get video duration
-        $durationCmd = sprintf(
-            '%s -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s 2>&1',
+        // Try to get total frame count from stream (more reliable than format duration)
+        $frameCountCmd = sprintf(
+            '%s -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 %s 2>&1',
             escapeshellcmd($ffprobePath),
             escapeshellarg($videoPath)
         );
-        exec($durationCmd, $durationOutput, $durationReturn);
-        $duration = floatval($durationOutput[0] ?? 10);
-        $duration = max($duration, 1);
+        exec($frameCountCmd, $frameCountOutput, $frameCountReturn);
+        $totalFrames = intval(trim($frameCountOutput[0] ?? '0'));
 
-        // Calculate frame interval: aim for ~1 frame per 2 seconds, max $maxFrames
-        $frameCount = min($maxFrames, max(2, (int) ceil($duration / 2)));
-        $fps = $frameCount / $duration;
+        Log::info('ConceptCloner: ffprobe frame count', [
+            'totalFrames' => $totalFrames,
+            'returnCode' => $frameCountReturn,
+            'rawOutput' => implode('|', $frameCountOutput),
+        ]);
 
-        // Extract frames as JPEG
+        // Extract frames using the appropriate strategy
         $outputPattern = $tempDir . DIRECTORY_SEPARATOR . $prefix . '_%03d.jpg';
-        $extractCmd = sprintf(
-            '%s -i %s -vf "fps=%s" -frames:v %d -q:v 2 %s 2>&1',
-            escapeshellcmd($ffmpegPath),
-            escapeshellarg($videoPath),
-            number_format($fps, 4, '.', ''),
-            $frameCount,
-            escapeshellarg($outputPattern)
-        );
+
+        if ($totalFrames > 0 && $totalFrames >= $maxFrames) {
+            // Strategy A: select every Nth frame for even distribution
+            $selectEvery = max(1, (int) floor($totalFrames / $maxFrames));
+            $extractCmd = sprintf(
+                '%s -i %s -vf "select=not(mod(n\\,%d))" -vsync vfr -frames:v %d -q:v 2 %s 2>&1',
+                escapeshellcmd($ffmpegPath),
+                escapeshellarg($videoPath),
+                $selectEvery,
+                $maxFrames,
+                escapeshellarg($outputPattern)
+            );
+        } else {
+            // Strategy B: fallback — extract at fixed timestamps (0.5s, 1.5s, 3s, 5s, 7s, 9s, 12s, 15s)
+            // This covers most short-form videos (5-60s) without needing accurate duration
+            $timestamps = [0.5, 1.5, 3.0, 5.0, 7.0, 9.0, 12.0, 15.0];
+            $frames = [];
+            foreach ($timestamps as $ts) {
+                $framePath = $tempDir . DIRECTORY_SEPARATOR . $prefix . '_' . str_pad(count($frames) + 1, 3, '0', STR_PAD_LEFT) . '.jpg';
+                $tsCmd = sprintf(
+                    '%s -ss %s -i %s -frames:v 1 -q:v 2 %s 2>&1',
+                    escapeshellcmd($ffmpegPath),
+                    number_format($ts, 2, '.', ''),
+                    escapeshellarg($videoPath),
+                    escapeshellarg($framePath)
+                );
+                exec($tsCmd, $tsOutput, $tsReturn);
+                if (file_exists($framePath) && filesize($framePath) > 100) {
+                    $frames[] = $framePath;
+                }
+            }
+
+            Log::info('ConceptCloner: Frame extraction (timestamp fallback)', [
+                'extractedFrames' => count($frames),
+            ]);
+
+            return $frames;
+        }
 
         exec($extractCmd, $extractOutput, $extractReturn);
 
-        Log::info('ConceptCloner: Frame extraction', [
-            'duration' => $duration,
-            'targetFrames' => $frameCount,
-            'fps' => $fps,
+        Log::info('ConceptCloner: Frame extraction (Nth frame)', [
+            'totalVideoFrames' => $totalFrames,
+            'selectEvery' => $selectEvery ?? 0,
+            'targetFrames' => $maxFrames,
             'returnCode' => $extractReturn,
         ]);
 
         // Collect extracted frame paths
         $frames = [];
-        for ($i = 1; $i <= $frameCount; $i++) {
+        for ($i = 1; $i <= $maxFrames + 5; $i++) { // check a few extra in case
             $framePath = $tempDir . DIRECTORY_SEPARATOR . $prefix . '_' . str_pad($i, 3, '0', STR_PAD_LEFT) . '.jpg';
             if (file_exists($framePath) && filesize($framePath) > 100) {
                 $frames[] = $framePath;
+                if (count($frames) >= $maxFrames) break;
             }
         }
 
@@ -601,38 +638,46 @@ PROMPT;
     protected function buildVideoAnalysisPrompt(): string
     {
         return <<<'PROMPT'
-These are sequential frames extracted from a short-form video (TikTok/Reels/Shorts style). Analyze them as a continuous scene:
+You are analyzing sequential frames extracted from a short-form video (TikTok/Reels/Shorts). These frames are in chronological order and represent the video's progression. Analyze them as a continuous scene with EXTREME PRECISION.
 
-1. CHARACTERS: For each character/creature visible:
-   - Species (human, cat, dog, etc.), gender, age range
-   - Exact clothing, accessories, colors
-   - Facial expression, body language
-   - Role in scene (protagonist, supporting, background)
+CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100% accuracy. If you see a monkey, say MONKEY — not "primate" or "creature." If you see a golden retriever, say GOLDEN RETRIEVER — not just "dog." Be as specific as possible about breed, species, and subspecies. NEVER guess or generalize. Describe EXACTLY what you see.
+
+1. CHARACTERS (be EXACT):
+   - EXACT species — e.g., "capuchin monkey", "tabby cat", "golden retriever puppy", "adult human male." Do NOT generalize.
+   - Fur/skin color, patterns, distinguishing marks
+   - Clothing, accessories, colors (be specific: "red baseball cap", not "hat")
+   - Facial expression and body language in EACH frame
+   - Role: protagonist, supporting, background
+   - Size relative to other objects/characters
 
 2. SETTING & ENVIRONMENT:
-   - Exact location type (kitchen, office, restaurant, outdoors)
-   - Key props and objects visible
-   - Lighting (natural, fluorescent, dramatic, warm)
-   - Background details, decor, signage
+   - Exact location (bathroom, kitchen counter, living room couch, outdoor garden, etc.)
+   - Every visible prop and object (towel, sink, plate, phone, etc.)
+   - Lighting type and direction
+   - Background details, wall color, floor type, decor
+   - Any text, signs, or brand names visible
 
-3. ACTION & TIMING (piece together from frame sequence):
-   - What happens across the frames — describe the action flow
-   - Character movements and interactions
-   - Physical comedy or dramatic beats
+3. ACTION SEQUENCE (frame by frame):
+   - Frame 1: What is happening
+   - Frame 2: What changed
+   - (Continue for all frames)
+   - Overall narrative arc: setup → action → punchline/reaction
+   - Physical comedy beats, surprise moments, emotional shifts
 
 4. CAMERA & VISUAL STYLE:
-   - Camera angle (eye-level, low, high, dutch)
-   - Camera movement (static, pan, zoom, handheld, tracking)
-   - Shot type (close-up, medium, wide, medium-wide)
-   - Visual aesthetic (realistic, stylized, phone footage, cinematic)
+   - Camera angle per frame (eye-level, low-angle, high-angle, overhead)
+   - Camera movement (static, slow pan, quick zoom, handheld shake)
+   - Shot type (extreme close-up, close-up, medium, medium-wide, wide)
+   - Visual style (realistic, CGI, cartoon, phone footage, professional, filter applied)
+   - Color palette (warm/cool/saturated/muted), any color grading
 
 5. MOOD & VIRAL FORMULA:
-   - Overall mood (funny, absurd, wholesome, chaotic, cute)
-   - What makes this shareable/viral
-   - The comedic/emotional hook
-   - Pacing (fast, slow, building, surprise ending)
+   - Dominant emotion (funny, absurd, wholesome, chaotic, cute, shocking)
+   - The exact moment/hook that makes it shareable
+   - Humor type (physical comedy, reaction, irony, cuteness overload, unexpected twist)
+   - Pacing across frames (building tension, sudden payoff, slow reveal)
 
-Return a detailed text analysis covering all points above. Be exhaustive about visual details.
+Return your analysis as detailed text. Be EXHAUSTIVE and PRECISE about every visual detail. Accuracy matters more than brevity.
 PROMPT;
     }
 
@@ -695,35 +740,40 @@ PROMPT;
             : 'Do NOT generate a "videoPrompt" field.';
 
         $prompt = <<<PROMPT
-You are a viral content analyst. Analyze this video breakdown and create a structured concept that captures its FORMULA — the viral pattern, character dynamic, visual style, and humor/emotion type.
+You are a viral video concept cloner. Your job is to create a FAITHFUL, ACCURATE structured concept from this video analysis. The concept must precisely match what was seen in the original video.
 
 VISUAL ANALYSIS:
 {$visualAnalysis}
 
 {$transcriptSection}
 
-Your job: Create ONE concept JSON that captures the ESSENCE of this video — not a copy, but the FORMULA. Change character names, species, and specific situation to make it ORIGINAL while keeping the same viral pattern.
+CRITICAL RULES:
+- Use the EXACT species/animal/character type from the visual analysis. If the analysis says "monkey", the concept MUST have a monkey — NOT a different animal.
+- Use the EXACT setting described. If it's a bathroom, keep it a bathroom.
+- Preserve the EXACT mood, humor type, and viral formula.
+- Character names can be creative/fun, but species, appearance, setting, and actions must be FAITHFUL to the source.
+- The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action, same camera angle.
 
 {$videoPromptInstruction}
 
 Return ONLY a JSON object (no markdown, no explanation):
 {
-  "title": "Catchy title (max 6 words)",
-  "concept": "One sentence describing the full visual scene",
+  "title": "Catchy title (max 6 words) — must reference the actual character/animal",
+  "concept": "One sentence describing the EXACT visual scene as analyzed",
   "speechType": "monologue" or "dialogue",
   "characters": [
-    {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "role", "expression": "expression description"}
+    {"name": "Fun Name", "description": "EXACT species + detailed visual description matching the analysis: fur color, clothing, accessories, size", "role": "role", "expression": "expression from analysis"}
   ],
-  "character": "For monologue: single character description",
-  "situation": "The scene action and character interaction",
-  "setting": "Detailed location with specific props, decor, lighting",
-  "props": "Key visual props in the scene",
+  "character": "For monologue: full character description matching the EXACT species and appearance from analysis",
+  "situation": "The EXACT scene action and character interaction as described in the analysis",
+  "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
+  "props": "Key visual props actually seen in the video",
   "audioType": "voiceover",
   "audioDescription": "Brief description of what happens",
   "dialogueLines": [
-    {"speaker": "Character Name", "text": "Short punchy line"}
+    {"speaker": "Character Name", "text": "Short punchy line matching the tone/content from transcript"}
   ],
-  "videoPrompt": "Full Seedance-compatible prompt (only if Seedance engine)",
+  "videoPrompt": "Detailed Seedance 4-layer prompt: (1) EXACT subject & action — same species, same movement, (2) Dialogue in quotes if any, (3) Environmental audio cues, (4) EXACT visual style & mood from analysis. Must be faithful to the source video.",
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
   "source": "cloned"
