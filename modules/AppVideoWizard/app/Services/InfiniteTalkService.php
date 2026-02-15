@@ -953,16 +953,41 @@ class InfiniteTalkService
                 mkdir($outputDir, 0755, true);
             }
 
-            // Create concat list file
-            $concatListPath = $outputDiskPath . '.concat.txt';
-            $concatContent = "file " . escapeshellarg($videoPath1) . "\nfile " . escapeshellarg($videoPath2);
-            file_put_contents($concatListPath, $concatContent);
+            // Get Take 1 duration for crossfade offset calculation
+            $probeCmd = sprintf(
+                '%s -v error -show_entries format=duration -of csv=p=0 %s 2>&1',
+                escapeshellarg(str_replace('ffmpeg', 'ffprobe', $ffmpeg)),
+                escapeshellarg($videoPath1)
+            );
+            $probeDuration = trim(shell_exec($probeCmd) ?? '');
+            $take1Duration = (float) $probeDuration;
 
-            // ffmpeg: concat demuxer — no re-encoding, fast lossless join
+            if ($take1Duration <= 0) {
+                Log::warning('InfiniteTalk DualTake: could not probe Take 1 duration, falling back to 10s', [
+                    'probeOutput' => $probeDuration,
+                ]);
+                $take1Duration = 10.0;
+            }
+
+            // Crossfade duration (0.5s blend between takes)
+            $xfadeDuration = 0.5;
+            $xfadeOffset = max(0, $take1Duration - $xfadeDuration);
+
+            Log::info('InfiniteTalk DualTake: crossfade params', [
+                'take1Duration' => $take1Duration,
+                'xfadeDuration' => $xfadeDuration,
+                'xfadeOffset' => $xfadeOffset,
+            ]);
+
+            // ffmpeg: xfade video + acrossfade audio for smooth transition
             $cmd = sprintf(
-                '%s -f concat -safe 0 -i %s -c copy %s -y 2>&1',
+                '%s -i %s -i %s -filter_complex "[0:v][1:v]xfade=transition=fade:duration=%s:offset=%s[v];[0:a][1:a]acrossfade=d=%s:c1=tri:c2=tri[a]" -map "[v]" -map "[a]" -c:v libx264 -preset fast -crf 18 -c:a aac -b:a 192k %s -y 2>&1',
                 escapeshellarg($ffmpeg),
-                escapeshellarg($concatListPath),
+                escapeshellarg($videoPath1),
+                escapeshellarg($videoPath2),
+                $xfadeDuration,
+                $xfadeOffset,
+                $xfadeDuration,
                 escapeshellarg($outputDiskPath)
             );
 
@@ -970,18 +995,16 @@ class InfiniteTalkService
             $returnCode = 0;
             exec($cmd, $output, $returnCode);
 
-            // Clean up concat list file
-            @unlink($concatListPath);
-
             if ($returnCode !== 0 || !file_exists($outputDiskPath)) {
-                Log::error('InfiniteTalk DualTake: ffmpeg concat failed', [
+                Log::error('InfiniteTalk DualTake: ffmpeg crossfade failed', [
                     'returnCode' => $returnCode,
-                    'output' => implode("\n", array_slice($output, -5)),
+                    'output' => implode("\n", array_slice($output, -10)),
+                    'cmd' => $cmd,
                 ]);
                 return null;
             }
 
-            Log::info('InfiniteTalk DualTake: concatenation complete', [
+            Log::info('InfiniteTalk DualTake: crossfade complete', [
                 'outputPath' => $outputStoragePath,
                 'outputSize' => filesize($outputDiskPath),
             ]);
