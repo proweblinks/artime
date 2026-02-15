@@ -676,12 +676,21 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Background details, wall color, floor type, decor
    - Any text, signs, or brand names visible
 
-3. ACTION SEQUENCE (frame by frame):
-   - Frame 1: What is happening
-   - Frame 2: What changed
-   - (Continue for all frames)
-   - Overall narrative arc: setup → action → punchline/reaction
-   - Physical comedy beats, surprise moments, emotional shifts
+3. ACTION SEQUENCE — THIS IS THE MOST IMPORTANT SECTION:
+   You MUST describe the FULL temporal progression of events, not just a summary.
+   - Frame 1 (~0.5s): What is happening — describe the initial state
+   - Frame 2 (~1.5s): What changed from frame 1
+   - Frame 3 (~3s): What changed — any new actions beginning?
+   - Frame 4 (~5s): What changed — any escalation? New behavior?
+   - Frame 5 (~7s): What changed — any climax or turning point?
+   - (Continue for ALL frames)
+   - CRITICAL: Many viral videos have a 2-3 phase arc:
+     Phase 1 (first 3-5 seconds): Setup — calm interaction, establishing shot
+     Phase 2 (seconds 5-10): Escalation — character starts doing something unexpected (attacking, throwing, running, etc.)
+     Phase 3 (seconds 10-15): Climax/punchline — peak chaos or surprise reaction
+   - You MUST identify ALL phases. Do NOT flatten the video into one static description.
+   - Describe physical comedy beats: pushing, throwing, knocking things over, chasing, etc.
+   - Note EXACTLY WHEN each new action begins (which frame number)
 
 3b. AUDIO & MOUTH ANALYSIS (critical for realistic output):
    - Which character's MOUTH IS OPEN or moving in the frames?
@@ -792,6 +801,12 @@ Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt following the 
 SEEDANCE 1.5 PRO PROMPT FORMULA:
 Subject + Movement + Environment + Sound
 
+TEMPORAL PROGRESSION IS CRITICAL:
+The video prompt MUST describe the FULL action sequence over time, NOT just a single static moment.
+Use temporal phrases: "At first...", "After a moment...", "Then suddenly...", "The cat then begins to..."
+Most viral videos have 2-3 action phases — your video prompt must describe ALL of them.
+Example: "A cat sits calmly on the counter in a pizza shop uniform. After a few seconds, the cat suddenly swats at items on the counter, knocking a cup to the floor. The woman jumps back in surprise as the cat hisses and pushes more items off the edge."
+
 STRUCTURE RULES (from official Seedance docs):
 1. Write the SCENE DESCRIPTION as natural prose paragraphs. Describe characters, their appearance, positions, and actions clearly.
 2. DO NOT use semicolons to separate layers. DO NOT write one giant run-on sentence.
@@ -871,7 +886,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   ],
   "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
   "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
-  "situation": "The EXACT scene action and character interaction as described in the analysis",
+  "situation": "The FULL action sequence: describe ALL phases of what happens from start to end — e.g. 'Cat starts calmly at counter, then begins swatting items, knocking things to the floor while the woman reacts in shock'",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",
   "audioType": "voiceover" or "dialogue" or "sfx" or "silent",
