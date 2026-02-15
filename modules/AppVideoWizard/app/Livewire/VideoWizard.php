@@ -31982,7 +31982,7 @@ PROMPT;
                 $listenerSpecies = $this->getCharacterSpecies($otherName, $characterBible);
                 $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
                 $label = $otherDesc ? "{$otherName} ({$this->condenseToSentence($otherDesc, 50)})" : $otherName;
-                $parts[] = "{$label}: {$listenerAnimation}, absolutely NO speaking or mouth opening";
+                $parts[] = "{$label}: listening silently, {$listenerAnimation}";
             }
         }
 
@@ -32045,11 +32045,11 @@ PROMPT;
                 'dog' => 'ears perked forward, head tilting side to side, tail wagging gently, tongue occasionally visible',
                 'bird' => 'head bobbing and tilting with interest, feathers ruffling slightly, blinking alertly',
                 'robot' => 'LED indicators pulsing, minimal mechanical adjustments, sensor array focused',
-                default => 'completely still and frozen, NO head nodding, only occasional subtle eye blinks',
+                default => 'standing still, occasional subtle eye blinks, watching the speaker',
             };
         }
         return match($species) {
-            'cat' => 'mouth opening wide showing teeth with each word, jaw dropping dramatically for emphasis, whiskers fanning out expressively, ears rotating with emotion, head tilting with attitude, eyes narrowing smugly between phrases',
+            'cat' => 'actively talking with mouth opening wide showing teeth, jaw dropping dramatically for emphasis, lips and mouth constantly moving in sync with audio, whiskers fanning out expressively, ears rotating with emotion, head tilting with attitude',
             'dog' => 'mouth opening wide with eager panting between phrases, tongue visible during pauses, ears flopping with enthusiasm, head bobbing with excitement, whole face animated',
             'bird' => 'beak opening and closing sharply with each syllable, head jerking with emphasis, crest feathers rising with emotion',
             'robot' => 'mouth panel sliding open with mechanical precision, LED mouth lights syncing to speech, head rotating smoothly between phrases',
