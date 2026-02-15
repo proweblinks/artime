@@ -849,15 +849,21 @@ Also generate a "cameraFixed" field:
 - false = camera movement present (dolly, pan, tracking, zoom)
 - Most short-form social videos use STATIC camera — set to true unless the analysis shows clear camera movement.
 
+IMPORTANT — CHARACTER RULES:
+- The "characters" array MUST include EVERY visible character/creature in the video, even for voiceover/monologue scenes.
+- Each character entry must have a "position" field describing their exact spatial placement from the camera's perspective.
+- The "character" (singular) field should describe ALL main characters together in one sentence for the image prompt.
+
 Return ONLY a JSON object (no markdown, no explanation):
 {
   "title": "Catchy title (max 6 words) — must reference the actual character/animal",
   "concept": "One sentence describing the EXACT visual scene as analyzed",
   "speechType": "monologue" or "dialogue",
   "characters": [
-    {"name": "Fun Name", "description": "EXACT species + detailed visual description matching the analysis: fur color, clothing, accessories, size", "role": "role", "expression": "expression from analysis"}
+    {"name": "Fun Name", "description": "EXACT species + detailed visual description matching the analysis: fur color, clothing, accessories, size", "role": "protagonist/supporting/background", "expression": "expression from analysis", "position": "EXACT spatial position: foreground/background, left/right/center, facing direction, distance from camera"}
   ],
-  "character": "For monologue: full character description matching the EXACT species and appearance from analysis",
+  "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
+  "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
   "situation": "The EXACT scene action and character interaction as described in the analysis",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",

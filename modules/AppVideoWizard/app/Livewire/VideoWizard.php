@@ -3520,16 +3520,34 @@ class VideoWizard extends Component
 
         // Seedance mode: full scene composition with environment emphasis
         if ($this->videoEngine === 'seedance') {
-            $charDescriptions = [];
-            if ($isDialogue && count($characters) >= 2) {
+            $hasMultipleCharacters = count($characters) >= 2;
+            $imageComposition = $idea['imageComposition'] ?? '';
+
+            if ($hasMultipleCharacters) {
+                // Multi-character scene (works for ALL speechTypes: voiceover, dialogue, sfx)
+                $charDescriptions = [];
                 foreach ($characters as $c) {
-                    $charDescriptions[] = $c['description'] ?? $c['name'] ?? 'character';
+                    $desc = $c['description'] ?? $c['name'] ?? 'character';
+                    $pos = $c['position'] ?? '';
+                    if ($pos) {
+                        $charDescriptions[] = "{$desc} ({$pos})";
+                    } else {
+                        $charDescriptions[] = $desc;
+                    }
                 }
-                $characterBlock = implode(' facing ', $charDescriptions);
-                $compositionNote = "Both characters together in ONE single continuous frame, interacting naturally. ";
+                $characterBlock = implode('. ', $charDescriptions);
+
+                // Use imageComposition for exact spatial arrangement from reference
+                if (!empty($imageComposition)) {
+                    $compositionNote = "COMPOSITION FROM REFERENCE: {$imageComposition}. All characters in ONE single continuous frame. ";
+                } else {
+                    $compositionNote = "All characters together in ONE single continuous frame, interacting naturally, facing each other. ";
+                }
             } else {
                 $characterBlock = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
-                $compositionNote = "Single character centered in frame. ";
+                $compositionNote = !empty($imageComposition)
+                    ? "COMPOSITION: {$imageComposition}. "
+                    : "Single character centered in frame. ";
             }
 
             $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
@@ -3538,7 +3556,7 @@ class VideoWizard extends Component
             return "ONE SINGLE CONTINUOUS VERTICAL 9:16 PHOTOGRAPH, 720x1280 resolution. "
                 . "CRITICAL: This must be ONE single image — absolutely NO collage, NO grid, NO panels, NO multiple frames, NO split layout, NO montage. "
                 . $compositionNote
-                . "Medium-wide shot showing: {$characterBlock}, {$situation}. "
+                . "Medium-wide shot showing: {$characterBlock}. Situation: {$situation}. "
                 . "{$settingBlock}"
                 . "{$propsBlock}"
                 . "Emphasis on scene composition, props, and environment — characters should be in context within the scene. "
