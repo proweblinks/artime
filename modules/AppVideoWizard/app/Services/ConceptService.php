@@ -787,22 +787,40 @@ PROMPT;
 
         $videoPromptInstruction = $videoEngine === 'seedance'
             ? <<<'SEEDANCE'
-Also generate a "videoPrompt" field — a single-paragraph Seedance prompt using this 4-layer format:
-(1) Subject & action — describe ALL characters, their positions, and the main action.
-(2) CHARACTER SOUNDS — describe what each character ACTUALLY does:
-    - Animals: use REALISTIC animal sounds. "The cat meows loudly and hisses", "the cat opens its mouth and screams", "the dog barks aggressively"
-    - Humans: use human reactions. "The woman gasps in shock", "the man laughs nervously"
-    - NEVER write an animal speaking human words. Cats meow. Dogs bark. Only humans speak.
-    - If there's a comedic voiceover narration, add it as: "voiceover narrates 'Short funny line'"
-(3) Environmental audio cues — comma-separated background sounds.
-(4) Visual style & mood.
+Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt following the OFFICIAL format.
 
-IMPORTANT SEEDANCE RULES:
-- Seedance generates audio FROM the prompt text. If you write "cat says 'hello'" it will make the cat speak — which looks FAKE and WRONG.
-- For REALISTIC animal videos: describe animal sounds (meowing, hissing, barking) + human reactions (gasping, laughing)
-- Voiceover narration can be added separately: "voiceover narrates 'Funny commentary here'"
-- Keep the prompt focused on VISUAL ACTION + REALISTIC SOUNDS, not dubbed dialogue
-- The main character should be described FIRST in the prompt
+SEEDANCE 1.5 PRO PROMPT FORMULA:
+Subject + Movement + Environment + Sound
+
+STRUCTURE RULES (from official Seedance docs):
+1. Write the SCENE DESCRIPTION as natural prose paragraphs. Describe characters, their appearance, positions, and actions clearly.
+2. DO NOT use semicolons to separate layers. DO NOT write one giant run-on sentence.
+3. Character sounds (animal sounds, gasps, reactions) are described as ACTIONS within the scene prose.
+   Example: "The cat meows repeatedly and tilts its head" — this is part of the scene description.
+4. DO NOT describe camera movement in the prompt. Camera is controlled by the "cameraFixed" parameter.
+
+FOR SCENES WITH HUMAN DIALOGUE (humans talking to each other):
+Write the scene description first, then add dialogue in this exact format:
+[Scene description paragraph]
+English dialogue:
+Character A: "Their line here"
+Character B: "Their line here"
+
+FOR SCENES WITH VOICEOVER NARRATION (narrator voice over the visuals):
+Write: Generate a video with voiceover: A [voice description] says, "[narration text]"
+Then the scene description.
+
+FOR SCENES WITH ONLY ANIMAL SOUNDS / SOUND EFFECTS (no human speech):
+Just write the scene description. Seedance auto-generates matching audio from visual actions.
+Example: "A fluffy cat in a uniform meows and hisses at a surprised woman who gasps and steps back."
+
+CRITICAL SEEDANCE RULES:
+- Seedance generates audio FROM the prompt text. If you write "cat says 'hello'" it generates a speaking cat = FAKE.
+- Animals make ANIMAL SOUNDS only. Describe them as actions: "the cat meows loudly", "the dog barks".
+- NEVER write an animal speaking human words in quotes. Only humans speak.
+- Keep scene descriptions clear and constrained — describe what IS visible, not abstract concepts.
+- The main character (camera focus) should be described FIRST.
+- Use degree adverbs to control intensity: "meows softly" vs "meows loudly", "gasps slightly" vs "screams in terror".
 SEEDANCE
             : 'Do NOT generate a "videoPrompt" field.';
 
@@ -819,13 +837,17 @@ CRITICAL RULES:
 - Use the EXACT setting described. If it's a bathroom, keep it a bathroom.
 - Preserve the EXACT mood, humor type, and viral formula.
 - Character names can be creative/fun, but species, appearance, setting, and actions must be FAITHFUL to the source.
-- The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action, same camera angle.
-- ANIMAL SOUNDS ARE REAL: If an animal character has its mouth open, describe it making ANIMAL SOUNDS (meowing, hissing, barking, growling, screaming) — NEVER describe an animal speaking human words. Animals do NOT talk.
-- VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video for comedy. The animal characters make their natural sounds. Include voiceover as a separate narration element if needed.
-- SPEAKER ORDER: The main character (the one the camera focuses on) should be described FIRST in the videoPrompt.
-- If two characters are present, describe their REALISTIC reactions (e.g., cat hisses and meows angrily, woman gasps in shock).
+- The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action.
+- ANIMAL SOUNDS ARE REAL: Animals make ANIMAL SOUNDS (meowing, hissing, barking) — NEVER human words. Describe sounds as actions in the scene.
+- VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video. Animals make their natural sounds. Voiceover goes in the official Seedance voiceover format.
+- The main character (camera focus) should be described FIRST in the videoPrompt.
 
 {$videoPromptInstruction}
+
+Also generate a "cameraFixed" field:
+- true = static camera (phone footage, security cam, tripod, most TikTok/Reels)
+- false = camera movement present (dolly, pan, tracking, zoom)
+- Most short-form social videos use STATIC camera — set to true unless the analysis shows clear camera movement.
 
 Return ONLY a JSON object (no markdown, no explanation):
 {
@@ -839,13 +861,14 @@ Return ONLY a JSON object (no markdown, no explanation):
   "situation": "The EXACT scene action and character interaction as described in the analysis",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",
-  "audioType": "voiceover",
+  "audioType": "voiceover" or "dialogue" or "sfx" or "silent",
   "audioDescription": "Brief description of what happens",
   "dialogueLines": [
-    {"speaker": "Character Name", "text": "Realistic sound/action (e.g., 'meows angrily and hisses' for cat, 'gasps in shock' for human)"},
-    {"speaker": "Voiceover", "text": "Optional comedic narration from the transcript (if applicable)"}
+    {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
+    {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SINGLE PARAGRAPH: (1) Characters & action scene. (2) REALISTIC SOUNDS: The cat meows loudly and hisses while the woman gasps 'Oh my god!', voiceover narrates 'Short funny line' (3) background sounds. (4) Visual style, mood. — Animals make ANIMAL sounds, NOT human speech.",
+  "videoPrompt": "Follow SEEDANCE 1.5 PRO FORMAT above. Natural prose, NOT a semicolon blob. See format rules for dialogue vs voiceover vs SFX-only scenes.",
+  "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
   "source": "cloned"

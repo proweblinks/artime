@@ -3469,6 +3469,7 @@ class VideoWizard extends Component
             'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
             'selectedResolution' => $isSeedance ? '720p' : '720p',
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
+            'cameraFixed' => $isSeedance ? (bool) ($selectedIdea['cameraFixed'] ?? true) : false,
             'cameraMovement' => [
                 'type' => 'static',
                 'motion' => 'hold',
@@ -31489,6 +31490,7 @@ PROMPT;
                             'duration' => $seedanceDuration,
                             'resolution' => $seedanceResolution,
                             'aspect_ratio' => $this->aspectRatio,
+                            'camera_fixed' => $shot['cameraFixed'] ?? false,
                         ]);
 
                         if ($result['success'] && isset($result['taskId'])) {
