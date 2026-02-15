@@ -1100,6 +1100,9 @@ class VideoWizard extends Component
     // Dialogue animation mode: 'single_take' (one continuous render) or 'dual_take' (two renders per speaker, concatenated)
     public string $dialogueAnimMode = 'single_take';
 
+    // Video engine for social content: 'seedance' (cinematic scene w/ auto audio) or 'infinitetalk' (lip-sync talking)
+    public string $videoEngine = 'seedance';
+
     // RunPod job polling state
     public array $pendingJobs = [];
 
@@ -2985,6 +2988,11 @@ class VideoWizard extends Component
                 $this->characterPortraitsGenerated = $config['characterPortraitsGenerated'];
             }
 
+            // Restore social content video engine
+            if (isset($config['videoEngine'])) {
+                $this->videoEngine = $config['videoEngine'];
+            }
+
             // Migrate legacy characterIntelligence data if needed (Phase 1.5)
             if (!($this->characterIntelligence['migrated'] ?? false)) {
                 $this->migrateCharacterIntelligence();
@@ -3169,6 +3177,8 @@ class VideoWizard extends Component
                     'content' => $this->content,
                     // PHASE 3: Character portrait generation tracking
                     'characterPortraitsGenerated' => $this->characterPortraitsGenerated,
+                    // Social content video engine
+                    'videoEngine' => $this->videoEngine,
                 ],
             ];
 
@@ -3286,7 +3296,8 @@ class VideoWizard extends Component
 
         if (!$idea) return;
 
-        $duration = min($this->targetDuration, 10);
+        // Seedance supports 4-12s; InfiniteTalk uses audio-driven duration
+        $duration = $this->videoEngine === 'seedance' ? 8 : min($this->targetDuration, 10);
         $isDialogue = ($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['dialogueLines']);
 
         if ($isDialogue) {
@@ -3413,21 +3424,26 @@ class VideoWizard extends Component
 
         $speakingCharacter = $charactersInShot[0];
 
+        // Determine video model and audio settings based on engine
+        $isSeedance = $this->videoEngine === 'seedance';
+        $selectedIdea = $this->concept['socialContent'] ?? ($this->conceptVariations[$this->selectedConceptIndex ?? 0] ?? []);
+
         $shot = [
             'id' => 'shot_social_' . uniqid(),
             'sceneId' => 'scene_0',
             'shotIndex' => 0,
             'type' => $speechType === 'dialogue' ? 'medium-wide' : 'medium',
             'description' => $scene['visualDescription'] ?? '',
-            'duration' => $duration,
-            'selectedDuration' => $duration,
+            'duration' => $isSeedance ? 8 : $duration,
+            'selectedDuration' => $isSeedance ? 8 : $duration,
             'imageUrl' => null,
             'imageStatus' => 'pending',
             'videoUrl' => null,
             'videoStatus' => 'pending',
             'audioUrl' => null,
             'audioUrl2' => null,
-            'audioStatus' => 'pending',
+            'audioStatus' => $isSeedance ? 'auto' : 'pending',
+            'audioSource' => $isSeedance ? 'auto' : null,
             'audioDuration' => null,
             'status' => 'pending',
             'speechSegments' => $speechSegments,
@@ -3435,8 +3451,9 @@ class VideoWizard extends Component
             'speakingCharacter' => $speakingCharacter,
             'charactersInShot' => $charactersInShot,
             'faceOrder' => $charactersInShot, // Default to Character Bible order; updated by Gemini Vision after image generation
-            'needsLipSync' => true,
-            'selectedVideoModel' => 'infinitetalk',
+            'needsLipSync' => !$isSeedance,
+            'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
+            'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraMovement' => [
                 'type' => 'static',
                 'motion' => 'hold',
@@ -3484,6 +3501,31 @@ class VideoWizard extends Component
         $setting = $idea['setting'] ?? '';
         $isDialogue = ($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['characters']);
         $characters = $idea['characters'] ?? [];
+
+        // Seedance mode: full scene composition with environment emphasis
+        if ($this->videoEngine === 'seedance') {
+            $charDescriptions = [];
+            if ($isDialogue && count($characters) >= 2) {
+                foreach ($characters as $c) {
+                    $charDescriptions[] = $c['description'] ?? $c['name'] ?? 'character';
+                }
+                $characterBlock = implode(' and ', $charDescriptions);
+            } else {
+                $characterBlock = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
+            }
+
+            $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
+            $propsBlock = !empty($idea['props']) ? "Props: {$idea['props']}. " : '';
+
+            return "VERTICAL 9:16 PHOTOGRAPH COMPOSITION, 720x1280 resolution. "
+                . "Full body or medium-wide shot showing character in environment: {$characterBlock}, {$situation}. "
+                . "{$settingBlock}"
+                . "{$propsBlock}"
+                . "Emphasis on scene composition, props, and environment — character should be in context, not isolated. "
+                . "Mood: {$mood}. Cinematic lighting, vibrant colors, high detail on both character and surroundings. "
+                . "Eye-level or slight low-angle camera. "
+                . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos.";
+        }
 
         if ($isDialogue && count($characters) >= 2) {
             // Multi-character dialogue scene — detailed two-person composition
@@ -4801,6 +4843,7 @@ PROMPT;
                     'teamId' => session('current_team_id', 0),
                     'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
                     'count' => 6,
+                    'videoEngine' => $this->videoEngine,
                 ]
             );
 
@@ -4832,6 +4875,25 @@ PROMPT;
             $this->concept['refinedConcept'] = $idea['concept'] ?? '';
             $this->concept['suggestedMood'] = $idea['mood'] ?? 'funny';
             $this->concept['socialContent'] = $idea; // Store full idea data
+        }
+    }
+
+    /**
+     * Set the video engine for social content mode.
+     * Resets concept ideas when engine changes since different engines produce different idea styles.
+     */
+    public function setVideoEngine(string $engine): void
+    {
+        if (!in_array($engine, ['seedance', 'infinitetalk'])) {
+            return;
+        }
+
+        if ($this->videoEngine !== $engine) {
+            $this->videoEngine = $engine;
+            // Reset ideas when engine changes — different engines need different idea styles
+            $this->conceptVariations = [];
+            $this->selectedConceptIndex = null;
+            $this->concept['socialContent'] = null;
         }
     }
 
@@ -31312,6 +31374,64 @@ PROMPT;
                 'speakingCharacter' => $shot['speakingCharacter'] ?? null,
                 'imageUrl' => substr($shot['imageUrl'] ?? '', 0, 80) . '...',
             ]);
+
+            // ——— Seedance fast-path: no audio needed, uses videoPrompt ———
+            if ($selectedModel === 'seedance') {
+                $videoPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
+                $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
+
+                \Log::info('🎬 Seedance mode - no audio required', [
+                    'promptLength' => strlen($videoPrompt),
+                    'duration' => $seedanceDuration,
+                ]);
+
+                if ($this->projectId) {
+                    $project = WizardProject::find($this->projectId);
+                    if ($project) {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $videoPrompt;
+
+                        $result = $animationService->generateAnimation($project, [
+                            'model' => 'seedance',
+                            'imageUrl' => $shot['imageUrl'],
+                            'prompt' => $videoPrompt,
+                            'duration' => $seedanceDuration,
+                            'aspect_ratio' => $this->aspectRatio,
+                        ]);
+
+                        if ($result['success'] && isset($result['taskId'])) {
+                            $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
+                            $this->pendingJobs[$jobKey] = [
+                                'taskId' => $result['taskId'],
+                                'type' => 'shot_video',
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                                'provider' => $result['provider'] ?? 'wavespeed',
+                                'endpointId' => null,
+                            ];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = 'wavespeed';
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEstimatedSeconds'] = $seedanceDuration * 30;
+
+                            $this->dispatch('video-generation-started', [
+                                'taskId' => $result['taskId'],
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                            ]);
+                            $this->saveProject();
+                        } elseif ($result['success'] && isset($result['videoUrl'])) {
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                            $this->saveProject();
+                        } else {
+                            throw new \Exception($result['error'] ?? __('Seedance video generation failed'));
+                        }
+                    }
+                }
+                $this->isLoading = false;
+                return;
+            }
 
             // Validate audio availability for Multitalk/InfiniteTalk
             if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && empty($audioUrl)) {

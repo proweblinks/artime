@@ -4,6 +4,7 @@ namespace Modules\AppVideoWizard\Services;
 
 use App\Services\MiniMaxService;
 use App\Services\RunPodService;
+use App\Services\WaveSpeedService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,16 @@ class AnimationService
             'provider' => 'runpod',
             'requiresAudio' => true,
         ],
+        'seedance' => [
+            'name' => 'Seedance v1.5 Pro',
+            'description' => 'Cinematic video with auto-generated audio and lip-sync',
+            'durations' => [4, 5, 6, 8, 10, 12],
+            'defaultDuration' => 8,
+            'supportsLipSync' => true,
+            'supportsAudioGen' => true,
+            'requiresAudio' => false,
+            'provider' => 'wavespeed',
+        ],
     ];
 
     public function __construct(MiniMaxService $miniMaxService, RunPodService $runPodService)
@@ -85,7 +96,9 @@ class AnimationService
 
         // Route to appropriate provider
         try {
-            if ($model === 'infinitetalk') {
+            if ($model === 'seedance') {
+                return $this->generateWithSeedance($project, $imageUrl, $prompt, $duration, $options);
+            } elseif ($model === 'infinitetalk') {
                 return $this->generateWithInfiniteTalk($project, $imageUrl, $prompt, $audioUrl, $duration, $options);
             } elseif ($modelConfig['provider'] === 'runpod' && $model === 'multitalk') {
                 return $this->generateWithMultitalk($project, $imageUrl, $prompt, $audioUrl, $duration);
@@ -317,6 +330,64 @@ class AnimationService
     }
 
     /**
+     * Generate video using Seedance v1.5 Pro via WaveSpeed API.
+     */
+    protected function generateWithSeedance(
+        WizardProject $project,
+        string $imageUrl,
+        string $prompt,
+        int $duration,
+        array $options = []
+    ): array {
+        $teamId = $project->team_id ?? session('current_team_id', 0);
+        $quota = \Credit::checkQuota($teamId);
+        if (!$quota['can_use']) {
+            return $this->errorResponse($quota['message']);
+        }
+
+        $waveSpeedService = new WaveSpeedService();
+
+        if (!$waveSpeedService->isConfigured()) {
+            return $this->errorResponse('WaveSpeed API key not configured. Please add your API key in Admin Panel > AI Configuration > WaveSpeed AI.');
+        }
+
+        Log::info('AnimationService: Generating with Seedance v1.5 Pro', [
+            'project_id' => $project->id,
+            'duration' => $duration,
+            'aspect_ratio' => $options['aspect_ratio'] ?? '9:16',
+            'prompt_length' => strlen($prompt),
+        ]);
+
+        $result = $waveSpeedService->generateVideo($imageUrl, $prompt, [
+            'aspect_ratio' => $options['aspect_ratio'] ?? '9:16',
+            'duration' => $duration,
+            'resolution' => $options['resolution'] ?? '720p',
+            'generate_audio' => true,
+            'camera_fixed' => $options['camera_fixed'] ?? false,
+        ]);
+
+        if (!$result['success']) {
+            return $this->errorResponse($result['error'] ?? 'Failed to submit Seedance job');
+        }
+
+        return [
+            'success' => true,
+            'taskId' => $result['taskId'],
+            'provider' => 'wavespeed',
+            'status' => 'processing',
+        ];
+    }
+
+    /**
+     * Get WaveSpeed/Seedance task status.
+     */
+    protected function getWaveSpeedStatus(string $taskId): array
+    {
+        $waveSpeedService = new WaveSpeedService();
+        return $waveSpeedService->getTaskStatus($taskId);
+    }
+
+    /**
      * Get InfiniteTalk/RunPod task status.
      */
     protected function getInfiniteTalkStatus(string $taskId, ?string $endpointId = null): array
@@ -336,7 +407,9 @@ class AnimationService
     public function getTaskStatus(string $taskId, string $provider, ?string $endpointId = null): array
     {
         try {
-            if ($provider === 'infinitetalk') {
+            if ($provider === 'wavespeed') {
+                return $this->getWaveSpeedStatus($taskId);
+            } elseif ($provider === 'infinitetalk') {
                 return $this->getInfiniteTalkStatus($taskId, $endpointId);
             } elseif ($provider === 'multitalk') {
                 return $this->getMultitalkStatus($taskId, $endpointId);
@@ -582,7 +655,10 @@ class AnimationService
             $available = true;
 
             // Check provider availability
-            if ($key === 'infinitetalk') {
+            if ($key === 'seedance') {
+                $waveSpeedService = new WaveSpeedService();
+                $available = $waveSpeedService->isConfigured();
+            } elseif ($key === 'infinitetalk') {
                 $endpointId = (string) get_option('runpod_infinitetalk_endpoint', '');
                 $available = !empty($endpointId) && $this->runPodService->isConfigured();
             } elseif ($config['provider'] === 'runpod') {
@@ -780,6 +856,7 @@ class AnimationService
     {
         // Common patterns for signed/temporary URLs
         $temporaryPatterns = [
+            'wavespeed',         // WaveSpeed AI signed URLs
             'aliyuncs.com',      // Alibaba Cloud OSS
             'amazonaws.com',     // AWS S3 signed URLs
             'blob.core.windows', // Azure Blob

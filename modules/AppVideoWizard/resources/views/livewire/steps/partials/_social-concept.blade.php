@@ -225,6 +225,28 @@
         0%, 100% { opacity: 0.5; }
         50% { opacity: 1; }
     }
+    .vw-social-concept .vw-engine-selector { margin-bottom: 1.5rem; }
+    .vw-social-concept .vw-engine-selector h3 {
+        font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .vw-social-concept .vw-engine-cards {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+    }
+    @media (max-width: 640px) { .vw-social-concept .vw-engine-cards { grid-template-columns: 1fr; } }
+    .vw-social-concept .vw-engine-card {
+        background: rgba(30, 30, 50, 0.8); border: 2px solid rgba(100, 100, 140, 0.2); border-radius: 0.75rem;
+        padding: 1rem; cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .vw-social-concept .vw-engine-card:hover { border-color: rgba(139, 92, 246, 0.4); transform: translateY(-1px); }
+    .vw-social-concept .vw-engine-card.active { border-color: #8b5cf6; box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+    .vw-social-concept .vw-engine-card .vw-engine-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .vw-social-concept .vw-engine-card h4 { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.35rem; }
+    .vw-social-concept .vw-engine-card p { font-size: 0.78rem; color: #94a3b8; line-height: 1.4; margin-bottom: 0.5rem; }
+    .vw-social-concept .vw-engine-card .vw-engine-badge {
+        display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.65rem;
+        font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+        background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3);
+    }
 </style>
 
 <div class="vw-social-concept" x-data="{ viralTheme: '' }">
@@ -243,6 +265,27 @@
             <div>
                 <h2 class="vw-viral-title">{{ __('Create Viral Content') }}</h2>
                 <p class="vw-viral-subtitle">{{ __('AI generates trending video ideas — pick one and bring it to life') }}</p>
+            </div>
+        </div>
+
+        {{-- Video Engine Selector --}}
+        <div class="vw-engine-selector">
+            <h3>{{ __('Choose Your Video Style') }}</h3>
+            <div class="vw-engine-cards">
+                <div class="vw-engine-card {{ $videoEngine === 'seedance' ? 'active' : '' }}"
+                     wire:click="setVideoEngine('seedance')">
+                    <div class="vw-engine-icon">&#127916;</div>
+                    <h4>{{ __('Cinematic Scene') }}</h4>
+                    <p>{{ __('AI generates video + voice + sound effects from a single prompt. Perfect for visual gags, animals in situations, dramatic scenes.') }}</p>
+                    <span class="vw-engine-badge">{{ __('Auto Audio') }}</span>
+                </div>
+                <div class="vw-engine-card {{ $videoEngine === 'infinitetalk' ? 'active' : '' }}"
+                     wire:click="setVideoEngine('infinitetalk')">
+                    <div class="vw-engine-icon">&#128483;&#65039;</div>
+                    <h4>{{ __('Lip-Sync Talking') }}</h4>
+                    <p>{{ __('Characters speak with precise lip-sync from custom voices. Perfect for dialogue, narration, character conversations.') }}</p>
+                    <span class="vw-engine-badge">{{ __('Custom Voices') }}</span>
+                </div>
             </div>
         </div>
 

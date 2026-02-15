@@ -15,6 +15,7 @@
     $charactersInShot = $shot['charactersInShot'] ?? [];
     $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
     $creationDetails = $this->getCreationDetails();
+    $isSeedance = ($videoEngine ?? 'seedance') === 'seedance';
 @endphp
 
 <style>
@@ -383,6 +384,26 @@
     .vw-debug-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; display: inline-block; margin: 0.25rem 0; }
     .vw-debug-badge.swap { background: rgba(249,115,22,0.15); color: #fb923c; }
 
+    .vw-social-prompt-editor { margin-bottom: 0.75rem; }
+    .vw-social-prompt-editor label { display: block; font-size: 0.8rem; font-weight: 600; color: #a78bfa; margin-bottom: 0.35rem; }
+    .vw-social-prompt-editor textarea {
+        width: 100%; min-height: 100px; padding: 0.6rem 0.75rem; background: rgba(20,20,40,0.8);
+        border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
+        font-size: 0.8rem; line-height: 1.5; resize: vertical; outline: none; transition: border-color 0.2s;
+    }
+    .vw-social-prompt-editor textarea:focus { border-color: rgba(139,92,246,0.5); }
+    .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: #64748b; margin-top: 0.25rem; }
+    .vw-social-duration-select {
+        width: 100%; padding: 0.5rem 0.75rem; background: rgba(20,20,40,0.8);
+        border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
+        font-size: 0.8rem; margin-bottom: 0.75rem;
+    }
+    .vw-social-engine-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
+        border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600;
+        background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2);
+    }
+
     @media (max-width: 768px) {
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: 40vh; }
@@ -473,11 +494,13 @@
                 <div class="vw-social-idea-summary">
                     <strong>{{ $selectedIdea['character'] ?? '' }}</strong> &mdash;
                     {{ $selectedIdea['situation'] ?? '' }}
-                    @if(!empty($selectedIdea['audioType']))
-                        <br><span style="color: #94a3b8; font-size: 0.75rem;">
-                            Audio: {{ $selectedIdea['audioType'] === 'music-lipsync' ? 'Music Lip-Sync' : 'Voiceover' }}
-                        </span>
-                    @endif
+                    <br><span style="color: #94a3b8; font-size: 0.75rem;">
+                        @if($isSeedance)
+                            <i class="fa-solid fa-bolt"></i> Seedance &mdash; {{ __('Auto-generated audio') }}
+                        @elseif(!empty($selectedIdea['audioType']))
+                            <i class="fa-solid fa-microphone"></i> InfiniteTalk &mdash; {{ $selectedIdea['audioType'] === 'music-lipsync' ? 'Music Lip-Sync' : 'Voiceover' }}
+                        @endif
+                    </span>
                 </div>
             @endif
 
@@ -530,7 +553,38 @@
                 @endif
             </div>
 
-            {{-- Section 2: Audio --}}
+            @if($isSeedance)
+            {{-- Section 2: Video Prompt (Seedance mode) --}}
+            <div class="vw-social-section">
+                <div class="vw-social-section-header">
+                    <div class="vw-social-section-num">2</div>
+                    <div>
+                        <div class="vw-social-section-title">{{ __('Video Prompt & Duration') }}</div>
+                        <div class="vw-social-section-subtitle">{{ __('Describe the scene — AI generates video + audio') }}</div>
+                    </div>
+                    <span class="vw-social-engine-badge"><i class="fa-solid fa-bolt"></i> Seedance</span>
+                </div>
+
+                <div class="vw-social-prompt-editor">
+                    <label>{{ __('Video Prompt') }}</label>
+                    <textarea wire:model.blur="multiShotMode.decomposedScenes.0.shots.0.videoPrompt"
+                              placeholder="{{ __('Describe the scene, action, dialogue (in "quotes"), and sounds...') }}">{{ $shot['videoPrompt'] ?? '' }}</textarea>
+                    <small>{{ __('4-layer format: Subject & action, dialogue in "quotes", environmental sounds, visual style & mood.') }}</small>
+                </div>
+
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Duration') }}</label>
+                <select class="vw-social-duration-select"
+                        wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedDuration">
+                    <option value="4">4 {{ __('seconds') }}</option>
+                    <option value="5">5 {{ __('seconds') }}</option>
+                    <option value="6">6 {{ __('seconds') }}</option>
+                    <option value="8" selected>8 {{ __('seconds') }} ({{ __('Recommended') }})</option>
+                    <option value="10">10 {{ __('seconds') }}</option>
+                    <option value="12">12 {{ __('seconds') }}</option>
+                </select>
+            </div>
+            @else
+            {{-- Section 2: Audio (InfiniteTalk mode) --}}
             <div class="vw-social-section {{ ($audioStatus === 'ready') ? 'completed' : '' }}">
                 <div class="vw-social-section-header">
                     <div class="vw-social-section-num">
@@ -618,6 +672,7 @@
                     @endif
                 @endif
             </div>
+            @endif {{-- end @if($isSeedance) / @else --}}
 
             {{-- Section 3: Animate --}}
             <div class="vw-social-section {{ ($videoStatus === 'ready') ? 'completed' : '' }}">
@@ -626,8 +681,8 @@
                         @if($videoStatus === 'ready') &#10003; @else 3 @endif
                     </div>
                     <div>
-                        <div class="vw-social-section-title">{{ __('Animate with Lip-Sync') }}</div>
-                        <div class="vw-social-section-subtitle">{{ __('InfiniteTalk brings your character to life') }}</div>
+                        <div class="vw-social-section-title">{{ $isSeedance ? __('Generate Video') : __('Animate with Lip-Sync') }}</div>
+                        <div class="vw-social-section-subtitle">{{ $isSeedance ? __('Seedance creates video + audio from your prompt') : __('InfiniteTalk brings your character to life') }}</div>
                     </div>
                     @if($videoStatus !== 'pending')
                         <span class="vw-social-status-badge {{ $videoStatus }}">{{ ucfirst($videoStatus) }}</span>
@@ -638,8 +693,14 @@
                         wire:click="generateShotVideo(0, 0)"
                         wire:loading.attr="disabled"
                         wire:target="generateShotVideo"
-                        @if($imageStatus !== 'ready' || $audioStatus !== 'ready') disabled title="{{ __('Image and audio required') }}"
-                        @elseif(in_array($videoStatus, ['generating', 'processing'])) disabled
+                        @if($isSeedance)
+                            @if($imageStatus !== 'ready') disabled title="{{ __('Generate image first') }}"
+                            @elseif(in_array($videoStatus, ['generating', 'processing'])) disabled
+                            @endif
+                        @else
+                            @if($imageStatus !== 'ready' || $audioStatus !== 'ready') disabled title="{{ __('Image and audio required') }}"
+                            @elseif(in_array($videoStatus, ['generating', 'processing'])) disabled
+                            @endif
                         @endif>
                     @if(in_array($videoStatus, ['generating', 'processing']))
                         <span>
@@ -648,7 +709,11 @@
                     @else
                         <span wire:loading.remove wire:target="generateShotVideo">
                             <i class="fa-solid fa-film"></i>
-                            {{ ($videoStatus === 'ready') ? __('Re-Animate') : __('Animate with Lip-Sync') }}
+                            @if($isSeedance)
+                                {{ ($videoStatus === 'ready') ? __('Regenerate Video') : __('Generate Video') }}
+                            @else
+                                {{ ($videoStatus === 'ready') ? __('Re-Animate') : __('Animate with Lip-Sync') }}
+                            @endif
                         </span>
                         <span wire:loading wire:target="generateShotVideo">
                             <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Submitting...') }}
@@ -656,8 +721,8 @@
                     @endif
                 </button>
 
-                {{-- Swap Speaker Faces button for dialogue shots --}}
-                @if($isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')
+                {{-- Swap Speaker Faces button for dialogue shots (InfiniteTalk only) --}}
+                @if(!$isSeedance && $isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')
                     <div class="vw-social-face-order" style="margin-top: 0.5rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
                             <span><i class="fa-solid fa-arrow-left"></i> {{ $faceOrder[0] ?? '?' }}</span>

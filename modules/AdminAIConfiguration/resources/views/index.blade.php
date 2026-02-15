@@ -445,6 +445,22 @@
                     </div>
                 </div>
 
+                {{-- WaveSpeed AI --}}
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-bolt me-2"></i>{{ __('WaveSpeed AI') }}
+                        <small class="text-muted fw-normal">- {{ __('Seedance video generation') }}</small>
+                    </h6>
+                    <p class="text-muted small mb-3">{{ __('WaveSpeed provides access to Seedance v1.5 Pro for image-to-video generation with auto-generated audio and lip-sync.') }}</p>
+                    <div class="mb-0">
+                        <label class="form-label">{{ __('API Key') }}</label>
+                        <input type="text" class="form-control" name="ai_wavespeed_api_key"
+                               value="{{ get_option('ai_wavespeed_api_key', '') }}"
+                               placeholder="{{ __('Enter WaveSpeed API Key') }}">
+                        <small class="text-muted">{{ __('Get your API key from wavespeed.ai dashboard.') }}</small>
+                    </div>
+                </div>
+
                 {{-- Video Processor Service --}}
                 <div class="border rounded p-3">
                     <h6 class="fw-bold mb-3">

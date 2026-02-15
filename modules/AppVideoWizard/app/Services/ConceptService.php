@@ -269,12 +269,113 @@ PROMPT;
         $count = $options['count'] ?? 6;
         $teamId = $options['teamId'] ?? 0;
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $videoEngine = $options['videoEngine'] ?? 'seedance';
 
         $themeContext = !empty($theme)
             ? "The user wants ideas related to: \"{$theme}\". Incorporate this theme creatively."
             : "Generate completely original ideas with diverse themes.";
 
-        $prompt = <<<PROMPT
+        if ($videoEngine === 'seedance') {
+            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count);
+        } else {
+            $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count);
+        }
+
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 4000,
+        ]);
+
+        if (!empty($result['error'])) {
+            throw new \Exception($result['error']);
+        }
+
+        $response = trim($result['data'][0] ?? '');
+        $response = preg_replace('/```json\s*/i', '', $response);
+        $response = preg_replace('/```\s*/', '', $response);
+
+        $variations = json_decode($response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            \Log::warning('ConceptService: Viral ideas JSON parse failed, attempting repair');
+            $response = $this->repairTruncatedJson($response);
+            $variations = json_decode($response, true);
+        }
+
+        return [
+            'variations' => $variations ?? [],
+            '_meta' => [
+                'tokens_used' => $result['totalTokens'] ?? null,
+                'model' => $result['model'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Build viral ideas prompt for Seedance engine (cinematic scene with auto-generated audio).
+     */
+    protected function buildSeedanceViralPrompt(string $themeContext, int $count): string
+    {
+        return <<<PROMPT
+You are a viral content specialist who creates massively shareable short-form video concepts.
+
+{$themeContext}
+
+IMPORTANT: These ideas will be animated using Seedance — an AI model that generates
+video + voice + sound effects ALL FROM A TEXT PROMPT. There is no separate audio recording.
+The model will auto-generate any dialogue, sounds, and music from your description.
+
+Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
+- An ANIMAL or quirky CHARACTER in an absurd/funny human situation
+- Single continuous shot (NO scene changes, NO transitions)
+- 4-12 seconds duration
+- Focus on VISUAL COMEDY, physical humor, dramatic reactions, animals in situations
+- Short punchy scenes with strong visual hooks
+- Environmental sounds and ambient audio (sizzling, splashing, crowd noise)
+- Dialogue should be SHORT (1-2 lines max, embedded in scene description)
+- Emphasis on MOTION and ACTION (not talking heads)
+
+Mix of MONOLOGUE and DIALOGUE but focus on visual storytelling — Seedance excels at
+action scenes, physical comedy, and dramatic moments more than extended conversations.
+
+Each idea MUST include a "videoPrompt" field — a detailed scene description following this 4-layer format:
+1. Subject & action (who, what, where)
+2. Dialogue in "quotes" (if any — keep short)
+3. Environmental audio cues (comma-separated sounds)
+4. Visual style & mood (camera, lighting, tone)
+
+Return ONLY a JSON array (no markdown, no explanation):
+[
+  {
+    "title": "Catchy title (max 6 words)",
+    "concept": "One sentence describing the full visual scene",
+    "speechType": "monologue" or "dialogue",
+    "characters": [
+      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "role", "expression": "expression description"}
+    ],
+    "character": "For monologue: single character description",
+    "situation": "The scene action and character interaction",
+    "setting": "Detailed location with specific props, brand elements, decor, lighting",
+    "props": "Key visual props in the scene",
+    "audioType": "voiceover",
+    "audioDescription": "Brief description of what happens (for metadata)",
+    "dialogueLines": [
+      {"speaker": "Character Name", "text": "Short punchy line"}
+    ],
+    "videoPrompt": "A grumpy cat in a green apron stands behind a pizza counter, staring down a customer holding an open pizza box. The cat hisses 'No refunds!', cash register beeping, restaurant chatter, pizza boxes rustling, handheld phone footage, warm fluorescent lighting, comedic deadpan tone.",
+    "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
+    "viralHook": "Why this would go viral (one sentence)"
+  }
+]
+PROMPT;
+    }
+
+    /**
+     * Build viral ideas prompt for InfiniteTalk engine (lip-sync from custom voices).
+     */
+    protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count): string
+    {
+        return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
 {$themeContext}
@@ -329,34 +430,5 @@ Return ONLY a JSON array (no markdown, no explanation):
   }
 ]
 PROMPT;
-
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
-            'maxResult' => 1,
-            'max_tokens' => 4000,
-        ]);
-
-        if (!empty($result['error'])) {
-            throw new \Exception($result['error']);
-        }
-
-        $response = trim($result['data'][0] ?? '');
-        $response = preg_replace('/```json\s*/i', '', $response);
-        $response = preg_replace('/```\s*/', '', $response);
-
-        $variations = json_decode($response, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            \Log::warning('ConceptService: Viral ideas JSON parse failed, attempting repair');
-            $response = $this->repairTruncatedJson($response);
-            $variations = json_decode($response, true);
-        }
-
-        return [
-            'variations' => $variations ?? [],
-            '_meta' => [
-                'tokens_used' => $result['totalTokens'] ?? null,
-                'model' => $result['model'] ?? null,
-            ],
-        ];
     }
 }
