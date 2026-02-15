@@ -31422,10 +31422,10 @@ PROMPT;
 
             // --- TAKE 1: Speaker 1 speaks, Speaker 2 listens ---
             $take1AudioDur = $audioDuration ?? 5.0;
-            $take1Duration = (int) ceil($take1AudioDur + 3.0);
+            $take1Duration = (int) ceil($take1AudioDur + 1.5);
             $take1MaxFrame = min($take1Duration * $fps, 30 * $fps);
             // Ambient noise WAV (not pure silence) keeps InfiniteTalk's animation engine active during speech gaps
-            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $take1AudioDur + 1.5);
+            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $take1AudioDur + 0.5);
 
             // Build monologue-style prompt focused on speaker 1
             $take1Shot = array_merge($shot, [
@@ -31455,10 +31455,10 @@ PROMPT;
             ];
 
             // --- TAKE 2: Speaker 2 speaks, Speaker 1 listens ---
-            $take2Duration = (int) ceil($audioDuration2Val + 3.0);
+            $take2Duration = (int) ceil($audioDuration2Val + 1.5);
             $take2MaxFrame = min($take2Duration * $fps, 30 * $fps);
             // Ambient noise WAV (not pure silence) keeps InfiniteTalk's animation engine active during speech gaps
-            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $audioDuration2Val + 1.5);
+            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $audioDuration2Val + 0.5);
 
             // Build monologue-style prompt focused on speaker 2
             $take2Shot = array_merge($shot, [
