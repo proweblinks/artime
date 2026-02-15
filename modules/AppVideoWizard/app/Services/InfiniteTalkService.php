@@ -954,17 +954,17 @@ class InfiniteTalkService
             }
 
             // Get Take 1 duration for crossfade offset calculation
-            $probeCmd = sprintf(
-                '%s -v error -show_entries format=duration -of csv=p=0 %s 2>&1',
-                escapeshellarg(str_replace('ffmpeg', 'ffprobe', $ffmpeg)),
-                escapeshellarg($videoPath1)
-            );
-            $probeDuration = trim(shell_exec($probeCmd) ?? '');
-            $take1Duration = (float) $probeDuration;
+            // Use ffmpeg -i (no ffprobe on this server) — parse "Duration: HH:MM:SS.ss" from stderr
+            $probeCmd = sprintf('%s -i %s 2>&1', escapeshellarg($ffmpeg), escapeshellarg($videoPath1));
+            $probeOutput = shell_exec($probeCmd) ?? '';
+            $take1Duration = 0.0;
+            if (preg_match('/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/', $probeOutput, $m)) {
+                $take1Duration = (float)$m[1] * 3600 + (float)$m[2] * 60 + (float)$m[3];
+            }
 
             if ($take1Duration <= 0) {
                 Log::warning('InfiniteTalk DualTake: could not probe Take 1 duration, falling back to 10s', [
-                    'probeOutput' => $probeDuration,
+                    'probeOutput' => substr($probeOutput, 0, 200),
                 ]);
                 $take1Duration = 10.0;
             }
