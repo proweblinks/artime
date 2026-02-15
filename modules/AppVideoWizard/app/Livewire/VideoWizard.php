@@ -31985,7 +31985,10 @@ PROMPT;
                 $listenerSpecies = $this->getCharacterSpecies($otherName, $characterBible);
                 $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
                 $label = $otherDesc ? "{$otherName} ({$this->condenseToSentence($otherDesc, 50)})" : $otherName;
-                $parts[] = "{$label}: listening silently, {$listenerAnimation}";
+                // Human listeners need strong mouth-suppression to prevent lip-sync bleed;
+                // animal listeners must NOT get this directive or it freezes their species animations
+                $mouthDirective = ($listenerSpecies === 'human') ? ', absolutely NO speaking or mouth opening' : '';
+                $parts[] = "{$label}: listening silently, {$listenerAnimation}{$mouthDirective}";
             }
         }
 
@@ -32048,7 +32051,7 @@ PROMPT;
                 'dog' => 'ears perked forward, head tilting side to side, tail wagging gently, tongue occasionally visible',
                 'bird' => 'head bobbing and tilting with interest, feathers ruffling slightly, blinking alertly',
                 'robot' => 'LED indicators pulsing, minimal mechanical adjustments, sensor array focused',
-                default => 'standing still with mouth firmly closed and lips sealed shut, occasional subtle eye blinks, watching the speaker in silence',
+                default => 'completely still and frozen, NO head nodding, only occasional subtle eye blinks',
             };
         }
         return match($species) {
