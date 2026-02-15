@@ -816,6 +816,136 @@ EOT;
         }
     }
     
+    // --- Video Upload & Analysis ---
+
+    /**
+     * Upload a file to Gemini File API using resumable upload protocol.
+     * Required for video analysis — videos cannot be sent inline like images.
+     *
+     * @param string $filePath Absolute path to the file
+     * @param string $mimeType MIME type (e.g., 'video/mp4')
+     * @param string $displayName Display name for the file in Gemini
+     * @return array ['success' => bool, 'fileUri' => string, 'mimeType' => string]
+     */
+    public function uploadFileToGemini(string $filePath, string $mimeType = 'video/mp4', string $displayName = 'video'): array
+    {
+        $fileSize = filesize($filePath);
+
+        try {
+            // Step 1: Initiate resumable upload
+            $uploadClient = new Client(); // Standalone client — no base_uri needed
+            $initResponse = $uploadClient->request('POST', 'https://generativelanguage.googleapis.com/upload/v1beta/files', [
+                'query' => ['key' => $this->apiKey],
+                'headers' => [
+                    'X-Goog-Upload-Protocol' => 'resumable',
+                    'X-Goog-Upload-Command' => 'start',
+                    'X-Goog-Upload-Header-Content-Length' => (string) $fileSize,
+                    'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => ['file' => ['display_name' => $displayName]],
+            ]);
+
+            $uploadUrl = $initResponse->getHeaderLine('X-Goog-Upload-URL');
+            if (empty($uploadUrl)) {
+                throw new \Exception('Gemini File API did not return an upload URL');
+            }
+
+            // Step 2: Upload binary data
+            $uploadResponse = $uploadClient->request('POST', $uploadUrl, [
+                'headers' => [
+                    'Content-Length' => (string) $fileSize,
+                    'X-Goog-Upload-Offset' => '0',
+                    'X-Goog-Upload-Command' => 'upload, finalize',
+                ],
+                'body' => fopen($filePath, 'r'),
+                'timeout' => 120,
+            ]);
+
+            $body = json_decode($uploadResponse->getBody(), true);
+            $fileUri = $body['file']['uri'] ?? null;
+
+            if (empty($fileUri)) {
+                throw new \Exception('Gemini File API did not return a file URI');
+            }
+
+            Log::info('GeminiService: File uploaded to Gemini', [
+                'fileUri' => $fileUri,
+                'mimeType' => $body['file']['mimeType'] ?? $mimeType,
+                'fileSize' => $fileSize,
+            ]);
+
+            return [
+                'success' => true,
+                'fileUri' => $fileUri,
+                'mimeType' => $body['file']['mimeType'] ?? $mimeType,
+            ];
+
+        } catch (\Throwable $e) {
+            Log::error('GeminiService: File upload to Gemini failed', [
+                'error' => $e->getMessage(),
+                'fileSize' => $fileSize,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Analyze a video using Gemini with a text prompt.
+     * Uses fileData (uploaded via File API) instead of inlineData.
+     *
+     * @param string $fileUri The Gemini file URI from uploadFileToGemini()
+     * @param string $prompt Analysis prompt
+     * @param array $options Optional: model, mimeType
+     * @return array ['success' => bool, 'text' => string, 'model' => string]
+     */
+    public function analyzeVideoWithPrompt(string $fileUri, string $prompt, array $options = []): array
+    {
+        $model = $options['model'] ?? 'gemini-2.5-flash';
+        $mimeType = $options['mimeType'] ?? 'video/mp4';
+
+        $payload = [
+            'contents' => [[
+                'parts' => [
+                    ['file_data' => ['mime_type' => $mimeType, 'file_uri' => $fileUri]],
+                    ['text' => $prompt],
+                ],
+            ]],
+        ];
+
+        $generationConfig = [
+            'temperature' => 0.2,
+            'maxOutputTokens' => 8192,
+        ];
+
+        try {
+            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, 120);
+            $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
+
+            return [
+                'success' => true,
+                'text' => $text,
+                'model' => $model,
+            ];
+
+        } catch (\Throwable $e) {
+            Log::error('GeminiService: analyzeVideoWithPrompt failed', [
+                'error' => $e->getMessage(),
+                'model' => $model,
+            ]);
+
+            return [
+                'success' => false,
+                'text' => '',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
     // --- Video Generation ---
 
     /**

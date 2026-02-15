@@ -1115,6 +1115,12 @@ class VideoWizard extends Component
     public array $conceptVariations = [];
     public int $selectedConceptIndex = 0;
 
+    // Video Concept Cloner
+    public $conceptVideoUpload;                   // Livewire TemporaryUploadedFile
+    public ?string $videoAnalysisStage = null;     // 'analyzing'|'transcribing'|'synthesizing'|null
+    public ?array $videoAnalysisResult = null;     // The analyzed concept (same format as viral idea)
+    public ?string $videoAnalysisError = null;
+
     // Script generation options
     public string $scriptTone = 'engaging';
     public string $contentDepth = 'detailed';
@@ -4881,6 +4887,68 @@ PROMPT;
             $this->concept['suggestedMood'] = $idea['mood'] ?? 'funny';
             $this->concept['socialContent'] = $idea; // Store full idea data
         }
+    }
+
+    /**
+     * Analyze an uploaded video to extract a viral concept (Video Concept Cloner).
+     * Runs the 3-stage pipeline: Gemini vision → Whisper STT → AI synthesis.
+     */
+    public function analyzeUploadedVideo(): void
+    {
+        $this->videoAnalysisError = null;
+        $this->videoAnalysisResult = null;
+
+        if (!$this->conceptVideoUpload) {
+            $this->videoAnalysisError = __('Please upload a video first.');
+            return;
+        }
+
+        // Validate file
+        $this->validate([
+            'conceptVideoUpload' => 'required|file|mimes:mp4,mov,webm,avi|max:102400',
+        ]);
+
+        $this->videoAnalysisStage = 'analyzing';
+
+        try {
+            $filePath = $this->conceptVideoUpload->getRealPath();
+            $mimeType = $this->conceptVideoUpload->getMimeType() ?? 'video/mp4';
+
+            $conceptService = app(ConceptService::class);
+            $result = $conceptService->analyzeVideoForConcept($filePath, [
+                'teamId' => session('current_team_id', 0),
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'mimeType' => $mimeType,
+                'videoEngine' => $this->videoEngine,
+            ]);
+
+            $this->videoAnalysisResult = $result;
+            $this->videoAnalysisStage = null;
+
+        } catch (\Exception $e) {
+            $this->videoAnalysisError = $e->getMessage();
+            $this->videoAnalysisStage = null;
+            Log::error('VideoWizard: Video analysis failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Use the analyzed video concept — adds it to conceptVariations and selects it.
+     */
+    public function useAnalyzedConcept(): void
+    {
+        if (!$this->videoAnalysisResult) {
+            return;
+        }
+
+        $idea = $this->videoAnalysisResult;
+        $idea['source'] = 'cloned';
+
+        // Add as first item in conceptVariations and select it
+        array_unshift($this->conceptVariations, $idea);
+        $this->selectedConceptIndex = 0;
+        $this->selectViralIdea(0);
+        $this->saveProject();
     }
 
     /**

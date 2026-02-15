@@ -3,6 +3,7 @@
 namespace Modules\AppVideoWizard\Services;
 
 use App\Facades\AI;
+use Illuminate\Support\Facades\Log;
 use Modules\AppVideoWizard\Models\WizardProject;
 
 class ConceptService
@@ -430,5 +431,250 @@ Return ONLY a JSON array (no markdown, no explanation):
   }
 ]
 PROMPT;
+    }
+
+    // ========================================================================
+    // VIDEO CONCEPT CLONER — Analyze uploaded video and extract concept
+    // ========================================================================
+
+    /**
+     * Main pipeline: Analyze an uploaded video and produce a structured concept.
+     *
+     * Stage 1: Upload to Gemini File API + visual analysis
+     * Stage 2: Extract audio + transcribe with Whisper (parallel with Stage 1 in future)
+     * Stage 3: AI synthesis into viral idea format
+     *
+     * @param string $videoPath Absolute path to the uploaded video file
+     * @param array $options teamId, aiModelTier, mimeType
+     * @return array Structured concept matching generateViralIdeas() output format
+     */
+    public function analyzeVideoForConcept(string $videoPath, array $options = []): array
+    {
+        $teamId = $options['teamId'] ?? 0;
+        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $mimeType = $options['mimeType'] ?? 'video/mp4';
+        $videoEngine = $options['videoEngine'] ?? 'seedance';
+
+        $geminiService = app(\App\Services\GeminiService::class);
+
+        // Stage 1: Upload to Gemini File API + visual analysis
+        Log::info('ConceptCloner: Stage 1 — Uploading video to Gemini', ['fileSize' => filesize($videoPath)]);
+
+        $upload = $geminiService->uploadFileToGemini($videoPath, $mimeType, 'concept_clone_' . time());
+        if (!($upload['success'] ?? false)) {
+            throw new \Exception('Failed to upload video to Gemini: ' . ($upload['error'] ?? 'unknown'));
+        }
+
+        $visualAnalysis = $geminiService->analyzeVideoWithPrompt(
+            $upload['fileUri'],
+            $this->buildVideoAnalysisPrompt(),
+            ['mimeType' => $upload['mimeType'] ?? $mimeType]
+        );
+        if (!($visualAnalysis['success'] ?? false)) {
+            throw new \Exception('Video analysis failed: ' . ($visualAnalysis['error'] ?? 'unknown'));
+        }
+
+        Log::info('ConceptCloner: Stage 1 complete — Visual analysis received', [
+            'textLength' => strlen($visualAnalysis['text']),
+        ]);
+
+        // Stage 2: Extract audio + transcribe (if audio exists)
+        Log::info('ConceptCloner: Stage 2 — Extracting and transcribing audio');
+        $transcript = $this->extractAndTranscribeAudio($videoPath);
+        Log::info('ConceptCloner: Stage 2 complete', ['hasTranscript' => !empty($transcript)]);
+
+        // Stage 3: Synthesize into structured concept
+        Log::info('ConceptCloner: Stage 3 — Synthesizing concept');
+        $concept = $this->synthesizeConcept($visualAnalysis['text'], $transcript, $aiModelTier, $teamId, $videoEngine);
+        Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
+
+        return $concept;
+    }
+
+    /**
+     * Build the exhaustive Gemini visual analysis prompt.
+     */
+    protected function buildVideoAnalysisPrompt(): string
+    {
+        return <<<'PROMPT'
+Analyze this short-form video in exhaustive detail. Extract:
+
+1. CHARACTERS: For each character/creature visible:
+   - Species (human, cat, dog, etc.), gender, age range
+   - Exact clothing, accessories, colors
+   - Facial expression, body language
+   - Role in scene (protagonist, supporting, background)
+
+2. SETTING & ENVIRONMENT:
+   - Exact location type (kitchen, office, restaurant, outdoors)
+   - Key props and objects visible
+   - Lighting (natural, fluorescent, dramatic, warm)
+   - Background details, decor, signage
+
+3. ACTION & TIMING:
+   - Frame-by-frame description of what happens
+   - Character movements and interactions
+   - Physical comedy or dramatic beats
+   - Approximate timing of key moments
+
+4. CAMERA & VISUAL STYLE:
+   - Camera angle (eye-level, low, high, dutch)
+   - Camera movement (static, pan, zoom, handheld, tracking)
+   - Shot type (close-up, medium, wide, medium-wide)
+   - Visual aesthetic (realistic, stylized, phone footage, cinematic)
+   - Color palette and grading
+
+5. AUDIO CUES (visual indicators):
+   - Mouth movements suggesting speech
+   - Environmental sounds implied (cooking, traffic, music)
+   - Emotional tone of any visible text/captions
+
+6. MOOD & VIRAL FORMULA:
+   - Overall mood (funny, absurd, wholesome, chaotic, cute)
+   - What makes this shareable/viral
+   - The comedic/emotional hook
+   - Pacing (fast, slow, building, surprise ending)
+
+Return as JSON with these exact keys:
+{
+  "characters": [{"species": "", "gender": "", "clothing": "", "expression": "", "role": ""}],
+  "setting": "",
+  "props": [""],
+  "actions": "",
+  "cameraWork": {"angle": "", "movement": "", "shotType": ""},
+  "visualStyle": "",
+  "mood": "",
+  "viralFormula": "",
+  "estimatedDuration": "",
+  "speechDetected": true/false,
+  "speakerCount": 0,
+  "dialogueHint": ""
+}
+PROMPT;
+    }
+
+    /**
+     * Extract audio from video using ffmpeg and transcribe with OpenAI Whisper.
+     * Returns null if video has no audio or extraction fails.
+     */
+    protected function extractAndTranscribeAudio(string $videoPath): ?string
+    {
+        $audioPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'concept_audio_' . uniqid() . '.wav';
+        $ffmpegPath = PHP_OS_FAMILY === 'Windows' ? 'ffmpeg' : '/home/artime/bin/ffmpeg';
+
+        $command = sprintf(
+            '%s -i %s -vn -acodec pcm_s16le -ar 16000 -ac 1 %s 2>&1',
+            escapeshellcmd($ffmpegPath),
+            escapeshellarg($videoPath),
+            escapeshellarg($audioPath)
+        );
+
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0 || !file_exists($audioPath) || filesize($audioPath) < 1000) {
+            @unlink($audioPath);
+            Log::info('ConceptCloner: No audio extracted (silent video or extraction failed)', [
+                'returnCode' => $returnCode,
+            ]);
+            return null;
+        }
+
+        try {
+            $openAI = app(\App\Services\OpenAIService::class);
+            $result = $openAI->speechToText($audioPath);
+            @unlink($audioPath);
+
+            $transcript = $result['data'][0] ?? null;
+            if (empty($transcript) || strlen(trim($transcript)) < 3) {
+                return null;
+            }
+
+            return $transcript;
+        } catch (\Throwable $e) {
+            @unlink($audioPath);
+            Log::warning('ConceptCloner: Audio transcription failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Synthesize Gemini visual analysis + Whisper transcript into a structured concept.
+     * Output matches the exact format returned by generateViralIdeas().
+     */
+    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
+    {
+        $transcriptSection = $transcript
+            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nUse this transcript to determine speechType (monologue/dialogue), identify speakers, and generate dialogueLines."
+            : "AUDIO: No speech detected in video. Assume monologue or narrator style based on visual cues.";
+
+        $videoPromptInstruction = $videoEngine === 'seedance'
+            ? 'Also generate a "videoPrompt" field — a detailed 4-layer Seedance prompt: (1) Subject & action, (2) Dialogue in "quotes" if any, (3) Environmental audio cues, (4) Visual style & mood.'
+            : 'Do NOT generate a "videoPrompt" field.';
+
+        $prompt = <<<PROMPT
+You are a viral content analyst. Analyze this video breakdown and create a structured concept that captures its FORMULA — the viral pattern, character dynamic, visual style, and humor/emotion type.
+
+VISUAL ANALYSIS:
+{$visualAnalysis}
+
+{$transcriptSection}
+
+Your job: Create ONE concept JSON that captures the ESSENCE of this video — not a copy, but the FORMULA. Change character names, species, and specific situation to make it ORIGINAL while keeping the same viral pattern.
+
+{$videoPromptInstruction}
+
+Return ONLY a JSON object (no markdown, no explanation):
+{
+  "title": "Catchy title (max 6 words)",
+  "concept": "One sentence describing the full visual scene",
+  "speechType": "monologue" or "dialogue",
+  "characters": [
+    {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "role", "expression": "expression description"}
+  ],
+  "character": "For monologue: single character description",
+  "situation": "The scene action and character interaction",
+  "setting": "Detailed location with specific props, decor, lighting",
+  "props": "Key visual props in the scene",
+  "audioType": "voiceover",
+  "audioDescription": "Brief description of what happens",
+  "dialogueLines": [
+    {"speaker": "Character Name", "text": "Short punchy line"}
+  ],
+  "videoPrompt": "Full Seedance-compatible prompt (only if Seedance engine)",
+  "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
+  "viralHook": "Why this would go viral (one sentence)",
+  "source": "cloned"
+}
+PROMPT;
+
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 4000,
+        ]);
+
+        if (!empty($result['error'])) {
+            throw new \Exception('Concept synthesis failed: ' . $result['error']);
+        }
+
+        $response = trim($result['data'][0] ?? '');
+        $response = preg_replace('/```json\s*/i', '', $response);
+        $response = preg_replace('/```\s*/', '', $response);
+
+        $concept = json_decode($response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::warning('ConceptCloner: Synthesis JSON parse failed, attempting repair');
+            $response = $this->repairTruncatedJson($response);
+            $concept = json_decode($response, true);
+        }
+
+        if (!$concept || !isset($concept['title'])) {
+            throw new \Exception('Failed to parse synthesized concept');
+        }
+
+        // Ensure source is tagged
+        $concept['source'] = 'cloned';
+
+        return $concept;
     }
 }
