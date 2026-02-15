@@ -2933,6 +2933,13 @@ class VideoWizard extends Component
             if (isset($config['conceptVariations'])) {
                 $this->conceptVariations = $config['conceptVariations'];
             }
+            if (isset($config['selectedConceptIndex']) && $config['selectedConceptIndex'] !== null) {
+                $this->selectedConceptIndex = (int) $config['selectedConceptIndex'];
+                // Re-select the concept to repopulate all concept fields
+                if (isset($this->conceptVariations[$this->selectedConceptIndex])) {
+                    $this->selectViralIdea($this->selectedConceptIndex);
+                }
+            }
             if (isset($config['characterIntelligence'])) {
                 $this->characterIntelligence = array_merge($this->characterIntelligence, $config['characterIntelligence']);
             }
@@ -3177,6 +3184,7 @@ class VideoWizard extends Component
                     'multiShotMode' => $this->multiShotMode,
                     'sceneCollages' => $this->sceneCollages,
                     'conceptVariations' => $this->conceptVariations,
+                    'selectedConceptIndex' => $this->selectedConceptIndex,
                     'characterIntelligence' => $this->characterIntelligence,
                     'scriptGeneration' => $this->scriptGeneration,
                     'production' => $this->production,
