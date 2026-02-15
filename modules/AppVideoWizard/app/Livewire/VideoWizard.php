@@ -8349,10 +8349,12 @@ PROMPT;
                                         $this->projectId ?? 0
                                     );
 
-                                    // Use last frame as input image for Take 2 (or fall back to original image)
-                                    $take2ImageUrl = $lastFrameUrl ?? ($shotData['imageUrl'] ?? '');
+                                    // Always use original image for Take 2 to preserve face detection order.
+                                    // Last frame causes InfiniteTalk face detector to assign audio to wrong faces,
+                                    // resulting in the listener's lips moving instead of staying still.
+                                    $take2ImageUrl = $shotData['imageUrl'] ?? '';
 
-                                    \Log::info('📡 🎬 DualTake: Dispatching Take 2 with ' . ($lastFrameUrl ? 'last frame from Take 1' : 'original image'), [
+                                    \Log::info('📡 🎬 DualTake: Dispatching Take 2 with original image (last frame extracted: ' . ($lastFrameUrl ? 'yes' : 'no') . ')', [
                                         'take2ImageUrl' => substr($take2ImageUrl, 0, 100),
                                         'audioUrl_face0' => substr($take2Config['audioUrl'] ?? '', -60),
                                         'audioUrl2_face1' => substr($take2Config['audioUrl2'] ?? '', -60),
