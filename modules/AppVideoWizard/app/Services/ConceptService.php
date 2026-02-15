@@ -440,9 +440,9 @@ PROMPT;
     /**
      * Main pipeline: Analyze an uploaded video and produce a structured concept.
      *
-     * Stage 1: Extract key frames with ffmpeg + analyze with Grok 4.1 Fast vision
+     * Stage 1: Upload video to Gemini File API + analyze with Gemini 2.5 Flash (native video understanding)
      * Stage 2: Extract audio + transcribe with Whisper
-     * Stage 3: AI synthesis into viral idea format (Grok 4.1 Fast)
+     * Stage 3: AI synthesis into viral idea format
      *
      * @param string $videoPath Absolute path to the uploaded video file
      * @param array $options teamId, aiModelTier, mimeType
@@ -453,26 +453,40 @@ PROMPT;
         $teamId = $options['teamId'] ?? 0;
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
+        $mimeType = $options['mimeType'] ?? 'video/mp4';
 
-        // Stage 1: Extract key frames + visual analysis with Grok vision
-        Log::info('ConceptCloner: Stage 1 — Extracting frames and analyzing with Grok', [
+        $geminiService = app(\App\Services\GeminiService::class);
+
+        // Stage 1: Upload video to Gemini File API + visual analysis
+        Log::info('ConceptCloner: Stage 1 — Uploading video to Gemini File API', [
             'fileSize' => filesize($videoPath),
+            'mimeType' => $mimeType,
         ]);
 
-        $frames = $this->extractKeyFrames($videoPath);
-        if (empty($frames)) {
-            throw new \Exception('Failed to extract frames from video. Ensure the file is a valid video.');
+        $upload = $geminiService->uploadFileToGemini($videoPath, $mimeType, 'concept_clone_' . time());
+        if (!$upload['success']) {
+            throw new \Exception('Failed to upload video to Gemini: ' . ($upload['error'] ?? 'unknown'));
         }
 
-        $visualAnalysis = $this->analyzeFramesWithGrok($frames, $teamId);
-        // Clean up temp frame files
-        foreach ($frames as $framePath) {
-            @unlink($framePath);
+        Log::info('ConceptCloner: Video uploaded, analyzing with Gemini 2.5 Flash', [
+            'fileUri' => $upload['fileUri'],
+        ]);
+
+        $analysisResult = $geminiService->analyzeVideoWithPrompt(
+            $upload['fileUri'],
+            $this->buildVideoAnalysisPrompt(),
+            ['mimeType' => $upload['mimeType'] ?? $mimeType]
+        );
+
+        if (!$analysisResult['success'] || empty($analysisResult['text'])) {
+            throw new \Exception('Gemini video analysis failed: ' . ($analysisResult['error'] ?? 'empty response'));
         }
+
+        $visualAnalysis = $analysisResult['text'];
 
         Log::info('ConceptCloner: Stage 1 complete — Visual analysis received', [
             'textLength' => strlen($visualAnalysis),
-            'frameCount' => count($frames),
+            'model' => $analysisResult['model'] ?? 'gemini-2.5-flash',
             'analysisPreview' => mb_substr($visualAnalysis, 0, 500),
         ]);
 
@@ -652,12 +666,12 @@ PROMPT;
     }
 
     /**
-     * Build the visual analysis prompt for frame-based analysis.
+     * Build the visual analysis prompt for Gemini native video analysis.
      */
     protected function buildVideoAnalysisPrompt(): string
     {
         return <<<'PROMPT'
-You are analyzing sequential frames extracted from a short-form video (TikTok/Reels/Shorts). These frames are in chronological order and represent the video's progression. Analyze them as a continuous scene with EXTREME PRECISION.
+You are analyzing a short-form video (TikTok/Reels/Shorts). You can see the FULL video with all its temporal flow, motion, and audio cues. Analyze it with EXTREME PRECISION.
 
 CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100% accuracy. If you see a monkey, say MONKEY — not "primate" or "creature." If you see a golden retriever, say GOLDEN RETRIEVER — not just "dog." Be as specific as possible about breed, species, and subspecies. NEVER guess or generalize. Describe EXACTLY what you see.
 
@@ -665,9 +679,10 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - EXACT species — e.g., "capuchin monkey", "tabby cat", "golden retriever puppy", "adult human male." Do NOT generalize.
    - Fur/skin color, patterns, distinguishing marks
    - Clothing, accessories, colors (be specific: "red baseball cap", not "hat")
-   - Facial expression and body language in EACH frame
+   - Facial expression and body language as they CHANGE throughout the video
    - Role: protagonist, supporting, background
    - Size relative to other objects/characters
+   - SPATIAL POSITION: Where is each character relative to others? Who is in the foreground/background? Who faces whom?
 
 2. SETTING & ENVIRONMENT:
    - Exact location (bathroom, kitchen counter, living room couch, outdoor garden, etc.)
@@ -676,36 +691,36 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Background details, wall color, floor type, decor
    - Any text, signs, or brand names visible
 
-3. ACTION SEQUENCE — THIS IS THE MOST IMPORTANT SECTION:
-   You MUST describe the FULL temporal progression of events, not just a summary.
-   - Frame 1 (~0.5s): What is happening — describe the initial state
-   - Frame 2 (~1.5s): What changed from frame 1
-   - Frame 3 (~3s): What changed — any new actions beginning?
-   - Frame 4 (~5s): What changed — any escalation? New behavior?
-   - Frame 5 (~7s): What changed — any climax or turning point?
-   - (Continue for ALL frames)
-   - CRITICAL: Many viral videos have a 2-3 phase arc:
+3. ACTION TIMELINE — THIS IS THE MOST IMPORTANT SECTION:
+   You can see the FULL video motion. Describe the COMPLETE temporal progression second by second.
+   - 0-2 seconds: What is the initial state? What are the characters doing?
+   - 2-5 seconds: What happens next? Any change in behavior?
+   - 5-8 seconds: Any escalation? New actions? Turning point?
+   - 8-12 seconds: Climax? Peak action?
+   - 12+ seconds: Resolution or punchline?
+   - CRITICAL: Most viral videos have a 2-3 phase arc:
      Phase 1 (first 3-5 seconds): Setup — calm interaction, establishing shot
-     Phase 2 (seconds 5-10): Escalation — character starts doing something unexpected (attacking, throwing, running, etc.)
-     Phase 3 (seconds 10-15): Climax/punchline — peak chaos or surprise reaction
+     Phase 2 (seconds 5-10): Escalation — character starts doing something unexpected (attacking, throwing, running, chasing, etc.)
+     Phase 3 (seconds 10-15): Climax/punchline — peak chaos, surprise reaction, or payoff
    - You MUST identify ALL phases. Do NOT flatten the video into one static description.
-   - Describe physical comedy beats: pushing, throwing, knocking things over, chasing, etc.
-   - Note EXACTLY WHEN each new action begins (which frame number)
+   - Describe EVERY physical action: pushing, throwing, knocking things over, swatting, chasing, jumping, etc.
+   - Note the EXACT SECOND when each new action begins
+   - Describe what EACH character does independently at each phase
 
-3b. AUDIO & MOUTH ANALYSIS (critical for realistic output):
-   - Which character's MOUTH IS OPEN or moving in the frames?
-   - CRITICAL: Is the mouth movement HUMAN SPEECH or ANIMAL VOCALIZATION?
-     * If a cat's mouth is open → it's MEOWING, HISSING, or SCREAMING (cat sounds) — NOT speaking human words
-     * If a dog's mouth is open → it's BARKING, GROWLING, WHINING — NOT speaking
-     * Only HUMANS speak actual words. Animals make ANIMAL SOUNDS.
-   - Is there likely a VOICEOVER/NARRATION dubbed over the video? (common in TikTok: human voice added as comedy narration while the animal just makes animal sounds)
-   - Which character appears to be the MAIN FOCUS of the scene?
+3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
+   - What sounds do you hear? List them: human speech, animal sounds, background noise, music
+   - Is there a VOICEOVER/NARRATION? (a human voice talking OVER the video, not from a character on screen)
+   - Which sounds come FROM characters on screen vs. dubbed/added audio?
+   - CRITICAL: If an animal's mouth is open, what sound does it ACTUALLY make? (meowing, hissing, barking — NOT human speech)
+   - Is there background music or sound effects?
+   - Which character is the MAIN FOCUS of the scene?
    - What is the emotional state? (angry, scared, confused, playful, aggressive)
-   - Describe the ACTUAL sounds each character would make based on their species
+   - Describe the timing of sounds: when does speech start/stop, when do animal sounds occur?
 
 4. CAMERA & VISUAL STYLE:
-   - Camera angle per frame (eye-level, low-angle, high-angle, overhead)
-   - Camera movement (static, slow pan, quick zoom, handheld shake)
+   - Camera angle (eye-level, low-angle, high-angle, overhead)
+   - Camera movement throughout the video (static, slow pan, quick zoom, handheld shake, tracking)
+   - Is the camera FIXED (tripod/phone on surface) or MOVING? This is critical.
    - Shot type (extreme close-up, close-up, medium, medium-wide, wide)
    - Visual style (realistic, CGI, cartoon, phone footage, professional, filter applied)
    - Color palette (warm/cool/saturated/muted), any color grading
