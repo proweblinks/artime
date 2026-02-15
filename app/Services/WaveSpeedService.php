@@ -71,13 +71,14 @@ class WaveSpeedService
 
             $body = json_decode($response->getBody(), true);
 
-            Log::info('WaveSpeedService: Submission response', [
-                'status' => $body['status'] ?? 'unknown',
-                'request_id' => $body['data']['id'] ?? ($body['id'] ?? 'none'),
+            Log::info('WaveSpeedService: Submission response (full)', [
+                'body_keys' => array_keys($body ?? []),
+                'data_keys' => isset($body['data']) ? array_keys($body['data']) : 'no data key',
+                'full_body' => json_encode($body),
             ]);
 
-            // Extract task ID from response
-            $taskId = $body['data']['id'] ?? ($body['id'] ?? null);
+            // Extract task ID from response — check multiple possible locations
+            $taskId = $body['data']['id'] ?? ($body['id'] ?? ($body['data']['request_id'] ?? ($body['request_id'] ?? null)));
             if (empty($taskId)) {
                 return ['success' => false, 'error' => 'No task ID returned from WaveSpeed API'];
             }
