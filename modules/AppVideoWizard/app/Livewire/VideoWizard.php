@@ -3453,6 +3453,7 @@ class VideoWizard extends Component
             'faceOrder' => $charactersInShot, // Default to Character Bible order; updated by Gemini Vision after image generation
             'needsLipSync' => !$isSeedance,
             'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
+            'selectedResolution' => $isSeedance ? '720p' : '720p',
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraMovement' => [
                 'type' => 'static',
@@ -31379,10 +31380,12 @@ PROMPT;
             if ($selectedModel === 'seedance') {
                 $videoPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
                 $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
+                $seedanceResolution = $shot['selectedResolution'] ?? '720p';
 
                 \Log::info('🎬 Seedance mode - no audio required', [
                     'promptLength' => strlen($videoPrompt),
                     'duration' => $seedanceDuration,
+                    'resolution' => $seedanceResolution,
                 ]);
 
                 if ($this->projectId) {
@@ -31395,6 +31398,7 @@ PROMPT;
                             'imageUrl' => $shot['imageUrl'],
                             'prompt' => $videoPrompt,
                             'duration' => $seedanceDuration,
+                            'resolution' => $seedanceResolution,
                             'aspect_ratio' => $this->aspectRatio,
                         ]);
 

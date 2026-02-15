@@ -393,11 +393,15 @@
     }
     .vw-social-prompt-editor textarea:focus { border-color: rgba(139,92,246,0.5); }
     .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: #64748b; margin-top: 0.25rem; }
-    .vw-social-duration-select {
+    .vw-social-duration-select, .vw-social-resolution-select {
         width: 100%; padding: 0.5rem 0.75rem; background: rgba(20,20,40,0.8);
         border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
         font-size: 0.8rem; margin-bottom: 0.75rem;
     }
+    .vw-seedance-options-row {
+        display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
+    }
+    .vw-seedance-options-row > div { flex: 1; }
     .vw-social-engine-badge {
         display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
         border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600;
@@ -572,16 +576,28 @@
                     <small>{{ __('4-layer format: Subject & action, dialogue in "quotes", environmental sounds, visual style & mood.') }}</small>
                 </div>
 
-                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Duration') }}</label>
-                <select class="vw-social-duration-select"
-                        wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedDuration">
-                    <option value="4">4 {{ __('seconds') }}</option>
-                    <option value="5">5 {{ __('seconds') }}</option>
-                    <option value="6">6 {{ __('seconds') }}</option>
-                    <option value="8" selected>8 {{ __('seconds') }} ({{ __('Recommended') }})</option>
-                    <option value="10">10 {{ __('seconds') }}</option>
-                    <option value="12">12 {{ __('seconds') }}</option>
-                </select>
+                <div class="vw-seedance-options-row">
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Duration') }}</label>
+                        <select class="vw-social-duration-select"
+                                wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedDuration">
+                            <option value="4">4 {{ __('seconds') }}</option>
+                            <option value="5">5 {{ __('seconds') }}</option>
+                            <option value="6">6 {{ __('seconds') }}</option>
+                            <option value="8" selected>8 {{ __('seconds') }} ({{ __('Recommended') }})</option>
+                            <option value="10">10 {{ __('seconds') }}</option>
+                            <option value="12">12 {{ __('seconds') }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Resolution') }}</label>
+                        <select class="vw-social-resolution-select"
+                                wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedResolution">
+                            <option value="480p">480p ({{ __('Faster / Cheaper') }})</option>
+                            <option value="720p" selected>720p ({{ __('Recommended') }})</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             @else
             {{-- Section 2: Audio (InfiniteTalk mode) --}}
