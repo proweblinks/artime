@@ -64,7 +64,7 @@ class WaveSpeedService
         ]);
 
         try {
-            $response = $this->client->request('POST', 'bytedance/bytedance-seedance-v1.5-pro-image-to-video-fast', [
+            $response = $this->client->request('POST', 'bytedance/seedance-v1.5-pro/image-to-video', [
                 'json' => $payload,
                 'timeout' => 60,
             ]);
