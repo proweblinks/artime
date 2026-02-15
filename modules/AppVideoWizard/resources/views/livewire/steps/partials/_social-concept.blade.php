@@ -706,9 +706,16 @@
                             </div>
                             <div class="vw-idea-desc">{{ $videoAnalysisResult['concept'] ?? '' }}</div>
                             @if(!empty($videoAnalysisResult['videoPrompt']))
-                                <div class="vw-cloned-prompt-preview">
+                                <div class="vw-cloned-prompt-preview" x-data="{ expanded: false }">
                                     <strong>{{ __('Video Prompt') }}</strong>
-                                    <p>{{ Str::limit($videoAnalysisResult['videoPrompt'], 200) }}</p>
+                                    <p x-show="!expanded">{{ Str::limit($videoAnalysisResult['videoPrompt'], 200) }}
+                                        @if(strlen($videoAnalysisResult['videoPrompt']) > 200)
+                                            <a href="#" @click.prevent="expanded = true" style="color: var(--vw-accent); cursor: pointer;">Show more</a>
+                                        @endif
+                                    </p>
+                                    <p x-show="expanded" x-cloak>{{ $videoAnalysisResult['videoPrompt'] }}
+                                        <a href="#" @click.prevent="expanded = false" style="color: var(--vw-accent); cursor: pointer;">Show less</a>
+                                    </p>
                                 </div>
                             @endif
                             <div class="vw-idea-hook">{{ $videoAnalysisResult['viralHook'] ?? '' }}</div>

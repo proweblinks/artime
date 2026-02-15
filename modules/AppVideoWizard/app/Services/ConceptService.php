@@ -614,8 +614,12 @@ PROMPT;
             'content' => $content,
         ]];
 
+        // IMPORTANT: Must use a model that explicitly supports image input.
+        // 'grok-4-fast' is a text-only alias — it ignores images and hallucinates.
+        // 'grok-4-1-fast-non-reasoning' is the latest model with explicit image input support.
+        // See: https://docs.x.ai/developers/models
         $result = $grokService->generateVision($messages, [
-            'model' => 'grok-4-fast',
+            'model' => 'grok-4-1-fast-non-reasoning',
             'max_tokens' => 4000,
             'temperature' => 0.2,
         ]);
@@ -708,15 +712,35 @@ PROMPT;
         }
 
         try {
-            $openAI = app(\App\Services\OpenAIService::class);
-            $result = $openAI->speechToText($audioPath);
-            @unlink($audioPath);
-
-            $transcript = $result['data'][0] ?? null;
-            if (empty($transcript) || strlen(trim($transcript)) < 3) {
+            // Use direct HTTP call to OpenAI Whisper API (SDK method is broken on server)
+            $apiKey = (string) get_option('ai_openai_api_key', '');
+            if (empty($apiKey)) {
+                @unlink($audioPath);
+                Log::warning('ConceptCloner: No OpenAI API key configured for STT');
                 return null;
             }
 
+            $client = new \GuzzleHttp\Client();
+            $response = $client->request('POST', 'https://api.openai.com/v1/audio/transcriptions', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                ],
+                'multipart' => [
+                    ['name' => 'model', 'contents' => 'whisper-1'],
+                    ['name' => 'file', 'contents' => fopen($audioPath, 'r'), 'filename' => 'audio.wav'],
+                    ['name' => 'response_format', 'contents' => 'text'],
+                ],
+                'timeout' => 60,
+            ]);
+
+            @unlink($audioPath);
+
+            $transcript = trim((string) $response->getBody());
+            if (empty($transcript) || strlen($transcript) < 3) {
+                return null;
+            }
+
+            Log::info('ConceptCloner: Audio transcribed', ['length' => strlen($transcript)]);
             return $transcript;
         } catch (\Throwable $e) {
             @unlink($audioPath);
