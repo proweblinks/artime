@@ -115,11 +115,9 @@ class InfiniteTalkService
         }
 
         // Build InfiniteTalk input payload
-        // Only override workflow defaults that need correcting per official InfiniteTalk docs:
-        //   - steps=40 (official default; workflow has 6 for speed)
-        //   - audio_cfg_scale=2 (official LoRA default; workflow has 1 for speed)
-        // All other params (cfg=1, shift=11, seed=2, negative_prompt, scheduler)
-        // are left to the workflow JSON defaults — do NOT override them.
+        // v4.0 TEST: Send NO quality overrides — let workflow JSON defaults apply
+        // (steps=6, cfg=1, shift=11, audio_cfg_scale=1 from workflow)
+        // This matches what v3.0 sent, to isolate handler code vs parameter difference.
         $input = [
             'input_type' => $inputType,
             'person_count' => $personCount,
@@ -127,9 +125,6 @@ class InfiniteTalkService
             'width' => (int) $width,
             'height' => (int) $height,
             'force_offload' => $options['force_offload'] ?? true,
-            // Official InfiniteTalk defaults (override RunPod Hub speed-optimized values)
-            'steps' => (int) ($options['steps'] ?? 40),
-            'audio_cfg_scale' => (float) ($options['audio_cfg_scale'] ?? 2),
         ];
 
         // Set source media based on input type
@@ -165,8 +160,7 @@ class InfiniteTalkService
             'has_wav_base64_2' => isset($input['wav_base64_2']),
             'width' => $width,
             'height' => $height,
-            'steps' => $input['steps'],
-            'audio_cfg_scale' => $input['audio_cfg_scale'],
+            'quality_overrides' => 'NONE (v3.0 parity test)',
         ]);
 
         $result = $this->runPodService->runAsync($this->endpointId, $input);
