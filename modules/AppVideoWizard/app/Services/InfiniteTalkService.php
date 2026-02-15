@@ -1099,9 +1099,10 @@ class InfiniteTalkService
                 mkdir($outputDir, 0755, true);
             }
 
-            // Extract last frame: seek to 0.1s before end, grab 1 frame
+            // Extract last frame: seek to 1s before end, grab 1 frame
+            // Note: -sseof -0.1 is too close to end and yields 0 frames; -1 is reliable
             $cmd = sprintf(
-                '%s -sseof -0.1 -i %s -frames:v 1 -update 1 %s -y 2>&1',
+                '%s -sseof -1 -i %s -frames:v 1 -update 1 %s -y 2>&1',
                 escapeshellarg($ffmpeg),
                 escapeshellarg($videoDiskPath),
                 escapeshellarg($frameDiskPath)
