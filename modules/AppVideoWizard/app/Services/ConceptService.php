@@ -440,9 +440,9 @@ PROMPT;
     /**
      * Main pipeline: Analyze an uploaded video and produce a structured concept.
      *
-     * Stage 1: Upload to Gemini File API + visual analysis
-     * Stage 2: Extract audio + transcribe with Whisper (parallel with Stage 1 in future)
-     * Stage 3: AI synthesis into viral idea format
+     * Stage 1: Extract key frames with ffmpeg + analyze with Grok 4.1 Fast vision
+     * Stage 2: Extract audio + transcribe with Whisper
+     * Stage 3: AI synthesis into viral idea format (Grok 4.1 Fast)
      *
      * @param string $videoPath Absolute path to the uploaded video file
      * @param array $options teamId, aiModelTier, mimeType
@@ -452,30 +452,27 @@ PROMPT;
     {
         $teamId = $options['teamId'] ?? 0;
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
-        $mimeType = $options['mimeType'] ?? 'video/mp4';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
 
-        $geminiService = app(\App\Services\GeminiService::class);
+        // Stage 1: Extract key frames + visual analysis with Grok vision
+        Log::info('ConceptCloner: Stage 1 — Extracting frames and analyzing with Grok', [
+            'fileSize' => filesize($videoPath),
+        ]);
 
-        // Stage 1: Upload to Gemini File API + visual analysis
-        Log::info('ConceptCloner: Stage 1 — Uploading video to Gemini', ['fileSize' => filesize($videoPath)]);
-
-        $upload = $geminiService->uploadFileToGemini($videoPath, $mimeType, 'concept_clone_' . time());
-        if (!($upload['success'] ?? false)) {
-            throw new \Exception('Failed to upload video to Gemini: ' . ($upload['error'] ?? 'unknown'));
+        $frames = $this->extractKeyFrames($videoPath);
+        if (empty($frames)) {
+            throw new \Exception('Failed to extract frames from video. Ensure the file is a valid video.');
         }
 
-        $visualAnalysis = $geminiService->analyzeVideoWithPrompt(
-            $upload['fileUri'],
-            $this->buildVideoAnalysisPrompt(),
-            ['mimeType' => $upload['mimeType'] ?? $mimeType]
-        );
-        if (!($visualAnalysis['success'] ?? false)) {
-            throw new \Exception('Video analysis failed: ' . ($visualAnalysis['error'] ?? 'unknown'));
+        $visualAnalysis = $this->analyzeFramesWithGrok($frames, $teamId);
+        // Clean up temp frame files
+        foreach ($frames as $framePath) {
+            @unlink($framePath);
         }
 
         Log::info('ConceptCloner: Stage 1 complete — Visual analysis received', [
-            'textLength' => strlen($visualAnalysis['text']),
+            'textLength' => strlen($visualAnalysis),
+            'frameCount' => count($frames),
         ]);
 
         // Stage 2: Extract audio + transcribe (if audio exists)
@@ -485,19 +482,126 @@ PROMPT;
 
         // Stage 3: Synthesize into structured concept
         Log::info('ConceptCloner: Stage 3 — Synthesizing concept');
-        $concept = $this->synthesizeConcept($visualAnalysis['text'], $transcript, $aiModelTier, $teamId, $videoEngine);
+        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
         return $concept;
     }
 
     /**
-     * Build the exhaustive Gemini visual analysis prompt.
+     * Extract key frames from a video using ffmpeg.
+     * Returns an array of temp file paths (JPEG images).
+     * Extracts ~1 frame per 2 seconds, max 6 frames.
+     */
+    protected function extractKeyFrames(string $videoPath, int $maxFrames = 6): array
+    {
+        $ffmpegPath = PHP_OS_FAMILY === 'Windows' ? 'ffmpeg' : '/home/artime/bin/ffmpeg';
+        $ffprobePath = PHP_OS_FAMILY === 'Windows' ? 'ffprobe' : '/home/artime/bin/ffprobe';
+        $tempDir = sys_get_temp_dir();
+        $prefix = 'concept_frame_' . uniqid();
+
+        // Get video duration
+        $durationCmd = sprintf(
+            '%s -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s 2>&1',
+            escapeshellcmd($ffprobePath),
+            escapeshellarg($videoPath)
+        );
+        exec($durationCmd, $durationOutput, $durationReturn);
+        $duration = floatval($durationOutput[0] ?? 10);
+        $duration = max($duration, 1);
+
+        // Calculate frame interval: aim for ~1 frame per 2 seconds, max $maxFrames
+        $frameCount = min($maxFrames, max(2, (int) ceil($duration / 2)));
+        $fps = $frameCount / $duration;
+
+        // Extract frames as JPEG
+        $outputPattern = $tempDir . DIRECTORY_SEPARATOR . $prefix . '_%03d.jpg';
+        $extractCmd = sprintf(
+            '%s -i %s -vf "fps=%s" -frames:v %d -q:v 2 %s 2>&1',
+            escapeshellcmd($ffmpegPath),
+            escapeshellarg($videoPath),
+            number_format($fps, 4, '.', ''),
+            $frameCount,
+            escapeshellarg($outputPattern)
+        );
+
+        exec($extractCmd, $extractOutput, $extractReturn);
+
+        Log::info('ConceptCloner: Frame extraction', [
+            'duration' => $duration,
+            'targetFrames' => $frameCount,
+            'fps' => $fps,
+            'returnCode' => $extractReturn,
+        ]);
+
+        // Collect extracted frame paths
+        $frames = [];
+        for ($i = 1; $i <= $frameCount; $i++) {
+            $framePath = $tempDir . DIRECTORY_SEPARATOR . $prefix . '_' . str_pad($i, 3, '0', STR_PAD_LEFT) . '.jpg';
+            if (file_exists($framePath) && filesize($framePath) > 100) {
+                $frames[] = $framePath;
+            }
+        }
+
+        return $frames;
+    }
+
+    /**
+     * Analyze extracted frames with Grok 4.1 Fast vision API.
+     * Sends all frames as image_url content parts in a single request.
+     */
+    protected function analyzeFramesWithGrok(array $framePaths, int $teamId): string
+    {
+        $grokService = app(\App\Services\GrokService::class);
+
+        // Build multimodal message with all frames
+        $content = [];
+        foreach ($framePaths as $i => $framePath) {
+            $base64 = base64_encode(file_get_contents($framePath));
+            $content[] = [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => 'data:image/jpeg;base64,' . $base64,
+                ],
+            ];
+        }
+
+        // Add the analysis prompt
+        $content[] = [
+            'type' => 'text',
+            'text' => $this->buildVideoAnalysisPrompt(),
+        ];
+
+        $messages = [[
+            'role' => 'user',
+            'content' => $content,
+        ]];
+
+        $result = $grokService->generateVision($messages, [
+            'model' => 'grok-4-fast',
+            'max_tokens' => 4000,
+            'temperature' => 0.2,
+        ]);
+
+        if (!empty($result['error'])) {
+            throw new \Exception('Grok vision analysis failed: ' . $result['error']);
+        }
+
+        $text = $result['data'][0] ?? '';
+        if (empty($text)) {
+            throw new \Exception('Grok vision returned empty analysis');
+        }
+
+        return $text;
+    }
+
+    /**
+     * Build the visual analysis prompt for frame-based analysis.
      */
     protected function buildVideoAnalysisPrompt(): string
     {
         return <<<'PROMPT'
-Analyze this short-form video in exhaustive detail. Extract:
+These are sequential frames extracted from a short-form video (TikTok/Reels/Shorts style). Analyze them as a continuous scene:
 
 1. CHARACTERS: For each character/creature visible:
    - Species (human, cat, dog, etc.), gender, age range
@@ -511,45 +615,24 @@ Analyze this short-form video in exhaustive detail. Extract:
    - Lighting (natural, fluorescent, dramatic, warm)
    - Background details, decor, signage
 
-3. ACTION & TIMING:
-   - Frame-by-frame description of what happens
+3. ACTION & TIMING (piece together from frame sequence):
+   - What happens across the frames — describe the action flow
    - Character movements and interactions
    - Physical comedy or dramatic beats
-   - Approximate timing of key moments
 
 4. CAMERA & VISUAL STYLE:
    - Camera angle (eye-level, low, high, dutch)
    - Camera movement (static, pan, zoom, handheld, tracking)
    - Shot type (close-up, medium, wide, medium-wide)
    - Visual aesthetic (realistic, stylized, phone footage, cinematic)
-   - Color palette and grading
 
-5. AUDIO CUES (visual indicators):
-   - Mouth movements suggesting speech
-   - Environmental sounds implied (cooking, traffic, music)
-   - Emotional tone of any visible text/captions
-
-6. MOOD & VIRAL FORMULA:
+5. MOOD & VIRAL FORMULA:
    - Overall mood (funny, absurd, wholesome, chaotic, cute)
    - What makes this shareable/viral
    - The comedic/emotional hook
    - Pacing (fast, slow, building, surprise ending)
 
-Return as JSON with these exact keys:
-{
-  "characters": [{"species": "", "gender": "", "clothing": "", "expression": "", "role": ""}],
-  "setting": "",
-  "props": [""],
-  "actions": "",
-  "cameraWork": {"angle": "", "movement": "", "shotType": ""},
-  "visualStyle": "",
-  "mood": "",
-  "viralFormula": "",
-  "estimatedDuration": "",
-  "speechDetected": true/false,
-  "speakerCount": 0,
-  "dialogueHint": ""
-}
+Return a detailed text analysis covering all points above. Be exhaustive about visual details.
 PROMPT;
     }
 
@@ -598,7 +681,7 @@ PROMPT;
     }
 
     /**
-     * Synthesize Gemini visual analysis + Whisper transcript into a structured concept.
+     * Synthesize Grok visual analysis + Whisper transcript into a structured concept.
      * Output matches the exact format returned by generateViralIdeas().
      */
     protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
