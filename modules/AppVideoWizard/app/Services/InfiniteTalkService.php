@@ -140,7 +140,9 @@ class InfiniteTalkService
             'cfg' => (float) $cfg,
             'shift' => (float) $shift,
             // Audio lip-sync accuracy
-            'audio_cfg_scale' => (int) $audioCfgScale,
+            'audio_cfg_scale' => (float) $audioCfgScale,
+            // Seed: -1 = random each run (prevents identical outputs)
+            'seed' => (int) ($options['seed'] ?? -1),
         ];
 
         // Set source media based on input type
