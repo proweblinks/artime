@@ -1285,15 +1285,16 @@ class InfiniteTalkService
     public static function writePipelineLog(int $projectId, string $step, string $status, array $data = [], string $message = ''): void
     {
         try {
-            $logPath = public_path("wizard-videos/{$projectId}/pipeline-log.json");
-            $dir = dirname($logPath);
+            $storagePath = "wizard-videos/{$projectId}/pipeline-log.json";
+            $diskPath = Storage::disk('public')->path($storagePath);
+            $dir = dirname($diskPath);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
 
             $entries = [];
-            if (file_exists($logPath)) {
-                $raw = file_get_contents($logPath);
+            if (file_exists($diskPath)) {
+                $raw = file_get_contents($diskPath);
                 $decoded = json_decode($raw, true);
                 if (is_array($decoded)) {
                     $entries = $decoded;
@@ -1309,7 +1310,7 @@ class InfiniteTalkService
                 'data' => $data,
             ];
 
-            file_put_contents($logPath, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            file_put_contents($diskPath, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         } catch (\Throwable $e) {
             Log::warning('Pipeline diagnostic log write failed', ['error' => $e->getMessage()]);
         }
@@ -1321,12 +1322,13 @@ class InfiniteTalkService
     public static function clearPipelineLog(int $projectId): void
     {
         try {
-            $logPath = public_path("wizard-videos/{$projectId}/pipeline-log.json");
-            $dir = dirname($logPath);
+            $storagePath = "wizard-videos/{$projectId}/pipeline-log.json";
+            $diskPath = Storage::disk('public')->path($storagePath);
+            $dir = dirname($diskPath);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
-            file_put_contents($logPath, json_encode([], JSON_PRETTY_PRINT));
+            file_put_contents($diskPath, json_encode([], JSON_PRETTY_PRINT));
         } catch (\Throwable $e) {
             Log::warning('Pipeline diagnostic log clear failed', ['error' => $e->getMessage()]);
         }
@@ -1338,13 +1340,14 @@ class InfiniteTalkService
      */
     public static function generateDiagnosticHtml(int $projectId, string $projectTitle = ''): string
     {
-        $htmlPath = public_path("wizard-videos/{$projectId}/diagnostic.html");
-        $dir = dirname($htmlPath);
+        $storagePath = "wizard-videos/{$projectId}/diagnostic.html";
+        $diskPath = Storage::disk('public')->path($storagePath);
+        $dir = dirname($diskPath);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 
-        $logUrl = url("/wizard-videos/{$projectId}/pipeline-log.json");
+        $logUrl = url("/files/wizard-videos/{$projectId}/pipeline-log.json");
         $startTime = now()->format('Y-m-d H:i:s');
         $title = $projectTitle ?: "Project {$projectId}";
 
@@ -1589,9 +1592,9 @@ HTMLEOF;
         $html = str_replace('__TITLE__', htmlspecialchars($title), $html);
         $html = str_replace('__START_TIME__', $startTime, $html);
 
-        file_put_contents($htmlPath, $html);
+        file_put_contents($diskPath, $html);
 
-        return url("/wizard-videos/{$projectId}/diagnostic.html");
+        return url("/files/wizard-videos/{$projectId}/diagnostic.html");
     }
 
     /**
