@@ -786,7 +786,7 @@ PROMPT;
             : "AUDIO: No speech detected in video. Assume visual comedy / silent humor with environmental sounds only.";
 
         $videoPromptInstruction = $videoEngine === 'seedance'
-            ? <<<'SEEDANCE'
+            ? <<<'VIDPROMPT'
 Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt following the OFFICIAL format.
 
 SEEDANCE 1.5 PRO PROMPT FORMULA:
@@ -821,7 +821,7 @@ CRITICAL SEEDANCE RULES:
 - Keep scene descriptions clear and constrained — describe what IS visible, not abstract concepts.
 - The main character (camera focus) should be described FIRST.
 - Use degree adverbs to control intensity: "meows softly" vs "meows loudly", "gasps slightly" vs "screams in terror".
-SEEDANCE
+VIDPROMPT
             : 'Do NOT generate a "videoPrompt" field.';
 
         $prompt = <<<PROMPT
