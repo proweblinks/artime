@@ -114,14 +114,33 @@ class InfiniteTalkService
             }
         }
 
+        // Negative prompt for quality
+        $negativePrompt = $options['negative_prompt']
+            ?? 'bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards';
+
+        // Sampler quality parameters (InfiniteTalk defaults)
+        $steps = $options['steps'] ?? 40;
+        $cfg = $options['cfg'] ?? 5.0;
+        $shift = $options['shift'] ?? 5.0;
+
+        // Audio guidance scale — controls lip-sync accuracy (higher = more precise)
+        $audioCfgScale = $options['audio_cfg_scale'] ?? 4;
+
         // Build InfiniteTalk input payload
         $input = [
             'input_type' => $inputType,
             'person_count' => $personCount,
             'prompt' => $prompt,
+            'negative_prompt' => $negativePrompt,
             'width' => (int) $width,
             'height' => (int) $height,
             'force_offload' => $options['force_offload'] ?? true,
+            // Sampler quality parameters
+            'steps' => (int) $steps,
+            'cfg' => (float) $cfg,
+            'shift' => (float) $shift,
+            // Audio lip-sync accuracy
+            'audio_cfg_scale' => (int) $audioCfgScale,
         ];
 
         // Set source media based on input type
@@ -157,6 +176,10 @@ class InfiniteTalkService
             'has_wav_base64_2' => isset($input['wav_base64_2']),
             'width' => $width,
             'height' => $height,
+            'steps' => $steps,
+            'cfg' => $cfg,
+            'shift' => $shift,
+            'audio_cfg_scale' => $audioCfgScale,
         ]);
 
         $result = $this->runPodService->runAsync($this->endpointId, $input);
