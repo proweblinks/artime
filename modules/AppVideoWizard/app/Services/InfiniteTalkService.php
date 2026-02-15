@@ -119,17 +119,17 @@ class InfiniteTalkService
             ?? 'bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards';
 
         // Sampler quality parameters
-        // cfg>1 doubles computation (conditional+unconditional guidance per step).
-        // audio_cfg_scale>1 adds another guidance pass. Combined with more steps,
-        // this multiplies render time dramatically for multi-window video.
-        // Workflow defaults (steps=6, cfg=1, audio_cfg=1) render in ~8 min.
-        // These balanced defaults add mild quality boost without extreme slowdown.
+        // WARNING: cfg>1 doubles per-step compute (conditional+unconditional guidance).
+        // audio_cfg_scale>1 adds another guidance pass. For 527-frame video across
+        // 8 temporal windows, even cfg=2 causes ~78s/step (vs ~10s with cfg=1).
+        // Keep defaults at 1.0 to match workflow JSON speed (~8 min render).
+        // Override via $options for quality experiments.
         $steps = $options['steps'] ?? 6;
-        $cfg = $options['cfg'] ?? 2.0;
+        $cfg = $options['cfg'] ?? 1.0;
         $shift = $options['shift'] ?? 5.0;
 
-        // Audio guidance scale — controls lip-sync accuracy (higher = more precise)
-        $audioCfgScale = $options['audio_cfg_scale'] ?? 2;
+        // Audio guidance scale — lip-sync accuracy. Keep at 1 for speed.
+        $audioCfgScale = $options['audio_cfg_scale'] ?? 1;
 
         // Build InfiniteTalk input payload
         $input = [
