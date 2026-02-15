@@ -31421,9 +31421,11 @@ PROMPT;
             $takes = [];
 
             // --- TAKE 1: Speaker 1 speaks, Speaker 2 listens ---
-            $take1Duration = (int) ceil(($audioDuration ?? 5.0) + 2.0);
+            $take1AudioDur = $audioDuration ?? 5.0;
+            $take1Duration = (int) ceil($take1AudioDur + 3.0);
             $take1MaxFrame = min($take1Duration * $fps, 30 * $fps);
-            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $audioDuration ?? 5.0);
+            // Silent WAV must be LONGER than speaking audio so InfiniteTalk doesn't cut off the last word
+            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $take1AudioDur + 1.5);
 
             // Build monologue-style prompt focused on speaker 1
             $take1Shot = array_merge($shot, [
@@ -31453,9 +31455,10 @@ PROMPT;
             ];
 
             // --- TAKE 2: Speaker 2 speaks, Speaker 1 listens ---
-            $take2Duration = (int) ceil($audioDuration2Val + 2.0);
+            $take2Duration = (int) ceil($audioDuration2Val + 3.0);
             $take2MaxFrame = min($take2Duration * $fps, 30 * $fps);
-            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $audioDuration2Val);
+            // Silent WAV must be LONGER than speaking audio so InfiniteTalk doesn't cut off the last word
+            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $audioDuration2Val + 1.5);
 
             // Build monologue-style prompt focused on speaker 2
             $take2Shot = array_merge($shot, [
@@ -31506,6 +31509,7 @@ PROMPT;
                     'audio_url_2' => $take['audioUrl2'],
                     'person_count' => 'multi',
                     'max_frame' => $take['maxFrame'],
+                    'aspect_ratio' => $this->aspectRatio,
                 ]);
 
                 \Log::info("🎬 DualTake: {$take['label']} dispatch result", [
