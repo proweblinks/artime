@@ -782,7 +782,7 @@ PROMPT;
     protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
     {
         $transcriptSection = $transcript
-            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- For the video prompt: describe the animal making REALISTIC ANIMAL SOUNDS, NOT speaking the transcript words.\n- You may include the transcript content as a VOICEOVER/NARRATION element, separate from the character actions."
+            ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- IMPORTANT FOR VOICEOVER TEXT: Strip out ALL animal sound words (meow, woof, bark, hiss, growl, etc.) from the voiceover narration. Only include the HUMAN SPEECH parts. If the transcript is 'This is not what I ordered! Meow meow meow! I asked for chicken!' the voiceover should be 'This is not what I ordered! I asked for chicken!' — no animal sounds in the voiceover.\n- The voiceover narration must contain ONLY clean human speech. Animal sounds happen VISUALLY in the scene, not in the voiceover audio."
             : "AUDIO: No speech detected in video. Assume visual comedy / silent humor with environmental sounds only.";
 
         $videoPromptInstruction = $videoEngine === 'seedance'
@@ -795,9 +795,7 @@ Subject + Movement + Environment + Sound
 STRUCTURE RULES (from official Seedance docs):
 1. Write the SCENE DESCRIPTION as natural prose paragraphs. Describe characters, their appearance, positions, and actions clearly.
 2. DO NOT use semicolons to separate layers. DO NOT write one giant run-on sentence.
-3. Character sounds (animal sounds, gasps, reactions) are described as ACTIONS within the scene prose.
-   Example: "The cat meows repeatedly and tilts its head" — this is part of the scene description.
-4. DO NOT describe camera movement in the prompt. Camera is controlled by the "cameraFixed" parameter.
+3. DO NOT describe camera movement in the prompt. Camera is controlled by the "cameraFixed" parameter.
 
 FOR SCENES WITH HUMAN DIALOGUE (humans talking to each other):
 Write the scene description first, then add dialogue in this exact format:
@@ -807,12 +805,21 @@ Character A: "Their line here"
 Character B: "Their line here"
 
 FOR SCENES WITH VOICEOVER NARRATION (narrator voice over the visuals):
-Write: Generate a video with voiceover: A [voice description] says, "[narration text]"
-Then the scene description.
+Format: Generate a video with voiceover: A [voice description] says, "[narration text]"
+Then SEPARATELY write the scene description.
+
+CRITICAL VOICEOVER LIP-SYNC RULES:
+- The voiceover is narrated by an OFF-SCREEN voice. NO character on screen is speaking.
+- In the scene description, NEVER describe any character with "mouth open", "speaking", "talking", "saying", "meowing loudly", "hissing" or any mouth/vocal action that Seedance would lip-sync to the voiceover audio.
+- Instead describe characters with CLOSED-MOUTH expressions and BODY LANGUAGE: "looks surprised", "stares wide-eyed", "tilts head curiously", "stands alert", "leans forward".
+- Seedance will try to lip-sync the voiceover audio to ANY character described with an open mouth. This creates fake lip movement on the wrong character.
+- For animals: describe their POSE and BODY LANGUAGE, not their vocalizations. Say "the cat stands on the counter with an alert posture" NOT "the cat meows and hisses".
+- Keep the voiceover text SHORT and clean — do NOT include animal sounds like "meow meow" in the voiceover narration text. The voiceover is a HUMAN narrator only.
 
 FOR SCENES WITH ONLY ANIMAL SOUNDS / SOUND EFFECTS (no human speech):
-Just write the scene description. Seedance auto-generates matching audio from visual actions.
+Just write the scene description with the animal sounds as ACTIONS.
 Example: "A fluffy cat in a uniform meows and hisses at a surprised woman who gasps and steps back."
+NOTE: This format is ONLY for scenes where there is NO voiceover. The animal sounds become the actual audio.
 
 CRITICAL SEEDANCE RULES:
 - Seedance generates audio FROM the prompt text. If you write "cat says 'hello'" it generates a speaking cat = FAKE.
@@ -820,7 +827,7 @@ CRITICAL SEEDANCE RULES:
 - NEVER write an animal speaking human words in quotes. Only humans speak.
 - Keep scene descriptions clear and constrained — describe what IS visible, not abstract concepts.
 - The main character (camera focus) should be described FIRST.
-- Use degree adverbs to control intensity: "meows softly" vs "meows loudly", "gasps slightly" vs "screams in terror".
+- Use degree adverbs to control intensity: "looks slightly puzzled" vs "stares in shock".
 VIDPROMPT
             : 'Do NOT generate a "videoPrompt" field.';
 
