@@ -3510,22 +3510,26 @@ class VideoWizard extends Component
                 foreach ($characters as $c) {
                     $charDescriptions[] = $c['description'] ?? $c['name'] ?? 'character';
                 }
-                $characterBlock = implode(' and ', $charDescriptions);
+                $characterBlock = implode(' facing ', $charDescriptions);
+                $compositionNote = "Both characters together in ONE single continuous frame, interacting naturally. ";
             } else {
                 $characterBlock = $idea['character'] ?? ($shot['charactersInShot'][0] ?? 'character');
+                $compositionNote = "Single character centered in frame. ";
             }
 
             $settingBlock = !empty($setting) ? "Setting: {$setting}. " : '';
             $propsBlock = !empty($idea['props']) ? "Props: {$idea['props']}. " : '';
 
-            return "VERTICAL 9:16 PHOTOGRAPH COMPOSITION, 720x1280 resolution. "
-                . "Full body or medium-wide shot showing character in environment: {$characterBlock}, {$situation}. "
+            return "ONE SINGLE CONTINUOUS VERTICAL 9:16 PHOTOGRAPH, 720x1280 resolution. "
+                . "CRITICAL: This must be ONE single image — absolutely NO collage, NO grid, NO panels, NO multiple frames, NO split layout, NO montage. "
+                . $compositionNote
+                . "Medium-wide shot showing: {$characterBlock}, {$situation}. "
                 . "{$settingBlock}"
                 . "{$propsBlock}"
-                . "Emphasis on scene composition, props, and environment — character should be in context, not isolated. "
-                . "Mood: {$mood}. Cinematic lighting, vibrant colors, high detail on both character and surroundings. "
-                . "Eye-level or slight low-angle camera. "
-                . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos.";
+                . "Emphasis on scene composition, props, and environment — characters should be in context within the scene. "
+                . "Mood: {$mood}. Cinematic lighting, vibrant colors, high detail on both characters and surroundings. "
+                . "Eye-level camera, natural perspective depth. "
+                . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos, NO collage.";
         }
 
         if ($isDialogue && count($characters) >= 2) {
