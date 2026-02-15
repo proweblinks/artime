@@ -8370,23 +8370,28 @@ PROMPT;
                                     ]);
 
                                     // --- Diagnostic: PAYLOAD_TAKE2 ---
-                                    \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'PAYLOAD_TAKE2', 'done', [
+                                    $t2PersonCount = $take2Config['personCount'] ?? 'multi';
+                                    $t2PayloadData = [
                                         'image_url' => $take2ImageUrl,
                                         'wav_url' => $take2Config['audioUrl'] ?? '',
-                                        'wav_url_2' => $take2Config['audioUrl2'] ?? '',
-                                        'person_count' => 'multi',
+                                        'person_count' => $t2PersonCount,
                                         'max_frame' => $take2Config['maxFrame'] ?? 0,
-                                        '_payload' => [
-                                            'imageUrl' => $take2ImageUrl,
-                                            'prompt' => substr($take2Config['prompt'] ?? '', 0, 200) . '...',
-                                            'model' => $take2Config['selectedModel'] ?? '',
-                                            'duration' => $take2Config['duration'] ?? 0,
-                                            'audioUrl' => $take2Config['audioUrl'] ?? '',
-                                            'audio_url_2' => $take2Config['audioUrl2'] ?? '',
-                                            'person_count' => 'multi',
-                                            'max_frame' => $take2Config['maxFrame'] ?? 0,
-                                        ],
-                                    ], 'RunPod payload for Take 2');
+                                    ];
+                                    $t2PayloadInner = [
+                                        'imageUrl' => $take2ImageUrl,
+                                        'prompt' => substr($take2Config['prompt'] ?? '', 0, 200) . '...',
+                                        'model' => $take2Config['selectedModel'] ?? '',
+                                        'duration' => $take2Config['duration'] ?? 0,
+                                        'audioUrl' => $take2Config['audioUrl'] ?? '',
+                                        'person_count' => $t2PersonCount,
+                                        'max_frame' => $take2Config['maxFrame'] ?? 0,
+                                    ];
+                                    if ($t2PersonCount === 'multi' && !empty($take2Config['audioUrl2'])) {
+                                        $t2PayloadData['wav_url_2'] = $take2Config['audioUrl2'];
+                                        $t2PayloadInner['audio_url_2'] = $take2Config['audioUrl2'];
+                                    }
+                                    $t2PayloadData['_payload'] = $t2PayloadInner;
+                                    \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'PAYLOAD_TAKE2', 'done', $t2PayloadData, 'RunPod payload for Take 2');
 
                                     // Dispatch Take 2
                                     try {
@@ -8395,18 +8400,22 @@ PROMPT;
 
                                         if ($project2) {
                                             $take2Key = "dual_take2_{$sceneIndex}_{$shotIndex}";
-                                            $result2 = $animationService2->generateAnimation($project2, [
+                                            $take2AnimParams = [
                                                 'imageUrl' => $take2ImageUrl,
                                                 'prompt' => $take2Config['prompt'],
                                                 'model' => $take2Config['selectedModel'],
                                                 'duration' => $take2Config['duration'],
                                                 'audioUrl' => $take2Config['audioUrl'],
                                                 'audioDuration' => $take2Config['audioDuration'],
-                                                'audio_url_2' => $take2Config['audioUrl2'],
-                                                'person_count' => 'multi',
+                                                'person_count' => $t2PersonCount,
                                                 'max_frame' => $take2Config['maxFrame'],
                                                 'aspect_ratio' => $this->aspectRatio,
-                                            ]);
+                                            ];
+                                            // Only include audio_url_2 in multi mode
+                                            if ($t2PersonCount === 'multi' && !empty($take2Config['audioUrl2'])) {
+                                                $take2AnimParams['audio_url_2'] = $take2Config['audioUrl2'];
+                                            }
+                                            $result2 = $animationService2->generateAnimation($project2, $take2AnimParams);
 
                                             if ($result2['success'] && isset($result2['taskId'])) {
                                                 $this->pendingJobs[$take2Key] = [
@@ -31630,6 +31639,13 @@ PROMPT;
             $speaker1HasHumanFace = $humanFaces[$speaker1Name] ?? true;
             $speaker2HasHumanFace = $humanFaces[$speaker2Name] ?? true;
 
+            // Per-take person_count: use "single" when speaker's face can't be detected
+            // by InsightFace (non-human characters). In single mode, the entire image is
+            // audio-driven — the prompt guides which character moves/speaks.
+            // In multi mode, InsightFace targets specific detected faces for lip-sync.
+            $take1PersonCount = ($useSingleFaceStrategy && !$speaker1HasHumanFace) ? 'single' : 'multi';
+            $take2PersonCount = ($useSingleFaceStrategy && !$speaker2HasHumanFace) ? 'single' : 'multi';
+
             // --- Diagnostic: INIT ---
             \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'INIT', 'done', [
                 'characters' => $charactersInShot,
@@ -31640,6 +31656,8 @@ PROMPT;
                 'speaker1IsLeftFace' => $speaker1IsLeftFace,
                 'speaker1HasHumanFace' => $speaker1HasHumanFace,
                 'speaker2HasHumanFace' => $speaker2HasHumanFace,
+                'take1PersonCount' => $take1PersonCount,
+                'take2PersonCount' => $take2PersonCount,
             ], "Characters: {$speaker1Name} vs {$speaker2Name}");
 
             \Log::info('🎬 DualTake: Sequential mode — dispatching Take 1 first', [
@@ -31694,8 +31712,13 @@ PROMPT;
             ]);
             $take1Prompt = $this->buildInfiniteTalkPrompt($take1Shot, $scene);
 
-            // Assign audio to correct faces
-            if ($useSingleFaceStrategy) {
+            // Assign audio to correct faces based on per-take person_count
+            if ($take1PersonCount === 'single') {
+                // Single mode: only wav_url, drives the entire image
+                // Speaker's audio goes directly — no face detection needed
+                $take1AudioFace0 = $speaker1AudioUrl;
+                $take1AudioFace1 = null; // Not used in single mode
+            } elseif ($useSingleFaceStrategy) {
                 if ($speaker1HasHumanFace) {
                     $take1AudioFace0 = $speaker1AudioUrl;
                     $take1AudioFace1 = $take1SilentUrl;
@@ -31714,15 +31737,20 @@ PROMPT;
             }
 
             // --- Diagnostic: AUDIO_ROUTING_TAKE1 ---
-            $take1RoutingBranch = $useSingleFaceStrategy
-                ? ($speaker1HasHumanFace ? 'single-face: speaker1 IS human → wav_url=speech' : 'single-face: speaker1 NOT human → wav_url=silence')
-                : ($speaker1IsLeftFace ? '2-face: speaker1 on LEFT → wav_url=speech' : '2-face: speaker1 on RIGHT → wav_url=silence');
+            if ($take1PersonCount === 'single') {
+                $take1RoutingBranch = 'SINGLE MODE: speaker NOT human-detectable → audio drives entire image';
+            } elseif ($useSingleFaceStrategy) {
+                $take1RoutingBranch = $speaker1HasHumanFace ? 'MULTI: speaker1 IS human → wav_url=speech' : 'MULTI: speaker1 NOT human → wav_url=silence';
+            } else {
+                $take1RoutingBranch = $speaker1IsLeftFace ? 'MULTI 2-face: speaker1 on LEFT → wav_url=speech' : 'MULTI 2-face: speaker1 on RIGHT → wav_url=silence';
+            }
             \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE1', 'done', [
-                'strategy' => $useSingleFaceStrategy ? 'Single-face (' . $detectableFaces . ' detectable)' : '2-face mode',
+                'person_count' => $take1PersonCount,
+                'strategy' => $take1PersonCount === 'single' ? 'Single mode (non-human speaker)' : ($useSingleFaceStrategy ? 'Multi-face (' . $detectableFaces . ' detectable)' : 'Multi-face (2+ detectable)'),
                 'branch' => $take1RoutingBranch,
                 'wav_url_face0' => $take1AudioFace0,
-                'wav_url_2_face1' => $take1AudioFace1,
-                'silence_type' => 'TRUE SILENCE (zero amplitude)',
+                'wav_url_2_face1' => $take1AudioFace1 ?? 'N/A (single mode)',
+                'silence_type' => $take1PersonCount === 'single' ? 'N/A (no silence needed)' : 'TRUE SILENCE (zero amplitude)',
             ], $take1RoutingBranch);
 
             // --- Diagnostic: PROMPT_TAKE1 ---
@@ -31743,7 +31771,11 @@ PROMPT;
             ]);
             $take2Prompt = $this->buildInfiniteTalkPrompt($take2Shot, $scene);
 
-            if ($useSingleFaceStrategy) {
+            if ($take2PersonCount === 'single') {
+                // Single mode: only wav_url, drives the entire image
+                $take2AudioFace0 = $speaker2AudioUrl;
+                $take2AudioFace1 = null; // Not used in single mode
+            } elseif ($useSingleFaceStrategy) {
                 if ($speaker2HasHumanFace) {
                     $take2AudioFace0 = $speaker2AudioUrl;
                     $take2AudioFace1 = $take2SilentUrl;
@@ -31762,15 +31794,20 @@ PROMPT;
             }
 
             // --- Diagnostic: AUDIO_ROUTING_TAKE2 ---
-            $take2RoutingBranch = $useSingleFaceStrategy
-                ? ($speaker2HasHumanFace ? 'single-face: speaker2 IS human → wav_url=speech' : 'single-face: speaker2 NOT human → wav_url=silence')
-                : ($speaker1IsLeftFace ? '2-face: speaker2 on RIGHT → wav_url_2=speech' : '2-face: speaker2 on LEFT → wav_url=speech');
+            if ($take2PersonCount === 'single') {
+                $take2RoutingBranch = 'SINGLE MODE: speaker NOT human-detectable → audio drives entire image';
+            } elseif ($useSingleFaceStrategy) {
+                $take2RoutingBranch = $speaker2HasHumanFace ? 'MULTI: speaker2 IS human → wav_url=speech' : 'MULTI: speaker2 NOT human → wav_url=silence';
+            } else {
+                $take2RoutingBranch = $speaker1IsLeftFace ? 'MULTI 2-face: speaker2 on RIGHT → wav_url_2=speech' : 'MULTI 2-face: speaker2 on LEFT → wav_url=speech';
+            }
             \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE2', 'done', [
-                'strategy' => $useSingleFaceStrategy ? 'Single-face' : '2-face mode',
+                'person_count' => $take2PersonCount,
+                'strategy' => $take2PersonCount === 'single' ? 'Single mode (non-human speaker)' : ($useSingleFaceStrategy ? 'Multi-face (' . $detectableFaces . ' detectable)' : 'Multi-face (2+ detectable)'),
                 'branch' => $take2RoutingBranch,
                 'wav_url_face0' => $take2AudioFace0,
-                'wav_url_2_face1' => $take2AudioFace1,
-                'silence_type' => 'TRUE SILENCE (zero amplitude)',
+                'wav_url_2_face1' => $take2AudioFace1 ?? 'N/A (single mode)',
+                'silence_type' => $take2PersonCount === 'single' ? 'N/A (no silence needed)' : 'TRUE SILENCE (zero amplitude)',
             ], $take2RoutingBranch);
 
             // --- Diagnostic: PROMPT_TAKE2 ---
@@ -31796,6 +31833,7 @@ PROMPT;
                 'audioUrl2' => $take2AudioFace1,
                 'audioDuration' => $audioDuration2Val,
                 'selectedModel' => $selectedModel,
+                'personCount' => $take2PersonCount,
             ];
 
             // --- Diagnostic: TAKE2_CONFIG_STORED ---
@@ -31825,26 +31863,30 @@ PROMPT;
             }
 
             // --- Diagnostic: PAYLOAD_TAKE1 ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PAYLOAD_TAKE1', 'done', [
+            $take1PayloadData = [
                 'image_url' => $shot['imageUrl'] ?? '',
                 'wav_url' => $take1AudioFace0,
-                'wav_url_2' => $take1AudioFace1,
-                'person_count' => 'multi',
+                'person_count' => $take1PersonCount,
                 'max_frame' => $take1MaxFrame,
                 'width' => $payloadWidth,
                 'height' => $payloadHeight,
                 'aspect_ratio' => $this->aspectRatio,
-                '_payload' => [
-                    'imageUrl' => $shot['imageUrl'] ?? '',
-                    'prompt' => substr($take1Prompt, 0, 200) . '...',
-                    'model' => $selectedModel,
-                    'duration' => $take1Duration,
-                    'audioUrl' => $take1AudioFace0,
-                    'audio_url_2' => $take1AudioFace1,
-                    'person_count' => 'multi',
-                    'max_frame' => $take1MaxFrame,
-                ],
-            ], 'RunPod payload for Take 1');
+            ];
+            $take1PayloadInner = [
+                'imageUrl' => $shot['imageUrl'] ?? '',
+                'prompt' => substr($take1Prompt, 0, 200) . '...',
+                'model' => $selectedModel,
+                'duration' => $take1Duration,
+                'audioUrl' => $take1AudioFace0,
+                'person_count' => $take1PersonCount,
+                'max_frame' => $take1MaxFrame,
+            ];
+            if ($take1PersonCount === 'multi' && $take1AudioFace1 !== null) {
+                $take1PayloadData['wav_url_2'] = $take1AudioFace1;
+                $take1PayloadInner['audio_url_2'] = $take1AudioFace1;
+            }
+            $take1PayloadData['_payload'] = $take1PayloadInner;
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PAYLOAD_TAKE1', 'done', $take1PayloadData, 'RunPod payload for Take 1');
 
             \Log::info("🎬 DualTake: Take 1 audio assignment", [
                 'wav_url_face0' => substr($take1AudioFace0, -60),
@@ -31855,18 +31897,22 @@ PROMPT;
                 'face1_is' => $speaker1IsLeftFace ? $speaker2Name . ' (SILENT)' : $speaker1Name . ' (SPEECH)',
             ]);
 
-            $result = $animationService->generateAnimation($project, [
+            $take1AnimParams = [
                 'imageUrl' => $shot['imageUrl'],
                 'prompt' => $take1Prompt,
                 'model' => $selectedModel,
                 'duration' => $take1Duration,
                 'audioUrl' => $take1AudioFace0,
                 'audioDuration' => $audioDuration ?? 5.0,
-                'audio_url_2' => $take1AudioFace1,
-                'person_count' => 'multi',
+                'person_count' => $take1PersonCount,
                 'max_frame' => $take1MaxFrame,
                 'aspect_ratio' => $this->aspectRatio,
-            ]);
+            ];
+            // Only include audio_url_2 in multi mode
+            if ($take1PersonCount === 'multi' && $take1AudioFace1 !== null) {
+                $take1AnimParams['audio_url_2'] = $take1AudioFace1;
+            }
+            $result = $animationService->generateAnimation($project, $take1AnimParams);
 
             \Log::info("🎬 DualTake: Take 1 ({$speaker1Name}) dispatch result", [
                 'success' => $result['success'] ?? false,
