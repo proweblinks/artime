@@ -115,9 +115,10 @@ class InfiniteTalkService
         }
 
         // Build InfiniteTalk input payload
-        // v4.0 TEST: Send NO quality overrides — let workflow JSON defaults apply
-        // (steps=6, cfg=1, shift=11, audio_cfg_scale=1 from workflow)
-        // This matches what v3.0 sent, to isolate handler code vs parameter difference.
+        // Quality parameters — InfiniteTalk official defaults with step-distillation LoRA
+        $steps = (int) ($options['steps'] ?? 40);
+        $audioCfgScale = (float) ($options['audio_cfg_scale'] ?? 2.0);
+
         $input = [
             'input_type' => $inputType,
             'person_count' => $personCount,
@@ -125,6 +126,9 @@ class InfiniteTalkService
             'width' => (int) $width,
             'height' => (int) $height,
             'force_offload' => $options['force_offload'] ?? true,
+            'steps' => $steps,
+            'audio_cfg_scale' => $audioCfgScale,
+            'seed' => -1,
         ];
 
         // Set source media based on input type
@@ -160,7 +164,8 @@ class InfiniteTalkService
             'has_wav_base64_2' => isset($input['wav_base64_2']),
             'width' => $width,
             'height' => $height,
-            'quality_overrides' => 'NONE (v3.0 parity test)',
+            'steps' => $steps,
+            'audio_cfg_scale' => $audioCfgScale,
         ]);
 
         $result = $this->runPodService->runAsync($this->endpointId, $input);
