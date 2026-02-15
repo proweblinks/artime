@@ -118,8 +118,11 @@ class InfiniteTalkService
         $negativePrompt = $options['negative_prompt']
             ?? 'bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards';
 
-        // Sampler quality parameters (InfiniteTalk defaults)
-        $steps = $options['steps'] ?? 40;
+        // Sampler quality parameters
+        // Note: steps=40 is InfiniteTalk CLI default for single images, but for
+        // multi-window video (527 frames / 8 windows), each step takes ~35s per window.
+        // steps=40 would take ~3 hours. steps=12 gives good quality in ~10 min.
+        $steps = $options['steps'] ?? 12;
         $cfg = $options['cfg'] ?? 5.0;
         $shift = $options['shift'] ?? 5.0;
 
