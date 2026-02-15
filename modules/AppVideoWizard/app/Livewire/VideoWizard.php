@@ -3432,13 +3432,16 @@ class VideoWizard extends Component
 
             return "VERTICAL 9:16 PHOTOGRAPH COMPOSITION, 720x1280 resolution. "
                 . "Two characters in a single continuous frame, medium-wide shot showing both from waist up. "
+                . "IMPORTANT: Both characters MUST have clearly visible, anthropomorphic HUMAN-LIKE FACES with expressive eyes, nose, and mouth — even if the character is an animal or creature. "
+                . "Draw animal characters in a Pixar/Disney anthropomorphic cartoon style with large human-like eyes and expressive mouths, NOT as realistic animals. "
                 . "{$characterBlock}. "
                 . "They face each other in a conversation, natural interaction pose. "
+                . "Position the characters clearly separated: one on the LEFT third of the frame, the other on the RIGHT third, with visible space between them. "
                 . "{$settingBlock}"
                 . "{$propsBlock}"
                 . "Mood: {$mood}, comedic contrast between the characters. "
-                . "Photorealistic, cinematic lighting with warm interior tones, high detail on faces and clothing. "
-                . "Shallow depth of field on background, sharp focus on both characters. "
+                . "Cinematic lighting with warm interior tones, high detail on faces and clothing. "
+                . "Shallow depth of field on background, sharp focus on both characters' faces. "
                 . "Eye-level camera angle, slight perspective depth. "
                 . "NO text overlays, NO watermarks, NO borders, NO split screens, NO logos.";
         } else {
@@ -25290,10 +25293,14 @@ PROMPT;
             $charList = implode("\n", $charDescriptions);
 
             $prompt = "This image shows two characters side by side. Here are their descriptions:\n{$charList}\n\n"
-                . "Look at the image carefully. Which character is on the LEFT side and which is on the RIGHT side?\n"
+                . "Look at the image carefully and answer TWO questions:\n"
+                . "1. Which character is on the LEFT side and which is on the RIGHT side?\n"
+                . "2. Does each character have a clearly visible HUMAN-LIKE FACE (with human-like eyes, nose, and mouth)? "
+                . "An anthropomorphic cartoon animal with human-like facial features counts as 'true'. "
+                . "A realistic animal (bird, fish, etc.) with a beak or snout instead of a human mouth counts as 'false'.\n\n"
                 . "You MUST use the exact character names from above.\n"
                 . "Respond with ONLY a JSON object, no other text:\n"
-                . "{\"left\": \"character name\", \"right\": \"character name\"}";
+                . "{\"left\": \"character name\", \"right\": \"character name\", \"humanFaces\": {\"character name\": true, \"character name\": false}}";
 
             $gemini = app(\App\Services\GeminiService::class);
             $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
@@ -25310,7 +25317,8 @@ PROMPT;
 
             // Parse JSON response (may be wrapped in markdown code blocks)
             $text = $result['text'];
-            if (preg_match('/\{[^}]+\}/', $text, $matches)) {
+            // Use greedy match to capture nested JSON (humanFaces object)
+            if (preg_match('/\{.*\}/s', $text, $matches)) {
                 $json = json_decode($matches[0], true);
                 if ($json && isset($json['left']) && isset($json['right'])) {
                     // Validate that returned names match our character names (fuzzy match)
@@ -25319,11 +25327,35 @@ PROMPT;
 
                     if ($leftName && $rightName && $leftName !== $rightName) {
                         $faceOrder = [$leftName, $rightName];
+
+                        // Extract humanFaces data: which characters have detectable human-like faces
+                        $humanFaces = [];
+                        if (isset($json['humanFaces']) && is_array($json['humanFaces'])) {
+                            foreach ($json['humanFaces'] as $name => $isHuman) {
+                                $matched = $this->fuzzyMatchCharacterName($name, $charNames);
+                                if ($matched) {
+                                    $humanFaces[$matched] = (bool) $isHuman;
+                                }
+                            }
+                        }
+
+                        // Count how many characters have detectable faces
+                        $detectableFaces = count(array_filter($humanFaces));
+
                         \Log::info('detectCharacterFaceOrder: Detected face order', [
                             'faceOrder' => $faceOrder,
+                            'humanFaces' => $humanFaces,
+                            'detectableFaces' => $detectableFaces,
                             'rawResponse' => $text,
                         ]);
-                        return $faceOrder;
+
+                        // Return enriched data: faceOrder + metadata
+                        // Store humanFaces on the shot for dual take audio assignment
+                        return [
+                            'order' => $faceOrder,
+                            'humanFaces' => $humanFaces,
+                            'detectableFaces' => $detectableFaces,
+                        ];
                     }
                 }
             }
@@ -27460,9 +27492,17 @@ PROMPT;
                                     ?? [];
                                 $characters = $idea['characters'] ?? [];
                                 if (count($characters) >= 2) {
-                                    $faceOrder = $this->detectCharacterFaceOrder($result['imageUrl'], $characters);
-                                    if (!empty($faceOrder)) {
-                                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['faceOrder'] = $faceOrder;
+                                    $faceDetection = $this->detectCharacterFaceOrder($result['imageUrl'], $characters);
+                                    if (!empty($faceDetection)) {
+                                        // New enriched format: {order: [...], humanFaces: {...}, detectableFaces: N}
+                                        if (isset($faceDetection['order'])) {
+                                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['faceOrder'] = $faceDetection['order'];
+                                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['humanFaces'] = $faceDetection['humanFaces'] ?? [];
+                                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['detectableFaces'] = $faceDetection['detectableFaces'] ?? 2;
+                                        } else {
+                                            // Legacy flat array format (backward compat)
+                                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['faceOrder'] = $faceDetection;
+                                        }
                                     }
                                 }
                             }
@@ -31479,9 +31519,11 @@ PROMPT;
             $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
             $audioUrl2 = $shot['audioUrl2'] ?? '';
             $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
+            $humanFaces = $shot['humanFaces'] ?? [];
+            $detectableFaces = $shot['detectableFaces'] ?? 2;
             $fps = 24;
 
-            // Determine face positions
+            // Determine face positions (left-right order from Gemini)
             $speaker1IsLeftFace = true;
             if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
                 $leftFace = strtolower(trim($faceOrder[0]));
@@ -31491,10 +31533,23 @@ PROMPT;
                     || str_contains($sp1Lower, $leftFace);
             }
 
+            // Determine audio routing strategy based on expected face detection
+            // When InsightFace detects 2 faces: wav_url → leftmost face, wav_url_2 → right face
+            // When InsightFace detects 1 face: wav_url → detected face's side (always the human),
+            //   wav_url_2 → opposite side. So wav_url must carry the HUMAN character's audio.
+            $useSingleFaceStrategy = ($detectableFaces < 2);
+
+            // Identify which speaker has a human-detectable face
+            $speaker1HasHumanFace = $humanFaces[$speaker1Name] ?? true;
+            $speaker2HasHumanFace = $humanFaces[$speaker2Name] ?? true;
+
             \Log::info('🎬 DualTake: Sequential mode — dispatching Take 1 first', [
                 'speaker1' => $speaker1Name,
                 'speaker2' => $speaker2Name,
                 'speaker1IsLeftFace' => $speaker1IsLeftFace,
+                'useSingleFaceStrategy' => $useSingleFaceStrategy,
+                'speaker1HasHumanFace' => $speaker1HasHumanFace,
+                'speaker2HasHumanFace' => $speaker2HasHumanFace,
                 'audioDuration1' => $audioDuration,
                 'audioDuration2' => $audioDuration2Val,
             ]);
@@ -31530,12 +31585,31 @@ PROMPT;
             $take1Prompt = $this->buildInfiniteTalkPrompt($take1Shot, $scene);
 
             // Assign audio to correct faces
-            if ($speaker1IsLeftFace) {
-                $take1AudioFace0 = $speaker1AudioUrl;  // Speaker 1 on left (with noise floor)
-                $take1AudioFace1 = $take1SilentUrl;    // Listener ambient on right
+            // Strategy depends on whether InfiniteTalk will detect 1 or 2 faces:
+            //   2-face mode: wav_url → leftmost face, wav_url_2 → rightmost face
+            //   1-face mode: wav_url → detected (human) face's side, wav_url_2 → opposite
+            if ($useSingleFaceStrategy) {
+                // 1-face fallback: wav_url always goes to the detected human face
+                // So wav_url must carry the audio for the human character in this take
+                if ($speaker1HasHumanFace) {
+                    // Speaker 1 is human → wav_url = speaker 1 speech, wav_url_2 = silence
+                    $take1AudioFace0 = $speaker1AudioUrl;
+                    $take1AudioFace1 = $take1SilentUrl;
+                } else {
+                    // Speaker 1 is NOT human → wav_url = silence (goes to human listener),
+                    // wav_url_2 = speaker 1 speech (goes to the other/non-human side)
+                    $take1AudioFace0 = $take1SilentUrl;
+                    $take1AudioFace1 = $speaker1AudioUrl;
+                }
             } else {
-                $take1AudioFace0 = $take1SilentUrl;    // Listener ambient on left
-                $take1AudioFace1 = $speaker1AudioUrl;  // Speaker 1 on right (with noise floor)
+                // 2-face mode: assign based on left-right position
+                if ($speaker1IsLeftFace) {
+                    $take1AudioFace0 = $speaker1AudioUrl;  // Speaker 1 on left
+                    $take1AudioFace1 = $take1SilentUrl;    // Listener on right
+                } else {
+                    $take1AudioFace0 = $take1SilentUrl;    // Listener on left
+                    $take1AudioFace1 = $speaker1AudioUrl;  // Speaker 1 on right
+                }
             }
 
             // --- Prepare Take 2 config (dispatched later when Take 1 completes) ---
@@ -31549,12 +31623,27 @@ PROMPT;
             ]);
             $take2Prompt = $this->buildInfiniteTalkPrompt($take2Shot, $scene);
 
-            if ($speaker1IsLeftFace) {
-                $take2AudioFace0 = $take2SilentUrl;    // Listener ambient on left
-                $take2AudioFace1 = $speaker2AudioUrl;  // Speaker 2 on right (with noise floor)
+            if ($useSingleFaceStrategy) {
+                // 1-face fallback: wav_url goes to the detected human face
+                if ($speaker2HasHumanFace) {
+                    // Speaker 2 is human → wav_url = speaker 2 speech
+                    $take2AudioFace0 = $speaker2AudioUrl;
+                    $take2AudioFace1 = $take2SilentUrl;
+                } else {
+                    // Speaker 2 is NOT human → wav_url = silence (goes to human listener),
+                    // wav_url_2 = speaker 2 speech (goes to non-human side)
+                    $take2AudioFace0 = $take2SilentUrl;
+                    $take2AudioFace1 = $speaker2AudioUrl;
+                }
             } else {
-                $take2AudioFace0 = $speaker2AudioUrl;  // Speaker 2 on left (with noise floor)
-                $take2AudioFace1 = $take2SilentUrl;    // Listener ambient on right
+                // 2-face mode: assign based on left-right position
+                if ($speaker1IsLeftFace) {
+                    $take2AudioFace0 = $take2SilentUrl;    // Listener on left
+                    $take2AudioFace1 = $speaker2AudioUrl;  // Speaker 2 on right
+                } else {
+                    $take2AudioFace0 = $speaker2AudioUrl;  // Speaker 2 on left
+                    $take2AudioFace1 = $take2SilentUrl;    // Listener on right
+                }
             }
 
             // Mark shot as dual take mode and clear any old take URLs from previous render
@@ -31582,6 +31671,16 @@ PROMPT;
 
             // --- Dispatch ONLY Take 1 now ---
             $take1Key = "dual_take1_{$sceneIndex}_{$shotIndex}";
+
+            \Log::info("🎬 DualTake: Take 1 audio assignment", [
+                'wav_url_face0' => substr($take1AudioFace0, -60),
+                'wav_url2_face1' => substr($take1AudioFace1, -60),
+                'speaker1IsLeftFace' => $speaker1IsLeftFace,
+                'faceOrder' => $faceOrder,
+                'face0_is' => $speaker1IsLeftFace ? $speaker1Name . ' (SPEECH)' : $speaker2Name . ' (SILENT)',
+                'face1_is' => $speaker1IsLeftFace ? $speaker2Name . ' (SILENT)' : $speaker1Name . ' (SPEECH)',
+            ]);
+
             $result = $animationService->generateAnimation($project, [
                 'imageUrl' => $shot['imageUrl'],
                 'prompt' => $take1Prompt,
