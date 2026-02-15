@@ -864,15 +864,55 @@ EOT;
 
             $body = json_decode($uploadResponse->getBody(), true);
             $fileUri = $body['file']['uri'] ?? null;
+            $fileName = $body['file']['name'] ?? null;
+            $fileState = $body['file']['state'] ?? 'UNKNOWN';
 
             if (empty($fileUri)) {
                 throw new \Exception('Gemini File API did not return a file URI');
+            }
+
+            // Step 3: Poll until file reaches ACTIVE state (required for video processing)
+            if ($fileState !== 'ACTIVE' && $fileName) {
+                Log::info('GeminiService: File uploaded, waiting for ACTIVE state', [
+                    'fileName' => $fileName,
+                    'currentState' => $fileState,
+                ]);
+
+                $maxAttempts = 30; // Up to 60 seconds
+                for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+                    sleep(2);
+
+                    $statusResponse = $uploadClient->request('GET', "https://generativelanguage.googleapis.com/v1beta/{$fileName}", [
+                        'query' => ['key' => $this->apiKey],
+                        'timeout' => 15,
+                    ]);
+
+                    $statusBody = json_decode($statusResponse->getBody(), true);
+                    $fileState = $statusBody['state'] ?? 'UNKNOWN';
+
+                    if ($fileState === 'ACTIVE') {
+                        Log::info('GeminiService: File is now ACTIVE', [
+                            'fileName' => $fileName,
+                            'attempts' => $attempt + 1,
+                        ]);
+                        break;
+                    }
+
+                    if ($fileState === 'FAILED') {
+                        throw new \Exception('Gemini file processing failed');
+                    }
+                }
+
+                if ($fileState !== 'ACTIVE') {
+                    throw new \Exception("Gemini file did not become ACTIVE after {$maxAttempts} attempts (state: {$fileState})");
+                }
             }
 
             Log::info('GeminiService: File uploaded to Gemini', [
                 'fileUri' => $fileUri,
                 'mimeType' => $body['file']['mimeType'] ?? $mimeType,
                 'fileSize' => $fileSize,
+                'state' => $fileState,
             ]);
 
             return [
