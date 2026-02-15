@@ -721,6 +721,17 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- View Diagnostic button (dual take mode) --}}
+                @if(($shot['dualTakeMode'] ?? false) && !empty($shot['diagnosticUrl']))
+                    <a href="{{ $shot['diagnosticUrl'] }}" target="_blank" rel="noopener"
+                       style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;padding:0.4rem 0.75rem;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:0.5rem;color:#60a5fa;font-size:0.75rem;font-weight:600;text-decoration:none;transition:all 0.2s;width:fit-content;"
+                       onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.12)'">
+                        <i class="fa-solid fa-microscope"></i>
+                        {{ __('View Pipeline Diagnostic') }}
+                        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;opacity:0.7;"></i>
+                    </a>
+                @endif
             </div>
 
             {{-- Section 4: Export --}}
@@ -846,3 +857,13 @@
         </div>
     </div>
 </div>
+
+@script
+<script>
+$wire.on('open-diagnostic', ({ url }) => {
+    if (url) {
+        window.open(url, '_blank');
+    }
+});
+</script>
+@endscript

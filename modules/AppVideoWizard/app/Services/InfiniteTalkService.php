@@ -1220,6 +1220,381 @@ class InfiniteTalkService
     }
 
     /**
+     * Generate a WAV file with ZERO amplitude (true digital silence) and return its URL.
+     * Used in Dual Take mode for the non-speaking character — ensures absolutely no audio
+     * signal reaches InfiniteTalk's lip-sync detector, preventing mouth movement bleed.
+     *
+     * Unlike generateAmbientWavUrl() which uses pink noise (~-42dB), this produces
+     * pure silence via ffmpeg's anullsrc filter.
+     */
+    public static function generateTrueSilentWavUrl(int $projectId, float $durationSeconds = 5.0): string
+    {
+        $ffmpeg = null;
+        foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                $ffmpeg = $path;
+                break;
+            }
+        }
+
+        // Fallback: if no ffmpeg, use PHP-generated silent WAV
+        if (!$ffmpeg) {
+            Log::warning('InfiniteTalk: ffmpeg not found for true silence, falling back to PHP silent WAV');
+            return self::generateSilentWavUrl($projectId, $durationSeconds);
+        }
+
+        $filename = 'truesilent_' . md5($durationSeconds . '_' . $projectId . '_' . time()) . '.wav';
+        $storagePath = "wizard-audio/{$projectId}/{$filename}";
+        $diskPath = Storage::disk('public')->path($storagePath);
+
+        $dir = dirname($diskPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        // Pure digital silence: anullsrc generates zero-amplitude samples
+        $cmd = sprintf(
+            '%s -f lavfi -i anullsrc=r=44100:cl=mono -t %s -c:a pcm_s16le %s -y 2>&1',
+            escapeshellarg($ffmpeg),
+            $durationSeconds,
+            escapeshellarg($diskPath)
+        );
+
+        $output = [];
+        $returnCode = 0;
+        exec($cmd, $output, $returnCode);
+
+        if ($returnCode !== 0 || !file_exists($diskPath)) {
+            Log::warning('InfiniteTalk: true silence generation failed, falling back to PHP silent WAV', [
+                'returnCode' => $returnCode,
+            ]);
+            return self::generateSilentWavUrl($projectId, $durationSeconds);
+        }
+
+        return url('/files/' . $storagePath);
+    }
+
+    // =========================================================================
+    //  Pipeline Diagnostic Logging
+    // =========================================================================
+
+    /**
+     * Append a diagnostic entry to the pipeline log JSON file.
+     * Each entry records a step in the Dual Take pipeline for real-time visualization.
+     */
+    public static function writePipelineLog(int $projectId, string $step, string $status, array $data = [], string $message = ''): void
+    {
+        try {
+            $logPath = public_path("wizard-videos/{$projectId}/pipeline-log.json");
+            $dir = dirname($logPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $entries = [];
+            if (file_exists($logPath)) {
+                $raw = file_get_contents($logPath);
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    $entries = $decoded;
+                }
+            }
+
+            $entries[] = [
+                'step' => $step,
+                'status' => $status,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+                'epoch' => microtime(true),
+                'message' => $message,
+                'data' => $data,
+            ];
+
+            file_put_contents($logPath, json_encode($entries, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        } catch (\Throwable $e) {
+            Log::warning('Pipeline diagnostic log write failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Clear the pipeline log for a new animation run.
+     */
+    public static function clearPipelineLog(int $projectId): void
+    {
+        try {
+            $logPath = public_path("wizard-videos/{$projectId}/pipeline-log.json");
+            $dir = dirname($logPath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            file_put_contents($logPath, json_encode([], JSON_PRETTY_PRINT));
+        } catch (\Throwable $e) {
+            Log::warning('Pipeline diagnostic log clear failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Generate a self-contained diagnostic HTML page that auto-refreshes from pipeline-log.json.
+     * Returns the public URL to the diagnostic page.
+     */
+    public static function generateDiagnosticHtml(int $projectId, string $projectTitle = ''): string
+    {
+        $htmlPath = public_path("wizard-videos/{$projectId}/diagnostic.html");
+        $dir = dirname($htmlPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $logUrl = url("/wizard-videos/{$projectId}/pipeline-log.json");
+        $startTime = now()->format('Y-m-d H:i:s');
+        $title = $projectTitle ?: "Project {$projectId}";
+
+        $html = <<<'HTMLEOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Diagnostic — __TITLE__</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a14;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+.header{position:sticky;top:0;z-index:10;background:rgba(10,10,20,0.95);border-bottom:1px solid rgba(139,92,246,0.3);padding:1rem 1.5rem;backdrop-filter:blur(10px)}
+.header h1{font-size:1.2rem;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:0.5rem}
+.header h1 .icon{font-size:1.4rem}
+.header-meta{display:flex;gap:1.5rem;margin-top:0.4rem;font-size:0.78rem;color:#94a3b8}
+.header-meta span{display:flex;align-items:center;gap:0.3rem}
+.container{max-width:900px;margin:0 auto;padding:1.5rem}
+.step-card{background:rgba(25,25,45,0.6);border:1px solid rgba(100,100,140,0.2);border-radius:0.75rem;margin-bottom:0.75rem;overflow:hidden;transition:border-color 0.3s}
+.step-card.active{border-color:rgba(59,130,246,0.5);box-shadow:0 0 20px rgba(59,130,246,0.1)}
+.step-card.done{border-color:rgba(16,185,129,0.3)}
+.step-card.error{border-color:rgba(239,68,68,0.4)}
+.step-card.pending{opacity:0.5}
+.step-header{display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;cursor:pointer;user-select:none}
+.step-icon{width:28px;height:28px;min-width:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700}
+.step-icon.pending{background:rgba(100,100,140,0.2);color:#64748b}
+.step-icon.start,.step-icon.info{background:rgba(59,130,246,0.2);color:#60a5fa}
+.step-icon.done{background:rgba(16,185,129,0.2);color:#6ee7b7}
+.step-icon.error{background:rgba(239,68,68,0.2);color:#fca5a5}
+.step-name{font-weight:600;font-size:0.88rem;flex:1}
+.step-time{font-size:0.72rem;color:#64748b;font-family:'Courier New',monospace}
+.step-msg{font-size:0.78rem;color:#94a3b8;padding:0 1rem 0.5rem 3.5rem}
+.step-body{padding:0.5rem 1rem 1rem 3.5rem;border-top:1px solid rgba(100,100,140,0.1);display:none}
+.step-card.expanded .step-body{display:block}
+.data-grid{display:grid;grid-template-columns:140px 1fr;gap:0.3rem 0.75rem;font-size:0.78rem}
+.data-label{color:#64748b;font-weight:600}
+.data-value{color:#e2e8f0;font-family:'Courier New',monospace;word-break:break-all}
+.data-value.url{color:#60a5fa;font-size:0.72rem}
+pre.prompt-block{background:rgba(0,0,0,0.4);border:1px solid rgba(100,100,140,0.15);border-radius:0.5rem;padding:0.75rem;margin-top:0.5rem;font-size:0.72rem;line-height:1.6;color:#a78bfa;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;font-family:'Courier New',monospace}
+pre.json-block{background:rgba(0,0,0,0.4);border:1px solid rgba(100,100,140,0.15);border-radius:0.5rem;padding:0.75rem;margin-top:0.5rem;font-size:0.7rem;line-height:1.5;color:#fbbf24;white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;font-family:'Courier New',monospace}
+audio{width:100%;height:32px;margin-top:0.25rem;border-radius:0.25rem}
+video{max-width:100%;max-height:200px;margin-top:0.5rem;border-radius:0.5rem;border:1px solid rgba(100,100,140,0.2)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(59,130,246,0.3);border-top-color:#60a5fa;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.elapsed{font-size:0.72rem;color:#fb923c;font-weight:600;margin-left:auto}
+.status-bar{position:sticky;bottom:0;background:rgba(10,10,20,0.95);border-top:1px solid rgba(100,100,140,0.15);padding:0.5rem 1.5rem;font-size:0.75rem;color:#64748b;display:flex;align-items:center;gap:1rem;backdrop-filter:blur(10px)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse-dot 2s infinite}
+.status-dot.stopped{background:#ef4444;animation:none}
+@keyframes pulse-dot{0%,100%{opacity:0.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="header">
+    <h1><span class="icon">&#128300;</span> Dual Take Pipeline Diagnostic</h1>
+    <div class="header-meta">
+        <span>&#128196; __TITLE__</span>
+        <span>&#128337; Started: __START_TIME__</span>
+        <span id="elapsed-total"></span>
+    </div>
+</div>
+<div class="container" id="timeline"></div>
+<div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Connecting...</span>
+    <span style="margin-left:auto" id="poll-count"></span>
+</div>
+
+<script>
+const LOG_URL = '__LOG_URL__';
+const POLL_MS = 1500;
+const STEP_ORDER = ['INIT','VOICE_INFO','AUDIO_ROUTING_TAKE1','PROMPT_TAKE1','PAYLOAD_TAKE1','DISPATCH_TAKE1','POLLING_TAKE1','TAKE1_COMPLETE','AUDIO_ROUTING_TAKE2','PROMPT_TAKE2','PAYLOAD_TAKE2','DISPATCH_TAKE2','POLLING_TAKE2','TAKE2_COMPLETE','ASSEMBLY','DONE'];
+
+let lastCount = 0;
+let pollNum = 0;
+let startEpoch = null;
+let isDone = false;
+
+function statusIcon(s) {
+    if (s === 'done') return '&#10004;';
+    if (s === 'error') return '&#10008;';
+    if (s === 'start' || s === 'info') return '<div class="spinner"></div>';
+    return '&#8943;';
+}
+
+function renderAudio(url) {
+    if (!url) return '';
+    return '<audio controls preload="none" src="' + url + '"></audio>';
+}
+
+function renderVideo(url) {
+    if (!url) return '';
+    return '<video controls preload="none" src="' + url + '"></video>';
+}
+
+function renderData(data) {
+    if (!data || Object.keys(data).length === 0) return '';
+    let html = '<div class="data-grid">';
+    for (const [k, v] of Object.entries(data)) {
+        if (k === '_prompt' || k === '_payload' || k === '_ffmpeg') continue;
+        let val = v;
+        let cls = 'data-value';
+        if (typeof v === 'string' && (v.startsWith('http') || v.startsWith('/files/'))) {
+            cls += ' url';
+            if (v.match(/\.(wav|mp3|flac|ogg)(\?|$)/i)) {
+                html += '<div class="data-label">' + k + '</div><div class="' + cls + '">' + v.split('/').pop().substring(0, 60) + renderAudio(v) + '</div>';
+                continue;
+            }
+            if (v.match(/\.(mp4|webm)(\?|$)/i)) {
+                html += '<div class="data-label">' + k + '</div><div class="' + cls + '">' + v.split('/').pop().substring(0, 60) + renderVideo(v) + '</div>';
+                continue;
+            }
+            val = v.length > 80 ? '...' + v.slice(-70) : v;
+        } else if (typeof v === 'object') {
+            val = JSON.stringify(v);
+            if (val.length > 120) val = val.substring(0, 120) + '...';
+        } else if (typeof v === 'boolean') {
+            val = v ? 'YES' : 'NO';
+        }
+        html += '<div class="data-label">' + k + '</div><div class="' + cls + '">' + val + '</div>';
+    }
+    html += '</div>';
+    if (data._prompt) {
+        html += '<pre class="prompt-block">' + escHtml(data._prompt) + '</pre>';
+    }
+    if (data._payload) {
+        html += '<pre class="json-block">' + escHtml(typeof data._payload === 'string' ? data._payload : JSON.stringify(data._payload, null, 2)) + '</pre>';
+    }
+    if (data._ffmpeg) {
+        html += '<pre class="json-block" style="color:#fb923c;">' + escHtml(data._ffmpeg) + '</pre>';
+    }
+    return html;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function render(entries) {
+    const timeline = document.getElementById('timeline');
+    const seenSteps = new Set(entries.map(e => e.step));
+
+    // Build map of latest entry per step
+    const latestByStep = {};
+    entries.forEach(e => { latestByStep[e.step] = e; });
+
+    let html = '';
+    // Show steps in order, including pending future steps
+    const allSteps = [...new Set([...entries.map(e => e.step), ...STEP_ORDER])];
+    const orderedSteps = STEP_ORDER.filter(s => allSteps.includes(s));
+    // Add any extra steps not in STEP_ORDER
+    entries.forEach(e => { if (!orderedSteps.includes(e.step)) orderedSteps.push(e.step); });
+
+    for (const stepName of orderedSteps) {
+        const entry = latestByStep[stepName];
+        const status = entry ? entry.status : 'pending';
+        const isActive = status === 'start' || status === 'info';
+        const cardClass = status === 'done' ? 'done' : status === 'error' ? 'error' : isActive ? 'active' : seenSteps.has(stepName) ? '' : 'pending';
+        const expanded = entry && (entry.data && Object.keys(entry.data).length > 0);
+
+        html += '<div class="step-card ' + cardClass + (expanded ? ' expanded' : '') + '" onclick="this.classList.toggle(\'expanded\')">';
+        html += '<div class="step-header">';
+        html += '<div class="step-icon ' + status + '">' + statusIcon(status) + '</div>';
+        html += '<div class="step-name">' + stepName + '</div>';
+        if (entry && entry.timestamp) {
+            html += '<div class="step-time">' + entry.timestamp.split(' ')[1] + '</div>';
+        }
+        if (isActive && entry && entry.epoch && startEpoch) {
+            const elapsed = Math.round(Date.now()/1000 - entry.epoch);
+            if (elapsed > 5) {
+                const m = Math.floor(elapsed/60);
+                const s = elapsed % 60;
+                html += '<div class="elapsed">' + (m > 0 ? m + 'm ' : '') + s + 's</div>';
+            }
+        }
+        html += '</div>';
+        if (entry && entry.message) {
+            html += '<div class="step-msg">' + escHtml(entry.message) + '</div>';
+        }
+        if (entry && entry.data && Object.keys(entry.data).length > 0) {
+            html += '<div class="step-body">' + renderData(entry.data) + '</div>';
+        }
+        html += '</div>';
+    }
+
+    timeline.innerHTML = html;
+}
+
+async function poll() {
+    try {
+        const res = await fetch(LOG_URL + '?t=' + Date.now());
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const entries = await res.json();
+        pollNum++;
+
+        if (!startEpoch && entries.length > 0) {
+            startEpoch = entries[0].epoch;
+        }
+
+        if (entries.length !== lastCount) {
+            lastCount = entries.length;
+            render(entries);
+            // Auto-scroll to bottom
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // Check if pipeline is done
+        const lastEntry = entries[entries.length - 1];
+        if (lastEntry && (lastEntry.step === 'DONE' || lastEntry.step === 'ERROR')) {
+            isDone = true;
+            document.getElementById('status-dot').classList.add('stopped');
+            document.getElementById('status-text').textContent = lastEntry.step === 'DONE' ? 'Pipeline complete' : 'Pipeline error';
+        }
+
+        document.getElementById('status-text').textContent = isDone ? (lastEntry.step === 'DONE' ? 'Pipeline complete' : 'Pipeline error') : 'Live — polling every 1.5s';
+        document.getElementById('poll-count').textContent = 'Poll #' + pollNum + ' | ' + entries.length + ' entries';
+
+        // Update total elapsed
+        if (startEpoch) {
+            const totalSec = Math.round(Date.now()/1000 - startEpoch);
+            const tm = Math.floor(totalSec/60);
+            const ts = totalSec % 60;
+            document.getElementById('elapsed-total').textContent = 'Elapsed: ' + (tm > 0 ? tm + 'm ' : '') + ts + 's';
+        }
+    } catch (e) {
+        document.getElementById('status-text').textContent = 'Waiting for pipeline data...';
+    }
+
+    if (!isDone) {
+        setTimeout(poll, POLL_MS);
+    }
+}
+
+poll();
+</script>
+</body>
+</html>
+HTMLEOF;
+
+        // Replace placeholders
+        $html = str_replace('__LOG_URL__', $logUrl, $html);
+        $html = str_replace('__TITLE__', htmlspecialchars($title), $html);
+        $html = str_replace('__START_TIME__', $startTime, $html);
+
+        file_put_contents($htmlPath, $html);
+
+        return url("/wizard-videos/{$projectId}/diagnostic.html");
+    }
+
+    /**
      * Error response format.
      */
     protected function errorResponse(string $message): array

@@ -8331,6 +8331,7 @@ PROMPT;
                             $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
                             $t1Done = !empty($shotData['dualTake1VideoUrl']);
                             $t2Done = !empty($shotData['dualTake2VideoUrl']);
+                            $diagProjectId = $this->projectId ?? 0;
 
                             \Log::info("📡 ✅ DualTake: {$takeUrlKey} ready", [
                                 'sceneIndex' => $sceneIndex,
@@ -8339,6 +8340,13 @@ PROMPT;
                                 'take2Done' => $t2Done,
                                 'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
                             ]);
+
+                            // --- Diagnostic: TAKE1_COMPLETE or TAKE2_COMPLETE ---
+                            $completeStep = $isTake1 ? 'TAKE1_COMPLETE' : 'TAKE2_COMPLETE';
+                            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, $completeStep, 'done', [
+                                'videoUrl' => $finalVideoUrl,
+                                'executionTime' => $result['executionTime'] ?? null,
+                            ], ($isTake1 ? 'Take 1' : 'Take 2') . ' rendering complete');
 
                             // Take 1 just completed — extract last frame and dispatch Take 2
                             if ($isTake1 && $t1Done && !$t2Done) {
@@ -8352,9 +8360,6 @@ PROMPT;
                                         $this->projectId ?? 0
                                     );
 
-                                    // Always use original image for Take 2 to preserve face detection order.
-                                    // Last frame causes InfiniteTalk face detector to assign audio to wrong faces,
-                                    // resulting in the listener's lips moving instead of staying still.
                                     $take2ImageUrl = $shotData['imageUrl'] ?? '';
 
                                     \Log::info('📡 🎬 DualTake: Dispatching Take 2 with original image (last frame extracted: ' . ($lastFrameUrl ? 'yes' : 'no') . ')', [
@@ -8363,6 +8368,25 @@ PROMPT;
                                         'audioUrl2_face1' => substr($take2Config['audioUrl2'] ?? '', -60),
                                         'prompt_preview' => substr($take2Config['prompt'] ?? '', 0, 200),
                                     ]);
+
+                                    // --- Diagnostic: PAYLOAD_TAKE2 ---
+                                    \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'PAYLOAD_TAKE2', 'done', [
+                                        'image_url' => $take2ImageUrl,
+                                        'wav_url' => $take2Config['audioUrl'] ?? '',
+                                        'wav_url_2' => $take2Config['audioUrl2'] ?? '',
+                                        'person_count' => 'multi',
+                                        'max_frame' => $take2Config['maxFrame'] ?? 0,
+                                        '_payload' => [
+                                            'imageUrl' => $take2ImageUrl,
+                                            'prompt' => substr($take2Config['prompt'] ?? '', 0, 200) . '...',
+                                            'model' => $take2Config['selectedModel'] ?? '',
+                                            'duration' => $take2Config['duration'] ?? 0,
+                                            'audioUrl' => $take2Config['audioUrl'] ?? '',
+                                            'audio_url_2' => $take2Config['audioUrl2'] ?? '',
+                                            'person_count' => 'multi',
+                                            'max_frame' => $take2Config['maxFrame'] ?? 0,
+                                        ],
+                                    ], 'RunPod payload for Take 2');
 
                                     // Dispatch Take 2
                                     try {
@@ -8396,10 +8420,26 @@ PROMPT;
                                                 ];
                                                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId'] = $result2['taskId'];
 
+                                                // --- Diagnostic: DISPATCH_TAKE2 ---
+                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'done', [
+                                                    'taskId' => $result2['taskId'],
+                                                    'provider' => $result2['provider'] ?? 'infinitetalk',
+                                                ], "Take 2 dispatched — taskId: {$result2['taskId']}");
+
+                                                // --- Diagnostic: POLLING_TAKE2 (initial) ---
+                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'POLLING_TAKE2', 'start', [
+                                                    'taskId' => $result2['taskId'],
+                                                ], 'Waiting for Take 2 to complete...');
+
                                                 \Log::info('📡 🎬 DualTake: Take 2 dispatched successfully', [
                                                     'taskId' => $result2['taskId'],
                                                 ]);
                                             } else {
+                                                // --- Diagnostic: DISPATCH_TAKE2 error ---
+                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'error', [
+                                                    'error' => $result2['error'] ?? 'Unknown',
+                                                ], 'Take 2 dispatch FAILED');
+
                                                 \Log::error('📡 ❌ DualTake: Failed to dispatch Take 2', [
                                                     'error' => $result2['error'] ?? 'Unknown',
                                                 ]);
@@ -8408,6 +8448,10 @@ PROMPT;
                                             }
                                         }
                                     } catch (\Exception $e2) {
+                                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'error', [
+                                            'error' => $e2->getMessage(),
+                                        ], 'Take 2 dispatch exception');
+
                                         \Log::error('📡 ❌ DualTake: Exception dispatching Take 2', ['error' => $e2->getMessage()]);
                                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
                                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Take 2 dispatch failed: ' . $e2->getMessage();
@@ -8421,7 +8465,21 @@ PROMPT;
 
                             // Both takes complete — assemble final video
                             if ($t1Done && $t2Done) {
+                                // --- Diagnostic: ASSEMBLY ---
+                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'ASSEMBLY', 'start', [
+                                    'take1_video' => $shotData['dualTake1VideoUrl'] ?? '',
+                                    'take2_video' => $finalVideoUrl,
+                                ], 'Concatenating Take 1 + Take 2 via ffmpeg...');
+
                                 $this->assembleDualTakeVideo($sceneIndex, $shotIndex);
+
+                                // --- Diagnostic: DONE ---
+                                $assembledShot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
+                                $assemblyStatus = ($assembledShot['videoStatus'] ?? '') === 'ready' ? 'done' : 'error';
+                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DONE', $assemblyStatus, [
+                                    'final_video' => $assembledShot['videoUrl'] ?? 'ASSEMBLY FAILED',
+                                    'videoStatus' => $assembledShot['videoStatus'] ?? 'unknown',
+                                ], $assemblyStatus === 'done' ? 'Pipeline complete — video ready!' : 'Assembly failed');
                             }
                         } else {
                             // --- STANDARD SINGLE TAKE ---
@@ -8450,6 +8508,12 @@ PROMPT;
                     // Video generation failed
                     if ($jobType === 'dual_take') {
                         // For dual take, mark the whole shot as failed
+                        $failedTake = str_contains($jobKey, 'take1') ? 'POLLING_TAKE1' : 'POLLING_TAKE2';
+                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog(
+                            $this->projectId ?? 0, $failedTake, 'error',
+                            ['status' => $status, 'error' => $result['error'] ?? 'Unknown'],
+                            "Job FAILED with status: {$status}"
+                        );
                         \Log::warning('📡 ❌ DualTake job FAILED — marking shot as error', [
                             'jobKey' => $jobKey,
                             'status' => $status,
@@ -8476,6 +8540,17 @@ PROMPT;
                         'error' => $result['error'] ?? 'Unknown error',
                     ]);
                 } else {
+                    // Still processing — update diagnostic with polling status
+                    if ($jobType === 'dual_take') {
+                        $pollingStep = str_contains($jobKey, 'take1') ? 'POLLING_TAKE1' : 'POLLING_TAKE2';
+                        $startedAt = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] ?? 0;
+                        $elapsedSec = $startedAt ? (now()->timestamp - $startedAt) : 0;
+                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog(
+                            $this->projectId ?? 0, $pollingStep, 'start',
+                            ['status' => $status, 'elapsed' => $elapsedSec . 's', 'taskId' => $taskId],
+                            "Status: {$status} — elapsed {$elapsedSec}s"
+                        );
+                    }
                     \Log::info('📡 ⏳ Still processing...', ['status' => $status]);
                 }
 
@@ -31523,6 +31598,11 @@ PROMPT;
                 throw new \Exception('Project not found for dual take dispatch');
             }
 
+            // --- Pipeline Diagnostic: Initialize ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::clearPipelineLog($projectId);
+            $projectTitle = $project->name ?? "Project {$projectId}";
+            $diagnosticUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateDiagnosticHtml($projectId, $projectTitle);
+
             $charactersInShot = $shot['charactersInShot'] ?? [];
             $speaker1Name = $charactersInShot[0] ?? '';
             $speaker2Name = $charactersInShot[1] ?? '';
@@ -31544,14 +31624,23 @@ PROMPT;
             }
 
             // Determine audio routing strategy based on expected face detection
-            // When InsightFace detects 2 faces: wav_url → leftmost face, wav_url_2 → right face
-            // When InsightFace detects 1 face: wav_url → detected face's side (always the human),
-            //   wav_url_2 → opposite side. So wav_url must carry the HUMAN character's audio.
             $useSingleFaceStrategy = ($detectableFaces < 2);
 
             // Identify which speaker has a human-detectable face
             $speaker1HasHumanFace = $humanFaces[$speaker1Name] ?? true;
             $speaker2HasHumanFace = $humanFaces[$speaker2Name] ?? true;
+
+            // --- Diagnostic: INIT ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'INIT', 'done', [
+                'characters' => $charactersInShot,
+                'faceOrder' => $faceOrder,
+                'humanFaces' => $humanFaces,
+                'detectableFaces' => $detectableFaces,
+                'useSingleFaceStrategy' => $useSingleFaceStrategy,
+                'speaker1IsLeftFace' => $speaker1IsLeftFace,
+                'speaker1HasHumanFace' => $speaker1HasHumanFace,
+                'speaker2HasHumanFace' => $speaker2HasHumanFace,
+            ], "Characters: {$speaker1Name} vs {$speaker2Name}");
 
             \Log::info('🎬 DualTake: Sequential mode — dispatching Take 1 first', [
                 'speaker1' => $speaker1Name,
@@ -31563,6 +31652,16 @@ PROMPT;
                 'audioDuration1' => $audioDuration,
                 'audioDuration2' => $audioDuration2Val,
             ]);
+
+            // --- Diagnostic: VOICE_INFO ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'VOICE_INFO', 'done', [
+                'speaker1_name' => $speaker1Name,
+                'speaker1_duration' => $audioDuration ? round($audioDuration, 2) . 's' : 'unknown',
+                'speaker1_audio' => $audioUrl,
+                'speaker2_name' => $speaker2Name,
+                'speaker2_duration' => round($audioDuration2Val, 2) . 's',
+                'speaker2_audio' => $audioUrl2,
+            ], "Speaker 1: {$speaker1Name} ({$audioDuration}s) | Speaker 2: {$speaker2Name} ({$audioDuration2Val}s)");
 
             // --- Add noise floor to SPEAKER audio to prevent freeze during speech pauses ---
             $speaker1AudioUrl = $audioUrl;
@@ -31584,81 +31683,105 @@ PROMPT;
             $take1AudioDur = $audioDuration ?? 5.0;
             $take1Duration = (int) ceil($take1AudioDur + 0.5);
             $take1MaxFrame = min($take1Duration * $fps, 30 * $fps);
-            // Ambient noise WAV for the listening face
-            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $take1AudioDur + 0.25);
+            // TRUE SILENCE for the listening face — zero amplitude prevents lip-sync bleed
+            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateTrueSilentWavUrl($projectId, $take1AudioDur + 0.25);
 
-            // Build monologue-style prompt focused on speaker 1
+            // Build monologue-style prompt focused on speaker 1 (with dual take mouth suppression)
             $take1Shot = array_merge($shot, [
                 'speakingCharacter' => $speaker1Name,
                 'isDialogueShot' => false,
+                'isDualTake' => true,
             ]);
             $take1Prompt = $this->buildInfiniteTalkPrompt($take1Shot, $scene);
 
             // Assign audio to correct faces
-            // Strategy depends on whether InfiniteTalk will detect 1 or 2 faces:
-            //   2-face mode: wav_url → leftmost face, wav_url_2 → rightmost face
-            //   1-face mode: wav_url → detected (human) face's side, wav_url_2 → opposite
             if ($useSingleFaceStrategy) {
-                // 1-face fallback: wav_url always goes to the detected human face
-                // So wav_url must carry the audio for the human character in this take
                 if ($speaker1HasHumanFace) {
-                    // Speaker 1 is human → wav_url = speaker 1 speech, wav_url_2 = silence
                     $take1AudioFace0 = $speaker1AudioUrl;
                     $take1AudioFace1 = $take1SilentUrl;
                 } else {
-                    // Speaker 1 is NOT human → wav_url = silence (goes to human listener),
-                    // wav_url_2 = speaker 1 speech (goes to the other/non-human side)
                     $take1AudioFace0 = $take1SilentUrl;
                     $take1AudioFace1 = $speaker1AudioUrl;
                 }
             } else {
-                // 2-face mode: assign based on left-right position
                 if ($speaker1IsLeftFace) {
-                    $take1AudioFace0 = $speaker1AudioUrl;  // Speaker 1 on left
-                    $take1AudioFace1 = $take1SilentUrl;    // Listener on right
+                    $take1AudioFace0 = $speaker1AudioUrl;
+                    $take1AudioFace1 = $take1SilentUrl;
                 } else {
-                    $take1AudioFace0 = $take1SilentUrl;    // Listener on left
-                    $take1AudioFace1 = $speaker1AudioUrl;  // Speaker 1 on right
+                    $take1AudioFace0 = $take1SilentUrl;
+                    $take1AudioFace1 = $speaker1AudioUrl;
                 }
             }
+
+            // --- Diagnostic: AUDIO_ROUTING_TAKE1 ---
+            $take1RoutingBranch = $useSingleFaceStrategy
+                ? ($speaker1HasHumanFace ? 'single-face: speaker1 IS human → wav_url=speech' : 'single-face: speaker1 NOT human → wav_url=silence')
+                : ($speaker1IsLeftFace ? '2-face: speaker1 on LEFT → wav_url=speech' : '2-face: speaker1 on RIGHT → wav_url=silence');
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE1', 'done', [
+                'strategy' => $useSingleFaceStrategy ? 'Single-face (' . $detectableFaces . ' detectable)' : '2-face mode',
+                'branch' => $take1RoutingBranch,
+                'wav_url_face0' => $take1AudioFace0,
+                'wav_url_2_face1' => $take1AudioFace1,
+                'silence_type' => 'TRUE SILENCE (zero amplitude)',
+            ], $take1RoutingBranch);
+
+            // --- Diagnostic: PROMPT_TAKE1 ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PROMPT_TAKE1', 'done', [
+                '_prompt' => $take1Prompt,
+            ], "Prompt for {$speaker1Name} speaking, {$speaker2Name} listening");
 
             // --- Prepare Take 2 config (dispatched later when Take 1 completes) ---
             $take2Duration = (int) ceil($audioDuration2Val + 0.5);
             $take2MaxFrame = min($take2Duration * $fps, 30 * $fps);
-            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateAmbientWavUrl($projectId, $audioDuration2Val + 0.25);
+            // TRUE SILENCE for the listening face in Take 2
+            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateTrueSilentWavUrl($projectId, $audioDuration2Val + 0.25);
 
             $take2Shot = array_merge($shot, [
                 'speakingCharacter' => $speaker2Name,
                 'isDialogueShot' => false,
+                'isDualTake' => true,
             ]);
             $take2Prompt = $this->buildInfiniteTalkPrompt($take2Shot, $scene);
 
             if ($useSingleFaceStrategy) {
-                // 1-face fallback: wav_url goes to the detected human face
                 if ($speaker2HasHumanFace) {
-                    // Speaker 2 is human → wav_url = speaker 2 speech
                     $take2AudioFace0 = $speaker2AudioUrl;
                     $take2AudioFace1 = $take2SilentUrl;
                 } else {
-                    // Speaker 2 is NOT human → wav_url = silence (goes to human listener),
-                    // wav_url_2 = speaker 2 speech (goes to non-human side)
                     $take2AudioFace0 = $take2SilentUrl;
                     $take2AudioFace1 = $speaker2AudioUrl;
                 }
             } else {
-                // 2-face mode: assign based on left-right position
                 if ($speaker1IsLeftFace) {
-                    $take2AudioFace0 = $take2SilentUrl;    // Listener on left
-                    $take2AudioFace1 = $speaker2AudioUrl;  // Speaker 2 on right
+                    $take2AudioFace0 = $take2SilentUrl;
+                    $take2AudioFace1 = $speaker2AudioUrl;
                 } else {
-                    $take2AudioFace0 = $speaker2AudioUrl;  // Speaker 2 on left
-                    $take2AudioFace1 = $take2SilentUrl;    // Listener on right
+                    $take2AudioFace0 = $speaker2AudioUrl;
+                    $take2AudioFace1 = $take2SilentUrl;
                 }
             }
+
+            // --- Diagnostic: AUDIO_ROUTING_TAKE2 ---
+            $take2RoutingBranch = $useSingleFaceStrategy
+                ? ($speaker2HasHumanFace ? 'single-face: speaker2 IS human → wav_url=speech' : 'single-face: speaker2 NOT human → wav_url=silence')
+                : ($speaker1IsLeftFace ? '2-face: speaker2 on RIGHT → wav_url_2=speech' : '2-face: speaker2 on LEFT → wav_url=speech');
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE2', 'done', [
+                'strategy' => $useSingleFaceStrategy ? 'Single-face' : '2-face mode',
+                'branch' => $take2RoutingBranch,
+                'wav_url_face0' => $take2AudioFace0,
+                'wav_url_2_face1' => $take2AudioFace1,
+                'silence_type' => 'TRUE SILENCE (zero amplitude)',
+            ], $take2RoutingBranch);
+
+            // --- Diagnostic: PROMPT_TAKE2 ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PROMPT_TAKE2', 'done', [
+                '_prompt' => $take2Prompt,
+            ], "Prompt for {$speaker2Name} speaking, {$speaker1Name} listening");
 
             // Mark shot as dual take mode and clear any old take URLs from previous render
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode'] = true;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['diagnosticUrl'] = $diagnosticUrl;
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1VideoUrl']);
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2VideoUrl']);
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId']);
@@ -31675,12 +31798,53 @@ PROMPT;
                 'selectedModel' => $selectedModel,
             ];
 
+            // --- Diagnostic: TAKE2_CONFIG_STORED ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'TAKE2_CONFIG_STORED', 'done', [
+                'duration' => $take2Duration,
+                'maxFrame' => $take2MaxFrame,
+                'audioDuration' => $audioDuration2Val,
+            ], 'Take 2 config stored — will dispatch after Take 1 completes');
+
             // Store prompts for debug panel
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] =
                 "DUAL TAKE MODE (Sequential)\n\n--- Take 1 ({$speaker1Name}) ---\n{$take1Prompt}\n\n--- Take 2 ({$speaker2Name}) ---\n{$take2Prompt}";
 
             // --- Dispatch ONLY Take 1 now ---
             $take1Key = "dual_take1_{$sceneIndex}_{$shotIndex}";
+
+            // Compute resolution for diagnostic payload logging
+            $resolution = \Modules\AppVideoWizard\Services\InfiniteTalkService::getResolutionForAspectRatio($this->aspectRatio);
+            $payloadWidth = $resolution['width'];
+            $payloadHeight = $resolution['height'];
+            // Multi-mode scaling
+            $maxDim = 768;
+            if ($payloadWidth > $maxDim || $payloadHeight > $maxDim) {
+                $scale = min($maxDim / $payloadWidth, $maxDim / $payloadHeight);
+                $payloadWidth = (int) (floor(round($payloadWidth * $scale) / 8) * 8);
+                $payloadHeight = (int) (floor(round($payloadHeight * $scale) / 8) * 8);
+            }
+
+            // --- Diagnostic: PAYLOAD_TAKE1 ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PAYLOAD_TAKE1', 'done', [
+                'image_url' => $shot['imageUrl'] ?? '',
+                'wav_url' => $take1AudioFace0,
+                'wav_url_2' => $take1AudioFace1,
+                'person_count' => 'multi',
+                'max_frame' => $take1MaxFrame,
+                'width' => $payloadWidth,
+                'height' => $payloadHeight,
+                'aspect_ratio' => $this->aspectRatio,
+                '_payload' => [
+                    'imageUrl' => $shot['imageUrl'] ?? '',
+                    'prompt' => substr($take1Prompt, 0, 200) . '...',
+                    'model' => $selectedModel,
+                    'duration' => $take1Duration,
+                    'audioUrl' => $take1AudioFace0,
+                    'audio_url_2' => $take1AudioFace1,
+                    'person_count' => 'multi',
+                    'max_frame' => $take1MaxFrame,
+                ],
+            ], 'RunPod payload for Take 1');
 
             \Log::info("🎬 DualTake: Take 1 audio assignment", [
                 'wav_url_face0' => substr($take1AudioFace0, -60),
@@ -31721,22 +31885,40 @@ PROMPT;
                     'takeKey' => $take1Key,
                 ];
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId'] = $result['taskId'];
+
+                // --- Diagnostic: DISPATCH_TAKE1 ---
+                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'DISPATCH_TAKE1', 'done', [
+                    'taskId' => $result['taskId'],
+                    'provider' => $result['provider'] ?? 'infinitetalk',
+                    'endpointId' => $result['endpointId'] ?? null,
+                ], "Take 1 dispatched — taskId: {$result['taskId']}");
             } else {
+                // --- Diagnostic: DISPATCH_TAKE1 error ---
+                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'DISPATCH_TAKE1', 'error', [
+                    'error' => $result['error'] ?? 'Unknown',
+                ], 'Take 1 dispatch FAILED');
                 throw new \Exception("Failed to dispatch Take 1 ({$speaker1Name}): " . ($result['error'] ?? 'Unknown error'));
             }
+
+            // --- Diagnostic: POLLING_TAKE1 (initial) ---
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'POLLING_TAKE1', 'start', [
+                'taskId' => $result['taskId'],
+            ], 'Waiting for Take 1 to complete...');
 
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
             $this->saveProject();
 
-            // Dispatch event to start polling
+            // Dispatch events: start polling + auto-open diagnostic tab
             $this->dispatch('video-generation-started', [
                 'taskId' => 'dual_take',
                 'sceneIndex' => $sceneIndex,
                 'shotIndex' => $shotIndex,
             ]);
+            $this->dispatch('open-diagnostic', url: $diagnosticUrl);
 
             \Log::info('🎬 DualTake: Take 1 dispatched — Take 2 will start when Take 1 completes', [
                 'pendingJobKeys' => array_keys($this->pendingJobs),
+                'diagnosticUrl' => $diagnosticUrl,
             ]);
 
         } catch (\Exception $e) {
@@ -31745,6 +31927,12 @@ PROMPT;
             unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode']);
             $this->error = __('Dual Take failed: ') . $e->getMessage();
             \Log::error('🎬 DualTake: Dispatch error', ['error' => $e->getMessage()]);
+
+            // Log error to diagnostic pipeline
+            $projectId = $this->projectId ?? 0;
+            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'ERROR', 'error', [
+                'error' => $e->getMessage(),
+            ], 'Pipeline failed: ' . $e->getMessage());
         }
     }
 
@@ -32091,14 +32279,18 @@ PROMPT;
         }
 
         if (!empty($otherNames)) {
+            // In dual take mode, suppress mouth movement for ALL listeners (even animals)
+            // since each take focuses entirely on one speaker and we want zero lip-sync bleed.
+            // In single take mode, only suppress human listeners to preserve animal animations.
+            $isDualTake = $shot['isDualTake'] ?? false;
             foreach ($otherNames as $otherName) {
                 $otherDesc = $getCharDesc($otherName);
                 $listenerSpecies = $this->getCharacterSpecies($otherName, $characterBible);
                 $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
                 $label = $otherDesc ? "{$otherName} ({$this->condenseToSentence($otherDesc, 50)})" : $otherName;
-                // Human listeners need strong mouth-suppression to prevent lip-sync bleed;
-                // animal listeners must NOT get this directive or it freezes their species animations
-                $mouthDirective = ($listenerSpecies === 'human') ? ', absolutely NO speaking or mouth opening' : '';
+                $mouthDirective = ($isDualTake || $listenerSpecies === 'human')
+                    ? ', absolutely NO speaking or mouth opening, mouth CLOSED'
+                    : '';
                 $parts[] = "{$label}: listening silently, {$listenerAnimation}{$mouthDirective}";
             }
         }
