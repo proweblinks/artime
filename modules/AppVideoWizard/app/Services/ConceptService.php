@@ -706,6 +706,13 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Describe EVERY physical action: pushing, throwing, knocking things over, swatting, chasing, jumping, etc.
    - Note the EXACT SECOND when each new action begins
    - Describe what EACH character does independently at each phase
+   - ACTION INTENSITY RATING: Rate the peak physical intensity of the scene:
+     * CALM: characters mostly standing still, gentle movements, talking
+     * MODERATE: some physical movement, light gestures, minor comedy
+     * INTENSE: aggressive movements, throwing, pushing, fast actions
+     * EXTREME/WILD: chaotic, things breaking/flying, characters leaping, total pandemonium
+   - What SPECIFIC DESTRUCTIVE or WILD actions happen? (breaking objects, knocking things over, throwing items, jumping on things, pushing things off surfaces, crashing into things)
+   - Be SPECIFIC about the physical destruction: what objects get knocked over, thrown, broken, pushed off surfaces?
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
    - What sounds do you hear? List them: human speech, animal sounds, background noise, music
@@ -820,7 +827,16 @@ TEMPORAL PROGRESSION IS CRITICAL:
 The video prompt MUST describe the FULL action sequence over time, NOT just a single static moment.
 Use temporal phrases: "At first...", "After a moment...", "Then suddenly...", "The cat then begins to..."
 Most viral videos have 2-3 action phases — your video prompt must describe ALL of them.
-Example: "A cat sits calmly on the counter in a pizza shop uniform. After a few seconds, the cat suddenly swats at items on the counter, knocking a cup to the floor. The woman jumps back in surprise as the cat hisses and pushes more items off the edge."
+
+EXTREME ACTION IS CRITICAL:
+Viral videos go viral because the actions are EXTREME, WILD, and OVER-THE-TOP. Your video prompt MUST:
+- AMPLIFY the physical intensity of every action. Don't just say "the cat responds" — say "the cat LEAPS across the counter, SWATTING dishes and cups off the edge, KNOCKING over containers"
+- Use STRONG ACTION VERBS: smashes, hurls, flips, slams, crashes, launches, explodes, demolishes, rams, whacks
+- The escalation phase should be CHAOTIC: things breaking, flying through the air, characters dodging, objects crashing to the floor
+- The climax should be MAXIMUM CHAOS: total pandemonium, multiple objects mid-air, characters in extreme poses
+- Animal characters should be PHYSICALLY WILD: jumping, climbing, knocking things over, pushing objects off counters, sending items flying
+- NEVER describe a character as "holding their pose" or "maintaining their stance" — that's BORING. Characters must be IN MOTION with explosive energy.
+Example: "A cat sits calmly on the counter in a pizza shop uniform. After a few seconds, the cat suddenly leaps forward, swatting dishes off the counter, sending cups crashing to the floor. The woman jumps back in shock as the cat hisses violently and pushes the entire stack of plates off the edge, sending food flying everywhere."
 
 STRUCTURE RULES (from official Seedance docs):
 1. Write the SCENE DESCRIPTION as natural prose paragraphs. Describe characters, their appearance, positions, and actions clearly.
@@ -881,10 +897,10 @@ CRITICAL RULES:
 
 {$videoPromptInstruction}
 
-Also generate a "cameraFixed" field:
-- true = static camera (phone footage, security cam, tripod, most TikTok/Reels)
-- false = camera movement present (dolly, pan, tracking, zoom)
-- Most short-form social videos use STATIC camera — set to true unless the analysis shows clear camera movement.
+The "cameraFixed" field MUST ALWAYS be true for social content videos.
+- Camera movement is controlled separately by the API — NEVER set this to false.
+- Even if the reference video had zoom/pan/tracking, the cloned version should use a FIXED camera.
+- This is a hard rule: "cameraFixed": true — no exceptions.
 
 IMPORTANT — CHARACTER RULES:
 - The "characters" array MUST include EVERY visible character/creature in the video, even for voiceover/monologue scenes.
@@ -901,7 +917,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   ],
   "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
   "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
-  "situation": "The FULL action sequence: describe ALL phases of what happens from start to end — e.g. 'Cat starts calmly at counter, then begins swatting items, knocking things to the floor while the woman reacts in shock'",
+  "situation": "The FULL action sequence with EXTREME physical actions: ALL phases from calm setup to WILD climax — e.g. 'Cat starts calmly at counter, then EXPLODES into action — leaping, swatting dishes off the counter, sending food flying, smashing cups to the floor while the woman ducks and scrambles back in terror'",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",
   "audioType": "voiceover" or "dialogue" or "sfx" or "silent",
