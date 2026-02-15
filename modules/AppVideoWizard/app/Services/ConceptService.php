@@ -593,15 +593,31 @@ PROMPT;
 
         // Build multimodal message with all frames
         $content = [];
+        $frameSizes = [];
         foreach ($framePaths as $i => $framePath) {
-            $base64 = base64_encode(file_get_contents($framePath));
+            $frameData = file_get_contents($framePath);
+            $frameSizes[] = strlen($frameData);
+            $base64 = base64_encode($frameData);
             $content[] = [
                 'type' => 'image_url',
                 'image_url' => [
                     'url' => 'data:image/jpeg;base64,' . $base64,
                 ],
             ];
+
+            // Save first frame for debug verification
+            if ($i === 0) {
+                $debugDir = storage_path('app/public/debug');
+                if (!is_dir($debugDir)) @mkdir($debugDir, 0755, true);
+                @copy($framePath, $debugDir . '/concept_debug_frame.jpg');
+            }
         }
+
+        Log::info('ConceptCloner: Sending frames to Grok vision', [
+            'frameCount' => count($framePaths),
+            'frameSizes' => $frameSizes,
+            'totalBase64Bytes' => array_sum(array_map(fn($s) => (int) ceil($s * 4 / 3), $frameSizes)),
+        ]);
 
         // Add the analysis prompt
         $content[] = [
@@ -614,12 +630,11 @@ PROMPT;
             'content' => $content,
         ]];
 
-        // IMPORTANT: Must use a model that explicitly supports image input.
-        // 'grok-4-fast' is a text-only alias — it ignores images and hallucinates.
-        // 'grok-4-1-fast-non-reasoning' is the latest model with explicit image input support.
-        // See: https://docs.x.ai/developers/models
+        // IMPORTANT: Must use the dedicated vision model.
+        // 'grok-4-fast' and 'grok-4-1-fast-non-reasoning' both hallucinate (ignore images).
+        // 'grok-2-vision-1212' is xAI's dedicated vision model that actually processes images.
         $result = $grokService->generateVision($messages, [
-            'model' => 'grok-4-1-fast-non-reasoning',
+            'model' => 'grok-2-vision-1212',
             'max_tokens' => 4000,
             'temperature' => 0.2,
         ]);
