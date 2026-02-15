@@ -717,7 +717,7 @@
                             <div class="vw-social-progress-fill"></div>
                         </div>
                         <div class="vw-social-progress-hint">
-                            {{ ($shot['dualTakeMode'] ?? false) ? __('Two renders running in parallel — same wait time as single') : __('This usually takes 2-5 minutes') }}
+                            {{ ($shot['dualTakeMode'] ?? false) ? __('Sequential rendering — Take 2 uses Take 1\'s last frame for smooth transition') : __('This usually takes 2-5 minutes') }}
                         </div>
                     </div>
                 @endif
