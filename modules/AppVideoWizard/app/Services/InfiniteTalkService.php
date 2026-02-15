@@ -469,6 +469,60 @@ class InfiniteTalkService
     }
 
     /**
+     * Generate a WAV file with very subtle pink noise instead of pure silence.
+     * Used in Dual Take mode to keep InfiniteTalk's animation engine active
+     * during speech gaps — prevents character freezing when the speaking face
+     * has a natural pause and the listening face would otherwise be pure silence.
+     */
+    public static function generateAmbientWavUrl(int $projectId, float $durationSeconds = 5.0): string
+    {
+        $ffmpeg = null;
+        foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                $ffmpeg = $path;
+                break;
+            }
+        }
+
+        // Fallback: if no ffmpeg, return silent WAV (better than nothing)
+        if (!$ffmpeg) {
+            Log::warning('InfiniteTalk: ffmpeg not found for ambient noise, falling back to silent WAV');
+            return self::generateSilentWavUrl($projectId, $durationSeconds);
+        }
+
+        $filename = 'ambient_' . md5($durationSeconds . '_' . $projectId . '_' . time()) . '.wav';
+        $storagePath = "wizard-audio/{$projectId}/{$filename}";
+        $diskPath = Storage::disk('public')->path($storagePath);
+
+        // Ensure directory exists
+        $dir = dirname($diskPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        // Generate pink noise at very low amplitude (0.008 ≈ -42dB, inaudible but keeps animation active)
+        $cmd = sprintf(
+            '%s -f lavfi -i anoisesrc=c=pink:r=44100:a=0.008:d=%s -c:a pcm_s16le %s -y 2>&1',
+            escapeshellarg($ffmpeg),
+            $durationSeconds,
+            escapeshellarg($diskPath)
+        );
+
+        $output = [];
+        $returnCode = 0;
+        exec($cmd, $output, $returnCode);
+
+        if ($returnCode !== 0 || !file_exists($diskPath)) {
+            Log::warning('InfiniteTalk: ambient noise generation failed, falling back to silent WAV', [
+                'returnCode' => $returnCode,
+            ]);
+            return self::generateSilentWavUrl($projectId, $durationSeconds);
+        }
+
+        return url('/files/' . $storagePath);
+    }
+
+    /**
      * Build timeline-synchronized audio tracks for multi-person dialogue.
      *
      * Instead of playing both speakers simultaneously, this creates tracks where:
