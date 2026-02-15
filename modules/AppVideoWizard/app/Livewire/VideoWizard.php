@@ -31489,9 +31489,13 @@ PROMPT;
                 'label' => "Take2 ({$speaker2Name} speaks)",
             ];
 
-            // Mark shot as dual take mode
+            // Mark shot as dual take mode and clear any old take URLs from previous render
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode'] = true;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1VideoUrl']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2VideoUrl']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId']);
+            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId']);
 
             // Store prompts for debug panel
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] =
