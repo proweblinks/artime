@@ -114,40 +114,22 @@ class InfiniteTalkService
             }
         }
 
-        // Negative prompt for quality
-        $negativePrompt = $options['negative_prompt']
-            ?? 'bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards';
-
-        // Sampler quality parameters
-        // WARNING: cfg>1 doubles per-step compute (conditional+unconditional guidance).
-        // audio_cfg_scale>1 adds another guidance pass. For 527-frame video across
-        // 8 temporal windows, even cfg=2 causes ~78s/step (vs ~10s with cfg=1).
-        // Keep defaults at 1.0 to match workflow JSON speed (~8 min render).
-        // Override via $options for quality experiments.
-        $steps = $options['steps'] ?? 6;
-        $cfg = $options['cfg'] ?? 1.0;
-        $shift = $options['shift'] ?? 5.0;
-
-        // Audio guidance scale — lip-sync accuracy. Keep at 1 for speed.
-        $audioCfgScale = $options['audio_cfg_scale'] ?? 1;
-
         // Build InfiniteTalk input payload
+        // Only override workflow defaults that need correcting per official InfiniteTalk docs:
+        //   - steps=40 (official default; workflow has 6 for speed)
+        //   - audio_cfg_scale=2 (official LoRA default; workflow has 1 for speed)
+        // All other params (cfg=1, shift=11, seed=2, negative_prompt, scheduler)
+        // are left to the workflow JSON defaults — do NOT override them.
         $input = [
             'input_type' => $inputType,
             'person_count' => $personCount,
             'prompt' => $prompt,
-            'negative_prompt' => $negativePrompt,
             'width' => (int) $width,
             'height' => (int) $height,
             'force_offload' => $options['force_offload'] ?? true,
-            // Sampler quality parameters
-            'steps' => (int) $steps,
-            'cfg' => (float) $cfg,
-            'shift' => (float) $shift,
-            // Audio lip-sync accuracy
-            'audio_cfg_scale' => (float) $audioCfgScale,
-            // Seed: -1 = random each run (prevents identical outputs)
-            'seed' => (int) ($options['seed'] ?? -1),
+            // Official InfiniteTalk defaults (override RunPod Hub speed-optimized values)
+            'steps' => (int) ($options['steps'] ?? 40),
+            'audio_cfg_scale' => (float) ($options['audio_cfg_scale'] ?? 2),
         ];
 
         // Set source media based on input type
@@ -183,10 +165,8 @@ class InfiniteTalkService
             'has_wav_base64_2' => isset($input['wav_base64_2']),
             'width' => $width,
             'height' => $height,
-            'steps' => $steps,
-            'cfg' => $cfg,
-            'shift' => $shift,
-            'audio_cfg_scale' => $audioCfgScale,
+            'steps' => $input['steps'],
+            'audio_cfg_scale' => $input['audio_cfg_scale'],
         ]);
 
         $result = $this->runPodService->runAsync($this->endpointId, $input);
