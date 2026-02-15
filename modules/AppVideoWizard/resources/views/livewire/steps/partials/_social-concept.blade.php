@@ -647,11 +647,13 @@
                                style="display: none;" />
                     </div>
 
-                    {{-- Upload Progress --}}
-                    <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress">
-                        <div class="vw-progress-spinner"></div>
-                        <span>{{ __('Uploading video...') }}</span>
-                    </div>
+                    {{-- Upload Progress (only show when no video loaded yet and no analysis result) --}}
+                    @if(!$conceptVideoUpload && !$videoAnalysisResult)
+                        <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress">
+                            <div class="vw-progress-spinner"></div>
+                            <span>{{ __('Uploading video...') }}</span>
+                        </div>
+                    @endif
 
                     {{-- Analyze Button --}}
                     @if($conceptVideoUpload && !$videoAnalysisStage)
