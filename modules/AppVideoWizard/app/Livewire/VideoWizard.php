@@ -8354,6 +8354,9 @@ PROMPT;
 
                                     \Log::info('📡 🎬 DualTake: Dispatching Take 2 with ' . ($lastFrameUrl ? 'last frame from Take 1' : 'original image'), [
                                         'take2ImageUrl' => substr($take2ImageUrl, 0, 100),
+                                        'audioUrl_face0' => substr($take2Config['audioUrl'] ?? '', -60),
+                                        'audioUrl2_face1' => substr($take2Config['audioUrl2'] ?? '', -60),
+                                        'prompt_preview' => substr($take2Config['prompt'] ?? '', 0, 200),
                                     ]);
 
                                     // Dispatch Take 2
@@ -32045,7 +32048,7 @@ PROMPT;
                 'dog' => 'ears perked forward, head tilting side to side, tail wagging gently, tongue occasionally visible',
                 'bird' => 'head bobbing and tilting with interest, feathers ruffling slightly, blinking alertly',
                 'robot' => 'LED indicators pulsing, minimal mechanical adjustments, sensor array focused',
-                default => 'standing still, occasional subtle eye blinks, watching the speaker',
+                default => 'standing still with mouth firmly closed and lips sealed shut, occasional subtle eye blinks, watching the speaker in silence',
             };
         }
         return match($species) {
