@@ -723,8 +723,8 @@
                              :class="{ 'dragging': isDragging }"
                              @dragover.prevent="isDragging = true"
                              @dragleave.prevent="isDragging = false"
-                             @drop.prevent="isDragging = false; $refs.videoInput.files = $event.dataTransfer.files; $refs.videoInput.dispatchEvent(new Event('change'))"
-                             @click="$refs.videoInput.click()">
+                             @drop.prevent="isDragging = false; let fi = $el.querySelector('input[type=file]'); fi.files = $event.dataTransfer.files; fi.dispatchEvent(new Event('change'))"
+                             @click="$el.querySelector('input[type=file]').click()">
 
                             @if($conceptVideoUpload)
                                 <video class="vw-video-preview" controls onclick="event.stopPropagation()">
