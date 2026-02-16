@@ -3267,6 +3267,7 @@ class VideoWizard extends Component
             $this->maxReachedStep = max($this->maxReachedStep, $step);
 
             // Social Content: Auto-generate script + auto-decompose when entering Create step
+            // BUT skip if we already have generated content (images/videos) to avoid losing work
             if ($this->isSocialContentMode() && $step === 4 && $previousStep <= 2) {
                 // Ensure aspect ratio matches format
                 $formats = config('appvideowizard.formats');
@@ -3274,8 +3275,20 @@ class VideoWizard extends Component
                     $this->aspectRatio = $formats[$this->format]['aspectRatio'];
                 }
 
-                $this->autoGenerateSocialScript();
-                $this->autoDecomposeSocialScene();
+                // Check if we already have decomposed scene data with generated content
+                $hasExistingContent = false;
+                $existingShots = $this->multiShotMode['decomposedScenes'][0]['shots'] ?? [];
+                foreach ($existingShots as $shot) {
+                    if (!empty($shot['imageUrl']) || !empty($shot['videoUrl']) || ($shot['imageStatus'] ?? 'pending') === 'generating' || ($shot['videoStatus'] ?? 'pending') === 'generating') {
+                        $hasExistingContent = true;
+                        break;
+                    }
+                }
+
+                if (!$hasExistingContent) {
+                    $this->autoGenerateSocialScript();
+                    $this->autoDecomposeSocialScene();
+                }
                 // Mark intermediate steps as reached for data consistency
                 $this->maxReachedStep = max($this->maxReachedStep, 4);
 
