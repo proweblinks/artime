@@ -2791,11 +2791,12 @@ class VideoWizard extends Component
                 if ($taskId) {
                     $provider = $shot['videoProvider'] ?? 'infinitetalk';
                     $endpointId = $shot['videoEndpointId'] ?? null;
-                    $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
+                    $jobType = $shot['videoJobType'] ?? 'shot_video';
+                    $jobKey = "{$jobType}_{$sceneIndex}_{$shotIndex}";
 
                     $this->pendingJobs[$jobKey] = [
                         'taskId' => $taskId,
-                        'type' => 'shot_video',
+                        'type' => $jobType,
                         'sceneIndex' => $sceneIndex,
                         'shotIndex' => $shotIndex,
                         'provider' => $provider,
@@ -8861,7 +8862,7 @@ PROMPT;
         }
 
         // Dispatch completion event if no more pending video jobs
-        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take']));
+        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take', 'video_extend']));
         if (!$hasVideoJobs) {
             \Log::info('📡 All video jobs complete - dispatching video-generation-complete');
             $this->dispatch('video-generation-complete');
@@ -32570,6 +32571,9 @@ PROMPT;
                         'endpointId' => null,
                     ];
                     $shot['videoStatus'] = 'processing';
+                    $shot['videoTaskId'] = $result['taskId'];
+                    $shot['videoProvider'] = $result['provider'] ?? 'wavespeed';
+                    $shot['videoJobType'] = 'video_extend';
                     $shot['videoJobStartedAt'] = now()->timestamp;
                     $shot['videoEstimatedSeconds'] = $duration * 30;
 
