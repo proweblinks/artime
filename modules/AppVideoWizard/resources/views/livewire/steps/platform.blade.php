@@ -290,12 +290,14 @@
         left: 50%;
         transform: translateX(-50%) scale(0.95);
         width: 340px;
+        max-height: 380px;
+        overflow-y: auto;
         background: rgba(255, 255, 255, 0.88);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(139, 92, 246, 0.25);
         border-radius: 1rem;
-        padding: 1.25rem;
+        padding: 1rem;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.08);
         z-index: 200;
         opacity: 0;
@@ -324,49 +326,49 @@
     .vw-platform-step .vw-popover-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-        padding-bottom: 0.6rem;
+        gap: 0.4rem;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.4rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
     .vw-platform-step .vw-popover-header i {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         color: #8b5cf6;
     }
     .vw-platform-step .vw-popover-title {
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         font-weight: 700;
         color: rgba(0, 0, 0, 0.85);
     }
     .vw-platform-step .vw-popover-duration {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: rgba(0, 0, 0, 0.4);
         margin-left: auto;
     }
     .vw-platform-step .vw-popover-desc {
-        font-size: 0.8rem;
-        line-height: 1.5;
+        font-size: 0.75rem;
+        line-height: 1.45;
         color: rgba(0, 0, 0, 0.65);
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.6rem;
     }
     .vw-platform-step .vw-popover-section-label {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: rgba(139, 92, 246, 0.7);
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.25rem;
     }
     .vw-platform-step .vw-popover-bullets {
         list-style: none;
         padding: 0;
-        margin: 0 0 0.85rem 0;
+        margin: 0 0 0.6rem 0;
     }
     .vw-platform-step .vw-popover-bullets li {
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         color: rgba(0, 0, 0, 0.6);
-        padding: 0.15rem 0;
-        padding-left: 1rem;
+        padding: 0.1rem 0;
+        padding-left: 0.85rem;
         position: relative;
     }
     .vw-platform-step .vw-popover-bullets li::before {
@@ -379,12 +381,27 @@
     .vw-platform-step .vw-popover-example {
         background: rgba(139, 92, 246, 0.06);
         border: 1px solid rgba(139, 92, 246, 0.12);
-        border-radius: 0.6rem;
-        padding: 0.65rem 0.8rem;
-        font-size: 0.78rem;
-        line-height: 1.5;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        font-size: 0.72rem;
+        line-height: 1.4;
         color: rgba(0, 0, 0, 0.6);
         font-style: italic;
+    }
+
+    /* Thin scrollbar for popover */
+    .vw-platform-step .vw-style-popover::-webkit-scrollbar {
+        width: 4px;
+    }
+    .vw-platform-step .vw-style-popover::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .vw-platform-step .vw-style-popover::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.2);
+        border-radius: 4px;
+    }
+    .vw-platform-step .vw-style-popover::-webkit-scrollbar-thumb:hover {
+        background: rgba(139, 92, 246, 0.4);
     }
 
     /* Mobile: popover below card instead of above */
