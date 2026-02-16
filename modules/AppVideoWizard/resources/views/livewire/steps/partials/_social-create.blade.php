@@ -468,25 +468,21 @@
         margin-bottom: 0.75rem; font-size: 0.85rem; color: #f97316; font-weight: 600;
     }
     .vw-extend-body {
-        display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: stretch;
+        display: flex; gap: 0.75rem; margin-bottom: 0.6rem; align-items: flex-start;
     }
     .vw-extend-frame-col {
-        flex: 0 0 38%; display: flex; align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.25); border-radius: 0.5rem; overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.06); min-height: 140px;
+        flex: 0 0 auto;
     }
     .vw-extend-frame-preview {
-        width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem;
-        display: block;
+        max-height: 120px; border-radius: 0.5rem; display: block;
     }
     .vw-extend-controls-col {
-        flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem;
+        flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.3rem;
     }
     .vw-extend-controls-col .vw-extend-duration-row { margin-bottom: 0; }
-    .vw-extend-controls-col .vw-extend-intensity-row { margin-bottom: 0; }
+    .vw-extend-controls-col .vw-extend-intensity-row { margin-bottom: 0; padding: 0.4rem 0.5rem; }
     @media (max-width: 500px) {
         .vw-extend-body { flex-direction: column; }
-        .vw-extend-frame-col { flex: none; max-height: 160px; }
     }
 
     /* Segment Edit Panel — compact layout */
