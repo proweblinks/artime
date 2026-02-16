@@ -448,6 +448,40 @@
         font-size: 0.7rem; color: #64748b; margin-left: auto;
     }
 
+    /* Chaos Mode Toggle */
+    .vw-chaos-mode-row {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .vw-chaos-toggle {
+        display: flex; align-items: center; gap: 0.4rem;
+        padding: 0.45rem 0.9rem;
+        background: rgba(40, 20, 10, 0.8);
+        border: 1px solid rgba(200, 80, 30, 0.3);
+        border-radius: 2rem;
+        color: #94a3b8; font-size: 0.8rem; font-weight: 700;
+        cursor: pointer; transition: all 0.2s;
+        letter-spacing: 0.05em;
+    }
+    .vw-chaos-toggle:hover {
+        border-color: rgba(239, 68, 68, 0.5); color: #fca5a5;
+    }
+    .vw-chaos-toggle.active {
+        border-color: rgba(239, 68, 68, 0.7);
+        background: rgba(239, 68, 68, 0.15);
+        color: #fef2f2;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.25), 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+    .vw-chaos-toggle.active i { color: #ef4444; }
+    .vw-chaos-toggle i { font-size: 0.8rem; transition: color 0.2s; }
+    .vw-chaos-hint {
+        font-size: 0.7rem; color: #f97316;
+    }
+    .vw-chaos-hint i { margin-right: 0.2rem; }
+    .vw-camera-section.chaos-disabled {
+        opacity: 0.35; pointer-events: none;
+    }
+
     /* Camera Movement Picker */
     .vw-camera-section { margin-bottom: 0.75rem; }
     .vw-camera-section > label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; }
@@ -1151,6 +1185,22 @@
                     <small>{{ __('140-170 words ideal. Dialogue trigger → instant chaos. Continuous animal sounds + intensity qualifiers on every action. End with "Cinematic, photorealistic."') }}</small>
                 </div>
 
+                {{-- Chaos Mode Toggle --}}
+                <div class="vw-chaos-mode-row" x-data="{
+                    chaosMode: $wire.entangle('multiShotMode.decomposedScenes.0.shots.0.seedanceChaosMode'),
+                }">
+                    <button type="button"
+                        class="vw-chaos-toggle"
+                        :class="{ 'active': chaosMode }"
+                        @click="chaosMode = !chaosMode">
+                        <i class="fa-solid fa-fire"></i>
+                        <span>CHAOS</span>
+                    </button>
+                    <span class="vw-chaos-hint" x-show="chaosMode" x-transition x-cloak>
+                        <i class="fa-solid fa-camera-rotate"></i> Auto: Handheld + Dynamic camera
+                    </span>
+                </div>
+
                 {{-- Camera Movement Picker --}}
                 @php
                 $cameraMoves = [
@@ -1166,7 +1216,9 @@
                 $currentCameraMove = $shot['seedanceCameraMove'] ?? 'none';
                 $currentCameraIntensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
                 @endphp
-                <div class="vw-camera-section" x-data="{ showIntensity: {{ $currentCameraMove !== 'none' ? 'true' : 'false' }} }">
+                <div class="vw-camera-section"
+                     :class="{ 'chaos-disabled': $wire.$get('multiShotMode.decomposedScenes.0.shots.0.seedanceChaosMode') }"
+                     x-data="{ showIntensity: {{ $currentCameraMove !== 'none' ? 'true' : 'false' }} }">
                     <label><i class="fa-solid fa-video"></i> {{ __('Camera Movement') }}</label>
                     <div class="vw-camera-pills">
                         @foreach($cameraMoves as $move)

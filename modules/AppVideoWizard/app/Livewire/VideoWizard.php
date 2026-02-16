@@ -3511,6 +3511,7 @@ class VideoWizard extends Component
             'seedanceCameraMove' => 'none',
             'seedanceCameraMoveIntensity' => 'moderate',
             'seedanceBackgroundMusic' => false,
+            'seedanceChaosMode' => false,
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraFixed' => $isSeedance ? (bool) ($selectedIdea['cameraFixed'] ?? true) : false,
             'cameraMovement' => [
@@ -3569,6 +3570,7 @@ class VideoWizard extends Component
     protected function assembleSeedancePrompt(string $basePrompt, array $shot): string
     {
         $prompt = trim($basePrompt);
+        $chaosMode = $shot['seedanceChaosMode'] ?? false;
 
         // Inject background music instruction if enabled
         $bgMusic = $shot['seedanceBackgroundMusic'] ?? false;
@@ -3576,13 +3578,17 @@ class VideoWizard extends Component
             $prompt .= ' Energetic background music playing throughout.';
         }
 
-        // Inject camera movement instruction
-        $cameraMove = $shot['seedanceCameraMove'] ?? 'none';
-        $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
-        if ($cameraMove !== 'none') {
-            $cameraInstruction = $this->getSeedanceCameraInstruction($cameraMove, $intensity);
-            if ($cameraInstruction) {
-                $prompt .= ' ' . $cameraInstruction;
+        // Camera: Chaos Mode auto-forces handheld+dynamic, otherwise use picker
+        if ($chaosMode) {
+            $prompt .= ' Shaky handheld camera rapidly whip-pans and jerks violently tracking the chaos.';
+        } else {
+            $cameraMove = $shot['seedanceCameraMove'] ?? 'none';
+            $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
+            if ($cameraMove !== 'none') {
+                $cameraInstruction = $this->getSeedanceCameraInstruction($cameraMove, $intensity);
+                if ($cameraInstruction) {
+                    $prompt .= ' ' . $cameraInstruction;
+                }
             }
         }
 
@@ -5006,6 +5012,7 @@ PROMPT;
                     'productionSubtype' => $this->productionSubtype,
                     'chaosLevel' => $this->chaosLevel,
                     'chaosDescription' => $this->chaosDescription,
+                    'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
                 ]
             );
 
@@ -5126,6 +5133,7 @@ PROMPT;
                 'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
                 'mimeType' => $mimeType,
                 'videoEngine' => $this->videoEngine,
+                'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
             ]);
 
             if ($firstFrameUrl) {
@@ -5201,6 +5209,7 @@ PROMPT;
                 'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
                 'mimeType' => 'video/mp4',
                 'videoEngine' => $this->videoEngine,
+                'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
             ]);
 
             if ($firstFrameUrl) {
@@ -32049,7 +32058,7 @@ PROMPT;
                             'duration' => $seedanceDuration,
                             'resolution' => $seedanceResolution,
                             'aspect_ratio' => $this->aspectRatio,
-                            'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
+                            'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                             'variant' => $shot['seedanceQuality'] ?? 'pro',
                         ]);
 
@@ -33193,7 +33202,7 @@ PROMPT;
                     'duration' => $duration,
                     'resolution' => $this->resolveSeedanceResolution($shot),
                     'aspect_ratio' => $this->aspectRatio,
-                    'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
+                    'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 
@@ -33684,7 +33693,7 @@ PROMPT;
                     'duration' => $duration,
                     'resolution' => $this->resolveSeedanceResolution($shot),
                     'aspect_ratio' => $this->aspectRatio,
-                    'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
+                    'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 

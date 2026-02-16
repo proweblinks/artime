@@ -281,6 +281,9 @@ PROMPT;
 
         $styleModifier = $this->getStylePromptModifier($productionSubtype);
         $chaosModifier = $this->getChaosPromptModifier($chaosLevel, $chaosDescription);
+        if (!empty($options['chaosMode'])) {
+            $chaosModifier .= "\n\n" . $this->getChaosModeSupercharger();
+        }
 
         if ($videoEngine === 'seedance') {
             $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
@@ -625,6 +628,50 @@ STYLE,
         return implode("\n", $parts);
     }
 
+    /**
+     * Chaos Mode structural override — fewer mega-beats, front-loaded explosion.
+     * Appended to chaos modifier when Chaos Mode toggle is active.
+     */
+    protected function getChaosModeSupercharger(): string
+    {
+        return <<<'CHAOS'
+=== CHAOS MODE ACTIVE — OVERRIDE STRUCTURE ===
+
+IMPORTANT: Chaos Mode overrides the normal action structure. Follow THESE rules instead:
+
+FEWER MEGA-BEATS (3-4 maximum):
+Instead of 6-8 rapid micro-actions, write ONLY 3-4 MASSIVE action beats.
+Each beat gets 2-3 full sentences of detailed physical description.
+More detail per beat = more motion energy Seedance allocates to each movement.
+
+FRONT-LOAD THE EXPLOSION:
+The BIGGEST, most devastating action happens IMMEDIATELY after "Instantly".
+Do NOT build up gradually. The first physical strike is the most explosive one.
+Structure: TRIGGER → INSTANT MEGA-STRIKE → escalation → peak destruction
+
+EXAMPLE — CHAOS MODE PROMPT:
+"The man says 'This is the worst pizza I've ever had!' Instantly the cat
+launches with crazy explosive force from behind the counter directly at the
+man's face, front claws extended wildly with large amplitude, slamming into
+his chest powerfully, sending him staggering violently backwards. The man
+crashes fast into a shelf of glass bottles, his arms flailing wildly as
+bottles shatter and liquid sprays with large amplitude in every direction.
+The cat's hind legs kick at high frequency against the man's torso, shredding
+fabric fast while the cat screams a crazy deafening yowl, mouth gaping wide.
+The man collapses powerfully onto the floor, pulling an entire display rack
+down with him, plates and cups crashing violently around him as the cat
+stands on his chest screaming wildly. Continuous crazy aggressive cat
+screaming throughout. Cinematic, photorealistic."
+
+KEY DIFFERENCES FROM NORMAL MODE:
+- 4 mega-beats instead of 8 micro-beats
+- Each beat has 2-3 sentences of detailed motion
+- First action (the launch) is the BIGGEST
+- "crazy" appears 3+ times
+- Every action has 2+ combined degree words
+CHAOS;
+    }
+
     // ========================================================================
     // VIDEO CONCEPT CLONER — Analyze uploaded video and extract concept
     // ========================================================================
@@ -646,6 +693,7 @@ STYLE,
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
         $mimeType = $options['mimeType'] ?? 'video/mp4';
+        $chaosMode = !empty($options['chaosMode']);
 
         $geminiService = app(\App\Services\GeminiService::class);
 
@@ -689,7 +737,7 @@ STYLE,
 
         // Stage 3: Synthesize into structured concept
         Log::info('ConceptCloner: Stage 3 — Synthesizing concept');
-        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine);
+        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine, $chaosMode);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
         return $concept;
@@ -1002,7 +1050,7 @@ PROMPT;
      * Synthesize Grok visual analysis + Whisper transcript into a structured concept.
      * Output matches the exact format returned by generateViralIdeas().
      */
-    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance'): array
+    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance', bool $chaosMode = false): array
     {
         $transcriptSection = $transcript
             ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- IMPORTANT FOR VOICEOVER TEXT: Strip out ALL animal sound words (meow, woof, bark, hiss, growl, etc.) from the voiceover narration. Only include the HUMAN SPEECH parts. If the transcript is 'This is not what I ordered! Meow meow meow! I asked for chicken!' the voiceover should be 'This is not what I ordered! I asked for chicken!' — no animal sounds in the voiceover.\n- The voiceover narration must contain ONLY clean human speech. Animal sounds happen VISUALLY in the scene, not in the voiceover audio."
@@ -1159,6 +1207,10 @@ EXAMPLE — GOOD CLONE PROMPT (~170 words):
 
 NOW generate the JSON — make the videoPrompt an INTENSIFIED creative version of the reference.
 PROMPT;
+
+        if ($chaosMode) {
+            $prompt .= "\n\n" . $this->getChaosModeSupercharger();
+        }
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
             'maxResult' => 1,
