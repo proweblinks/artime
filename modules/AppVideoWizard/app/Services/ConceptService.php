@@ -706,10 +706,16 @@ Every object must be HIT by a body part before it breaks. More destruction = bet
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
+SCALE & SIZE — Seedance renders characters at DEFAULT size unless told otherwise:
+- If characters are miniaturized/tiny/shrunken → you MUST say so: "tiny miniature cat barely ankle-height"
+- If characters are enlarged/giant → you MUST say so: "enormous cat towering over the table"
+- If there's a specific COUNT of characters → state it: "a line of twelve tiny cats" not just "cats"
+- Without explicit size cues, Seedance renders normal-sized characters — losing the visual comedy.
+
 BANNED:
 - No semicolons
 - No camera movement descriptions (camera is controlled separately by the API)
-- No appearance/clothing descriptions (what characters LOOK like — only what they DO)
+- No appearance/clothing descriptions (fur color, clothing, accessories — only what they DO and how BIG they are)
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
 RULES;
@@ -750,6 +756,15 @@ FAITHFULNESS:
 - If the video shows a marching band → write a marching band prompt.
 - If the video shows cooking → write a cooking prompt.
 - Do NOT transform everything into attack/destruction scenes.
+
+SCALE & QUANTITY — PRESERVE WHAT MAKES IT SPECIAL:
+- If characters are MINIATURIZED (tiny cats, shrunken animals) → the videoPrompt MUST describe them as tiny/miniature with size reference (e.g. "barely reaching her ankle").
+- If characters are ENLARGED → describe the exaggerated scale.
+- If there's a LARGE GROUP (a line of 12 cats, a swarm of hamsters) → specify the exact count and formation.
+- Scale and quantity are often the CORE of the visual comedy — losing them ruins the concept.
+
+WORD COUNT: 150-180 words. Aim for 160-175.
+DO NOT describe character appearances (fur color, clothing) — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
 === ADAPTIVE MODE — CHOOSE THE BEST STRUCTURE ===
@@ -1080,8 +1095,17 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Clothing, accessories, colors (be specific: "red baseball cap", not "hat")
    - Facial expression and body language as they CHANGE throughout the video
    - Role: protagonist, supporting, background
-   - Size relative to other objects/characters
    - SPATIAL POSITION: Where is each character relative to others? Who is in the foreground/background? Who faces whom?
+
+   SIZE & SCALE — THIS IS CRITICAL, DO NOT SKIP:
+   - What is each character's size RELATIVE to the human/environment? Compare to real-world expectations.
+   - Are characters their NORMAL real-world size, or are they digitally MINIATURIZED, ENLARGED, or otherwise scaled?
+   - If animals appear SMALLER or LARGER than their real species normally would be, SAY SO EXPLICITLY.
+     Example: "The cats are digitally miniaturized — roughly ankle-height on the woman, about 1/5 her height. Normal adult cats would reach her knee on hind legs."
+     Example: "The hamster is enlarged to the size of a dog, towering over the coffee table."
+   - Compare character height to nearby objects: doorways, furniture, other characters' body parts (ankle, knee, hip, shoulder).
+   - COUNT characters precisely: "exactly 3 cats" or "a line of approximately 12-15 cats" — do NOT say "some cats" or "several cats."
+   - If many identical/similar characters form a GROUP, describe the group size, formation pattern, and whether they move in unison or independently.
 
 2. SETTING & ENVIRONMENT:
    - Exact location (bathroom, kitchen counter, living room couch, outdoor garden, etc.)
@@ -1254,13 +1278,20 @@ IMPORTANT — CHARACTER RULES:
 - Each character entry must have a "position" field describing their exact spatial placement from the camera's perspective.
 - The "character" (singular) field should describe ALL main characters together in one sentence for the image prompt.
 
+CRITICAL — SIZE & SCALE IN VIDEO PROMPT:
+- If the visual analysis mentions characters that are MINIATURIZED, ENLARGED, or any UNUSUAL SIZE relative to normal → this MUST appear in the videoPrompt.
+- Size/scale is NOT "appearance" — it is a PHYSICAL PROPERTY that directly affects how Seedance renders the scene.
+- Example: if cats are tiny/miniaturized (ankle-height on a human), the videoPrompt MUST say "tiny miniature cat" or "miniaturized cat barely reaching the woman's ankle" — otherwise Seedance will render normal-sized cats and the entire visual comedy is lost.
+- If there is a GROUP of characters (e.g., a line of 12 cats), specify the COUNT and FORMATION in the videoPrompt — "a single-file line of twelve tiny cats" not just "cats."
+- Scale relationships between characters define the visual comedy. NEVER omit them.
+
 Return ONLY a JSON object (no markdown, no explanation):
 {
   "title": "Catchy title (max 6 words) — must reference the actual character/animal",
   "concept": "One sentence describing the EXACT visual scene as analyzed",
   "speechType": "monologue" or "dialogue",
   "characters": [
-    {"name": "Fun Name", "description": "EXACT species + detailed visual description matching the analysis: fur color, clothing, accessories, size", "role": "protagonist/supporting/background", "expression": "expression from analysis", "position": "EXACT spatial position: foreground/background, left/right/center, facing direction, distance from camera"}
+    {"name": "Fun Name", "description": "EXACT species + detailed visual description matching the analysis: fur color, clothing, accessories. CRITICAL: include SIZE/SCALE — e.g. 'miniaturized to ankle-height' or 'normal adult cat size' or 'enlarged to dog-sized'. If the analysis says characters are unusually sized, this MUST be reflected here.", "role": "protagonist/supporting/background", "expression": "expression from analysis", "position": "EXACT spatial position: foreground/background, left/right/center, facing direction, distance from camera"}
   ],
   "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
   "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
@@ -1291,8 +1322,9 @@ You are CLONING a reference video — capture the ENERGY and CONCEPT of the refe
 WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
 Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
 
-DO NOT describe character appearances — that's in "character" and "characters" fields.
-The videoPrompt describes ONLY actions, reactions, sounds, and voice.
+DO NOT describe character appearances (fur color, clothing, accessories) — that's in "character" and "characters" fields.
+The videoPrompt describes actions, reactions, sounds, voice, AND SIZE/SCALE.
+EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, giant), you MUST mention this in the videoPrompt — e.g. "tiny miniature cat barely reaching ankle height" — because Seedance needs this to render the correct scale.
 
 {$structureRules}
 
