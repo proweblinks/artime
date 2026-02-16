@@ -818,62 +818,48 @@ PROMPT;
 
         $videoPromptInstruction = $videoEngine === 'seedance'
             ? <<<'VIDPROMPT'
-Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt following the OFFICIAL format.
+Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt.
 
-SEEDANCE 1.5 PRO PROMPT FORMULA:
-Subject + Movement + Environment + Sound
+ABSOLUTE RULE — KEEP IT SHORT:
+The video prompt MUST be 80-120 words MAX. Seedance works best with concise, focused prompts.
+DO NOT describe every character's clothing, hair color, accessories etc. in the video prompt — that detail belongs in "character" and "characters" fields for the IMAGE prompt.
+The video prompt describes WHAT HAPPENS (actions, reactions, drama), NOT what things look like.
 
-TEMPORAL PROGRESSION IS CRITICAL:
-The video prompt MUST describe the FULL action sequence over time, NOT just a single static moment.
-Use temporal phrases: "At first...", "After a moment...", "Then suddenly...", "The cat then begins to..."
-Most viral videos have 2-3 action phases — your video prompt must describe ALL of them.
+STRUCTURE — 3 BEATS ONLY:
+Beat 1 (Setup): Who is there + brief location. ONE sentence.
+Beat 2 (Trigger): What starts the action. ONE sentence.
+Beat 3 (Explosion): The WILD, extreme physical reaction. 2-3 sentences max.
+Use temporal phrases: "At first...", "Then suddenly...", "The cat explodes into action..."
 
-EXTREME ACTION IS CRITICAL:
-Viral videos go viral because the actions are EXTREME, WILD, and OVER-THE-TOP. Your video prompt MUST:
-- AMPLIFY the physical intensity of every action. Don't just say "the cat responds" — say "the cat LEAPS across the counter, SWATTING dishes and cups off the edge, KNOCKING over containers"
-- Use STRONG ACTION VERBS: smashes, hurls, flips, slams, crashes, launches, explodes, demolishes, rams, whacks
-- The escalation phase should be CHAOTIC: things breaking, flying through the air, characters dodging, objects crashing to the floor
-- The climax should be MAXIMUM CHAOS: total pandemonium, multiple objects mid-air, characters in extreme poses
-- Animal characters should be PHYSICALLY WILD: jumping, climbing, knocking things over, pushing objects off counters, sending items flying
-- NEVER describe a character as "holding their pose" or "maintaining their stance" — that's BORING. Characters must be IN MOTION with explosive energy.
-Example: "A cat sits calmly on the counter in a pizza shop uniform. After a few seconds, the cat suddenly leaps forward, swatting dishes off the counter, sending cups crashing to the floor. The woman jumps back in shock as the cat hisses violently and pushes the entire stack of plates off the edge, sending food flying everywhere."
+EXTREME ACTION:
+Use STRONG verbs: smashes, hurls, flips, slams, launches, demolishes, rams.
+The climax must be MAXIMUM CHAOS: objects flying, things breaking, characters dodging debris.
+NEVER say "holds pose" or "maintains stance" — characters must be IN MOTION.
 
-STRUCTURE RULES (from official Seedance docs):
-1. Write the SCENE DESCRIPTION as natural prose paragraphs. Describe characters, their appearance, positions, and actions clearly.
-2. DO NOT use semicolons to separate layers. DO NOT write one giant run-on sentence.
-3. DO NOT describe camera movement in the prompt. Camera is controlled by the "cameraFixed" parameter.
+WHO SPEAKS vs WHO REACTS:
+- HUMANS speak dialogue. Animals NEVER speak human words.
+- ANIMALS react PHYSICALLY: leaping, smashing, throwing, screaming, howling.
+- If a human speaks, the animal's reaction is the MAIN EVENT of the video.
 
-FOR SCENES WITH HUMAN DIALOGUE (humans talking to each other):
-Write the scene description first, then add dialogue in this exact format:
-[Scene description paragraph]
-English dialogue:
-Character A: "Their line here"
-Character B: "Their line here"
+AUDIO FORMAT — pick ONE based on what makes sense:
+A) VOICEOVER (human narrates over visuals — common in viral animal videos):
+   Start with: Generate a video with voiceover: A [voice tone] [gender] voice says, "[short narration]"
+   Then write the scene description SEPARATELY.
+   CRITICAL: In the scene description, do NOT describe any character "speaking", "talking", or with "open mouth" — Seedance will lip-sync the voiceover to any character with mouth movements.
 
-FOR SCENES WITH VOICEOVER NARRATION (narrator voice over the visuals):
-Format: Generate a video with voiceover: A [voice description] says, "[narration text]"
-Then SEPARATELY write the scene description.
+B) DIALOGUE (human characters talk to each other on screen):
+   Write scene description, then:
+   English dialogue:
+   Character A: "line"
+   Character B: "line"
 
-CRITICAL VOICEOVER LIP-SYNC RULES:
-- The voiceover is narrated by an OFF-SCREEN voice. NO character on screen is speaking.
-- In the scene description, NEVER describe any character with "mouth open", "speaking", "talking", "saying", "meowing loudly", "hissing" or any mouth/vocal action that Seedance would lip-sync to the voiceover audio.
-- Instead describe characters with CLOSED-MOUTH expressions and BODY LANGUAGE: "looks surprised", "stares wide-eyed", "tilts head curiously", "stands alert", "leans forward".
-- Seedance will try to lip-sync the voiceover audio to ANY character described with an open mouth. This creates fake lip movement on the wrong character.
-- For animals: describe their POSE and BODY LANGUAGE, not their vocalizations. Say "the cat stands on the counter with an alert posture" NOT "the cat meows and hisses".
-- Keep the voiceover text SHORT and clean — do NOT include animal sounds like "meow meow" in the voiceover narration text. The voiceover is a HUMAN narrator only.
+C) SFX ONLY (no human speech — just animal sounds + environment):
+   Write scene description with animal sounds as actions: "the cat meows angrily and hisses".
 
-FOR SCENES WITH ONLY ANIMAL SOUNDS / SOUND EFFECTS (no human speech):
-Just write the scene description with the animal sounds as ACTIONS.
-Example: "A fluffy cat in a uniform meows and hisses at a surprised woman who gasps and steps back."
-NOTE: This format is ONLY for scenes where there is NO voiceover. The animal sounds become the actual audio.
-
-CRITICAL SEEDANCE RULES:
-- Seedance generates audio FROM the prompt text. If you write "cat says 'hello'" it generates a speaking cat = FAKE.
-- Animals make ANIMAL SOUNDS only. Describe them as actions: "the cat meows loudly", "the dog barks".
-- NEVER write an animal speaking human words in quotes. Only humans speak.
-- Keep scene descriptions clear and constrained — describe what IS visible, not abstract concepts.
-- The main character (camera focus) should be described FIRST.
-- Use degree adverbs to control intensity: "looks slightly puzzled" vs "stares in shock".
+RULES:
+- No semicolons. Write natural prose.
+- No camera movement descriptions (controlled separately).
+- Main character described FIRST.
 VIDPROMPT
             : 'Do NOT generate a "videoPrompt" field.';
 
@@ -918,7 +904,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   "character": "Combined description of ALL main visible characters with their spatial relationship — e.g. 'A woman stands at the counter facing a cat who stands on the counter behind it, they look at each other'",
   "imageComposition": "EXACT spatial layout from the reference: describe who is in foreground vs background, left vs right, their facing directions, the camera angle, and how they relate spatially — e.g. 'Customer in left foreground facing right toward the counter. Cat on counter in center-right, facing the customer. Employee in right background behind counter.'",
   "imageStartState": "The CALM INITIAL state of the scene for the starting image — characters in their starting positions BEFORE any action begins. NO action, NO chaos, NO objects flying. Just characters standing/sitting in position with neutral-to-mild expressions. Example: 'A woman stands at the counter looking at the cat. The cat stands calmly on the counter behind the glass barrier. The employee stands in the background watching.'",
-  "situation": "The FULL action sequence with EXTREME physical actions: ALL phases from calm setup to WILD climax — e.g. 'Cat starts calmly at counter, then EXPLODES into action — leaping, swatting dishes off the counter, sending food flying, smashing cups to the floor while the woman ducks and scrambles back in terror'",
+  "situation": "One concise sentence: what happens from start to finish. Focus on the KEY dramatic beats, not every detail. e.g. 'Woman complains about her order, then the cat explodes — leaping across the counter, smashing dishes and sending food flying everywhere'",
   "setting": "The EXACT location with specific props, decor, and lighting from the analysis",
   "props": "Key visual props actually seen in the video",
   "audioType": "voiceover" or "dialogue" or "sfx" or "silent",
@@ -927,7 +913,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "Follow SEEDANCE 1.5 PRO FORMAT above. Natural prose, NOT a semicolon blob. See format rules for dialogue vs voiceover vs SFX-only scenes.",
+  "videoPrompt": "80-120 words MAX. 3 beats: setup → trigger → explosion. Focus on ACTIONS not appearances. Follow audio format rules above.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
