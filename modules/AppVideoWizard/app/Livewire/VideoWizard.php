@@ -33043,11 +33043,14 @@ STRUCTURE — MID-CHAOS → ESCALATION → PEAK → RESOLUTION:
 3. PEAK DESTRUCTION: The most explosive moment — character launches onto opponent, smashes environment.
 4. RESOLUTION: The scene has an ENDING — character flees, opponent collapses, final dramatic moment.
 
-INTENSITY QUALIFIERS — mandatory on every action:
-- Frequency: "at high frequency", "in rapid succession", "nonstop"
-- Intensity: "crazy intensity", "with large amplitude", "with full force", "crazy explosive force"
-- Speed: "fast and violently", "quickly", "fast"
-- Adverbs: wildly, powerfully, violently, ferociously, furiously, aggressively, fiercely, sharply
+SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
+quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
+fast, intense, strong, greatly. "crazy" is the MAGIC WORD — use liberally.
+COMBINE them: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
+NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively".
+
+EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement must be explicitly described.
+If a body part should move, DESCRIBE the exact motion and trajectory.
 
 CHARACTER SOUNDS — CONTINUOUS (most important rule):
 Animal/character sounds must appear in EVERY action beat. Use varied words:

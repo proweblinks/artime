@@ -376,9 +376,12 @@ AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100%:
 - The animal drives ALL action. The human ONLY reacts: jerks back, gasps, stumbles, hands up.
 - The human NEVER grabs, holds, or controls the animal. NEVER speaks after the trigger line.
 
-INTENSITY QUALIFIERS — mandatory on every action:
-"at high frequency", "crazy intensity", "with large amplitude", "crazy explosive force",
-"fast and violently", wildly, powerfully, violently, ferociously, furiously, aggressively.
+SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
+quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
+fast, intense, strong, greatly. "crazy" is the MAGIC WORD — use liberally.
+NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically".
+
+EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement must be explicitly described.
 
 CHARACTER SOUNDS — CONTINUOUS (most important rule):
 Animal sounds in EVERY beat: screeching, yowling, hissing, shrieking, screaming, growling.
@@ -1090,12 +1093,20 @@ AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100% OF THE ACTION:
 - The human NEVER grabs, holds, controls, or restrains the animal.
 - The human NEVER speaks after the opening trigger line. Only gasps, cries out, recoils.
 
-INTENSITY QUALIFIERS — mandatory on every action:
-- Frequency: "at high frequency", "in rapid succession", "nonstop"
-- Intensity: "crazy intensity", "with large amplitude", "with full force", "crazy explosive force"
-- Speed: "fast and violently", "quickly", "fast"
-- Adverbs: wildly, powerfully, violently, ferociously, furiously, aggressively, fiercely
-EVERY action verb MUST have at least one intensity qualifier. No exceptions.
+SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
+Seedance responds to specific intensity words, NOT literary English adverbs.
+The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
+powerfully, wildly, crazy, fast, intense, strong, greatly.
+"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy explosive force".
+COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
+NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
+"savagely", "relentlessly" — Seedance does NOT interpret these. Only the official list works.
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+WRONG: "the cat attacks" (model doesn't know HOW it attacks)
+RIGHT: "the cat's front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
 
 CHARACTER SOUNDS — CONTINUOUS (most important rule):
 Animal sounds must appear in EVERY action beat. Use varied words:
@@ -1105,9 +1116,9 @@ End with "continuous crazy aggressive [animal] screaming throughout."
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
 GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-GOOD: "rear legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
+GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
 GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
-BAD: "the cat attacks him aggressively" (too vague — which body part? what gets hit?)
+BAD: "the cat attacks him aggressively" (too vague — which body part? what motion? what gets hit?)
 
 ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS (minimum 3):
 Don't just say "things crash." Invent specific destruction chains:
