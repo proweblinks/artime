@@ -763,9 +763,18 @@
                         @endif
 
                         @if($conceptVideoUpload && !$videoAnalysisStage)
-                            <button class="vw-analyze-btn" wire:click="analyzeUploadedVideo">
-                                <i class="fa-solid fa-magnifying-glass-chart"></i>
-                                {{ __('Analyze & Clone Concept') }}
+                            <button class="vw-analyze-btn"
+                                    wire:click="analyzeUploadedVideo"
+                                    wire:loading.attr="disabled"
+                                    wire:target="analyzeUploadedVideo">
+                                <span wire:loading.remove wire:target="analyzeUploadedVideo">
+                                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                    {{ __('Analyze & Clone Concept') }}
+                                </span>
+                                <span wire:loading wire:target="analyzeUploadedVideo" style="display: none;">
+                                    <div class="vw-progress-spinner" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:8px;"></div>
+                                    {{ __('Analyzing video...') }}
+                                </span>
                             </button>
                         @endif
                     </div>
