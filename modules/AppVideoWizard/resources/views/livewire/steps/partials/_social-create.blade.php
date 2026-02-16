@@ -67,6 +67,7 @@
         flex: 1;
         display: flex;
         overflow: hidden;
+        min-height: 0;
     }
     /* Left Panel: Preview */
     .vw-social-preview-panel {
@@ -420,43 +421,52 @@
     }
     .vw-extract-frame-btn:hover { background: rgba(249,115,22,0.8); border-color: #f97316; }
 
-    /* Video Extend — Timeline */
-    .vw-timeline { margin-top: 0.5rem; padding: 0 0.25rem; }
+    /* Video Extend — Timeline (full-width bottom bar) */
+    .vw-timeline-section {
+        flex-shrink: 0;
+        padding: 0.5rem 1.5rem 0.6rem;
+        background: rgba(10,10,20,0.95);
+        border-top: 1px solid rgba(139,92,246,0.15);
+    }
+    .vw-timeline { }
     .vw-timeline-bar {
-        display: flex; height: 2rem; border-radius: 0.5rem; overflow: hidden;
+        display: flex; height: 2.2rem; border-radius: 0.5rem; overflow: hidden;
         border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
     }
     .vw-timeline-segment {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 0 0.5rem; cursor: pointer; transition: filter 0.15s;
-        font-size: 0.7rem; color: rgba(255,255,255,0.85); min-width: 0;
+        padding: 0 0.75rem; cursor: pointer; transition: filter 0.15s;
+        font-size: 0.75rem; color: rgba(255,255,255,0.85); min-width: 0;
     }
     .vw-timeline-segment:hover { filter: brightness(1.3); }
     .vw-timeline-segment.original { background: rgba(139,92,246,0.4); }
     .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
     .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
     .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .vw-seg-duration { flex-shrink: 0; margin-left: 0.25rem; opacity: 0.7; }
+    .vw-seg-duration { flex-shrink: 0; margin-left: 0.4rem; opacity: 0.7; }
     .vw-timeline-tooltip {
         background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.15);
         border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
-        font-size: 0.7rem; color: #94a3b8;
+        font-size: 0.72rem; color: #94a3b8;
     }
     .vw-timeline-total {
-        font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem; text-align: right;
-        display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
+        font-size: 0.75rem; color: #94a3b8; margin-top: 0.3rem;
+        display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;
     }
 
-    /* Video Extend — Extend Panel */
+    /* Video Extend — Extend Panel (full-width, inside timeline section) */
     .vw-extend-panel {
         background: rgba(30,30,50,0.95); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem;
+        border-radius: 0.75rem; padding: 1rem; margin-top: 0.6rem;
+        display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;
     }
+    .vw-extend-panel-left { flex-shrink: 0; }
+    .vw-extend-panel-right { flex: 1; min-width: 250px; }
     .vw-extend-header {
         display: flex; justify-content: space-between; align-items: center;
         margin-bottom: 0.75rem; font-size: 0.85rem; color: #f97316; font-weight: 600;
     }
-    .vw-extend-frame-preview { max-height: 120px; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    .vw-extend-frame-preview { max-height: 100px; border-radius: 0.5rem; margin-bottom: 0.5rem; }
     .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: #94a3b8; }
     .vw-dur-btn {
         padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.2);
@@ -537,6 +547,10 @@
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: 40vh; }
         .vw-social-workflow-panel { width: 100%; border-left: none; border-top: 1px solid rgba(100,100,140,0.15); }
+        .vw-timeline-section { padding: 0.5rem 0.75rem; }
+        .vw-extend-panel { flex-direction: column; }
+        .vw-extend-panel-left { width: 100%; }
+        .vw-extend-panel-right { width: 100%; }
     }
 </style>
 
@@ -651,143 +665,6 @@
                     </div>
                 @endif
             </div>
-
-            {{-- Visual Timeline Bar --}}
-            @if(!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready')
-            <div class="vw-timeline" x-data="{ hoveredSegment: null }">
-                <div class="vw-timeline-bar">
-                    @php
-                        $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
-                        $cumulative = 0;
-                    @endphp
-                    @foreach($shot['segments'] as $segIdx => $segment)
-                        @php
-                            $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
-                            $startTime = $cumulative;
-                            $cumulative += $segment['duration'];
-                        @endphp
-                        <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }}"
-                             style="width: {{ number_format($widthPct, 1) }}%"
-                             @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}"
-                             @mouseenter="hoveredSegment = {{ $segIdx }}"
-                             @mouseleave="hoveredSegment = null">
-                            <span class="vw-seg-label">
-                                {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
-                            </span>
-                            <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
-                        </div>
-                    @endforeach
-                </div>
-
-                {{-- Segment info tooltip on hover --}}
-                @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
-                <template x-if="hoveredSegment !== null">
-                    <div class="vw-timeline-tooltip">
-                        <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
-                    </div>
-                </template>
-
-                {{-- Total duration + undo --}}
-                <div class="vw-timeline-total">
-                    Total: {{ number_format($totalDuration, 1) }}s
-                    ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
-                    @if(count($shot['segments']) > 1)
-                        <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
-                                wire:loading.attr="disabled">
-                            <i class="fa-solid fa-rotate-left"></i> Undo Last
-                        </button>
-                    @endif
-                </div>
-            </div>
-            @endif
-
-            {{-- Extend Panel --}}
-            @if($extendMode)
-            <div class="vw-extend-panel">
-                <div class="vw-extend-header">
-                    <span><i class="fa-solid fa-forward"></i> Extend from {{ number_format($extendMode['timestamp'] ?? 0, 1) }}s</span>
-                    <button wire:click="cancelVideoExtend" class="vw-extend-cancel-btn">&times;</button>
-                </div>
-
-                @if(($extendMode['status'] ?? '') === 'extracting')
-                    <div style="text-align: center; padding: 1rem; color: #94a3b8;">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Extracting frame...
-                    </div>
-                @else
-                    {{-- Extracted frame preview --}}
-                    @if($extendMode['frameUrl'] ?? null)
-                        <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
-                    @endif
-
-                    {{-- Duration selector --}}
-                    <div class="vw-extend-duration-row">
-                        <label>Duration:</label>
-                        @foreach([5, 8, 10] as $dur)
-                            <button wire:click="$set('extendMode.duration', {{ $dur }})"
-                                    class="vw-dur-btn {{ ($extendMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
-                                {{ $dur }}s
-                            </button>
-                        @endforeach
-                    </div>
-
-                    {{-- Chaos/Intensity slider --}}
-                    @php $intensityVal = $extendMode['intensity'] ?? 50; @endphp
-                    <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $intensityVal }} }">
-                        <div class="vw-intensity-header">
-                            <label><i class="fa-solid fa-fire"></i> Chaos</label>
-                            <span class="vw-intensity-label"
-                                  :class="{
-                                      'calm': intensity <= 20,
-                                      'rising': intensity > 20 && intensity <= 45,
-                                      'intense': intensity > 45 && intensity <= 65,
-                                      'wild': intensity > 65 && intensity <= 85,
-                                      'chaos': intensity > 85
-                                  }"
-                                  x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
-                            </span>
-                        </div>
-                        <div class="vw-intensity-slider-wrap">
-                            <input type="range" min="0" max="100" step="5"
-                                   x-model="intensity"
-                                   @change="$wire.set('extendMode.intensity', parseInt(intensity))"
-                                   class="vw-intensity-slider"
-                                   :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
-                            <div class="vw-intensity-ticks">
-                                <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
-                            </div>
-                        </div>
-                        <button class="vw-intensity-regen-btn"
-                                wire:click="regenerateExtendPrompt"
-                                wire:loading.attr="disabled"
-                                wire:target="regenerateExtendPrompt"
-                                title="Regenerate prompt with current chaos level">
-                            <span wire:loading.remove wire:target="regenerateExtendPrompt">
-                                <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
-                            </span>
-                            <span wire:loading wire:target="regenerateExtendPrompt">
-                                <i class="fa-solid fa-spinner fa-spin"></i> Generating...
-                            </span>
-                        </button>
-                    </div>
-
-                    {{-- AI-generated continuation prompt (editable) --}}
-                    <textarea wire:model.blur="extendMode.continuationPrompt" rows="4"
-                              class="vw-extend-prompt" placeholder="What happens next..."></textarea>
-
-                    {{-- Generate button --}}
-                    <button wire:click="executeVideoExtend" class="vw-social-action-btn orange"
-                            wire:loading.attr="disabled"
-                            wire:target="executeVideoExtend">
-                        <span wire:loading.remove wire:target="executeVideoExtend">
-                            <i class="fa-solid fa-film"></i> Generate Continuation
-                        </span>
-                        <span wire:loading wire:target="executeVideoExtend">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
-                        </span>
-                    </button>
-                @endif
-            </div>
-            @endif
         </div>
 
         {{-- Right: Workflow Steps --}}
@@ -1249,6 +1126,153 @@
             </div>
         </div>
     </div>
+
+    {{-- Timeline Section — full-width below the two-panel body --}}
+    @if((!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready') || $extendMode)
+    <div class="vw-timeline-section">
+        {{-- Visual Timeline Bar --}}
+        @if(!empty($shot['segments']) && count($shot['segments']) > 0)
+        <div class="vw-timeline" x-data="{ hoveredSegment: null }">
+            <div class="vw-timeline-bar">
+                @php
+                    $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
+                    $cumulative = 0;
+                @endphp
+                @foreach($shot['segments'] as $segIdx => $segment)
+                    @php
+                        $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
+                        $startTime = $cumulative;
+                        $cumulative += $segment['duration'];
+                    @endphp
+                    <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }}"
+                         style="width: {{ number_format($widthPct, 1) }}%"
+                         @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}"
+                         @mouseenter="hoveredSegment = {{ $segIdx }}"
+                         @mouseleave="hoveredSegment = null">
+                        <span class="vw-seg-label">
+                            {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
+                        </span>
+                        <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Segment info tooltip on hover --}}
+            @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
+            <template x-if="hoveredSegment !== null">
+                <div class="vw-timeline-tooltip">
+                    <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
+                </div>
+            </template>
+
+            {{-- Total duration + undo --}}
+            <div class="vw-timeline-total">
+                Total: {{ number_format($totalDuration, 1) }}s
+                ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
+                @if(count($shot['segments']) > 1)
+                    <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
+                            wire:loading.attr="disabled">
+                        <i class="fa-solid fa-rotate-left"></i> Undo Last
+                    </button>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        {{-- Extend Panel --}}
+        @if($extendMode)
+        <div class="vw-extend-panel">
+            <div class="vw-extend-header" style="width: 100%;">
+                <span><i class="fa-solid fa-forward"></i> Extend from {{ number_format($extendMode['timestamp'] ?? 0, 1) }}s</span>
+                <button wire:click="cancelVideoExtend" class="vw-extend-cancel-btn">&times;</button>
+            </div>
+
+            @if(($extendMode['status'] ?? '') === 'extracting')
+                <div style="text-align: center; padding: 1rem; color: #94a3b8; width: 100%;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Extracting frame...
+                </div>
+            @else
+                {{-- Left: Frame preview --}}
+                <div class="vw-extend-panel-left">
+                    @if($extendMode['frameUrl'] ?? null)
+                        <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
+                    @endif
+
+                    {{-- Duration selector --}}
+                    <div class="vw-extend-duration-row">
+                        <label>Duration:</label>
+                        @foreach([5, 8, 10] as $dur)
+                            <button wire:click="$set('extendMode.duration', {{ $dur }})"
+                                    class="vw-dur-btn {{ ($extendMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
+                                {{ $dur }}s
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Right: Chaos slider + prompt + generate --}}
+                <div class="vw-extend-panel-right">
+                    {{-- Chaos/Intensity slider --}}
+                    @php $intensityVal = $extendMode['intensity'] ?? 50; @endphp
+                    <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $intensityVal }} }">
+                        <div class="vw-intensity-header">
+                            <label><i class="fa-solid fa-fire"></i> Chaos</label>
+                            <span class="vw-intensity-label"
+                                  :class="{
+                                      'calm': intensity <= 20,
+                                      'rising': intensity > 20 && intensity <= 45,
+                                      'intense': intensity > 45 && intensity <= 65,
+                                      'wild': intensity > 65 && intensity <= 85,
+                                      'chaos': intensity > 85
+                                  }"
+                                  x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
+                            </span>
+                        </div>
+                        <div class="vw-intensity-slider-wrap">
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model="intensity"
+                                   @change="$wire.set('extendMode.intensity', parseInt(intensity))"
+                                   class="vw-intensity-slider"
+                                   :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                            <div class="vw-intensity-ticks">
+                                <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                            </div>
+                        </div>
+                        <button class="vw-intensity-regen-btn"
+                                wire:click="regenerateExtendPrompt"
+                                wire:loading.attr="disabled"
+                                wire:target="regenerateExtendPrompt"
+                                title="Regenerate prompt with current chaos level">
+                            <span wire:loading.remove wire:target="regenerateExtendPrompt">
+                                <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
+                            </span>
+                            <span wire:loading wire:target="regenerateExtendPrompt">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Generating...
+                            </span>
+                        </button>
+                    </div>
+
+                    {{-- AI-generated continuation prompt (editable) --}}
+                    <textarea wire:model.blur="extendMode.continuationPrompt" rows="3"
+                              class="vw-extend-prompt" placeholder="What happens next..."></textarea>
+
+                    {{-- Generate button --}}
+                    <button wire:click="executeVideoExtend" class="vw-social-action-btn orange"
+                            wire:loading.attr="disabled"
+                            wire:target="executeVideoExtend">
+                        <span wire:loading.remove wire:target="executeVideoExtend">
+                            <i class="fa-solid fa-film"></i> Generate Continuation
+                        </span>
+                        <span wire:loading wire:target="executeVideoExtend">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
+                        </span>
+                    </button>
+                </div>
+            @endif
+        </div>
+        @endif
+    </div>
+    @endif
 </div>
 
 @script
