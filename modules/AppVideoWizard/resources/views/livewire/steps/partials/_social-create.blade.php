@@ -532,6 +532,13 @@
         color: #e2e8f0; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
         resize: vertical; font-size: 0.8rem; font-family: inherit;
     }
+    .vw-extend-direction {
+        width: 100%; background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.3);
+        color: #fed7aa; border-radius: 0.5rem; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem;
+        font-size: 0.78rem; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .vw-extend-direction:focus { border-color: #f97316; background: rgba(249,115,22,0.12); }
+    .vw-extend-direction::placeholder { color: rgba(249,115,22,0.45); font-style: italic; }
     /* Intensity/Chaos slider */
     .vw-extend-intensity-row {
         margin-bottom: 0.75rem; padding: 0.6rem 0.7rem;
@@ -910,7 +917,7 @@
                                     wire:click="regenerateExtendPrompt"
                                     wire:loading.attr="disabled"
                                     wire:target="regenerateExtendPrompt"
-                                    title="Regenerate prompt with current chaos level">
+                                    title="Regenerate prompt with current chaos level and direction">
                                 <span wire:loading.remove wire:target="regenerateExtendPrompt">
                                     <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
                                 </span>
@@ -919,6 +926,12 @@
                                 </span>
                             </button>
                         </div>
+
+                        {{-- Chaos direction — user guidance merged into prompt --}}
+                        <input type="text"
+                               wire:model.blur="extendMode.chaosDirection"
+                               class="vw-extend-direction"
+                               placeholder="{{ __('Direct the chaos: e.g., cat jumps on espresso machine and destroys it...') }}" />
 
                         {{-- AI-generated continuation prompt (editable) --}}
                         <textarea wire:model.blur="extendMode.continuationPrompt" rows="4"

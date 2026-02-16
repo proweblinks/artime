@@ -32834,6 +32834,7 @@ PROMPT;
             'continuationPrompt' => '',
             'duration' => 8,
             'intensity' => 50,
+            'chaosDirection' => '',
             'status' => 'extracting',
         ];
         $this->saveProject();
@@ -32921,6 +32922,7 @@ PROMPT;
             $concept = $context['concept'] ?? '';
             $narration = $context['narration'] ?? '';
             $intensity = (int) ($context['intensity'] ?? 50);
+            $chaosDirection = trim($context['chaosDirection'] ?? '');
             $characterDescriptions = $context['characters'] ?? [];
             $characterBlock = !empty($characterDescriptions)
                 ? "CHARACTERS IN THIS SCENE:\n" . implode("\n", array_map(fn($c) => "- {$c}", $characterDescriptions))
@@ -32990,6 +32992,21 @@ Study the concept and characters above. Identify which character is the AGGRESSO
 
 INTENSITY LEVEL: {$escalation['level']}
 {$escalation['instruction']}
+PROMPT;
+
+            // Inject user's chaos direction if provided
+            if ($chaosDirection !== '') {
+                $prompt .= <<<PROMPT
+
+
+USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — incorporate this into the continuation):
+{$chaosDirection}
+— The above direction from the user MUST shape the core action of this continuation. Build the entire scene around fulfilling this direction while maintaining the character dynamics, visual style, and cause-and-effect rules below.
+PROMPT;
+            }
+
+            $prompt .= <<<PROMPT
+
 
 YOUR TASK: Write a Seedance video prompt (150-250 words) describing what happens NEXT, starting from this exact frame.
 
@@ -33436,6 +33453,7 @@ PROMPT;
                     'characters' => $characterDescriptions,
                     'narration' => $narration,
                     'intensity' => $this->extendMode['intensity'] ?? 50,
+                    'chaosDirection' => $this->extendMode['chaosDirection'] ?? '',
                 ]
             );
 
