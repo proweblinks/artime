@@ -285,8 +285,10 @@ PROMPT;
             $chaosModifier .= "\n\n" . $this->getChaosModeSupercharger();
         }
 
+        $templateId = $options['template'] ?? 'adaptive';
+
         if ($videoEngine === 'seedance') {
-            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
+            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier, $chaosModifier, $templateId);
         } else {
             $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
         }
@@ -324,8 +326,12 @@ PROMPT;
     /**
      * Build viral ideas prompt for Seedance engine (cinematic scene with auto-generated audio).
      */
-    protected function buildSeedanceViralPrompt(string $themeContext, int $count, string $styleModifier = '', string $chaosModifier = ''): string
+    protected function buildSeedanceViralPrompt(string $themeContext, int $count, string $styleModifier = '', string $chaosModifier = '', string $templateId = 'adaptive'): string
     {
+        $structureRules = $this->getTemplateStructureRules($templateId, 'generate');
+        $technicalRules = $this->getSeedanceTechnicalRules();
+        $templateExample = $this->getTemplateExample($templateId);
+
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
@@ -363,46 +369,12 @@ Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for
 DO NOT describe character appearances — that goes in "character" and "characters" fields.
 The video prompt describes ONLY actions, reactions, sounds, and voice.
 
-=== THE #1 RULE: ONE DIALOGUE LINE, THEN PURE UNBROKEN CHAOS ===
-The human speaks ONCE at the start (1 line, max 20 words). After that, ZERO dialogue.
-No "he exclaims", no "he yells", no more human speech. The rest is ALL physical action,
-animal sounds, and environmental destruction. The dialogue exists ONLY to trigger the chaos.
+{$structureRules}
 
-STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
-1. TRIGGER (1 sentence): The human says ONE short angry line.
-2. INSTANT REACTION: "Instantly" — the animal explodes. First sound + first physical strike.
-3. CONTINUOUS ESCALATION: Rapid-fire action beats with NO PAUSES for dialogue or narrative.
-4. PEAK LAUNCH: Animal launches onto human with maximum force.
-5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash.
-6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+{$technicalRules}
 
-AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100%:
-- The animal drives ALL action. The human ONLY reacts: jerks back, gasps, stumbles, hands up.
-- The human NEVER grabs, holds, or controls the animal. NEVER speaks after the trigger line.
-
-SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
-quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
-fast, intense, strong, greatly. "crazy" is the MAGIC WORD — use liberally.
-NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically".
-
-EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement must be explicitly described.
-
-CHARACTER SOUNDS — CONTINUOUS (most important rule):
-Animal sounds in EVERY beat: screeching, yowling, hissing, shrieking, screaming, growling.
-Describe physically: "mouth gaping wide showing sharp fangs", "ears flattened".
-End with "continuous crazy aggressive [animal] screaming throughout."
-
-PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
-
-ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS (minimum 3):
-Every object HIT by a body part before it breaks. Invent specific destruction chains.
-
-STYLE ANCHOR — end with: "Cinematic, photorealistic."
-
-BANNED: No semicolons. No camera descriptions. No appearance descriptions. No passive voice.
-No weak verbs. No multiple dialogue lines. No human grabbing/controlling animal. No narrative pauses.
+EXAMPLE — GOOD VIDEO PROMPT (~170 words):
+{$templateExample}
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -423,7 +395,7 @@ Return ONLY a JSON array (no markdown, no explanation):
     "dialogueLines": [
       {"speaker": "Character Name", "text": "Short punchy line"}
     ],
-    "videoPrompt": "The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic.",
+    "videoPrompt": "150-180 word Seedance-optimized prompt following the STRUCTURE and TECHNICAL RULES above. See EXAMPLE above for reference.",
     "cameraFixed": true,
     "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
     "viralHook": "Why this would go viral (one sentence)"
@@ -672,6 +644,192 @@ KEY DIFFERENCES FROM NORMAL MODE:
 CHAOS;
     }
 
+    /**
+     * Get available video prompt templates.
+     * Templates define the creative structure/formula for video prompts.
+     */
+    public static function getVideoPromptTemplates(): array
+    {
+        return [
+            'adaptive' => [
+                'id' => 'adaptive',
+                'name' => 'Adaptive',
+                'description' => 'Matches the source video\'s style faithfully',
+                'icon' => 'fa-solid fa-wand-magic-sparkles',
+            ],
+            'animal-chaos' => [
+                'id' => 'animal-chaos',
+                'name' => 'Animal Chaos Attack',
+                'description' => 'Dialogue trigger → animal explosion → destruction',
+                'icon' => 'fa-solid fa-burst',
+            ],
+        ];
+    }
+
+    /**
+     * Get universal Seedance technical rules shared by ALL templates.
+     * Covers degree words, explicit motion, character sounds, physical action, style anchor, banned items.
+     */
+    protected function getSeedanceTechnicalRules(): string
+    {
+        return <<<'RULES'
+SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
+Seedance responds to specific intensity words, NOT literary English adverbs.
+The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
+powerfully, wildly, crazy, fast, intense, strong, greatly.
+"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy explosive force".
+COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
+NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
+"savagely", "relentlessly" — Seedance does NOT interpret these. Only the official list works.
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+WRONG: "the cat attacks" (model doesn't know HOW it attacks)
+RIGHT: "the cat's front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
+
+CHARACTER SOUNDS — CONTINUOUS:
+Animal/character sounds must appear in EVERY action beat. Use varied words:
+screeching, yowling, hissing, shrieking, screaming, growling, wailing.
+Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
+End with "continuous crazy aggressive [animal/character] sounds throughout."
+
+PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
+GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
+GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
+BAD: "the cat attacks him aggressively" (too vague — which body part? what motion? what gets hit?)
+
+ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS:
+Don't just say "things crash." Invent specific destruction chains:
+Every object must be HIT by a body part before it breaks. More destruction = better video.
+
+STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+
+BANNED:
+- No semicolons
+- No camera movement descriptions (camera is controlled separately by the API)
+- No appearance/clothing descriptions (what characters LOOK like — only what they DO)
+- No passive voice — only active verbs with intensity qualifiers
+- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
+RULES;
+    }
+
+    /**
+     * Get template-specific structure rules.
+     *
+     * @param string $templateId Template ID ('adaptive', 'animal-chaos')
+     * @param string $context 'clone' for video cloning, 'generate' for AI idea generation
+     */
+    protected function getTemplateStructureRules(string $templateId, string $context = 'clone'): string
+    {
+        $templates = [
+            'adaptive' => [
+                'clone' => <<<'RULES'
+=== ADAPTIVE MODE — MATCH THE SOURCE VIDEO ===
+
+Your job is to FAITHFULLY recreate the energy, pacing, and structure of the reference video.
+Do NOT impose a rigid formula. Analyze what makes the reference work and replicate its structure.
+
+STRUCTURE:
+- If the reference has a trigger-reaction pattern → use trigger-reaction
+- If the reference builds slowly → use a slow build
+- If the reference has constant rhythmic motion → keep constant motion
+- If the reference is calm/gentle → keep it calm/gentle
+- If the reference has multiple characters interacting → preserve those dynamics
+
+ENERGY MATCHING:
+- Match the EXACT energy level of the reference. Don't artificially escalate.
+- Gentle interaction → gentle prompt. Chaotic action → chaotic prompt.
+- The intensity qualifiers (degree words) should match what was SEEN, not be maximized.
+
+FAITHFULNESS:
+- Describe actions that MATCH what was seen in the reference video.
+- Same type of movements, same emotional register, same comedic style.
+- You can optimize phrasing for Seedance, but stay true to the source's vibe.
+- If the video shows a marching band → write a marching band prompt.
+- If the video shows cooking → write a cooking prompt.
+- Do NOT transform everything into attack/destruction scenes.
+RULES,
+                'generate' => <<<'RULES'
+=== ADAPTIVE MODE — CHOOSE THE BEST STRUCTURE ===
+
+Choose the structure that best fits each concept's energy and comedy style.
+Not every concept needs explosive chaos — match the structure to the content.
+
+STRUCTURE FLEXIBILITY:
+- Gentle/cute concepts → gentle, deliberate movements with small actions
+- Physical comedy → exaggerated movements, slapstick reactions
+- Chaotic concepts → rapid escalation, chain reactions, destruction
+- Rhythmic/musical → steady motion patterns, synchronized movements
+- Dramatic → slow builds, tension, then payoff moment
+
+ENERGY MATCHING:
+- The intensity qualifiers (degree words) should match the concept's natural energy.
+- A calm concept uses fewer/softer degree words. A wild concept uses many combined.
+- Don't force maximum chaos on every concept — let the idea guide the intensity.
+
+DIALOGUE/ACTION BALANCE:
+- Some concepts work better with a trigger line then action. Others need no dialogue.
+- Match the dialogue to what makes sense for the scenario.
+RULES,
+            ],
+            'animal-chaos' => [
+                'clone' => <<<'RULES'
+=== ANIMAL CHAOS ATTACK — DIALOGUE TRIGGER → UNBROKEN CHAOS ===
+
+THE #1 RULE: ONE DIALOGUE LINE, THEN PURE UNBROKEN CHAOS
+The human speaks ONCE at the start (1 line, max 20 words). After that, ZERO dialogue.
+No "he exclaims", no "he yells", no more human speech. The rest is ALL physical action,
+animal sounds, and environmental destruction. The dialogue exists ONLY to trigger the chaos.
+
+STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
+1. TRIGGER (1 sentence): The human says ONE short angry line.
+   'The man leans forward and says "..." while gesturing angrily.'
+2. INSTANT REACTION: "Instantly" — the animal explodes. First sound + first physical strike.
+3. CONTINUOUS ESCALATION: Rapid-fire action beats with NO PAUSES for dialogue or narrative.
+   Every beat: physical action + animal sound + environmental consequence happening simultaneously.
+4. PEAK LAUNCH: Animal launches onto human with maximum force — clawing, kicking, shredding.
+5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash/clatter.
+6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+
+AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100% OF THE ACTION:
+- The animal is the ONLY one driving action. It attacks, lunges, claws, launches, smashes.
+- The human ONLY reacts defensively: jerks back, gasps, stumbles, cries out, hands thrown up.
+- The human NEVER grabs, holds, controls, or restrains the animal.
+- The human NEVER speaks after the opening trigger line. Only gasps, cries out, recoils.
+
+ENVIRONMENTAL DESTRUCTION — minimum 3 chain reactions.
+No slow builds — chaos is INSTANT after the trigger.
+No multiple dialogue lines — ONE line triggers the chaos.
+No human grabbing/controlling/restraining the animal — animal dominates.
+No narrative back-and-forth — pure continuous chaos, no pauses.
+RULES,
+                'generate' => null, // Falls back to clone rules
+            ],
+        ];
+
+        $templateRules = $templates[$templateId] ?? $templates['adaptive'];
+        return $templateRules[$context] ?? $templateRules['clone'];
+    }
+
+    /**
+     * Get an example video prompt for a given template.
+     */
+    protected function getTemplateExample(string $templateId): string
+    {
+        $examples = [
+            'adaptive' => <<<'EXAMPLE'
+"The cat stands on the kitchen counter, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with small amplitude. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward intensely. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping. The cat's whole body rocks wildly side to side, fur rippling with the motion as nearby utensils vibrate and rattle against each other. A wooden spoon slides off the counter edge and clatters to the floor. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with even greater amplitude, front paws lifting high and stomping down powerfully. Continuous crazy enthusiastic cat vocalizing throughout. Cinematic, photorealistic."
+EXAMPLE,
+            'animal-chaos' => <<<'EXAMPLE'
+"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+EXAMPLE,
+        ];
+
+        return $examples[$templateId] ?? $examples['adaptive'];
+    }
+
     // ========================================================================
     // VIDEO CONCEPT CLONER — Analyze uploaded video and extract concept
     // ========================================================================
@@ -737,7 +895,8 @@ CHAOS;
 
         // Stage 3: Synthesize into structured concept
         Log::info('ConceptCloner: Stage 3 — Synthesizing concept');
-        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine, $chaosMode);
+        $templateId = $options['template'] ?? 'adaptive';
+        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine, $chaosMode, $templateId);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
         return $concept;
@@ -1050,7 +1209,7 @@ PROMPT;
      * Synthesize Grok visual analysis + Whisper transcript into a structured concept.
      * Output matches the exact format returned by generateViralIdeas().
      */
-    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance', bool $chaosMode = false): array
+    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance', bool $chaosMode = false, string $templateId = 'adaptive'): array
     {
         $transcriptSection = $transcript
             ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- IMPORTANT FOR VOICEOVER TEXT: Strip out ALL animal sound words (meow, woof, bark, hiss, growl, etc.) from the voiceover narration. Only include the HUMAN SPEECH parts. If the transcript is 'This is not what I ordered! Meow meow meow! I asked for chicken!' the voiceover should be 'This is not what I ordered! I asked for chicken!' — no animal sounds in the voiceover.\n- The voiceover narration must contain ONLY clean human speech. Animal sounds happen VISUALLY in the scene, not in the voiceover audio."
@@ -1059,6 +1218,11 @@ PROMPT;
         $videoPromptInstruction = $videoEngine === 'seedance'
             ? 'Also generate a "videoPrompt" field — see SEEDANCE VIDEO PROMPT RULES at the end of this prompt.'
             : 'Do NOT generate a "videoPrompt" field.';
+
+        // Get template rules for Seedance video prompt
+        $structureRules = $this->getTemplateStructureRules($templateId, 'clone');
+        $technicalRules = $this->getSeedanceTechnicalRules();
+        $templateExample = $this->getTemplateExample($templateId);
 
         $prompt = <<<PROMPT
 You are a viral video concept cloner. Your job is to create a FAITHFUL, ACCURATE structured concept from this video analysis. The concept must precisely match what was seen in the original video.
@@ -1122,10 +1286,7 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 =======================================================================
 
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
-You are CLONING a reference video — but NOT recreating it literally. Your job is to capture
-the ENERGY and CONCEPT of the reference, then create an INTENSIFIED Seedance-optimized version.
-Do NOT try to describe every exact moment from the reference. Instead, take the core concept
-and write the most CHAOTIC, ACTION-PACKED version possible.
+You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference.
 
 WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
 Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
@@ -1133,79 +1294,14 @@ Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for
 DO NOT describe character appearances — that's in "character" and "characters" fields.
 The videoPrompt describes ONLY actions, reactions, sounds, and voice.
 
-=== THE #1 RULE: ONE DIALOGUE LINE, THEN PURE UNBROKEN CHAOS ===
-The human speaks ONCE at the start (1 line, max 20 words). After that, ZERO dialogue.
-No "he exclaims", no "he yells", no more human speech. The rest is ALL physical action,
-animal sounds, and environmental destruction. The dialogue exists ONLY to trigger the chaos.
+{$structureRules}
 
-STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
-1. TRIGGER (1 sentence): The human says ONE short angry line.
-   'The man leans forward and says "..." while gesturing angrily.'
-2. INSTANT REACTION: "Instantly" — the animal explodes. First sound + first physical strike.
-3. CONTINUOUS ESCALATION: Rapid-fire action beats with NO PAUSES for dialogue or narrative.
-   Every beat: physical action + animal sound + environmental consequence happening simultaneously.
-4. PEAK LAUNCH: Animal launches onto human with maximum force — clawing, kicking, shredding.
-5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash/clatter.
-6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
-
-AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100% OF THE ACTION:
-- The animal is the ONLY one driving action. It attacks, lunges, claws, launches, smashes.
-- The human ONLY reacts defensively: jerks back, gasps, stumbles, cries out, hands thrown up.
-- The human NEVER grabs, holds, controls, or restrains the animal.
-- The human NEVER speaks after the opening trigger line. Only gasps, cries out, recoils.
-
-SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
-Seedance responds to specific intensity words, NOT literary English adverbs.
-The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
-powerfully, wildly, crazy, fast, intense, strong, greatly.
-"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy explosive force".
-COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
-NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
-"savagely", "relentlessly" — Seedance does NOT interpret these. Only the official list works.
-
-EXPLICIT MOTION — Seedance CANNOT infer motion:
-Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
-WRONG: "the cat attacks" (model doesn't know HOW it attacks)
-RIGHT: "the cat's front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
-
-CHARACTER SOUNDS — CONTINUOUS (most important rule):
-Animal sounds must appear in EVERY action beat. Use varied words:
-screeching, yowling, hissing, shrieking, screaming, growling, wailing.
-Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
-End with "continuous crazy aggressive [animal] screaming throughout."
-
-PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
-GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
-BAD: "the cat attacks him aggressively" (too vague — which body part? what motion? what gets hit?)
-
-ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS (minimum 3):
-Don't just say "things crash." Invent specific destruction chains:
-- "body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly"
-- "rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering"
-- "smashing cup fragments and spraying dark liquid violently across the man's chest"
-Every object must be HIT by a body part before it breaks. More destruction = better video.
-
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
-
-BANNED:
-- No semicolons
-- No camera movement descriptions (camera is controlled separately by the API)
-- No appearance/clothing descriptions (what characters LOOK like — only what they DO)
-- No passive voice — only active verbs with intensity qualifiers
-- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- No slow builds — chaos is INSTANT after the trigger
-- No multiple dialogue lines — ONE line triggers the chaos, then ZERO speech
-- No human grabbing/controlling/restraining the animal — animal dominates
-- No narrative back-and-forth — pure continuous chaos, no pauses
-- No recreating exact reference details — create an INTENSIFIED creative version
+{$technicalRules}
 
 EXAMPLE — GOOD CLONE PROMPT (~170 words):
-"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+{$templateExample}
 
-NOW generate the JSON — make the videoPrompt an INTENSIFIED creative version of the reference.
+NOW generate the JSON — make the videoPrompt faithfully capture the reference video's energy.
 PROMPT;
 
         if ($chaosMode) {

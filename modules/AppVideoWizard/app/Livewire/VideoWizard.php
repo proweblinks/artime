@@ -1134,6 +1134,7 @@ class VideoWizard extends Component
     public ?string $videoAnalysisError = null;
     public ?string $conceptVideoUrl = null;        // URL for video import (YouTube, Instagram, TikTok, etc.)
     public ?string $urlDownloadStage = null;       // 'downloading'|null
+    public string $cloneTemplate = 'adaptive';     // Video prompt template for clone & generate
 
     // Script generation options
     public string $scriptTone = 'engaging';
@@ -5013,6 +5014,7 @@ PROMPT;
                     'chaosLevel' => $this->chaosLevel,
                     'chaosDescription' => $this->chaosDescription,
                     'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                    'template' => $this->cloneTemplate,
                 ]
             );
 
@@ -5134,6 +5136,7 @@ PROMPT;
                 'mimeType' => $mimeType,
                 'videoEngine' => $this->videoEngine,
                 'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                'template' => $this->cloneTemplate,
             ]);
 
             if ($firstFrameUrl) {
@@ -5210,6 +5213,7 @@ PROMPT;
                 'mimeType' => 'video/mp4',
                 'videoEngine' => $this->videoEngine,
                 'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                'template' => $this->cloneTemplate,
             ]);
 
             if ($firstFrameUrl) {

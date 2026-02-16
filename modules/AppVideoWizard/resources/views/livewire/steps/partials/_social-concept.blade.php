@@ -316,6 +316,37 @@
         background: rgba(139, 92, 246, 0.2);
         color: #e2e8f0;
     }
+    .vw-social-concept .vw-template-picker {
+        margin-bottom: 1rem;
+    }
+    .vw-social-concept .vw-template-label {
+        font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.5rem;
+        display: flex; align-items: center; gap: 0.4rem;
+    }
+    .vw-social-concept .vw-template-pills {
+        display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .vw-social-concept .vw-template-pill {
+        display: flex; align-items: center; gap: 0.35rem;
+        padding: 0.45rem 0.85rem;
+        background: rgba(15, 15, 30, 0.6);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: 2rem; color: #94a3b8;
+        font-size: 0.8rem; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .vw-social-concept .vw-template-pill:hover {
+        border-color: rgba(139, 92, 246, 0.4); color: #e2e8f0;
+    }
+    .vw-social-concept .vw-template-pill.active {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: rgba(139, 92, 246, 0.5);
+        color: #e2e8f0;
+    }
+    .vw-social-concept .vw-template-desc {
+        font-size: 0.72rem; color: #64748b; margin-top: 0.4rem;
+        font-style: italic;
+    }
     .vw-social-concept .vw-url-import-box {
         background: rgba(20, 20, 40, 0.5);
         border: 1px solid rgba(139, 92, 246, 0.2);
@@ -822,6 +853,31 @@
                                 @click="cloneMode = 'url'; $wire.set('videoAnalysisError', null)">
                             <i class="fa-solid fa-link"></i> {{ __('Paste URL') }}
                         </button>
+                    </div>
+
+                    {{-- Template Picker --}}
+                    <div class="vw-template-picker">
+                        <div class="vw-template-label">
+                            <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
+                        </div>
+                        <div class="vw-template-pills">
+                            @foreach(\Modules\AppVideoWizard\app\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                                <button type="button"
+                                    class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
+                                    wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
+                                    title="{{ $tpl['description'] }}">
+                                    <i class="{{ $tpl['icon'] }}"></i>
+                                    <span>{{ $tpl['name'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        <div class="vw-template-desc">
+                            @foreach(\Modules\AppVideoWizard\app\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                                @if($cloneTemplate === $tpl['id'])
+                                    {{ $tpl['description'] }}
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
 
                     {{-- ========= Upload Mode ========= --}}
