@@ -366,8 +366,9 @@ VIDEO PROMPT RULES — THIS IS CRITICAL:
 WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
 Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
 
-DO NOT describe character appearances — that goes in "character" and "characters" fields.
-The video prompt describes ONLY actions, reactions, sounds, and voice.
+DO NOT describe character appearances (fur color, clothing, accessories) — that goes in "character" and "characters" fields.
+The video prompt describes actions, reactions, sounds, voice, and SIZE/SCALE.
+Convey emotion through BODY LANGUAGE, not facial expressions — see Face Consistency rule below.
 
 {$structureRules}
 
@@ -704,6 +705,17 @@ ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS:
 Don't just say "things crash." Invent specific destruction chains:
 Every object must be HIT by a body part before it breaks. More destruction = better video.
 
+FACE CONSISTENCY — Seedance morphs faces when given direct facial descriptions:
+- NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
+- Instead, convey emotion through BODY LANGUAGE and ACTIONS:
+  WRONG: "her face shows shock, eyes widening, mouth dropping open"
+  RIGHT: "she jerks back sharply, hands flying up defensively"
+  WRONG: "his expression shifts to anger, brow furrowing, jaw clenching"
+  RIGHT: "he leans forward aggressively, fist slamming the table"
+- Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
+- You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells", "cat's mouth gapes in a crazy yowl") — these are actions, not appearance descriptions.
+- Keep the FACE STABLE by letting the body do the emotional acting.
+
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
 SCALE & SIZE — Seedance renders characters at DEFAULT size unless told otherwise:
@@ -716,6 +728,7 @@ BANNED:
 - No semicolons
 - No camera movement descriptions (camera is controlled separately by the API)
 - No appearance/clothing descriptions (fur color, clothing, accessories — only what they DO and how BIG they are)
+- No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
 RULES;
