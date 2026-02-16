@@ -32013,6 +32013,10 @@ PROMPT;
                 $videoPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
                 $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
                 $seedanceResolution = $shot['selectedResolution'] ?? '720p';
+                // WaveSpeed Seedance only accepts 720p or 1080p
+                if (!in_array($seedanceResolution, ['720p', '1080p'])) {
+                    $seedanceResolution = '720p';
+                }
 
                 \Log::info('🎬 Seedance mode - no audio required', [
                     'promptLength' => strlen($videoPrompt),
@@ -33235,7 +33239,7 @@ PROMPT;
                     'imageUrl' => $frameUrl,
                     'prompt' => $prompt,
                     'duration' => $duration,
-                    'resolution' => $shot['selectedResolution'] ?? '720p',
+                    'resolution' => in_array($shot['selectedResolution'] ?? '720p', ['720p', '1080p']) ? ($shot['selectedResolution'] ?? '720p') : '720p',
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
@@ -33726,7 +33730,7 @@ PROMPT;
                     'imageUrl' => $frameUrl,
                     'prompt' => $prompt,
                     'duration' => $duration,
-                    'resolution' => $shot['selectedResolution'] ?? '720p',
+                    'resolution' => in_array($shot['selectedResolution'] ?? '720p', ['720p', '1080p']) ? ($shot['selectedResolution'] ?? '720p') : '720p',
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
