@@ -32437,9 +32437,30 @@ PROMPT;
             $originalPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
             $segments = $shot['segments'] ?? [];
             $sceneData = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? [];
+
+            // Gather rich context: concept, characters, script narration
+            $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
+            $characters = $shot['charactersInShot'] ?? [];
+            $scriptScene = $this->script['scenes'][0] ?? [];
+            $narration = $scriptScene['narration'] ?? $scriptScene['description'] ?? '';
+
+            // Build character descriptions from Story Bible
+            $characterDescriptions = [];
+            foreach ($this->storyBible['characters'] ?? [] as $char) {
+                $name = $char['name'] ?? '';
+                if (in_array($name, $characters)) {
+                    $role = $char['role'] ?? '';
+                    $personality = $char['personality'] ?? '';
+                    $characterDescriptions[] = "{$name}: {$role}. {$personality}";
+                }
+            }
+
             $continuationPrompt = $this->generateContinuationPrompt($frameUrl, $originalPrompt, $timestamp, [
-                'takeNumber' => count($segments), // Current segment count = take number (1=original, so next = 2)
+                'takeNumber' => count($segments),
                 'sceneDescription' => $sceneData['description'] ?? $shot['description'] ?? '',
+                'concept' => $concept,
+                'characters' => $characterDescriptions,
+                'narration' => $narration,
             ]);
 
             $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
@@ -32473,24 +32494,30 @@ PROMPT;
 
             $takeNumber = ($context['takeNumber'] ?? 1) + 1; // This will be take 2, 3, 4...
             $sceneDescription = $context['sceneDescription'] ?? '';
+            $concept = $context['concept'] ?? '';
+            $narration = $context['narration'] ?? '';
+            $characterDescriptions = $context['characters'] ?? [];
+            $characterBlock = !empty($characterDescriptions)
+                ? "CHARACTERS IN THIS SCENE:\n" . implode("\n", array_map(fn($c) => "- {$c}", $characterDescriptions))
+                : '';
 
             // Escalation intensity based on take number
             $escalation = match(true) {
                 $takeNumber === 2 => [
                     'level' => 'DRAMATIC ESCALATION',
-                    'instruction' => 'The pace and intensity EXPLODE compared to the first take. Everything accelerates violently. Movements become wild and uncontrolled. Reactions are extreme — screaming, flailing, objects flying. The scene erupts into absolute pandemonium.',
+                    'instruction' => 'The pace and intensity EXPLODE compared to the first take. Everything accelerates violently. The AGGRESSOR character goes absolutely berserk — wild, unhinged, out of control. The DEFENSIVE character recoils, shields themselves, backs away in shock. The power dynamic between them reaches a breaking point.',
                     'verbs' => 'SLAMS, HURLS, CRASHES, SHRIEKS, FLAILS, LUNGES, SMASHES, WHIPS around, ERUPTS, LAUNCHES, SCRAMBLES, THRASHES',
                     'camera' => 'Camera SHAKES with the chaos, quick whip-pans following the action, dramatic zoom-ins on extreme reactions',
                 ],
                 $takeNumber === 3 => [
                     'level' => 'PEAK INSANITY',
-                    'instruction' => 'Complete mayhem. The scene has devolved into pure slapstick catastrophe. Characters are in full panic mode — diving, tumbling, things breaking and flying everywhere. Every action is exaggerated to the maximum. The environment itself seems to be falling apart.',
+                    'instruction' => 'Complete mayhem. The AGGRESSOR has completely lost it — shrieking, thrashing, destroying everything in reach. The DEFENSIVE character is in full retreat, ducking, dodging, trying to protect themselves from the onslaught. Objects are flying, surfaces are being clawed/smashed, the environment is being demolished.',
                     'verbs' => 'DETONATES, CATAPULTS, DEMOLISHES, OBLITERATES, TORPEDOES, BARREL-ROLLS, RICOCHETS, PILE-DRIVES, BODY-SLAMS, KARATE-CHOPS',
                     'camera' => 'Camera desperately tries to keep up, violent shaking, crash zooms, snap-tilts following flying objects and tumbling characters',
                 ],
                 default => [
                     'level' => 'APOCALYPTIC MELTDOWN',
-                    'instruction' => 'Beyond all reason. The scene is a full cartoon-physics disaster zone. Characters defy gravity, objects explode on contact, the entire world of the scene is in maximum entropy chaos. Every frame must be packed with simultaneous actions happening at breakneck speed.',
+                    'instruction' => 'Beyond all reason. The AGGRESSOR has transcended normal fury into cartoon-level rage — physics-defying destruction. The DEFENSIVE character is completely overwhelmed, cowering, fleeing. The entire environment is collapsing under the weight of the chaos.',
                     'verbs' => 'ANNIHILATES, VAPORIZES, DETONATES, IMPLODES, GOES NUCLEAR, SHOCKWAVE-BLASTS, MEGA-LAUNCHES, WRECKING-BALLS',
                     'camera' => 'Camera is out of control — rapid cuts between extreme close-ups of screaming faces and wide shots of total destruction',
                 ],
@@ -32499,47 +32526,64 @@ PROMPT;
             $prompt = <<<PROMPT
 You are writing a VIDEO GENERATION PROMPT for Seedance AI (image-to-video model). This is Take {$takeNumber} — a continuation of an existing video.
 
-ANALYZE THIS FRAME: This is the last frame from the previous take, captured at second {$timestamp}. The video continues EXACTLY from this visual moment.
+ANALYZE THIS FRAME: This is the last frame from the previous take, captured at second {$timestamp}. The video continues EXACTLY from this visual moment. Study the frame carefully to understand the physical positions, expressions, and spatial arrangement of each character.
 
-ORIGINAL SCENE PREMISE:
+ORIGINAL CONCEPT:
+{$concept}
+
+SCENE NARRATION:
+{$narration}
+
+{$characterBlock}
+
+PREVIOUS VIDEO PROMPT (for continuity):
 {$originalPrompt}
 
 SCENE CONTEXT:
 {$sceneDescription}
 
+CHARACTER DYNAMICS — THIS IS CRITICAL:
+Study the concept and characters above. Identify which character is the AGGRESSOR (the one driving the conflict, going wild, screaming, attacking) and which is the DEFENSIVE one (reacting, recoiling, backing away, trying to calm things down). The continuation MUST preserve these exact roles:
+- The AGGRESSOR escalates their fury — more screaming, more physical chaos, more destruction
+- The DEFENSIVE character reacts with increasing shock, fear, retreat — they are overwhelmed
+- NEVER reverse the roles. If the concept says a cat is arguing/attacking, the CAT stays the wild aggressor and the human stays defensive. If an animal is the aggressor, describe their animal-specific fury (hissing, clawing, arching back, fur standing on end, tail thrashing).
+
 INTENSITY LEVEL: {$escalation['level']}
 {$escalation['instruction']}
 
-YOUR TASK: Write a Seedance video prompt (150-250 words) that describes what happens NEXT in the scene, starting from this exact frame. The prompt must follow this EXACT structure:
+YOUR TASK: Write a Seedance video prompt (150-250 words) describing what happens NEXT, starting from this exact frame.
+
+PROMPT STRUCTURE:
 
 1. SUBJECT ACTION (most critical — 60% of the prompt):
    - Use SPECIFIC EXPLOSIVE ACTION VERBS: {$escalation['verbs']}
-   - Describe EVERY physical movement in granular detail: "the cat LAUNCHES off the counter, back arched, claws extended, tail whipping in a full spiral" NOT just "the cat jumps"
+   - Describe the AGGRESSOR's actions in extreme granular detail: every claw swipe, every screech, every object knocked off surfaces. Their fury is the centerpiece.
+   - Describe the DEFENSIVE character's reactions: flinching, ducking, hands up shielding, stumbling backward, jaw dropping in disbelief
    - Include SOUND implications: "mouth ripped open in a blood-curdling screech", "paws SLAMMING the table so hard dishes rattle and bounce"
    - Describe SPEED and FORCE: "in a blur of fur", "with bone-rattling impact", "faster than the eye can track"
-   - Multiple simultaneous actions: "WHILE the cat thrashes, cheese chunks FLY in every direction, the plate SPINS off the edge"
+   - Multiple simultaneous actions: "WHILE the cat thrashes, cheese chunks FLY in every direction AND the human STUMBLES backward, arms flailing for balance"
 
 2. CAMERA MOVEMENT (15% of the prompt):
    - {$escalation['camera']}
    - Use professional terminology: whip-pan, crash zoom, Dutch angle, handheld shake, snap-tilt
 
 3. EMOTIONAL/BODY LANGUAGE (15% of the prompt):
-   - Extreme facial expressions: eyes bulging, mouth agape, whiskers bristled, ears flat
-   - Body tension: muscles coiled, fur standing on end, spine arched
-   - Character reactions to each other: shock, outrage, terror, fury
+   - AGGRESSOR: fury at maximum — eyes blazing, body coiled with rage, every muscle tensed for attack
+   - DEFENSIVE: shock and overwhelm — eyes bulging wide, mouth agape, body language screaming retreat
+   - The contrast between attacker fury and defender panic is what makes the scene compelling
 
 4. ATMOSPHERIC MOTION (10% of the prompt):
-   - Environmental chaos: objects falling, liquids splashing, dust clouds, papers fluttering
-   - Lighting shifts: dramatic shadows, flashing lights
-   - Background elements reacting to the chaos
+   - Environmental chaos caused by the AGGRESSOR: objects knocked over, food flying, surfaces scratched/dented
+   - The environment should REACT to the fury — things topple, splatter, shatter
 
 CRITICAL RULES:
 - Write in PRESENT TENSE, third person
-- Use "the subject" or character descriptions, NOT names
+- Refer to characters by what they ARE (the cat, the animal, the human, the person, the figure) — NOT by name
 - NEVER describe character appearances or what they look like — only ACTIONS and MOVEMENTS
 - Every sentence must contain at least one POWERFUL ACTION VERB
 - NO passive voice. NO "is walking" — use "STORMS", "CHARGES", "BOLTS"
 - The pace must feel FRANTIC — short punchy sentences mixed with breathless run-ons
+- The AGGRESSOR must dominate the action — at least 70% of described movement is theirs
 - Output ONLY the video prompt text, no headers, no numbering, no explanations
 PROMPT;
 
