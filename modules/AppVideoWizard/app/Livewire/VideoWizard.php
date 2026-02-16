@@ -33084,6 +33084,107 @@ PROMPT;
     }
 
     /**
+     * Auto-generate a prompt for a segment that has no saved prompt.
+     * Extracts a frame from the segment video and uses Gemini to describe it.
+     */
+    public function autoGenerateSegmentPrompt(): void
+    {
+        if (!$this->segmentEditMode || ($this->segmentEditMode['status'] ?? '') !== 'editing') return;
+
+        $sceneIndex = $this->segmentEditMode['sceneIndex'];
+        $shotIndex = $this->segmentEditMode['shotIndex'];
+        $segmentIndex = $this->segmentEditMode['segmentIndex'];
+
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot) return;
+
+        $segment = $shot['segments'][$segmentIndex] ?? null;
+        if (!$segment) return;
+
+        try {
+            // Extract a frame from the segment's video (at 1 second in, or the midpoint)
+            $videoUrl = $segment['videoUrl'] ?? '';
+            $frameTime = min(1.0, ($segment['duration'] ?? 5) / 2);
+
+            $frameUrl = $this->segmentEditMode['thumbnailUrl'] ?? '';
+
+            // If no thumbnail, extract from video
+            if (empty($frameUrl) && !empty($videoUrl)) {
+                $frameUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::extractFrameAtTimestamp(
+                    $videoUrl, $frameTime, $this->projectId ?? 0
+                );
+
+                if ($frameUrl) {
+                    // Save the extracted frame as the segment thumbnail
+                    $this->segmentEditMode['thumbnailUrl'] = $frameUrl;
+                    $shot['segments'][$segmentIndex]['thumbnailUrl'] = $frameUrl;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] = $shot;
+                }
+            }
+
+            if (empty($frameUrl)) {
+                \Log::warning('AutoGenerateSegmentPrompt: no frame available');
+                return;
+            }
+
+            // Use Gemini to describe the frame as a Seedance video prompt
+            $imageContent = @file_get_contents($frameUrl);
+            if (!$imageContent) return;
+
+            $base64 = base64_encode($imageContent);
+            $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
+            $originalPrompt = $shot['videoPrompt'] ?? '';
+
+            $geminiPrompt = <<<PROMPT
+You are writing a VIDEO GENERATION PROMPT for Seedance AI (image-to-video model).
+
+Analyze this frame from a video and write a prompt that would recreate/continue this exact scene.
+
+ORIGINAL CONCEPT: {$concept}
+ORIGINAL VIDEO PROMPT (for context): {$originalPrompt}
+
+Write a Seedance-compatible prompt (100-200 words) describing:
+1. SUBJECT ACTION: What the characters are doing — specific movements, gestures, expressions
+2. CAMERA: Camera angle and any movement
+3. ATMOSPHERE: Lighting, mood, environmental details
+
+RULES:
+- Write in PRESENT TENSE
+- Focus on ACTIONS and MOVEMENTS, not appearances
+- Be specific about physical movements and spatial relationships
+- Match the visual style you see in the frame (photorealistic, animated, etc.)
+- Output ONLY the prompt text, no headers or explanations
+PROMPT;
+
+            $gemini = app(\App\Services\GeminiService::class);
+            $result = $gemini->analyzeImageWithPrompt($base64, $geminiPrompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => 'image/png',
+            ]);
+
+            if ($result['success'] && !empty($result['text'])) {
+                $text = trim($result['text']);
+                $text = preg_replace('/^#+\s+.*$/m', '', $text);
+                $text = trim($text);
+
+                $this->segmentEditMode['prompt'] = $text;
+
+                // Also save to the segment data permanently
+                $shot['segments'][$segmentIndex]['prompt'] = $text;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] = $shot;
+                $this->saveProject();
+
+                \Log::info('AutoGenerateSegmentPrompt: generated', [
+                    'segmentIndex' => $segmentIndex,
+                    'promptLength' => strlen($text),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('AutoGenerateSegmentPrompt failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Regenerate a specific timeline segment with an edited prompt.
      * Uses the segment's input frame (thumbnailUrl) and submits to Seedance.
      */

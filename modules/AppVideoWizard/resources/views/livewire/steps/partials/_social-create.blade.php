@@ -731,8 +731,28 @@
                     @endforeach
                 </div>
 
+                @if(empty($segmentEditMode['prompt']))
+                    <div style="font-size: 0.75rem; color: #f97316; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        No prompt saved — type one or auto-generate below
+                    </div>
+                @endif
                 <textarea wire:model.blur="segmentEditMode.prompt" rows="4"
-                          class="vw-extend-prompt" placeholder="Video prompt..."></textarea>
+                          class="vw-extend-prompt" placeholder="Describe what happens in this segment..."></textarea>
+
+                @if(empty($segmentEditMode['prompt']))
+                    <button wire:click="autoGenerateSegmentPrompt" class="vw-social-action-btn"
+                            style="margin-bottom: 0.5rem; font-size: 0.78rem;"
+                            wire:loading.attr="disabled"
+                            wire:target="autoGenerateSegmentPrompt">
+                        <span wire:loading.remove wire:target="autoGenerateSegmentPrompt">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate Prompt from Video
+                        </span>
+                        <span wire:loading wire:target="autoGenerateSegmentPrompt">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Analyzing...
+                        </span>
+                    </button>
+                @endif
 
                 <button wire:click="regenerateSegment" class="vw-social-action-btn orange"
                         wire:loading.attr="disabled"
