@@ -861,7 +861,7 @@
                             <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
                         </div>
                         <div class="vw-template-pills">
-                            @foreach(\Modules\AppVideoWizard\app\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                            @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
                                 <button type="button"
                                     class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
                                     wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
@@ -872,7 +872,7 @@
                             @endforeach
                         </div>
                         <div class="vw-template-desc">
-                            @foreach(\Modules\AppVideoWizard\app\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                            @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
                                 @if($cloneTemplate === $tpl['id'])
                                     {{ $tpl['description'] }}
                                 @endif
