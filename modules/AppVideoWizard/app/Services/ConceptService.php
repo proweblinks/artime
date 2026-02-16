@@ -353,41 +353,43 @@ Each idea MUST include a "videoPrompt" field — a Seedance 1.5 Pro optimized pr
 
 VIDEO PROMPT RULES — THIS IS CRITICAL:
 
-⚠️ HARD WORD LIMIT: 50-80 WORDS TOTAL (including voiceover intro). COUNT EVERY WORD.
-If your videoPrompt exceeds 80 words, the video WILL fail. Seedance has an internal prompt
-enhancer — it auto-expands short prompts into rich video. Verbose prompts cause artifacts
-and confused motion. SHORTER IS BETTER. After writing your prompt, count the words.
-If over 80, CUT sentences until it fits. This is the #1 cause of bad generations.
+WORD COUNT: 100-120 words. This is the sweet spot for Seedance 1.5 Pro.
+Under 100 words loses critical detail. Over 140 words can confuse motion. Aim for 110-120.
 
 DO NOT describe character appearances — that goes in "character" and "characters" fields.
-The video prompt describes ONLY actions and reactions.
+The video prompt describes ONLY actions, reactions, sounds, and voice.
 
-3-BEAT STRUCTURE (keep each beat to 1 sentence):
-Beat 1 — SETUP: "At first," — who + where. ONE short sentence (under 15 words).
-Beat 2 — TRIGGER: "Then suddenly," — what starts chaos. ONE sentence.
-Beat 3 — IMPACT: ONE moment of peak physical action with result. That's it. STOP.
+STRUCTURE — ESCALATING ACTION ARC:
+Use temporal phrases to create a building escalation:
+- "At first," — the calm setup (who + where + initial tension)
+- "Then," or "Then suddenly," — the trigger that breaks the calm
+- Escalation — chaos BUILDS: physical actions get bigger, faster, more destructive
+- Peak impact — the most explosive moment with environmental destruction
+- Aftermath — immediate result (objects scattered, characters displaced)
+Write as many action beats as needed to make the scene INTENSE and vivid.
 
-INTENSITY ADVERBS (attach one to every action verb):
-explosively, violently, aggressively, frantically, dramatically, forcefully, wildly.
+INTENSITY ADVERBS — attach to EVERY action verb (mandatory):
+explosively, violently, aggressively, frantically, dramatically, forcefully, wildly,
+ferociously, furiously, savagely, chaotically, relentlessly.
+Never leave an action verb naked. "Lunges" → "lunges ferociously".
 
-SIMPLIFY ACTION TO 1 IMPACT MOMENT:
-Seedance CANNOT render multi-step choreography (grab, twist, throw, crash sequences).
-Describe ONE explosive impact + its immediate result. Nothing more.
-GOOD: "the cat lunges explosively onto the man's chest, sending him crashing into the shelf"
-BAD: "the cat claws up his arm, latches onto shoulder, rakes across back, gets wrenched free"
+PHYSICAL ACTION — BE SPECIFIC AND DESTRUCTIVE:
+Every impact must have a VISIBLE CONSEQUENCE: things knocked over, broken, scattered, flying.
+GOOD: "the cat launches off the counter, slamming into his chest — he crashes backward into the shelf, cups shatter everywhere"
+BAD: "the cat jumps on him and he falls"
 
-ENVIRONMENTAL SOUNDS — add 2-3 after action:
-"crash of cups, startled gasps, sizzling grill"
+ENVIRONMENTAL SOUNDS — weave into the scene naturally (don't list separately).
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
 AUDIO FORMAT — pick ONE:
-A) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says, '[SHORT — max 15 words]'"
-   Then scene action. Count voiceover + scene together toward 80-word limit.
+A) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says, '[punchy line, max 20 words]'"
+   Then write the full scene action.
 B) DIALOGUE: Write scene, then: English dialogue: Character: "line"
 C) SFX ONLY: Scene with sounds as actions.
 
-RULES: No semicolons. No camera descriptions. Main character described FIRST.
+RULES: No semicolons. No camera descriptions. No appearance descriptions. No passive voice.
+No weak verbs: "goes", "moves", "does", "gets", "starts". Main character described FIRST.
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -408,7 +410,7 @@ Return ONLY a JSON array (no markdown, no explanation):
     "dialogueLines": [
       {"speaker": "Character Name", "text": "Short punchy line"}
     ],
-    "videoPrompt": "Generate a video with voiceover: A gruff male voice says, 'No refunds!' At first, a cat stands behind a pizza counter. Then suddenly, the cat lunges explosively across the counter, slamming both paws into the customer's chest. The customer crashes backward violently into the shelf — boxes tumble everywhere. Crash of falling boxes, startled gasp, sizzling oven. Cinematic, photorealistic.",
+    "videoPrompt": "Generate a video with voiceover: A gruff male voice says, 'No refunds, pal! You want your money back? Come get it!' At first, the cat stands aggressively behind the pizza counter, ears pinned back, glaring at the approaching customer. Then suddenly, the cat explodes off the counter, launching claws-first into the customer's chest. The customer staggers backward violently, crashing into the shelf — pizza boxes tumble everywhere, a stack of cups shatters across the floor. The cat clings on ferociously, clawing wildly as the customer spins around frantically. He stumbles toward the door, dragging the cat, knocking over a trash can that spills across the tiles. Cinematic, photorealistic.",
     "cameraFixed": true,
     "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
     "viralHook": "Why this would go viral (one sentence)"
@@ -1050,64 +1052,73 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 =======================================================================
 
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
+You are CLONING a reference video — your job is to FAITHFULLY recreate its energy, pacing,
+and physical intensity. Do NOT water it down or simplify it.
 
-⚠️ HARD WORD LIMIT: 50-80 WORDS TOTAL (including voiceover intro). COUNT EVERY WORD.
-If your videoPrompt exceeds 80 words, the video WILL fail. Seedance has an internal prompt
-enhancer — it auto-expands short prompts into rich video. Verbose prompts cause artifacts
-and confused motion. SHORTER IS BETTER. After writing your prompt, count the words.
-If over 80, CUT sentences until it fits. This is the #1 cause of bad generations.
+WORD COUNT: 100-120 words. This is the sweet spot for Seedance 1.5 Pro.
+Under 100 words loses critical detail. Over 140 words can confuse motion. Aim for 110-120.
 
-DO NOT describe appearances — that's in "character" and "characters" fields.
-The videoPrompt describes ONLY actions and reactions.
+DO NOT describe character appearances — that's in "character" and "characters" fields.
+The videoPrompt describes ONLY actions, reactions, sounds, and voice.
 
-3-BEAT STRUCTURE (keep each beat to 1 sentence):
-Beat 1 — SETUP: "At first," — who + where. ONE short sentence (under 15 words).
-Beat 2 — TRIGGER: "Then suddenly," — what starts chaos. ONE sentence.
-Beat 3 — IMPACT: ONE moment of peak physical action with result. That's it. STOP.
+STRUCTURE — ESCALATING ACTION ARC (match the reference video's pacing):
+Use temporal phrases to create a building escalation that MATCHES the reference:
+- "At first," — the calm setup (who + where + initial tension)
+- "Then," or "Then suddenly," — the trigger that breaks the calm
+- Escalation — the chaos BUILDS: physical actions get bigger, faster, more destructive
+- Peak impact — the most explosive moment with environmental destruction
+- Aftermath — the immediate result (objects scattered, characters displaced)
 
-INTENSITY ADVERBS (attach one to every action verb):
-explosively, violently, aggressively, frantically, dramatically, forcefully, wildly.
+Each phase flows naturally into the next. This is NOT a rigid 3-beat formula —
+write as many action beats as needed to faithfully capture the reference video's intensity.
 
-SIMPLIFY ACTION TO 1 IMPACT MOMENT:
-Seedance CANNOT render multi-step choreography (grab, twist, throw, crash sequences).
-Describe ONE explosive impact + its immediate result. Nothing more.
-GOOD: "the cat lunges explosively onto the man's chest, sending him crashing backward into the shelf"
-BAD: "the cat claws up his arm, latches onto shoulder, rakes across back, gets wrenched free, thrown to floor"
+INTENSITY ADVERBS — attach to EVERY action verb (mandatory):
+explosively, violently, aggressively, frantically, dramatically, forcefully, wildly,
+ferociously, furiously, savagely, chaotically, relentlessly.
+"Lunges" → "lunges ferociously". "Crashes" → "crashes violently". Never a naked verb.
 
-ENVIRONMENTAL SOUNDS — add 2-3 after action:
-"crash of cups, startled gasps, sizzling grill"
+PHYSICAL ACTION — BE SPECIFIC AND DESTRUCTIVE:
+Describe exact body movements AND their environmental consequences:
+GOOD: "the cat launches off the counter claws-first, slamming into his chest — he staggers
+backward violently, smashing through a rack of cups that shatter across the floor"
+BAD: "the cat jumps on him and he falls back"
+Every impact must have a VISIBLE CONSEQUENCE: things knocked over, broken, scattered, flying.
 
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+ENVIRONMENTAL SOUNDS — weave 2-3 INTO the scene naturally:
+Don't list them separately. Embed them: "cups shatter across the floor", "the register
+crashes to the ground", "a tray of donuts scatters everywhere". Sounds come from destruction.
 
-AUDIO FORMAT — pick ONE:
+VOICE/AUDIO FORMAT — pick ONE and execute it precisely:
 
-A) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says, '[SHORT — max 15 words]'"
-   Then write scene action (count voiceover + scene together toward 80-word limit).
+A) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says,
+   '[EXACT dialogue — punchy, in-character, max 20 words]'"
+   The voiceover must sound natural and match the character's emotion (angry, panicked, sarcastic).
+   Then write the full scene action after the voiceover intro.
 
 B) DIALOGUE: Write scene action, then:
    English dialogue:
    Character: "line"
 
-C) SFX ONLY: Scene action with sounds as actions.
-   Start with: "Generate a video with voiceover: A [tone] [gender] voice says, '[narration]'"
-   Then write the scene action separately. Do NOT describe characters "speaking" or "talking" in the scene text.
+C) SFX ONLY (with narration): Start with voiceover intro, then scene action.
+   Do NOT describe characters "speaking" in the scene text.
 
-C) SFX ONLY (no speech — just sounds):
-   Write scene action with animal sounds as physical actions: "the cat shrieks frantically and hisses"
+D) SFX ONLY (no speech): Write scene action with animal sounds as physical actions:
+   "the cat shrieks furiously and launches itself claws-first"
+
+STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
 BANNED:
 - No semicolons
-- No camera movement descriptions
-- No appearance descriptions (what they LOOK like)
-- No passive voice ("is thrown", "was knocked") — only active with adverbs
-- No generic verbs: "goes", "moves", "does", "gets", "starts"
-- NEVER exceed 80 words in the scene description
+- No camera movement descriptions (camera is controlled separately by the API)
+- No appearance/clothing descriptions (what characters LOOK like — only what they DO)
+- No passive voice — only active verbs with intensity adverbs
+- No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
 
-EXAMPLE — GOOD (55 words — UNDER the 80-word limit):
-"Generate a video with voiceover: A gruff male voice says, 'No refunds!'
-At first, a man confronts the cat behind a counter. Then suddenly, the cat lunges explosively, slamming both paws into his chest. He crashes backward violently into the shelf — cups shatter everywhere. Crash of cups, startled gasp, sizzling grill. Cinematic, photorealistic."
+EXAMPLE — GOOD CLONE PROMPT (115 words):
+"Generate a video with voiceover: A frustrated male voice says, 'How do you mess up iced coffee? No caramel, no swirl — get your manager! Get off me!'
+At first, the man slams his hand aggressively on the Dunkin' counter, pointing furiously at the cat employee. The cat's ears flatten and it hisses ferociously. Then suddenly, the cat explodes off the counter, launching claws-first into the man's chest. He staggers backward violently, crashing through a display rack — cups and lids scatter across the floor. The cat clings on savagely, clawing wildly as the man spins around frantically trying to peel it off. He stumbles toward the exit dragging the cat, knocking a trash can sideways. Cinematic, photorealistic."
 
-⚠️ COUNT YOUR WORDS. If over 80, delete sentences. NOW generate the JSON.
+NOW generate the JSON — make the videoPrompt MATCH the reference video's full intensity.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [

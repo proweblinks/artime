@@ -1108,7 +1108,7 @@
                     <label>{{ __('Video Prompt') }}</label>
                     <textarea wire:model.blur="multiShotMode.decomposedScenes.0.shots.0.videoPrompt"
                               placeholder="{{ __('Describe the scene, action, dialogue (in "quotes"), and sounds...') }}">{{ $shot['videoPrompt'] ?? '' }}</textarea>
-                    <small>{{ __('50-80 words ideal. End with audio cues + "Cinematic, photorealistic." Camera movement is added separately below.') }}</small>
+                    <small>{{ __('100-120 words ideal. Intense action with adverbs + environmental destruction. End with "Cinematic, photorealistic." Camera movement added below.') }}</small>
                 </div>
 
                 {{-- Camera Movement Picker --}}
