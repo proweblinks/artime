@@ -287,6 +287,99 @@
     }
 
     /* Clone Video UI */
+    .vw-social-concept .vw-clone-toggle {
+        display: flex;
+        gap: 0;
+        margin-bottom: 1rem;
+        background: rgba(15, 15, 30, 0.6);
+        border-radius: 0.6rem;
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        overflow: hidden;
+    }
+    .vw-social-concept .vw-clone-toggle-btn {
+        flex: 1;
+        padding: 0.55rem 0.75rem;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 0.82rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+    .vw-social-concept .vw-clone-toggle-btn:hover { color: #e2e8f0; background: rgba(139, 92, 246, 0.05); }
+    .vw-social-concept .vw-clone-toggle-btn.active {
+        background: rgba(139, 92, 246, 0.2);
+        color: #e2e8f0;
+    }
+    .vw-social-concept .vw-url-import-box {
+        background: rgba(20, 20, 40, 0.5);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .vw-social-concept .vw-url-input-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .vw-social-concept .vw-url-input-wrap {
+        flex: 1;
+        position: relative;
+    }
+    .vw-social-concept .vw-url-input-icon {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+    .vw-social-concept .vw-url-input {
+        width: 100%;
+        padding: 0.65rem 0.85rem 0.65rem 2.3rem;
+        background: rgba(10, 10, 25, 0.6);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.65rem;
+        color: #e2e8f0;
+        font-size: 0.88rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .vw-social-concept .vw-url-input:focus { border-color: rgba(139, 92, 246, 0.5); }
+    .vw-social-concept .vw-url-input::placeholder { color: #64748b; }
+    .vw-social-concept .vw-url-analyze-btn {
+        padding: 0.65rem 1.2rem;
+        background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+        color: white;
+        border: none;
+        border-radius: 0.65rem;
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .vw-social-concept .vw-url-analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35); }
+    .vw-social-concept .vw-url-analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .vw-social-concept .vw-url-platforms {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 0.75rem;
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+    .vw-social-concept .vw-url-platforms i { font-size: 0.95rem; opacity: 0.7; }
+    .vw-social-concept .vw-url-platforms span { margin-left: 0.1rem; }
     .vw-social-concept .vw-upload-dropzone {
         border: 2px dashed rgba(139, 92, 246, 0.3);
         border-radius: 1rem;
@@ -610,60 +703,118 @@
             {{-- ========================== Clone Video Tab ========================== --}}
             <div x-show="activeTab === 'clone'" x-cloak>
                 <div class="vw-clone-zone"
-                     x-data="{ isDragging: false }">
+                     x-data="{ isDragging: false, cloneMode: 'upload' }">
 
-                    {{-- Upload Area --}}
-                    <div class="vw-upload-dropzone"
-                         :class="{ 'dragging': isDragging }"
-                         @dragover.prevent="isDragging = true"
-                         @dragleave.prevent="isDragging = false"
-                         @drop.prevent="isDragging = false; $refs.videoInput.files = $event.dataTransfer.files; $refs.videoInput.dispatchEvent(new Event('change'))"
-                         @click="$refs.videoInput.click()">
+                    {{-- Clone Mode Toggle: Upload / Paste URL --}}
+                    <div class="vw-clone-toggle">
+                        <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'upload' }"
+                                @click="cloneMode = 'upload'">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> {{ __('Upload File') }}
+                        </button>
+                        <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'url' }"
+                                @click="cloneMode = 'url'">
+                            <i class="fa-solid fa-link"></i> {{ __('Paste URL') }}
+                        </button>
+                    </div>
 
-                        @if($conceptVideoUpload)
-                            {{-- Video Preview --}}
-                            <video class="vw-video-preview" controls onclick="event.stopPropagation()">
-                                <source src="{{ $conceptVideoUpload->temporaryUrl() }}" type="{{ $conceptVideoUpload->getMimeType() }}">
-                            </video>
-                            <div>
-                                <button class="vw-remove-video"
-                                        wire:click="$set('conceptVideoUpload', null)"
-                                        onclick="event.stopPropagation()">
-                                    <i class="fa-solid fa-trash-can"></i> {{ __('Remove') }}
-                                </button>
-                            </div>
-                        @else
-                            <div class="vw-dropzone-content">
-                                <div class="vw-dropzone-icon"><i class="fa-solid fa-video"></i></div>
-                                <p>{{ __('Drop a short video here or click to upload') }}</p>
-                                <small>{{ __('MP4, MOV, WebM up to 100MB') }}</small>
+                    {{-- ========= Upload Mode ========= --}}
+                    <div x-show="cloneMode === 'upload'" x-cloak>
+                        <div class="vw-upload-dropzone"
+                             :class="{ 'dragging': isDragging }"
+                             @dragover.prevent="isDragging = true"
+                             @dragleave.prevent="isDragging = false"
+                             @drop.prevent="isDragging = false; $refs.videoInput.files = $event.dataTransfer.files; $refs.videoInput.dispatchEvent(new Event('change'))"
+                             @click="$refs.videoInput.click()">
+
+                            @if($conceptVideoUpload)
+                                <video class="vw-video-preview" controls onclick="event.stopPropagation()">
+                                    <source src="{{ $conceptVideoUpload->temporaryUrl() }}" type="{{ $conceptVideoUpload->getMimeType() }}">
+                                </video>
+                                <div>
+                                    <button class="vw-remove-video"
+                                            wire:click="$set('conceptVideoUpload', null)"
+                                            onclick="event.stopPropagation()">
+                                        <i class="fa-solid fa-trash-can"></i> {{ __('Remove') }}
+                                    </button>
+                                </div>
+                            @else
+                                <div class="vw-dropzone-content">
+                                    <div class="vw-dropzone-icon"><i class="fa-solid fa-video"></i></div>
+                                    <p>{{ __('Drop a short video here or click to upload') }}</p>
+                                    <small>{{ __('MP4, MOV, WebM up to 100MB') }}</small>
+                                </div>
+                            @endif
+
+                            <input type="file"
+                                   x-ref="videoInput"
+                                   wire:model="conceptVideoUpload"
+                                   accept="video/mp4,video/quicktime,video/webm,video/x-msvideo"
+                                   style="display: none;" />
+                        </div>
+
+                        @if(!$conceptVideoUpload && !$videoAnalysisResult)
+                            <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress">
+                                <div class="vw-progress-spinner"></div>
+                                <span>{{ __('Uploading video...') }}</span>
                             </div>
                         @endif
 
-                        <input type="file"
-                               x-ref="videoInput"
-                               wire:model="conceptVideoUpload"
-                               accept="video/mp4,video/quicktime,video/webm,video/x-msvideo"
-                               style="display: none;" />
+                        @if($conceptVideoUpload && !$videoAnalysisStage)
+                            <button class="vw-analyze-btn" wire:click="analyzeUploadedVideo">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                {{ __('Analyze & Clone Concept') }}
+                            </button>
+                        @endif
                     </div>
 
-                    {{-- Upload Progress (only show when no video loaded yet and no analysis result) --}}
-                    @if(!$conceptVideoUpload && !$videoAnalysisResult)
-                        <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress">
+                    {{-- ========= URL Mode ========= --}}
+                    <div x-show="cloneMode === 'url'" x-cloak>
+                        <div class="vw-url-import-box">
+                            <div class="vw-url-input-row">
+                                <div class="vw-url-input-wrap">
+                                    <i class="fa-solid fa-link vw-url-input-icon"></i>
+                                    <input type="url"
+                                           wire:model.defer="conceptVideoUrl"
+                                           class="vw-url-input"
+                                           placeholder="{{ __('Paste video URL here...') }}"
+                                           @keydown.enter="$wire.analyzeVideoFromUrl()" />
+                                </div>
+                                <button class="vw-url-analyze-btn"
+                                        wire:click="analyzeVideoFromUrl"
+                                        wire:loading.attr="disabled"
+                                        wire:target="analyzeVideoFromUrl"
+                                        @if($urlDownloadStage || $videoAnalysisStage) disabled @endif>
+                                    <span wire:loading.remove wire:target="analyzeVideoFromUrl">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                        {{ __('Analyze') }}
+                                    </span>
+                                    <span wire:loading wire:target="analyzeVideoFromUrl">
+                                        <span class="vw-loading-inner"></span>
+                                    </span>
+                                </button>
+                            </div>
+                            <div class="vw-url-platforms">
+                                <i class="fa-brands fa-youtube"></i>
+                                <i class="fa-brands fa-instagram"></i>
+                                <i class="fa-brands fa-tiktok"></i>
+                                <i class="fa-brands fa-x-twitter"></i>
+                                <i class="fa-brands fa-facebook"></i>
+                                <span>{{ __('& 1000+ platforms') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ========= Shared: Progress / Error / Result ========= --}}
+
+                    {{-- Download Progress (URL mode) --}}
+                    @if($urlDownloadStage === 'downloading')
+                        <div class="vw-analysis-progress">
                             <div class="vw-progress-spinner"></div>
-                            <span>{{ __('Uploading video...') }}</span>
+                            <span><i class="fa-solid fa-download" style="margin-right: 0.3rem;"></i> {{ __('Downloading video from URL...') }}</span>
                         </div>
                     @endif
 
-                    {{-- Analyze Button --}}
-                    @if($conceptVideoUpload && !$videoAnalysisStage)
-                        <button class="vw-analyze-btn" wire:click="analyzeUploadedVideo">
-                            <i class="fa-solid fa-magnifying-glass-chart"></i>
-                            {{ __('Analyze & Clone Concept') }}
-                        </button>
-                    @endif
-
-                    {{-- Progress Indicator --}}
+                    {{-- Analysis Progress --}}
                     @if($videoAnalysisStage)
                         <div class="vw-analysis-progress">
                             <div class="vw-progress-spinner"></div>

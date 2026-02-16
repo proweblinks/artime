@@ -1126,6 +1126,8 @@ class VideoWizard extends Component
     public ?string $videoAnalysisStage = null;     // 'analyzing'|'transcribing'|'synthesizing'|null
     public ?array $videoAnalysisResult = null;     // The analyzed concept (same format as viral idea)
     public ?string $videoAnalysisError = null;
+    public ?string $conceptVideoUrl = null;        // URL for video import (YouTube, Instagram, TikTok, etc.)
+    public ?string $urlDownloadStage = null;       // 'downloading'|null
 
     // Script generation options
     public string $scriptTone = 'engaging';
@@ -4979,6 +4981,97 @@ PROMPT;
             $this->videoAnalysisError = $e->getMessage();
             $this->videoAnalysisStage = null;
             Log::error('VideoWizard: Video analysis failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Analyze a video from a URL (YouTube, Instagram, TikTok, etc.).
+     * Downloads via yt-dlp on the server, then runs the same 3-stage pipeline.
+     */
+    public function analyzeVideoFromUrl(): void
+    {
+        $this->videoAnalysisError = null;
+        $this->videoAnalysisResult = null;
+
+        $url = trim($this->conceptVideoUrl ?? '');
+        if (empty($url)) {
+            $this->videoAnalysisError = __('Please enter a video URL.');
+            return;
+        }
+
+        // Basic URL validation
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            $this->videoAnalysisError = __('Please enter a valid URL.');
+            return;
+        }
+
+        $this->urlDownloadStage = 'downloading';
+
+        try {
+            // Download video using yt-dlp
+            $ytDlpPath = '/home/artime/.local/bin/yt-dlp';
+            $tempDir = sys_get_temp_dir();
+            $outputFile = $tempDir . DIRECTORY_SEPARATOR . 'url_video_' . uniqid() . '.mp4';
+
+            Log::info('VideoWizard: URL import — downloading video', ['url' => $url]);
+
+            // yt-dlp: download best video+audio merged into mp4, max 100MB, max 5 min
+            $command = sprintf(
+                '%s --no-playlist --max-filesize 100M -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o %s %s 2>&1',
+                escapeshellcmd($ytDlpPath),
+                escapeshellarg($outputFile),
+                escapeshellarg($url)
+            );
+
+            exec($command, $output, $returnCode);
+            $outputText = implode("\n", $output);
+
+            Log::info('VideoWizard: yt-dlp result', [
+                'returnCode' => $returnCode,
+                'outputFile' => $outputFile,
+                'exists' => file_exists($outputFile),
+                'output' => mb_substr($outputText, -500),
+            ]);
+
+            if ($returnCode !== 0 || !file_exists($outputFile)) {
+                $this->urlDownloadStage = null;
+                // Provide user-friendly error
+                if (str_contains($outputText, 'Unsupported URL') || str_contains($outputText, 'is not a valid URL')) {
+                    $this->videoAnalysisError = __('This URL is not supported. Try YouTube, Instagram, TikTok, Twitter/X, or Facebook.');
+                } elseif (str_contains($outputText, 'Private video') || str_contains($outputText, 'login required') || str_contains($outputText, 'Sign in')) {
+                    $this->videoAnalysisError = __('This video is private or requires login. Only public videos can be imported.');
+                } elseif (str_contains($outputText, 'max-filesize')) {
+                    $this->videoAnalysisError = __('Video is too large (over 100MB). Try a shorter clip.');
+                } else {
+                    $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
+                }
+                Log::error('VideoWizard: yt-dlp download failed', ['output' => $outputText]);
+                return;
+            }
+
+            $this->urlDownloadStage = null;
+            $this->videoAnalysisStage = 'analyzing';
+
+            // Run same pipeline as uploaded videos
+            $conceptService = app(ConceptService::class);
+            $result = $conceptService->analyzeVideoForConcept($outputFile, [
+                'teamId' => session('current_team_id', 0),
+                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'mimeType' => 'video/mp4',
+                'videoEngine' => $this->videoEngine,
+            ]);
+
+            $this->videoAnalysisResult = $result;
+            $this->videoAnalysisStage = null;
+
+            // Cleanup temp file
+            @unlink($outputFile);
+
+        } catch (\Exception $e) {
+            $this->urlDownloadStage = null;
+            $this->videoAnalysisStage = null;
+            $this->videoAnalysisError = $e->getMessage();
+            Log::error('VideoWizard: URL video analysis failed', ['error' => $e->getMessage()]);
         }
     }
 
