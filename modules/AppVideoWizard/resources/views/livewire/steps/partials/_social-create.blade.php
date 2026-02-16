@@ -426,7 +426,7 @@
     .vw-extract-frame-btn:hover { background: rgba(249,115,22,0.8); border-color: #f97316; }
 
     /* Video Extend — Timeline */
-    .vw-timeline { margin-top: 0.5rem; }
+    .vw-timeline { margin-top: 0.5rem; width: 100%; }
     .vw-timeline-bar {
         display: flex; height: 2rem; border-radius: 0.5rem; overflow: hidden;
         border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
@@ -455,7 +455,7 @@
     /* Video Extend — Extend Panel */
     .vw-extend-panel {
         background: rgba(30,30,50,0.95); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem;
+        border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem; width: 100%;
     }
     .vw-extend-header {
         display: flex; justify-content: space-between; align-items: center;
@@ -657,10 +657,11 @@
                         </div>
                     @endif
                 </div>
+            </div>
 
-                {{-- Visual Timeline Bar — below the video --}}
-                @if(!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready')
-                <div class="vw-timeline" x-data="{ hoveredSegment: null }">
+            {{-- Visual Timeline Bar — below the video, full panel width --}}
+            @if(!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready')
+            <div class="vw-timeline" x-data="{ hoveredSegment: null }">
                     <div class="vw-timeline-bar">
                         @php
                             $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
@@ -792,9 +793,8 @@
                             </span>
                         </button>
                     @endif
-                </div>
-                @endif
             </div>
+            @endif
         </div>
 
         {{-- Right: Workflow Steps --}}
