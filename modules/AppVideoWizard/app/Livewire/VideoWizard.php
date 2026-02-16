@@ -33134,25 +33134,38 @@ PROMPT;
             $base64 = base64_encode($imageContent);
             $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
             $originalPrompt = $shot['videoPrompt'] ?? '';
+            $intensity = (int) ($this->segmentEditMode['intensity'] ?? 50);
+
+            $energyLevel = match(true) {
+                $intensity <= 20 => 'CALM — gentle, natural movements. Smooth and organic.',
+                $intensity <= 45 => 'MODERATE — some tension building. Quicker gestures, sharper reactions.',
+                $intensity <= 65 => 'INTENSE — dramatic action. Fast movements, strong reactions, rising conflict.',
+                $intensity <= 85 => 'WILD — extreme chaos. Violent movements, things flying, characters out of control.',
+                default => 'APOCALYPTIC — maximum insanity. Physics-defying destruction, total mayhem.',
+            };
 
             $geminiPrompt = <<<PROMPT
 You are writing a VIDEO GENERATION PROMPT for Seedance AI (image-to-video model).
 
-Analyze this frame from a video and write a prompt that would recreate/continue this exact scene.
+Analyze this frame from a video and write a prompt describing the action in this scene.
 
 ORIGINAL CONCEPT: {$concept}
 ORIGINAL VIDEO PROMPT (for context): {$originalPrompt}
 
+ENERGY LEVEL: {$energyLevel}
+
 Write a Seedance-compatible prompt (100-200 words) describing:
-1. SUBJECT ACTION: What the characters are doing — specific movements, gestures, expressions
-2. CAMERA: Camera angle and any movement
-3. ATMOSPHERE: Lighting, mood, environmental details
+1. SUBJECT ACTION (60%): What the characters are doing — specific movements, gestures, expressions. Match the energy level above.
+2. CAMERA (20%): Camera angle and movement matching the energy level.
+3. ATMOSPHERE (20%): Lighting, mood, environmental motion.
+
+VISUAL STYLE: Study the frame carefully. Whatever visual style you see (photorealistic, cinematic, etc.) — maintain that EXACT style. Begin with a style anchor like "Photorealistic cinematic scene —" if it's photorealistic.
 
 RULES:
 - Write in PRESENT TENSE
 - Focus on ACTIONS and MOVEMENTS, not appearances
-- Be specific about physical movements and spatial relationships
-- Match the visual style you see in the frame (photorealistic, animated, etc.)
+- Use strong action verbs that match the energy level
+- Match the visual style you see in the frame
 - Output ONLY the prompt text, no headers or explanations
 PROMPT;
 

@@ -794,6 +794,34 @@
                     </div>
                 </div>
 
+                {{-- Chaos/Intensity slider --}}
+                @php $segIntensity = $segmentEditMode['intensity'] ?? 50; @endphp
+                <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $segIntensity }} }" style="margin-bottom: 0.5rem;">
+                    <div class="vw-intensity-header">
+                        <label><i class="fa-solid fa-fire"></i> Chaos</label>
+                        <span class="vw-intensity-label"
+                              :class="{
+                                  'calm': intensity <= 20,
+                                  'rising': intensity > 20 && intensity <= 45,
+                                  'intense': intensity > 45 && intensity <= 65,
+                                  'wild': intensity > 65 && intensity <= 85,
+                                  'chaos': intensity > 85
+                              }"
+                              x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
+                        </span>
+                    </div>
+                    <div class="vw-intensity-slider-wrap">
+                        <input type="range" min="0" max="100" step="5"
+                               x-model="intensity"
+                               @change="$wire.set('segmentEditMode.intensity', parseInt(intensity))"
+                               class="vw-intensity-slider"
+                               :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                        <div class="vw-intensity-ticks">
+                            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="vw-seg-edit-actions">
                     @if(empty($segmentEditMode['prompt']))
                         <button wire:click="autoGenerateSegmentPrompt" class="vw-seg-edit-btn auto"
