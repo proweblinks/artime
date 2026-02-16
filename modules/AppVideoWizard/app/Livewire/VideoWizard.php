@@ -2275,6 +2275,14 @@ class VideoWizard extends Component
         $this->conceptVariations = [];
         $this->selectedConceptIndex = 0;
         $this->sceneCollages = [];
+
+        // Reset Video Concept Cloner state
+        $this->conceptVideoUpload = null;
+        $this->videoAnalysisStage = null;
+        $this->videoAnalysisResult = null;
+        $this->videoAnalysisError = null;
+        $this->conceptVideoUrl = null;
+        $this->urlDownloadStage = null;
         $this->detectionSummary = [
             'characters' => [],
             'speechTypes' => [],
@@ -12257,6 +12265,14 @@ PROMPT;
         $this->selectedConceptIndex = 0;
         $this->pendingJobs = [];
         $this->error = null;
+
+        // Reset Video Concept Cloner state
+        $this->conceptVideoUpload = null;
+        $this->videoAnalysisStage = null;
+        $this->videoAnalysisResult = null;
+        $this->videoAnalysisError = null;
+        $this->conceptVideoUrl = null;
+        $this->urlDownloadStage = null;
 
         // Close the modal
         $this->showProjectManager = false;
