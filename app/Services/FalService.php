@@ -394,31 +394,45 @@ class FalService
     }
 
     /**
-     * Upscale an image using Aura SR (true super-resolution, no face alteration).
+     * Upscale an image using Clarity Upscaler (high-quality SR with face preservation).
+     *
+     * Uses high resemblance + low creativity to preserve faces exactly
+     * while significantly enhancing resolution and detail.
      *
      * @param string $imageUrl Public URL of the image to upscale
-     * @return array ['success' => bool, 'imageUrl' => string, 'error' => ?string]
+     * @param int $scale Upscale factor (1-4, default 2)
+     * @return array ['success' => bool, 'imageUrl' => string, 'width' => int, 'height' => int, 'error' => ?string]
      */
-    public function upscaleImage(string $imageUrl): array
+    public function upscaleImage(string $imageUrl, int $scale = 2): array
     {
         try {
-            $result = $this->makeAPICall('fal-ai/aura-sr', [
+            $result = $this->makeAPICall('fal-ai/clarity-upscaler', [
                 'image_url' => $imageUrl,
+                'upscale_factor' => $scale,
+                'resemblance' => 0.9,
+                'creativity' => 0.1,
+                'prompt' => 'photorealistic, high quality, sharp details, natural skin texture, natural lighting',
+                'negative_prompt' => '(blurry, deformed face, distorted features, low quality, artifacts, noise:2)',
+                'guidance_scale' => 4,
+                'num_inference_steps' => 20,
+                'enable_safety_checker' => false,
             ]);
 
             $upscaledUrl = $result['image']['url'] ?? null;
 
             if (!$upscaledUrl) {
-                throw new \Exception('Aura SR did not return an image URL');
+                throw new \Exception('Clarity Upscaler did not return an image URL');
             }
 
             return [
                 'success' => true,
                 'imageUrl' => $upscaledUrl,
+                'width' => $result['image']['width'] ?? null,
+                'height' => $result['image']['height'] ?? null,
             ];
 
         } catch (\Exception $e) {
-            Log::error('FAL Aura SR upscale failed: ' . $e->getMessage());
+            Log::error('FAL Clarity Upscaler failed: ' . $e->getMessage());
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

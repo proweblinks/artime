@@ -314,6 +314,20 @@
         font-weight: 700;
         font-size: 1rem;
     }
+    .vw-social-upscaling-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: #06b6d4;
+        font-weight: 700;
+        font-size: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.5rem;
+    }
 
     .vw-social-audio-tabs {
         display: flex;
@@ -872,7 +886,17 @@
                             </div>
                         </div>
                     @elseif($imageUrl && $imageStatus === 'ready')
-                        <img src="{{ $imageUrl }}" alt="Generated image" />
+                        <div style="position: relative;">
+                            <img src="{{ $imageUrl }}" alt="Generated image"
+                                 wire:loading.attr="style"
+                                 wire:target="upscaleShotImage"
+                                 wire:loading.value="opacity: 0.35; filter: blur(2px);" />
+                            <div wire:loading wire:target="upscaleShotImage" class="vw-social-upscaling-overlay">
+                                <i class="fa-solid fa-up-right-and-down-left-from-center fa-2x" style="animation: vw-pulse-badge 1.5s infinite;"></i>
+                                <div>{{ __('Upscaling...') }}</div>
+                                <div style="font-size: 0.7rem; opacity: 0.7;">{{ __('Enhancing resolution while preserving faces') }}</div>
+                            </div>
+                        </div>
                     @else
                         <div class="vw-social-preview-placeholder">
                             <i class="fa-solid fa-image"></i>
