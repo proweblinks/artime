@@ -3554,8 +3554,8 @@ class VideoWizard extends Component
 
         // Inject camera movement instruction
         $cameraMove = $shot['seedanceCameraMove'] ?? 'none';
+        $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
         if ($cameraMove !== 'none') {
-            $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
             $cameraInstruction = $this->getSeedanceCameraInstruction($cameraMove, $intensity);
             if ($cameraInstruction) {
                 $prompt .= ' ' . $cameraInstruction;
@@ -3566,6 +3566,14 @@ class VideoWizard extends Component
         if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
             $prompt .= ' Cinematic, photorealistic.';
         }
+
+        \Log::info('assembleSeedancePrompt', [
+            'cameraMove' => $cameraMove,
+            'intensity' => $intensity,
+            'camera_fixed' => $cameraMove === 'none',
+            'finalPromptLength' => strlen($prompt),
+            'finalPrompt' => $prompt,
+        ]);
 
         return $prompt;
     }
