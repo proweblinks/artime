@@ -467,6 +467,58 @@
         margin-bottom: 0.75rem; font-size: 0.85rem; color: #f97316; font-weight: 600;
     }
     .vw-extend-frame-preview { max-height: 120px; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+
+    /* Segment Edit Panel — compact layout */
+    .vw-seg-edit {
+        background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 0.6rem; padding: 0.6rem; margin-top: 0.5rem; width: 100%;
+    }
+    .vw-seg-edit-top {
+        display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+    }
+    .vw-seg-edit-title {
+        font-size: 0.78rem; font-weight: 600; color: #f97316;
+        white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;
+    }
+    .vw-seg-edit-dur { display: flex; gap: 0.3rem; margin-left: auto; }
+    .vw-seg-edit-body {
+        display: flex; gap: 0.6rem; margin-bottom: 0.5rem;
+    }
+    .vw-seg-edit-thumb {
+        flex-shrink: 0; width: 100px;
+    }
+    .vw-seg-edit-thumb img {
+        width: 100%; border-radius: 0.4rem; object-fit: cover;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .vw-seg-edit-prompt-col {
+        flex: 1; min-width: 0; display: flex; flex-direction: column;
+    }
+    .vw-seg-edit-prompt-col .vw-extend-prompt {
+        margin-bottom: 0; flex: 1; min-height: 80px; font-size: 0.75rem;
+    }
+    .vw-seg-edit-warning {
+        font-size: 0.7rem; color: #f97316; margin-bottom: 0.3rem;
+        display: flex; align-items: center; gap: 0.3rem;
+    }
+    .vw-seg-edit-actions {
+        display: flex; gap: 0.4rem; justify-content: flex-end;
+    }
+    .vw-seg-edit-btn {
+        padding: 0.35rem 0.75rem; border-radius: 0.4rem; font-size: 0.75rem;
+        font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+    }
+    .vw-seg-edit-btn.auto {
+        background: rgba(139,92,246,0.25); color: #c4b5fd;
+        border: 1px solid rgba(139,92,246,0.3);
+    }
+    .vw-seg-edit-btn.auto:hover { background: rgba(139,92,246,0.4); }
+    .vw-seg-edit-btn.regen {
+        background: rgba(249,115,22,0.3); color: #fdba74;
+        border: 1px solid rgba(249,115,22,0.4);
+    }
+    .vw-seg-edit-btn.regen:hover { background: rgba(249,115,22,0.5); color: #fff; }
     .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: #94a3b8; }
     .vw-dur-btn {
         padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.2);
@@ -708,62 +760,62 @@
 
             {{-- Segment Edit Panel — appears when a segment is selected --}}
             @if($segmentEditMode && ($segmentEditMode['status'] ?? '') === 'editing')
-            <div class="vw-extend-panel">
-                <div class="vw-extend-header">
-                    <span>
+            <div class="vw-seg-edit">
+                <div class="vw-seg-edit-top">
+                    <span class="vw-seg-edit-title">
                         <i class="fa-solid fa-pen"></i>
-                        Edit {{ ($segmentEditMode['type'] ?? 'original') === 'original' ? 'Original' : 'Extension ' . $segmentEditMode['segmentIndex'] }}
+                        Edit {{ ($segmentEditMode['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segmentEditMode['segmentIndex'] }}
                     </span>
+                    <div class="vw-seg-edit-dur">
+                        @foreach([5, 8, 10] as $dur)
+                            <button wire:click="$set('segmentEditMode.duration', {{ $dur }})"
+                                    class="vw-dur-btn {{ ($segmentEditMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
+                                {{ $dur }}s
+                            </button>
+                        @endforeach
+                    </div>
                     <button wire:click="cancelSegmentEdit" class="vw-extend-cancel-btn">&times;</button>
                 </div>
 
-                @if($segmentEditMode['thumbnailUrl'] ?? null)
-                    <img src="{{ $segmentEditMode['thumbnailUrl'] }}" class="vw-extend-frame-preview" alt="Segment frame" />
-                @endif
-
-                <div class="vw-extend-duration-row">
-                    <label>Duration:</label>
-                    @foreach([5, 8, 10] as $dur)
-                        <button wire:click="$set('segmentEditMode.duration', {{ $dur }})"
-                                class="vw-dur-btn {{ ($segmentEditMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
-                            {{ $dur }}s
-                        </button>
-                    @endforeach
+                <div class="vw-seg-edit-body">
+                    @if($segmentEditMode['thumbnailUrl'] ?? null)
+                        <div class="vw-seg-edit-thumb">
+                            <img src="{{ $segmentEditMode['thumbnailUrl'] }}" alt="Frame" />
+                        </div>
+                    @endif
+                    <div class="vw-seg-edit-prompt-col">
+                        @if(empty($segmentEditMode['prompt']))
+                            <div class="vw-seg-edit-warning">
+                                <i class="fa-solid fa-triangle-exclamation"></i> No prompt saved
+                            </div>
+                        @endif
+                        <textarea wire:model.blur="segmentEditMode.prompt" rows="4"
+                                  class="vw-extend-prompt" placeholder="Describe what happens in this segment..."></textarea>
+                    </div>
                 </div>
 
-                @if(empty($segmentEditMode['prompt']))
-                    <div style="font-size: 0.75rem; color: #f97316; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        No prompt saved — type one or auto-generate below
-                    </div>
-                @endif
-                <textarea wire:model.blur="segmentEditMode.prompt" rows="4"
-                          class="vw-extend-prompt" placeholder="Describe what happens in this segment..."></textarea>
-
-                @if(empty($segmentEditMode['prompt']))
-                    <button wire:click="autoGenerateSegmentPrompt" class="vw-social-action-btn"
-                            style="margin-bottom: 0.5rem; font-size: 0.78rem;"
-                            wire:loading.attr="disabled"
-                            wire:target="autoGenerateSegmentPrompt">
-                        <span wire:loading.remove wire:target="autoGenerateSegmentPrompt">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate Prompt from Video
+                <div class="vw-seg-edit-actions">
+                    @if(empty($segmentEditMode['prompt']))
+                        <button wire:click="autoGenerateSegmentPrompt" class="vw-seg-edit-btn auto"
+                                wire:loading.attr="disabled" wire:target="autoGenerateSegmentPrompt">
+                            <span wire:loading.remove wire:target="autoGenerateSegmentPrompt">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate
+                            </span>
+                            <span wire:loading wire:target="autoGenerateSegmentPrompt">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Analyzing...
+                            </span>
+                        </button>
+                    @endif
+                    <button wire:click="regenerateSegment" class="vw-seg-edit-btn regen"
+                            wire:loading.attr="disabled" wire:target="regenerateSegment">
+                        <span wire:loading.remove wire:target="regenerateSegment">
+                            <i class="fa-solid fa-arrows-rotate"></i> Regenerate
                         </span>
-                        <span wire:loading wire:target="autoGenerateSegmentPrompt">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Analyzing...
+                        <span wire:loading wire:target="regenerateSegment">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
                         </span>
                     </button>
-                @endif
-
-                <button wire:click="regenerateSegment" class="vw-social-action-btn orange"
-                        wire:loading.attr="disabled"
-                        wire:target="regenerateSegment">
-                    <span wire:loading.remove wire:target="regenerateSegment">
-                        <i class="fa-solid fa-arrows-rotate"></i> Regenerate Segment
-                    </span>
-                    <span wire:loading wire:target="regenerateSegment">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
-                    </span>
-                </button>
+                </div>
             </div>
             @endif
             @endif
