@@ -5009,44 +5009,25 @@ PROMPT;
         $this->urlDownloadStage = 'downloading';
 
         try {
-            // Download video using yt-dlp
-            $ytDlpPath = '/home/artime/.local/bin/yt-dlp';
             $tempDir = sys_get_temp_dir();
             $outputFile = $tempDir . DIRECTORY_SEPARATOR . 'url_video_' . uniqid() . '.mp4';
 
             Log::info('VideoWizard: URL import — downloading video', ['url' => $url]);
 
-            // yt-dlp: download best video+audio merged into mp4, max 100MB, max 5 min
-            $command = sprintf(
-                '%s --no-playlist --max-filesize 100M -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o %s %s 2>&1',
-                escapeshellcmd($ytDlpPath),
-                escapeshellarg($outputFile),
-                escapeshellarg($url)
-            );
+            // Try download methods in order: yt-dlp → RapidAPI fallback
+            $downloaded = $this->downloadVideoWithYtDlp($url, $outputFile);
 
-            exec($command, $output, $returnCode);
-            $outputText = implode("\n", $output);
+            if (!$downloaded) {
+                // Fallback: try RapidAPI social media downloader
+                $downloaded = $this->downloadVideoWithApi($url, $outputFile);
+            }
 
-            Log::info('VideoWizard: yt-dlp result', [
-                'returnCode' => $returnCode,
-                'outputFile' => $outputFile,
-                'exists' => file_exists($outputFile),
-                'output' => mb_substr($outputText, -500),
-            ]);
-
-            if ($returnCode !== 0 || !file_exists($outputFile)) {
+            if (!$downloaded) {
                 $this->urlDownloadStage = null;
-                // Provide user-friendly error
-                if (str_contains($outputText, 'Unsupported URL') || str_contains($outputText, 'is not a valid URL')) {
-                    $this->videoAnalysisError = __('This URL is not supported. Try YouTube, Instagram, TikTok, Twitter/X, or Facebook.');
-                } elseif (str_contains($outputText, 'Private video') || str_contains($outputText, 'login required') || str_contains($outputText, 'Sign in')) {
-                    $this->videoAnalysisError = __('This video is private or requires login. Only public videos can be imported.');
-                } elseif (str_contains($outputText, 'max-filesize')) {
-                    $this->videoAnalysisError = __('Video is too large (over 100MB). Try a shorter clip.');
-                } else {
+                // $videoAnalysisError is already set by the download methods
+                if (empty($this->videoAnalysisError)) {
                     $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
                 }
-                Log::error('VideoWizard: yt-dlp download failed', ['output' => $outputText]);
                 return;
             }
 
@@ -5074,6 +5055,226 @@ PROMPT;
             $this->videoAnalysisError = $e->getMessage();
             Log::error('VideoWizard: URL video analysis failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Download video using yt-dlp (with cookies support for Instagram/TikTok/Facebook).
+     * Cookies file enables authenticated downloads from platforms that require login.
+     * Place a Netscape-format cookies.txt at /home/artime/.config/yt-dlp/cookies.txt
+     *
+     * @return bool True if download succeeded
+     */
+    protected function downloadVideoWithYtDlp(string $url, string $outputFile): bool
+    {
+        $ytDlpPath = '/home/artime/.local/bin/yt-dlp';
+
+        // Check for cookies file — enables Instagram, TikTok, Facebook downloads
+        $cookiesPath = get_option('ytdlp_cookies_path', '/home/artime/.config/yt-dlp/cookies.txt');
+        $cookiesFlag = '';
+        if (!empty($cookiesPath) && file_exists($cookiesPath)) {
+            $cookiesFlag = sprintf('--cookies %s', escapeshellarg($cookiesPath));
+            Log::info('VideoWizard: Using cookies file for yt-dlp', ['path' => $cookiesPath]);
+        }
+
+        $command = sprintf(
+            '%s --no-playlist --max-filesize 100M %s -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o %s %s 2>&1',
+            escapeshellcmd($ytDlpPath),
+            $cookiesFlag,
+            escapeshellarg($outputFile),
+            escapeshellarg($url)
+        );
+
+        exec($command, $output, $returnCode);
+        $outputText = implode("\n", $output);
+
+        Log::info('VideoWizard: yt-dlp result', [
+            'returnCode' => $returnCode,
+            'outputFile' => $outputFile,
+            'exists' => file_exists($outputFile),
+            'hasCookies' => !empty($cookiesFlag),
+            'output' => mb_substr($outputText, -500),
+        ]);
+
+        if ($returnCode === 0 && file_exists($outputFile) && filesize($outputFile) > 1000) {
+            return true;
+        }
+
+        // Set specific error messages — these may be overridden by API fallback success
+        $needsAuth = str_contains($outputText, 'login required')
+            || str_contains($outputText, 'Sign in')
+            || str_contains($outputText, 'locked behind the login')
+            || str_contains($outputText, 'Requested content is not available');
+
+        if (str_contains($outputText, 'Unsupported URL') || str_contains($outputText, 'is not a valid URL')) {
+            $this->videoAnalysisError = __('This URL is not supported. Try YouTube, Instagram, TikTok, Twitter/X, or Facebook.');
+        } elseif (str_contains($outputText, 'max-filesize')) {
+            $this->videoAnalysisError = __('Video is too large (over 100MB). Try a shorter clip.');
+        } elseif ($needsAuth && empty($cookiesFlag)) {
+            $platform = $this->detectPlatform($url);
+            $this->videoAnalysisError = __(':platform requires authentication. An admin cookies file is needed for :platform downloads. Trying alternative method...', ['platform' => $platform]);
+        } elseif ($needsAuth) {
+            $platform = $this->detectPlatform($url);
+            $this->videoAnalysisError = __(':platform cookies may be expired. Please re-export cookies from a logged-in browser session.', ['platform' => $platform]);
+        } else {
+            $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
+        }
+
+        Log::warning('VideoWizard: yt-dlp download failed, will try API fallback', [
+            'needsAuth' => $needsAuth,
+            'output' => mb_substr($outputText, -300),
+        ]);
+
+        // Cleanup failed partial file
+        @unlink($outputFile);
+        return false;
+    }
+
+    /**
+     * Fallback: Download video using a configurable RapidAPI social media downloader.
+     * Configure via admin options: 'social_downloader_api_key' and 'social_downloader_api_host'.
+     * Default service: social-media-video-downloader on RapidAPI.
+     *
+     * @return bool True if download succeeded
+     */
+    protected function downloadVideoWithApi(string $url, string $outputFile): bool
+    {
+        $apiKey = get_option('social_downloader_api_key', '');
+        $apiHost = get_option('social_downloader_api_host', 'social-media-video-downloader.p.rapidapi.com');
+
+        if (empty($apiKey)) {
+            Log::info('VideoWizard: No social downloader API key configured, skipping API fallback');
+            return false;
+        }
+
+        Log::info('VideoWizard: Trying RapidAPI social downloader fallback', ['host' => $apiHost, 'url' => $url]);
+
+        try {
+            $apiUrl = 'https://' . $apiHost . '/smvd/get/all?url=' . urlencode($url);
+
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTPHEADER => [
+                    'x-rapidapi-host: ' . $apiHost,
+                    'x-rapidapi-key: ' . $apiKey,
+                ],
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode !== 200 || empty($response)) {
+                Log::warning('VideoWizard: RapidAPI returned error', ['httpCode' => $httpCode]);
+                return false;
+            }
+
+            $data = json_decode($response, true);
+            if (empty($data) || !empty($data['error'])) {
+                Log::warning('VideoWizard: RapidAPI response error', ['data' => mb_substr($response, 0, 500)]);
+                return false;
+            }
+
+            // Extract best video download URL from response
+            $downloadUrl = $this->extractBestVideoUrl($data);
+            if (empty($downloadUrl)) {
+                Log::warning('VideoWizard: No video URL found in RapidAPI response');
+                return false;
+            }
+
+            Log::info('VideoWizard: RapidAPI provided download URL, downloading video file');
+
+            // Download the actual video file
+            $ch = curl_init($downloadUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ]);
+
+            $videoData = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && !empty($videoData) && strlen($videoData) > 10000) {
+                file_put_contents($outputFile, $videoData);
+                Log::info('VideoWizard: RapidAPI download succeeded', ['size' => strlen($videoData)]);
+                $this->videoAnalysisError = null; // Clear any yt-dlp error
+                return true;
+            }
+
+            Log::warning('VideoWizard: RapidAPI video download failed', ['httpCode' => $httpCode, 'size' => strlen($videoData ?? '')]);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: RapidAPI fallback exception', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Extract the best video download URL from a RapidAPI social downloader response.
+     * Handles various response formats from different RapidAPI providers.
+     */
+    protected function extractBestVideoUrl(array $data): ?string
+    {
+        // Format 1: "links" array with quality/link objects (social-media-video-downloader)
+        if (!empty($data['links']) && is_array($data['links'])) {
+            $preferred = ['1080p', '720p', '480p', '360p'];
+            foreach ($preferred as $quality) {
+                foreach ($data['links'] as $link) {
+                    if (isset($link['quality']) && str_contains(strtolower($link['quality']), $quality) && !empty($link['link'])) {
+                        return $link['link'];
+                    }
+                }
+            }
+            // Fallback: first link with a URL
+            foreach ($data['links'] as $link) {
+                if (!empty($link['link'])) {
+                    return $link['link'];
+                }
+                if (!empty($link['url'])) {
+                    return $link['url'];
+                }
+            }
+        }
+
+        // Format 2: direct "download_url" field (FastSaverAPI style)
+        if (!empty($data['download_url'])) {
+            return $data['download_url'];
+        }
+
+        // Format 3: "url" field (cobalt style)
+        if (!empty($data['url']) && ($data['status'] ?? '') !== 'error') {
+            return $data['url'];
+        }
+
+        // Format 4: nested "video" array
+        if (!empty($data['video']) && is_array($data['video'])) {
+            foreach ($data['video'] as $v) {
+                if (!empty($v['url'])) return $v['url'];
+                if (!empty($v['link'])) return $v['link'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect which social platform a URL belongs to.
+     */
+    protected function detectPlatform(string $url): string
+    {
+        $host = strtolower(parse_url($url, PHP_URL_HOST) ?? '');
+        if (str_contains($host, 'instagram.com')) return 'Instagram';
+        if (str_contains($host, 'tiktok.com')) return 'TikTok';
+        if (str_contains($host, 'facebook.com') || str_contains($host, 'fb.watch')) return 'Facebook';
+        if (str_contains($host, 'twitter.com') || str_contains($host, 'x.com')) return 'Twitter/X';
+        if (str_contains($host, 'youtube.com') || str_contains($host, 'youtu.be')) return 'YouTube';
+        return 'This platform';
     }
 
     /**
