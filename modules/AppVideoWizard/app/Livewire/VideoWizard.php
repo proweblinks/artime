@@ -32999,154 +32999,93 @@ PROMPT;
             $base64 = base64_encode($imageContent);
             $mimeType = 'image/png';
 
-            $takeNumber = ($context['takeNumber'] ?? 1) + 1; // This will be take 2, 3, 4...
-            $sceneDescription = $context['sceneDescription'] ?? '';
             $concept = $context['concept'] ?? '';
             $narration = $context['narration'] ?? '';
-            $intensity = (int) ($context['intensity'] ?? 50);
             $chaosDirection = trim($context['chaosDirection'] ?? '');
             $characterDescriptions = $context['characters'] ?? [];
             $characterBlock = !empty($characterDescriptions)
                 ? "CHARACTERS IN THIS SCENE:\n" . implode("\n", array_map(fn($c) => "- {$c}", $characterDescriptions))
                 : '';
 
-            // Escalation intensity driven by the user's chaos slider (0-100%)
-            // Take number provides a small boost but intensity slider is the primary driver
-            $effectiveIntensity = min(100, $intensity + ($takeNumber - 2) * 5);
-
-            $escalation = match(true) {
-                $effectiveIntensity <= 20 => [
-                    'level' => 'CALM CONTINUATION',
-                    'instruction' => 'Continue the scene naturally with the SAME energy and pacing. No escalation — just a smooth, organic progression of the moment. Characters maintain their current emotional state. The scene flows forward gently.',
-                    'verbs' => 'steps, turns, glances, reaches, leans, shifts, adjusts, settles, pauses, breathes',
-                    'camera' => 'Steady camera with subtle movement — slow dolly or gentle pan following the natural flow of action',
-                ],
-                $effectiveIntensity <= 45 => [
-                    'level' => 'RISING TENSION',
-                    'instruction' => 'The pace picks up moderately. One unexpected twist or reaction raises the stakes. The AGGRESSOR character becomes noticeably more agitated — faster movements, sharper gestures. The DEFENSIVE character starts to look uneasy, shifting weight, leaning back slightly.',
-                    'verbs' => 'GRABS, SWINGS, SHOVES, SNAPS, JOLTS, FLINGS, STUMBLES, JERKS, WHIRLS, SNATCHES',
-                    'camera' => 'Camera tightens slightly, quicker pans to follow rising action, subtle push-in on key reactions',
-                ],
-                $effectiveIntensity <= 65 => [
-                    'level' => 'DRAMATIC ESCALATION',
-                    'instruction' => 'The pace and intensity EXPLODE compared to the previous take. Everything accelerates violently. The AGGRESSOR character goes absolutely berserk — wild, unhinged, out of control. The DEFENSIVE character recoils, shields themselves, backs away in shock. The power dynamic between them reaches a breaking point.',
-                    'verbs' => 'SLAMS, HURLS, CRASHES, SHRIEKS, FLAILS, LUNGES, SMASHES, WHIPS around, ERUPTS, LAUNCHES, SCRAMBLES, THRASHES',
-                    'camera' => 'Camera SHAKES with the chaos, quick whip-pans following the action, dramatic zoom-ins on extreme reactions',
-                ],
-                $effectiveIntensity <= 85 => [
-                    'level' => 'PEAK INSANITY',
-                    'instruction' => 'Complete mayhem. The AGGRESSOR has completely lost it — shrieking, thrashing, destroying everything in reach. The DEFENSIVE character is in full retreat, ducking, dodging, trying to protect themselves from the onslaught. Objects are flying, surfaces are being clawed/smashed, the environment is being demolished.',
-                    'verbs' => 'DETONATES, CATAPULTS, DEMOLISHES, OBLITERATES, TORPEDOES, BARREL-ROLLS, RICOCHETS, PILE-DRIVES, BODY-SLAMS, KARATE-CHOPS',
-                    'camera' => 'Camera desperately tries to keep up, violent shaking, crash zooms, snap-tilts following flying objects and tumbling characters',
-                ],
-                default => [
-                    'level' => 'APOCALYPTIC MELTDOWN',
-                    'instruction' => 'Beyond all reason. The AGGRESSOR has transcended normal fury into cartoon-level rage — physics-defying destruction. The DEFENSIVE character is completely overwhelmed, cowering, fleeing. The entire environment is collapsing under the weight of the chaos. Multiple simultaneous disasters — objects exploding, furniture flipping, walls shaking.',
-                    'verbs' => 'ANNIHILATES, VAPORIZES, DETONATES, IMPLODES, GOES NUCLEAR, SHOCKWAVE-BLASTS, MEGA-LAUNCHES, WRECKING-BALLS',
-                    'camera' => 'Camera is out of control — rapid cuts between extreme close-ups of screaming faces and wide shots of total destruction',
-                ],
-            };
-
-            $prompt = <<<PROMPT
-You are writing a VIDEO GENERATION PROMPT for Seedance AI (image-to-video model). This is Take {$takeNumber} — a continuation of an existing video.
-
-ANALYZE THIS FRAME: This is the last frame from the previous take, captured at second {$timestamp}. The video continues EXACTLY from this visual moment. Study the frame carefully to understand the physical positions, expressions, and spatial arrangement of each character.
-
-ORIGINAL CONCEPT:
-{$concept}
-
-SCENE NARRATION:
-{$narration}
-
-{$characterBlock}
-
-PREVIOUS VIDEO PROMPT (for continuity):
-{$originalPrompt}
-
-SCENE CONTEXT:
-{$sceneDescription}
-
-CHARACTER DYNAMICS — THIS IS CRITICAL:
-Study the concept and characters above. Identify which character is the AGGRESSOR (the one driving the conflict, going wild, screaming, attacking) and which is the DEFENSIVE one (reacting, recoiling, backing away, trying to calm things down). The continuation MUST preserve these exact roles:
-- The AGGRESSOR escalates their fury — more screaming, more physical chaos, more destruction
-- The DEFENSIVE character reacts with increasing shock, fear, retreat — they are overwhelmed
-- NEVER reverse the roles. If the concept says a cat is arguing/attacking, the CAT stays the wild aggressor and the human stays defensive. If an animal is the aggressor, describe their animal-specific fury (hissing, clawing, arching back, fur standing on end, tail thrashing).
-
-INTENSITY LEVEL: {$escalation['level']}
-{$escalation['instruction']}
-PROMPT;
-
-            // Inject user's chaos direction if provided
+            $chaosBlock = '';
             if ($chaosDirection !== '') {
-                $prompt .= <<<PROMPT
+                $chaosBlock = <<<PROMPT
 
-
-USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — incorporate this into the continuation):
+USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — the continuation MUST follow this):
 {$chaosDirection}
-— The above direction from the user MUST shape the core action of this continuation. Build the entire scene around fulfilling this direction while maintaining the character dynamics, visual style, and cause-and-effect rules below.
 PROMPT;
             }
 
-            $prompt .= <<<PROMPT
+            $prompt = <<<PROMPT
+You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
 
+ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
+Study it carefully — character positions, expressions, what they're wearing, the environment, objects.
 
-YOUR TASK: Write a Seedance video prompt (150-250 words) describing what happens NEXT, starting from this exact frame.
+ORIGINAL CONCEPT: {$concept}
+NARRATION: {$narration}
+{$characterBlock}
 
-REQUIRED STRUCTURE:
+PREVIOUS PROMPT (for continuity): {$originalPrompt}
+{$chaosBlock}
 
-1. SUBJECT ACTION (most critical — 60% of the prompt):
-   - Use SPECIFIC EXPLOSIVE ACTION VERBS: {$escalation['verbs']}
-   - Describe the AGGRESSOR's PHYSICAL actions in extreme granular detail: which paw/hand hits what, which claw scrapes which surface, which body part knocks which object
-   - Every object that moves must be PHYSICALLY TOUCHED by the aggressor first: "the cat's right paw SWIPES the plate, SENDING noodles arcing through the air"
-   - Describe the DEFENSIVE character's physical reactions: hands grabbing table edge, chair scraping backward, body twisting away, arms raised to block
-   - SOUND through physical actions only: "paws SLAMMING the table so hard dishes clatter", "claws SCRAPING the wood with an audible screech"
-   - Multiple simultaneous physical chains: "the cat's hind legs KICK the chair WHILE its front paws RAKE across the tablecloth, DRAGGING plates and glasses toward the edge"
+=== SEEDANCE CONTINUATION PROMPT RULES ===
 
-2. CAMERA MOVEMENT (15% of the prompt):
-   - {$escalation['camera']}
-   - Use professional terminology: whip-pan, crash zoom, Dutch angle, handheld shake, snap-tilt
+WORD COUNT: 180-220 words. This is the proven sweet spot for Seedance continuations.
 
-3. PHYSICAL BODY LANGUAGE (15% of the prompt):
-   - AGGRESSOR: back arched, claws extended, mouth wide open showing teeth, tail rigid and lashing, ears flat against head
-   - DEFENSIVE: leaning far back, hands up palms out, chair tilted, feet bracing against the floor, head turned away
-   - Describe only what a CAMERA would see — real muscle tension, real postures, real facial expressions
+The continuation starts ALREADY IN THE CHAOS — no setup, no trigger, no dialogue. Pure action from the first word.
 
-4. PHYSICAL ENVIRONMENT REACTIONS (10% of the prompt):
-   - Every environmental change MUST be caused by direct physical contact from the AGGRESSOR
-   - WRONG: "food flies everywhere" / "the table shakes" / "objects scatter"
-   - RIGHT: "the cat's body SLAMS into the plate stack, TOPPLING three dishes off the table edge" / "its tail WHIPS the salt shaker, SENDING it spinning across the table"
+STRUCTURE — MID-CHAOS → ESCALATION → PEAK → RESOLUTION:
+1. RE-ESTABLISH: First sentence briefly identifies the main character with their clothing/look from the frame
+   (e.g. "The furious orange tabby cat in a pink polo shirt"). This is needed because extend works from a single frame.
+2. CONTINUOUS ESCALATION: Rapid-fire action beats, each bigger than the last.
+   Every beat includes BOTH physical action AND character sounds happening simultaneously.
+3. PEAK DESTRUCTION: The most explosive moment — character launches onto opponent, smashes environment.
+4. RESOLUTION: The scene has an ENDING — character flees, opponent collapses, final dramatic moment.
 
-VISUAL STYLE CONSISTENCY — ABSOLUTELY CRITICAL:
-- Study the frame carefully. Whatever visual style you see (photorealistic, cinematic live-action, 3D render, anime, cartoon, illustrated, etc.) — you MUST maintain that EXACT style.
-- If the frame shows a PHOTOREALISTIC scene (real-looking cat, real kitchen, natural lighting), the continuation MUST stay photorealistic. Do NOT shift to animated, drawn, illustrated, or stylized visuals.
-- Begin your prompt with a brief style anchor, e.g.: "Photorealistic cinematic scene —" or "Hyper-realistic live-action —" to lock the visual style for the AI model.
-- NEVER introduce style-breaking words like "cartoon", "illustration", "anime", "drawn", "painted", "stylized" if the original frame is photorealistic.
+INTENSITY QUALIFIERS — mandatory on every action:
+- Frequency: "at high frequency", "in rapid succession", "nonstop"
+- Intensity: "crazy intensity", "with large amplitude", "with full force", "crazy explosive force"
+- Speed: "fast and violently", "quickly", "fast"
+- Adverbs: wildly, powerfully, violently, ferociously, furiously, aggressively, fiercely, sharply
 
-CAUSE AND EFFECT — THE #1 RULE:
-- NOTHING moves, flies, breaks, or falls unless a CHARACTER physically touches it with a body part.
-- Every sentence about objects MUST follow this exact pattern: [character's body part] + [physical contact verb] + [object] + [result]
-- WRONG: "spaghetti flying wildly from the plate" / "food erupts" / "the glass topples" / "objects scatter" / "things crash to the floor"
-- RIGHT: "the cat's paw SMACKS the plate rim, flipping noodles into the air" / "the cat's tail HOOKS the glass stem, dragging it off the table edge"
-- If you cannot name WHICH PAW, HAND, ELBOW, TAIL, or BODY PART made physical contact — DELETE that sentence entirely
-- Test every sentence: "WHO touched WHAT with WHICH body part?" If you can't answer all three, rewrite it.
+CHARACTER SOUNDS — CONTINUOUS (most important rule):
+Animal/character sounds must appear in EVERY action beat. Use varied words:
+screeching, yowling, hissing, shrieking, screaming, growling, wailing, crying out.
+Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
+End with "continuous crazy aggressive [animal] screaming throughout."
+The character NEVER stops vocalizing during the chaos.
 
-BANNED DESCRIPTIONS — NEVER USE THESE:
-- NO invisible forces: "unseen force", "sheer force of the scream", "sound waves", "force of will"
-- NO abstract visual effects: "air distorts", "rippling energy", "shockwave", "aura", "vibrating air"
-- NO supernatural: "telekinetic", "magic", "impossible physics", "defying gravity"
-- NO passive flying objects: "food flying everywhere", "things scattering", "objects tumbling" (without naming WHO caused it)
-- NO metaphorical body descriptions: "eyes blazing", "fury radiating", "rage emanating"
-- ONLY describe what a real camera filming real actors would capture: physical bodies, physical contact, physical consequences
+PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
+Describe exact body movements with specific body parts:
+- "front paws slam into the counter powerfully, propelling its body forward"
+- "rear legs kick at high frequency, smashing cup fragments"
+- "front claws raking downward powerfully with large amplitude while rear legs thrash wildly"
+- "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
+Every limb doing something specific. Every impact has a visible/audible consequence.
 
-CRITICAL RULES:
-- Write in PRESENT TENSE, third person
-- Refer to characters by what they ARE (the cat, the animal, the human, the person, the figure) — NOT by name
-- NEVER describe character appearances or what they look like — only ACTIONS and MOVEMENTS
-- Every sentence must contain at least one POWERFUL ACTION VERB
-- NO passive voice. NO "is walking" — use "STORMS", "CHARGES", "BOLTS"
-- The pace must feel FRANTIC — short punchy sentences mixed with breathless run-ons
-- The AGGRESSOR must dominate the action — at least 70% of described movement is theirs
-- Output ONLY the video prompt text, no headers, no numbering, no explanations
+ENVIRONMENTAL DESTRUCTION — chain reactions from physical contact:
+Objects must be HIT by a body part before they break/fly:
+"its body smashes into a nearby display, toppling the stack which crashes loudly to the floor"
+"claws scrape wildly across the man's jacket, shredding fabric with an audible rip"
+
+CAMERA — one line at the end:
+"Chaotic handheld camera shakes throughout, quick whip-pans tracking the assault."
+
+STYLE ANCHOR — end with: "Cinematic, photorealistic."
+
+BANNED:
+- No dialogue or speech in continuations
+- No slow builds or setup — start mid-action
+- No camera descriptions except the one line at the end
+- No appearance descriptions beyond the opening re-establishment
+- No passive voice, no weak verbs
+- No semicolons
+
+EXAMPLE — GOOD CONTINUATION PROMPT (~200 words):
+"The furious orange tabby cat in a pink polo shirt shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping in shock. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast, feet scrabbling for purchase. The cat launches with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the stack which crashes loudly to the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly. The cat then wildly tears the man's clothes at high frequency with crazy intensity, screaming and yowling nonstop, shredding jacket and shirt powerfully until fabric hangs in strips. The man flails in panic. The cat suddenly leaps fast to the floor, lands sharply, and sprints wildly at high speed straight out the restaurant door. Chaotic handheld camera shakes throughout, quick whip-pans tracking the assault. Cinematic, photorealistic."
+
+Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
 
             $gemini = app(\App\Services\GeminiService::class);
