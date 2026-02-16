@@ -362,10 +362,15 @@ Beat 2 (Trigger): What starts the action. ONE sentence.
 Beat 3 (Explosion): The WILD, extreme physical reaction. 2-3 sentences max.
 Use temporal phrases: "At first...", "Then suddenly...", "The cat explodes into action..."
 
-EXTREME ACTION:
-Use STRONG verbs: smashes, hurls, flips, slams, launches, demolishes, rams.
-The climax must be MAXIMUM CHAOS: objects flying, things breaking, characters dodging debris.
-NEVER say "holds pose" or "maintains stance" — characters must be IN MOTION.
+EXTREME ACTION — CHARACTER-DRIVEN CAUSALITY:
+The main character PHYSICALLY CAUSES all chaos through their own body actions.
+Write what the character DOES first, then what it CAUSES:
+GOOD: "the cat SLAMS both paws on the counter, SENDING the cash register flying off the edge"
+BAD: "the cash register flies off the counter" (passive — WHO caused it?)
+GOOD: "the cat SWEEPS the counter with both arms, LAUNCHING plates and cups in every direction"
+BAD: "plates and cups fly everywhere" (passive — no character action)
+Use STRONG verbs: slams, hurls, flips, sweeps, kicks, launches, demolishes, rams, catapults.
+Every flying object MUST trace back to a specific character action. NEVER "holds pose".
 
 AUDIO FORMAT — pick ONE based on the scene:
 A) VOICEOVER (human narrates over animal visuals — most common):
@@ -525,50 +530,67 @@ STYLE,
     /**
      * Build a chaos/intensity modifier for the idea generation prompt.
      * Translates the user's chaos slider (0-100) + optional description into prompt instructions.
+     *
+     * CRITICAL RULE: All chaos must be CHARACTER-DRIVEN. The main character physically
+     * performs actions (slams, throws, kicks) that CAUSE objects to fly and things to break.
+     * NEVER write passive chaos ("spaghetti flying") — always write CAUSED chaos
+     * ("the cat SLAMS the table, SENDING spaghetti flying").
      */
     protected function getChaosPromptModifier(int $chaosLevel, string $chaosDescription = ''): string
     {
         $escalation = match (true) {
             $chaosLevel <= 20 => [
                 'label' => 'CALM & GENTLE',
-                'instruction' => 'Keep scenes CALM and wholesome. Gentle humor, soft reactions, cozy vibes. Characters smile, chuckle, or look mildly surprised — no screaming, no flying objects, no destruction. Think heartwarming moments and quiet comedy.',
-                'verbs' => 'smiles, chuckles, nudges, slides, taps, tilts, peeks, waves, yawns, stretches',
-                'explosionGuide' => 'Beat 3 should be a GENTLE payoff — a cute reaction, a funny look, a small surprise. NOT explosive chaos.',
+                'instruction' => 'Keep scenes CALM and wholesome. The main character performs gentle, deliberate actions — softly tapping, carefully adjusting, quietly reacting. No flying objects, no destruction. The humor comes from subtle expressions and small physical gestures the character does.',
+                'verbs' => 'taps, nudges, adjusts, tilts, peeks, pats, straightens, polishes, arranges, sets down',
+                'causality' => 'The character gently [action] which makes [small result]. Example: "the cat carefully nudges the salt shaker, which tips over and spills a tiny pile of salt"',
             ],
             $chaosLevel <= 45 => [
                 'label' => 'MODERATE ENERGY',
-                'instruction' => 'Medium energy scenes with clear comedic beats. Characters react with visible surprise, exaggerated gestures, and physical comedy — but nothing extreme. Objects may fall or tip over, but no massive destruction.',
-                'verbs' => 'grabs, tosses, stumbles, flips, spins, swats, fumbles, bounces, trips, scrambles',
-                'explosionGuide' => 'Beat 3 should have clear physical comedy — something falls, someone stumbles, a funny chain reaction — but keep it contained.',
+                'instruction' => 'The main character starts getting physical — grabbing things, tossing objects, making exaggerated gestures. Every object that moves is BECAUSE the character touched it, pushed it, or knocked it. The character\'s increasingly frantic actions cause a small chain reaction.',
+                'verbs' => 'grabs, tosses, shoves, swats, flicks, kicks, yanks, bumps, drops, fumbles',
+                'causality' => 'The character [aggressive action] WHICH CAUSES [object] to [fly/fall/break]. Example: "the cat grabs the cutting board and flips it, sending vegetables scattering across the counter"',
             ],
             $chaosLevel <= 65 => [
                 'label' => 'HIGH ENERGY',
-                'instruction' => 'High-energy scenes with DRAMATIC reactions and physical comedy. Characters slam things, throw objects, overreact wildly. The environment starts to get messy. This is the default viral energy — funny, surprising, shareable.',
-                'verbs' => 'slams, hurls, flips, crashes, launches, smashes, whips, rams, catapults, demolishes',
-                'explosionGuide' => 'Beat 3 is the EXPLOSION — things flying, dramatic overreactions, the scene descending into beautiful chaos.',
+                'instruction' => 'The main character is the ENGINE of all chaos. They slam, throw, and smash — and every impact causes objects to fly, surfaces to crack, and bystanders to duck. NOTHING moves unless the character physically causes it. Write the character\'s aggressive action FIRST, then describe what it causes.',
+                'verbs' => 'SLAMS, HURLS, SMASHES, RAMS, LAUNCHES, SWEEPS, KICKS, FLIPS, POUNDS, WRECKS',
+                'causality' => 'The character SLAMS [object] which SENDS [things] flying/crashing. Example: "the cat SLAMS both paws on the counter, SENDING the cash register sliding off the edge and pizza boxes tumbling from the shelf behind"',
             ],
             $chaosLevel <= 85 => [
                 'label' => 'PEAK CHAOS',
-                'instruction' => 'MAXIMUM physical comedy and destruction. Characters go BERSERK — throwing everything, smashing surfaces, full-body reactions. Objects ricochet, furniture flips, debris everywhere. Pure slapstick mayhem at cartoon levels.',
-                'verbs' => 'detonates, obliterates, pile-drives, body-slams, torpedo-launches, wrecking-balls, karate-chops, barrel-rolls, catapults, annihilates',
-                'explosionGuide' => 'Beat 3 is ABSOLUTE MAYHEM — multiple simultaneous disasters, physics-defying destruction, everything breaking at once.',
+                'instruction' => 'The main character is a WRECKING BALL. Every movement they make destroys something. They throw things that hit other things that break more things — but it ALL starts from the character\'s physical actions. The character is grabbing, throwing, kicking, spinning, sweeping everything off surfaces. EACH sentence must start with what the character DOES, then what it CAUSES.',
+                'verbs' => 'DEMOLISHES, PILE-DRIVES, BODY-SLAMS, CATAPULTS, TORPEDOES, KARATE-CHOPS, WRECKING-BALLS, BARREL-ROLLS through, UPPERCUTS, DROPKICKS',
+                'causality' => 'The character DEMOLISHES [thing], CATAPULTING [debris] into [other thing] which EXPLODES into pieces. Example: "the cat LEAPS onto the shelf and BODY-SLAMS it, CATAPULTING every pizza box into the air while the shelf CRASHES into the counter behind"',
             ],
             default => [
                 'label' => 'APOCALYPTIC MELTDOWN',
-                'instruction' => 'BEYOND ALL REASON. Cartoon-level physics-defying destruction. Characters transcend normal rage — screaming, spinning, demolishing everything in a 10-foot radius. The entire environment collapses. This is nuclear-level slapstick.',
-                'verbs' => 'vaporizes, implodes, goes nuclear, shockwave-blasts, mega-launches, annihilates, detonates, supernova-explodes',
-                'explosionGuide' => 'Beat 3 should feel like a BOMB went off — the character\'s reaction is so extreme it destroys the entire set. Walls shake, ceiling tiles fall, reality bends.',
+                'instruction' => 'The main character becomes a FORCE OF NATURE. Every limb is destroying something simultaneously. They\'re spinning, throwing, stomping, and the CHAIN REACTION of their actions levels the entire scene. But remember: the CHARACTER is the source — they physically cause every single piece of destruction. Write it as a rapid sequence of the character\'s actions and their escalating consequences.',
+                'verbs' => 'ANNIHILATES, DETONATES, VAPORIZES, SUPERNOVA-BLASTS, MEGA-LAUNCHES, NUCLEAR-KICKS, TORNADO-SPINS through, METEOR-SLAMS',
+                'causality' => 'The character ANNIHILATES [thing], which TRIGGERS a chain reaction: [consequence 1], [consequence 2], [consequence 3]. Example: "the cat TORNADO-SPINS across the counter, SWEEPING every single item into the air — plates SHATTER against the walls, drinks SPLASH across the ceiling, the cash register LAUNCHES through the window"',
             ],
         };
 
         $parts = [];
-        $parts[] = "CHAOS INTENSITY LEVEL: {$escalation['label']} ({$chaosLevel}/100)";
+        $parts[] = "CHAOS INTENSITY: {$escalation['label']} ({$chaosLevel}/100)";
+        $parts[] = '';
+        $parts[] = 'CRITICAL — CHARACTER-DRIVEN CHAOS RULE:';
+        $parts[] = 'ALL chaos MUST be caused by the main character\'s PHYSICAL ACTIONS. The character does something';
+        $parts[] = 'aggressive (slams, throws, kicks, sweeps) and THAT action causes objects to fly, break, and scatter.';
+        $parts[] = 'NEVER write passive chaos like "spaghetti flying wildly" — ALWAYS write CAUSED chaos like';
+        $parts[] = '"the cat SLAMS the table, SENDING spaghetti flying across the room."';
+        $parts[] = 'Every flying object, every broken thing, every splash MUST trace back to a specific character action.';
+        $parts[] = '';
         $parts[] = $escalation['instruction'];
-        $parts[] = "ACTION VERBS to prioritize: {$escalation['verbs']}";
-        $parts[] = "BEAT 3 GUIDE: {$escalation['explosionGuide']}";
+        $parts[] = "ACTION VERBS: {$escalation['verbs']}";
+        $parts[] = "CAUSALITY PATTERN: {$escalation['causality']}";
 
         if (!empty($chaosDescription)) {
-            $parts[] = "USER'S CUSTOM CHAOS DIRECTION: \"{$chaosDescription}\" — Incorporate this specific vision into every idea. This is what the user WANTS to see happen. Shape the scenarios, reactions, and comedic beats around this direction.";
+            $parts[] = '';
+            $parts[] = "USER'S CHAOS DIRECTION: \"{$chaosDescription}\"";
+            $parts[] = 'Incorporate this specific chaos vision into every idea. The main character\'s physical actions';
+            $parts[] = 'should create exactly this kind of chaos. Shape the scenarios around this direction while';
+            $parts[] = 'maintaining the CHARACTER-DRIVEN causality rule above.';
         }
 
         return implode("\n", $parts);
@@ -972,10 +994,15 @@ Beat 2 (Trigger): What starts the action. ONE sentence.
 Beat 3 (Explosion): The WILD, extreme physical reaction. 2-3 sentences max.
 Use temporal phrases: "At first...", "Then suddenly...", "The cat explodes into action..."
 
-EXTREME ACTION:
-Use STRONG verbs: smashes, hurls, flips, slams, launches, demolishes, rams.
-The climax must be MAXIMUM CHAOS: objects flying, things breaking, characters dodging debris.
-NEVER say "holds pose" or "maintains stance" — characters must be IN MOTION.
+EXTREME ACTION — CHARACTER-DRIVEN CAUSALITY:
+The main character PHYSICALLY CAUSES all chaos through their own body actions.
+Write what the character DOES first, then what it CAUSES:
+GOOD: "the cat SLAMS both paws on the counter, SENDING the cash register flying off the edge"
+BAD: "the cash register flies off the counter" (passive — WHO caused it?)
+GOOD: "the cat SWEEPS the counter with both arms, LAUNCHING plates and cups in every direction"
+BAD: "plates and cups fly everywhere" (passive — no character action)
+Use STRONG verbs: slams, hurls, flips, sweeps, kicks, launches, demolishes, rams, catapults.
+Every flying object MUST trace back to a specific character action. NEVER "holds pose".
 
 WHO SPEAKS vs WHO REACTS:
 - HUMANS speak dialogue. Animals NEVER speak human words.
