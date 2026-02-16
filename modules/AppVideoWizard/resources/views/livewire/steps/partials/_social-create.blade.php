@@ -398,7 +398,7 @@
     }
     .vw-social-prompt-editor textarea:focus { border-color: rgba(139,92,246,0.5); }
     .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: #64748b; margin-top: 0.25rem; }
-    .vw-social-duration-select, .vw-social-resolution-select {
+    .vw-social-duration-select, .vw-social-resolution-select, .vw-social-quality-select {
         width: 100%; padding: 0.5rem 0.75rem; background: rgba(20,20,40,0.8);
         border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
         font-size: 0.8rem; margin-bottom: 0.75rem;
@@ -1090,6 +1090,14 @@
                                 wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedResolution">
                             <option value="480p">480p ({{ __('Faster / Cheaper') }})</option>
                             <option value="720p" selected>720p ({{ __('Recommended') }})</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Quality') }}</label>
+                        <select class="vw-social-quality-select"
+                                wire:model.live="multiShotMode.decomposedScenes.0.shots.0.seedanceQuality">
+                            <option value="pro">{{ __('Pro') }} ({{ __('Best Quality') }})</option>
+                            <option value="fast">{{ __('Fast') }} ({{ __('Cheaper / Quicker') }})</option>
                         </select>
                     </div>
                 </div>

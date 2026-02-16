@@ -64,6 +64,10 @@ class AnimationService
             'supportsAudioGen' => true,
             'requiresAudio' => false,
             'provider' => 'wavespeed',
+            'variants' => [
+                'pro'  => ['name' => 'Pro', 'description' => 'Full-fidelity, production-grade quality'],
+                'fast' => ['name' => 'Fast', 'description' => 'Speed-optimized, cheaper per run'],
+            ],
         ],
     ];
 
@@ -364,6 +368,7 @@ class AnimationService
             'resolution' => $options['resolution'] ?? '720p',
             'generate_audio' => true,
             'camera_fixed' => $options['camera_fixed'] ?? false,
+            'variant' => $options['variant'] ?? 'pro',
         ]);
 
         if (!$result['success']) {

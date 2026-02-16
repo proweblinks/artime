@@ -3507,6 +3507,7 @@ class VideoWizard extends Component
             'needsLipSync' => !$isSeedance,
             'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
             'selectedResolution' => $isSeedance ? '720p' : '720p',
+            'seedanceQuality' => 'pro',
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraFixed' => $isSeedance ? (bool) ($selectedIdea['cameraFixed'] ?? true) : false,
             'cameraMovement' => [
@@ -31970,6 +31971,7 @@ PROMPT;
                             'resolution' => $seedanceResolution,
                             'aspect_ratio' => $this->aspectRatio,
                             'camera_fixed' => $shot['cameraFixed'] ?? false,
+                            'variant' => $shot['seedanceQuality'] ?? 'pro',
                         ]);
 
                         if ($result['success'] && isset($result['taskId'])) {
@@ -33173,6 +33175,7 @@ PROMPT;
                     'resolution' => $shot['selectedResolution'] ?? '720p',
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => false,
+                    'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 
                 if ($result['success'] && isset($result['taskId'])) {
@@ -33663,6 +33666,7 @@ PROMPT;
                     'resolution' => $shot['selectedResolution'] ?? '720p',
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => false,
+                    'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 
                 if ($result['success'] && isset($result['taskId'])) {

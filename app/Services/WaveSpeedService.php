@@ -56,15 +56,23 @@ class WaveSpeedService
             'seed' => $options['seed'] ?? -1,
         ];
 
+        // Determine endpoint variant: 'pro' (quality) or 'fast' (speed/cost)
+        $variant = $options['variant'] ?? 'pro';
+        $endpoint = $variant === 'fast'
+            ? 'bytedance/seedance-v1.5-pro/image-to-video-fast'
+            : 'bytedance/seedance-v1.5-pro/image-to-video';
+
         Log::info('WaveSpeedService: Submitting Seedance video generation', [
             'image_url' => substr($imageUrl, 0, 80) . '...',
             'prompt_length' => strlen($prompt),
             'duration' => $payload['duration'],
             'aspect_ratio' => $payload['aspect_ratio'],
+            'variant' => $variant,
+            'endpoint' => $endpoint,
         ]);
 
         try {
-            $response = $this->client->request('POST', 'bytedance/seedance-v1.5-pro/image-to-video', [
+            $response = $this->client->request('POST', $endpoint, [
                 'json' => $payload,
                 'timeout' => 60,
             ]);
