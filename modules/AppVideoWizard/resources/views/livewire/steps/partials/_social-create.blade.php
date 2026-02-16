@@ -559,7 +559,7 @@
             <div class="vw-social-preview-frame">
                 @if($videoUrl && $videoStatus === 'ready')
                     <div x-data="{ currentTime: 0, videoDuration: 0, paused: true }" class="vw-extend-player-wrap">
-                        <video src="{{ $videoUrl }}" controls loop playsinline
+                        <video wire:ignore src="{{ $videoUrl }}" controls loop playsinline
                                @timeupdate="currentTime = $event.target.currentTime; videoDuration = $event.target.duration"
                                @pause="paused = true" @play="paused = false"
                                x-ref="mainPlayer"></video>

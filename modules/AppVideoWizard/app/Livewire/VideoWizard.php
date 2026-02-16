@@ -32701,7 +32701,6 @@ PROMPT;
     public function cancelVideoExtend(): void
     {
         $this->extendMode = null;
-        $this->saveProject();
     }
 
     /**
