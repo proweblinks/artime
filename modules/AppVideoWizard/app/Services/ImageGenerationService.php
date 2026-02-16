@@ -3692,42 +3692,67 @@ EOT;
     }
 
     /**
-     * Upscale an image to HD or 4K quality.
+     * Upscale an image using FAL Aura SR (true super-resolution, preserves faces exactly).
+     * Falls back to Gemini if FAL is not configured.
      */
     public function upscaleImage(string $imageUrl, string $quality = 'hd'): array
     {
         try {
-            // Download the original image
+            $falService = app(\App\Services\FalService::class);
+            $falKey = get_option('ai_fal_api_key', '');
+
+            if (!empty($falKey)) {
+                // Use FAL Aura SR — true super-resolution, pixel-faithful
+                $result = $falService->upscaleImage($imageUrl);
+
+                if ($result['success'] && !empty($result['imageUrl'])) {
+                    // Download from FAL CDN and save locally
+                    $response = Http::timeout(60)->get($result['imageUrl']);
+                    if ($response->successful()) {
+                        $filename = 'wizard/upscaled/' . Str::uuid() . '.png';
+                        Storage::disk('public')->put($filename, $response->body());
+                        $localUrl = $this->getPublicUrl($filename);
+
+                        return [
+                            'success' => true,
+                            'imageUrl' => $localUrl,
+                            'quality' => $quality,
+                            'provider' => 'aura-sr',
+                        ];
+                    }
+                }
+
+                // If FAL returned an error, throw it
+                if (!empty($result['error'])) {
+                    throw new \Exception('Aura SR: ' . $result['error']);
+                }
+            }
+
+            // Fallback: Gemini-based upscale
             $response = Http::timeout(30)->get($imageUrl);
             if (!$response->successful()) {
                 throw new \Exception('Failed to download image for upscaling');
             }
 
-            $imageData = $response->body();
-            $base64Image = base64_encode($imageData);
-
-            // Determine target resolution based on quality
+            $base64Image = base64_encode($response->body());
             $targetResolution = $quality === '4k' ? '3840x2160' : '1920x1080';
 
-            // Use Gemini for upscaling with image generation
-            $prompt = "Upscale this image to {$targetResolution} resolution while maintaining perfect quality, details, and sharpness. Enhance clarity and detail. Do not change the content, composition, or style - only improve resolution and quality.";
+            $prompt = "Upscale this image to {$targetResolution} resolution while maintaining perfect quality, details, and sharpness. Do not change the content, composition, or style.";
 
-            $result = $this->geminiService->generateImageFromImage($base64Image, $prompt, [
+            $geminiResult = $this->geminiService->generateImageFromImage($base64Image, $prompt, [
                 'model' => 'gemini-2.5-flash-image',
                 'responseType' => 'image',
             ]);
 
-            if (!empty($result['imageData'])) {
-                // Save upscaled image
+            if (!empty($geminiResult['imageData'])) {
                 $filename = 'wizard/upscaled/' . Str::uuid() . '.png';
-                Storage::disk('public')->put($filename, base64_decode($result['imageData']));
-                $upscaledUrl = $this->getPublicUrl($filename);
+                Storage::disk('public')->put($filename, base64_decode($geminiResult['imageData']));
 
                 return [
                     'success' => true,
-                    'imageUrl' => $upscaledUrl,
+                    'imageUrl' => $this->getPublicUrl($filename),
                     'quality' => $quality,
-                    'resolution' => $targetResolution,
+                    'provider' => 'gemini',
                 ];
             }
 

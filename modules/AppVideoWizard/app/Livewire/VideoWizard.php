@@ -36129,7 +36129,7 @@ PROMPT;
     }
 
     /**
-     * Upscale scene image.
+     * Upscale scene image (storyboard modal flow).
      */
     public function upscaleImage(): void
     {
@@ -36161,6 +36161,52 @@ PROMPT;
             }
         } catch (\Exception $e) {
             $this->error = __('Failed to upscale image: ') . $e->getMessage();
+        } finally {
+            $this->isUpscaling = false;
+        }
+    }
+
+    /**
+     * Upscale shot image using FAL Aura SR (social content one-click flow).
+     * Updates both the shot imageUrl and the storyboard scene imageUrl.
+     */
+    public function upscaleShotImage(int $sceneIndex = 0, int $shotIndex = 0): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot || empty($shot['imageUrl'])) {
+            $this->error = __('No image to upscale');
+            return;
+        }
+
+        if (!empty($shot['upscaled'])) {
+            $this->error = __('Image is already upscaled');
+            return;
+        }
+
+        $this->isUpscaling = true;
+        $this->error = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+            $result = $imageService->upscaleImage($shot['imageUrl']);
+
+            if ($result['success'] && !empty($result['imageUrl'])) {
+                // Update shot
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['upscaled'] = true;
+
+                // Sync to storyboard scene
+                if (isset($this->storyboard['scenes'][$sceneIndex])) {
+                    $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $result['imageUrl'];
+                    $this->storyboard['scenes'][$sceneIndex]['upscaled'] = true;
+                }
+
+                $this->saveProject();
+            } else {
+                throw new \Exception($result['error'] ?? __('Upscale failed'));
+            }
+        } catch (\Exception $e) {
+            $this->error = __('Failed to upscale: ') . $e->getMessage();
         } finally {
             $this->isUpscaling = false;
         }

@@ -393,6 +393,39 @@ class FalService
         return $this->errorResponse('fal', new \Exception("FAL does not support embeddings"), $category);
     }
 
+    /**
+     * Upscale an image using Aura SR (true super-resolution, no face alteration).
+     *
+     * @param string $imageUrl Public URL of the image to upscale
+     * @return array ['success' => bool, 'imageUrl' => string, 'error' => ?string]
+     */
+    public function upscaleImage(string $imageUrl): array
+    {
+        try {
+            $result = $this->makeAPICall('fal-ai/aura-sr', [
+                'image_url' => $imageUrl,
+            ]);
+
+            $upscaledUrl = $result['image']['url'] ?? null;
+
+            if (!$upscaledUrl) {
+                throw new \Exception('Aura SR did not return an image URL');
+            }
+
+            return [
+                'success' => true,
+                'imageUrl' => $upscaledUrl,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('FAL Aura SR upscale failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
     // --- Response Helpers ---
 
     protected function errorResponse(string $model, \Throwable $e, string $category = ''): array

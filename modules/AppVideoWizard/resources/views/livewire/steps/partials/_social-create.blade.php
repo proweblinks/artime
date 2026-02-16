@@ -197,6 +197,34 @@
     .vw-social-action-btn.orange {
         background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     }
+    .vw-social-action-btn.upscale {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    }
+    .vw-social-action-btn.upscale:hover:not(:disabled) {
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+    .vw-social-btn-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .vw-social-btn-row .vw-social-action-btn {
+        flex: 1;
+        width: auto;
+    }
+    .vw-social-upscaled-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        flex: 1;
+        padding: 0.6rem 1rem;
+        background: rgba(6, 182, 212, 0.15);
+        border: 1px solid rgba(6, 182, 212, 0.3);
+        border-radius: 0.6rem;
+        color: #06b6d4;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
     .vw-social-status-badge {
         display: inline-flex;
         align-items: center;
@@ -1140,17 +1168,40 @@
                 </select>
 
                 @if($imageStatus === 'ready')
-                    <button class="vw-social-action-btn"
-                            wire:click="generateShotImage(0, 0)"
-                            wire:loading.attr="disabled"
-                            wire:target="generateShotImage">
-                        <span wire:loading.remove wire:target="generateShotImage">
-                            <i class="fa-solid fa-arrows-rotate"></i> {{ __('Regenerate Image') }}
-                        </span>
-                        <span wire:loading wire:target="generateShotImage">
-                            <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Generating...') }}
-                        </span>
-                    </button>
+                    <div class="vw-social-btn-row">
+                        <button class="vw-social-action-btn"
+                                wire:click="generateShotImage(0, 0)"
+                                wire:loading.attr="disabled"
+                                wire:target="generateShotImage">
+                            <span wire:loading.remove wire:target="generateShotImage">
+                                <i class="fa-solid fa-arrows-rotate"></i> {{ __('Regenerate') }}
+                            </span>
+                            <span wire:loading wire:target="generateShotImage">
+                                <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Generating...') }}
+                            </span>
+                        </button>
+                        @php
+                            $shotUpscaled = $this->multiShotMode['decomposedScenes'][0]['shots'][0]['upscaled'] ?? false;
+                        @endphp
+                        @if(!$shotUpscaled)
+                            <button class="vw-social-action-btn upscale"
+                                    wire:click="upscaleShotImage(0, 0)"
+                                    wire:loading.attr="disabled"
+                                    wire:target="upscaleShotImage"
+                                    title="{{ __('Upscale image 4x using Aura SR — preserves faces exactly') }}">
+                                <span wire:loading.remove wire:target="upscaleShotImage">
+                                    <i class="fa-solid fa-up-right-and-down-left-from-center"></i> {{ __('Upscale 4x') }}
+                                </span>
+                                <span wire:loading wire:target="upscaleShotImage">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Upscaling...') }}
+                                </span>
+                            </button>
+                        @else
+                            <span class="vw-social-upscaled-badge">
+                                <i class="fa-solid fa-check"></i> {{ __('Upscaled') }}
+                            </span>
+                        @endif
+                    </div>
                 @else
                     <button class="vw-social-action-btn orange"
                             wire:click="generateShotImage(0, 0)"
