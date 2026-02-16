@@ -8755,6 +8755,13 @@ PROMPT;
                             $hasUpdates = true;
                         } else {
                             // --- STANDARD SINGLE TAKE ---
+                            // Ensure video is stored locally (CloudFront URLs expire)
+                            if ($this->isRemoteUrl($finalVideoUrl)) {
+                                $localUrl = $this->downloadVideoToLocal($finalVideoUrl, $this->projectId ?? 0, 'video');
+                                if ($localUrl) {
+                                    $finalVideoUrl = $localUrl;
+                                }
+                            }
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
 
@@ -32691,13 +32698,27 @@ PROMPT;
     {
         $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
         $segments = $shot['segments'] ?? [];
+        $projectId = $this->projectId ?? 0;
+
+        // Download the extension video to local storage (CloudFront URLs expire)
+        $localExtensionUrl = $this->downloadVideoToLocal($extensionVideoUrl, $projectId, 'extend');
+        if (!$localExtensionUrl) {
+            $shot['videoStatus'] = 'error';
+            $shot['videoError'] = 'Extension assembly failed: could not download extension video';
+            \Log::error('Video Extend: failed to download extension video', [
+                'url' => substr($extensionVideoUrl, 0, 100),
+            ]);
+            $this->extendMode = null;
+            $this->saveProject();
+            return;
+        }
 
         // Get the extension video's duration via ffprobe
-        $extensionDuration = $this->getVideoDuration($extensionVideoUrl) ?? ($this->extendMode['duration'] ?? 8);
+        $extensionDuration = $this->getVideoDuration($localExtensionUrl) ?? ($this->extendMode['duration'] ?? 8);
 
         // Add the new extension segment
         $segments[] = [
-            'videoUrl' => $extensionVideoUrl,
+            'videoUrl' => $localExtensionUrl,
             'duration' => $extensionDuration,
             'thumbnailUrl' => $this->extendMode['frameUrl'] ?? '',
             'prompt' => $this->extendMode['continuationPrompt'] ?? '',
@@ -32706,15 +32727,28 @@ PROMPT;
 
         $shot['segments'] = $segments;
 
-        // Concatenate all segment videos
-        $videoUrls = array_column($segments, 'videoUrl');
-        $projectId = $this->projectId ?? 0;
+        // Ensure ALL segment URLs are local (download any remote ones)
+        $videoUrls = [];
+        foreach ($segments as &$seg) {
+            if ($this->isRemoteUrl($seg['videoUrl'])) {
+                $localUrl = $this->downloadVideoToLocal($seg['videoUrl'], $projectId, 'segment');
+                if ($localUrl) {
+                    $seg['videoUrl'] = $localUrl;
+                }
+            }
+            $videoUrls[] = $seg['videoUrl'];
+        }
+        unset($seg);
+        $shot['segments'] = $segments;
 
+        // Concatenate all segment videos
         $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
 
         if ($finalUrl) {
             $shot['videoUrl'] = $finalUrl;
             $shot['videoStatus'] = 'ready';
+            // Clear job metadata
+            unset($shot['videoTaskId'], $shot['videoJobType'], $shot['videoJobStartedAt'], $shot['videoEstimatedSeconds']);
             \Log::info('Video Extend: assembly complete', [
                 'segmentCount' => count($segments),
                 'finalUrl' => substr($finalUrl, 0, 100),
@@ -32727,6 +32761,66 @@ PROMPT;
 
         $this->extendMode = null;
         $this->saveProject();
+    }
+
+    /**
+     * Download a remote video URL to local storage.
+     * Returns the local /files/ URL on success, null on failure.
+     */
+    protected function downloadVideoToLocal(string $videoUrl, int $projectId, string $prefix = 'video'): ?string
+    {
+        // If already a local URL, return as-is
+        if (!$this->isRemoteUrl($videoUrl)) {
+            return $videoUrl;
+        }
+
+        try {
+            $videoContent = @file_get_contents($videoUrl);
+            if (!$videoContent || strlen($videoContent) < 1000) {
+                \Log::error('Video Extend: download failed or too small', [
+                    'url' => substr($videoUrl, 0, 100),
+                    'size' => $videoContent ? strlen($videoContent) : 0,
+                ]);
+                return null;
+            }
+
+            $filename = "{$prefix}_" . time() . '_' . uniqid() . '.mp4';
+            $storagePath = "wizard-videos/{$projectId}/{$filename}";
+            \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $videoContent);
+
+            $localUrl = url('/files/' . $storagePath);
+            \Log::info('Video Extend: downloaded video to local storage', [
+                'source' => substr($videoUrl, 0, 80),
+                'localUrl' => substr($localUrl, 0, 80),
+                'size' => strlen($videoContent),
+            ]);
+
+            return $localUrl;
+
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: download exception', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Check if a URL is a remote (non-local) URL.
+     */
+    protected function isRemoteUrl(string $url): bool
+    {
+        $parsed = parse_url($url);
+        $host = $parsed['host'] ?? '';
+        $path = $parsed['path'] ?? '';
+
+        // Local URLs: /files/ paths or artime.ai domain
+        if (str_starts_with($path, '/files/')) {
+            return false;
+        }
+        if (str_contains($host, 'artime.ai')) {
+            return false;
+        }
+
+        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://');
     }
 
     /**
