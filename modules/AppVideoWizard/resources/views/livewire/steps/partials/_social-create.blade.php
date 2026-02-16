@@ -1167,11 +1167,21 @@
                             <option value="12">12 {{ __('seconds') }}</option>
                         </select>
                     </div>
-                    <div>
+                    <div x-data="{
+                        quality: $wire.entangle('multiShotMode.decomposedScenes.0.shots.0.seedanceQuality'),
+                        resolution: $wire.entangle('multiShotMode.decomposedScenes.0.shots.0.selectedResolution'),
+                        init() {
+                            this.$watch('quality', (val) => {
+                                if (val === 'fast' && this.resolution === '480p') {
+                                    this.resolution = '720p';
+                                }
+                            });
+                        }
+                    }">
                         <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Resolution') }}</label>
-                        <select class="vw-social-resolution-select"
-                                wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedResolution">
-                            <option value="720p" selected>720p ({{ __('Recommended') }})</option>
+                        <select class="vw-social-resolution-select" x-model="resolution">
+                            <option value="480p" x-show="quality !== 'fast'">480p ({{ __('Faster / Cheaper') }})</option>
+                            <option value="720p">720p ({{ __('Recommended') }})</option>
                             <option value="1080p">1080p ({{ __('Higher Quality') }})</option>
                         </select>
                     </div>
