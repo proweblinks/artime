@@ -757,11 +757,12 @@ FAITHFULNESS:
 - If the video shows cooking → write a cooking prompt.
 - Do NOT transform everything into attack/destruction scenes.
 
-SCALE & QUANTITY — PRESERVE WHAT MAKES IT SPECIAL:
+SCALE, QUANTITY & OBJECT INTERACTIONS — PRESERVE WHAT MAKES IT SPECIAL:
 - If characters are MINIATURIZED (tiny cats, shrunken animals) → the videoPrompt MUST describe them as tiny/miniature with size reference (e.g. "barely reaching her ankle").
 - If characters are ENLARGED → describe the exaggerated scale.
 - If there's a LARGE GROUP (a line of 12 cats, a swarm of hamsters) → specify the exact count and formation.
-- Scale and quantity are often the CORE of the visual comedy — losing them ruins the concept.
+- If characters are USING objects (playing instruments, cooking, wielding tools) → describe the ACTIVE USE, not just holding. "Blowing into trumpets producing brass music" not "holding trumpets."
+- Scale, quantity, and character-object interactions are often the CORE of the visual comedy — losing any of them ruins the concept.
 
 WORD COUNT: 150-180 words. Aim for 160-175.
 DO NOT describe character appearances (fur color, clothing) — only actions, reactions, sounds, voice, and SIZE/SCALE.
@@ -1107,6 +1108,15 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - COUNT characters precisely: "exactly 3 cats" or "a line of approximately 12-15 cats" — do NOT say "some cats" or "several cats."
    - If many identical/similar characters form a GROUP, describe the group size, formation pattern, and whether they move in unison or independently.
 
+   CHARACTER-OBJECT INTERACTIONS — WHAT ARE THEY DOING WITH WHAT THEY HOLD:
+   - If a character is HOLDING an object (instrument, tool, weapon, food, phone), describe HOW they are USING it — not just that they hold it.
+     WRONG: "the cat is holding a trumpet" (passive — what is the cat DOING with it?)
+     RIGHT: "the cat is blowing into a miniature trumpet, cheeks puffed, producing brass music"
+   - For MUSICAL INSTRUMENTS: Are characters PLAYING them? Describe the physical playing action (blowing, strumming, drumming, bowing). Is the music in the audio COMING FROM their playing?
+   - For TOOLS/WEAPONS: Are they swinging, pointing, using them? Describe the action.
+   - For FOOD/DRINKS: Are they eating, drinking, spilling? Describe the interaction.
+   - The FUNCTIONAL USE of objects is as important as the objects themselves. A cat holding a trumpet that's actively playing it is completely different from a cat just carrying a trumpet.
+
 2. SETTING & ENVIRONMENT:
    - Exact location (bathroom, kitchen counter, living room couch, outdoor garden, etc.)
    - Every visible prop and object (towel, sink, plate, phone, etc.)
@@ -1143,6 +1153,8 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Which sounds come FROM characters on screen vs. dubbed/added audio?
    - CRITICAL: If an animal's mouth is open, what sound does it ACTUALLY make? (meowing, hissing, barking — NOT human speech)
    - Is there background music or sound effects?
+   - SOUND SOURCE ATTRIBUTION: If music is playing AND characters are holding/playing instruments, is the music PRODUCED BY the characters or is it a separate soundtrack? This matters enormously — a cat PLAYING a trumpet that produces audible music is the core action, not background decoration.
+   - Describe any sounds that are CAUSED BY character actions (instrument playing, object impacts, footsteps, clapping).
    - Which character is the MAIN FOCUS of the scene?
    - What is the emotional state? (angry, scared, confused, playful, aggressive)
    - Describe the timing of sounds: when does speech start/stop, when do animal sounds occur?
@@ -1284,6 +1296,13 @@ CRITICAL — SIZE & SCALE IN VIDEO PROMPT:
 - Example: if cats are tiny/miniaturized (ankle-height on a human), the videoPrompt MUST say "tiny miniature cat" or "miniaturized cat barely reaching the woman's ankle" — otherwise Seedance will render normal-sized cats and the entire visual comedy is lost.
 - If there is a GROUP of characters (e.g., a line of 12 cats), specify the COUNT and FORMATION in the videoPrompt — "a single-file line of twelve tiny cats" not just "cats."
 - Scale relationships between characters define the visual comedy. NEVER omit them.
+
+CRITICAL — CHARACTER-OBJECT INTERACTIONS IN VIDEO PROMPT:
+- If characters are USING objects (playing instruments, wielding tools, eating food), the videoPrompt MUST describe the ACTION of using them, not just holding/carrying.
+- WRONG: "cats holding trumpets march forward" (what are they DOING with the trumpets?)
+- RIGHT: "cats blowing into miniature trumpets with cheeks puffed, producing lively brass music as they march"
+- The FUNCTIONAL USE of props is often the core comedy/action. A cat playing a trumpet IS the scene — omitting the playing action makes the prompt meaningless.
+- If the visual analysis describes music coming from instruments characters hold, the videoPrompt must describe the PLAYING ACTION that produces the music — not treat it as background audio.
 
 Return ONLY a JSON object (no markdown, no explanation):
 {
