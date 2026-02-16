@@ -440,6 +440,7 @@
     .vw-timeline-segment.original { background: rgba(139,92,246,0.4); }
     .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
     .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
+    .vw-timeline-segment.selected { outline: 2px solid #f97316; outline-offset: -2px; filter: brightness(1.4); }
     .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vw-seg-duration { flex-shrink: 0; margin-left: 0.25rem; opacity: 0.7; }
     .vw-timeline-tooltip {
@@ -660,53 +661,95 @@
             </div>
 
             {{-- Visual Timeline Bar — below the video, full panel width --}}
-            @if(!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready')
+            @if(!empty($shot['segments']) && count($shot['segments']) > 0 && ($videoStatus === 'ready' || ($shot['videoJobType'] ?? '') === 'segment_regen'))
+            @php $selectedSegIdx = $segmentEditMode['segmentIndex'] ?? -1; @endphp
             <div class="vw-timeline" x-data="{ hoveredSegment: null }">
-                    <div class="vw-timeline-bar">
+                <div class="vw-timeline-bar">
+                    @php
+                        $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
+                        $cumulative = 0;
+                    @endphp
+                    @foreach($shot['segments'] as $segIdx => $segment)
                         @php
-                            $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
-                            $cumulative = 0;
+                            $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
+                            $startTime = $cumulative;
+                            $cumulative += $segment['duration'];
                         @endphp
-                        @foreach($shot['segments'] as $segIdx => $segment)
-                            @php
-                                $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
-                                $startTime = $cumulative;
-                                $cumulative += $segment['duration'];
-                            @endphp
-                            <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }}"
-                                 style="width: {{ number_format($widthPct, 1) }}%"
-                                 @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}"
-                                 @mouseenter="hoveredSegment = {{ $segIdx }}"
-                                 @mouseleave="hoveredSegment = null">
-                                <span class="vw-seg-label">
-                                    {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
-                                </span>
-                                <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    {{-- Segment info tooltip on hover --}}
-                    @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
-                    <template x-if="hoveredSegment !== null">
-                        <div class="vw-timeline-tooltip">
-                            <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
+                        <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }} {{ $selectedSegIdx === $segIdx ? 'selected' : '' }}"
+                             style="width: {{ number_format($widthPct, 1) }}%"
+                             @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}; $wire.selectSegment(0, 0, {{ $segIdx }})"
+                             @mouseenter="hoveredSegment = {{ $segIdx }}"
+                             @mouseleave="hoveredSegment = null">
+                            <span class="vw-seg-label">
+                                {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
+                            </span>
+                            <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
                         </div>
-                    </template>
-
-                    {{-- Total duration + undo --}}
-                    <div class="vw-timeline-total">
-                        Total: {{ number_format($totalDuration, 1) }}s
-                        ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
-                        @if(count($shot['segments']) > 1)
-                            <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
-                                    wire:loading.attr="disabled">
-                                <i class="fa-solid fa-rotate-left"></i> Undo Last
-                            </button>
-                        @endif
-                    </div>
+                    @endforeach
                 </div>
+
+                {{-- Segment info tooltip on hover --}}
+                @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
+                <template x-if="hoveredSegment !== null">
+                    <div class="vw-timeline-tooltip">
+                        <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
+                    </div>
+                </template>
+
+                {{-- Total duration + undo --}}
+                <div class="vw-timeline-total">
+                    Total: {{ number_format($totalDuration, 1) }}s
+                    ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
+                    @if(count($shot['segments']) > 1)
+                        <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
+                                wire:loading.attr="disabled">
+                            <i class="fa-solid fa-rotate-left"></i> Undo Last
+                        </button>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Segment Edit Panel — appears when a segment is selected --}}
+            @if($segmentEditMode && ($segmentEditMode['status'] ?? '') === 'editing')
+            <div class="vw-extend-panel">
+                <div class="vw-extend-header">
+                    <span>
+                        <i class="fa-solid fa-pen"></i>
+                        Edit {{ ($segmentEditMode['type'] ?? 'original') === 'original' ? 'Original' : 'Extension ' . $segmentEditMode['segmentIndex'] }}
+                    </span>
+                    <button wire:click="cancelSegmentEdit" class="vw-extend-cancel-btn">&times;</button>
+                </div>
+
+                @if($segmentEditMode['thumbnailUrl'] ?? null)
+                    <img src="{{ $segmentEditMode['thumbnailUrl'] }}" class="vw-extend-frame-preview" alt="Segment frame" />
                 @endif
+
+                <div class="vw-extend-duration-row">
+                    <label>Duration:</label>
+                    @foreach([5, 8, 10] as $dur)
+                        <button wire:click="$set('segmentEditMode.duration', {{ $dur }})"
+                                class="vw-dur-btn {{ ($segmentEditMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
+                            {{ $dur }}s
+                        </button>
+                    @endforeach
+                </div>
+
+                <textarea wire:model.blur="segmentEditMode.prompt" rows="4"
+                          class="vw-extend-prompt" placeholder="Video prompt..."></textarea>
+
+                <button wire:click="regenerateSegment" class="vw-social-action-btn orange"
+                        wire:loading.attr="disabled"
+                        wire:target="regenerateSegment">
+                    <span wire:loading.remove wire:target="regenerateSegment">
+                        <i class="fa-solid fa-arrows-rotate"></i> Regenerate Segment
+                    </span>
+                    <span wire:loading wire:target="regenerateSegment">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
+                    </span>
+                </button>
+            </div>
+            @endif
+            @endif
 
                 {{-- Extend Panel --}}
                 @if($extendMode)
@@ -1088,7 +1131,10 @@
                 @if(in_array($videoStatus, ['generating', 'processing']))
                     <div class="vw-social-progress-bar">
                         <div class="vw-social-progress-text">
-                            @if($extendMode && ($extendMode['status'] ?? '') === 'generating')
+                            @if($segmentEditMode && ($segmentEditMode['status'] ?? '') === 'generating')
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                                {{ __('Regenerating segment...') }}
+                            @elseif($extendMode && ($extendMode['status'] ?? '') === 'generating')
                                 <i class="fa-solid fa-forward"></i>
                                 {{ __('Generating continuation from frame...') }}
                             @elseif($shot['dualTakeMode'] ?? false)
@@ -1113,7 +1159,9 @@
                             <div class="vw-social-progress-fill"></div>
                         </div>
                         <div class="vw-social-progress-hint">
-                            @if($extendMode && ($extendMode['status'] ?? '') === 'generating')
+                            @if($segmentEditMode && ($segmentEditMode['status'] ?? '') === 'generating')
+                                {{ __('Regenerating segment — this usually takes 2-5 minutes') }}
+                            @elseif($extendMode && ($extendMode['status'] ?? '') === 'generating')
                                 {{ __('Extending your video — this usually takes 2-5 minutes') }}
                             @else
                                 {{ ($shot['dualTakeMode'] ?? false) ? __('Sequential rendering — Take 2 uses Take 1\'s last frame for smooth transition') : __('This usually takes 2-5 minutes') }}

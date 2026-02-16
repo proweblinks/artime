@@ -1109,6 +1109,9 @@ class VideoWizard extends Component
     // Video Extend mode state (for extending social content videos from a specific frame)
     public ?array $extendMode = null;
 
+    // Segment edit/regenerate mode (for re-generating a specific timeline segment in place)
+    public ?array $segmentEditMode = null;
+
     // Generation progress tracking
     public int $generationProgress = 0;
     public int $generationTotal = 0;
@@ -8504,7 +8507,7 @@ PROMPT;
         foreach ($this->pendingJobs as $jobKey => $job) {
             $jobType = $job['type'] ?? '';
 
-            if ($jobType !== 'shot_video' && $jobType !== 'dual_take' && $jobType !== 'video_extend') {
+            if ($jobType !== 'shot_video' && $jobType !== 'dual_take' && $jobType !== 'video_extend' && $jobType !== 'segment_regen') {
                 \Log::info('📡 Skipping non-video job', ['jobKey' => $jobKey, 'type' => $jobType]);
                 continue;
             }
@@ -8766,6 +8769,17 @@ PROMPT;
                             $this->assembleExtendedVideo($sceneIndex, $shotIndex, $finalVideoUrl);
                             unset($this->pendingJobs[$jobKey]);
                             $hasUpdates = true;
+                        } elseif ($jobType === 'segment_regen') {
+                            // --- SEGMENT REGEN: replace segment and reassemble ---
+                            $segIdx = $job['segmentIndex'] ?? 0;
+                            \Log::info('📡 ✅ Segment Regen clip READY — reassembling', [
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                                'segmentIndex' => $segIdx,
+                            ]);
+                            $this->assembleAfterSegmentRegen($sceneIndex, $shotIndex, $segIdx, $finalVideoUrl);
+                            unset($this->pendingJobs[$jobKey]);
+                            $hasUpdates = true;
                         } else {
                             // --- STANDARD SINGLE TAKE ---
                             // Ensure video is stored locally (CloudFront URLs expire)
@@ -8841,6 +8855,10 @@ PROMPT;
                     if ($jobType === 'video_extend') {
                         $this->extendMode = null;
                     }
+                    // If segment regen failed, reset segment edit mode
+                    if ($jobType === 'segment_regen') {
+                        $this->segmentEditMode = null;
+                    }
 
                     \Log::warning('📡 ❌ Video generation FAILED', [
                         'sceneIndex' => $sceneIndex,
@@ -8882,7 +8900,7 @@ PROMPT;
         }
 
         // Dispatch completion event if no more pending video jobs
-        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take', 'video_extend']));
+        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take', 'video_extend', 'segment_regen']));
         if (!$hasVideoJobs) {
             \Log::info('📡 All video jobs complete - dispatching video-generation-complete');
             $this->dispatch('video-generation-complete');
@@ -33009,6 +33027,194 @@ PROMPT;
     public function cancelVideoExtend(): void
     {
         $this->extendMode = null;
+    }
+
+    /**
+     * Select a timeline segment for editing/regeneration.
+     */
+    public function selectSegment(int $sceneIndex, int $shotIndex, int $segmentIndex): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot) return;
+
+        $segments = $shot['segments'] ?? [];
+        if (!isset($segments[$segmentIndex])) return;
+
+        $segment = $segments[$segmentIndex];
+
+        // Toggle off if already selected
+        if ($this->segmentEditMode && ($this->segmentEditMode['segmentIndex'] ?? -1) === $segmentIndex) {
+            $this->segmentEditMode = null;
+            return;
+        }
+
+        $this->segmentEditMode = [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'segmentIndex' => $segmentIndex,
+            'prompt' => $segment['prompt'] ?? '',
+            'duration' => (int) ($segment['duration'] ?? 8),
+            'intensity' => 50,
+            'thumbnailUrl' => $segment['thumbnailUrl'] ?? $shot['imageUrl'] ?? '',
+            'type' => $segment['type'] ?? 'original',
+            'status' => 'editing',
+        ];
+    }
+
+    /**
+     * Cancel segment edit mode.
+     */
+    public function cancelSegmentEdit(): void
+    {
+        $this->segmentEditMode = null;
+    }
+
+    /**
+     * Regenerate a specific timeline segment with an edited prompt.
+     * Uses the segment's input frame (thumbnailUrl) and submits to Seedance.
+     */
+    public function regenerateSegment(): void
+    {
+        if (!$this->segmentEditMode || ($this->segmentEditMode['status'] ?? '') !== 'editing') return;
+
+        $sceneIndex = $this->segmentEditMode['sceneIndex'];
+        $shotIndex = $this->segmentEditMode['shotIndex'];
+        $segmentIndex = $this->segmentEditMode['segmentIndex'];
+        $prompt = $this->segmentEditMode['prompt'] ?? '';
+        $duration = $this->segmentEditMode['duration'] ?? 8;
+        $frameUrl = $this->segmentEditMode['thumbnailUrl'] ?? '';
+
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        if (!$shot || empty($shot['segments'][$segmentIndex]) || !$frameUrl) return;
+
+        $this->segmentEditMode['status'] = 'generating';
+        $shot['videoStatus'] = 'generating';
+
+        try {
+            $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
+            $project = \Modules\AppVideoWizard\Models\WizardProject::find($this->projectId);
+
+            if ($project) {
+                $result = $animationService->generateAnimation($project, [
+                    'model' => 'seedance',
+                    'imageUrl' => $frameUrl,
+                    'prompt' => $prompt,
+                    'duration' => $duration,
+                    'resolution' => $shot['selectedResolution'] ?? '720p',
+                    'aspect_ratio' => $this->aspectRatio,
+                    'camera_fixed' => false,
+                ]);
+
+                if ($result['success'] && isset($result['taskId'])) {
+                    $jobKey = "segment_regen_{$sceneIndex}_{$shotIndex}_{$segmentIndex}";
+                    $this->pendingJobs[$jobKey] = [
+                        'taskId' => $result['taskId'],
+                        'type' => 'segment_regen',
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'segmentIndex' => $segmentIndex,
+                        'provider' => $result['provider'] ?? 'wavespeed',
+                        'endpointId' => null,
+                    ];
+                    $shot['videoStatus'] = 'processing';
+                    $shot['videoTaskId'] = $result['taskId'];
+                    $shot['videoProvider'] = $result['provider'] ?? 'wavespeed';
+                    $shot['videoJobType'] = 'segment_regen';
+                    $shot['videoJobStartedAt'] = now()->timestamp;
+                    $shot['videoEstimatedSeconds'] = $duration * 30;
+
+                    $this->dispatch('video-generation-started', [
+                        'taskId' => $result['taskId'],
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                    ]);
+
+                    \Log::info('Segment Regen: job dispatched', [
+                        'taskId' => $result['taskId'],
+                        'segmentIndex' => $segmentIndex,
+                        'duration' => $duration,
+                    ]);
+                } else {
+                    throw new \Exception($result['error'] ?? 'Seedance segment regen failed');
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Segment Regen: failed', ['error' => $e->getMessage()]);
+            $shot['videoStatus'] = 'error';
+            $shot['videoError'] = 'Segment regeneration failed: ' . $e->getMessage();
+            $this->segmentEditMode = null;
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Assemble video after a segment has been regenerated.
+     * Replaces the segment's video and re-concatenates all segments.
+     */
+    protected function assembleAfterSegmentRegen(int $sceneIndex, int $shotIndex, int $segmentIndex, string $newVideoUrl): void
+    {
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $segments = $shot['segments'] ?? [];
+        $projectId = $this->projectId ?? 0;
+
+        if (!isset($segments[$segmentIndex])) {
+            $shot['videoStatus'] = 'error';
+            $this->segmentEditMode = null;
+            $this->saveProject();
+            return;
+        }
+
+        // Download the new video to local storage
+        $localUrl = $this->downloadVideoToLocal($newVideoUrl, $projectId, 'regen');
+        if (!$localUrl) {
+            $shot['videoStatus'] = 'error';
+            $shot['videoError'] = 'Segment regen: could not download new video';
+            $this->segmentEditMode = null;
+            $this->saveProject();
+            return;
+        }
+
+        // Get new duration
+        $newDuration = $this->getVideoDuration($localUrl) ?? ($this->segmentEditMode['duration'] ?? 8);
+
+        // Replace segment data
+        $segments[$segmentIndex]['videoUrl'] = $localUrl;
+        $segments[$segmentIndex]['duration'] = $newDuration;
+        $segments[$segmentIndex]['prompt'] = $this->segmentEditMode['prompt'] ?? $segments[$segmentIndex]['prompt'];
+        $shot['segments'] = $segments;
+
+        // Re-concatenate all segments
+        if (count($segments) === 1) {
+            $shot['videoUrl'] = $localUrl;
+        } else {
+            // Ensure all segment URLs are local
+            $videoUrls = [];
+            foreach ($segments as &$seg) {
+                if ($this->isRemoteUrl($seg['videoUrl'])) {
+                    $dl = $this->downloadVideoToLocal($seg['videoUrl'], $projectId, 'segment');
+                    if ($dl) $seg['videoUrl'] = $dl;
+                }
+                $videoUrls[] = $seg['videoUrl'];
+            }
+            unset($seg);
+            $shot['segments'] = $segments;
+
+            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+            $shot['videoUrl'] = $finalUrl ?: $localUrl;
+        }
+
+        $shot['videoStatus'] = 'ready';
+        unset($shot['videoTaskId'], $shot['videoJobType'], $shot['videoJobStartedAt'], $shot['videoEstimatedSeconds']);
+
+        \Log::info('Segment Regen: assembly complete', [
+            'segmentIndex' => $segmentIndex,
+            'newDuration' => $newDuration,
+            'totalSegments' => count($segments),
+        ]);
+
+        $this->segmentEditMode = null;
+        $this->saveProject();
     }
 
     /**
