@@ -524,9 +524,92 @@
         margin-top: 0.5rem;
     }
     .vw-social-concept .vw-use-concept-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(20, 184, 166, 0.4); }
+
+    /* Chaos Controls */
+    .vw-social-concept .vw-chaos-controls {
+        background: rgba(30, 30, 50, 0.6);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .vw-social-concept .vw-chaos-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .vw-social-concept .vw-chaos-label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #cbd5e1;
+        white-space: nowrap;
+        min-width: fit-content;
+    }
+    .vw-social-concept .vw-chaos-slider {
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        appearance: none;
+        -webkit-appearance: none;
+        background: linear-gradient(90deg, rgba(99,102,241,0.5) 0%, rgba(249,115,22,0.5) 50%, rgba(239,68,68,0.6) 100%);
+        cursor: pointer;
+        min-width: 120px;
+    }
+    .vw-social-concept .vw-chaos-slider::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ef4444 100%);
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .vw-social-concept .vw-chaos-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6 0%, #ef4444 100%);
+        cursor: pointer;
+        border: none;
+    }
+    .vw-social-concept .vw-chaos-badge {
+        font-weight: 600;
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 1rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .vw-social-concept .vw-chaos-badge.calm { color: #818cf8; background: rgba(99,102,241,0.15); }
+    .vw-social-concept .vw-chaos-badge.rising { color: #fbbf24; background: rgba(251,191,36,0.15); }
+    .vw-social-concept .vw-chaos-badge.intense { color: #fb923c; background: rgba(249,115,22,0.15); }
+    .vw-social-concept .vw-chaos-badge.wild { color: #f87171; background: rgba(248,113,113,0.15); }
+    .vw-social-concept .vw-chaos-badge.chaos { color: #ff4444; background: rgba(239,68,68,0.2); text-shadow: 0 0 6px rgba(239,68,68,0.5); }
+    .vw-social-concept .vw-chaos-desc-input {
+        width: 100%;
+        background: rgba(20, 20, 40, 0.8);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        color: #e2e8f0;
+        font-size: 0.82rem;
+        outline: none;
+        margin-top: 0.6rem;
+        transition: border-color 0.2s;
+    }
+    .vw-social-concept .vw-chaos-desc-input:focus {
+        border-color: rgba(139, 92, 246, 0.5);
+    }
+    .vw-social-concept .vw-chaos-desc-input::placeholder {
+        color: #4b5563;
+    }
 </style>
 
-<div class="vw-social-concept" x-data="{ viralTheme: '', activeTab: 'generate' }">
+<div class="vw-social-concept" x-data="{ viralTheme: '', activeTab: 'generate', chaosLevel: @entangle('chaosLevel'), chaosDesc: @entangle('chaosDescription') }">
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -606,6 +689,30 @@
                     </button>
                 </div>
 
+                {{-- Chaos Controls: Intensity Slider + Custom Description --}}
+                <div class="vw-chaos-controls">
+                    <div class="vw-chaos-row">
+                        <span class="vw-chaos-label"><i class="fa-solid fa-fire"></i> {{ __('Chaos') }}</span>
+                        <input type="range" min="0" max="100" step="5"
+                               x-model.number="chaosLevel"
+                               class="vw-chaos-slider" />
+                        <span class="vw-chaos-badge"
+                              :class="{
+                                  'calm': chaosLevel <= 20,
+                                  'rising': chaosLevel > 20 && chaosLevel <= 45,
+                                  'intense': chaosLevel > 45 && chaosLevel <= 65,
+                                  'wild': chaosLevel > 65 && chaosLevel <= 85,
+                                  'chaos': chaosLevel > 85
+                              }"
+                              x-text="chaosLevel <= 20 ? 'Calm' : chaosLevel <= 45 ? 'Rising' : chaosLevel <= 65 ? 'Intense' : chaosLevel <= 85 ? 'Wild' : 'Chaos'">
+                        </span>
+                    </div>
+                    <input type="text"
+                           class="vw-chaos-desc-input"
+                           x-model="chaosDesc"
+                           placeholder="{{ __('Describe the chaos you want (e.g., food fight explosion, office supplies flying everywhere...)') }}" />
+                </div>
+
                 {{-- Loading Skeleton --}}
                 @if($isLoading && empty($conceptVariations))
                     <div class="vw-skeleton-grid">
@@ -680,7 +787,7 @@
                         @endforeach
                     </div>
 
-                    {{-- Generate More Button --}}
+                    {{-- Regenerate Ideas Button --}}
                     <div style="display: flex; justify-content: center;">
                         <button class="vw-generate-more-btn"
                                 wire:click="generateViralIdeas(viralTheme)"
@@ -689,7 +796,7 @@
                                 @if($isLoading) disabled @endif>
                             <span wire:loading.remove wire:target="generateViralIdeas">
                                 <i class="fa-solid fa-arrows-rotate"></i>
-                                {{ __('Generate More Ideas') }}
+                                {{ __('Regenerate Ideas') }}
                             </span>
                             <span wire:loading wire:target="generateViralIdeas">
                                 <span class="vw-loading-inner"></span>

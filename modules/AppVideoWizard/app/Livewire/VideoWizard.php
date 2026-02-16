@@ -1103,6 +1103,12 @@ class VideoWizard extends Component
     // Video engine for social content: 'seedance' (cinematic scene w/ auto audio) or 'infinitetalk' (lip-sync talking)
     public string $videoEngine = 'seedance';
 
+    // Chaos level for viral idea generation (0-100)
+    public int $chaosLevel = 50;
+
+    // User's custom chaos description for idea generation
+    public string $chaosDescription = '';
+
     // RunPod job polling state
     public array $pendingJobs = [];
 
@@ -4919,6 +4925,8 @@ PROMPT;
                     'count' => 6,
                     'videoEngine' => $this->videoEngine,
                     'productionSubtype' => $this->productionSubtype,
+                    'chaosLevel' => $this->chaosLevel,
+                    'chaosDescription' => $this->chaosDescription,
                 ]
             );
 

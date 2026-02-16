@@ -272,17 +272,20 @@ PROMPT;
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
         $productionSubtype = $options['productionSubtype'] ?? 'viral';
+        $chaosLevel = (int) ($options['chaosLevel'] ?? 50);
+        $chaosDescription = trim($options['chaosDescription'] ?? '');
 
         $themeContext = !empty($theme)
             ? "The user wants ideas related to: \"{$theme}\". Incorporate this theme creatively."
             : "Generate completely original ideas with diverse themes.";
 
         $styleModifier = $this->getStylePromptModifier($productionSubtype);
+        $chaosModifier = $this->getChaosPromptModifier($chaosLevel, $chaosDescription);
 
         if ($videoEngine === 'seedance') {
-            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier);
+            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
         } else {
-            $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count, $styleModifier);
+            $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
         }
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
@@ -318,7 +321,7 @@ PROMPT;
     /**
      * Build viral ideas prompt for Seedance engine (cinematic scene with auto-generated audio).
      */
-    protected function buildSeedanceViralPrompt(string $themeContext, int $count, string $styleModifier = ''): string
+    protected function buildSeedanceViralPrompt(string $themeContext, int $count, string $styleModifier = '', string $chaosModifier = ''): string
     {
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
@@ -326,6 +329,8 @@ You are a viral content specialist who creates massively shareable short-form vi
 {$themeContext}
 
 {$styleModifier}
+
+{$chaosModifier}
 
 IMPORTANT: These ideas will be animated using Seedance — an AI model that generates
 video + voice + sound effects ALL FROM A TEXT PROMPT. There is no separate audio recording.
@@ -405,7 +410,7 @@ PROMPT;
     /**
      * Build viral ideas prompt for InfiniteTalk engine (lip-sync from custom voices).
      */
-    protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count, string $styleModifier = ''): string
+    protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count, string $styleModifier = '', string $chaosModifier = ''): string
     {
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
@@ -413,6 +418,8 @@ You are a viral content specialist who creates massively shareable short-form vi
 {$themeContext}
 
 {$styleModifier}
+
+{$chaosModifier}
 
 Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
 - An ANIMAL or quirky CHARACTER in an absurd/funny human situation
@@ -513,6 +520,58 @@ best life" energy. The mood should be calming, inspiring, or aesthetically satis
 STYLE,
             default => '',
         };
+    }
+
+    /**
+     * Build a chaos/intensity modifier for the idea generation prompt.
+     * Translates the user's chaos slider (0-100) + optional description into prompt instructions.
+     */
+    protected function getChaosPromptModifier(int $chaosLevel, string $chaosDescription = ''): string
+    {
+        $escalation = match (true) {
+            $chaosLevel <= 20 => [
+                'label' => 'CALM & GENTLE',
+                'instruction' => 'Keep scenes CALM and wholesome. Gentle humor, soft reactions, cozy vibes. Characters smile, chuckle, or look mildly surprised — no screaming, no flying objects, no destruction. Think heartwarming moments and quiet comedy.',
+                'verbs' => 'smiles, chuckles, nudges, slides, taps, tilts, peeks, waves, yawns, stretches',
+                'explosionGuide' => 'Beat 3 should be a GENTLE payoff — a cute reaction, a funny look, a small surprise. NOT explosive chaos.',
+            ],
+            $chaosLevel <= 45 => [
+                'label' => 'MODERATE ENERGY',
+                'instruction' => 'Medium energy scenes with clear comedic beats. Characters react with visible surprise, exaggerated gestures, and physical comedy — but nothing extreme. Objects may fall or tip over, but no massive destruction.',
+                'verbs' => 'grabs, tosses, stumbles, flips, spins, swats, fumbles, bounces, trips, scrambles',
+                'explosionGuide' => 'Beat 3 should have clear physical comedy — something falls, someone stumbles, a funny chain reaction — but keep it contained.',
+            ],
+            $chaosLevel <= 65 => [
+                'label' => 'HIGH ENERGY',
+                'instruction' => 'High-energy scenes with DRAMATIC reactions and physical comedy. Characters slam things, throw objects, overreact wildly. The environment starts to get messy. This is the default viral energy — funny, surprising, shareable.',
+                'verbs' => 'slams, hurls, flips, crashes, launches, smashes, whips, rams, catapults, demolishes',
+                'explosionGuide' => 'Beat 3 is the EXPLOSION — things flying, dramatic overreactions, the scene descending into beautiful chaos.',
+            ],
+            $chaosLevel <= 85 => [
+                'label' => 'PEAK CHAOS',
+                'instruction' => 'MAXIMUM physical comedy and destruction. Characters go BERSERK — throwing everything, smashing surfaces, full-body reactions. Objects ricochet, furniture flips, debris everywhere. Pure slapstick mayhem at cartoon levels.',
+                'verbs' => 'detonates, obliterates, pile-drives, body-slams, torpedo-launches, wrecking-balls, karate-chops, barrel-rolls, catapults, annihilates',
+                'explosionGuide' => 'Beat 3 is ABSOLUTE MAYHEM — multiple simultaneous disasters, physics-defying destruction, everything breaking at once.',
+            ],
+            default => [
+                'label' => 'APOCALYPTIC MELTDOWN',
+                'instruction' => 'BEYOND ALL REASON. Cartoon-level physics-defying destruction. Characters transcend normal rage — screaming, spinning, demolishing everything in a 10-foot radius. The entire environment collapses. This is nuclear-level slapstick.',
+                'verbs' => 'vaporizes, implodes, goes nuclear, shockwave-blasts, mega-launches, annihilates, detonates, supernova-explodes',
+                'explosionGuide' => 'Beat 3 should feel like a BOMB went off — the character\'s reaction is so extreme it destroys the entire set. Walls shake, ceiling tiles fall, reality bends.',
+            ],
+        };
+
+        $parts = [];
+        $parts[] = "CHAOS INTENSITY LEVEL: {$escalation['label']} ({$chaosLevel}/100)";
+        $parts[] = $escalation['instruction'];
+        $parts[] = "ACTION VERBS to prioritize: {$escalation['verbs']}";
+        $parts[] = "BEAT 3 GUIDE: {$escalation['explosionGuide']}";
+
+        if (!empty($chaosDescription)) {
+            $parts[] = "USER'S CUSTOM CHAOS DIRECTION: \"{$chaosDescription}\" — Incorporate this specific vision into every idea. This is what the user WANTS to see happen. Shape the scenarios, reactions, and comedic beats around this direction.";
+        }
+
+        return implode("\n", $parts);
     }
 
     // ========================================================================
