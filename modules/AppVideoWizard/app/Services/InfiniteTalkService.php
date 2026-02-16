@@ -1162,17 +1162,23 @@ class InfiniteTalkService
                 return null;
             }
 
-            // Resolve video URL to local disk path
+            // Resolve video URL to local disk path or use remote URL directly
+            $videoInput = null;
             $parsed = parse_url($videoUrl);
             $urlPath = $parsed['path'] ?? '';
-            if (!str_starts_with($urlPath, '/files/')) {
-                Log::error('InfiniteTalk: cannot resolve video URL for timestamp frame extraction', ['url' => substr($videoUrl, 0, 80)]);
-                return null;
+            if (str_starts_with($urlPath, '/files/')) {
+                $storagePath = substr($urlPath, 7);
+                $videoDiskPath = Storage::disk('public')->path($storagePath);
+                if (file_exists($videoDiskPath)) {
+                    $videoInput = $videoDiskPath;
+                }
             }
-            $storagePath = substr($urlPath, 7);
-            $videoDiskPath = Storage::disk('public')->path($storagePath);
-            if (!file_exists($videoDiskPath)) {
-                Log::error('InfiniteTalk: video file not found for timestamp frame extraction', ['path' => $videoDiskPath]);
+            // Fallback: use remote URL directly (ffmpeg supports http/https input)
+            if (!$videoInput && (str_starts_with($videoUrl, 'http://') || str_starts_with($videoUrl, 'https://'))) {
+                $videoInput = $videoUrl;
+            }
+            if (!$videoInput) {
+                Log::error('InfiniteTalk: cannot resolve video for timestamp frame extraction', ['url' => substr($videoUrl, 0, 80)]);
                 return null;
             }
 
@@ -1191,7 +1197,7 @@ class InfiniteTalkService
                 '%s -ss %s -i %s -frames:v 1 -update 1 %s -y 2>&1',
                 escapeshellarg($ffmpeg),
                 escapeshellarg(number_format($timestamp, 3, '.', '')),
-                escapeshellarg($videoDiskPath),
+                escapeshellarg($videoInput),
                 escapeshellarg($frameDiskPath)
             );
 
@@ -1242,17 +1248,23 @@ class InfiniteTalkService
                 return null;
             }
 
-            // Resolve video URL to local disk path
+            // Resolve video URL to local disk path or use remote URL directly
+            $videoInput = null;
             $parsed = parse_url($videoUrl);
             $urlPath = $parsed['path'] ?? '';
-            if (!str_starts_with($urlPath, '/files/')) {
-                Log::error('InfiniteTalk: cannot resolve video URL for trimming', ['url' => substr($videoUrl, 0, 80)]);
-                return null;
+            if (str_starts_with($urlPath, '/files/')) {
+                $storagePath = substr($urlPath, 7);
+                $videoDiskPath = Storage::disk('public')->path($storagePath);
+                if (file_exists($videoDiskPath)) {
+                    $videoInput = $videoDiskPath;
+                }
             }
-            $storagePath = substr($urlPath, 7);
-            $videoDiskPath = Storage::disk('public')->path($storagePath);
-            if (!file_exists($videoDiskPath)) {
-                Log::error('InfiniteTalk: video file not found for trimming', ['path' => $videoDiskPath]);
+            // Fallback: use remote URL directly (ffmpeg supports http/https input)
+            if (!$videoInput && (str_starts_with($videoUrl, 'http://') || str_starts_with($videoUrl, 'https://'))) {
+                $videoInput = $videoUrl;
+            }
+            if (!$videoInput) {
+                Log::error('InfiniteTalk: cannot resolve video for trimming', ['url' => substr($videoUrl, 0, 80)]);
                 return null;
             }
 
@@ -1270,7 +1282,7 @@ class InfiniteTalkService
             $cmd = sprintf(
                 '%s -i %s -t %s -c copy %s -y 2>&1',
                 escapeshellarg($ffmpeg),
-                escapeshellarg($videoDiskPath),
+                escapeshellarg($videoInput),
                 escapeshellarg(number_format($timestamp, 3, '.', '')),
                 escapeshellarg($outputDiskPath)
             );
@@ -1331,8 +1343,8 @@ class InfiniteTalkService
                 return null;
             }
 
-            // Resolve all video URLs to local disk paths
-            $resolveVideoPath = function(string $url): ?string {
+            // Resolve all video URLs to local disk paths or remote URLs
+            $resolveVideoInput = function(string $url): ?string {
                 $parsed = parse_url($url);
                 $path = $parsed['path'] ?? '';
                 if (str_starts_with($path, '/files/')) {
@@ -1342,14 +1354,18 @@ class InfiniteTalkService
                         return $diskPath;
                     }
                 }
+                // Fallback: use remote URL directly
+                if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+                    return $url;
+                }
                 return null;
             };
 
             $videoPaths = [];
             foreach ($videoUrls as $i => $url) {
-                $path = $resolveVideoPath($url);
+                $path = $resolveVideoInput($url);
                 if (!$path) {
-                    Log::error('InfiniteTalk: multi-concat video file not found', [
+                    Log::error('InfiniteTalk: multi-concat video not resolvable', [
                         'index' => $i,
                         'url' => substr($url, 0, 80),
                     ]);

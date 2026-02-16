@@ -568,9 +568,17 @@
                         @if($isSeedance)
                         <template x-if="paused && currentTime > 0.3 && currentTime < videoDuration - 0.3 && !{{ json_encode((bool) $extendMode) }}">
                             <button class="vw-extract-frame-btn"
-                                    @click="$wire.initVideoExtend(0, 0, parseFloat(currentTime.toFixed(2)))">
-                                <i class="fa-solid fa-camera"></i>
-                                Extract Frame at <span x-text="currentTime.toFixed(1)"></span>s
+                                    @click="$wire.initVideoExtend(0, 0, parseFloat(currentTime.toFixed(2)))"
+                                    wire:loading.attr="disabled"
+                                    wire:target="initVideoExtend">
+                                <span wire:loading.remove wire:target="initVideoExtend">
+                                    <i class="fa-solid fa-camera"></i>
+                                    Extract Frame at <span x-text="currentTime.toFixed(1)"></span>s
+                                </span>
+                                <span wire:loading wire:target="initVideoExtend">
+                                    <i class="fa-solid fa-spinner fa-spin"></i>
+                                    Extracting frame & generating prompt...
+                                </span>
                             </button>
                         </template>
                         @endif
@@ -680,8 +688,14 @@
 
                     {{-- Generate button --}}
                     <button wire:click="executeVideoExtend" class="vw-social-action-btn orange"
-                            wire:loading.attr="disabled">
-                        <i class="fa-solid fa-film"></i> Generate Continuation
+                            wire:loading.attr="disabled"
+                            wire:target="executeVideoExtend">
+                        <span wire:loading.remove wire:target="executeVideoExtend">
+                            <i class="fa-solid fa-film"></i> Generate Continuation
+                        </span>
+                        <span wire:loading wire:target="executeVideoExtend">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Submitting...
+                        </span>
                     </button>
                 @endif
             </div>

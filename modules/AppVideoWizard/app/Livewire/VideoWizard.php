@@ -32659,18 +32659,26 @@ PROMPT;
             }
             if (!$ffprobe) return null;
 
+            // Resolve to local path or use remote URL directly (ffprobe supports both)
+            $videoInput = null;
             $parsed = parse_url($videoUrl);
             $urlPath = $parsed['path'] ?? '';
-            if (!str_starts_with($urlPath, '/files/')) return null;
-
-            $storagePath = substr($urlPath, 7);
-            $videoDiskPath = \Illuminate\Support\Facades\Storage::disk('public')->path($storagePath);
-            if (!file_exists($videoDiskPath)) return null;
+            if (str_starts_with($urlPath, '/files/')) {
+                $storagePath = substr($urlPath, 7);
+                $videoDiskPath = \Illuminate\Support\Facades\Storage::disk('public')->path($storagePath);
+                if (file_exists($videoDiskPath)) {
+                    $videoInput = $videoDiskPath;
+                }
+            }
+            if (!$videoInput && (str_starts_with($videoUrl, 'http://') || str_starts_with($videoUrl, 'https://'))) {
+                $videoInput = $videoUrl;
+            }
+            if (!$videoInput) return null;
 
             $cmd = sprintf(
                 '%s -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s 2>&1',
                 escapeshellarg($ffprobe),
-                escapeshellarg($videoDiskPath)
+                escapeshellarg($videoInput)
             );
 
             $output = [];
