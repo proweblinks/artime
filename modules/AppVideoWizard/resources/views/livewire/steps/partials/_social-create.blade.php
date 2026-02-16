@@ -408,6 +408,83 @@
         background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2);
     }
 
+    /* Video Extend — player overlay */
+    .vw-extend-player-wrap { position: relative; width: 100%; height: 100%; }
+    .vw-extend-player-wrap video { width: 100%; height: 100%; object-fit: contain; }
+    .vw-extract-frame-btn {
+        position: absolute; bottom: 3rem; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+        padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.82rem;
+        cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s;
+        white-space: nowrap; z-index: 5;
+    }
+    .vw-extract-frame-btn:hover { background: rgba(249,115,22,0.8); border-color: #f97316; }
+
+    /* Video Extend — Timeline */
+    .vw-timeline { margin-top: 0.5rem; padding: 0 0.25rem; }
+    .vw-timeline-bar {
+        display: flex; height: 2rem; border-radius: 0.5rem; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+    }
+    .vw-timeline-segment {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 0.5rem; cursor: pointer; transition: filter 0.15s;
+        font-size: 0.7rem; color: rgba(255,255,255,0.85); min-width: 0;
+    }
+    .vw-timeline-segment:hover { filter: brightness(1.3); }
+    .vw-timeline-segment.original { background: rgba(139,92,246,0.4); }
+    .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
+    .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
+    .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vw-seg-duration { flex-shrink: 0; margin-left: 0.25rem; opacity: 0.7; }
+    .vw-timeline-tooltip {
+        background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
+        font-size: 0.7rem; color: #94a3b8;
+    }
+    .vw-timeline-total {
+        font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem; text-align: right;
+        display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
+    }
+
+    /* Video Extend — Extend Panel */
+    .vw-extend-panel {
+        background: rgba(30,30,50,0.95); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem;
+    }
+    .vw-extend-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 0.75rem; font-size: 0.85rem; color: #f97316; font-weight: 600;
+    }
+    .vw-extend-frame-preview { max-height: 120px; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: #94a3b8; }
+    .vw-dur-btn {
+        padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.2);
+        background: transparent; color: #ccc; cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
+    }
+    .vw-dur-btn.active { background: rgba(249,115,22,0.5); border-color: #f97316; color: #fff; }
+    .vw-dur-btn:hover { border-color: rgba(249,115,22,0.5); }
+    .vw-extend-prompt {
+        width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+        color: #e2e8f0; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
+        resize: vertical; font-size: 0.8rem; font-family: inherit;
+    }
+    .vw-extend-undo-btn {
+        font-size: 0.72rem; color: #94a3b8; background: none; border: none; cursor: pointer;
+        padding: 0; transition: color 0.15s;
+    }
+    .vw-extend-undo-btn:hover { color: #fca5a5; }
+    .vw-extend-cancel-btn {
+        background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;
+        line-height: 1; padding: 0;
+    }
+    .vw-extend-cancel-btn:hover { color: #f87171; }
+    .vw-social-action-btn.orange {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        border: 1px solid rgba(249,115,22,0.3);
+    }
+    .vw-social-action-btn.orange:hover { filter: brightness(1.15); }
+
     @media (max-width: 768px) {
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: 40vh; }
@@ -481,7 +558,23 @@
         <div class="vw-social-preview-panel">
             <div class="vw-social-preview-frame">
                 @if($videoUrl && $videoStatus === 'ready')
-                    <video src="{{ $videoUrl }}" controls loop playsinline></video>
+                    <div x-data="{ currentTime: 0, videoDuration: 0, paused: true }" class="vw-extend-player-wrap">
+                        <video src="{{ $videoUrl }}" controls loop playsinline
+                               @timeupdate="currentTime = $event.target.currentTime; videoDuration = $event.target.duration"
+                               @pause="paused = true" @play="paused = false"
+                               x-ref="mainPlayer"></video>
+
+                        {{-- Extract Frame button — appears when paused, not at very start/end --}}
+                        @if($isSeedance)
+                        <template x-if="paused && currentTime > 0.3 && currentTime < videoDuration - 0.3 && !{{ json_encode((bool) $extendMode) }}">
+                            <button class="vw-extract-frame-btn"
+                                    @click="$wire.initVideoExtend(0, 0, parseFloat(currentTime.toFixed(2)))">
+                                <i class="fa-solid fa-camera"></i>
+                                Extract Frame at <span x-text="currentTime.toFixed(1)"></span>s
+                            </button>
+                        </template>
+                        @endif
+                    </div>
                 @elseif(in_array($videoStatus, ['generating', 'processing']))
                     <div class="vw-social-preview-generating">
                         @if($imageUrl)
@@ -502,6 +595,97 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Visual Timeline Bar --}}
+            @if(!empty($shot['segments']) && count($shot['segments']) > 0 && $videoStatus === 'ready')
+            <div class="vw-timeline" x-data="{ hoveredSegment: null }">
+                <div class="vw-timeline-bar">
+                    @php
+                        $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
+                        $cumulative = 0;
+                    @endphp
+                    @foreach($shot['segments'] as $segIdx => $segment)
+                        @php
+                            $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
+                            $startTime = $cumulative;
+                            $cumulative += $segment['duration'];
+                        @endphp
+                        <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }}"
+                             style="width: {{ number_format($widthPct, 1) }}%"
+                             @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}"
+                             @mouseenter="hoveredSegment = {{ $segIdx }}"
+                             @mouseleave="hoveredSegment = null">
+                            <span class="vw-seg-label">
+                                {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
+                            </span>
+                            <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Segment info tooltip on hover --}}
+                @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
+                <template x-if="hoveredSegment !== null">
+                    <div class="vw-timeline-tooltip">
+                        <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
+                    </div>
+                </template>
+
+                {{-- Total duration + undo --}}
+                <div class="vw-timeline-total">
+                    Total: {{ number_format($totalDuration, 1) }}s
+                    ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
+                    @if(count($shot['segments']) > 1)
+                        <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
+                                wire:loading.attr="disabled">
+                            <i class="fa-solid fa-rotate-left"></i> Undo Last
+                        </button>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            {{-- Extend Panel --}}
+            @if($extendMode)
+            <div class="vw-extend-panel">
+                <div class="vw-extend-header">
+                    <span><i class="fa-solid fa-forward"></i> Extend from {{ number_format($extendMode['timestamp'] ?? 0, 1) }}s</span>
+                    <button wire:click="cancelVideoExtend" class="vw-extend-cancel-btn">&times;</button>
+                </div>
+
+                @if(($extendMode['status'] ?? '') === 'extracting')
+                    <div style="text-align: center; padding: 1rem; color: #94a3b8;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Extracting frame...
+                    </div>
+                @else
+                    {{-- Extracted frame preview --}}
+                    @if($extendMode['frameUrl'] ?? null)
+                        <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
+                    @endif
+
+                    {{-- Duration selector --}}
+                    <div class="vw-extend-duration-row">
+                        <label>Duration:</label>
+                        @foreach([5, 8, 10] as $dur)
+                            <button wire:click="$set('extendMode.duration', {{ $dur }})"
+                                    class="vw-dur-btn {{ ($extendMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
+                                {{ $dur }}s
+                            </button>
+                        @endforeach
+                    </div>
+
+                    {{-- AI-generated continuation prompt (editable) --}}
+                    <textarea wire:model.blur="extendMode.continuationPrompt" rows="4"
+                              class="vw-extend-prompt" placeholder="What happens next..."></textarea>
+
+                    {{-- Generate button --}}
+                    <button wire:click="executeVideoExtend" class="vw-social-action-btn orange"
+                            wire:loading.attr="disabled">
+                        <i class="fa-solid fa-film"></i> Generate Continuation
+                    </button>
+                @endif
+            </div>
+            @endif
         </div>
 
         {{-- Right: Workflow Steps --}}
@@ -795,7 +979,10 @@
                 @if(in_array($videoStatus, ['generating', 'processing']))
                     <div class="vw-social-progress-bar">
                         <div class="vw-social-progress-text">
-                            @if($shot['dualTakeMode'] ?? false)
+                            @if($extendMode && ($extendMode['status'] ?? '') === 'generating')
+                                <i class="fa-solid fa-forward"></i>
+                                {{ __('Generating continuation from frame...') }}
+                            @elseif($shot['dualTakeMode'] ?? false)
                                 @php
                                     $t1Done = !empty($shot['dualTake1VideoUrl']);
                                     $t2Done = !empty($shot['dualTake2VideoUrl']);
@@ -817,7 +1004,11 @@
                             <div class="vw-social-progress-fill"></div>
                         </div>
                         <div class="vw-social-progress-hint">
-                            {{ ($shot['dualTakeMode'] ?? false) ? __('Sequential rendering — Take 2 uses Take 1\'s last frame for smooth transition') : __('This usually takes 2-5 minutes') }}
+                            @if($extendMode && ($extendMode['status'] ?? '') === 'generating')
+                                {{ __('Extending your video — this usually takes 2-5 minutes') }}
+                            @else
+                                {{ ($shot['dualTakeMode'] ?? false) ? __('Sequential rendering — Take 2 uses Take 1\'s last frame for smooth transition') : __('This usually takes 2-5 minutes') }}
+                            @endif
                         </div>
                     </div>
                 @endif

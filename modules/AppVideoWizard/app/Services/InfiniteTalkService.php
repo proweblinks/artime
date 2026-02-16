@@ -1143,6 +1143,274 @@ class InfiniteTalkService
     }
 
     /**
+     * Extract a single frame at a specific timestamp from a video.
+     * Used by the Video Extend feature to capture a frame the user paused on.
+     */
+    public static function extractFrameAtTimestamp(string $videoUrl, float $timestamp, int $projectId): ?string
+    {
+        try {
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk: ffmpeg not found for frame extraction at timestamp');
+                return null;
+            }
+
+            // Resolve video URL to local disk path
+            $parsed = parse_url($videoUrl);
+            $urlPath = $parsed['path'] ?? '';
+            if (!str_starts_with($urlPath, '/files/')) {
+                Log::error('InfiniteTalk: cannot resolve video URL for timestamp frame extraction', ['url' => substr($videoUrl, 0, 80)]);
+                return null;
+            }
+            $storagePath = substr($urlPath, 7);
+            $videoDiskPath = Storage::disk('public')->path($storagePath);
+            if (!file_exists($videoDiskPath)) {
+                Log::error('InfiniteTalk: video file not found for timestamp frame extraction', ['path' => $videoDiskPath]);
+                return null;
+            }
+
+            // Output frame image
+            $frameFilename = 'extend_frame_' . str_replace('.', '_', (string) $timestamp) . '_' . uniqid() . '.png';
+            $frameStoragePath = "wizard-videos/{$projectId}/{$frameFilename}";
+            $frameDiskPath = Storage::disk('public')->path($frameStoragePath);
+
+            $outputDir = dirname($frameDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // Extract frame at the specified timestamp
+            $cmd = sprintf(
+                '%s -ss %s -i %s -frames:v 1 -update 1 %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg(number_format($timestamp, 3, '.', '')),
+                escapeshellarg($videoDiskPath),
+                escapeshellarg($frameDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($frameDiskPath)) {
+                Log::error('InfiniteTalk: frame extraction at timestamp failed', [
+                    'timestamp' => $timestamp,
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk: frame extracted at timestamp', [
+                'timestamp' => $timestamp,
+                'framePath' => $frameStoragePath,
+                'frameSize' => filesize($frameDiskPath),
+            ]);
+
+            return url('/files/' . $frameStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk: frame extraction at timestamp error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Trim a video to end at a specific timestamp (lossless, no re-encode).
+     * Used by the Video Extend feature to keep only the portion before the cut point.
+     */
+    public static function trimVideoToTimestamp(string $videoUrl, float $timestamp, int $projectId): ?string
+    {
+        try {
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk: ffmpeg not found for video trimming');
+                return null;
+            }
+
+            // Resolve video URL to local disk path
+            $parsed = parse_url($videoUrl);
+            $urlPath = $parsed['path'] ?? '';
+            if (!str_starts_with($urlPath, '/files/')) {
+                Log::error('InfiniteTalk: cannot resolve video URL for trimming', ['url' => substr($videoUrl, 0, 80)]);
+                return null;
+            }
+            $storagePath = substr($urlPath, 7);
+            $videoDiskPath = Storage::disk('public')->path($storagePath);
+            if (!file_exists($videoDiskPath)) {
+                Log::error('InfiniteTalk: video file not found for trimming', ['path' => $videoDiskPath]);
+                return null;
+            }
+
+            // Output trimmed video
+            $outputFilename = 'trimmed_' . str_replace('.', '_', (string) $timestamp) . '_' . uniqid() . '.mp4';
+            $outputStoragePath = "wizard-videos/{$projectId}/{$outputFilename}";
+            $outputDiskPath = Storage::disk('public')->path($outputStoragePath);
+
+            $outputDir = dirname($outputDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // Trim video: keep from start to timestamp, lossless copy
+            $cmd = sprintf(
+                '%s -i %s -t %s -c copy %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($videoDiskPath),
+                escapeshellarg(number_format($timestamp, 3, '.', '')),
+                escapeshellarg($outputDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode !== 0 || !file_exists($outputDiskPath)) {
+                Log::error('InfiniteTalk: video trimming failed', [
+                    'timestamp' => $timestamp,
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk: video trimmed', [
+                'timestamp' => $timestamp,
+                'outputPath' => $outputStoragePath,
+                'outputSize' => filesize($outputDiskPath),
+            ]);
+
+            return url('/files/' . $outputStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk: video trimming error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Concatenate multiple video URLs into a single video (lossless).
+     * Used by the Video Extend feature for assembling 3+ segments.
+     */
+    public static function concatenateMultipleVideos(array $videoUrls, int $projectId): ?string
+    {
+        if (count($videoUrls) < 2) {
+            return $videoUrls[0] ?? null;
+        }
+
+        // For exactly 2 videos, use the existing method
+        if (count($videoUrls) === 2) {
+            return self::concatenateVideos($videoUrls[0], $videoUrls[1], $projectId);
+        }
+
+        try {
+            $ffmpeg = null;
+            foreach (['/home/artime/bin/ffmpeg', '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffmpeg = $path;
+                    break;
+                }
+            }
+
+            if (!$ffmpeg) {
+                Log::warning('InfiniteTalk: ffmpeg not found for multi-video concatenation');
+                return null;
+            }
+
+            // Resolve all video URLs to local disk paths
+            $resolveVideoPath = function(string $url): ?string {
+                $parsed = parse_url($url);
+                $path = $parsed['path'] ?? '';
+                if (str_starts_with($path, '/files/')) {
+                    $storagePath = substr($path, 7);
+                    $diskPath = Storage::disk('public')->path($storagePath);
+                    if (file_exists($diskPath)) {
+                        return $diskPath;
+                    }
+                }
+                return null;
+            };
+
+            $videoPaths = [];
+            foreach ($videoUrls as $i => $url) {
+                $path = $resolveVideoPath($url);
+                if (!$path) {
+                    Log::error('InfiniteTalk: multi-concat video file not found', [
+                        'index' => $i,
+                        'url' => substr($url, 0, 80),
+                    ]);
+                    return null;
+                }
+                $videoPaths[] = $path;
+            }
+
+            // Output concatenated video
+            $outputFilename = 'extended_' . time() . '_' . uniqid() . '.mp4';
+            $outputStoragePath = "wizard-videos/{$projectId}/{$outputFilename}";
+            $outputDiskPath = Storage::disk('public')->path($outputStoragePath);
+
+            $outputDir = dirname($outputDiskPath);
+            if (!is_dir($outputDir)) {
+                mkdir($outputDir, 0755, true);
+            }
+
+            // Create concat list file
+            $concatListPath = $outputDiskPath . '.concat.txt';
+            $concatLines = array_map(fn($p) => "file " . escapeshellarg($p), $videoPaths);
+            file_put_contents($concatListPath, implode("\n", $concatLines));
+
+            // ffmpeg: concat demuxer — no re-encoding
+            $cmd = sprintf(
+                '%s -f concat -safe 0 -i %s -c copy %s -y 2>&1',
+                escapeshellarg($ffmpeg),
+                escapeshellarg($concatListPath),
+                escapeshellarg($outputDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            @unlink($concatListPath);
+
+            if ($returnCode !== 0 || !file_exists($outputDiskPath)) {
+                Log::error('InfiniteTalk: multi-video concatenation failed', [
+                    'videoCount' => count($videoUrls),
+                    'returnCode' => $returnCode,
+                    'output' => implode("\n", array_slice($output, -5)),
+                ]);
+                return null;
+            }
+
+            Log::info('InfiniteTalk: multi-video concatenation complete', [
+                'videoCount' => count($videoUrls),
+                'outputPath' => $outputStoragePath,
+                'outputSize' => filesize($outputDiskPath),
+            ]);
+
+            return url('/files/' . $outputStoragePath);
+
+        } catch (\Throwable $e) {
+            Log::error('InfiniteTalk: multi-video concat error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
      * Add a subtle noise floor to an audio file to prevent InfiniteTalk from
      * freezing character animation during natural speech pauses.
      * Mixes very low pink noise into the existing audio so that even during

@@ -1106,6 +1106,9 @@ class VideoWizard extends Component
     // RunPod job polling state
     public array $pendingJobs = [];
 
+    // Video Extend mode state (for extending social content videos from a specific frame)
+    public ?array $extendMode = null;
+
     // Generation progress tracking
     public int $generationProgress = 0;
     public int $generationTotal = 0;
@@ -8487,7 +8490,7 @@ PROMPT;
         foreach ($this->pendingJobs as $jobKey => $job) {
             $jobType = $job['type'] ?? '';
 
-            if ($jobType !== 'shot_video' && $jobType !== 'dual_take') {
+            if ($jobType !== 'shot_video' && $jobType !== 'dual_take' && $jobType !== 'video_extend') {
                 \Log::info('📡 Skipping non-video job', ['jobKey' => $jobKey, 'type' => $jobType]);
                 continue;
             }
@@ -8739,10 +8742,32 @@ PROMPT;
                                     'videoStatus' => $assembledShot['videoStatus'] ?? 'unknown',
                                 ], $assemblyStatus === 'done' ? 'Pipeline complete — video ready!' : 'Assembly failed');
                             }
+                        } elseif ($jobType === 'video_extend') {
+                            // --- VIDEO EXTEND: assemble extended video ---
+                            \Log::info('📡 ✅ Video Extend clip READY — assembling', [
+                                'sceneIndex' => $sceneIndex,
+                                'shotIndex' => $shotIndex,
+                                'extensionUrl' => substr($finalVideoUrl, 0, 100),
+                            ]);
+                            $this->assembleExtendedVideo($sceneIndex, $shotIndex, $finalVideoUrl);
+                            unset($this->pendingJobs[$jobKey]);
+                            $hasUpdates = true;
                         } else {
                             // --- STANDARD SINGLE TAKE ---
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+
+                            // Initialize segments array for Video Extend support
+                            $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+                            $videoDuration = $this->getVideoDuration($finalVideoUrl) ?? (float) ($shotData['selectedDuration'] ?? 10);
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = [[
+                                'videoUrl' => $finalVideoUrl,
+                                'duration' => $videoDuration,
+                                'thumbnailUrl' => $shotData['imageUrl'] ?? '',
+                                'prompt' => $shotData['videoPrompt'] ?? $shotData['animationPrompt'] ?? '',
+                                'type' => 'original',
+                            ]];
+
                             $hasUpdates = true;
 
                             \Log::info('📡 ✅ Video READY!', [
@@ -8789,6 +8814,11 @@ PROMPT;
                             ? str_replace('take1', 'take2', $jobKey)
                             : str_replace('take2', 'take1', $jobKey);
                         unset($this->pendingJobs[$otherKey]);
+                    }
+
+                    // If video extend failed, reset extend mode
+                    if ($jobType === 'video_extend') {
+                        $this->extendMode = null;
                     }
 
                     \Log::warning('📡 ❌ Video generation FAILED', [
@@ -32329,6 +32359,16 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalUrl;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
 
+            // Initialize segments array for Video Extend support
+            $videoDuration = $this->getVideoDuration($finalUrl) ?? 10.0;
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = [[
+                'videoUrl' => $finalUrl,
+                'duration' => $videoDuration,
+                'thumbnailUrl' => $shot['imageUrl'] ?? '',
+                'prompt' => $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '',
+                'type' => 'original',
+            ]];
+
             \Log::info('🎬 DualTake: Assembly complete — video READY!', [
                 'finalUrl' => substr($finalUrl, 0, 100),
             ]);
@@ -32338,6 +32378,363 @@ PROMPT;
 
             \Log::error('🎬 DualTake: Assembly FAILED');
         }
+
+        $this->saveProject();
+    }
+
+    // ========================================================================
+    // VIDEO EXTEND — Continue a scene from any frame
+    // ========================================================================
+
+    /**
+     * Initialize Video Extend: extract a frame at the user's paused timestamp
+     * and generate an AI continuation prompt from the frame.
+     */
+    public function initVideoExtend(int $sceneIndex, int $shotIndex, float $timestamp): void
+    {
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot || empty($shot['videoUrl'])) {
+            return;
+        }
+
+        $this->extendMode = [
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'timestamp' => $timestamp,
+            'frameUrl' => null,
+            'continuationPrompt' => '',
+            'duration' => 8,
+            'status' => 'extracting',
+        ];
+        $this->saveProject();
+
+        try {
+            // Extract the frame at the specified timestamp
+            $frameUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::extractFrameAtTimestamp(
+                $shot['videoUrl'],
+                $timestamp,
+                $this->projectId ?? 0
+            );
+
+            if (!$frameUrl) {
+                $this->extendMode = null;
+                $this->saveProject();
+                return;
+            }
+
+            $this->extendMode['frameUrl'] = $frameUrl;
+            $this->extendMode['status'] = 'prompting';
+
+            // Generate AI continuation prompt using Gemini Vision
+            $originalPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
+            $continuationPrompt = $this->generateContinuationPrompt($frameUrl, $originalPrompt, $timestamp);
+
+            $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
+            $this->saveProject();
+
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: initVideoExtend failed', ['error' => $e->getMessage()]);
+            $this->extendMode = null;
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Generate an AI continuation prompt by analyzing the extracted frame.
+     */
+    protected function generateContinuationPrompt(string $frameUrl, string $originalPrompt, float $timestamp): string
+    {
+        try {
+            $imageContent = @file_get_contents($frameUrl);
+            if (!$imageContent) {
+                \Log::warning('Video Extend: could not download frame for AI prompt', ['url' => substr($frameUrl, 0, 100)]);
+                return '';
+            }
+
+            $base64 = base64_encode($imageContent);
+            $mimeType = 'image/png';
+
+            $prompt = "This is a frame from a short comedy video at second " . number_format($timestamp, 1) . ". "
+                . "The original premise: {$originalPrompt}\n\n"
+                . "Describe what happens NEXT in 80-100 words. Focus on dramatic physical actions — characters leaping, smashing, throwing things, extreme reactions. "
+                . "The continuation must be MORE intense and chaotic than what came before. "
+                . "Write in present tense, action-focused. Do NOT describe character appearances.";
+
+            $gemini = app(\App\Services\GeminiService::class);
+            $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+            ]);
+
+            if ($result['success'] && !empty($result['text'])) {
+                return trim($result['text']);
+            }
+
+            \Log::warning('Video Extend: Gemini continuation prompt failed', [
+                'error' => $result['error'] ?? 'empty response',
+            ]);
+            return '';
+
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: generateContinuationPrompt error', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Execute the video extension: trim segments, submit to Seedance, start polling.
+     */
+    public function executeVideoExtend(): void
+    {
+        if (!$this->extendMode) return;
+
+        $sceneIndex = $this->extendMode['sceneIndex'];
+        $shotIndex = $this->extendMode['shotIndex'];
+        $timestamp = $this->extendMode['timestamp'];
+        $frameUrl = $this->extendMode['frameUrl'] ?? null;
+        $prompt = $this->extendMode['continuationPrompt'] ?? '';
+        $duration = $this->extendMode['duration'] ?? 8;
+
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        if (!$shot || !$frameUrl) return;
+
+        $segments = $shot['segments'] ?? [];
+        $projectId = $this->projectId ?? 0;
+
+        // Determine which segments to keep based on the timestamp
+        $cumulative = 0;
+        $keptSegments = [];
+        foreach ($segments as $seg) {
+            $segEnd = $cumulative + $seg['duration'];
+
+            if ($cumulative >= $timestamp) {
+                // This segment starts after the cut point — discard
+                break;
+            }
+
+            if ($segEnd <= $timestamp) {
+                // This entire segment is before the cut point — keep fully
+                $keptSegments[] = $seg;
+            } else {
+                // The cut point falls within this segment — trim it
+                $localCutTime = $timestamp - $cumulative;
+                $trimmedUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::trimVideoToTimestamp(
+                    $seg['videoUrl'],
+                    $localCutTime,
+                    $projectId
+                );
+                if ($trimmedUrl) {
+                    $seg['videoUrl'] = $trimmedUrl;
+                    $seg['duration'] = $localCutTime;
+                    $keptSegments[] = $seg;
+                } else {
+                    // Trim failed — keep full segment
+                    $keptSegments[] = $seg;
+                }
+                break;
+            }
+
+            $cumulative = $segEnd;
+        }
+
+        // Update shot segments to only the kept ones
+        $shot['segments'] = $keptSegments;
+
+        // Submit extension to Seedance
+        $this->extendMode['status'] = 'generating';
+        $shot['videoStatus'] = 'generating';
+
+        try {
+            $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
+            $project = \Modules\AppVideoWizard\Models\WizardProject::find($this->projectId);
+
+            if ($project) {
+                $result = $animationService->generateAnimation($project, [
+                    'model' => 'seedance',
+                    'imageUrl' => $frameUrl,
+                    'prompt' => $prompt,
+                    'duration' => $duration,
+                    'resolution' => $shot['selectedResolution'] ?? '720p',
+                    'aspect_ratio' => $this->aspectRatio,
+                    'camera_fixed' => false,
+                ]);
+
+                if ($result['success'] && isset($result['taskId'])) {
+                    $jobKey = "video_extend_{$sceneIndex}_{$shotIndex}";
+                    $this->pendingJobs[$jobKey] = [
+                        'taskId' => $result['taskId'],
+                        'type' => 'video_extend',
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                        'provider' => $result['provider'] ?? 'wavespeed',
+                        'endpointId' => null,
+                    ];
+                    $shot['videoStatus'] = 'processing';
+                    $shot['videoJobStartedAt'] = now()->timestamp;
+                    $shot['videoEstimatedSeconds'] = $duration * 30;
+
+                    $this->dispatch('video-generation-started', [
+                        'taskId' => $result['taskId'],
+                        'sceneIndex' => $sceneIndex,
+                        'shotIndex' => $shotIndex,
+                    ]);
+
+                    \Log::info('Video Extend: extension job dispatched', [
+                        'taskId' => $result['taskId'],
+                        'duration' => $duration,
+                        'promptLength' => strlen($prompt),
+                    ]);
+                } else {
+                    throw new \Exception($result['error'] ?? 'Seedance extension failed');
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: executeVideoExtend failed', ['error' => $e->getMessage()]);
+            $shot['videoStatus'] = 'error';
+            $shot['videoError'] = 'Extension failed: ' . $e->getMessage();
+            $this->extendMode = null;
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Assemble the extended video after the continuation clip is ready.
+     * Concatenates all kept segments + the new extension into the final video.
+     */
+    protected function assembleExtendedVideo(int $sceneIndex, int $shotIndex, string $extensionVideoUrl): void
+    {
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $segments = $shot['segments'] ?? [];
+
+        // Get the extension video's duration via ffprobe
+        $extensionDuration = $this->getVideoDuration($extensionVideoUrl) ?? ($this->extendMode['duration'] ?? 8);
+
+        // Add the new extension segment
+        $segments[] = [
+            'videoUrl' => $extensionVideoUrl,
+            'duration' => $extensionDuration,
+            'thumbnailUrl' => $this->extendMode['frameUrl'] ?? '',
+            'prompt' => $this->extendMode['continuationPrompt'] ?? '',
+            'type' => 'extension',
+        ];
+
+        $shot['segments'] = $segments;
+
+        // Concatenate all segment videos
+        $videoUrls = array_column($segments, 'videoUrl');
+        $projectId = $this->projectId ?? 0;
+
+        $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+
+        if ($finalUrl) {
+            $shot['videoUrl'] = $finalUrl;
+            $shot['videoStatus'] = 'ready';
+            \Log::info('Video Extend: assembly complete', [
+                'segmentCount' => count($segments),
+                'finalUrl' => substr($finalUrl, 0, 100),
+            ]);
+        } else {
+            $shot['videoStatus'] = 'error';
+            $shot['videoError'] = 'Extension assembly failed: ffmpeg concatenation error';
+            \Log::error('Video Extend: assembly FAILED');
+        }
+
+        $this->extendMode = null;
+        $this->saveProject();
+    }
+
+    /**
+     * Get the duration of a video file using ffprobe.
+     */
+    protected function getVideoDuration(string $videoUrl): ?float
+    {
+        try {
+            $ffprobe = null;
+            foreach (['/home/artime/bin/ffprobe', '/usr/bin/ffprobe', '/usr/local/bin/ffprobe'] as $path) {
+                if (file_exists($path) && is_executable($path)) {
+                    $ffprobe = $path;
+                    break;
+                }
+            }
+            if (!$ffprobe) return null;
+
+            $parsed = parse_url($videoUrl);
+            $urlPath = $parsed['path'] ?? '';
+            if (!str_starts_with($urlPath, '/files/')) return null;
+
+            $storagePath = substr($urlPath, 7);
+            $videoDiskPath = \Illuminate\Support\Facades\Storage::disk('public')->path($storagePath);
+            if (!file_exists($videoDiskPath)) return null;
+
+            $cmd = sprintf(
+                '%s -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s 2>&1',
+                escapeshellarg($ffprobe),
+                escapeshellarg($videoDiskPath)
+            );
+
+            $output = [];
+            $returnCode = 0;
+            exec($cmd, $output, $returnCode);
+
+            if ($returnCode === 0 && !empty($output[0])) {
+                return round((float) trim($output[0]), 2);
+            }
+        } catch (\Throwable $e) {
+            // Silently fail — caller uses fallback duration
+        }
+
+        return null;
+    }
+
+    /**
+     * Cancel Video Extend mode without side effects.
+     */
+    public function cancelVideoExtend(): void
+    {
+        $this->extendMode = null;
+        $this->saveProject();
+    }
+
+    /**
+     * Undo the last extension: remove the last segment and reassemble.
+     */
+    public function undoLastExtend(int $sceneIndex, int $shotIndex): void
+    {
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $segments = $shot['segments'] ?? [];
+
+        if (count($segments) <= 1) {
+            return; // Nothing to undo
+        }
+
+        // Remove last segment
+        array_pop($segments);
+        $shot['segments'] = $segments;
+
+        if (count($segments) === 1) {
+            // Only one segment left — use its video URL directly
+            $shot['videoUrl'] = $segments[0]['videoUrl'];
+            $shot['videoStatus'] = 'ready';
+        } else {
+            // Multiple segments — re-concatenate
+            $videoUrls = array_column($segments, 'videoUrl');
+            $projectId = $this->projectId ?? 0;
+            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+
+            if ($finalUrl) {
+                $shot['videoUrl'] = $finalUrl;
+                $shot['videoStatus'] = 'ready';
+            } else {
+                $shot['videoUrl'] = $segments[0]['videoUrl'];
+                $shot['videoStatus'] = 'ready';
+                \Log::warning('Video Extend: undo re-concat failed, falling back to first segment');
+            }
+        }
+
+        \Log::info('Video Extend: undid last extension', [
+            'remainingSegments' => count($segments),
+        ]);
 
         $this->saveProject();
     }
