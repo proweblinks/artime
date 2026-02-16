@@ -32848,6 +32848,7 @@ PROMPT;
 
             if (!$frameUrl) {
                 $this->extendMode = null;
+                $this->error = __('Could not extract frame at this timestamp. Try pausing a little earlier in the video.');
                 $this->saveProject();
                 return;
             }

@@ -1192,6 +1192,26 @@ class InfiniteTalkService
                 mkdir($outputDir, 0755, true);
             }
 
+            // Probe video duration to clamp timestamp
+            $probeCmd = sprintf(
+                '%s -v error -show_entries format=duration -of csv=p=0 %s 2>&1',
+                escapeshellarg(str_replace('ffmpeg', 'ffprobe', $ffmpeg)),
+                escapeshellarg($videoInput)
+            );
+            $probeOutput = [];
+            exec($probeCmd, $probeOutput);
+            $videoDuration = (float) trim($probeOutput[0] ?? '0');
+
+            // Clamp timestamp to be within video bounds (leave 0.1s margin from end)
+            if ($videoDuration > 0 && $timestamp >= $videoDuration - 0.05) {
+                $timestamp = max(0, $videoDuration - 0.1);
+                Log::info('InfiniteTalk: clamped frame extraction timestamp to video duration', [
+                    'original' => $timestamp,
+                    'clamped' => $timestamp,
+                    'videoDuration' => $videoDuration,
+                ]);
+            }
+
             // Extract frame at the specified timestamp
             $cmd = sprintf(
                 '%s -ss %s -i %s -frames:v 1 -update 1 %s -y 2>&1',
@@ -1205,7 +1225,22 @@ class InfiniteTalkService
             $returnCode = 0;
             exec($cmd, $output, $returnCode);
 
-            if ($returnCode !== 0 || !file_exists($frameDiskPath)) {
+            // If extraction produced no file, retry with last frame
+            if (!file_exists($frameDiskPath) || filesize($frameDiskPath) === 0) {
+                Log::warning('InfiniteTalk: first frame extraction attempt empty, retrying with sseof', [
+                    'timestamp' => $timestamp,
+                ]);
+                @unlink($frameDiskPath);
+                $retryCmd = sprintf(
+                    '%s -sseof -0.1 -i %s -frames:v 1 -update 1 %s -y 2>&1',
+                    escapeshellarg($ffmpeg),
+                    escapeshellarg($videoInput),
+                    escapeshellarg($frameDiskPath)
+                );
+                exec($retryCmd, $output, $returnCode);
+            }
+
+            if ($returnCode !== 0 || !file_exists($frameDiskPath) || filesize($frameDiskPath) === 0) {
                 Log::error('InfiniteTalk: frame extraction at timestamp failed', [
                     'timestamp' => $timestamp,
                     'returnCode' => $returnCode,
