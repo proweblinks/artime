@@ -32625,6 +32625,12 @@ REQUIRED STRUCTURE:
    - Environmental chaos caused by the AGGRESSOR: objects knocked over, food flying, surfaces scratched/dented
    - The environment should REACT to the fury — things topple, splatter, shatter
 
+VISUAL STYLE CONSISTENCY — ABSOLUTELY CRITICAL:
+- Study the frame carefully. Whatever visual style you see (photorealistic, cinematic live-action, 3D render, anime, cartoon, illustrated, etc.) — you MUST maintain that EXACT style.
+- If the frame shows a PHOTOREALISTIC scene (real-looking cat, real kitchen, natural lighting), the continuation MUST stay photorealistic. Do NOT shift to animated, drawn, illustrated, or stylized visuals.
+- Begin your prompt with a brief style anchor, e.g.: "Photorealistic cinematic scene —" or "Hyper-realistic live-action —" to lock the visual style for the AI model.
+- NEVER introduce style-breaking words like "cartoon", "illustration", "anime", "drawn", "painted", "stylized" if the original frame is photorealistic.
+
 CRITICAL RULES:
 - Write in PRESENT TENSE, third person
 - Refer to characters by what they ARE (the cat, the animal, the human, the person, the figure) — NOT by name

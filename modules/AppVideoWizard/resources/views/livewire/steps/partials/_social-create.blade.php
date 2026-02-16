@@ -446,7 +446,7 @@
     .vw-timeline-tooltip {
         background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.15);
         border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
-        font-size: 0.7rem; color: #94a3b8;
+        font-size: 0.7rem; color: #94a3b8; pointer-events: none;
     }
     .vw-timeline-total {
         font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem; text-align: right;
@@ -690,11 +690,9 @@
 
                 {{-- Segment info tooltip on hover --}}
                 @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
-                <template x-if="hoveredSegment !== null">
-                    <div class="vw-timeline-tooltip">
-                        <small x-text="'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...'"></small>
-                    </div>
-                </template>
+                <div class="vw-timeline-tooltip" x-show="hoveredSegment !== null" x-cloak>
+                    <small x-text="hoveredSegment !== null ? 'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...' : ''"></small>
+                </div>
 
                 {{-- Total duration + undo --}}
                 <div class="vw-timeline-total">
