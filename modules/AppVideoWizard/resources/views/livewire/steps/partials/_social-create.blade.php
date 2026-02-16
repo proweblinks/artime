@@ -421,7 +421,7 @@
         pollingInterval: null,
         isPolling: false,
         pollCount: 0,
-        maxPolls: 120,
+        maxPolls: 600,
         POLL_INTERVAL: 5000,
         initPolling() {
             const status = '{{ $videoStatus }}';
@@ -430,6 +430,12 @@
             }
             Livewire.on('video-generation-started', () => this.startPolling());
             Livewire.on('video-generation-complete', () => this.stopPolling());
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && !this.isPolling) {
+                    const el = document.querySelector('.vw-social-status-badge.processing, .vw-social-status-badge.generating');
+                    if (el) this.startPolling();
+                }
+            });
         },
         startPolling() {
             if (this.isPolling) return;
@@ -448,6 +454,13 @@
         stopPolling() {
             if (this.pollingInterval) { clearInterval(this.pollingInterval); this.pollingInterval = null; }
             this.isPolling = false;
+        },
+        manualCheck() {
+            if (this.$wire) {
+                this.$wire.pollVideoJobs().then((r) => {
+                    if (r && r.pendingJobs > 0 && !this.isPolling) this.startPolling();
+                });
+            }
         }
      }"
      x-init="initPolling()">
@@ -736,6 +749,12 @@
                         </span>
                     @endif
                 </button>
+                @if(in_array($videoStatus, ['generating', 'processing']))
+                    <button class="vw-social-action-btn" style="margin-top: 0.35rem; font-size: 0.78rem; opacity: 0.7;"
+                            @click="manualCheck()">
+                        <i class="fa-solid fa-arrows-rotate"></i> {{ __('Check Status') }}
+                    </button>
+                @endif
 
                 {{-- Swap Speaker Faces button for dialogue shots (InfiniteTalk only) --}}
                 @if(!$isSeedance && $isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')

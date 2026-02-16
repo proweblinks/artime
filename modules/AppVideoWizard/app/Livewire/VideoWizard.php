@@ -2756,7 +2756,7 @@ class VideoWizard extends Component
     protected function recoverVideoJobs(): int
     {
         $timedOut = 0;
-        $timeoutMinutes = 15;
+        $timeoutMinutes = 45;
         $scenes = $this->multiShotMode['decomposedScenes'] ?? [];
 
         foreach ($scenes as $sceneIndex => $scene) {
