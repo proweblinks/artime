@@ -858,6 +858,15 @@
                             <div class="vw-cloned-badge">
                                 <i class="fa-solid fa-clone"></i> {{ __('Cloned Concept') }}
                             </div>
+                            @if(!empty($videoAnalysisResult['firstFrameUrl']))
+                                <div style="margin: 0.75rem 0; border-radius: 8px; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3);">
+                                    <img src="{{ $videoAnalysisResult['firstFrameUrl'] }}" alt="{{ __('First frame') }}"
+                                         style="width: 100%; max-height: 280px; object-fit: contain; background: #000;">
+                                    <div style="padding: 0.4rem 0.6rem; background: rgba(139, 92, 246, 0.1); font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+                                        <i class="fa-solid fa-image"></i> {{ __('First frame — will be used as base image') }}
+                                    </div>
+                                </div>
+                            @endif
                             <div class="vw-idea-title">{{ $videoAnalysisResult['title'] ?? 'Cloned Concept' }}</div>
                             <div class="vw-idea-character">
                                 @if(($videoAnalysisResult['speechType'] ?? '') === 'dialogue' && !empty($videoAnalysisResult['characters']))

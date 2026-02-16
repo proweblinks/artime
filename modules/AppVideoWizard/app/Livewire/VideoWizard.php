@@ -3464,6 +3464,9 @@ class VideoWizard extends Component
         $isSeedance = $this->videoEngine === 'seedance';
         $selectedIdea = $this->concept['socialContent'] ?? ($this->conceptVariations[$this->selectedConceptIndex ?? 0] ?? []);
 
+        // If cloned video has a first frame, use it as the base image
+        $clonedFirstFrame = $selectedIdea['firstFrameUrl'] ?? null;
+
         $shot = [
             'id' => 'shot_social_' . uniqid(),
             'sceneId' => 'scene_0',
@@ -3472,8 +3475,8 @@ class VideoWizard extends Component
             'description' => $scene['visualDescription'] ?? '',
             'duration' => $isSeedance ? 8 : $duration,
             'selectedDuration' => $isSeedance ? 8 : $duration,
-            'imageUrl' => null,
-            'imageStatus' => 'pending',
+            'imageUrl' => $clonedFirstFrame,
+            'imageStatus' => $clonedFirstFrame ? 'ready' : 'pending',
             'videoUrl' => null,
             'videoStatus' => 'pending',
             'audioUrl' => null,
@@ -3518,10 +3521,10 @@ class VideoWizard extends Component
 
         // Initialize storyboard entry
         $this->storyboard['scenes'][0] = [
-            'imageUrl' => null,
-            'status' => 'pending',
+            'imageUrl' => $clonedFirstFrame,
+            'status' => $clonedFirstFrame ? 'ready' : 'pending',
             'prompt' => '',
-            'source' => 'ai',
+            'source' => $clonedFirstFrame ? 'cloned_frame' : 'ai',
         ];
     }
 
@@ -4943,6 +4946,58 @@ PROMPT;
     }
 
     /**
+     * Extract the first frame from a video file using ffmpeg and store it.
+     * Returns the public URL of the extracted frame, or null on failure.
+     */
+    protected function extractFirstFrame(string $videoPath): ?string
+    {
+        try {
+            $ffmpeg = '/home/artime/bin/ffmpeg';
+            if (!file_exists($ffmpeg)) {
+                $ffmpeg = 'ffmpeg'; // fallback to PATH
+            }
+
+            $filename = 'clone_frame_' . $this->projectId . '_' . time() . '.jpg';
+            $relativePath = 'wizard/clone-frames/' . $filename;
+            $absolutePath = storage_path('app/public/' . $relativePath);
+
+            // Ensure directory exists
+            $dir = dirname($absolutePath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            // Extract first frame at full quality
+            $cmd = escapeshellarg($ffmpeg)
+                . ' -i ' . escapeshellarg($videoPath)
+                . ' -vframes 1 -q:v 2 -y '
+                . escapeshellarg($absolutePath)
+                . ' 2>&1';
+
+            exec($cmd, $output, $exitCode);
+
+            if ($exitCode !== 0 || !file_exists($absolutePath)) {
+                Log::warning('VideoWizard: Failed to extract first frame', [
+                    'exitCode' => $exitCode,
+                    'output' => implode("\n", $output),
+                ]);
+                return null;
+            }
+
+            $frameUrl = url('/files/' . $relativePath);
+            Log::info('VideoWizard: Extracted first frame from cloned video', [
+                'frameUrl' => $frameUrl,
+                'fileSize' => filesize($absolutePath),
+            ]);
+
+            return $frameUrl;
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: First frame extraction failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
      * Analyze an uploaded video to extract a viral concept (Video Concept Cloner).
      * Runs the 3-stage pipeline: Gemini vision → Whisper STT → AI synthesis.
      */
@@ -4967,6 +5022,9 @@ PROMPT;
             $filePath = $this->conceptVideoUpload->getRealPath();
             $mimeType = $this->conceptVideoUpload->getMimeType() ?? 'video/mp4';
 
+            // Extract first frame before analysis (for Clone mode base image)
+            $firstFrameUrl = $this->extractFirstFrame($filePath);
+
             $conceptService = app(ConceptService::class);
             $result = $conceptService->analyzeVideoForConcept($filePath, [
                 'teamId' => session('current_team_id', 0),
@@ -4974,6 +5032,10 @@ PROMPT;
                 'mimeType' => $mimeType,
                 'videoEngine' => $this->videoEngine,
             ]);
+
+            if ($firstFrameUrl) {
+                $result['firstFrameUrl'] = $firstFrameUrl;
+            }
 
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
@@ -5034,6 +5096,9 @@ PROMPT;
             $this->urlDownloadStage = null;
             $this->videoAnalysisStage = 'analyzing';
 
+            // Extract first frame before analysis (for Clone mode base image)
+            $firstFrameUrl = $this->extractFirstFrame($outputFile);
+
             // Run same pipeline as uploaded videos
             $conceptService = app(ConceptService::class);
             $result = $conceptService->analyzeVideoForConcept($outputFile, [
@@ -5042,6 +5107,10 @@ PROMPT;
                 'mimeType' => 'video/mp4',
                 'videoEngine' => $this->videoEngine,
             ]);
+
+            if ($firstFrameUrl) {
+                $result['firstFrameUrl'] = $firstFrameUrl;
+            }
 
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
