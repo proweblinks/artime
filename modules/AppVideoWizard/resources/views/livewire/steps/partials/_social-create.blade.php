@@ -467,7 +467,27 @@
         display: flex; justify-content: space-between; align-items: center;
         margin-bottom: 0.75rem; font-size: 0.85rem; color: #f97316; font-weight: 600;
     }
-    .vw-extend-frame-preview { max-height: 120px; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    .vw-extend-body {
+        display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: stretch;
+    }
+    .vw-extend-frame-col {
+        flex: 0 0 38%; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.25); border-radius: 0.5rem; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.06); min-height: 140px;
+    }
+    .vw-extend-frame-preview {
+        width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem;
+        display: block;
+    }
+    .vw-extend-controls-col {
+        flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem;
+    }
+    .vw-extend-controls-col .vw-extend-duration-row { margin-bottom: 0; }
+    .vw-extend-controls-col .vw-extend-intensity-row { margin-bottom: 0; }
+    @media (max-width: 500px) {
+        .vw-extend-body { flex-direction: column; }
+        .vw-extend-frame-col { flex: none; max-height: 160px; }
+    }
 
     /* Segment Edit Panel — compact layout */
     .vw-seg-edit {
@@ -880,69 +900,77 @@
                             <i class="fa-solid fa-spinner fa-spin"></i> Extracting frame...
                         </div>
                     @else
-                        {{-- Extracted frame preview --}}
-                        @if($extendMode['frameUrl'] ?? null)
-                            <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
-                        @endif
-
-                        {{-- Duration selector --}}
-                        <div class="vw-extend-duration-row">
-                            <label>Duration:</label>
-                            @foreach([5, 8, 10] as $dur)
-                                <button wire:click="$set('extendMode.duration', {{ $dur }})"
-                                        class="vw-dur-btn {{ ($extendMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
-                                    {{ $dur }}s
-                                </button>
-                            @endforeach
-                        </div>
-
-                        {{-- Chaos/Intensity slider --}}
-                        @php $intensityVal = $extendMode['intensity'] ?? 50; @endphp
-                        <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $intensityVal }} }">
-                            <div class="vw-intensity-header">
-                                <label><i class="fa-solid fa-fire"></i> Chaos</label>
-                                <span class="vw-intensity-label"
-                                      :class="{
-                                          'calm': intensity <= 20,
-                                          'rising': intensity > 20 && intensity <= 45,
-                                          'intense': intensity > 45 && intensity <= 65,
-                                          'wild': intensity > 65 && intensity <= 85,
-                                          'chaos': intensity > 85
-                                      }"
-                                      x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
-                                </span>
+                        {{-- Two-column layout: frame left, controls right --}}
+                        <div class="vw-extend-body">
+                            {{-- Left: Frame preview --}}
+                            @if($extendMode['frameUrl'] ?? null)
+                            <div class="vw-extend-frame-col">
+                                <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
                             </div>
-                            <div class="vw-intensity-slider-wrap">
-                                <input type="range" min="0" max="100" step="5"
-                                       x-model="intensity"
-                                       @change="$wire.set('extendMode.intensity', parseInt(intensity))"
-                                       class="vw-intensity-slider"
-                                       :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
-                                <div class="vw-intensity-ticks">
-                                    <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                            @endif
+
+                            {{-- Right: Duration + Chaos controls --}}
+                            <div class="vw-extend-controls-col">
+                                {{-- Duration selector --}}
+                                <div class="vw-extend-duration-row">
+                                    <label>Duration:</label>
+                                    @foreach([5, 8, 10] as $dur)
+                                        <button wire:click="$set('extendMode.duration', {{ $dur }})"
+                                                class="vw-dur-btn {{ ($extendMode['duration'] ?? 8) == $dur ? 'active' : '' }}">
+                                            {{ $dur }}s
+                                        </button>
+                                    @endforeach
+                                </div>
+
+                                {{-- Chaos/Intensity slider --}}
+                                @php $intensityVal = $extendMode['intensity'] ?? 50; @endphp
+                                <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $intensityVal }} }">
+                                    <div class="vw-intensity-header">
+                                        <label><i class="fa-solid fa-fire"></i> Chaos</label>
+                                        <span class="vw-intensity-label"
+                                              :class="{
+                                                  'calm': intensity <= 20,
+                                                  'rising': intensity > 20 && intensity <= 45,
+                                                  'intense': intensity > 45 && intensity <= 65,
+                                                  'wild': intensity > 65 && intensity <= 85,
+                                                  'chaos': intensity > 85
+                                              }"
+                                              x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
+                                        </span>
+                                    </div>
+                                    <div class="vw-intensity-slider-wrap">
+                                        <input type="range" min="0" max="100" step="5"
+                                               x-model="intensity"
+                                               @change="$wire.set('extendMode.intensity', parseInt(intensity))"
+                                               class="vw-intensity-slider"
+                                               :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                                        <div class="vw-intensity-ticks">
+                                            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                                        </div>
+                                    </div>
+                                    <button class="vw-intensity-regen-btn"
+                                            wire:click="regenerateExtendPrompt"
+                                            wire:loading.attr="disabled"
+                                            wire:target="regenerateExtendPrompt"
+                                            title="Regenerate prompt with current chaos level and direction">
+                                        <span wire:loading.remove wire:target="regenerateExtendPrompt">
+                                            <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
+                                        </span>
+                                        <span wire:loading wire:target="regenerateExtendPrompt">
+                                            <i class="fa-solid fa-spinner fa-spin"></i> Generating...
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
-                            <button class="vw-intensity-regen-btn"
-                                    wire:click="regenerateExtendPrompt"
-                                    wire:loading.attr="disabled"
-                                    wire:target="regenerateExtendPrompt"
-                                    title="Regenerate prompt with current chaos level and direction">
-                                <span wire:loading.remove wire:target="regenerateExtendPrompt">
-                                    <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
-                                </span>
-                                <span wire:loading wire:target="regenerateExtendPrompt">
-                                    <i class="fa-solid fa-spinner fa-spin"></i> Generating...
-                                </span>
-                            </button>
                         </div>
 
-                        {{-- Chaos direction — user guidance merged into prompt --}}
+                        {{-- Full width: Chaos direction --}}
                         <input type="text"
                                wire:model.blur="extendMode.chaosDirection"
                                class="vw-extend-direction"
                                placeholder="{{ __('Direct the chaos: e.g., cat jumps on espresso machine and destroys it...') }}" />
 
-                        {{-- AI-generated continuation prompt (editable) --}}
+                        {{-- Full width: AI-generated continuation prompt (editable) --}}
                         <textarea wire:model.blur="extendMode.continuationPrompt" rows="4"
                                   class="vw-extend-prompt" placeholder="What happens next..."></textarea>
 
