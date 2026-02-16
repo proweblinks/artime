@@ -441,7 +441,8 @@
     .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
     .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
     .vw-timeline-segment.selected { outline: 2px solid #f97316; outline-offset: -2px; filter: brightness(1.4); }
-    .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.2rem; }
+    .vw-seg-fire { font-size: 0.6rem; opacity: 0.7; }
     .vw-seg-duration { flex-shrink: 0; margin-left: 0.25rem; opacity: 0.7; }
     .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]) { position: relative; }
     .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]):hover::after {
@@ -733,12 +734,14 @@
                             $segPromptPreview = mb_substr($segment['prompt'] ?? '', 0, 100);
                             if (mb_strlen($segment['prompt'] ?? '') > 100) $segPromptPreview .= '...';
                         @endphp
+                        @php $segIntensityVal = $segment['intensity'] ?? 0; @endphp
                         <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }} {{ $selectedSegIdx === $segIdx ? 'selected' : '' }}"
                              style="width: {{ number_format($widthPct, 1) }}%"
                              @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}; $wire.selectSegment(0, 0, {{ $segIdx }})"
                              data-tooltip="{{ $segPromptPreview ? 'Prompt: ' . $segPromptPreview : '' }}">
                             <span class="vw-seg-label">
                                 {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
+                                @if($segIntensityVal > 0)<span class="vw-seg-fire" title="Chaos: {{ $segIntensityVal }}%">🔥{{ $segIntensityVal }}</span>@endif
                             </span>
                             <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
                         </div>

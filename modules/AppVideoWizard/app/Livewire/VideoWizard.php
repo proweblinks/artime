@@ -8801,6 +8801,7 @@ PROMPT;
                                 'thumbnailUrl' => $shotData['imageUrl'] ?? '',
                                 'prompt' => $shotData['videoPrompt'] ?? $shotData['animationPrompt'] ?? '',
                                 'type' => 'original',
+                                'intensity' => 0,
                             ]];
 
                             $hasUpdates = true;
@@ -32406,6 +32407,7 @@ PROMPT;
                 'thumbnailUrl' => $shot['imageUrl'] ?? '',
                 'prompt' => $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '',
                 'type' => 'original',
+                'intensity' => 0,
             ]];
 
             \Log::info('🎬 DualTake: Assembly complete — video READY!', [
@@ -32631,6 +32633,13 @@ VISUAL STYLE CONSISTENCY — ABSOLUTELY CRITICAL:
 - Begin your prompt with a brief style anchor, e.g.: "Photorealistic cinematic scene —" or "Hyper-realistic live-action —" to lock the visual style for the AI model.
 - NEVER introduce style-breaking words like "cartoon", "illustration", "anime", "drawn", "painted", "stylized" if the original frame is photorealistic.
 
+CAUSE AND EFFECT — ABSOLUTELY CRITICAL:
+- NOTHING happens on its own. Every object movement, every splash, every flying item MUST be directly caused by a CHARACTER'S physical action.
+- WRONG: "The spaghetti flies off the plate" / "food erupts from the dish" / "the glass topples over"
+- RIGHT: "The cat's paw SLAMS the plate edge, LAUNCHING spaghetti into the air" / "the cat SWIPES the glass, sending it CRASHING to the floor"
+- Every environmental effect needs a clear ACTOR → ACTION → RESULT chain: "The cat KICKS the table leg (actor+action), rattling every dish and SENDING the salt shaker tumbling (result)"
+- If something breaks, flies, or moves — NAME which character's body part caused it and HOW
+
 CRITICAL RULES:
 - Write in PRESENT TENSE, third person
 - Refer to characters by what they ARE (the cat, the animal, the human, the person, the figure) — NOT by name
@@ -32759,6 +32768,7 @@ PROMPT;
                         'prompt' => $prompt,
                         'frameUrl' => $frameUrl,
                         'duration' => $duration,
+                        'intensity' => $this->extendMode['intensity'] ?? 50,
                     ];
                     $shot['videoStatus'] = 'processing';
                     $shot['videoTaskId'] = $result['taskId'];
@@ -32824,12 +32834,14 @@ PROMPT;
         $extensionDuration = $this->getVideoDuration($localExtensionUrl) ?? $extensionRequestedDuration;
 
         // Add the new extension segment
+        $extensionIntensity = $jobMeta['intensity'] ?? $this->extendMode['intensity'] ?? 50;
         $segments[] = [
             'videoUrl' => $localExtensionUrl,
             'duration' => $extensionDuration,
             'thumbnailUrl' => $extensionFrameUrl,
             'prompt' => $extensionPrompt,
             'type' => 'extension',
+            'intensity' => $extensionIntensity,
         ];
 
         $shot['segments'] = $segments;
@@ -33068,7 +33080,7 @@ PROMPT;
             'segmentIndex' => $segmentIndex,
             'prompt' => $segment['prompt'] ?? '',
             'duration' => (int) ($segment['duration'] ?? 8),
-            'intensity' => 50,
+            'intensity' => (int) ($segment['intensity'] ?? 50),
             'thumbnailUrl' => $segment['thumbnailUrl'] ?? $shot['imageUrl'] ?? '',
             'type' => $segment['type'] ?? 'original',
             'status' => 'editing',
@@ -33310,6 +33322,7 @@ PROMPT;
         $segments[$segmentIndex]['videoUrl'] = $localUrl;
         $segments[$segmentIndex]['duration'] = $newDuration;
         $segments[$segmentIndex]['prompt'] = $this->segmentEditMode['prompt'] ?? $segments[$segmentIndex]['prompt'];
+        $segments[$segmentIndex]['intensity'] = $this->segmentEditMode['intensity'] ?? $segments[$segmentIndex]['intensity'] ?? 50;
         $shot['segments'] = $segments;
 
         // Re-concatenate all segments
