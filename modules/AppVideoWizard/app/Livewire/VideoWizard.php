@@ -33081,15 +33081,14 @@ ABSOLUTELY BANNED:
 - No clothing descriptions EVER (no "pink polo shirt", "green jacket", "gray hoodie", "ripped clothes")
 - No dialogue or speech in continuations
 - No slow builds or setup — start mid-action
-- No camera descriptions except the one line at the end
+- No camera movement descriptions (camera is controlled separately by the API)
 - No passive voice, no weak verbs
 - No semicolons
 - No describing what anyone is wearing at any point
+- No background music references or mentions of music playing (audio is controlled separately)
 
-CAMERA — one line at the end:
-"Chaotic handheld camera shakes throughout, quick whip-pans tracking the assault."
-
-STYLE ANCHOR — end with: "Cinematic, photorealistic."
+STYLE ANCHOR — end with: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+Do NOT add any camera lines. Do NOT mention background music. Just end with the style anchor above.
 
 EXAMPLE — GOOD CONTINUATION PROMPT (~170 words):
 "The furious orange tabby cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man. Razor claws scrape wildly across the man's face with large amplitude as the man jerks his head back gasping in shock. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the stack which crashes loudly to the floor. The cat's rigid tail whips violently, snapping against a metal container, sending items clattering loudly across the counter. The cat suddenly leaps fast to the floor, lands sharply, and sprints wildly at high speed straight out the door, still screaming. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
@@ -33135,11 +33134,14 @@ PROMPT;
         $shotIndex = $this->extendMode['shotIndex'];
         $timestamp = $this->extendMode['timestamp'];
         $frameUrl = $this->extendMode['frameUrl'] ?? null;
-        $prompt = $this->extendMode['continuationPrompt'] ?? '';
+        $rawPrompt = $this->extendMode['continuationPrompt'] ?? '';
         $duration = $this->extendMode['duration'] ?? 8;
 
         $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
         if (!$shot || !$frameUrl) return;
+
+        // Route through assembleSeedancePrompt so background music + chaos camera get injected
+        $prompt = $this->assembleSeedancePrompt($rawPrompt, $shot);
 
         $segments = $shot['segments'] ?? [];
         $projectId = $this->projectId ?? 0;
@@ -33671,12 +33673,15 @@ PROMPT;
         $sceneIndex = $this->segmentEditMode['sceneIndex'];
         $shotIndex = $this->segmentEditMode['shotIndex'];
         $segmentIndex = $this->segmentEditMode['segmentIndex'];
-        $prompt = $this->segmentEditMode['prompt'] ?? '';
+        $rawPrompt = $this->segmentEditMode['prompt'] ?? '';
         $duration = $this->segmentEditMode['duration'] ?? 8;
         $frameUrl = $this->segmentEditMode['thumbnailUrl'] ?? '';
 
         $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
         if (!$shot || empty($shot['segments'][$segmentIndex]) || !$frameUrl) return;
+
+        // Route through assembleSeedancePrompt so background music + chaos camera get injected
+        $prompt = $this->assembleSeedancePrompt($rawPrompt, $shot);
 
         $this->segmentEditMode['status'] = 'generating';
         $shot['videoStatus'] = 'generating';
