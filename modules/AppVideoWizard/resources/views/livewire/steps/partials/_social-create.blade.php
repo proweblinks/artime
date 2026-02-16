@@ -1221,9 +1221,18 @@
                                 </span>
                             </button>
                         @else
-                            <span class="vw-social-upscaled-badge">
-                                <i class="fa-solid fa-check"></i> {{ __('Upscaled') }}
-                            </span>
+                            <button class="vw-social-action-btn upscale"
+                                    wire:click="upscaleShotImage(0, 0)"
+                                    wire:loading.attr="disabled"
+                                    wire:target="upscaleShotImage"
+                                    title="{{ __('Re-upscale image with Clarity Upscaler') }}">
+                                <span wire:loading.remove wire:target="upscaleShotImage">
+                                    <i class="fa-solid fa-check"></i> {{ __('Upscaled') }} — <i class="fa-solid fa-arrow-rotate-right"></i> {{ __('Redo') }}
+                                </span>
+                                <span wire:loading wire:target="upscaleShotImage">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Upscaling...') }}
+                                </span>
+                            </button>
                         @endif
                     </div>
                 @else

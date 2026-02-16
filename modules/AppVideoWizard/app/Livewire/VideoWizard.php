@@ -36178,10 +36178,8 @@ PROMPT;
             return;
         }
 
-        if (!empty($shot['upscaled'])) {
-            $this->error = __('Image is already upscaled');
-            return;
-        }
+        // Allow re-upscaling — reset flag
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['upscaled'] = false;
 
         $this->isUpscaling = true;
         $this->error = null;
