@@ -201,15 +201,17 @@
     .vw-platform-step .vw-subtype-card {
         background: rgba(0, 0, 0, 0.03);
         border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 0.5rem;
-        padding: 0.75rem;
+        border-radius: 0.75rem;
+        padding: 1rem;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-align: center;
     }
 
     .vw-platform-step .vw-subtype-card:hover {
-        background: rgba(0, 0, 0, 0.06);
+        background: rgba(139, 92, 246, 0.06);
         border-color: rgba(139, 92, 246, 0.3);
+        transform: translateY(-1px);
     }
 
     .vw-platform-step .vw-subtype-card.selected {
@@ -219,17 +221,24 @@
 
     .vw-platform-step .vw-subtype-header {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
 
     .vw-platform-step .vw-subtype-icon {
-        font-size: 1.1rem;
+        font-size: 1.5rem;
+        color: rgba(0, 0, 0, 0.5);
+        margin-bottom: 0.15rem;
+    }
+
+    .vw-platform-step .vw-subtype-card.selected .vw-subtype-icon {
+        color: #8b5cf6;
     }
 
     .vw-platform-step .vw-subtype-name {
         font-size: 0.85rem;
-        font-weight: 500;
+        font-weight: 600;
         color: rgba(0, 0, 0, 0.7);
     }
 
@@ -238,10 +247,10 @@
     }
 
     .vw-platform-step .vw-subtype-desc {
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         color: rgba(0, 0, 0, 0.4);
-        margin-top: 0.25rem;
-        margin-left: 1.6rem;
+        margin-top: 0.35rem;
+        line-height: 1.3;
     }
 
     /* Divider */
@@ -255,9 +264,14 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.875rem;
+        font-size: 0.9rem;
+        font-weight: 500;
         color: rgba(0, 0, 0, 0.6);
         margin-bottom: 1rem;
+    }
+    .vw-platform-step .vw-subtype-label i {
+        color: #8b5cf6;
+        font-size: 1rem;
     }
 
     /* Production Settings - Modern 3-Column Layout */
@@ -739,7 +753,7 @@
         @if($productionType && isset($productionTypes[$productionType]['subTypes']))
             <div class="vw-divider">
                 <div class="vw-subtype-label">
-                    <span>{{ $productionTypes[$productionType]['icon'] ?? '🎬' }}</span>
+                    <i class="{{ $productionTypes[$productionType]['icon'] ?? 'fa-solid fa-clapperboard' }}"></i>
                     <span>{{ __('Select :name Style:', ['name' => $productionTypes[$productionType]['name']]) }}</span>
                 </div>
 
@@ -749,7 +763,7 @@
                              class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}"
                              style="cursor: pointer;">
                             <div class="vw-subtype-header">
-                                <span class="vw-subtype-icon">{{ $subType['icon'] ?? '🎯' }}</span>
+                                <span class="vw-subtype-icon"><i class="{{ $subType['icon'] ?? 'fa-solid fa-circle' }}"></i></span>
                                 <span class="vw-subtype-name">{{ $subType['name'] }}</span>
                             </div>
                             <div class="vw-subtype-desc">{{ $subType['description'] ?? '' }}</div>
