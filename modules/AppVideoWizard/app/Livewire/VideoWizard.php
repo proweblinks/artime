@@ -32428,7 +32428,12 @@ PROMPT;
 
             // Generate AI continuation prompt using Gemini Vision
             $originalPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
-            $continuationPrompt = $this->generateContinuationPrompt($frameUrl, $originalPrompt, $timestamp);
+            $segments = $shot['segments'] ?? [];
+            $sceneData = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? [];
+            $continuationPrompt = $this->generateContinuationPrompt($frameUrl, $originalPrompt, $timestamp, [
+                'takeNumber' => count($segments), // Current segment count = take number (1=original, so next = 2)
+                'sceneDescription' => $sceneData['description'] ?? $shot['description'] ?? '',
+            ]);
 
             $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
             $this->saveProject();
@@ -32441,9 +32446,13 @@ PROMPT;
     }
 
     /**
-     * Generate an AI continuation prompt by analyzing the extracted frame.
+     * Generate a Hollywood-quality AI continuation prompt by analyzing the extracted frame.
+     * Follows the same Seedance prompt structure as getMotionDescriptionForShot():
+     * Subject Action + Camera Movement + Emotional/Body Language + Atmospheric Motion
+     *
+     * Each successive take ESCALATES intensity dramatically.
      */
-    protected function generateContinuationPrompt(string $frameUrl, string $originalPrompt, float $timestamp): string
+    protected function generateContinuationPrompt(string $frameUrl, string $originalPrompt, float $timestamp, array $context = []): string
     {
         try {
             $imageContent = @file_get_contents($frameUrl);
@@ -32455,11 +32464,77 @@ PROMPT;
             $base64 = base64_encode($imageContent);
             $mimeType = 'image/png';
 
-            $prompt = "This is a frame from a short comedy video at second " . number_format($timestamp, 1) . ". "
-                . "The original premise: {$originalPrompt}\n\n"
-                . "Describe what happens NEXT in 80-100 words. Focus on dramatic physical actions — characters leaping, smashing, throwing things, extreme reactions. "
-                . "The continuation must be MORE intense and chaotic than what came before. "
-                . "Write in present tense, action-focused. Do NOT describe character appearances.";
+            $takeNumber = ($context['takeNumber'] ?? 1) + 1; // This will be take 2, 3, 4...
+            $sceneDescription = $context['sceneDescription'] ?? '';
+
+            // Escalation intensity based on take number
+            $escalation = match(true) {
+                $takeNumber === 2 => [
+                    'level' => 'DRAMATIC ESCALATION',
+                    'instruction' => 'The pace and intensity EXPLODE compared to the first take. Everything accelerates violently. Movements become wild and uncontrolled. Reactions are extreme — screaming, flailing, objects flying. The scene erupts into absolute pandemonium.',
+                    'verbs' => 'SLAMS, HURLS, CRASHES, SHRIEKS, FLAILS, LUNGES, SMASHES, WHIPS around, ERUPTS, LAUNCHES, SCRAMBLES, THRASHES',
+                    'camera' => 'Camera SHAKES with the chaos, quick whip-pans following the action, dramatic zoom-ins on extreme reactions',
+                ],
+                $takeNumber === 3 => [
+                    'level' => 'PEAK INSANITY',
+                    'instruction' => 'Complete mayhem. The scene has devolved into pure slapstick catastrophe. Characters are in full panic mode — diving, tumbling, things breaking and flying everywhere. Every action is exaggerated to the maximum. The environment itself seems to be falling apart.',
+                    'verbs' => 'DETONATES, CATAPULTS, DEMOLISHES, OBLITERATES, TORPEDOES, BARREL-ROLLS, RICOCHETS, PILE-DRIVES, BODY-SLAMS, KARATE-CHOPS',
+                    'camera' => 'Camera desperately tries to keep up, violent shaking, crash zooms, snap-tilts following flying objects and tumbling characters',
+                ],
+                default => [
+                    'level' => 'APOCALYPTIC MELTDOWN',
+                    'instruction' => 'Beyond all reason. The scene is a full cartoon-physics disaster zone. Characters defy gravity, objects explode on contact, the entire world of the scene is in maximum entropy chaos. Every frame must be packed with simultaneous actions happening at breakneck speed.',
+                    'verbs' => 'ANNIHILATES, VAPORIZES, DETONATES, IMPLODES, GOES NUCLEAR, SHOCKWAVE-BLASTS, MEGA-LAUNCHES, WRECKING-BALLS',
+                    'camera' => 'Camera is out of control — rapid cuts between extreme close-ups of screaming faces and wide shots of total destruction',
+                ],
+            };
+
+            $prompt = <<<PROMPT
+You are writing a VIDEO GENERATION PROMPT for Seedance AI (image-to-video model). This is Take {$takeNumber} — a continuation of an existing video.
+
+ANALYZE THIS FRAME: This is the last frame from the previous take, captured at second {$timestamp}. The video continues EXACTLY from this visual moment.
+
+ORIGINAL SCENE PREMISE:
+{$originalPrompt}
+
+SCENE CONTEXT:
+{$sceneDescription}
+
+INTENSITY LEVEL: {$escalation['level']}
+{$escalation['instruction']}
+
+YOUR TASK: Write a Seedance video prompt (150-250 words) that describes what happens NEXT in the scene, starting from this exact frame. The prompt must follow this EXACT structure:
+
+1. SUBJECT ACTION (most critical — 60% of the prompt):
+   - Use SPECIFIC EXPLOSIVE ACTION VERBS: {$escalation['verbs']}
+   - Describe EVERY physical movement in granular detail: "the cat LAUNCHES off the counter, back arched, claws extended, tail whipping in a full spiral" NOT just "the cat jumps"
+   - Include SOUND implications: "mouth ripped open in a blood-curdling screech", "paws SLAMMING the table so hard dishes rattle and bounce"
+   - Describe SPEED and FORCE: "in a blur of fur", "with bone-rattling impact", "faster than the eye can track"
+   - Multiple simultaneous actions: "WHILE the cat thrashes, cheese chunks FLY in every direction, the plate SPINS off the edge"
+
+2. CAMERA MOVEMENT (15% of the prompt):
+   - {$escalation['camera']}
+   - Use professional terminology: whip-pan, crash zoom, Dutch angle, handheld shake, snap-tilt
+
+3. EMOTIONAL/BODY LANGUAGE (15% of the prompt):
+   - Extreme facial expressions: eyes bulging, mouth agape, whiskers bristled, ears flat
+   - Body tension: muscles coiled, fur standing on end, spine arched
+   - Character reactions to each other: shock, outrage, terror, fury
+
+4. ATMOSPHERIC MOTION (10% of the prompt):
+   - Environmental chaos: objects falling, liquids splashing, dust clouds, papers fluttering
+   - Lighting shifts: dramatic shadows, flashing lights
+   - Background elements reacting to the chaos
+
+CRITICAL RULES:
+- Write in PRESENT TENSE, third person
+- Use "the subject" or character descriptions, NOT names
+- NEVER describe character appearances or what they look like — only ACTIONS and MOVEMENTS
+- Every sentence must contain at least one POWERFUL ACTION VERB
+- NO passive voice. NO "is walking" — use "STORMS", "CHARGES", "BOLTS"
+- The pace must feel FRANTIC — short punchy sentences mixed with breathless run-ons
+- Output ONLY the video prompt text, no headers, no numbering, no explanations
+PROMPT;
 
             $gemini = app(\App\Services\GeminiService::class);
             $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
@@ -32468,7 +32543,13 @@ PROMPT;
             ]);
 
             if ($result['success'] && !empty($result['text'])) {
-                return trim($result['text']);
+                $text = trim($result['text']);
+                // Strip any markdown formatting or headers the AI might add
+                $text = preg_replace('/^#+\s+.*$/m', '', $text);
+                $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
+                $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
+                $text = trim($text);
+                return $text;
             }
 
             \Log::warning('Video Extend: Gemini continuation prompt failed', [
