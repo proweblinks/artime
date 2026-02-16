@@ -708,11 +708,11 @@
                     {{-- Clone Mode Toggle: Upload / Paste URL --}}
                     <div class="vw-clone-toggle">
                         <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'upload' }"
-                                @click="cloneMode = 'upload'">
+                                @click="cloneMode = 'upload'; $wire.set('videoAnalysisError', null)">
                             <i class="fa-solid fa-cloud-arrow-up"></i> {{ __('Upload File') }}
                         </button>
                         <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'url' }"
-                                @click="cloneMode = 'url'">
+                                @click="cloneMode = 'url'; $wire.set('videoAnalysisError', null)">
                             <i class="fa-solid fa-link"></i> {{ __('Paste URL') }}
                         </button>
                     </div>
@@ -753,7 +753,10 @@
                         </div>
 
                         @if(!$conceptVideoUpload && !$videoAnalysisResult)
-                            <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress">
+                            {{-- Explicit display:none needed because wire:loading doesn't initialize
+                                 properly inside x-show/x-cloak containers (Alpine hides the DOM
+                                 before Livewire JS can scan it) --}}
+                            <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress" style="display: none;">
                                 <div class="vw-progress-spinner"></div>
                                 <span>{{ __('Uploading video...') }}</span>
                             </div>
@@ -788,7 +791,7 @@
                                         <i class="fa-solid fa-magnifying-glass-chart"></i>
                                         {{ __('Analyze') }}
                                     </span>
-                                    <span wire:loading wire:target="analyzeVideoFromUrl">
+                                    <span wire:loading wire:target="analyzeVideoFromUrl" style="display: none;">
                                         <span class="vw-loading-inner"></span>
                                     </span>
                                 </button>
