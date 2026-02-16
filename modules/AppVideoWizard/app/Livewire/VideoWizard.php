@@ -3510,6 +3510,7 @@ class VideoWizard extends Component
             'seedanceQuality' => 'pro',
             'seedanceCameraMove' => 'none',
             'seedanceCameraMoveIntensity' => 'moderate',
+            'seedanceBackgroundMusic' => false,
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraFixed' => $isSeedance ? (bool) ($selectedIdea['cameraFixed'] ?? true) : false,
             'cameraMovement' => [
@@ -3569,6 +3570,12 @@ class VideoWizard extends Component
     {
         $prompt = trim($basePrompt);
 
+        // Inject background music instruction if enabled
+        $bgMusic = $shot['seedanceBackgroundMusic'] ?? false;
+        if ($bgMusic) {
+            $prompt .= ' Energetic background music playing throughout.';
+        }
+
         // Inject camera movement instruction
         $cameraMove = $shot['seedanceCameraMove'] ?? 'none';
         $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
@@ -3583,14 +3590,6 @@ class VideoWizard extends Component
         if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
             $prompt .= ' Cinematic, photorealistic.';
         }
-
-        \Log::info('assembleSeedancePrompt', [
-            'cameraMove' => $cameraMove,
-            'intensity' => $intensity,
-            'camera_fixed' => $cameraMove === 'none',
-            'finalPromptLength' => strlen($prompt),
-            'finalPrompt' => $prompt,
-        ]);
 
         return $prompt;
     }

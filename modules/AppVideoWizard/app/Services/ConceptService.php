@@ -334,7 +334,8 @@ You are a viral content specialist who creates massively shareable short-form vi
 
 IMPORTANT: These ideas will be animated using Seedance — an AI model that generates
 video + voice + sound effects ALL FROM A TEXT PROMPT. There is no separate audio recording.
-The model will auto-generate any dialogue, sounds, and music from your description.
+The model auto-generates dialogue, environmental sounds, and sound effects from the prompt.
+Do NOT include background music descriptions in the videoPrompt — only dialogue, sounds, and action.
 
 Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
 - An ANIMAL or quirky CHARACTER in an absurd/funny human situation
@@ -554,59 +555,71 @@ STYLE,
      */
     protected function getChaosPromptModifier(int $chaosLevel, string $chaosDescription = ''): string
     {
+        // Chaos levels aligned with official Seedance degree words:
+        // quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
+        // fast, intense, strong, greatly. "crazy" is the magic word.
         $escalation = match (true) {
             $chaosLevel <= 20 => [
                 'label' => 'CALM & GENTLE',
-                'instruction' => 'Keep scenes CALM and wholesome. The main character performs gentle, deliberate actions — softly tapping, carefully adjusting, quietly reacting. No flying objects, no destruction. The humor comes from subtle expressions and small physical gestures the character does.',
-                'verbs' => 'taps, nudges, adjusts, tilts, peeks, pats, straightens, polishes, arranges, sets down',
-                'causality' => 'The character gently [action] which makes [small result]. Example: "the cat carefully nudges the salt shaker, which tips over and spills a tiny pile of salt"',
+                'degreeWords' => 'Use NO degree words. Actions are slow, gentle, small.',
+                'instruction' => 'Keep scenes CALM and wholesome. The character performs gentle, deliberate actions — nudging, tapping, tilting. No flying objects, no destruction. Humor from subtle expressions and small physical gestures.',
+                'actionDensity' => '1-2 action beats total. Each action is slow and deliberate with a small result.',
+                'chainReactions' => '0-1 chain reactions. Maybe one object tips over gently.',
+                'example' => '"the cat slowly nudges the salt shaker with one paw, it tips over and spills a small pile of salt on the counter"',
             ],
             $chaosLevel <= 45 => [
                 'label' => 'MODERATE ENERGY',
-                'instruction' => 'The main character starts getting physical — grabbing things, tossing objects, making exaggerated gestures. Every object that moves is BECAUSE the character touched it, pushed it, or knocked it. The character\'s increasingly frantic actions cause a small chain reaction.',
-                'verbs' => 'grabs, tosses, shoves, swats, flicks, kicks, yanks, bumps, drops, fumbles',
-                'causality' => 'The character [aggressive action] WHICH CAUSES [object] to [fly/fall/break]. Example: "the cat grabs the cutting board and flips it, sending vegetables scattering across the counter"',
+                'degreeWords' => 'Use 1-2 degree words per beat: "quickly", "fast", "strong".',
+                'instruction' => 'The character gets physical — grabbing, tossing, shoving. Every object moves BECAUSE the character touched it. Actions cause small chain reactions.',
+                'actionDensity' => '3-4 action beats. Each action has a visible consequence.',
+                'chainReactions' => '1-2 chain reactions. Objects fall, liquids spill.',
+                'example' => '"the cat quickly grabs the cutting board and flips it fast, sending vegetables scattering across the counter"',
             ],
             $chaosLevel <= 65 => [
                 'label' => 'HIGH ENERGY',
-                'instruction' => 'The main character is the ENGINE of all chaos. They slam, throw, and smash — and every impact causes objects to fly, surfaces to crack, and bystanders to duck. NOTHING moves unless the character physically causes it. Write the character\'s aggressive action FIRST, then describe what it causes.',
-                'verbs' => 'SLAMS, HURLS, SMASHES, RAMS, LAUNCHES, SWEEPS, KICKS, FLIPS, POUNDS, WRECKS',
-                'causality' => 'The character SLAMS [object] which SENDS [things] flying/crashing. Example: "the cat SLAMS both paws on the counter, SENDING the cash register sliding off the edge and pizza boxes tumbling from the shelf behind"',
+                'degreeWords' => 'Use 2-3 degree words per beat: "powerfully", "violently", "fast", "wildly", "crazy".',
+                'instruction' => 'The character is the ENGINE of chaos. They slam, throw, smash — every impact causes objects to fly and break. Write the character\'s action FIRST, then the destruction it causes.',
+                'actionDensity' => '5-6 action beats. Rapid-fire, each bigger than the last.',
+                'chainReactions' => '2-3 chain reactions. Objects hit other objects that break more things.',
+                'example' => '"the cat\'s front paws slam into the counter powerfully, its body lunges forward fast and violently at the man"',
             ],
             $chaosLevel <= 85 => [
                 'label' => 'PEAK CHAOS',
-                'instruction' => 'The main character is a WRECKING BALL. Every movement they make destroys something. They throw things that hit other things that break more things — but it ALL starts from the character\'s physical actions. The character is grabbing, throwing, kicking, spinning, sweeping everything off surfaces. EACH sentence must start with what the character DOES, then what it CAUSES.',
-                'verbs' => 'DEMOLISHES, PILE-DRIVES, BODY-SLAMS, CATAPULTS, TORPEDOES, KARATE-CHOPS, WRECKING-BALLS, BARREL-ROLLS through, UPPERCUTS, DROPKICKS',
-                'causality' => 'The character DEMOLISHES [thing], CATAPULTING [debris] into [other thing] which EXPLODES into pieces. Example: "the cat LEAPS onto the shelf and BODY-SLAMS it, CATAPULTING every pizza box into the air while the shelf CRASHES into the counter behind"',
+                'degreeWords' => 'Use 3+ degree words per beat. COMBINE them: "fast and violently", "powerfully with large amplitude", "wildly at high frequency". Use "crazy" liberally.',
+                'instruction' => 'The character is a WRECKING BALL. Every movement destroys something. Every limb does something specific and devastating. EACH sentence starts with what the character DOES, then the chain of destruction.',
+                'actionDensity' => '6-8 action beats. Nonstop, overlapping, simultaneous destruction.',
+                'chainReactions' => '3-4 chain reactions. Body hits object → object hits another → both crash loudly.',
+                'example' => '"the cat launches with crazy explosive force onto the man\'s torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly at high frequency against his midsection"',
             ],
             default => [
-                'label' => 'APOCALYPTIC MELTDOWN',
-                'instruction' => 'The main character becomes a FORCE OF NATURE. Every limb is destroying something simultaneously. They\'re spinning, throwing, stomping, and the CHAIN REACTION of their actions levels the entire scene. But remember: the CHARACTER is the source — they physically cause every single piece of destruction. Write it as a rapid sequence of the character\'s actions and their escalating consequences.',
-                'verbs' => 'ANNIHILATES, DETONATES, VAPORIZES, SUPERNOVA-BLASTS, MEGA-LAUNCHES, NUCLEAR-KICKS, TORNADO-SPINS through, METEOR-SLAMS',
-                'causality' => 'The character ANNIHILATES [thing], which TRIGGERS a chain reaction: [consequence 1], [consequence 2], [consequence 3]. Example: "the cat TORNADO-SPINS across the counter, SWEEPING every single item into the air — plates SHATTER against the walls, drinks SPLASH across the ceiling, the cash register LAUNCHES through the window"',
+                'label' => 'MAXIMUM OVERDRIVE',
+                'degreeWords' => 'EVERY action gets MULTIPLE combined degree words. "crazy" on almost everything. "wildly at high frequency", "powerfully with large amplitude", "fast and violently". Go maximum.',
+                'instruction' => 'The character is a FORCE OF NATURE. Every limb destroys something simultaneously. The CHAIN REACTION of their actions levels the entire scene. Write rapid sequences of simultaneous destruction — all traced back to the character\'s body.',
+                'actionDensity' => '8+ action beats. All limbs active simultaneously. No pauses between impacts.',
+                'chainReactions' => '4+ chain reactions. Each destruction triggers the next. The whole environment cascades.',
+                'example' => '"the cat\'s body smashes with crazy intensity into the display, toppling everything with large amplitude, rigid tail whips wildly and violently, sending items clattering fast across the counter as hind legs kick powerfully at high frequency"',
             ],
         };
 
         $parts = [];
         $parts[] = "CHAOS INTENSITY: {$escalation['label']} ({$chaosLevel}/100)";
         $parts[] = '';
-        $parts[] = 'CRITICAL — CHARACTER-DRIVEN CHAOS RULE:';
-        $parts[] = 'ALL chaos MUST be caused by the main character\'s PHYSICAL ACTIONS. The character does something';
-        $parts[] = 'aggressive (slams, throws, kicks, sweeps) and THAT action causes objects to fly, break, and scatter.';
-        $parts[] = 'NEVER write passive chaos like "spaghetti flying wildly" — ALWAYS write CAUSED chaos like';
-        $parts[] = '"the cat SLAMS the table, SENDING spaghetti flying across the room."';
-        $parts[] = 'Every flying object, every broken thing, every splash MUST trace back to a specific character action.';
+        $parts[] = 'CHARACTER-DRIVEN CHAOS RULE:';
+        $parts[] = 'ALL chaos MUST be caused by the character\'s PHYSICAL ACTIONS with specific body parts.';
+        $parts[] = 'NEVER write passive chaos like "spaghetti flying" — ALWAYS write "the cat smashes the bowl powerfully, sending spaghetti flying violently."';
+        $parts[] = 'Every object that moves MUST be hit by a specific body part first.';
+        $parts[] = '';
+        $parts[] = "DEGREE WORDS INTENSITY: {$escalation['degreeWords']}";
+        $parts[] = "ACTION DENSITY: {$escalation['actionDensity']}";
+        $parts[] = "CHAIN REACTIONS: {$escalation['chainReactions']}";
         $parts[] = '';
         $parts[] = $escalation['instruction'];
-        $parts[] = "ACTION VERBS: {$escalation['verbs']}";
-        $parts[] = "CAUSALITY PATTERN: {$escalation['causality']}";
+        $parts[] = "EXAMPLE AT THIS LEVEL: {$escalation['example']}";
 
         if (!empty($chaosDescription)) {
             $parts[] = '';
             $parts[] = "USER'S CHAOS DIRECTION: \"{$chaosDescription}\"";
-            $parts[] = 'Incorporate this specific chaos vision into every idea. The main character\'s physical actions';
-            $parts[] = 'should create exactly this kind of chaos. Shape the scenarios around this direction while';
-            $parts[] = 'maintaining the CHARACTER-DRIVEN causality rule above.';
+            $parts[] = 'Incorporate this specific chaos vision. Shape scenarios around this direction.';
         }
 
         return implode("\n", $parts);

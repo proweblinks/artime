@@ -408,6 +408,46 @@
     }
     .vw-seedance-options-row > div { flex: 1; }
 
+    /* Background Music Toggle */
+    .vw-music-toggle-row {
+        display: flex; align-items: center; gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(20, 20, 40, 0.5);
+        border: 1px solid rgba(100, 100, 140, 0.2);
+        border-radius: 0.5rem;
+    }
+    .vw-music-toggle-label {
+        display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+    }
+    .vw-music-toggle-checkbox {
+        display: none;
+    }
+    .vw-music-toggle-switch {
+        position: relative; width: 34px; height: 18px;
+        background: rgba(100, 100, 140, 0.3);
+        border-radius: 9px; transition: background 0.2s;
+        flex-shrink: 0;
+    }
+    .vw-music-toggle-switch::after {
+        content: ''; position: absolute; top: 2px; left: 2px;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: #94a3b8; transition: all 0.2s;
+    }
+    .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch {
+        background: rgba(139, 92, 246, 0.5);
+    }
+    .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch::after {
+        left: 18px; background: #c4b5fd;
+    }
+    .vw-music-toggle-text {
+        font-size: 0.8rem; font-weight: 600; color: #e2e8f0;
+    }
+    .vw-music-toggle-text i { color: #8b5cf6; margin-right: 0.15rem; }
+    .vw-music-toggle-hint {
+        font-size: 0.7rem; color: #64748b; margin-left: auto;
+    }
+
     /* Camera Movement Picker */
     .vw-camera-section { margin-bottom: 0.75rem; }
     .vw-camera-section > label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; }
@@ -1193,6 +1233,18 @@
                             <option value="fast">{{ __('Fast') }} ({{ __('Cheaper / Quicker') }})</option>
                         </select>
                     </div>
+                </div>
+
+                {{-- Background Music Toggle --}}
+                <div class="vw-music-toggle-row" x-data="{ bgMusic: $wire.entangle('multiShotMode.decomposedScenes.0.shots.0.seedanceBackgroundMusic') }">
+                    <label class="vw-music-toggle-label">
+                        <input type="checkbox" x-model="bgMusic" class="vw-music-toggle-checkbox">
+                        <span class="vw-music-toggle-switch"></span>
+                        <span class="vw-music-toggle-text">
+                            <i class="fa-solid fa-music"></i> {{ __('Background Music') }}
+                        </span>
+                    </label>
+                    <span class="vw-music-toggle-hint">{{ __('Adds energetic music to the generated video') }}</span>
                 </div>
             </div>
             @else
