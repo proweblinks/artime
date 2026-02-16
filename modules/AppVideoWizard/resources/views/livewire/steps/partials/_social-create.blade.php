@@ -587,11 +587,12 @@
     }
     .vw-intensity-regen-btn:hover { color: #f97316; border-color: rgba(249,115,22,0.4); }
 
-    .vw-extend-undo-btn {
+    .vw-extend-undo-btn, .vw-extend-redo-btn {
         font-size: 0.72rem; color: #94a3b8; background: none; border: none; cursor: pointer;
-        padding: 0; transition: color 0.15s;
+        padding: 0; margin-left: 0.5rem; transition: color 0.15s;
     }
     .vw-extend-undo-btn:hover { color: #fca5a5; }
+    .vw-extend-redo-btn:hover { color: #86efac; }
     .vw-extend-cancel-btn {
         background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;
         line-height: 1; padding: 0;
@@ -761,8 +762,16 @@
                     ({{ count($shot['segments']) }} {{ count($shot['segments']) === 1 ? 'segment' : 'segments' }})
                     @if(count($shot['segments']) > 1)
                         <button wire:click="undoLastExtend(0, 0)" class="vw-extend-undo-btn"
-                                wire:loading.attr="disabled">
-                            <i class="fa-solid fa-rotate-left"></i> Undo Last
+                                wire:loading.attr="disabled"
+                                wire:target="undoLastExtend, redoLastExtend">
+                            <i class="fa-solid fa-rotate-left"></i> Undo
+                        </button>
+                    @endif
+                    @if(!empty($shot['undoneSegments']))
+                        <button wire:click="redoLastExtend(0, 0)" class="vw-extend-redo-btn"
+                                wire:loading.attr="disabled"
+                                wire:target="undoLastExtend, redoLastExtend">
+                            <i class="fa-solid fa-rotate-right"></i> Redo
                         </button>
                     @endif
                 </div>

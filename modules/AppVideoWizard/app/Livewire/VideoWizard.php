@@ -33153,6 +33153,9 @@ PROMPT;
         // Update shot segments to only the kept ones
         $shot['segments'] = $keptSegments;
 
+        // Clear redo stack — new extension invalidates undone segments
+        $shot['undoneSegments'] = [];
+
         // Submit extension to Seedance
         $this->extendMode['status'] = 'generating';
         $shot['videoStatus'] = 'generating';
@@ -33787,9 +33790,11 @@ PROMPT;
             return; // Nothing to undo
         }
 
-        // Remove last segment
-        array_pop($segments);
+        // Pop last segment and push it onto the redo stack
+        $removed = array_pop($segments);
         $shot['segments'] = $segments;
+        $shot['undoneSegments'] = $shot['undoneSegments'] ?? [];
+        $shot['undoneSegments'][] = $removed;
 
         if (count($segments) === 1) {
             // Only one segment left — use its video URL directly
@@ -33813,6 +33818,53 @@ PROMPT;
 
         \Log::info('Video Extend: undid last extension', [
             'remainingSegments' => count($segments),
+            'undoneSegments' => count($shot['undoneSegments']),
+        ]);
+
+        $this->saveProject();
+    }
+
+    /**
+     * Redo a previously undone video extension segment.
+     */
+    public function redoLastExtend(int $sceneIndex, int $shotIndex): void
+    {
+        $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+        $undone = $shot['undoneSegments'] ?? [];
+
+        if (empty($undone)) {
+            return; // Nothing to redo
+        }
+
+        // Pop the last undone segment and restore it
+        $restored = array_pop($undone);
+        $shot['undoneSegments'] = $undone;
+        $shot['segments'][] = $restored;
+
+        // Re-concatenate all segments
+        $segments = $shot['segments'];
+        if (count($segments) === 1) {
+            $shot['videoUrl'] = $segments[0]['videoUrl'];
+            $shot['videoStatus'] = 'ready';
+        } else {
+            $videoUrls = array_column($segments, 'videoUrl');
+            $projectId = $this->projectId ?? 0;
+            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+
+            if ($finalUrl) {
+                $shot['videoUrl'] = $finalUrl;
+                $shot['videoStatus'] = 'ready';
+            } else {
+                // Fallback: use the last segment's URL
+                $shot['videoUrl'] = end($segments)['videoUrl'];
+                $shot['videoStatus'] = 'ready';
+                \Log::warning('Video Extend: redo re-concat failed, falling back to last segment');
+            }
+        }
+
+        \Log::info('Video Extend: redid extension', [
+            'totalSegments' => count($shot['segments']),
+            'remainingUndone' => count($shot['undoneSegments']),
         ]);
 
         $this->saveProject();
