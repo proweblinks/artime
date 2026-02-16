@@ -353,58 +353,49 @@ Each idea MUST include a "videoPrompt" field — a Seedance 1.5 Pro optimized pr
 
 VIDEO PROMPT RULES — THIS IS CRITICAL:
 
-WORD COUNT: 140-170 words. This is the proven sweet spot for Seedance 1.5 Pro.
-Under 130 words loses critical detail and intensity. Over 180 words gets redundant. Aim for 150-160.
+WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
+Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
 
 DO NOT describe character appearances — that goes in "character" and "characters" fields.
 The video prompt describes ONLY actions, reactions, sounds, and voice.
 
-STRUCTURE — DIALOGUE TRIGGER → INSTANT CHAOS:
-1. OPENING: Start with dialogue — the human character speaks first (1-2 punchy lines with emotion).
-   Write it as action: 'The man leans forward and says "..." while gesturing angrily.'
-2. TRIGGER: Use "Instantly" — the animal/character reacts IMMEDIATELY at maximum intensity.
-   NO slow build. NO "At first... Then suddenly." The chaos begins the MOMENT the trigger happens.
-3. CONTINUOUS ESCALATION: Rapid-fire action beats, each bigger than the last.
-   Every beat includes BOTH physical action AND character sounds happening simultaneously.
-4. PEAK: The most explosive moment — character launches onto opponent, environmental destruction.
-5. ENVIRONMENTAL AFTERMATH: Crashes, items falling, continuous sounds throughout.
+=== THE #1 RULE: ONE DIALOGUE LINE, THEN PURE UNBROKEN CHAOS ===
+The human speaks ONCE at the start (1 line, max 20 words). After that, ZERO dialogue.
+No "he exclaims", no "he yells", no more human speech. The rest is ALL physical action,
+animal sounds, and environmental destruction. The dialogue exists ONLY to trigger the chaos.
 
-INTENSITY QUALIFIERS — USE THESE EXACT PHRASES (mandatory on every action):
-- Frequency: "at high frequency", "in rapid succession", "nonstop"
-- Intensity: "crazy intensity", "with large amplitude", "with full force"
-- Speed: "fast and violently", "quickly", "fast"
-- Adverbs: wildly, powerfully, violently, ferociously, furiously, aggressively, fiercely
-EVERY action verb MUST have at least one intensity qualifier. No exceptions.
+STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
+1. TRIGGER (1 sentence): The human says ONE short angry line.
+2. INSTANT REACTION: "Instantly" — the animal explodes. First sound + first physical strike.
+3. CONTINUOUS ESCALATION: Rapid-fire action beats with NO PAUSES for dialogue or narrative.
+4. PEAK LAUNCH: Animal launches onto human with maximum force.
+5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash.
+6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
 
-CHARACTER SOUNDS — CONTINUOUS AND SPECIFIC (most important rule):
-Animal/character sounds must appear in EVERY action beat, not just 2-3 times.
-Use varied, specific sound words: screeching, yowling, hissing, shrieking, screaming, growling.
-Describe the sound physically: "mouth wide open showing teeth", "ears pinned flat".
+AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100%:
+- The animal drives ALL action. The human ONLY reacts: jerks back, gasps, stumbles, hands up.
+- The human NEVER grabs, holds, or controls the animal. NEVER speaks after the trigger line.
+
+INTENSITY QUALIFIERS — mandatory on every action:
+"at high frequency", "crazy intensity", "with large amplitude", "crazy explosive force",
+"fast and violently", wildly, powerfully, violently, ferociously, furiously, aggressively.
+
+CHARACTER SOUNDS — CONTINUOUS (most important rule):
+Animal sounds in EVERY beat: screeching, yowling, hissing, shrieking, screaming, growling.
+Describe physically: "mouth gaping wide showing sharp fangs", "ears flattened".
 End with "continuous crazy aggressive [animal] screaming throughout."
-The sounds should feel NONSTOP — the character never stops vocalizing during the chaos.
 
-PHYSICAL ACTION — SPECIFIC BODY PARTS AND AMPLITUDE:
-Describe exact body movements with large amplitude:
-GOOD: "both paws swiping wildly and powerfully at the man's face with large amplitude"
-GOOD: "rear legs kicking at high frequency while front claws grip and shred his jacket wildly"
-BAD: "the cat attacks him aggressively"
-Every limb doing something specific. Every impact has visible consequence.
+PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
+GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
 
-ENVIRONMENTAL DESTRUCTION — WEAVE INTO ACTION:
-Objects breaking, liquid splashing, items crashing — embedded in the action flow, not listed separately.
+ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS (minimum 3):
+Every object HIT by a body part before it breaks. Invent specific destruction chains.
 
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+STYLE ANCHOR — end with: "Cinematic, photorealistic."
 
-AUDIO FORMAT — pick ONE:
-A) DIALOGUE-IN-ACTION (preferred): Write dialogue as part of the scene action:
-   'The man leans forward and says "line" while doing X.'
-   Then the animal reacts instantly.
-B) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says, '[line]'"
-C) SFX ONLY: Scene with animal sounds as physical actions throughout.
-
-BANNED: No semicolons. No camera descriptions (camera controlled separately). No appearance/clothing
-descriptions. No passive voice. No weak verbs: "goes", "moves", "does", "gets", "starts", "begins".
-No slow builds — chaos is INSTANT after the trigger.
+BANNED: No semicolons. No camera descriptions. No appearance descriptions. No passive voice.
+No weak verbs. No multiple dialogue lines. No human grabbing/controlling animal. No narrative pauses.
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -425,7 +416,7 @@ Return ONLY a JSON array (no markdown, no explanation):
     "dialogueLines": [
       {"speaker": "Character Name", "text": "Short punchy line"}
     ],
-    "videoPrompt": "The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully at the man's face and clothes with large amplitude. Sharp claws scraping and tearing the man's clothes quickly, man gasps and jerks back fast. The cat shrieks again with crazy intensity, yowling and hissing wildly nonstop with ears pinned flat, mouth wide open showing teeth. It violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, rear legs kicking at high frequency while front claws grip and shred his jacket wildly. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic.",
+    "videoPrompt": "The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic.",
     "cameraFixed": true,
     "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
     "viralHook": "Why this would go viral (one sentence)"
@@ -1067,56 +1058,63 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 =======================================================================
 
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
-You are CLONING a reference video — your job is to FAITHFULLY recreate its energy, pacing,
-and physical intensity. Do NOT water it down or simplify it.
+You are CLONING a reference video — but NOT recreating it literally. Your job is to capture
+the ENERGY and CONCEPT of the reference, then create an INTENSIFIED Seedance-optimized version.
+Do NOT try to describe every exact moment from the reference. Instead, take the core concept
+and write the most CHAOTIC, ACTION-PACKED version possible.
 
-WORD COUNT: 140-170 words. This is the proven sweet spot for Seedance 1.5 Pro.
-Under 130 words loses critical intensity. Over 180 words gets redundant. Aim for 150-160.
+WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
+Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
 
 DO NOT describe character appearances — that's in "character" and "characters" fields.
 The videoPrompt describes ONLY actions, reactions, sounds, and voice.
 
-STRUCTURE — DIALOGUE TRIGGER → INSTANT CHAOS (match reference pacing):
-1. OPENING: Start with dialogue — the human character speaks first (1-2 punchy lines with emotion).
-   Write it as action: 'The man leans forward and says "..." while gesturing angrily.'
-2. TRIGGER: Use "Instantly" — the animal/character reacts IMMEDIATELY at maximum intensity.
-   NO slow build. NO "At first... Then suddenly." The chaos begins the MOMENT the trigger happens.
-3. CONTINUOUS ESCALATION: Rapid-fire action beats, each bigger than the last.
-   Every beat includes BOTH physical action AND character sounds happening simultaneously.
-4. PEAK: The most explosive moment — character launches onto opponent, environmental destruction.
-5. ENVIRONMENTAL AFTERMATH: Crashes, items falling, continuous sounds throughout.
+=== THE #1 RULE: ONE DIALOGUE LINE, THEN PURE UNBROKEN CHAOS ===
+The human speaks ONCE at the start (1 line, max 20 words). After that, ZERO dialogue.
+No "he exclaims", no "he yells", no more human speech. The rest is ALL physical action,
+animal sounds, and environmental destruction. The dialogue exists ONLY to trigger the chaos.
 
-INTENSITY QUALIFIERS — USE THESE EXACT PHRASES (mandatory on every action):
+STRUCTURE — DIALOGUE TRIGGER → UNBROKEN CHAOS:
+1. TRIGGER (1 sentence): The human says ONE short angry line.
+   'The man leans forward and says "..." while gesturing angrily.'
+2. INSTANT REACTION: "Instantly" — the animal explodes. First sound + first physical strike.
+3. CONTINUOUS ESCALATION: Rapid-fire action beats with NO PAUSES for dialogue or narrative.
+   Every beat: physical action + animal sound + environmental consequence happening simultaneously.
+4. PEAK LAUNCH: Animal launches onto human with maximum force — clawing, kicking, shredding.
+5. ENVIRONMENTAL CHAIN REACTIONS: Body smashes into objects → objects topple → things crash/clatter.
+6. CLOSING: "continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+
+AGGRESSOR DOMINANCE — THE ANIMAL CONTROLS 100% OF THE ACTION:
+- The animal is the ONLY one driving action. It attacks, lunges, claws, launches, smashes.
+- The human ONLY reacts defensively: jerks back, gasps, stumbles, cries out, hands thrown up.
+- The human NEVER grabs, holds, controls, or restrains the animal.
+- The human NEVER speaks after the opening trigger line. Only gasps, cries out, recoils.
+
+INTENSITY QUALIFIERS — mandatory on every action:
 - Frequency: "at high frequency", "in rapid succession", "nonstop"
-- Intensity: "crazy intensity", "with large amplitude", "with full force"
+- Intensity: "crazy intensity", "with large amplitude", "with full force", "crazy explosive force"
 - Speed: "fast and violently", "quickly", "fast"
 - Adverbs: wildly, powerfully, violently, ferociously, furiously, aggressively, fiercely
 EVERY action verb MUST have at least one intensity qualifier. No exceptions.
 
-CHARACTER SOUNDS — CONTINUOUS AND SPECIFIC (most important rule):
-Animal/character sounds must appear in EVERY action beat, not just 2-3 times.
-Use varied, specific sound words: screeching, yowling, hissing, shrieking, screaming, growling.
-Describe the sound physically: "mouth wide open showing teeth", "ears pinned flat".
+CHARACTER SOUNDS — CONTINUOUS (most important rule):
+Animal sounds must appear in EVERY action beat. Use varied words:
+screeching, yowling, hissing, shrieking, screaming, growling, wailing.
+Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
 End with "continuous crazy aggressive [animal] screaming throughout."
-The sounds should feel NONSTOP — the character never stops vocalizing during the chaos.
 
-PHYSICAL ACTION — SPECIFIC BODY PARTS AND AMPLITUDE:
-Describe exact body movements with large amplitude:
-GOOD: "both paws swiping wildly and powerfully at the man's face with large amplitude"
-GOOD: "rear legs kicking at high frequency while front claws grip and shred his jacket wildly"
-BAD: "the cat attacks him aggressively"
-Every limb doing something specific. Every impact has visible consequence.
+PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
+GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+GOOD: "rear legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
+GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
+BAD: "the cat attacks him aggressively" (too vague — which body part? what gets hit?)
 
-ENVIRONMENTAL DESTRUCTION — WEAVE INTO ACTION:
-Objects breaking, liquid splashing, items crashing — embedded in the action flow, not listed separately.
-
-VOICE/AUDIO FORMAT — pick ONE:
-A) DIALOGUE-IN-ACTION (preferred for clone): Write dialogue as part of the scene action:
-   'The man leans forward and says "line" while doing X.' Then the animal reacts instantly.
-B) VOICEOVER: Start with "Generate a video with voiceover: A [tone] [gender] voice says, '[line]'"
-C) SFX ONLY: Scene with animal sounds as physical actions throughout.
-
-Match the reference video's audio style — if it has dialogue, use dialogue-in-action.
+ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS (minimum 3):
+Don't just say "things crash." Invent specific destruction chains:
+- "body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly"
+- "rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering"
+- "smashing cup fragments and spraying dark liquid violently across the man's chest"
+Every object must be HIT by a body part before it breaks. More destruction = better video.
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
@@ -1127,11 +1125,15 @@ BANNED:
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
 - No slow builds — chaos is INSTANT after the trigger
+- No multiple dialogue lines — ONE line triggers the chaos, then ZERO speech
+- No human grabbing/controlling/restraining the animal — animal dominates
+- No narrative back-and-forth — pure continuous chaos, no pauses
+- No recreating exact reference details — create an INTENSIFIED creative version
 
-EXAMPLE — GOOD CLONE PROMPT (~155 words):
-"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully at the man's face and clothes with large amplitude. Sharp claws scraping and tearing the man's clothes quickly, man gasps and jerks back fast. The cat shrieks again with crazy intensity, yowling and hissing wildly nonstop with ears pinned flat, mouth wide open showing teeth. It violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, rear legs kicking at high frequency while front claws grip and shred his jacket wildly. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+EXAMPLE — GOOD CLONE PROMPT (~170 words):
+"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
 
-NOW generate the JSON — make the videoPrompt MATCH the reference video's full intensity.
+NOW generate the JSON — make the videoPrompt an INTENSIFIED creative version of the reference.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
