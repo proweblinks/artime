@@ -443,10 +443,14 @@
     .vw-timeline-segment.selected { outline: 2px solid #f97316; outline-offset: -2px; filter: brightness(1.4); }
     .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vw-seg-duration { flex-shrink: 0; margin-left: 0.25rem; opacity: 0.7; }
-    .vw-timeline-tooltip {
+    .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]) { position: relative; }
+    .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]):hover::after {
+        content: attr(data-tooltip);
+        position: absolute; top: 100%; left: 0; z-index: 10;
         background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.15);
         border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
         font-size: 0.7rem; color: #94a3b8; pointer-events: none;
+        white-space: normal; width: max-content; max-width: 300px;
     }
     .vw-timeline-total {
         font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem; text-align: right;
@@ -663,7 +667,7 @@
             {{-- Visual Timeline Bar — below the video, full panel width --}}
             @if(!empty($shot['segments']) && count($shot['segments']) > 0 && ($videoStatus === 'ready' || ($shot['videoJobType'] ?? '') === 'segment_regen'))
             @php $selectedSegIdx = $segmentEditMode['segmentIndex'] ?? -1; @endphp
-            <div class="vw-timeline" x-data="{ hoveredSegment: null }">
+            <div class="vw-timeline">
                 <div class="vw-timeline-bar">
                     @php
                         $totalDuration = array_sum(array_column($shot['segments'], 'duration'));
@@ -674,24 +678,19 @@
                             $widthPct = ($segment['duration'] / max($totalDuration, 0.1)) * 100;
                             $startTime = $cumulative;
                             $cumulative += $segment['duration'];
+                            $segPromptPreview = mb_substr($segment['prompt'] ?? '', 0, 100);
+                            if (mb_strlen($segment['prompt'] ?? '') > 100) $segPromptPreview .= '...';
                         @endphp
                         <div class="vw-timeline-segment {{ $segment['type'] ?? 'original' }} {{ $selectedSegIdx === $segIdx ? 'selected' : '' }}"
                              style="width: {{ number_format($widthPct, 1) }}%"
                              @click="let v = document.querySelector('.vw-extend-player-wrap video'); if (v) v.currentTime = {{ $startTime }}; $wire.selectSegment(0, 0, {{ $segIdx }})"
-                             @mouseenter="hoveredSegment = {{ $segIdx }}"
-                             @mouseleave="hoveredSegment = null">
+                             data-tooltip="{{ $segPromptPreview ? 'Prompt: ' . $segPromptPreview : '' }}">
                             <span class="vw-seg-label">
                                 {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
                             </span>
                             <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
                         </div>
                     @endforeach
-                </div>
-
-                {{-- Segment info tooltip on hover --}}
-                @php $segPrompts = json_encode(array_column($shot['segments'], 'prompt')); @endphp
-                <div class="vw-timeline-tooltip" x-show="hoveredSegment !== null" x-cloak>
-                    <small x-text="hoveredSegment !== null ? 'Prompt: ' + ({{ $segPrompts }}[hoveredSegment] || '').substring(0, 100) + '...' : ''"></small>
                 </div>
 
                 {{-- Total duration + undo --}}

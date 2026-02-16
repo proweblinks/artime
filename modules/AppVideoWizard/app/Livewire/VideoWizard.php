@@ -8766,7 +8766,7 @@ PROMPT;
                                 'shotIndex' => $shotIndex,
                                 'extensionUrl' => substr($finalVideoUrl, 0, 100),
                             ]);
-                            $this->assembleExtendedVideo($sceneIndex, $shotIndex, $finalVideoUrl);
+                            $this->assembleExtendedVideo($sceneIndex, $shotIndex, $finalVideoUrl, $job);
                             unset($this->pendingJobs[$jobKey]);
                             $hasUpdates = true;
                         } elseif ($jobType === 'segment_regen') {
@@ -32756,6 +32756,9 @@ PROMPT;
                         'shotIndex' => $shotIndex,
                         'provider' => $result['provider'] ?? 'wavespeed',
                         'endpointId' => null,
+                        'prompt' => $prompt,
+                        'frameUrl' => $frameUrl,
+                        'duration' => $duration,
                     ];
                     $shot['videoStatus'] = 'processing';
                     $shot['videoTaskId'] = $result['taskId'];
@@ -32793,11 +32796,16 @@ PROMPT;
      * Assemble the extended video after the continuation clip is ready.
      * Concatenates all kept segments + the new extension into the final video.
      */
-    protected function assembleExtendedVideo(int $sceneIndex, int $shotIndex, string $extensionVideoUrl): void
+    protected function assembleExtendedVideo(int $sceneIndex, int $shotIndex, string $extensionVideoUrl, array $jobMeta = []): void
     {
         $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
         $segments = $shot['segments'] ?? [];
         $projectId = $this->projectId ?? 0;
+
+        // Read prompt/frame from job metadata (reliable) with extendMode as fallback
+        $extensionPrompt = $jobMeta['prompt'] ?? $this->extendMode['continuationPrompt'] ?? '';
+        $extensionFrameUrl = $jobMeta['frameUrl'] ?? $this->extendMode['frameUrl'] ?? '';
+        $extensionRequestedDuration = $jobMeta['duration'] ?? $this->extendMode['duration'] ?? 8;
 
         // Download the extension video to local storage (CloudFront URLs expire)
         $localExtensionUrl = $this->downloadVideoToLocal($extensionVideoUrl, $projectId, 'extend');
@@ -32813,14 +32821,14 @@ PROMPT;
         }
 
         // Get the extension video's duration via ffprobe
-        $extensionDuration = $this->getVideoDuration($localExtensionUrl) ?? ($this->extendMode['duration'] ?? 8);
+        $extensionDuration = $this->getVideoDuration($localExtensionUrl) ?? $extensionRequestedDuration;
 
         // Add the new extension segment
         $segments[] = [
             'videoUrl' => $localExtensionUrl,
             'duration' => $extensionDuration,
-            'thumbnailUrl' => $this->extendMode['frameUrl'] ?? '',
-            'prompt' => $this->extendMode['continuationPrompt'] ?? '',
+            'thumbnailUrl' => $extensionFrameUrl,
+            'prompt' => $extensionPrompt,
             'type' => 'extension',
         ];
 
