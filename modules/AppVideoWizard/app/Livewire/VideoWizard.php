@@ -3507,7 +3507,7 @@ class VideoWizard extends Component
             'faceOrder' => $charactersInShot, // Default to Character Bible order; updated by Gemini Vision after image generation
             'needsLipSync' => !$isSeedance,
             'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
-            'selectedResolution' => $isSeedance ? '720p' : '720p',
+            'selectedResolution' => $isSeedance ? '1080p' : '720p',
             'seedanceQuality' => 'pro',
             'seedanceCameraMove' => 'none',
             'seedanceCameraMoveIntensity' => 'moderate',
@@ -32064,6 +32064,7 @@ PROMPT;
                             'aspect_ratio' => $this->aspectRatio,
                             'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                             'variant' => $shot['seedanceQuality'] ?? 'pro',
+                            'end_image_url' => $shot['imageUrl'], // Bookend: same face at start and end
                         ]);
 
                         if ($result['success'] && isset($result['taskId'])) {

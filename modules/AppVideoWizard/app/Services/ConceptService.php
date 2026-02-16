@@ -705,7 +705,13 @@ ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS:
 Don't just say "things crash." Invent specific destruction chains:
 Every object must be HIT by a body part before it breaks. More destruction = better video.
 
-FACE CONSISTENCY — Seedance morphs faces when given direct facial descriptions:
+FACE & IDENTITY PRESERVATION — Critical for character consistency:
+- Add this constraint phrase near the START of the prompt:
+  "Maintain face and clothing consistency, no distortion, high detail."
+- Add this constraint phrase near character introductions:
+  "Character face stable without deformation, normal human structure, natural and smooth movements."
+- Include 3-6 identity anchors per character: hair color/style, skin tone, distinctive accessories.
+  Example: "dark curly-haired woman with warm brown skin and gold hoop earrings"
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
 - Instead, convey emotion through BODY LANGUAGE and ACTIONS:
   WRONG: "her face shows shock, eyes widening, mouth dropping open"
@@ -715,6 +721,8 @@ FACE CONSISTENCY — Seedance morphs faces when given direct facial descriptions
 - Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
 - You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells", "cat's mouth gapes in a crazy yowl") — these are actions, not appearance descriptions.
 - Keep the FACE STABLE by letting the body do the emotional acting.
+- AVOID: rapid lighting changes, complex multi-person fighting/hugging, exaggerated descriptions.
+- PREFER: composition/framing first, then character details, then motion, then mood/style.
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 

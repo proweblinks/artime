@@ -50,11 +50,16 @@ class WaveSpeedService
             'prompt' => $prompt,
             'aspect_ratio' => $options['aspect_ratio'] ?? '9:16',
             'duration' => $options['duration'] ?? 8,
-            'resolution' => $options['resolution'] ?? '720p',
+            'resolution' => $options['resolution'] ?? '1080p',
             'generate_audio' => $options['generate_audio'] ?? true,
             'camera_fixed' => $options['camera_fixed'] ?? false,
             'seed' => $options['seed'] ?? -1,
         ];
+
+        // Bookend face identity: end on the same image to constrain face drift
+        if (!empty($options['end_image_url'])) {
+            $payload['end_image_url'] = $options['end_image_url'];
+        }
 
         // Determine endpoint variant: 'pro' (quality) or 'fast' (speed/cost)
         $variant = $options['variant'] ?? 'pro';
