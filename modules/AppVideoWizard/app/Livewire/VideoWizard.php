@@ -32425,6 +32425,7 @@ PROMPT;
             'frameUrl' => null,
             'continuationPrompt' => '',
             'duration' => 8,
+            'intensity' => 50,
             'status' => 'extracting',
         ];
         $this->saveProject();
@@ -32474,6 +32475,7 @@ PROMPT;
                 'concept' => $concept,
                 'characters' => $characterDescriptions,
                 'narration' => $narration,
+                'intensity' => $this->extendMode['intensity'] ?? 50,
             ]);
 
             $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
@@ -32509,20 +32511,36 @@ PROMPT;
             $sceneDescription = $context['sceneDescription'] ?? '';
             $concept = $context['concept'] ?? '';
             $narration = $context['narration'] ?? '';
+            $intensity = (int) ($context['intensity'] ?? 50);
             $characterDescriptions = $context['characters'] ?? [];
             $characterBlock = !empty($characterDescriptions)
                 ? "CHARACTERS IN THIS SCENE:\n" . implode("\n", array_map(fn($c) => "- {$c}", $characterDescriptions))
                 : '';
 
-            // Escalation intensity based on take number
+            // Escalation intensity driven by the user's chaos slider (0-100%)
+            // Take number provides a small boost but intensity slider is the primary driver
+            $effectiveIntensity = min(100, $intensity + ($takeNumber - 2) * 5);
+
             $escalation = match(true) {
-                $takeNumber === 2 => [
+                $effectiveIntensity <= 20 => [
+                    'level' => 'CALM CONTINUATION',
+                    'instruction' => 'Continue the scene naturally with the SAME energy and pacing. No escalation — just a smooth, organic progression of the moment. Characters maintain their current emotional state. The scene flows forward gently.',
+                    'verbs' => 'steps, turns, glances, reaches, leans, shifts, adjusts, settles, pauses, breathes',
+                    'camera' => 'Steady camera with subtle movement — slow dolly or gentle pan following the natural flow of action',
+                ],
+                $effectiveIntensity <= 45 => [
+                    'level' => 'RISING TENSION',
+                    'instruction' => 'The pace picks up moderately. One unexpected twist or reaction raises the stakes. The AGGRESSOR character becomes noticeably more agitated — faster movements, sharper gestures. The DEFENSIVE character starts to look uneasy, shifting weight, leaning back slightly.',
+                    'verbs' => 'GRABS, SWINGS, SHOVES, SNAPS, JOLTS, FLINGS, STUMBLES, JERKS, WHIRLS, SNATCHES',
+                    'camera' => 'Camera tightens slightly, quicker pans to follow rising action, subtle push-in on key reactions',
+                ],
+                $effectiveIntensity <= 65 => [
                     'level' => 'DRAMATIC ESCALATION',
-                    'instruction' => 'The pace and intensity EXPLODE compared to the first take. Everything accelerates violently. The AGGRESSOR character goes absolutely berserk — wild, unhinged, out of control. The DEFENSIVE character recoils, shields themselves, backs away in shock. The power dynamic between them reaches a breaking point.',
+                    'instruction' => 'The pace and intensity EXPLODE compared to the previous take. Everything accelerates violently. The AGGRESSOR character goes absolutely berserk — wild, unhinged, out of control. The DEFENSIVE character recoils, shields themselves, backs away in shock. The power dynamic between them reaches a breaking point.',
                     'verbs' => 'SLAMS, HURLS, CRASHES, SHRIEKS, FLAILS, LUNGES, SMASHES, WHIPS around, ERUPTS, LAUNCHES, SCRAMBLES, THRASHES',
                     'camera' => 'Camera SHAKES with the chaos, quick whip-pans following the action, dramatic zoom-ins on extreme reactions',
                 ],
-                $takeNumber === 3 => [
+                $effectiveIntensity <= 85 => [
                     'level' => 'PEAK INSANITY',
                     'instruction' => 'Complete mayhem. The AGGRESSOR has completely lost it — shrieking, thrashing, destroying everything in reach. The DEFENSIVE character is in full retreat, ducking, dodging, trying to protect themselves from the onslaught. Objects are flying, surfaces are being clawed/smashed, the environment is being demolished.',
                     'verbs' => 'DETONATES, CATAPULTS, DEMOLISHES, OBLITERATES, TORPEDOES, BARREL-ROLLS, RICOCHETS, PILE-DRIVES, BODY-SLAMS, KARATE-CHOPS',
@@ -32530,7 +32548,7 @@ PROMPT;
                 ],
                 default => [
                     'level' => 'APOCALYPTIC MELTDOWN',
-                    'instruction' => 'Beyond all reason. The AGGRESSOR has transcended normal fury into cartoon-level rage — physics-defying destruction. The DEFENSIVE character is completely overwhelmed, cowering, fleeing. The entire environment is collapsing under the weight of the chaos.',
+                    'instruction' => 'Beyond all reason. The AGGRESSOR has transcended normal fury into cartoon-level rage — physics-defying destruction. The DEFENSIVE character is completely overwhelmed, cowering, fleeing. The entire environment is collapsing under the weight of the chaos. Multiple simultaneous disasters — objects exploding, furniture flipping, walls shaking.',
                     'verbs' => 'ANNIHILATES, VAPORIZES, DETONATES, IMPLODES, GOES NUCLEAR, SHOCKWAVE-BLASTS, MEGA-LAUNCHES, WRECKING-BALLS',
                     'camera' => 'Camera is out of control — rapid cuts between extreme close-ups of screaming faces and wide shots of total destruction',
                 ],
@@ -32929,6 +32947,60 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Regenerate the continuation prompt using the current intensity slider value.
+     * Called when user changes the chaos slider and wants a fresh prompt.
+     */
+    public function regenerateExtendPrompt(): void
+    {
+        if (!$this->extendMode || empty($this->extendMode['frameUrl'])) return;
+
+        $sceneIndex = $this->extendMode['sceneIndex'];
+        $shotIndex = $this->extendMode['shotIndex'];
+        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? null;
+        if (!$shot) return;
+
+        $originalPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
+        $segments = $shot['segments'] ?? [];
+        $sceneData = $this->multiShotMode['decomposedScenes'][$sceneIndex] ?? [];
+
+        $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
+        $characters = $shot['charactersInShot'] ?? [];
+        $scriptScene = $this->script['scenes'][0] ?? [];
+        $narration = $scriptScene['narration'] ?? $scriptScene['description'] ?? '';
+
+        $characterDescriptions = [];
+        foreach ($this->storyBible['characters'] ?? [] as $char) {
+            $name = $char['name'] ?? '';
+            if (in_array($name, $characters)) {
+                $role = $char['role'] ?? '';
+                $personality = $char['personality'] ?? '';
+                $characterDescriptions[] = "{$name}: {$role}. {$personality}";
+            }
+        }
+
+        try {
+            $continuationPrompt = $this->generateContinuationPrompt(
+                $this->extendMode['frameUrl'],
+                $originalPrompt,
+                $this->extendMode['timestamp'],
+                [
+                    'takeNumber' => count($segments),
+                    'sceneDescription' => $sceneData['description'] ?? $shot['description'] ?? '',
+                    'concept' => $concept,
+                    'characters' => $characterDescriptions,
+                    'narration' => $narration,
+                    'intensity' => $this->extendMode['intensity'] ?? 50,
+                ]
+            );
+
+            $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
+            $this->saveProject();
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: regenerateExtendPrompt failed', ['error' => $e->getMessage()]);
+        }
     }
 
     /**

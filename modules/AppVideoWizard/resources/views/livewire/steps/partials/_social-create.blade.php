@@ -469,6 +469,54 @@
         color: #e2e8f0; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
         resize: vertical; font-size: 0.8rem; font-family: inherit;
     }
+    /* Intensity/Chaos slider */
+    .vw-extend-intensity-row {
+        margin-bottom: 0.75rem; padding: 0.6rem 0.7rem;
+        background: rgba(0,0,0,0.2); border-radius: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .vw-intensity-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 0.4rem; font-size: 0.8rem; color: #94a3b8;
+    }
+    .vw-intensity-label {
+        font-weight: 600; font-size: 0.75rem; padding: 0.1rem 0.5rem;
+        border-radius: 1rem; transition: all 0.2s;
+    }
+    .vw-intensity-label.calm { color: #818cf8; background: rgba(99,102,241,0.15); }
+    .vw-intensity-label.rising { color: #fbbf24; background: rgba(251,191,36,0.15); }
+    .vw-intensity-label.intense { color: #fb923c; background: rgba(249,115,22,0.15); }
+    .vw-intensity-label.wild { color: #f87171; background: rgba(248,113,113,0.15); }
+    .vw-intensity-label.chaos { color: #ff4444; background: rgba(239,68,68,0.2); text-shadow: 0 0 6px rgba(239,68,68,0.5); }
+    .vw-intensity-slider-wrap { position: relative; }
+    .vw-intensity-slider {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 6px; border-radius: 3px; outline: none;
+        cursor: pointer;
+    }
+    .vw-intensity-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: #fff; border: 2px solid #f97316;
+        cursor: pointer; box-shadow: 0 0 4px rgba(249,115,22,0.4);
+    }
+    .vw-intensity-slider::-moz-range-thumb {
+        width: 16px; height: 16px; border-radius: 50%;
+        background: #fff; border: 2px solid #f97316;
+        cursor: pointer;
+    }
+    .vw-intensity-ticks {
+        display: flex; justify-content: space-between;
+        font-size: 0.6rem; color: #64748b; margin-top: 0.15rem; padding: 0 2px;
+    }
+    .vw-intensity-regen-btn {
+        margin-top: 0.5rem; font-size: 0.72rem; color: #94a3b8;
+        background: none; border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 1rem; padding: 0.25rem 0.7rem; cursor: pointer;
+        transition: all 0.15s;
+    }
+    .vw-intensity-regen-btn:hover { color: #f97316; border-color: rgba(249,115,22,0.4); }
+
     .vw-extend-undo-btn {
         font-size: 0.72rem; color: #94a3b8; background: none; border: none; cursor: pointer;
         padding: 0; transition: color 0.15s;
@@ -680,6 +728,46 @@
                                 {{ $dur }}s
                             </button>
                         @endforeach
+                    </div>
+
+                    {{-- Chaos/Intensity slider --}}
+                    @php $intensityVal = $extendMode['intensity'] ?? 50; @endphp
+                    <div class="vw-extend-intensity-row" x-data="{ intensity: {{ $intensityVal }} }">
+                        <div class="vw-intensity-header">
+                            <label><i class="fa-solid fa-fire"></i> Chaos</label>
+                            <span class="vw-intensity-label"
+                                  :class="{
+                                      'calm': intensity <= 20,
+                                      'rising': intensity > 20 && intensity <= 45,
+                                      'intense': intensity > 45 && intensity <= 65,
+                                      'wild': intensity > 65 && intensity <= 85,
+                                      'chaos': intensity > 85
+                                  }"
+                                  x-text="intensity <= 20 ? 'Calm' : intensity <= 45 ? 'Rising' : intensity <= 65 ? 'Intense' : intensity <= 85 ? 'Wild' : 'Chaos'">
+                            </span>
+                        </div>
+                        <div class="vw-intensity-slider-wrap">
+                            <input type="range" min="0" max="100" step="5"
+                                   x-model="intensity"
+                                   @change="$wire.set('extendMode.intensity', parseInt(intensity))"
+                                   class="vw-intensity-slider"
+                                   :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                            <div class="vw-intensity-ticks">
+                                <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                            </div>
+                        </div>
+                        <button class="vw-intensity-regen-btn"
+                                wire:click="regenerateExtendPrompt"
+                                wire:loading.attr="disabled"
+                                wire:target="regenerateExtendPrompt"
+                                title="Regenerate prompt with current chaos level">
+                            <span wire:loading.remove wire:target="regenerateExtendPrompt">
+                                <i class="fa-solid fa-arrows-rotate"></i> Regenerate Prompt
+                            </span>
+                            <span wire:loading wire:target="regenerateExtendPrompt">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Generating...
+                            </span>
+                        </button>
                     </div>
 
                     {{-- AI-generated continuation prompt (editable) --}}
