@@ -33002,10 +33002,6 @@ PROMPT;
             $concept = $context['concept'] ?? '';
             $narration = $context['narration'] ?? '';
             $chaosDirection = trim($context['chaosDirection'] ?? '');
-            $characterDescriptions = $context['characters'] ?? [];
-            $characterBlock = !empty($characterDescriptions)
-                ? "CHARACTERS IN THIS SCENE:\n" . implode("\n", array_map(fn($c) => "- {$c}", $characterDescriptions))
-                : '';
 
             $chaosBlock = '';
             if ($chaosDirection !== '') {
@@ -33020,24 +33016,25 @@ PROMPT;
 You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
 
 ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
-Study it carefully — character positions, expressions, what they're wearing, the environment, objects.
+Study it carefully — character positions, body posture, facial expressions, the environment, nearby objects.
 
 ORIGINAL CONCEPT: {$concept}
 NARRATION: {$narration}
-{$characterBlock}
 
 PREVIOUS PROMPT (for continuity): {$originalPrompt}
 {$chaosBlock}
 
 === SEEDANCE CONTINUATION PROMPT RULES ===
 
-WORD COUNT: 180-220 words. This is the proven sweet spot for Seedance continuations.
+WORD COUNT: 150-190 words. Concise and dense with action — no filler.
 
 The continuation starts ALREADY IN THE CHAOS — no setup, no trigger, no dialogue. Pure action from the first word.
 
 STRUCTURE — MID-CHAOS → ESCALATION → PEAK → RESOLUTION:
-1. RE-ESTABLISH: First sentence briefly identifies the main character with their clothing/look from the frame
-   (e.g. "The furious orange tabby cat in a pink polo shirt"). This is needed because extend works from a single frame.
+1. RE-ESTABLISH (one short phrase ONLY): Identify the main character by species/type + emotional state.
+   GOOD: "The furious orange tabby cat" / "The enraged calico cat"
+   BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter"
+   NO clothing, NO outfit, NO accessories, NO colors of clothes. Just animal type + emotion.
 2. CONTINUOUS ESCALATION: Rapid-fire action beats, each bigger than the last.
    Every beat includes BOTH physical action AND character sounds happening simultaneously.
 3. PEAK DESTRUCTION: The most explosive moment — character launches onto opponent, smashes environment.
@@ -33056,7 +33053,7 @@ CHARACTER SOUNDS — CONTINUOUS (most important rule):
 Animal/character sounds must appear in EVERY action beat. Use varied words:
 screeching, yowling, hissing, shrieking, screaming, growling, wailing, crying out.
 Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
-End with "continuous crazy aggressive [animal] screaming throughout."
+End with "Continuous crazy aggressive [animal] screaming throughout."
 The character NEVER stops vocalizing during the chaos.
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
@@ -33070,23 +33067,24 @@ Every limb doing something specific. Every impact has a visible/audible conseque
 ENVIRONMENTAL DESTRUCTION — chain reactions from physical contact:
 Objects must be HIT by a body part before they break/fly:
 "its body smashes into a nearby display, toppling the stack which crashes loudly to the floor"
-"claws scrape wildly across the man's jacket, shredding fabric with an audible rip"
+"claws scrape wildly across the man's skin, leaving red marks as the man jerks his head back"
+
+ABSOLUTELY BANNED:
+- No clothing descriptions EVER (no "pink polo shirt", "green jacket", "gray hoodie", "ripped clothes")
+- No dialogue or speech in continuations
+- No slow builds or setup — start mid-action
+- No camera descriptions except the one line at the end
+- No passive voice, no weak verbs
+- No semicolons
+- No describing what anyone is wearing at any point
 
 CAMERA — one line at the end:
 "Chaotic handheld camera shakes throughout, quick whip-pans tracking the assault."
 
 STYLE ANCHOR — end with: "Cinematic, photorealistic."
 
-BANNED:
-- No dialogue or speech in continuations
-- No slow builds or setup — start mid-action
-- No camera descriptions except the one line at the end
-- No appearance descriptions beyond the opening re-establishment
-- No passive voice, no weak verbs
-- No semicolons
-
-EXAMPLE — GOOD CONTINUATION PROMPT (~200 words):
-"The furious orange tabby cat in a pink polo shirt shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping in shock. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast, feet scrabbling for purchase. The cat launches with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the stack which crashes loudly to the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly. The cat then wildly tears the man's clothes at high frequency with crazy intensity, screaming and yowling nonstop, shredding jacket and shirt powerfully until fabric hangs in strips. The man flails in panic. The cat suddenly leaps fast to the floor, lands sharply, and sprints wildly at high speed straight out the restaurant door. Chaotic handheld camera shakes throughout, quick whip-pans tracking the assault. Cinematic, photorealistic."
+EXAMPLE — GOOD CONTINUATION PROMPT (~170 words):
+"The furious orange tabby cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man. Razor claws scrape wildly across the man's face with large amplitude as the man jerks his head back gasping in shock. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the stack which crashes loudly to the floor. The cat's rigid tail whips violently, snapping against a metal container, sending items clattering loudly across the counter. The cat suddenly leaps fast to the floor, lands sharply, and sprints wildly at high speed straight out the door, still screaming. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
