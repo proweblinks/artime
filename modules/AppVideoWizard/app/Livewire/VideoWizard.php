@@ -32608,24 +32608,25 @@ REQUIRED STRUCTURE:
 
 1. SUBJECT ACTION (most critical — 60% of the prompt):
    - Use SPECIFIC EXPLOSIVE ACTION VERBS: {$escalation['verbs']}
-   - Describe the AGGRESSOR's actions in extreme granular detail: every claw swipe, every screech, every object knocked off surfaces. Their fury is the centerpiece.
-   - Describe the DEFENSIVE character's reactions: flinching, ducking, hands up shielding, stumbling backward, jaw dropping in disbelief
-   - Include SOUND implications: "mouth ripped open in a blood-curdling screech", "paws SLAMMING the table so hard dishes rattle and bounce"
-   - Describe SPEED and FORCE: "in a blur of fur", "with bone-rattling impact", "faster than the eye can track"
-   - Multiple simultaneous actions: "WHILE the cat thrashes, cheese chunks FLY in every direction AND the human STUMBLES backward, arms flailing for balance"
+   - Describe the AGGRESSOR's PHYSICAL actions in extreme granular detail: which paw/hand hits what, which claw scrapes which surface, which body part knocks which object
+   - Every object that moves must be PHYSICALLY TOUCHED by the aggressor first: "the cat's right paw SWIPES the plate, SENDING noodles arcing through the air"
+   - Describe the DEFENSIVE character's physical reactions: hands grabbing table edge, chair scraping backward, body twisting away, arms raised to block
+   - SOUND through physical actions only: "paws SLAMMING the table so hard dishes clatter", "claws SCRAPING the wood with an audible screech"
+   - Multiple simultaneous physical chains: "the cat's hind legs KICK the chair WHILE its front paws RAKE across the tablecloth, DRAGGING plates and glasses toward the edge"
 
 2. CAMERA MOVEMENT (15% of the prompt):
    - {$escalation['camera']}
    - Use professional terminology: whip-pan, crash zoom, Dutch angle, handheld shake, snap-tilt
 
-3. EMOTIONAL/BODY LANGUAGE (15% of the prompt):
-   - AGGRESSOR: fury at maximum — eyes blazing, body coiled with rage, every muscle tensed for attack
-   - DEFENSIVE: shock and overwhelm — eyes bulging wide, mouth agape, body language screaming retreat
-   - The contrast between attacker fury and defender panic is what makes the scene compelling
+3. PHYSICAL BODY LANGUAGE (15% of the prompt):
+   - AGGRESSOR: back arched, claws extended, mouth wide open showing teeth, tail rigid and lashing, ears flat against head
+   - DEFENSIVE: leaning far back, hands up palms out, chair tilted, feet bracing against the floor, head turned away
+   - Describe only what a CAMERA would see — real muscle tension, real postures, real facial expressions
 
-4. ATMOSPHERIC MOTION (10% of the prompt):
-   - Environmental chaos caused by the AGGRESSOR: objects knocked over, food flying, surfaces scratched/dented
-   - The environment should REACT to the fury — things topple, splatter, shatter
+4. PHYSICAL ENVIRONMENT REACTIONS (10% of the prompt):
+   - Every environmental change MUST be caused by direct physical contact from the AGGRESSOR
+   - WRONG: "food flies everywhere" / "the table shakes" / "objects scatter"
+   - RIGHT: "the cat's body SLAMS into the plate stack, TOPPLING three dishes off the table edge" / "its tail WHIPS the salt shaker, SENDING it spinning across the table"
 
 VISUAL STYLE CONSISTENCY — ABSOLUTELY CRITICAL:
 - Study the frame carefully. Whatever visual style you see (photorealistic, cinematic live-action, 3D render, anime, cartoon, illustrated, etc.) — you MUST maintain that EXACT style.
@@ -32633,12 +32634,21 @@ VISUAL STYLE CONSISTENCY — ABSOLUTELY CRITICAL:
 - Begin your prompt with a brief style anchor, e.g.: "Photorealistic cinematic scene —" or "Hyper-realistic live-action —" to lock the visual style for the AI model.
 - NEVER introduce style-breaking words like "cartoon", "illustration", "anime", "drawn", "painted", "stylized" if the original frame is photorealistic.
 
-CAUSE AND EFFECT — ABSOLUTELY CRITICAL:
-- NOTHING happens on its own. Every object movement, every splash, every flying item MUST be directly caused by a CHARACTER'S physical action.
-- WRONG: "The spaghetti flies off the plate" / "food erupts from the dish" / "the glass topples over"
-- RIGHT: "The cat's paw SLAMS the plate edge, LAUNCHING spaghetti into the air" / "the cat SWIPES the glass, sending it CRASHING to the floor"
-- Every environmental effect needs a clear ACTOR → ACTION → RESULT chain: "The cat KICKS the table leg (actor+action), rattling every dish and SENDING the salt shaker tumbling (result)"
-- If something breaks, flies, or moves — NAME which character's body part caused it and HOW
+CAUSE AND EFFECT — THE #1 RULE:
+- NOTHING moves, flies, breaks, or falls unless a CHARACTER physically touches it with a body part.
+- Every sentence about objects MUST follow this exact pattern: [character's body part] + [physical contact verb] + [object] + [result]
+- WRONG: "spaghetti flying wildly from the plate" / "food erupts" / "the glass topples" / "objects scatter" / "things crash to the floor"
+- RIGHT: "the cat's paw SMACKS the plate rim, flipping noodles into the air" / "the cat's tail HOOKS the glass stem, dragging it off the table edge"
+- If you cannot name WHICH PAW, HAND, ELBOW, TAIL, or BODY PART made physical contact — DELETE that sentence entirely
+- Test every sentence: "WHO touched WHAT with WHICH body part?" If you can't answer all three, rewrite it.
+
+BANNED DESCRIPTIONS — NEVER USE THESE:
+- NO invisible forces: "unseen force", "sheer force of the scream", "sound waves", "force of will"
+- NO abstract visual effects: "air distorts", "rippling energy", "shockwave", "aura", "vibrating air"
+- NO supernatural: "telekinetic", "magic", "impossible physics", "defying gravity"
+- NO passive flying objects: "food flying everywhere", "things scattering", "objects tumbling" (without naming WHO caused it)
+- NO metaphorical body descriptions: "eyes blazing", "fury radiating", "rage emanating"
+- ONLY describe what a real camera filming real actors would capture: physical bodies, physical contact, physical consequences
 
 CRITICAL RULES:
 - Write in PRESENT TENSE, third person
