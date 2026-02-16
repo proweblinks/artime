@@ -344,11 +344,35 @@ Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST f
 Mix of MONOLOGUE and DIALOGUE but focus on visual storytelling — Seedance excels at
 action scenes, physical comedy, and dramatic moments more than extended conversations.
 
-Each idea MUST include a "videoPrompt" field — a detailed scene description following this 4-layer format:
-1. Subject & action (who, what, where)
-2. Dialogue in "quotes" (if any — keep short)
-3. Environmental audio cues (comma-separated sounds)
-4. Visual style & mood (camera, lighting, tone)
+Each idea MUST include a "videoPrompt" field — a Seedance 1.5 Pro optimized prompt.
+
+VIDEO PROMPT RULES — THIS IS CRITICAL:
+The videoPrompt MUST be 80-120 words. Seedance works best with concise, focused prompts.
+DO NOT describe character appearances in the video prompt — that goes in "character" and "characters" fields for the IMAGE.
+The video prompt describes WHAT HAPPENS (actions, reactions, drama), NOT what things look like.
+
+STRUCTURE — 3 BEATS ONLY:
+Beat 1 (Setup): Who is there + brief location. ONE sentence.
+Beat 2 (Trigger): What starts the action. ONE sentence.
+Beat 3 (Explosion): The WILD, extreme physical reaction. 2-3 sentences max.
+Use temporal phrases: "At first...", "Then suddenly...", "The cat explodes into action..."
+
+EXTREME ACTION:
+Use STRONG verbs: smashes, hurls, flips, slams, launches, demolishes, rams.
+The climax must be MAXIMUM CHAOS: objects flying, things breaking, characters dodging debris.
+NEVER say "holds pose" or "maintains stance" — characters must be IN MOTION.
+
+AUDIO FORMAT — pick ONE based on the scene:
+A) VOICEOVER (human narrates over animal visuals — most common):
+   Start with: Generate a video with voiceover: A [voice tone] [gender] voice says, "[short narration]"
+   Then write the scene description SEPARATELY.
+   CRITICAL: Do NOT describe characters "speaking" or "talking" in the scene — Seedance will lip-sync.
+B) DIALOGUE (human characters talk on screen):
+   Write scene, then: English dialogue: Character A: "line" Character B: "line"
+C) SFX ONLY (no speech — just sounds + environment):
+   Write scene with sounds as actions: "the cat meows angrily and hisses".
+
+RULES: No semicolons. No camera movement descriptions. Main character described FIRST.
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -357,10 +381,11 @@ Return ONLY a JSON array (no markdown, no explanation):
     "concept": "One sentence describing the full visual scene",
     "speechType": "monologue" or "dialogue",
     "characters": [
-      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "role", "expression": "expression description"}
+      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "role", "expression": "expression description", "position": "spatial position: foreground/background, left/right/center, facing direction"}
     ],
-    "character": "For monologue: single character description",
-    "situation": "The scene action and character interaction",
+    "character": "Combined description of ALL main visible characters with their spatial relationship for image generation",
+    "imageStartState": "The CALM INITIAL state for the starting image — characters in positions BEFORE action begins. NO chaos, NO flying objects. Just characters in their starting poses.",
+    "situation": "One concise sentence: what happens from start to finish focusing on KEY dramatic beats",
     "setting": "Detailed location with specific props, brand elements, decor, lighting",
     "props": "Key visual props in the scene",
     "audioType": "voiceover",
@@ -368,7 +393,8 @@ Return ONLY a JSON array (no markdown, no explanation):
     "dialogueLines": [
       {"speaker": "Character Name", "text": "Short punchy line"}
     ],
-    "videoPrompt": "A grumpy cat in a green apron stands behind a pizza counter, staring down a customer holding an open pizza box. The cat hisses 'No refunds!', cash register beeping, restaurant chatter, pizza boxes rustling, handheld phone footage, warm fluorescent lighting, comedic deadpan tone.",
+    "videoPrompt": "Generate a video with voiceover: A gruff male voice says, 'No refunds!' At first, a grumpy cat in a green apron stands behind a pizza counter, staring down a customer holding an open pizza box. Then suddenly, the cat slams both paws on the counter and hisses, sending the cash register flying. Pizza boxes tumble off the shelf, cheese splatters across the glass, and the customer stumbles backward as the cat launches a pizza box spinning through the air like a frisbee.",
+    "cameraFixed": true,
     "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
     "viralHook": "Why this would go viral (one sentence)"
   }
@@ -420,11 +446,12 @@ Return ONLY a JSON array (no markdown, no explanation):
     "concept": "One sentence describing the full visual scene with all characters",
     "speechType": "dialogue" or "monologue",
     "characters": [
-      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "employee/customer/boss/etc", "expression": "deadpan, slightly annoyed"},
-      {"name": "Character 2 Name", "description": "detailed visual description", "role": "role", "expression": "expression description"}
+      {"name": "Character Name", "description": "detailed visual description including species, clothing, accessories", "role": "employee/customer/boss/etc", "expression": "deadpan, slightly annoyed", "position": "spatial position: foreground/background, left/right/center, facing direction"},
+      {"name": "Character 2 Name", "description": "detailed visual description", "role": "role", "expression": "expression description", "position": "spatial position"}
     ],
-    "character": "For monologue only: single character description",
-    "situation": "The scene action and character interaction",
+    "character": "Combined description of ALL main visible characters with their spatial relationship for image generation",
+    "imageStartState": "The CALM INITIAL state for the starting image — characters in positions BEFORE action begins. NO chaos, NO flying objects. Just characters in their starting poses with neutral expressions.",
+    "situation": "One concise sentence: what happens from start to finish focusing on KEY dramatic beats",
     "setting": "Detailed location with specific props, brand elements, decor, lighting (e.g., 'Papa John's counter with red pizza boxes, menu boards with pizza images, cash register, drink cups, warm fluorescent lighting')",
     "props": "Key visual props in the scene (e.g., 'open pizza box, green uniform with cap, branded counter')",
     "audioType": "voiceover",
