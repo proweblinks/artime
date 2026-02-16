@@ -3555,14 +3555,14 @@ class VideoWizard extends Component
      */
     protected function resolveSeedanceResolution(array $shot): string
     {
-        $resolution = $shot['selectedResolution'] ?? '720p';
+        $resolution = $shot['selectedResolution'] ?? '1080p';
         $variant = $shot['seedanceQuality'] ?? 'pro';
 
         if ($variant === 'fast') {
-            return in_array($resolution, ['720p', '1080p']) ? $resolution : '720p';
+            return in_array($resolution, ['720p', '1080p']) ? $resolution : '1080p';
         }
 
-        return in_array($resolution, ['480p', '720p', '1080p']) ? $resolution : '720p';
+        return in_array($resolution, ['480p', '720p', '1080p']) ? $resolution : '1080p';
     }
 
     /**
@@ -32347,14 +32347,21 @@ PROMPT;
                     // Store the prompt for debug panel display
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $motionPrompt;
 
-                    $result = $animationService->generateAnimation($project, array_merge([
+                    $animParams = array_merge([
                         'imageUrl' => $shot['imageUrl'],
                         'prompt' => $motionPrompt,
                         'model' => $selectedModel,
                         'duration' => $duration,
                         'audioUrl' => $audioUrl,
                         'audioDuration' => $audioDuration,
-                    ], $extraAnimOptions));
+                    ], $extraAnimOptions);
+
+                    // Seedance face bookending: same image at start and end to constrain drift
+                    if ($selectedModel === 'seedance') {
+                        $animParams['end_image_url'] = $shot['imageUrl'];
+                    }
+
+                    $result = $animationService->generateAnimation($project, $animParams);
 
                     \Log::info('🎬 Animation result', [
                         'success' => $result['success'] ?? false,
@@ -33211,6 +33218,7 @@ PROMPT;
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
+                    'end_image_url' => $frameUrl, // Bookend: same face at start and end
                 ]);
 
                 if ($result['success'] && isset($result['taskId'])) {
@@ -33705,6 +33713,7 @@ PROMPT;
                     'aspect_ratio' => $this->aspectRatio,
                     'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
+                    'end_image_url' => $frameUrl, // Bookend: same face at start and end
                 ]);
 
                 if ($result['success'] && isset($result['taskId'])) {
