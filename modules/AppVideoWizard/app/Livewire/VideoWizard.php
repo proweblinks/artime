@@ -3508,6 +3508,8 @@ class VideoWizard extends Component
             'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
             'selectedResolution' => $isSeedance ? '720p' : '720p',
             'seedanceQuality' => 'pro',
+            'seedanceCameraMove' => 'none',
+            'seedanceCameraMoveIntensity' => 'moderate',
             'videoPrompt' => $isSeedance ? ($selectedIdea['videoPrompt'] ?? '') : '',
             'cameraFixed' => $isSeedance ? (bool) ($selectedIdea['cameraFixed'] ?? true) : false,
             'cameraMovement' => [
@@ -3541,6 +3543,58 @@ class VideoWizard extends Component
             'prompt' => '',
             'source' => $clonedFirstFrame ? 'cloned_frame' : 'ai',
         ];
+    }
+
+    /**
+     * Assemble the final Seedance prompt by injecting camera movement and style anchor.
+     */
+    protected function assembleSeedancePrompt(string $basePrompt, array $shot): string
+    {
+        $prompt = trim($basePrompt);
+
+        // Inject camera movement instruction
+        $cameraMove = $shot['seedanceCameraMove'] ?? 'none';
+        if ($cameraMove !== 'none') {
+            $intensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
+            $cameraInstruction = $this->getSeedanceCameraInstruction($cameraMove, $intensity);
+            if ($cameraInstruction) {
+                $prompt .= ' ' . $cameraInstruction;
+            }
+        }
+
+        // Ensure style anchor at end (if not already present)
+        if (!preg_match('/cinematic|photorealistic/i', $prompt)) {
+            $prompt .= ' Cinematic, photorealistic.';
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Get the camera movement instruction text for Seedance prompt injection.
+     */
+    protected function getSeedanceCameraInstruction(string $move, string $intensity): string
+    {
+        $adverbs = [
+            'subtle'   => 'gently',
+            'moderate' => 'slowly',
+            'dynamic'  => 'rapidly',
+        ];
+
+        $adverb = $adverbs[$intensity] ?? 'slowly';
+
+        $movements = [
+            'push-in'   => "Camera {$adverb} pushes in toward the subject.",
+            'pull-out'  => "Camera {$adverb} pulls back, revealing the scene.",
+            'pan-left'  => "Camera pans {$adverb} to the left.",
+            'pan-right' => "Camera pans {$adverb} to the right.",
+            'orbit'     => "Camera {$adverb} orbits around the subject.",
+            'tracking'  => "Camera tracks {$adverb} alongside the subject.",
+            'handheld'  => "Handheld camera with organic, natural movement.",
+            'crane-up'  => "Camera {$adverb} rises in a crane shot.",
+        ];
+
+        return $movements[$move] ?? '';
     }
 
     /**
@@ -31961,16 +32015,17 @@ PROMPT;
                 if ($this->projectId) {
                     $project = WizardProject::find($this->projectId);
                     if ($project) {
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $videoPrompt;
+                        $assembledPrompt = $this->assembleSeedancePrompt($videoPrompt, $shot);
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $assembledPrompt;
 
                         $result = $animationService->generateAnimation($project, [
                             'model' => 'seedance',
                             'imageUrl' => $shot['imageUrl'],
-                            'prompt' => $videoPrompt,
+                            'prompt' => $assembledPrompt,
                             'duration' => $seedanceDuration,
                             'resolution' => $seedanceResolution,
                             'aspect_ratio' => $this->aspectRatio,
-                            'camera_fixed' => $shot['cameraFixed'] ?? false,
+                            'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                             'variant' => $shot['seedanceQuality'] ?? 'pro',
                         ]);
 
@@ -33174,7 +33229,7 @@ PROMPT;
                     'duration' => $duration,
                     'resolution' => $shot['selectedResolution'] ?? '720p',
                     'aspect_ratio' => $this->aspectRatio,
-                    'camera_fixed' => false,
+                    'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 
@@ -33665,7 +33720,7 @@ PROMPT;
                     'duration' => $duration,
                     'resolution' => $shot['selectedResolution'] ?? '720p',
                     'aspect_ratio' => $this->aspectRatio,
-                    'camera_fixed' => false,
+                    'camera_fixed' => ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                     'variant' => $shot['seedanceQuality'] ?? 'pro',
                 ]);
 

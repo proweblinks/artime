@@ -407,6 +407,46 @@
         display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
     }
     .vw-seedance-options-row > div { flex: 1; }
+
+    /* Camera Movement Picker */
+    .vw-camera-section { margin-bottom: 0.75rem; }
+    .vw-camera-section > label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; }
+    .vw-camera-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .vw-camera-pill {
+        display: flex; align-items: center; gap: 0.35rem;
+        padding: 0.4rem 0.7rem;
+        background: rgba(20,20,40,0.8);
+        border: 1px solid rgba(100,100,140,0.25);
+        border-radius: 2rem;
+        color: #94a3b8; font-size: 0.75rem;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .vw-camera-pill:hover { border-color: rgba(139,92,246,0.4); color: #c4b5fd; }
+    .vw-camera-pill.active {
+        border-color: rgba(139,92,246,0.6);
+        background: rgba(139,92,246,0.15);
+        color: #e2e8f0;
+        box-shadow: 0 0 12px rgba(139,92,246,0.2);
+    }
+    .vw-camera-pill i { font-size: 0.7rem; }
+    .vw-camera-intensity { margin-top: 0.5rem; }
+    .vw-camera-intensity > label { display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.3rem; }
+    .vw-intensity-pills { display: flex; gap: 0.35rem; }
+    .vw-intensity-pill {
+        display: flex; align-items: center; gap: 0.3rem;
+        padding: 0.3rem 0.6rem;
+        background: rgba(20,20,40,0.8);
+        border: 1px solid rgba(100,100,140,0.25);
+        border-radius: 2rem;
+        color: #94a3b8; font-size: 0.7rem;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .vw-intensity-pill:hover { border-color: rgba(139,92,246,0.4); color: #c4b5fd; }
+    .vw-intensity-pill.active {
+        border-color: rgba(139,92,246,0.6);
+        background: rgba(139,92,246,0.15);
+        color: #e2e8f0;
+    }
     .vw-social-engine-badge {
         display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
         border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600;
@@ -1068,7 +1108,50 @@
                     <label>{{ __('Video Prompt') }}</label>
                     <textarea wire:model.blur="multiShotMode.decomposedScenes.0.shots.0.videoPrompt"
                               placeholder="{{ __('Describe the scene, action, dialogue (in "quotes"), and sounds...') }}">{{ $shot['videoPrompt'] ?? '' }}</textarea>
-                    <small>{{ __('4-layer format: Subject & action, dialogue in "quotes", environmental sounds, visual style & mood.') }}</small>
+                    <small>{{ __('50-80 words ideal. End with audio cues + "Cinematic, photorealistic." Camera movement is added separately below.') }}</small>
+                </div>
+
+                {{-- Camera Movement Picker --}}
+                @php
+                $cameraMoves = [
+                    ['id' => 'none', 'label' => 'None', 'icon' => 'fa-thumbtack'],
+                    ['id' => 'push-in', 'label' => 'Push In', 'icon' => 'fa-compress'],
+                    ['id' => 'pull-out', 'label' => 'Pull Out', 'icon' => 'fa-expand'],
+                    ['id' => 'pan-left', 'label' => 'Pan Left', 'icon' => 'fa-arrow-left'],
+                    ['id' => 'pan-right', 'label' => 'Pan Right', 'icon' => 'fa-arrow-right'],
+                    ['id' => 'orbit', 'label' => 'Orbit', 'icon' => 'fa-rotate'],
+                    ['id' => 'tracking', 'label' => 'Tracking', 'icon' => 'fa-route'],
+                    ['id' => 'handheld', 'label' => 'Handheld', 'icon' => 'fa-hand'],
+                ];
+                $currentCameraMove = $shot['seedanceCameraMove'] ?? 'none';
+                $currentCameraIntensity = $shot['seedanceCameraMoveIntensity'] ?? 'moderate';
+                @endphp
+                <div class="vw-camera-section" x-data="{ showIntensity: {{ $currentCameraMove !== 'none' ? 'true' : 'false' }} }">
+                    <label><i class="fa-solid fa-video"></i> {{ __('Camera Movement') }}</label>
+                    <div class="vw-camera-pills">
+                        @foreach($cameraMoves as $move)
+                        <button type="button"
+                            class="vw-camera-pill {{ $currentCameraMove === $move['id'] ? 'active' : '' }}"
+                            wire:click="$set('multiShotMode.decomposedScenes.0.shots.0.seedanceCameraMove', '{{ $move['id'] }}')"
+                            @click="showIntensity = '{{ $move['id'] }}' !== 'none'">
+                            <i class="fa-solid {{ $move['icon'] }}"></i>
+                            <span>{{ $move['label'] }}</span>
+                        </button>
+                        @endforeach
+                    </div>
+
+                    <div class="vw-camera-intensity" x-show="showIntensity" x-transition x-cloak>
+                        <label>{{ __('Intensity') }}</label>
+                        <div class="vw-intensity-pills">
+                            @foreach(['subtle' => 'Subtle', 'moderate' => 'Moderate', 'dynamic' => 'Dynamic'] as $intId => $intLabel)
+                            <button type="button"
+                                class="vw-intensity-pill {{ $currentCameraIntensity === $intId ? 'active' : '' }}"
+                                wire:click="$set('multiShotMode.decomposedScenes.0.shots.0.seedanceCameraMoveIntensity', '{{ $intId }}')">
+                                {{ $intLabel }}
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
                 <div class="vw-seedance-options-row">
