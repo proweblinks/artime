@@ -417,7 +417,7 @@
     .vw-extend-player-wrap { position: relative; width: 100%; height: 100%; }
     .vw-extend-player-wrap video { width: 100%; height: 100%; object-fit: contain; }
     .vw-extract-frame-btn {
-        position: absolute; bottom: 3rem; left: 50%; transform: translateX(-50%);
+        position: absolute; bottom: 4.5rem; left: 50%; transform: translateX(-50%);
         background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.3);
         padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.82rem;
         cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s;
