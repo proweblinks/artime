@@ -628,7 +628,7 @@
 
                         {{-- Extract Frame button — appears when paused, not at very start/end --}}
                         @if($isSeedance)
-                        <template x-if="paused && currentTime > 0.3 && currentTime < videoDuration - 0.3 && !{{ json_encode((bool) $extendMode) }}">
+                        <template x-if="paused && currentTime > 0 && !{{ json_encode((bool) $extendMode) }}">
                             <button class="vw-extract-frame-btn"
                                     @click="$wire.initVideoExtend(0, 0, parseFloat(currentTime.toFixed(2)))"
                                     wire:loading.attr="disabled"
