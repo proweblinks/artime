@@ -980,55 +980,7 @@ PROMPT;
             : "AUDIO: No speech detected in video. Assume visual comedy / silent humor with environmental sounds only.";
 
         $videoPromptInstruction = $videoEngine === 'seedance'
-            ? <<<'VIDPROMPT'
-Also generate a "videoPrompt" field — a Seedance 1.5 Pro prompt.
-
-ABSOLUTE RULE — KEEP IT SHORT:
-The video prompt MUST be 80-120 words MAX. Seedance works best with concise, focused prompts.
-DO NOT describe every character's clothing, hair color, accessories etc. in the video prompt — that detail belongs in "character" and "characters" fields for the IMAGE prompt.
-The video prompt describes WHAT HAPPENS (actions, reactions, drama), NOT what things look like.
-
-STRUCTURE — 3 BEATS ONLY:
-Beat 1 (Setup): Who is there + brief location. ONE sentence.
-Beat 2 (Trigger): What starts the action. ONE sentence.
-Beat 3 (Explosion): The WILD, extreme physical reaction. 2-3 sentences max.
-Use temporal phrases: "At first...", "Then suddenly...", "The cat explodes into action..."
-
-EXTREME ACTION — CHARACTER-DRIVEN CAUSALITY:
-The main character PHYSICALLY CAUSES all chaos through their own body actions.
-Write what the character DOES first, then what it CAUSES:
-GOOD: "the cat SLAMS both paws on the counter, SENDING the cash register flying off the edge"
-BAD: "the cash register flies off the counter" (passive — WHO caused it?)
-GOOD: "the cat SWEEPS the counter with both arms, LAUNCHING plates and cups in every direction"
-BAD: "plates and cups fly everywhere" (passive — no character action)
-Use STRONG verbs: slams, hurls, flips, sweeps, kicks, launches, demolishes, rams, catapults.
-Every flying object MUST trace back to a specific character action. NEVER "holds pose".
-
-WHO SPEAKS vs WHO REACTS:
-- HUMANS speak dialogue. Animals NEVER speak human words.
-- ANIMALS react PHYSICALLY: leaping, smashing, throwing, screaming, howling.
-- If a human speaks, the animal's reaction is the MAIN EVENT of the video.
-
-AUDIO FORMAT — pick ONE based on what makes sense:
-A) VOICEOVER (human narrates over visuals — common in viral animal videos):
-   Start with: Generate a video with voiceover: A [voice tone] [gender] voice says, "[short narration]"
-   Then write the scene description SEPARATELY.
-   CRITICAL: In the scene description, do NOT describe any character "speaking", "talking", or with "open mouth" — Seedance will lip-sync the voiceover to any character with mouth movements.
-
-B) DIALOGUE (human characters talk to each other on screen):
-   Write scene description, then:
-   English dialogue:
-   Character A: "line"
-   Character B: "line"
-
-C) SFX ONLY (no human speech — just animal sounds + environment):
-   Write scene description with animal sounds as actions: "the cat meows angrily and hisses".
-
-RULES:
-- No semicolons. Write natural prose.
-- No camera movement descriptions (controlled separately).
-- Main character described FIRST.
-VIDPROMPT
+            ? 'Also generate a "videoPrompt" field — see SEEDANCE VIDEO PROMPT RULES at the end of this prompt.'
             : 'Do NOT generate a "videoPrompt" field.';
 
         $prompt = <<<PROMPT
@@ -1081,12 +1033,76 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "80-120 words MAX. 3 beats: setup → trigger → explosion. Focus on ACTIONS not appearances. Follow audio format rules above.",
+  "videoPrompt": "SEE SEEDANCE RULES BELOW — 80-120 words, 3-beat structure, EXPLOSIVE verbs",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
   "source": "cloned"
 }
+
+=======================================================================
+SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
+=======================================================================
+
+The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
+If you get this wrong, the video will be bland and static. Follow every rule below.
+
+WORD COUNT: 80-120 words MAXIMUM. Count your words. STOP at 120. Seedance performs WORSE with longer prompts.
+
+DO NOT describe appearances (clothing, hair, fur color, species) — that's in "character" and "characters" fields.
+The videoPrompt describes ONLY actions, reactions, and drama.
+
+MANDATORY 3-BEAT STRUCTURE with temporal phrases:
+
+Beat 1 — SETUP (1 sentence): "At first," or "In a [location]," — who is there, what's the starting state. Keep it BRIEF.
+Beat 2 — TRIGGER (1 sentence): "Then suddenly," — the ONE moment that ignites the chaos.
+Beat 3 — EXPLOSION (2-3 sentences): The WILD, extreme physical reaction chain. This is 70% of the prompt. ALL CAPS action verbs. Every object that moves is CAUSED by a character's body.
+
+ACTION VERBS — use these, not weak verbs:
+SLAMS, HURLS, LAUNCHES, CRASHES, RAKES, WRENCHES, SMASHES, SWEEPS, KICKS, CATAPULTS, BOLTS, STORMS, CLAWS, LATCHES, THRASHES, DEMOLISHES
+
+CHARACTER-DRIVEN CAUSALITY — THE #1 RULE:
+GOOD: "the cat SLAMS both paws on the counter, SENDING the register flying"
+BAD: "the register flies off the counter" (WHO caused it?)
+GOOD: "the man WRENCHES the cat free and HURLS it — it CRASHES onto the floor"
+BAD: "the cat falls to the floor" (passive)
+Every moving object MUST trace back to a body part making physical contact.
+
+AUDIO FORMAT — pick ONE and format it EXACTLY like this:
+
+A) DIALOGUE (characters talk on screen):
+   Write the scene action first (80-120 words), then on a new line:
+   English dialogue:
+   Character: "line"
+   Other: "line"
+
+B) VOICEOVER (narrator voice over visuals):
+   Start with: "Generate a video with voiceover: A [tone] [gender] voice says, '[narration]'"
+   Then write the scene action separately. Do NOT describe characters "speaking" or "talking" in the scene text.
+
+C) SFX ONLY (no speech — just sounds):
+   Write scene action with animal sounds as physical actions: "the cat SHRIEKS and HISSES"
+
+BANNED:
+- No semicolons
+- No camera movement descriptions
+- No appearance descriptions (what they LOOK like)
+- No passive voice ("is thrown", "was knocked") — only active ("HURLS", "SLAMS")
+- No generic verbs: "goes", "moves", "does", "gets", "starts"
+- NEVER exceed 120 words in the scene description
+
+EXAMPLE — BAD (too long, flat, passive, no structure):
+"In a Dunkin' Donuts store, a frustrated male customer leans over the counter complaining to the orange tabby cat employee about his iced coffee. The cat roars and lunges forward, swatting the customer's hand and jumping to cling to his arm. The customer grabs and lifts the cat, struggling backwards as it shifts to his back, then holds it high before it reattaches to his chest; he pulls it off, drops it to the floor where it lands on his feet and runs left."
+PROBLEMS: 100+ words, no beats, weak verbs (leans, grabs, struggling, drops), passive (lands, runs), semicolons, describes appearances.
+
+EXAMPLE — GOOD (3-beat, explosive, character-driven):
+"At first, a man leans over a counter confronting the cat employee behind an iced drink. Then suddenly, the cat EXPLODES — mouth wide, SHRIEKING, it LAUNCHES off the counter and SLAMS both paws into the man's chest. The man STAGGERS back as the cat CLAWS up his arm, LATCHES onto his shoulder and RAKES across his back. He GRABS the thrashing cat with both hands, WRENCHES it free and HURLS it forward — the cat CRASHES onto his feet, then BOLTS left. The man THROWS both arms up and STORMS away.
+English dialogue:
+Customer: 'How do you mess up iced coffee this bad? Whoa, get off! Get off me! I'm leaving!'
+Cat: *meow-screams aggressively*"
+WHY THIS WORKS: 3 beats, temporal phrases, ALL CAPS verbs, every action caused by a character, under 120 words, audio format correct.
+
+NOW generate the JSON with a videoPrompt that follows these rules EXACTLY.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
