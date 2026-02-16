@@ -253,6 +253,157 @@
         line-height: 1.3;
     }
 
+    /* Info Icon on Subtype Cards */
+    .vw-platform-step .vw-subtype-info-btn {
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(139, 92, 246, 0.1);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 10;
+        padding: 0;
+    }
+    .vw-platform-step .vw-subtype-info-btn:hover {
+        background: rgba(139, 92, 246, 0.25);
+        transform: scale(1.1);
+    }
+    .vw-platform-step .vw-subtype-info-btn i {
+        font-size: 0.65rem;
+        color: #8b5cf6;
+    }
+    .vw-platform-step .vw-subtype-card {
+        position: relative;
+    }
+
+    /* Glass-morphism Popover */
+    .vw-platform-step .vw-style-popover {
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%) scale(0.95);
+        width: 340px;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(139, 92, 246, 0.25);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.08);
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 150ms ease, transform 150ms ease;
+    }
+    .vw-platform-step .vw-style-popover.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) scale(1);
+    }
+    /* Popover arrow */
+    .vw-platform-step .vw-style-popover::after {
+        content: '';
+        position: absolute;
+        bottom: -7px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 14px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        border-right: 1px solid rgba(139, 92, 246, 0.25);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .vw-platform-step .vw-popover-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .vw-platform-step .vw-popover-header i {
+        font-size: 1.1rem;
+        color: #8b5cf6;
+    }
+    .vw-platform-step .vw-popover-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: rgba(0, 0, 0, 0.85);
+    }
+    .vw-platform-step .vw-popover-duration {
+        font-size: 0.75rem;
+        color: rgba(0, 0, 0, 0.4);
+        margin-left: auto;
+    }
+    .vw-platform-step .vw-popover-desc {
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: rgba(0, 0, 0, 0.65);
+        margin-bottom: 0.85rem;
+    }
+    .vw-platform-step .vw-popover-section-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(139, 92, 246, 0.7);
+        margin-bottom: 0.4rem;
+    }
+    .vw-platform-step .vw-popover-bullets {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 0.85rem 0;
+    }
+    .vw-platform-step .vw-popover-bullets li {
+        font-size: 0.78rem;
+        color: rgba(0, 0, 0, 0.6);
+        padding: 0.15rem 0;
+        padding-left: 1rem;
+        position: relative;
+    }
+    .vw-platform-step .vw-popover-bullets li::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: #8b5cf6;
+        font-weight: 700;
+    }
+    .vw-platform-step .vw-popover-example {
+        background: rgba(139, 92, 246, 0.06);
+        border: 1px solid rgba(139, 92, 246, 0.12);
+        border-radius: 0.6rem;
+        padding: 0.65rem 0.8rem;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: rgba(0, 0, 0, 0.6);
+        font-style: italic;
+    }
+
+    /* Mobile: popover below card instead of above */
+    @media (max-width: 768px) {
+        .vw-platform-step .vw-style-popover {
+            width: 300px;
+            bottom: auto;
+            top: calc(100% + 10px);
+        }
+        .vw-platform-step .vw-style-popover::after {
+            bottom: auto;
+            top: -7px;
+            border-right: none;
+            border-bottom: none;
+            border-left: 1px solid rgba(139, 92, 246, 0.25);
+            border-top: 1px solid rgba(139, 92, 246, 0.25);
+        }
+    }
+
     /* Divider */
     .vw-platform-step .vw-divider {
         margin-top: 1.5rem;
@@ -761,7 +912,43 @@
                     @foreach($productionTypes[$productionType]['subTypes'] as $subId => $subType)
                         <div wire:click="selectProductionType('{{ $productionType }}', '{{ $subId }}')"
                              class="vw-subtype-card {{ $productionSubtype === $subId ? 'selected' : '' }}"
-                             style="cursor: pointer;">
+                             style="cursor: pointer;"
+                             x-data="{ showInfo: false }"
+                             @mouseleave="showInfo = false">
+                            {{-- Info icon (only if detailed description exists) --}}
+                            @if(!empty($subType['detailedDescription']))
+                                <button class="vw-subtype-info-btn"
+                                        @click.stop="showInfo = !showInfo"
+                                        @mouseenter="showInfo = true"
+                                        title="{{ __('Learn more about this style') }}">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+
+                                {{-- Glass-morphism popover --}}
+                                <div class="vw-style-popover" :class="{ 'active': showInfo }" @click.stop>
+                                    <div class="vw-popover-header">
+                                        <i class="{{ $subType['icon'] ?? 'fa-solid fa-circle' }}"></i>
+                                        <span class="vw-popover-title">{{ $subType['name'] }}</span>
+                                        <span class="vw-popover-duration">{{ $subType['suggestedDuration']['min'] ?? '?' }}s – {{ $subType['suggestedDuration']['max'] ?? '?' }}s</span>
+                                    </div>
+                                    <div class="vw-popover-desc">{{ $subType['detailedDescription'] }}</div>
+
+                                    @if(!empty($subType['perfectFor']))
+                                        <div class="vw-popover-section-label">{{ __('Perfect For') }}</div>
+                                        <ul class="vw-popover-bullets">
+                                            @foreach($subType['perfectFor'] as $bullet)
+                                                <li>{{ $bullet }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+
+                                    @if(!empty($subType['exampleScenario']))
+                                        <div class="vw-popover-section-label">{{ __('Example Scenario') }}</div>
+                                        <div class="vw-popover-example">{{ $subType['exampleScenario'] }}</div>
+                                    @endif
+                                </div>
+                            @endif
+
                             <div class="vw-subtype-header">
                                 <span class="vw-subtype-icon"><i class="{{ $subType['icon'] ?? 'fa-solid fa-circle' }}"></i></span>
                                 <span class="vw-subtype-name">{{ $subType['name'] }}</span>

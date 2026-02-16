@@ -4907,6 +4907,7 @@ PROMPT;
                     'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
                     'count' => 6,
                     'videoEngine' => $this->videoEngine,
+                    'productionSubtype' => $this->productionSubtype,
                 ]
             );
 

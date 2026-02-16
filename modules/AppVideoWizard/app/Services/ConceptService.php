@@ -271,15 +271,18 @@ PROMPT;
         $teamId = $options['teamId'] ?? 0;
         $aiModelTier = $options['aiModelTier'] ?? 'economy';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
+        $productionSubtype = $options['productionSubtype'] ?? 'viral';
 
         $themeContext = !empty($theme)
             ? "The user wants ideas related to: \"{$theme}\". Incorporate this theme creatively."
             : "Generate completely original ideas with diverse themes.";
 
+        $styleModifier = $this->getStylePromptModifier($productionSubtype);
+
         if ($videoEngine === 'seedance') {
-            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count);
+            $prompt = $this->buildSeedanceViralPrompt($themeContext, $count, $styleModifier);
         } else {
-            $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count);
+            $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count, $styleModifier);
         }
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
@@ -315,12 +318,14 @@ PROMPT;
     /**
      * Build viral ideas prompt for Seedance engine (cinematic scene with auto-generated audio).
      */
-    protected function buildSeedanceViralPrompt(string $themeContext, int $count): string
+    protected function buildSeedanceViralPrompt(string $themeContext, int $count, string $styleModifier = ''): string
     {
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
 {$themeContext}
+
+{$styleModifier}
 
 IMPORTANT: These ideas will be animated using Seedance — an AI model that generates
 video + voice + sound effects ALL FROM A TEXT PROMPT. There is no separate audio recording.
@@ -374,12 +379,14 @@ PROMPT;
     /**
      * Build viral ideas prompt for InfiniteTalk engine (lip-sync from custom voices).
      */
-    protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count): string
+    protected function buildInfiniteTalkViralPrompt(string $themeContext, int $count, string $styleModifier = ''): string
     {
         return <<<PROMPT
 You are a viral content specialist who creates massively shareable short-form video concepts.
 
 {$themeContext}
+
+{$styleModifier}
 
 Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
 - An ANIMAL or quirky CHARACTER in an absurd/funny human situation
@@ -431,6 +438,54 @@ Return ONLY a JSON array (no markdown, no explanation):
   }
 ]
 PROMPT;
+    }
+
+    /**
+     * Get a style-specific prompt modifier based on the selected production subtype.
+     * This shapes the AI's idea generation to match the chosen content style.
+     */
+    protected function getStylePromptModifier(string $subtype): string
+    {
+        return match ($subtype) {
+            'viral' => <<<'STYLE'
+CONTENT STYLE — VIRAL/TRENDING:
+Focus on maximum shareability and instant visual hooks. Lean into animal chaos, physical comedy,
+and visual absurdity. Single continuous shots with dramatic reactions, objects flying, and pure
+slapstick energy. Every idea should make someone immediately want to tag a friend.
+STYLE,
+            'meme-comedy' => <<<'STYLE'
+CONTENT STYLE — MEME/COMEDY:
+Lean into specific meme formats and internet comedy tropes. Think "when your..." scenarios,
+animals with deadpan delivery, absurd workplace humor, and quotable dialogue lines. The comedy
+should come from relatable situations twisted into absurdity. Prioritize punchy one-liners,
+sarcastic comebacks, and reaction-worthy moments over pure physical comedy.
+STYLE,
+            'educational-short' => <<<'STYLE'
+CONTENT STYLE — QUICK EXPLAINER:
+Frame ideas as bite-sized educational content. A character or narrator explains a fascinating
+concept, science fact, or "did you know?" tidbit. Keep it visual — show don't tell. The hook
+should be a surprising fact or counter-intuitive truth that makes viewers watch to the end.
+STYLE,
+            'story-short' => <<<'STYLE'
+CONTENT STYLE — STORY/NARRATIVE:
+Create mini-narratives with emotional arcs. Each idea needs a setup, tension, and payoff —
+a twist ending, a heartwarming reveal, or a "wait for it" moment. Focus on character-driven
+scenarios that make viewers feel something. The hook is curiosity: "what happens next?"
+STYLE,
+            'product' => <<<'STYLE'
+CONTENT STYLE — PRODUCT SHOWCASE:
+Frame ideas around satisfying product reveals, unboxing moments, or "watch this" demonstrations.
+Dynamic close-ups, before/after transformations, and aspirational lifestyle context. Every concept
+should make the viewer think "I need that." Emphasize visual satisfaction and desire.
+STYLE,
+            'lifestyle' => <<<'STYLE'
+CONTENT STYLE — LIFESTYLE:
+Create aspirational, aesthetically pleasing content. Morning routines, cozy moments, day-in-the-life
+montages with warm color grading. Focus on visual beauty, satisfying sequences, and "living my
+best life" energy. The mood should be calming, inspiring, or aesthetically satisfying.
+STYLE,
+            default => '',
+        };
     }
 
     // ========================================================================
