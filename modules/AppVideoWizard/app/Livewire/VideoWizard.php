@@ -32553,7 +32553,7 @@ INTENSITY LEVEL: {$escalation['level']}
 
 YOUR TASK: Write a Seedance video prompt (150-250 words) describing what happens NEXT, starting from this exact frame.
 
-PROMPT STRUCTURE:
+REQUIRED STRUCTURE:
 
 1. SUBJECT ACTION (most critical — 60% of the prompt):
    - Use SPECIFIC EXPLOSIVE ACTION VERBS: {$escalation['verbs']}
