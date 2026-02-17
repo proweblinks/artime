@@ -628,10 +628,32 @@ RULES;
                 ],
             ],
             [
+                'id' => 'fit_to_skeleton',
+                'type' => 'ai_text',
+                'name' => 'Fit to Skeleton',
+                'description' => 'Rewrites the raw videoPrompt to follow the proven Seedance skeleton structure. Detects energy type (Gentle/Physical Comedy/Chaotic/Rhythmic/Dramatic) from mood and applies the matching sentence-by-sentence template.',
+                'config' => [
+                    'service' => 'ConceptService',
+                    'method' => 'fitPromptToSkeleton',
+                    'ai_tier' => 'from_project',
+                    'rules' => 'Follow skeleton sentence-by-sentence. Condense into 3-4 mega-beats. 150-180 words. End with "Cinematic, photorealistic." Preserve content but restructure.',
+                    'skeleton_types' => ['GENTLE', 'PHYSICAL COMEDY', 'CHAOTIC', 'RHYTHMIC', 'DRAMATIC'],
+                ],
+                'inputs' => [
+                    'raw_prompt' => 'data_bus.cloned_concept.videoPrompt',
+                    'concept' => 'data_bus.cloned_concept',
+                ],
+                'outputs' => [
+                    'fitted_prompt' => 'data_bus.fitted_video_prompt',
+                    'skeleton_type' => 'data_bus.skeleton_type',
+                    'original_prompt' => 'data_bus.original_video_prompt',
+                ],
+            ],
+            [
                 'id' => 'user_approve',
                 'type' => 'user_input',
                 'name' => 'Approve Concept',
-                'description' => 'Review the cloned concept and confirm to proceed with video creation.',
+                'description' => 'Review the cloned concept (with skeleton-fitted videoPrompt) and confirm to proceed with video creation.',
                 'config' => [
                     'input_type' => 'approve_card',
                     'source' => 'data_bus.cloned_concept',
@@ -781,7 +803,8 @@ RULES;
             ['from' => 'extract_frame', 'to' => 'synthesize_concept'],
             ['from' => 'analyze_video', 'to' => 'synthesize_concept'],
             ['from' => 'transcribe_audio', 'to' => 'synthesize_concept'],
-            ['from' => 'synthesize_concept', 'to' => 'user_approve'],
+            ['from' => 'synthesize_concept', 'to' => 'fit_to_skeleton'],
+            ['from' => 'fit_to_skeleton', 'to' => 'user_approve'],
             ['from' => 'user_approve', 'to' => 'build_script'],
             ['from' => 'user_approve', 'to' => 'build_image_prompt'],
             ['from' => 'user_approve', 'to' => 'sanitize_prompt'],

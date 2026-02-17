@@ -5309,6 +5309,35 @@ PROMPT;
             $this->workflowTrackNode('transcribe_audio', 'completed');
             $this->workflowTrackNode('synthesize_concept', 'completed', ['concept' => $result['title'] ?? 'generated']);
 
+            // Workflow: fit_to_skeleton — rewrite videoPrompt to follow proven skeleton structure
+            if (!empty($result['videoPrompt']) && ($this->videoEngine ?? 'seedance') === 'seedance') {
+                $this->workflowTrackNode('fit_to_skeleton', 'running');
+                try {
+                    $skeletonResult = $conceptService->fitPromptToSkeleton(
+                        $result['videoPrompt'],
+                        $result,
+                        $this->content['aiModelTier'] ?? 'economy',
+                        session('current_team_id', 0),
+                        $this->cloneTemplate ?? 'adaptive'
+                    );
+                    $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
+                    $result['_skeleton'] = [
+                        'type' => $skeletonResult['skeletonType'],
+                        'original' => $skeletonResult['originalPrompt'],
+                    ];
+                    $this->workflowTrackNode('fit_to_skeleton', 'completed', [
+                        'skeleton_type' => $skeletonResult['skeletonType'],
+                        'original_prompt' => $skeletonResult['originalPrompt'],
+                        'fitted_prompt' => $skeletonResult['fittedPrompt'],
+                        'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
+                        'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
+                    $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
+                }
+            }
+
             if ($firstFrameUrl) {
                 $result['firstFrameUrl'] = $firstFrameUrl;
             }
@@ -5407,6 +5436,35 @@ PROMPT;
             $this->workflowTrackNode('analyze_video', 'completed');
             $this->workflowTrackNode('transcribe_audio', 'completed');
             $this->workflowTrackNode('synthesize_concept', 'completed', ['concept' => $result['title'] ?? 'generated']);
+
+            // Workflow: fit_to_skeleton — rewrite videoPrompt to follow proven skeleton structure
+            if (!empty($result['videoPrompt']) && ($this->videoEngine ?? 'seedance') === 'seedance') {
+                $this->workflowTrackNode('fit_to_skeleton', 'running');
+                try {
+                    $skeletonResult = $conceptService->fitPromptToSkeleton(
+                        $result['videoPrompt'],
+                        $result,
+                        $this->content['aiModelTier'] ?? 'economy',
+                        session('current_team_id', 0),
+                        $this->cloneTemplate ?? 'adaptive'
+                    );
+                    $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
+                    $result['_skeleton'] = [
+                        'type' => $skeletonResult['skeletonType'],
+                        'original' => $skeletonResult['originalPrompt'],
+                    ];
+                    $this->workflowTrackNode('fit_to_skeleton', 'completed', [
+                        'skeleton_type' => $skeletonResult['skeletonType'],
+                        'original_prompt' => $skeletonResult['originalPrompt'],
+                        'fitted_prompt' => $skeletonResult['fittedPrompt'],
+                        'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
+                        'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
+                    $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
+                }
+            }
 
             if ($firstFrameUrl) {
                 $result['firstFrameUrl'] = $firstFrameUrl;

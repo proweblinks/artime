@@ -493,8 +493,64 @@
                         </div>
                     @endif
 
+                    {{-- Special: Fit to Skeleton node shows before/after comparison --}}
+                    @if($nodeId === 'fit_to_skeleton' && $nodeStatus === 'completed')
+                        @php
+                            $skeletonOutput = null;
+                            if ($this->activeExecutionId) {
+                                $exec = \Modules\AppVideoWizard\Models\VwWorkflowExecution::find($this->activeExecutionId);
+                                $skeletonOutput = $exec ? ($exec->getNodeResult($nodeId)['output'] ?? null) : null;
+                            }
+                        @endphp
+                        @if($skeletonOutput)
+                            {{-- Skeleton Type Badge --}}
+                            <div class="vw-node-detail-section">
+                                <div class="vw-node-detail-label">
+                                    <i class="fa-solid fa-shapes"></i> {{ __('Detected Energy Type') }}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="background: #1e3a5f; color: #60a5fa; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-weight: 700;">
+                                        {{ $skeletonOutput['skeleton_type'] ?? 'Unknown' }}
+                                    </span>
+                                    <span style="color: #64748b; font-size: 0.7rem;">
+                                        {{ ($skeletonOutput['original_word_count'] ?? '?') }} → {{ ($skeletonOutput['fitted_word_count'] ?? '?') }} words
+                                    </span>
+                                </div>
+                            </div>
+
+                            {{-- Before/After comparison --}}
+                            <div class="vw-node-detail-section" x-data="{ showComparison: true }">
+                                <div class="vw-node-detail-label">
+                                    <i class="fa-solid fa-code-compare"></i> {{ __('Before / After') }}
+                                    <button class="vw-node-btn" style="margin-left: auto;"
+                                            @click="showComparison = !showComparison">
+                                        <i class="fa-solid" :class="showComparison ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                                <div x-show="showComparison" x-collapse>
+                                    @if(!empty($skeletonOutput['original_prompt']))
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <div style="font-size: 0.65rem; color: #ef4444; font-weight: 600; margin-bottom: 0.2rem;">
+                                                <i class="fa-solid fa-minus"></i> ORIGINAL ({{ $skeletonOutput['original_word_count'] ?? '?' }} words)
+                                            </div>
+                                            <div class="vw-node-detail-content" style="border-color: #7f1d1d; max-height: 8rem; font-size: 0.7rem;">{{ $skeletonOutput['original_prompt'] }}</div>
+                                        </div>
+                                    @endif
+                                    @if(!empty($skeletonOutput['fitted_prompt']))
+                                        <div>
+                                            <div style="font-size: 0.65rem; color: #22c55e; font-weight: 600; margin-bottom: 0.2rem;">
+                                                <i class="fa-solid fa-plus"></i> FITTED ({{ $skeletonOutput['fitted_word_count'] ?? '?' }} words)
+                                            </div>
+                                            <div class="vw-node-detail-content" style="border-color: #166534; max-height: 8rem; font-size: 0.7rem;">{{ $skeletonOutput['fitted_prompt'] }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     {{-- Node Output (if completed) --}}
-                    @if($hasOutput && $nodeStatus === 'completed')
+                    @if($hasOutput && $nodeStatus === 'completed' && $nodeId !== 'fit_to_skeleton')
                         <div class="vw-node-detail-section" x-data="{ showOutput: false, outputData: null }">
                             <div class="vw-node-detail-label">
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i> {{ __('Output') }}

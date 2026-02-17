@@ -1624,4 +1624,239 @@ PROMPT;
 
         return $concept;
     }
+
+    // ========================================================================
+    // FIT TO SKELETON — Rewrite raw videoPrompt to match proven structure
+    // ========================================================================
+
+    /**
+     * Rewrite a raw videoPrompt to follow the proven Seedance skeleton structure.
+     * Detects energy type from mood and applies the matching skeleton template.
+     *
+     * This is critical for clone mode where the AI generates accurate but unstructured
+     * prompts that don't follow the sentence-by-sentence skeleton pattern.
+     *
+     * @param string $rawPrompt The raw videoPrompt from synthesis
+     * @param array $concept Full concept array (needs 'mood', 'characters', 'setting', 'situation')
+     * @param string $aiModelTier AI model tier to use
+     * @param int $teamId Team ID for credit tracking
+     * @param string $templateId Template to use ('adaptive', 'animal-chaos')
+     * @return array ['skeletonType' => string, 'originalPrompt' => string, 'fittedPrompt' => string]
+     */
+    public function fitPromptToSkeleton(string $rawPrompt, array $concept, string $aiModelTier, int $teamId, string $templateId = 'adaptive'): array
+    {
+        $mood = strtolower($concept['mood'] ?? 'funny');
+
+        // Detect energy type from mood
+        $energyType = $this->detectEnergyType($mood, $templateId);
+
+        // Get the specific skeleton for this energy type
+        $skeletons = $this->getSkeletonTemplates($templateId);
+        $skeleton = $skeletons[$energyType] ?? $skeletons['PHYSICAL COMEDY'] ?? reset($skeletons);
+
+        $technicalRules = $this->getSeedanceTechnicalRules();
+        $example = $this->getTemplateExample($templateId);
+
+        // Build character context for the AI
+        $characterContext = '';
+        if (!empty($concept['characters'])) {
+            $chars = [];
+            foreach ($concept['characters'] as $char) {
+                $name = $char['name'] ?? 'Character';
+                $desc = $char['description'] ?? '';
+                $role = $char['role'] ?? '';
+                $chars[] = "- {$name} ({$role}): {$desc}";
+            }
+            $characterContext = "CHARACTERS:\n" . implode("\n", $chars);
+        }
+
+        $prompt = <<<PROMPT
+You are a Seedance 1.5 Pro video prompt architect. Your ONLY job is to RESTRUCTURE a raw video prompt to follow a proven skeleton template — sentence by sentence.
+
+THE RAW PROMPT TO RESTRUCTURE:
+"{$rawPrompt}"
+
+CONCEPT CONTEXT:
+- Mood: {$mood} → Energy type: {$energyType}
+- Setting: {$concept['setting']}
+- Situation: {$concept['situation']}
+{$characterContext}
+
+TARGET SKELETON — {$energyType}:
+{$skeleton}
+
+{$technicalRules}
+
+RESTRUCTURING RULES:
+1. Follow the skeleton SENTENCE BY SENTENCE. Each numbered sentence slot has a specific PURPOSE — fill each one.
+2. PRESERVE all content from the raw prompt: same characters, same setting, same actions, same scale/size.
+3. CONDENSE into 3-4 MEGA-BEATS. If the raw prompt has 6-8 micro-actions, merge related actions into bigger beats.
+4. Each mega-beat = 2-3 sentences with body part decomposition + degree words + chain reactions.
+5. Word count: 150-180 words. If the raw prompt is longer, CUT redundant actions — keep the best ones.
+6. MUST end with: "Continuous [character sounds] throughout. Cinematic, photorealistic."
+7. Apply degree words from the skeleton's tier specification. Count them — stay in range.
+8. Body part decomposition: 4-7 body parts with distinct simultaneous actions per character.
+9. Chain reactions: minimum 2 per prompt. [action] → [object reacts] → [secondary consequence].
+10. Sound descriptions: 3-5 per prompt, with degree words applied to sounds.
+11. NO appearance descriptions (fur color, clothing) — only actions, sounds, SIZE/SCALE.
+12. If the raw prompt mentions scale/size (tiny, miniature, enlarged), ALWAYS preserve it.
+13. NO semicolons, NO camera descriptions, NO background music.
+
+REFERENCE EXAMPLE (~170 words, good structure):
+{$example}
+
+Return ONLY the rewritten videoPrompt text. No JSON, no markdown, no explanation, no quotes.
+Just the prompt text, 150-180 words, following the {$energyType} skeleton structure exactly.
+PROMPT;
+
+        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            'maxResult' => 1,
+            'max_tokens' => 1000,
+        ]);
+
+        if (!empty($result['error'])) {
+            Log::warning('ConceptService: fitPromptToSkeleton AI call failed, using original', [
+                'error' => $result['error'],
+                'energyType' => $energyType,
+            ]);
+            return [
+                'skeletonType' => $energyType,
+                'originalPrompt' => $rawPrompt,
+                'fittedPrompt' => $rawPrompt,
+            ];
+        }
+
+        $fittedPrompt = trim($result['data'][0] ?? '');
+
+        // Remove any wrapping quotes the AI might add
+        if (preg_match('/^"(.*)"$/s', $fittedPrompt, $m)) {
+            $fittedPrompt = $m[1];
+        }
+        $fittedPrompt = trim($fittedPrompt, "'");
+
+        // Sanitize the fitted prompt (AI may reintroduce banned words)
+        $fittedPrompt = self::sanitizeSeedancePrompt($fittedPrompt);
+
+        // Ensure it ends with the style anchor
+        if (!str_contains($fittedPrompt, 'Cinematic, photorealistic.')) {
+            $fittedPrompt = rtrim($fittedPrompt, '. ') . '. Cinematic, photorealistic.';
+        }
+
+        Log::info('ConceptService: fitPromptToSkeleton completed', [
+            'energyType' => $energyType,
+            'originalWords' => str_word_count($rawPrompt),
+            'fittedWords' => str_word_count($fittedPrompt),
+        ]);
+
+        return [
+            'skeletonType' => $energyType,
+            'originalPrompt' => $rawPrompt,
+            'fittedPrompt' => $fittedPrompt,
+        ];
+    }
+
+    /**
+     * Detect the energy type from mood and template.
+     */
+    protected function detectEnergyType(string $mood, string $templateId = 'adaptive'): string
+    {
+        // Animal Chaos is always CHAOTIC
+        if ($templateId === 'animal-chaos') {
+            return 'CHAOTIC';
+        }
+
+        return match ($mood) {
+            'chaotic' => 'CHAOTIC',
+            'absurd' => 'PHYSICAL COMEDY',
+            'funny' => 'PHYSICAL COMEDY',
+            'wholesome' => 'GENTLE',
+            'cute' => 'GENTLE',
+            default => 'PHYSICAL COMEDY',
+        };
+    }
+
+    /**
+     * Get individual skeleton templates by energy type.
+     * These define the sentence-by-sentence structure for Seedance prompts.
+     */
+    protected function getSkeletonTemplates(string $templateId = 'adaptive'): array
+    {
+        // Animal Chaos has a single specialized skeleton
+        if ($templateId === 'animal-chaos') {
+            return [
+                'CHAOTIC' => <<<'SKELETON'
+Sentence 1 [TRIGGER]: The human says ONE short angry line (max 20 words). "The [person] says '...' while [gesture]."
+Sentence 2 [INSTANT REACTION]: "Instantly" — first mega-strike with 2-3 stacked degree words. Animal sound + first physical hit.
+Sentence 3-4 [ESCALATION]: Rapid body part decomposition. Front paws, hind legs, mouth, tail — each with distinct action + degree words. 2+ chain reactions (objects crash, items fly).
+Sentence 5-6 [PEAK LAUNCH]: Animal launches onto human with maximum force. Full-body action. Environmental destruction chain. Man recoils/collapses.
+Sentence 7 [CLOSING]: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+
+Degree words: 12-18 total. "crazy" appears 3+ times.
+Every action has 2+ combined degree words.
+The animal drives 100% of the action. Human only reacts (gasps, staggers, crashes).
+No human dialogue after the trigger line.
+SKELETON,
+            ];
+        }
+
+        return [
+            'GENTLE' => <<<'SKELETON'
+Sentence 1-2 [SETTING]: Establish setting + character in calm starting position with 2-3 named interactive objects nearby.
+Sentence 3-4 [SMALL ACTIONS]: Character performs small deliberate actions — tapping, nudging, tilting. One degree word each (quickly, fast).
+Sentence 5-6 [GENTLE CONTINUATION]: Gentle continuation with a small environmental reaction (object tips, item slides). Subtle chain reaction.
+Sentence 7 [RESOLUTION]: Warm resolution. "Continuous [gentle character sounds] throughout. Cinematic, photorealistic."
+
+Degree words: 2-4 total. Tier 1 only (quickly, fast).
+Body parts: 4-5 with gentle distinct actions.
+Sound descriptions: 2-3, soft/gentle.
+SKELETON,
+
+            'PHYSICAL COMEDY' => <<<'SKELETON'
+Sentence 1 [TRIGGER]: Setting + character + trigger moment (a line of dialogue, a situation, or a comedic setup).
+Sentence 2-3 [REACTION]: Exaggerated physical reaction with body part decomposition (4-7 parts). 1-2 degree words per action.
+Sentence 4-5 [CHAIN REACTION]: Action causes objects to move/fall/break. Stack degree words. Sound effects with degree words.
+Sentence 6-7 [PEAK + CLOSE]: Peak comedic moment + aftermath. "Continuous [character sounds] throughout. Cinematic, photorealistic."
+
+Degree words: 6-10 total. Tier 1-2 (quickly, fast, powerfully, strong, intense).
+Body parts: 4-7 with distinct simultaneous actions.
+Chain reactions: 2+ (action → object → secondary consequence).
+Sound descriptions: 3-5 with degree words applied.
+SKELETON,
+
+            'CHAOTIC' => <<<'SKELETON'
+Sentence 1 [SETUP + TRIGGER]: Setup + trigger (one short dialogue line or inciting incident).
+Sentence 2 [INSTANT STRIKE]: "Instantly" — first strike with stacked degree words (2-3 per action). First sound burst.
+Sentence 3-4 [ESCALATION]: Rapid body part actions + chain reactions. "crazy" on most actions. Objects flying/breaking.
+Sentence 5-6 [PEAK CHAOS]: Maximum destruction, all body parts active simultaneously. Environmental chain reactions.
+Sentence 7 [CLOSING]: "Continuous crazy aggressive [character] screaming throughout. Cinematic, photorealistic."
+
+Degree words: 12-18 total. Tier 3 dominant (crazy, wildly, violently, with large amplitude, at high frequency).
+Body parts: 5-7, all active simultaneously in peak.
+Chain reactions: 3+ major destruction chains.
+Sound descriptions: 4-5, all with degree words.
+SKELETON,
+
+            'RHYTHMIC' => <<<'SKELETON'
+Sentence 1-2 [ESTABLISH RHYTHM]: Establish setting + character begins rhythmic action pattern with first body parts.
+Sentence 3-4 [LAYER]: Layer additional body parts joining the rhythm (head bobs, tail sways, paws tap). Each part has its own distinct rhythm.
+Sentence 5-6 [FULL SYNC]: Full-body synchronization — all parts moving in coordinated pattern. Nearby objects vibrate/rattle from the rhythm.
+Sentence 7 [FLOURISH + CLOSE]: Camera-break moment or flourish. "Continuous [character vocalizing] throughout. Cinematic, photorealistic."
+
+Degree words: 5-8 total. Mix of Tier 1-2 (quickly, fast, powerfully, at high frequency).
+Body parts: 5-7, each joining the rhythm in sequence.
+Environmental resonance: objects respond to the rhythm.
+SKELETON,
+
+            'DRAMATIC' => <<<'SKELETON'
+Sentence 1-2 [ATMOSPHERE]: Establish atmosphere + character in a still, tense starting position. Name 2-3 objects that will be involved later.
+Sentence 3 [SMALL TELL]: Small tell — one body part moves (ear twitches, finger taps). Zero or 1 degree word.
+Sentence 4-5 [BUILD]: Build — more body parts engage, degree words increase. Objects begin to react.
+Sentence 6-7 [PAYOFF EXPLOSION]: Payoff explosion — sudden burst of stacked degree words + chain reactions. Maximum intensity.
+Sentence 8 [CLOSING]: "Continuous [sounds] throughout. Cinematic, photorealistic."
+
+Degree words: 6-12 total. Start with 0, escalate to Tier 3 at climax.
+The power comes from the CONTRAST between still tension and explosive payoff.
+SKELETON,
+        ];
+    }
 }
