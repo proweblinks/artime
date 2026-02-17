@@ -854,6 +854,31 @@
                     </div>
                 </div>
 
+                {{-- Workflow Selector (if workflows are available) --}}
+                @php
+                    $availableWorkflows = $this->getAvailableWorkflows();
+                @endphp
+                @if(count($availableWorkflows) > 0)
+                    <div style="margin-top: 0.5rem; padding: 0.4rem 0.5rem; background: rgba(30,58,95,0.3); border: 1px solid #1e3a5f; border-radius: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-diagram-project" style="color: #60a5fa; font-size: 0.75rem;"></i>
+                        <span style="font-size: 0.7rem; color: #94a3b8; white-space: nowrap;">{{ __('Workflow') }}:</span>
+                        <select style="flex: 1; font-size: 0.7rem; background: #1e293b; border: 1px solid #334155; border-radius: 0.3rem; color: #e2e8f0; padding: 0.25rem 0.4rem;"
+                                wire:model.live="activeWorkflowId"
+                                wire:change="selectWorkflow($event.target.value)">
+                            <option value="">{{ __('Direct Mode (default)') }}</option>
+                            @foreach($availableWorkflows as $wf)
+                                <option value="{{ $wf['id'] }}">{{ $wf['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @if($activeWorkflowId)
+                            <button style="font-size: 0.65rem; color: #64748b; background: none; border: none; cursor: pointer;"
+                                    wire:click="disableWorkflowMode" title="{{ __('Disable workflow mode') }}">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        @endif
+                    </div>
+                @endif
+
                 {{-- Loading Skeleton --}}
                 @if($isLoading && empty($conceptVariations))
                     <div class="vw-skeleton-grid">

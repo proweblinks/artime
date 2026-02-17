@@ -27,6 +27,9 @@ class VideoWizardDatabaseSeeder extends Seeder
             VwCameraMovementSeeder::class,    // Phase 1: 25+ camera movements
             VwSettingSeeder::class,           // Phase 1-4: All settings
             VwCoveragePatternSeeder::class,   // Phase 4: 15+ coverage patterns
+
+            // Workflow Pipeline System
+            VwWorkflowSeeder::class,          // Seedance Adaptive + Animal Chaos workflows
         ]);
     }
 }

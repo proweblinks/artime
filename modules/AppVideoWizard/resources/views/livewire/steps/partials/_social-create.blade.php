@@ -1154,6 +1154,33 @@
 
         {{-- Right: Workflow Steps --}}
         <div class="vw-social-workflow-panel">
+            {{-- Tab Switcher: Create vs Workflow Pipeline --}}
+            <div class="vw-social-tab-bar" style="display: flex; gap: 0; border-bottom: 1px solid #334155; margin-bottom: 0.5rem; padding: 0 0.5rem;">
+                <button class="vw-social-tab-btn {{ $socialCreateTab === 'create' ? 'active' : '' }}"
+                        wire:click="setSocialCreateTab('create')"
+                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'create' ? '#e2e8f0' : '#64748b' }}; border-bottom: 2px solid {{ $socialCreateTab === 'create' ? '#3b82f6' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 0.3rem;"></i> {{ __('Create') }}
+                </button>
+                <button class="vw-social-tab-btn {{ $socialCreateTab === 'workflow' ? 'active' : '' }}"
+                        wire:click="setSocialCreateTab('workflow')"
+                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'workflow' ? '#e2e8f0' : '#64748b' }}; border-bottom: 2px solid {{ $socialCreateTab === 'workflow' ? '#3b82f6' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
+                    <i class="fa-solid fa-diagram-project" style="margin-right: 0.3rem;"></i> {{ __('Workflow') }}
+                    @if($workflowExecutionSummary)
+                        @php
+                            $completedCount = collect($workflowExecutionSummary['nodes'] ?? [])->where('status', 'completed')->count();
+                            $totalCount = count($workflowExecutionSummary['nodes'] ?? []);
+                        @endphp
+                        <span style="font-size: 0.6rem; background: #1e3a5f; color: #60a5fa; padding: 0.1rem 0.35rem; border-radius: 0.5rem; margin-left: 0.3rem;">{{ $completedCount }}/{{ $totalCount }}</span>
+                    @endif
+                </button>
+            </div>
+
+            @if($socialCreateTab === 'workflow')
+                {{-- Workflow Pipeline Tab --}}
+                @include('appvideowizard::livewire.steps.partials._workflow-pipeline')
+            @else
+            {{-- Create Tab (original content) --}}
+
             {{-- Idea Summary --}}
             @if(!empty($selectedIdea))
                 <div class="vw-social-idea-summary">
@@ -1737,6 +1764,7 @@
                     </details>
                 </div>
             </div>
+            @endif {{-- End of socialCreateTab === 'create' --}}
         </div>
     </div>
 

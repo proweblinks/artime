@@ -27,6 +27,9 @@ use Modules\AppVideoWizard\Services\ExportEnhancementService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\VwUserTemplate;
+use Modules\AppVideoWizard\Models\VwWorkflow;
+use Modules\AppVideoWizard\Models\VwWorkflowExecution;
+use Modules\AppVideoWizard\Services\WorkflowEngineService;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ShotProgressionService;
 use Modules\AppVideoWizard\Services\DynamicShotEngine;
@@ -1313,6 +1316,28 @@ class VideoWizard extends Component
     // InfiniteTalk Dialogue Mode
     public bool $infiniteTalkDialogueMode = false;
     public ?string $previewEmotion = null;  // VOC-12: Emotion for voice preview
+
+    // =========================================================================
+    // WORKFLOW ENGINE STATE (Visual Pipeline System)
+    // =========================================================================
+
+    /** Whether to use workflow mode instead of direct execution */
+    public bool $useWorkflowMode = false;
+
+    /** Active workflow ID (from vw_workflows table) */
+    public ?int $activeWorkflowId = null;
+
+    /** Active workflow name for display */
+    public ?string $activeWorkflowName = null;
+
+    /** Active execution ID (from vw_workflow_executions table) */
+    public ?int $activeExecutionId = null;
+
+    /** Execution summary for the UI (nodes with status, timing, etc.) */
+    public ?array $workflowExecutionSummary = null;
+
+    /** Which tab is active in the social create right panel: 'create' or 'workflow' */
+    public string $socialCreateTab = 'create';
 
     // Location Bible Modal state
     public bool $showLocationBibleModal = false;
@@ -3405,8 +3430,13 @@ class VideoWizard extends Component
                 }
 
                 if (!$hasExistingContent) {
+                    $this->workflowTrackNode('build_script', 'running');
                     $this->autoGenerateSocialScript();
+                    $this->workflowTrackNode('build_script', 'completed');
+
+                    $this->workflowTrackNode('build_image_prompt', 'running');
                     $this->autoDecomposeSocialScene();
+                    $this->workflowTrackNode('build_image_prompt', 'completed');
                 }
                 // Mark intermediate steps as reached for data consistency
                 $this->maxReachedStep = max($this->maxReachedStep, 4);
@@ -5113,6 +5143,9 @@ PROMPT;
         $this->isLoading = true;
         $this->error = null;
 
+        // Workflow tracking: start execution if workflow mode is active
+        $this->workflowTrackNode('viral_ideas', 'running');
+
         try {
             $conceptService = app(ConceptService::class);
             $result = $conceptService->generateViralIdeas(
@@ -5137,9 +5170,14 @@ PROMPT;
                 $this->selectViralIdea(0);
             }
             $this->saveProject();
+
+            // Workflow tracking: mark viral_ideas as completed, user_select as paused
+            $this->workflowTrackNode('viral_ideas', 'completed', ['ideas' => $this->conceptVariations]);
+            $this->workflowTrackNode('user_select', 'paused');
         } catch (\Exception $e) {
             $this->error = __('Failed to generate ideas: ') . $e->getMessage();
             Log::error('VideoWizard: Viral idea generation failed', ['error' => $e->getMessage()]);
+            $this->workflowTrackNode('viral_ideas', 'failed', ['error' => $e->getMessage()]);
         } finally {
             $this->isLoading = false;
         }
@@ -5158,6 +5196,9 @@ PROMPT;
             $this->concept['refinedConcept'] = $idea['concept'] ?? '';
             $this->concept['suggestedMood'] = $idea['mood'] ?? 'funny';
             $this->concept['socialContent'] = $idea; // Store full idea data
+
+            // Workflow tracking: user selected a concept
+            $this->workflowTrackNode('user_select', 'completed', ['selected_idea' => $idea]);
         }
     }
 
@@ -11460,6 +11501,12 @@ PROMPT;
 
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+
+                // Workflow tracking: video completed
+                if ($sceneIndex === 0 && $shotIndex === 0) {
+                    $this->workflowTrackNode('generate_video', 'completed', ['video_url' => $finalVideoUrl]);
+                    $this->workflowTrackNode('poll_video', 'completed', ['video_url' => $finalVideoUrl]);
+                }
             }
             unset($this->pendingJobs[$jobKey]);
             $this->saveProject();
@@ -11469,6 +11516,11 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Generation failed';
             unset($this->pendingJobs[$jobKey]);
+
+            // Workflow tracking: video failed
+            if ($sceneIndex === 0 && $shotIndex === 0) {
+                $this->workflowTrackNode('generate_video', 'failed', ['error' => $result['error'] ?? 'Generation failed']);
+            }
             $this->saveProject();
         }
         // If queued or processing, keep polling
@@ -28439,6 +28491,11 @@ PROMPT;
         $this->isLoading = true;
         $this->error = null;
 
+        // Workflow tracking: image generation started
+        if ($sceneIndex === 0 && $shotIndex === 0) {
+            $this->workflowTrackNode('generate_image', 'running');
+        }
+
         try {
             $imageService = app(ImageGenerationService::class);
 
@@ -28488,6 +28545,11 @@ PROMPT;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $result['imageUrl'];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'ready';
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'ready';
+
+                            // Workflow tracking: image ready
+                            if ($sceneIndex === 0 && $shotIndex === 0) {
+                                $this->workflowTrackNode('generate_image', 'completed', ['image_url' => $result['imageUrl']]);
+                            }
 
                             // Auto-detect character face order for multi-character dialogue shots
                             $shotChars = $shot['charactersInShot'] ?? [];
@@ -32148,6 +32210,13 @@ PROMPT;
                 'speakingCharacter' => $shot['speakingCharacter'] ?? null,
                 'imageUrl' => substr($shot['imageUrl'] ?? '', 0, 80) . '...',
             ]);
+
+            // Workflow tracking: video generation started
+            if ($sceneIndex === 0 && $shotIndex === 0) {
+                $this->workflowTrackNode('sanitize_prompt', 'completed');
+                $this->workflowTrackNode('assemble_prompt', 'completed');
+                $this->workflowTrackNode('generate_video', 'running');
+            }
 
             // ——— Seedance fast-path: no audio needed, uses videoPrompt ———
             if ($selectedModel === 'seedance') {
@@ -37243,6 +37312,346 @@ PROMPT;
     /**
      * Render the component.
      */
+    // =========================================================================
+    // WORKFLOW ENGINE METHODS
+    // =========================================================================
+
+    /**
+     * Load available workflows for the current video engine.
+     */
+    public function getAvailableWorkflows(): array
+    {
+        if (!class_exists(VwWorkflow::class)) {
+            return [];
+        }
+
+        try {
+            $userId = auth()->id();
+            $teamId = session('current_team_id');
+
+            return VwWorkflow::active()
+                ->forEngine($this->videoEngine)
+                ->visibleTo($userId, $teamId)
+                ->get()
+                ->map(fn($w) => ['id' => $w->id, 'name' => $w->name, 'slug' => $w->slug, 'description' => $w->description])
+                ->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Select and activate a workflow.
+     */
+    public function selectWorkflow(int $workflowId): void
+    {
+        $workflow = VwWorkflow::find($workflowId);
+        if (!$workflow) {
+            return;
+        }
+
+        $this->useWorkflowMode = true;
+        $this->activeWorkflowId = $workflow->id;
+        $this->activeWorkflowName = $workflow->name;
+        $this->socialCreateTab = 'workflow';
+    }
+
+    /**
+     * Start a workflow execution for the current project.
+     */
+    public function startWorkflowExecution(array $userInputs = []): void
+    {
+        if (!$this->activeWorkflowId || !$this->projectId) {
+            return;
+        }
+
+        $workflow = VwWorkflow::find($this->activeWorkflowId);
+        $project = WizardProject::find($this->projectId);
+
+        if (!$workflow || !$project) {
+            return;
+        }
+
+        $engine = app(WorkflowEngineService::class);
+        $execution = $engine->start($workflow, $project, $userInputs);
+
+        $this->activeExecutionId = $execution->id;
+        $this->refreshWorkflowSummary();
+    }
+
+    /**
+     * Resume a paused workflow with user input.
+     */
+    public function resumeWorkflowWithInput(string $nodeId, array $result): void
+    {
+        if (!$this->activeExecutionId) {
+            return;
+        }
+
+        $execution = VwWorkflowExecution::find($this->activeExecutionId);
+        if (!$execution) {
+            return;
+        }
+
+        $engine = app(WorkflowEngineService::class);
+        $engine->resume($execution, $nodeId, $result);
+
+        $this->refreshWorkflowSummary();
+    }
+
+    /**
+     * Refresh the workflow execution summary for the UI.
+     */
+    public function refreshWorkflowSummary(): void
+    {
+        if (!$this->activeExecutionId) {
+            $this->workflowExecutionSummary = null;
+            return;
+        }
+
+        $execution = VwWorkflowExecution::find($this->activeExecutionId);
+        if (!$execution) {
+            $this->workflowExecutionSummary = null;
+            return;
+        }
+
+        $engine = app(WorkflowEngineService::class);
+        $this->workflowExecutionSummary = $engine->getExecutionSummary($execution);
+    }
+
+    /**
+     * Save edits to a workflow node (execution-level, not template).
+     */
+    public function saveWorkflowNodeEdits(string $nodeId, array $edits): void
+    {
+        if (!$this->activeExecutionId) {
+            return;
+        }
+
+        $execution = VwWorkflowExecution::find($this->activeExecutionId);
+        if (!$execution) {
+            return;
+        }
+
+        // Build the changes to apply to the node's config
+        $node = $execution->getNode($nodeId);
+        if (!$node) {
+            return;
+        }
+
+        $updatedConfig = $node['config'] ?? [];
+        foreach ($edits as $key => $value) {
+            $updatedConfig[$key] = $value;
+        }
+
+        $execution->updateNodeInSnapshot($nodeId, ['config' => $updatedConfig]);
+        $execution->save();
+
+        $this->refreshWorkflowSummary();
+    }
+
+    /**
+     * Reset a node to its original workflow template values.
+     */
+    public function resetWorkflowNode(string $nodeId): void
+    {
+        if (!$this->activeExecutionId || !$this->activeWorkflowId) {
+            return;
+        }
+
+        $execution = VwWorkflowExecution::find($this->activeExecutionId);
+        $workflow = VwWorkflow::find($this->activeWorkflowId);
+
+        if (!$execution || !$workflow) {
+            return;
+        }
+
+        // Get original node from workflow template
+        $originalNode = $workflow->getNode($nodeId);
+        if (!$originalNode) {
+            return;
+        }
+
+        $execution->updateNodeInSnapshot($nodeId, [
+            'config' => $originalNode['config'] ?? [],
+        ]);
+        $execution->save();
+
+        $this->refreshWorkflowSummary();
+    }
+
+    /**
+     * Get the full output of a completed workflow node (for the detail panel).
+     */
+    public function getWorkflowNodeOutput(string $nodeId): void
+    {
+        if (!$this->activeExecutionId) {
+            return;
+        }
+
+        $execution = VwWorkflowExecution::find($this->activeExecutionId);
+        if (!$execution) {
+            return;
+        }
+
+        $result = $execution->getNodeResult($nodeId);
+        $output = $result['output'] ?? [];
+
+        // Dispatch to the browser for display in a modal or panel
+        $this->dispatch('show-node-output', nodeId: $nodeId, output: $output);
+    }
+
+    /**
+     * Switch the social create right panel tab.
+     */
+    public function setSocialCreateTab(string $tab): void
+    {
+        $this->socialCreateTab = $tab;
+    }
+
+    /**
+     * Track a workflow node status change (shadow mode).
+     * This is called alongside existing direct-mode execution to keep
+     * the workflow visualization in sync without changing execution flow.
+     */
+    protected function workflowTrackNode(string $nodeId, string $status, array $output = []): void
+    {
+        if (!$this->useWorkflowMode || !$this->activeWorkflowId) {
+            return;
+        }
+
+        try {
+            // Ensure we have an execution record
+            if (!$this->activeExecutionId) {
+                $this->ensureWorkflowExecution();
+            }
+
+            if (!$this->activeExecutionId) {
+                return;
+            }
+
+            $execution = VwWorkflowExecution::find($this->activeExecutionId);
+            if (!$execution) {
+                return;
+            }
+
+            $existing = $execution->getNodeResult($nodeId) ?? [];
+            $now = now()->toISOString();
+
+            $nodeResult = array_merge($existing, [
+                'status' => $status,
+            ]);
+
+            if ($status === 'running' && empty($existing['started_at'])) {
+                $nodeResult['started_at'] = $now;
+            }
+
+            if ($status === 'completed') {
+                $nodeResult['completed_at'] = $now;
+                if (!empty($output)) {
+                    $nodeResult['output'] = $output;
+                }
+                // Calculate timing
+                if (!empty($existing['started_at'])) {
+                    $start = \Carbon\Carbon::parse($existing['started_at']);
+                    $nodeResult['timing'] = round($start->diffInMilliseconds(now()) / 1000, 2);
+                }
+            }
+
+            if ($status === 'failed') {
+                $nodeResult['completed_at'] = $now;
+                $nodeResult['error'] = $output['error'] ?? null;
+            }
+
+            $execution->setNodeResult($nodeId, $nodeResult);
+            $execution->current_node_id = $nodeId;
+
+            // Update execution status based on node status
+            if ($status === 'failed') {
+                $execution->status = 'failed';
+            } elseif ($status === 'paused') {
+                $execution->status = 'paused';
+            } elseif ($status === 'running') {
+                $execution->status = 'running';
+            }
+
+            // Check if all nodes completed
+            if ($status === 'completed') {
+                $allDone = true;
+                $nodes = $execution->getNodes();
+                $results = $execution->node_results ?? [];
+                foreach ($nodes as $n) {
+                    if (!isset($results[$n['id']]) || ($results[$n['id']]['status'] ?? '') !== 'completed') {
+                        $allDone = false;
+                        break;
+                    }
+                }
+                if ($allDone) {
+                    $execution->status = 'completed';
+                    $execution->completed_at = now();
+                }
+            }
+
+            $execution->save();
+            $this->refreshWorkflowSummary();
+        } catch (\Throwable $e) {
+            Log::warning("[WorkflowTrack] Failed to track node '{$nodeId}': {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * Ensure a workflow execution record exists for the current project.
+     */
+    protected function ensureWorkflowExecution(): void
+    {
+        if ($this->activeExecutionId) {
+            return;
+        }
+
+        if (!$this->activeWorkflowId || !$this->projectId) {
+            return;
+        }
+
+        $workflow = VwWorkflow::find($this->activeWorkflowId);
+        $project = WizardProject::find($this->projectId);
+
+        if (!$workflow || !$project) {
+            return;
+        }
+
+        $execution = VwWorkflowExecution::create([
+            'workflow_id' => $workflow->id,
+            'project_id' => $project->id,
+            'status' => 'running',
+            'data_bus' => [
+                'user_input' => [
+                    'theme' => $this->concept['rawInput'] ?? '',
+                    'chaos_level' => $this->chaosLevel,
+                    'production_subtype' => $this->productionSubtype ?? 'viral',
+                    'video_engine' => $this->videoEngine,
+                    'template' => $this->cloneTemplate ?? 'adaptive',
+                ],
+            ],
+            'node_results' => [],
+            'started_at' => now(),
+        ]);
+
+        $this->activeExecutionId = $execution->id;
+    }
+
+    /**
+     * Disable workflow mode and return to direct execution.
+     */
+    public function disableWorkflowMode(): void
+    {
+        $this->useWorkflowMode = false;
+        $this->activeWorkflowId = null;
+        $this->activeWorkflowName = null;
+        $this->activeExecutionId = null;
+        $this->workflowExecutionSummary = null;
+        $this->socialCreateTab = 'create';
+    }
+
     public function render()
     {
         return view('appvideowizard::livewire.video-wizard', [
