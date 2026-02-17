@@ -3157,6 +3157,46 @@ class VideoWizard extends Component
                 $this->videoEngine = $config['videoEngine'];
             }
 
+            // Restore workflow engine state (persists across page refresh)
+            if (isset($config['workflow'])) {
+                $wf = $config['workflow'];
+                $this->useWorkflowMode = $wf['useWorkflowMode'] ?? false;
+                $this->activeWorkflowId = $wf['activeWorkflowId'] ?? null;
+                $this->activeWorkflowName = $wf['activeWorkflowName'] ?? null;
+                $this->activeExecutionId = $wf['activeExecutionId'] ?? null;
+                $this->workflowExecutionSummary = $wf['workflowExecutionSummary'] ?? null;
+                $this->socialCreateTab = $wf['socialCreateTab'] ?? 'create';
+                $this->activeWorkflowMode = $wf['activeWorkflowMode'] ?? 'generate';
+                $this->cloneTemplate = $wf['cloneTemplate'] ?? 'adaptive';
+            } else {
+                // Legacy project: reconstruct workflow state from VwWorkflowExecution records
+                $latestExecution = VwWorkflowExecution::forProject($project->id)
+                    ->latest()
+                    ->first();
+                if ($latestExecution) {
+                    $this->activeExecutionId = $latestExecution->id;
+                    $this->activeWorkflowId = $latestExecution->workflow_id;
+                    $this->useWorkflowMode = true;
+                    $this->socialCreateTab = 'workflow';
+
+                    $workflow = $latestExecution->workflow;
+                    if ($workflow) {
+                        $this->activeWorkflowName = $workflow->name;
+                        $this->activeWorkflowMode = $workflow->defaults['mode'] ?? 'generate';
+                        if (str_contains($workflow->slug ?? '', 'animal-chaos')) {
+                            $this->cloneTemplate = 'animal-chaos';
+                        } else {
+                            $this->cloneTemplate = 'adaptive';
+                        }
+                    }
+                }
+            }
+
+            // Refresh workflow execution summary from DB (always fresher than cached)
+            if ($this->activeExecutionId) {
+                $this->refreshWorkflowSummary();
+            }
+
             // Migrate legacy characterIntelligence data if needed (Phase 1.5)
             if (!($this->characterIntelligence['migrated'] ?? false)) {
                 $this->migrateCharacterIntelligence();
@@ -3207,6 +3247,10 @@ class VideoWizard extends Component
             'production' => $this->production,
             'content' => $this->content,
             'characterPortraitsGenerated' => $this->characterPortraitsGenerated, // PHASE 3
+            'workflowState' => [
+                $this->useWorkflowMode, $this->activeWorkflowId, $this->activeWorkflowMode,
+                $this->socialCreateTab, $this->cloneTemplate,
+            ],
         ];
 
         return md5(json_encode($data));
@@ -3344,6 +3388,17 @@ class VideoWizard extends Component
                     'characterPortraitsGenerated' => $this->characterPortraitsGenerated,
                     // Social content video engine
                     'videoEngine' => $this->videoEngine,
+                    // Workflow engine state (persists across page refresh)
+                    'workflow' => [
+                        'useWorkflowMode' => $this->useWorkflowMode,
+                        'activeWorkflowId' => $this->activeWorkflowId,
+                        'activeWorkflowName' => $this->activeWorkflowName,
+                        'activeExecutionId' => $this->activeExecutionId,
+                        'workflowExecutionSummary' => $this->workflowExecutionSummary,
+                        'socialCreateTab' => $this->socialCreateTab,
+                        'activeWorkflowMode' => $this->activeWorkflowMode,
+                        'cloneTemplate' => $this->cloneTemplate,
+                    ],
                 ],
             ];
 
@@ -33581,34 +33636,35 @@ PROMPT;
         return <<<PROMPT
 You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
 
-ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
-Study it carefully — character positions, body posture, what they're holding, the environment.
+=== SECTION 1 — FRAME ANALYSIS (HIGHEST PRIORITY) ===
 
-ORIGINAL CONCEPT: {$concept}
-NARRATION: {$narration}
+You are looking at the EXACT frame this video continues from (captured at {$timestamp}s).
+Before writing ANYTHING, you MUST answer these 5 questions by studying the frame:
 
-{$narrativeContext}
+1. What is the character's EXACT body position right now? (sitting, standing, leaning, lying down, mid-motion?)
+2. What are their hands doing / holding? (empty, gripping something, reaching, resting?)
+3. What is their mouth/face doing? (open, closed, chewing, neutral, turned to side?)
+4. What objects are within arm's reach or in contact with the character?
+5. What has CHANGED compared to what the text context below describes?
 
-=== NEUTRAL CONTINUATION RULES ===
+The frame is TRUTH. Everything described below in text may be OUTDATED — it describes earlier moments.
+If the frame shows the baby holding a shawarma, but the text says "drinking soda" — TRUST THE FRAME.
+Your continuation MUST start from what the frame ACTUALLY shows, not from what the text describes.
 
-This is a CLONE workflow — the continuation must match the SAME tone, energy, and style
-as the original video. Do NOT escalate, do NOT add violence, do NOT change the character's behavior.
-
-CRITICAL — MATCH THE ORIGINAL ENERGY:
-- Study the original prompt above. If the character was calm and gentle, the continuation stays calm and gentle.
-- If the character was eating, they continue eating or do the NEXT natural thing.
-- If the character was talking softly, they continue at the same volume.
-- NEVER inject aggression, destruction, screaming, or chaos into a calm/gentle video.
-- The continuation is what would NATURALLY happen next in this scene.
+=== SECTION 2 — SEEDANCE TECHNICAL RULES + STRUCTURE ===
 
 WORD COUNT: 100-130 words. Concise and action-focused.
 
 STRUCTURE (flexible, NOT rigid):
-1. Re-establish the character in their current position from the frame.
-2. Continue the NATURAL next action (what would logically happen next in this scene).
-3. Add 1-2 secondary actions (small natural movements, interactions with nearby objects).
+1. Re-establish the character in their ACTUAL position from the frame (not from text context).
+2. Continue the NATURAL next action based on what the frame shows happening.
+3. Add 1-2 secondary actions (small natural movements, interactions with nearby objects visible in the frame).
 4. Include appropriate sounds matching the original energy level (soft sounds for calm videos, louder for energetic ones).
 5. End with "Cinematic, photorealistic."
+
+This is a CLONE workflow — the continuation must match the SAME tone, energy, and style
+as the original video. Do NOT escalate, do NOT add violence, do NOT change the character's behavior.
+The continuation is what would NATURALLY happen next from the frame's current state.
 
 SEEDANCE 1.5 TECHNICAL RULES:
 - Use ONLY official degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly
@@ -33631,11 +33687,21 @@ ABSOLUTELY BANNED IN NEUTRAL MODE:
 - Forced escalation — do NOT make things more intense than the original
 - Chain reactions, flying objects, things breaking (unless it happened in the original)
 - "Continuous crazy aggressive screaming throughout" — this is for chaos videos ONLY
-- Any behavior that contradicts the original video's character
+- Any behavior that contradicts what the frame actually shows
 
 STYLE ANCHOR — end with: "Cinematic, photorealistic."
 Do NOT include any face/clothing prefix ("Maintain face...") — the source image defines the face.
 Do NOT describe the scene or setting — the source image shows it. Start with the first action.
+
+=== SECTION 3 — BACKGROUND CONTEXT (LOWEST PRIORITY — the frame overrides all of this) ===
+
+The following is background context. It may describe EARLIER moments that have already passed.
+DO NOT repeat actions from this context. Describe what happens NEXT based on the frame.
+
+ORIGINAL CONCEPT: {$concept}
+NARRATION: {$narration}
+
+{$narrativeContext}
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
@@ -33681,31 +33747,41 @@ CB;
         return <<<PROMPT
 You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
 
-ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
-Study it carefully — character positions, body posture, facial expressions, the environment, nearby objects.
+=== SECTION 1 — FRAME ANALYSIS (HIGHEST PRIORITY) ===
 
-ORIGINAL CONCEPT: {$concept}
-NARRATION: {$narration}
+You are looking at the EXACT frame this video continues from (captured at {$timestamp}s).
+Before writing ANYTHING, you MUST answer these 6 questions by studying the frame:
 
-{$narrativeContext}
+1. What is the character's EXACT body position right now? (sitting, standing, leaning, clinging, mid-leap?)
+2. What are their hands/paws doing? (gripping, swiping, resting, mid-swing?)
+3. What is their mouth/face doing? (open yowling, closed, biting, turned away?)
+4. What objects are within reach or in contact with the character?
+5. What has CHANGED compared to what the text context below describes?
+6. What objects nearby are UNTOUCHED — potential chaos targets for destruction?
+
+The frame is TRUTH. Everything described below in text may be OUTDATED — it describes earlier moments.
+If the frame shows the cat on the floor, but the text says "clinging to chest" — TRUST THE FRAME.
+Your continuation MUST start from what the frame ACTUALLY shows, not from what the text describes.
+
+=== SECTION 2 — CHAOS DIRECTION ===
 {$chaosBlock}
 
-=== SEEDANCE CONTINUATION PROMPT RULES ===
+{$intensityBlock}
+
+=== SECTION 3 — SEEDANCE RULES + 7-SENTENCE STRUCTURE ===
 
 WORD COUNT: 150-190 words. Concise and dense with action — no filler.
-
-{$intensityBlock}
 
 The continuation starts mid-action — no setup, no trigger, no dialogue. Action from the first word.
 
 MANDATORY SENTENCE STRUCTURE (follow this EXACTLY — 7 sentences):
-Sentence 1: [Animal type] [sound with degree word], [body position from frame]. (RE-ESTABLISH — NO clothing, NO emotional adjectives)
+Sentence 1: [Animal type] [sound with degree word], [body position FROM THE FRAME — describe what you SEE]. (RE-ESTABLISH — NO clothing, NO emotional adjectives)
    GOOD: "The orange tabby cat shrieks a crazy yowl, its head pressing powerfully against the man's shoulder."
    BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter."
 Sentence 2: "Its [body part A] [action] [degree words], [body part B] [simultaneous action] [degree words]." (BODY PARTS — 2 parts per sentence)
 Sentence 3: "Simultaneously, its [body part C] [action] [degree words], [sound description]." (MORE BODY PARTS + SOUND)
 Sentence 4: "[Other character] [physical reaction] [degree words], [impact sound]." (REACTION — body language only, no emotions)
-Sentence 5: "The [animal]'s [body part D] [action hitting specific object], [chain reaction consequence]." (CHAIN REACTION 1)
+Sentence 5: "The [animal]'s [body part D] [action hitting specific object visible in frame], [chain reaction consequence]." (CHAIN REACTION 1)
 Sentence 6: "[Bigger chain reaction from sentence 5 impact], [another object destroyed with sound]." (CHAIN REACTION 2 — ESCALATION)
 Sentence 7: "[Resolution — character flees/leaps away/collapses]. Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic." (MANDATORY ENDING)
 
@@ -33766,6 +33842,16 @@ STYLE ANCHOR — end with: "Continuous crazy aggressive [animal] screaming throu
 
 EXAMPLE — COMPLIANT 7-SENTENCE CONTINUATION PROMPT (~170 words):
 "The orange tabby cat shrieks a crazy intense yowl, its body clinging to the man's torso. Its front paws slam powerfully into the man's chest, claws digging in strong as its head thrashes with large amplitude. Simultaneously, its hind legs kick wildly at high frequency against the man's midsection, a crazy loud hiss echoing out. The man stumbles backward fast, hands thrown up defensively, body twisting with large amplitude as a sharp gasp escapes. The cat's rigid tail whips violently, striking a metal display rack with a sharp crack, sending four packaged pastries crashing to the floor. The toppling rack slams into a shelf of ceramic mugs strong, two mugs shattering on the tiled floor with a loud crash, dark liquid spraying wildly across the surface. The cat leaps fast to the ground, lands strong, and sprints wildly behind the counter as the man collapses powerfully onto one knee. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+
+=== SECTION 4 — BACKGROUND CONTEXT (LOWEST PRIORITY — the frame overrides all of this) ===
+
+The following is background context. It may describe EARLIER moments that have already passed.
+DO NOT repeat actions from this context. Describe what happens NEXT based on the frame.
+
+ORIGINAL CONCEPT: {$concept}
+NARRATION: {$narration}
+
+{$narrativeContext}
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
@@ -34051,7 +34137,7 @@ PROMPT;
         }
 
         $parts = [];
-        $parts[] = '=== STORY SO FAR (DO NOT REPEAT THESE — CONTINUE FROM WHERE THEY END) ===';
+        $parts[] = '=== PREVIOUS PROMPTS (the frame shows the CURRENT state — these are HISTORY) ===';
         $parts[] = '';
 
         // Word budget: for chains with 3+ segments, summarize early ones
@@ -34084,7 +34170,7 @@ PROMPT;
             }
         }
 
-        $parts[] = "=== THIS IS EXTENSION {$extensionNumber} — CONTINUE THE STORY ===";
+        $parts[] = "=== THIS IS EXTENSION {$extensionNumber} — DESCRIBE WHAT HAPPENS NEXT FROM THE FRAME ===";
         $parts[] = '';
 
         // Anti-repetition rules (critical for multi-extension coherence)
@@ -34093,6 +34179,7 @@ PROMPT;
         $parts[] = '- NEVER destroy the same object twice. If a "coffee cup shattered" in segment 2, it is already broken.';
         $parts[] = '- Each extension must introduce NEW objects, NEW body-part combinations, and NEW chain reactions.';
         $parts[] = '- Reference the AFTERMATH of previous segments: if something was broken, it is now debris on the floor.';
+        $parts[] = '- The FRAME shows the current state. If a previous segment described "grabbing a cup" but the frame shows empty hands — the cup has been put down.';
         $parts[] = '- The story ESCALATES — each extension is MORE intense than the last.';
         if ($extensionNumber >= 3) {
             $parts[] = '- The environment should show CUMULATIVE damage (broken items, scattered debris, knocked-over furniture).';
@@ -34284,6 +34371,11 @@ PROMPT;
                     'narration' => $narration,
                     'intensity' => $this->extendMode['intensity'] ?? 50,
                     'chaosDirection' => $this->extendMode['chaosDirection'] ?? '',
+                    'workflowMode' => $this->activeWorkflowMode ?? '',
+                    'cloneTemplate' => $this->cloneTemplate ?? 'adaptive',
+                    'narrativeChain' => $this->buildNarrativeChain($shot),
+                    'extensionNumber' => count(array_filter($segments, fn($s) => ($s['type'] ?? '') === 'extension')) + 1,
+                    'chaosMode' => $this->extendMode['chaosMode'] ?? false,
                 ]
             );
 
