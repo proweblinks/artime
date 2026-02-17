@@ -859,6 +859,15 @@ RULES;
             '/\btightly\b/i' => 'strong',
             '/\bbriefly\b/i' => 'fast',
             '/\bcrazily\b/i' => 'crazy',
+            '/\bfirmly\b/i' => 'strong',
+            '/\bslightly\b/i' => '',
+            '/\bsuddenly\b/i' => 'fast',
+            '/\bimmediately\b/i' => 'fast',
+            '/\bsubtle\b/i' => '',
+            '/\bexaggerated\b/i' => 'intense',
+            '/\bcontentedly\b/i' => '',
+            '/\bdeliberately\b/i' => 'powerfully',
+            '/\bsoft\b/i' => '',
             '/\bviolently\s+and\s+violently\b/i' => 'violently',
         ];
 
@@ -901,9 +910,41 @@ RULES;
             '/\bfeisty\s+/i' => '',
             '/\bangry\s+/i' => '',
             '/\banxious\s+/i' => '',
+            '/\bmischievous\s+/i' => '',
+            '/\bsatisfied\s+/i' => '',
+            '/\bplayful\s+/i' => '',
+            '/\bjoyful\s+/i' => '',
+            '/\bserene\s+/i' => '',
+            '/\bdelighted\s+/i' => '',
+            '/\bsmug\s+/i' => '',
+            '/\bgleeful\s+/i' => '',
+            '/\bcontented\s+/i' => '',
         ];
 
         foreach ($emotionalAdjectives as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 3b: Remove/fix banned facial expression descriptions
+        // Seedance preserves faces best when prompt focuses on BODY MOTION, not facial micro-expressions
+        $facialPatterns = [
+            // "eyes crinkling/widening/narrowing [words]" — facial micro-expression
+            '/\beyes\s+(?:crinkling|widening|narrowing|squinting|twinkling|sparkling|gleaming|glinting)\s+\w*/i' => '',
+            // "mouth curves/twists/forms into [adj] smile/grin/frown"
+            '/\bmouth\s+(?:curves|twists|forms|breaks)\s+into\s+(?:\w+\s+){0,2}(?:smile|grin|frown|smirk)/i' => '',
+            // "eyes lock on [target] with [emotional] glint/gleam/look"
+            '/\beyes\s+lock\s+on\s+[^,.]*(?:glint|gleam|look|gaze|stare)\b/i' => '',
+            // "brow furrowing/furrowed"
+            '/\bbrows?\s+(?:furrowing|furrowed|knitting|knitted|raised|raising)\b/i' => '',
+            // "jaw clenching/clenched/dropping"
+            '/\bjaws?\s+(?:clenching|clenched|dropping|dropped|setting|set)\b/i' => '',
+            // "in amusement/delight/horror/disgust"
+            '/\bin\s+(?:amusement|delight|horror|disgust|surprise|wonder|disbelief|shock)\b/i' => '',
+            // "with a [adj] glint/grin/smirk"
+            '/\bwith\s+(?:a\s+)?(?:\w+\s+)?(?:glint|grin|smirk|sneer)\b/i' => '',
+        ];
+
+        foreach ($facialPatterns as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
 
