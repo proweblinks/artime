@@ -693,7 +693,7 @@
     .vw-save-template-confirm:hover { background: rgba(139, 92, 246, 0.5); }
 </style>
 
-<div class="vw-social-concept" x-data="{ viralTheme: '', activeTab: 'generate', chaosLevel: @entangle('chaosLevel'), chaosDesc: @entangle('chaosDescription') }">
+<div class="vw-social-concept" x-data="{ viralTheme: '' }">
     <div class="vw-concept-card">
         {{-- Error Message --}}
         @if($error)
@@ -733,38 +733,149 @@
             </div>
         </div>
 
-        {{-- Source Tabs: AI Generate vs Clone Video --}}
-        <div class="vw-source-tabs">
-            <div class="vw-tab-row">
-                <button class="vw-tab-btn" :class="{ 'active': activeTab === 'generate' }"
-                        @click="activeTab = 'generate'">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    {{ __('AI Generate') }}
-                </button>
-                <button class="vw-tab-btn" :class="{ 'active': activeTab === 'clone' }"
-                        @click="activeTab = 'clone'">
-                    <i class="fa-solid fa-clone"></i>
-                    {{ __('Clone Video') }}
+        {{-- ========================== Workflow Selector (Primary Control) ========================== --}}
+        @php
+            $availableWorkflows = $this->getAvailableWorkflows();
+        @endphp
+        <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-diagram-project" style="color: #a78bfa; font-size: 0.85rem;"></i>
+                <span style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1;">{{ __('Workflow') }}</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                @foreach($availableWorkflows as $wf)
+                    <button type="button"
+                        style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1.5px solid {{ $activeWorkflowId == $wf['id'] ? 'rgba(139, 92, 246, 0.6)' : 'rgba(100, 100, 140, 0.25)' }}; background: {{ $activeWorkflowId == $wf['id'] ? 'rgba(139, 92, 246, 0.2)' : 'rgba(15, 15, 30, 0.6)' }}; color: {{ $activeWorkflowId == $wf['id'] ? '#e2e8f0' : '#94a3b8' }};"
+                        wire:click="selectWorkflow({{ $wf['id'] }})">
+                        @if(($wf['mode'] ?? 'generate') === 'clone')
+                            <i class="fa-solid fa-clone"></i>
+                        @else
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        @endif
+                        {{ $wf['name'] }}
+                    </button>
+                @endforeach
+            </div>
+            @if($activeWorkflowName)
+                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b; font-style: italic;">
+                    @foreach($availableWorkflows as $wf)
+                        @if($activeWorkflowId == $wf['id'])
+                            {{ $wf['description'] }}
+                        @endif
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- ========================== Generate Mode ========================== --}}
+        @if($activeWorkflowMode !== 'clone')
+            {{-- Theme Input + Generate Button --}}
+            <div class="vw-theme-input-row">
+                <input type="text"
+                       class="vw-theme-input"
+                       x-model="viralTheme"
+                       placeholder="{{ __('Describe a theme (e.g., cats, cooking, gym life) or leave blank for random ideas...') }}"
+                       @keydown.enter="$wire.generateViralIdeas(viralTheme)" />
+                <button class="vw-generate-viral-btn"
+                        wire:click="generateViralIdeas(viralTheme)"
+                        x-on:click="$wire.generateViralIdeas(viralTheme)"
+                        wire:loading.attr="disabled"
+                        @if($isLoading) disabled @endif>
+                    <span wire:loading.remove wire:target="generateViralIdeas">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        {{ __('Generate Viral Ideas') }}
+                    </span>
+                    <span wire:loading wire:target="generateViralIdeas">
+                        <span class="vw-loading-inner"></span>
+                        {{ __('Generating...') }}
+                    </span>
                 </button>
             </div>
 
-            {{-- ========================== AI Generate Tab ========================== --}}
-            <div x-show="activeTab === 'generate'" x-cloak>
-                {{-- Theme Input + Generate Button --}}
-                <div class="vw-theme-input-row">
-                    <input type="text"
-                           class="vw-theme-input"
-                           x-model="viralTheme"
-                           placeholder="{{ __('Describe a theme (e.g., cats, cooking, gym life) or leave blank for random ideas...') }}"
-                           @keydown.enter="$wire.generateViralIdeas(viralTheme)" />
-                    <button class="vw-generate-viral-btn"
+            {{-- Loading Skeleton --}}
+            @if($isLoading && empty($conceptVariations))
+                <div class="vw-skeleton-grid">
+                    @for($i = 0; $i < 6; $i++)
+                        <div class="vw-skeleton-card">
+                            <div class="vw-skeleton-line title"></div>
+                            <div class="vw-skeleton-line medium"></div>
+                            <div class="vw-skeleton-line"></div>
+                            <div class="vw-skeleton-line short"></div>
+                        </div>
+                    @endfor
+                </div>
+            @endif
+
+            {{-- Idea Cards Grid --}}
+            @if(!empty($conceptVariations))
+                <div class="vw-ideas-grid">
+                    @foreach($conceptVariations as $index => $idea)
+                        <div class="vw-idea-card {{ $selectedConceptIndex === $index ? 'selected' : '' }}"
+                             wire:click="selectViralIdea({{ $index }})">
+                            <div class="vw-idea-title">
+                                {{ $idea['title'] ?? 'Untitled' }}
+                            </div>
+                            <div class="vw-idea-character">
+                                @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['characters']))
+                                    @foreach($idea['characters'] as $ci => $char)
+                                        {{ $char['name'] ?? '' }}{{ $ci < count($idea['characters']) - 1 ? ' vs ' : '' }}
+                                    @endforeach
+                                    &mdash; {{ $idea['situation'] ?? '' }}
+                                @else
+                                    {{ $idea['character'] ?? '' }} &mdash; {{ $idea['situation'] ?? '' }}
+                                @endif
+                            </div>
+                            <div class="vw-idea-badges">
+                                @if(($idea['source'] ?? '') === 'cloned')
+                                    <span class="vw-idea-badge source-cloned">
+                                        <i class="fa-solid fa-clone"></i> Cloned
+                                    </span>
+                                @endif
+                                @if(($idea['speechType'] ?? '') === 'dialogue')
+                                    <span class="vw-idea-badge audio-voice">
+                                        <i class="fa-solid fa-comments"></i> Dialogue
+                                    </span>
+                                @elseif(($idea['audioType'] ?? '') === 'music-lipsync')
+                                    <span class="vw-idea-badge audio-music">
+                                        <i class="fa-solid fa-music"></i> Music Lip-Sync
+                                    </span>
+                                @else
+                                    <span class="vw-idea-badge audio-voice">
+                                        <i class="fa-solid fa-microphone"></i> Monologue
+                                    </span>
+                                @endif
+                                @php $mood = strtolower($idea['mood'] ?? 'funny'); @endphp
+                                <span class="vw-idea-badge mood-{{ $mood }}">
+                                    {{ ucfirst($mood) }}
+                                </span>
+                            </div>
+                            @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['dialogueLines']))
+                                <div class="vw-idea-desc" style="font-size: 0.8rem;">
+                                    @foreach(array_slice($idea['dialogueLines'], 0, 3) as $line)
+                                        <div style="margin-bottom: 0.2rem;"><strong>{{ $line['speaker'] ?? '' }}:</strong> "{{ $line['text'] ?? '' }}"</div>
+                                    @endforeach
+                                    @if(count($idea['dialogueLines']) > 3)
+                                        <div style="color: #64748b;">+ {{ count($idea['dialogueLines']) - 3 }} more...</div>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="vw-idea-desc">{{ $idea['audioDescription'] ?? '' }}</div>
+                            @endif
+                            <div class="vw-idea-hook">{{ $idea['viralHook'] ?? '' }}</div>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Regenerate Ideas Button --}}
+                <div style="display: flex; justify-content: center;">
+                    <button class="vw-generate-more-btn"
                             wire:click="generateViralIdeas(viralTheme)"
                             x-on:click="$wire.generateViralIdeas(viralTheme)"
                             wire:loading.attr="disabled"
                             @if($isLoading) disabled @endif>
                         <span wire:loading.remove wire:target="generateViralIdeas">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            {{ __('Generate Viral Ideas') }}
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            {{ __('Regenerate Ideas') }}
                         </span>
                         <span wire:loading wire:target="generateViralIdeas">
                             <span class="vw-loading-inner"></span>
@@ -773,522 +884,233 @@
                     </button>
                 </div>
 
-                {{-- Chaos Controls: Intensity Slider + Custom Description --}}
-                <div class="vw-chaos-controls">
-                    <div class="vw-chaos-row">
-                        <span class="vw-chaos-label"><i class="fa-solid fa-fire"></i> {{ __('Chaos') }}</span>
-                        <input type="range" min="0" max="100" step="5"
-                               x-model.number="chaosLevel"
-                               class="vw-chaos-slider" />
-                        <span class="vw-chaos-badge"
-                              :class="{
-                                  'calm': chaosLevel <= 20,
-                                  'rising': chaosLevel > 20 && chaosLevel <= 45,
-                                  'intense': chaosLevel > 45 && chaosLevel <= 65,
-                                  'wild': chaosLevel > 65 && chaosLevel <= 85,
-                                  'chaos': chaosLevel > 85
-                              }"
-                              x-text="chaosLevel <= 20 ? 'Calm' : chaosLevel <= 45 ? 'Rising' : chaosLevel <= 65 ? 'Intense' : chaosLevel <= 85 ? 'Wild' : 'Chaos'">
+                {{-- Save as Template --}}
+                @php
+                    $selectedIdea = $conceptVariations[$selectedConceptIndex ?? 0] ?? [];
+                @endphp
+                @if(!empty($selectedIdea['videoPrompt']))
+                    <div x-data="{ showSaveForm: false, tplName: '', tplDesc: '', tplShared: false }" class="vw-save-template-wrap">
+                        <button @click="showSaveForm = !showSaveForm" class="vw-save-template-btn" type="button">
+                            <i class="fa-solid fa-bookmark"></i> {{ __('Save as Template') }}
+                        </button>
+
+                        <div x-show="showSaveForm" x-cloak class="vw-save-template-form">
+                            <input type="text" x-model="tplName" placeholder="{{ __('Template name...') }}"
+                                   class="vw-save-template-input" maxlength="100" />
+                            <input type="text" x-model="tplDesc" placeholder="{{ __('Description (optional)...') }}"
+                                   class="vw-save-template-input" maxlength="255" />
+                            <label class="vw-save-template-toggle">
+                                <input type="checkbox" x-model="tplShared" />
+                                <span>{{ __('Share with team') }}</span>
+                            </label>
+                            <button @click="if(tplName.trim()) { $wire.saveAsTemplate(tplName.trim(), tplDesc.trim(), tplShared); showSaveForm = false; tplName = ''; tplDesc = ''; tplShared = false; }"
+                                    class="vw-save-template-confirm" type="button">
+                                <i class="fa-solid fa-check"></i> {{ __('Save') }}
+                            </button>
+                        </div>
+                    </div>
+                @endif
+            @endif
+        @endif
+
+        {{-- ========================== Clone Mode ========================== --}}
+        @if($activeWorkflowMode === 'clone')
+            <div class="vw-clone-zone"
+                 x-data="{ isDragging: false, cloneMode: 'url' }">
+
+                {{-- Clone Mode Toggle: Upload / Paste URL --}}
+                <div class="vw-clone-toggle">
+                    <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'url' }"
+                            @click="cloneMode = 'url'; $wire.set('videoAnalysisError', null)">
+                        <i class="fa-solid fa-link"></i> {{ __('Paste URL') }}
+                    </button>
+                    <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'upload' }"
+                            @click="cloneMode = 'upload'; $wire.set('videoAnalysisError', null)">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> {{ __('Upload File') }}
+                    </button>
+                </div>
+
+                {{-- ========= URL Mode ========= --}}
+                <div x-show="cloneMode === 'url'" x-cloak>
+                    <div class="vw-url-import-box">
+                        <div class="vw-url-input-row">
+                            <div class="vw-url-input-wrap">
+                                <i class="fa-solid fa-link vw-url-input-icon"></i>
+                                <input type="url"
+                                       wire:model.defer="conceptVideoUrl"
+                                       class="vw-url-input"
+                                       placeholder="{{ __('Paste video URL here...') }}"
+                                       @keydown.enter="$wire.analyzeVideoFromUrl()" />
+                            </div>
+                            <button class="vw-url-analyze-btn"
+                                    wire:click="analyzeVideoFromUrl"
+                                    wire:loading.attr="disabled"
+                                    wire:target="analyzeVideoFromUrl"
+                                    @if($urlDownloadStage || $videoAnalysisStage) disabled @endif>
+                                <span wire:loading.remove wire:target="analyzeVideoFromUrl">
+                                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                    {{ __('Analyze') }}
+                                </span>
+                                <span wire:loading wire:target="analyzeVideoFromUrl" style="display: none;">
+                                    <span class="vw-loading-inner"></span>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="vw-url-platforms">
+                            <i class="fa-brands fa-youtube"></i>
+                            <i class="fa-brands fa-instagram"></i>
+                            <i class="fa-brands fa-tiktok"></i>
+                            <i class="fa-brands fa-x-twitter"></i>
+                            <i class="fa-brands fa-facebook"></i>
+                            <span>{{ __('& 1000+ platforms') }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ========= Upload Mode ========= --}}
+                <div x-show="cloneMode === 'upload'" x-cloak>
+                    <div class="vw-upload-dropzone"
+                         :class="{ 'dragging': isDragging }"
+                         @dragover.prevent="isDragging = true"
+                         @dragleave.prevent="isDragging = false"
+                         @drop.prevent="isDragging = false; let fi = $el.querySelector('input[type=file]'); fi.files = $event.dataTransfer.files; fi.dispatchEvent(new Event('change'))"
+                         @click="$el.querySelector('input[type=file]').click()">
+
+                        @if($conceptVideoUpload)
+                            <video class="vw-video-preview" controls onclick="event.stopPropagation()">
+                                <source src="{{ $conceptVideoUpload->temporaryUrl() }}" type="{{ $conceptVideoUpload->getMimeType() }}">
+                            </video>
+                            <div>
+                                <button class="vw-remove-video"
+                                        wire:click="$set('conceptVideoUpload', null)"
+                                        onclick="event.stopPropagation()">
+                                    <i class="fa-solid fa-trash-can"></i> {{ __('Remove') }}
+                                </button>
+                            </div>
+                        @else
+                            <div class="vw-dropzone-content">
+                                <div class="vw-dropzone-icon"><i class="fa-solid fa-video"></i></div>
+                                <p>{{ __('Drop a short video here or click to upload') }}</p>
+                                <small>{{ __('MP4, MOV, WebM up to 100MB') }}</small>
+                            </div>
+                        @endif
+
+                        <input type="file"
+                               x-ref="videoInput"
+                               wire:model="conceptVideoUpload"
+                               accept="video/mp4,video/quicktime,video/webm,video/x-msvideo"
+                               style="display: none;" />
+                    </div>
+
+                    @if(!$conceptVideoUpload && !$videoAnalysisResult)
+                        <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress" style="display: none;">
+                            <div class="vw-progress-spinner"></div>
+                            <span>{{ __('Uploading video...') }}</span>
+                        </div>
+                    @endif
+
+                    @if($conceptVideoUpload && !$videoAnalysisStage)
+                        <button class="vw-analyze-btn"
+                                wire:click="analyzeUploadedVideo"
+                                wire:loading.attr="disabled"
+                                wire:target="analyzeUploadedVideo">
+                            <span wire:loading.remove wire:target="analyzeUploadedVideo">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                {{ __('Analyze & Clone Concept') }}
+                            </span>
+                            <span wire:loading wire:target="analyzeUploadedVideo" style="display: none;">
+                                <div class="vw-progress-spinner" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:8px;"></div>
+                                {{ __('Analyzing video...') }}
+                            </span>
+                        </button>
+                    @endif
+                </div>
+
+                {{-- ========= Shared: Progress / Error / Result ========= --}}
+
+                {{-- Download Progress (URL mode) --}}
+                @if($urlDownloadStage === 'downloading')
+                    <div class="vw-analysis-progress">
+                        <div class="vw-progress-spinner"></div>
+                        <span><i class="fa-solid fa-download" style="margin-right: 0.3rem;"></i> {{ __('Downloading video from URL...') }}</span>
+                    </div>
+                @endif
+
+                {{-- Analysis Progress --}}
+                @if($videoAnalysisStage)
+                    <div class="vw-analysis-progress">
+                        <div class="vw-progress-spinner"></div>
+                        <span>
+                            @if($videoAnalysisStage === 'analyzing')
+                                {{ __('Analyzing video with AI vision...') }}
+                            @elseif($videoAnalysisStage === 'transcribing')
+                                {{ __('Transcribing audio...') }}
+                            @elseif($videoAnalysisStage === 'synthesizing')
+                                {{ __('Building concept...') }}
+                            @else
+                                {{ __('Processing...') }}
+                            @endif
                         </span>
                     </div>
-                    <input type="text"
-                           class="vw-chaos-desc-input"
-                           x-model="chaosDesc"
-                           placeholder="{{ __('Describe the chaos you want (e.g., food fight explosion, office supplies flying everywhere...)') }}" />
-                </div>
+                @endif
 
-                {{-- Template Picker (Generate tab) --}}
-                <div class="vw-template-picker">
-                    <div class="vw-template-label">
-                        <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
+                {{-- Error --}}
+                @if($videoAnalysisError)
+                    <div class="vw-analysis-error">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        {{ $videoAnalysisError }}
                     </div>
-                    <div class="vw-template-pills">
-                        @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
-                            <button type="button"
-                                class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
-                                wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
-                                title="{{ $tpl['description'] }}">
-                                <i class="{{ $tpl['icon'] }}"></i>
-                                <span>{{ $tpl['name'] }}</span>
-                            </button>
-                        @endforeach
-                    </div>
-                    @if(count($userTemplates) > 0)
-                        <div class="vw-template-divider">{{ __('My Templates') }}</div>
-                        <div class="vw-template-pills">
-                            @foreach($userTemplates as $tpl)
-                                <div class="vw-template-pill-wrap">
-                                    <button type="button"
-                                        class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
-                                        wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
-                                        title="{{ $tpl['description'] }}">
-                                        <i class="{{ $tpl['icon'] }}"></i>
-                                        <span>{{ $tpl['name'] }}</span>
-                                        @if($tpl['is_shared'])
-                                            <i class="fa-solid fa-users" style="font-size: 0.6rem; opacity: 0.5;" title="{{ __('Shared with team') }}"></i>
-                                        @endif
-                                    </button>
-                                    @if($tpl['is_own'])
-                                        <button class="vw-template-delete"
-                                                wire:click="deleteUserTemplate({{ (int) str_replace('user-', '', $tpl['id']) }})"
-                                                wire:confirm="{{ __('Delete this template?') }}"
-                                                title="{{ __('Delete') }}">
-                                            <i class="fa-solid fa-xmark"></i>
-                                        </button>
-                                    @endif
-                                </div>
-                            @endforeach
+                @endif
+
+                {{-- Analysis Result Card --}}
+                @if($videoAnalysisResult)
+                    <div class="vw-cloned-idea-card">
+                        <div class="vw-cloned-badge">
+                            <i class="fa-solid fa-clone"></i> {{ __('Cloned Concept') }}
                         </div>
-                    @endif
-                    <div class="vw-template-desc">
-                        @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
-                            @if($cloneTemplate === $tpl['id'])
-                                {{ $tpl['description'] }}
-                            @endif
-                        @endforeach
-                        @foreach($userTemplates as $tpl)
-                            @if($cloneTemplate === $tpl['id'])
-                                {{ $tpl['description'] }}
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Workflow Selector (if workflows are available) --}}
-                @php
-                    $availableWorkflows = $this->getAvailableWorkflows();
-                @endphp
-                @if(count($availableWorkflows) > 0)
-                    <div style="margin-top: 0.5rem; padding: 0.4rem 0.5rem; background: rgba(30,58,95,0.3); border: 1px solid #1e3a5f; border-radius: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fa-solid fa-diagram-project" style="color: #60a5fa; font-size: 0.75rem;"></i>
-                        <span style="font-size: 0.7rem; color: #94a3b8; white-space: nowrap;">{{ __('Workflow') }}:</span>
-                        <select style="flex: 1; font-size: 0.7rem; background: #1e293b; border: 1px solid #334155; border-radius: 0.3rem; color: #e2e8f0; padding: 0.25rem 0.4rem;"
-                                wire:model.live="activeWorkflowId"
-                                wire:change="selectWorkflow($event.target.value)">
-                            <option value="">{{ __('Direct Mode (default)') }}</option>
-                            @foreach($availableWorkflows as $wf)
-                                <option value="{{ $wf['id'] }}">{{ $wf['name'] }}</option>
-                            @endforeach
-                        </select>
-                        @if($activeWorkflowId)
-                            <button style="font-size: 0.65rem; color: #64748b; background: none; border: none; cursor: pointer;"
-                                    wire:click="disableWorkflowMode" title="{{ __('Disable workflow mode') }}">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+                        @if(!empty($videoAnalysisResult['firstFrameUrl']))
+                            <div style="margin: 0.75rem 0; border-radius: 8px; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3);">
+                                <img src="{{ $videoAnalysisResult['firstFrameUrl'] }}" alt="{{ __('First frame') }}"
+                                     style="width: 100%; max-height: 280px; object-fit: contain; background: #000;">
+                                <div style="padding: 0.4rem 0.6rem; background: rgba(139, 92, 246, 0.1); font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+                                    <i class="fa-solid fa-image"></i> {{ __('First frame — will be used as base image') }}
+                                </div>
+                            </div>
                         @endif
-                    </div>
-                @endif
-
-                {{-- Loading Skeleton --}}
-                @if($isLoading && empty($conceptVariations))
-                    <div class="vw-skeleton-grid">
-                        @for($i = 0; $i < 6; $i++)
-                            <div class="vw-skeleton-card">
-                                <div class="vw-skeleton-line title"></div>
-                                <div class="vw-skeleton-line medium"></div>
-                                <div class="vw-skeleton-line"></div>
-                                <div class="vw-skeleton-line short"></div>
-                            </div>
-                        @endfor
-                    </div>
-                @endif
-
-                {{-- Idea Cards Grid --}}
-                @if(!empty($conceptVariations))
-                    <div class="vw-ideas-grid">
-                        @foreach($conceptVariations as $index => $idea)
-                            <div class="vw-idea-card {{ $selectedConceptIndex === $index ? 'selected' : '' }}"
-                                 wire:click="selectViralIdea({{ $index }})">
-                                <div class="vw-idea-title">
-                                    {{ $idea['title'] ?? 'Untitled' }}
-                                </div>
-                                <div class="vw-idea-character">
-                                    @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['characters']))
-                                        @foreach($idea['characters'] as $ci => $char)
-                                            {{ $char['name'] ?? '' }}{{ $ci < count($idea['characters']) - 1 ? ' vs ' : '' }}
-                                        @endforeach
-                                        &mdash; {{ $idea['situation'] ?? '' }}
-                                    @else
-                                        {{ $idea['character'] ?? '' }} &mdash; {{ $idea['situation'] ?? '' }}
-                                    @endif
-                                </div>
-                                <div class="vw-idea-badges">
-                                    @if(($idea['source'] ?? '') === 'cloned')
-                                        <span class="vw-idea-badge source-cloned">
-                                            <i class="fa-solid fa-clone"></i> Cloned
-                                        </span>
-                                    @endif
-                                    @if(($idea['speechType'] ?? '') === 'dialogue')
-                                        <span class="vw-idea-badge audio-voice">
-                                            <i class="fa-solid fa-comments"></i> Dialogue
-                                        </span>
-                                    @elseif(($idea['audioType'] ?? '') === 'music-lipsync')
-                                        <span class="vw-idea-badge audio-music">
-                                            <i class="fa-solid fa-music"></i> Music Lip-Sync
-                                        </span>
-                                    @else
-                                        <span class="vw-idea-badge audio-voice">
-                                            <i class="fa-solid fa-microphone"></i> Monologue
-                                        </span>
-                                    @endif
-                                    @php $mood = strtolower($idea['mood'] ?? 'funny'); @endphp
-                                    <span class="vw-idea-badge mood-{{ $mood }}">
-                                        {{ ucfirst($mood) }}
-                                    </span>
-                                </div>
-                                @if(($idea['speechType'] ?? '') === 'dialogue' && !empty($idea['dialogueLines']))
-                                    <div class="vw-idea-desc" style="font-size: 0.8rem;">
-                                        @foreach(array_slice($idea['dialogueLines'], 0, 3) as $line)
-                                            <div style="margin-bottom: 0.2rem;"><strong>{{ $line['speaker'] ?? '' }}:</strong> "{{ $line['text'] ?? '' }}"</div>
-                                        @endforeach
-                                        @if(count($idea['dialogueLines']) > 3)
-                                            <div style="color: #64748b;">+ {{ count($idea['dialogueLines']) - 3 }} more...</div>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div class="vw-idea-desc">{{ $idea['audioDescription'] ?? '' }}</div>
-                                @endif
-                                <div class="vw-idea-hook">{{ $idea['viralHook'] ?? '' }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    {{-- Regenerate Ideas Button --}}
-                    <div style="display: flex; justify-content: center;">
-                        <button class="vw-generate-more-btn"
-                                wire:click="generateViralIdeas(viralTheme)"
-                                x-on:click="$wire.generateViralIdeas(viralTheme)"
-                                wire:loading.attr="disabled"
-                                @if($isLoading) disabled @endif>
-                            <span wire:loading.remove wire:target="generateViralIdeas">
-                                <i class="fa-solid fa-arrows-rotate"></i>
-                                {{ __('Regenerate Ideas') }}
-                            </span>
-                            <span wire:loading wire:target="generateViralIdeas">
-                                <span class="vw-loading-inner"></span>
-                                {{ __('Generating...') }}
-                            </span>
-                        </button>
-                    </div>
-
-                    {{-- Save as Template --}}
-                    @php
-                        $selectedIdea = $conceptVariations[$selectedConceptIndex ?? 0] ?? [];
-                    @endphp
-                    @if(!empty($selectedIdea['videoPrompt']))
-                        <div x-data="{ showSaveForm: false, tplName: '', tplDesc: '', tplShared: false }" class="vw-save-template-wrap">
-                            <button @click="showSaveForm = !showSaveForm" class="vw-save-template-btn" type="button">
-                                <i class="fa-solid fa-bookmark"></i> {{ __('Save as Template') }}
-                            </button>
-
-                            <div x-show="showSaveForm" x-cloak class="vw-save-template-form">
-                                <input type="text" x-model="tplName" placeholder="{{ __('Template name...') }}"
-                                       class="vw-save-template-input" maxlength="100" />
-                                <input type="text" x-model="tplDesc" placeholder="{{ __('Description (optional)...') }}"
-                                       class="vw-save-template-input" maxlength="255" />
-                                <label class="vw-save-template-toggle">
-                                    <input type="checkbox" x-model="tplShared" />
-                                    <span>{{ __('Share with team') }}</span>
-                                </label>
-                                <button @click="if(tplName.trim()) { $wire.saveAsTemplate(tplName.trim(), tplDesc.trim(), tplShared); showSaveForm = false; tplName = ''; tplDesc = ''; tplShared = false; }"
-                                        class="vw-save-template-confirm" type="button">
-                                    <i class="fa-solid fa-check"></i> {{ __('Save') }}
-                                </button>
-                            </div>
-                        </div>
-                    @endif
-                @endif
-            </div>
-
-            {{-- ========================== Clone Video Tab ========================== --}}
-            <div x-show="activeTab === 'clone'" x-cloak>
-                <div class="vw-clone-zone"
-                     x-data="{ isDragging: false, cloneMode: 'upload' }">
-
-                    {{-- Clone Mode Toggle: Upload / Paste URL --}}
-                    <div class="vw-clone-toggle">
-                        <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'upload' }"
-                                @click="cloneMode = 'upload'; $wire.set('videoAnalysisError', null)">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> {{ __('Upload File') }}
-                        </button>
-                        <button class="vw-clone-toggle-btn" :class="{ 'active': cloneMode === 'url' }"
-                                @click="cloneMode = 'url'; $wire.set('videoAnalysisError', null)">
-                            <i class="fa-solid fa-link"></i> {{ __('Paste URL') }}
-                        </button>
-                    </div>
-
-                    {{-- Template Picker --}}
-                    <div class="vw-template-picker">
-                        <div class="vw-template-label">
-                            <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
-                        </div>
-
-                        {{-- System Templates --}}
-                        <div class="vw-template-pills">
-                            @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
-                                <button type="button"
-                                    class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
-                                    wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
-                                    title="{{ $tpl['description'] }}">
-                                    <i class="{{ $tpl['icon'] }}"></i>
-                                    <span>{{ $tpl['name'] }}</span>
-                                </button>
-                            @endforeach
-                        </div>
-
-                        {{-- User Templates --}}
-                        @if(count($userTemplates) > 0)
-                            <div class="vw-template-divider">{{ __('My Templates') }}</div>
-                            <div class="vw-template-pills">
-                                @foreach($userTemplates as $tpl)
-                                    <div class="vw-template-pill-wrap">
-                                        <button type="button"
-                                            class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
-                                            wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
-                                            title="{{ $tpl['description'] }}">
-                                            <i class="{{ $tpl['icon'] }}"></i>
-                                            <span>{{ $tpl['name'] }}</span>
-                                            @if($tpl['is_shared'])
-                                                <i class="fa-solid fa-users" style="font-size: 0.6rem; opacity: 0.5;" title="{{ __('Shared with team') }}"></i>
-                                            @endif
-                                        </button>
-                                        @if($tpl['is_own'])
-                                            <button class="vw-template-delete"
-                                                    wire:click="deleteUserTemplate({{ (int) str_replace('user-', '', $tpl['id']) }})"
-                                                    wire:confirm="{{ __('Delete this template?') }}"
-                                                    title="{{ __('Delete') }}">
-                                                <i class="fa-solid fa-xmark"></i>
-                                            </button>
-                                        @endif
-                                    </div>
+                        <div class="vw-idea-title">{{ $videoAnalysisResult['title'] ?? 'Cloned Concept' }}</div>
+                        <div class="vw-idea-character">
+                            @if(($videoAnalysisResult['speechType'] ?? '') === 'dialogue' && !empty($videoAnalysisResult['characters']))
+                                @foreach($videoAnalysisResult['characters'] as $c)
+                                    {{ $c['name'] ?? '' }}@if(!$loop->last) vs @endif
                                 @endforeach
-                            </div>
-                        @endif
-
-                        {{-- Active description --}}
-                        <div class="vw-template-desc">
-                            @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
-                                @if($cloneTemplate === $tpl['id'])
-                                    {{ $tpl['description'] }}
-                                @endif
-                            @endforeach
-                            @foreach($userTemplates as $tpl)
-                                @if($cloneTemplate === $tpl['id'])
-                                    {{ $tpl['description'] }}
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-
-                    {{-- ========= Upload Mode ========= --}}
-                    <div x-show="cloneMode === 'upload'" x-cloak>
-                        <div class="vw-upload-dropzone"
-                             :class="{ 'dragging': isDragging }"
-                             @dragover.prevent="isDragging = true"
-                             @dragleave.prevent="isDragging = false"
-                             @drop.prevent="isDragging = false; let fi = $el.querySelector('input[type=file]'); fi.files = $event.dataTransfer.files; fi.dispatchEvent(new Event('change'))"
-                             @click="$el.querySelector('input[type=file]').click()">
-
-                            @if($conceptVideoUpload)
-                                <video class="vw-video-preview" controls onclick="event.stopPropagation()">
-                                    <source src="{{ $conceptVideoUpload->temporaryUrl() }}" type="{{ $conceptVideoUpload->getMimeType() }}">
-                                </video>
-                                <div>
-                                    <button class="vw-remove-video"
-                                            wire:click="$set('conceptVideoUpload', null)"
-                                            onclick="event.stopPropagation()">
-                                        <i class="fa-solid fa-trash-can"></i> {{ __('Remove') }}
-                                    </button>
-                                </div>
+                                &mdash; {{ $videoAnalysisResult['situation'] ?? '' }}
                             @else
-                                <div class="vw-dropzone-content">
-                                    <div class="vw-dropzone-icon"><i class="fa-solid fa-video"></i></div>
-                                    <p>{{ __('Drop a short video here or click to upload') }}</p>
-                                    <small>{{ __('MP4, MOV, WebM up to 100MB') }}</small>
-                                </div>
+                                {{ $videoAnalysisResult['character'] ?? '' }} &mdash; {{ $videoAnalysisResult['situation'] ?? '' }}
                             @endif
-
-                            <input type="file"
-                                   x-ref="videoInput"
-                                   wire:model="conceptVideoUpload"
-                                   accept="video/mp4,video/quicktime,video/webm,video/x-msvideo"
-                                   style="display: none;" />
                         </div>
-
-                        @if(!$conceptVideoUpload && !$videoAnalysisResult)
-                            {{-- Explicit display:none needed because wire:loading doesn't initialize
-                                 properly inside x-show/x-cloak containers (Alpine hides the DOM
-                                 before Livewire JS can scan it) --}}
-                            <div wire:loading wire:target="conceptVideoUpload" class="vw-analysis-progress" style="display: none;">
-                                <div class="vw-progress-spinner"></div>
-                                <span>{{ __('Uploading video...') }}</span>
+                        <div class="vw-idea-desc">{{ $videoAnalysisResult['concept'] ?? '' }}</div>
+                        @if(!empty($videoAnalysisResult['videoPrompt']))
+                            <div class="vw-cloned-prompt-preview" x-data="{ expanded: false }">
+                                <strong>{{ __('Video Prompt') }}</strong>
+                                <p x-show="!expanded">{{ Str::limit($videoAnalysisResult['videoPrompt'], 200) }}
+                                    @if(strlen($videoAnalysisResult['videoPrompt']) > 200)
+                                        <a href="#" @click.prevent="expanded = true" style="color: var(--vw-accent); cursor: pointer;">Show more</a>
+                                    @endif
+                                </p>
+                                <p x-show="expanded" x-cloak>{{ $videoAnalysisResult['videoPrompt'] }}
+                                    <a href="#" @click.prevent="expanded = false" style="color: var(--vw-accent); cursor: pointer;">Show less</a>
+                                </p>
                             </div>
                         @endif
+                        <div class="vw-idea-hook">{{ $videoAnalysisResult['viralHook'] ?? '' }}</div>
 
-                        @if($conceptVideoUpload && !$videoAnalysisStage)
-                            <button class="vw-analyze-btn"
-                                    wire:click="analyzeUploadedVideo"
-                                    wire:loading.attr="disabled"
-                                    wire:target="analyzeUploadedVideo">
-                                <span wire:loading.remove wire:target="analyzeUploadedVideo">
-                                    <i class="fa-solid fa-magnifying-glass-chart"></i>
-                                    {{ __('Analyze & Clone Concept') }}
-                                </span>
-                                <span wire:loading wire:target="analyzeUploadedVideo" style="display: none;">
-                                    <div class="vw-progress-spinner" style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:8px;"></div>
-                                    {{ __('Analyzing video...') }}
-                                </span>
-                            </button>
-                        @endif
+                        <button class="vw-use-concept-btn" wire:click="useAnalyzedConcept">
+                            <i class="fa-solid fa-check"></i>
+                            {{ __('Use This Concept') }}
+                        </button>
                     </div>
-
-                    {{-- ========= URL Mode ========= --}}
-                    <div x-show="cloneMode === 'url'" x-cloak>
-                        <div class="vw-url-import-box">
-                            <div class="vw-url-input-row">
-                                <div class="vw-url-input-wrap">
-                                    <i class="fa-solid fa-link vw-url-input-icon"></i>
-                                    <input type="url"
-                                           wire:model.defer="conceptVideoUrl"
-                                           class="vw-url-input"
-                                           placeholder="{{ __('Paste video URL here...') }}"
-                                           @keydown.enter="$wire.analyzeVideoFromUrl()" />
-                                </div>
-                                <button class="vw-url-analyze-btn"
-                                        wire:click="analyzeVideoFromUrl"
-                                        wire:loading.attr="disabled"
-                                        wire:target="analyzeVideoFromUrl"
-                                        @if($urlDownloadStage || $videoAnalysisStage) disabled @endif>
-                                    <span wire:loading.remove wire:target="analyzeVideoFromUrl">
-                                        <i class="fa-solid fa-magnifying-glass-chart"></i>
-                                        {{ __('Analyze') }}
-                                    </span>
-                                    <span wire:loading wire:target="analyzeVideoFromUrl" style="display: none;">
-                                        <span class="vw-loading-inner"></span>
-                                    </span>
-                                </button>
-                            </div>
-                            <div class="vw-url-platforms">
-                                <i class="fa-brands fa-youtube"></i>
-                                <i class="fa-brands fa-instagram"></i>
-                                <i class="fa-brands fa-tiktok"></i>
-                                <i class="fa-brands fa-x-twitter"></i>
-                                <i class="fa-brands fa-facebook"></i>
-                                <span>{{ __('& 1000+ platforms') }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- ========= Shared: Progress / Error / Result ========= --}}
-
-                    {{-- Download Progress (URL mode) --}}
-                    @if($urlDownloadStage === 'downloading')
-                        <div class="vw-analysis-progress">
-                            <div class="vw-progress-spinner"></div>
-                            <span><i class="fa-solid fa-download" style="margin-right: 0.3rem;"></i> {{ __('Downloading video from URL...') }}</span>
-                        </div>
-                    @endif
-
-                    {{-- Analysis Progress --}}
-                    @if($videoAnalysisStage)
-                        <div class="vw-analysis-progress">
-                            <div class="vw-progress-spinner"></div>
-                            <span>
-                                @if($videoAnalysisStage === 'analyzing')
-                                    {{ __('Analyzing video with AI vision...') }}
-                                @elseif($videoAnalysisStage === 'transcribing')
-                                    {{ __('Transcribing audio...') }}
-                                @elseif($videoAnalysisStage === 'synthesizing')
-                                    {{ __('Building concept...') }}
-                                @else
-                                    {{ __('Processing...') }}
-                                @endif
-                            </span>
-                        </div>
-                    @endif
-
-                    {{-- Error --}}
-                    @if($videoAnalysisError)
-                        <div class="vw-analysis-error">
-                            <i class="fa-solid fa-circle-exclamation"></i>
-                            {{ $videoAnalysisError }}
-                        </div>
-                    @endif
-
-                    {{-- Analysis Result Card --}}
-                    @if($videoAnalysisResult)
-                        <div class="vw-cloned-idea-card">
-                            <div class="vw-cloned-badge">
-                                <i class="fa-solid fa-clone"></i> {{ __('Cloned Concept') }}
-                            </div>
-                            @if(!empty($videoAnalysisResult['firstFrameUrl']))
-                                <div style="margin: 0.75rem 0; border-radius: 8px; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3);">
-                                    <img src="{{ $videoAnalysisResult['firstFrameUrl'] }}" alt="{{ __('First frame') }}"
-                                         style="width: 100%; max-height: 280px; object-fit: contain; background: #000;">
-                                    <div style="padding: 0.4rem 0.6rem; background: rgba(139, 92, 246, 0.1); font-size: 0.75rem; color: rgba(255,255,255,0.7);">
-                                        <i class="fa-solid fa-image"></i> {{ __('First frame — will be used as base image') }}
-                                    </div>
-                                </div>
-                            @endif
-                            <div class="vw-idea-title">{{ $videoAnalysisResult['title'] ?? 'Cloned Concept' }}</div>
-                            <div class="vw-idea-character">
-                                @if(($videoAnalysisResult['speechType'] ?? '') === 'dialogue' && !empty($videoAnalysisResult['characters']))
-                                    @foreach($videoAnalysisResult['characters'] as $c)
-                                        {{ $c['name'] ?? '' }}@if(!$loop->last) vs @endif
-                                    @endforeach
-                                    &mdash; {{ $videoAnalysisResult['situation'] ?? '' }}
-                                @else
-                                    {{ $videoAnalysisResult['character'] ?? '' }} &mdash; {{ $videoAnalysisResult['situation'] ?? '' }}
-                                @endif
-                            </div>
-                            <div class="vw-idea-desc">{{ $videoAnalysisResult['concept'] ?? '' }}</div>
-                            @if(!empty($videoAnalysisResult['videoPrompt']))
-                                <div class="vw-cloned-prompt-preview" x-data="{ expanded: false }">
-                                    <strong>{{ __('Video Prompt') }}</strong>
-                                    <p x-show="!expanded">{{ Str::limit($videoAnalysisResult['videoPrompt'], 200) }}
-                                        @if(strlen($videoAnalysisResult['videoPrompt']) > 200)
-                                            <a href="#" @click.prevent="expanded = true" style="color: var(--vw-accent); cursor: pointer;">Show more</a>
-                                        @endif
-                                    </p>
-                                    <p x-show="expanded" x-cloak>{{ $videoAnalysisResult['videoPrompt'] }}
-                                        <a href="#" @click.prevent="expanded = false" style="color: var(--vw-accent); cursor: pointer;">Show less</a>
-                                    </p>
-                                </div>
-                            @endif
-                            <div class="vw-idea-hook">{{ $videoAnalysisResult['viralHook'] ?? '' }}</div>
-
-                            <button class="vw-use-concept-btn" wire:click="useAnalyzedConcept">
-                                <i class="fa-solid fa-check"></i>
-                                {{ __('Use This Concept') }}
-                            </button>
-
-                            {{-- Save as Template (clone result) --}}
-                            @if(!empty($videoAnalysisResult['videoPrompt']))
-                                <div x-data="{ showSaveForm: false, tplName: '', tplDesc: '', tplShared: false }" class="vw-save-template-wrap">
-                                    <button @click="showSaveForm = !showSaveForm" class="vw-save-template-btn" type="button">
-                                        <i class="fa-solid fa-bookmark"></i> {{ __('Save as Template') }}
-                                    </button>
-
-                                    <div x-show="showSaveForm" x-cloak class="vw-save-template-form">
-                                        <input type="text" x-model="tplName" placeholder="{{ __('Template name...') }}"
-                                               class="vw-save-template-input" maxlength="100" />
-                                        <input type="text" x-model="tplDesc" placeholder="{{ __('Description (optional)...') }}"
-                                               class="vw-save-template-input" maxlength="255" />
-                                        <label class="vw-save-template-toggle">
-                                            <input type="checkbox" x-model="tplShared" />
-                                            <span>{{ __('Share with team') }}</span>
-                                        </label>
-                                        <button @click="if(tplName.trim()) { $wire.saveAsTemplate(tplName.trim(), tplDesc.trim(), tplShared); showSaveForm = false; tplName = ''; tplDesc = ''; tplShared = false; }"
-                                                class="vw-save-template-confirm" type="button">
-                                            <i class="fa-solid fa-check"></i> {{ __('Save') }}
-                                        </button>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
-                </div>
+                @endif
             </div>
-        </div>
+        @endif
     </div>
 </div>

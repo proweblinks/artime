@@ -11,6 +11,7 @@ class VwWorkflowSeeder extends Seeder
     {
         $this->seedSeedanceAdaptive();
         $this->seedSeedanceAnimalChaos();
+        $this->seedCloneVideo();
     }
 
     /**
@@ -31,6 +32,7 @@ class VwWorkflowSeeder extends Seeder
                 'nodes' => $this->getAdaptiveNodes(),
                 'edges' => $this->getAdaptiveEdges(),
                 'defaults' => [
+                    'mode' => 'generate',
                     'chaos_level' => 50,
                     'camera_move' => 'none',
                     'image_model' => 'nanobanana-pro',
@@ -57,6 +59,7 @@ class VwWorkflowSeeder extends Seeder
                 'nodes' => $this->getAnimalChaosNodes(),
                 'edges' => $this->getAdaptiveEdges(), // Same pipeline structure
                 'defaults' => [
+                    'mode' => 'generate',
                     'chaos_level' => 85,
                     'camera_move' => 'handheld',
                     'image_model' => 'nanobanana-pro',
@@ -486,5 +489,307 @@ Phase 4 - Standalone intensity words:
   "rapidly" → "fast"
   "tremendously" → "with large amplitude"
 RULES;
+    }
+
+    /**
+     * Seed the Clone Video workflow.
+     */
+    protected function seedCloneVideo(): void
+    {
+        VwWorkflow::updateOrCreate(
+            ['slug' => 'clone-video'],
+            [
+                'name' => 'Clone Video',
+                'description' => 'Analyze an existing video to extract its style, characters, and action — then recreate it with AI.',
+                'category' => 'system',
+                'video_engine' => 'seedance',
+                'is_active' => true,
+                'version' => 1,
+                'nodes' => $this->getCloneVideoNodes(),
+                'edges' => $this->getCloneVideoEdges(),
+                'defaults' => [
+                    'mode' => 'clone',
+                    'camera_move' => 'none',
+                    'image_model' => 'nanobanana-pro',
+                    'ai_tier' => 'economy',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Clone Video pipeline nodes.
+     */
+    protected function getCloneVideoNodes(): array
+    {
+        return [
+            [
+                'id' => 'input_video',
+                'type' => 'user_input',
+                'name' => 'Provide Source Video',
+                'description' => 'Upload a video file or paste a URL from YouTube, Instagram, TikTok, etc.',
+                'config' => [
+                    'input_type' => 'video_upload_or_url',
+                    'max_size' => '100MB',
+                    'accepted_formats' => 'MP4, MOV, WebM',
+                ],
+                'inputs' => [],
+                'outputs' => [
+                    'video_path' => 'data_bus.source_video_path',
+                ],
+            ],
+            [
+                'id' => 'download_video',
+                'type' => 'transform',
+                'name' => 'Download Video',
+                'description' => 'Download the video from URL using yt-dlp or RapidAPI fallback. Skipped for file uploads.',
+                'config' => [
+                    'transform' => 'php_method',
+                    'class' => 'VideoWizard',
+                    'method' => 'downloadVideoWithYtDlp',
+                ],
+                'inputs' => [
+                    'url' => 'data_bus.source_video_url',
+                ],
+                'outputs' => [
+                    'local_path' => 'data_bus.source_video_path',
+                ],
+            ],
+            [
+                'id' => 'extract_frame',
+                'type' => 'transform',
+                'name' => 'Extract First Frame',
+                'description' => 'Extract the first frame from the video using ffmpeg for use as the base image.',
+                'config' => [
+                    'transform' => 'php_method',
+                    'class' => 'VideoWizard',
+                    'method' => 'extractFirstFrame',
+                ],
+                'inputs' => [
+                    'video_path' => 'data_bus.source_video_path',
+                ],
+                'outputs' => [
+                    'frame_url' => 'data_bus.first_frame_url',
+                ],
+            ],
+            [
+                'id' => 'analyze_video',
+                'type' => 'ai_text',
+                'name' => 'Analyze Video',
+                'description' => 'AI vision analyzes the video for characters, setting, actions, mood, and style.',
+                'config' => [
+                    'service' => 'ConceptService',
+                    'method' => 'analyzeVideoForConcept',
+                    'ai_tier' => 'from_project',
+                    'prompt_template' => 'Analyze the video for: characters (species, appearance, position), setting & environment, action timeline, audio & sound, camera style, mood & viral formula.',
+                    'rules' => 'Identify EVERY character with 100% accuracy. SIZE/SCALE analysis required. CHARACTER-OBJECT INTERACTIONS must describe HOW they USE objects.',
+                ],
+                'inputs' => [
+                    'video_path' => 'data_bus.source_video_path',
+                ],
+                'outputs' => [
+                    'visual_analysis' => 'data_bus.visual_analysis',
+                ],
+            ],
+            [
+                'id' => 'transcribe_audio',
+                'type' => 'transform',
+                'name' => 'Transcribe Audio',
+                'description' => 'Extract audio from video and transcribe with OpenAI Whisper.',
+                'config' => [
+                    'transform' => 'php_method',
+                    'class' => 'ConceptService',
+                    'method' => 'extractAndTranscribeAudio',
+                ],
+                'inputs' => [
+                    'video_path' => 'data_bus.source_video_path',
+                ],
+                'outputs' => [
+                    'transcript' => 'data_bus.transcript',
+                ],
+            ],
+            [
+                'id' => 'synthesize_concept',
+                'type' => 'ai_text',
+                'name' => 'Synthesize Concept',
+                'description' => 'AI combines visual analysis + transcript into a structured viral concept with Seedance-optimized videoPrompt.',
+                'config' => [
+                    'service' => 'ConceptService',
+                    'method' => 'synthesizeConcept',
+                    'ai_tier' => 'from_project',
+                    'rules' => 'Use EXACT species/character type from visual analysis. Preserve mood, setting, viral formula. cameraFixed must be true. Apply Seedance degree words.',
+                ],
+                'inputs' => [
+                    'visual_analysis' => 'data_bus.visual_analysis',
+                    'transcript' => 'data_bus.transcript',
+                ],
+                'outputs' => [
+                    'concept' => 'data_bus.cloned_concept',
+                ],
+            ],
+            [
+                'id' => 'user_approve',
+                'type' => 'user_input',
+                'name' => 'Approve Concept',
+                'description' => 'Review the cloned concept and confirm to proceed with video creation.',
+                'config' => [
+                    'input_type' => 'approve_card',
+                    'source' => 'data_bus.cloned_concept',
+                ],
+                'outputs' => [
+                    'approved_concept' => 'data_bus.selected_idea',
+                ],
+            ],
+            [
+                'id' => 'build_script',
+                'type' => 'transform',
+                'name' => 'Build Script',
+                'description' => 'Constructs script structure from the approved concept.',
+                'config' => [
+                    'transform' => 'compose_string',
+                    'template' => '{concept}',
+                ],
+                'inputs' => [
+                    'concept' => 'data_bus.selected_idea',
+                ],
+                'outputs' => [
+                    'script' => 'data_bus.script',
+                ],
+            ],
+            [
+                'id' => 'build_image_prompt',
+                'type' => 'transform',
+                'name' => 'Build Image Prompt',
+                'description' => 'Construct image generation prompt from the cloned concept (or use first frame if available).',
+                'config' => [
+                    'transform' => 'compose_string',
+                    'template' => '{character}. {setting}. {imageStartState}',
+                ],
+                'inputs' => [
+                    'character' => 'data_bus.selected_idea.character',
+                    'setting' => 'data_bus.selected_idea.setting',
+                    'imageStartState' => 'data_bus.selected_idea.imageStartState',
+                ],
+                'outputs' => [
+                    'image_prompt' => 'data_bus.image_prompt',
+                ],
+            ],
+            [
+                'id' => 'generate_image',
+                'type' => 'ai_image',
+                'name' => 'Generate Scene Image',
+                'description' => 'AI generates the starting frame image (or uses extracted first frame from source video).',
+                'config' => [
+                    'service' => 'ImageGenerationService',
+                    'method' => 'generateSceneImage',
+                    'model' => 'nanobanana-pro',
+                    'aspect_ratio' => 'from_project',
+                ],
+                'inputs' => [
+                    'prompt' => 'data_bus.image_prompt',
+                ],
+                'outputs' => [
+                    'image_url' => 'data_bus.scene_image_url',
+                ],
+            ],
+            [
+                'id' => 'sanitize_prompt',
+                'type' => 'transform',
+                'name' => 'Sanitize Video Prompt',
+                'description' => 'Fix banned words, enforce Seedance degree word compliance.',
+                'config' => [
+                    'transform' => 'php_method',
+                    'class' => 'ConceptService',
+                    'method' => 'sanitizeSeedancePrompt',
+                ],
+                'inputs' => [
+                    'text' => 'data_bus.selected_idea.videoPrompt',
+                ],
+                'outputs' => [
+                    'video_prompt' => 'data_bus.sanitized_video_prompt',
+                ],
+            ],
+            [
+                'id' => 'assemble_prompt',
+                'type' => 'transform',
+                'name' => 'Assemble Final Prompt',
+                'description' => 'Add camera movement instruction and style anchor to the sanitized prompt.',
+                'config' => [
+                    'transform' => 'seedance_assemble',
+                    'camera_move' => 'from_project',
+                    'style_anchor' => 'Cinematic, photorealistic.',
+                ],
+                'inputs' => [
+                    'base_prompt' => 'data_bus.sanitized_video_prompt',
+                ],
+                'outputs' => [
+                    'final_prompt' => 'data_bus.final_video_prompt',
+                ],
+            ],
+            [
+                'id' => 'generate_video',
+                'type' => 'ai_video',
+                'name' => 'Generate Seedance Video',
+                'description' => 'Animate the scene image with Seedance using the final assembled prompt.',
+                'config' => [
+                    'service' => 'AnimationService',
+                    'method' => 'generateAnimation',
+                    'model' => 'seedance',
+                    'quality' => 'pro',
+                    'duration' => 8,
+                    'async' => true,
+                ],
+                'inputs' => [
+                    'image_url' => 'data_bus.scene_image_url',
+                    'prompt' => 'data_bus.final_video_prompt',
+                ],
+                'outputs' => [
+                    'video_url' => 'data_bus.video_url',
+                    'job_id' => 'data_bus.video_job_id',
+                ],
+            ],
+            [
+                'id' => 'poll_video',
+                'type' => 'poll_wait',
+                'name' => 'Wait for Video',
+                'description' => 'Poll until Seedance video generation is complete.',
+                'config' => [
+                    'poll_interval' => 5,
+                    'max_wait' => 300,
+                    'status_method' => 'checkVideoJobStatus',
+                ],
+                'inputs' => [
+                    'job_id' => 'data_bus.video_job_id',
+                ],
+                'outputs' => [
+                    'video_url' => 'data_bus.final_video_url',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Clone Video pipeline edges.
+     */
+    protected function getCloneVideoEdges(): array
+    {
+        return [
+            ['from' => 'input_video', 'to' => 'download_video'],
+            ['from' => 'download_video', 'to' => 'extract_frame'],
+            ['from' => 'download_video', 'to' => 'analyze_video'],
+            ['from' => 'download_video', 'to' => 'transcribe_audio'],
+            ['from' => 'extract_frame', 'to' => 'synthesize_concept'],
+            ['from' => 'analyze_video', 'to' => 'synthesize_concept'],
+            ['from' => 'transcribe_audio', 'to' => 'synthesize_concept'],
+            ['from' => 'synthesize_concept', 'to' => 'user_approve'],
+            ['from' => 'user_approve', 'to' => 'build_script'],
+            ['from' => 'user_approve', 'to' => 'build_image_prompt'],
+            ['from' => 'user_approve', 'to' => 'sanitize_prompt'],
+            ['from' => 'build_image_prompt', 'to' => 'generate_image'],
+            ['from' => 'sanitize_prompt', 'to' => 'assemble_prompt'],
+            ['from' => 'generate_image', 'to' => 'generate_video'],
+            ['from' => 'assemble_prompt', 'to' => 'generate_video'],
+            ['from' => 'generate_video', 'to' => 'poll_video'],
+        ];
     }
 }

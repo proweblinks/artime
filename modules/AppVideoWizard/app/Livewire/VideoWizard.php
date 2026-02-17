@@ -1339,6 +1339,9 @@ class VideoWizard extends Component
     /** Which tab is active in the social create right panel: 'create' or 'workflow' */
     public string $socialCreateTab = 'create';
 
+    /** Active workflow mode: 'generate' or 'clone' (derived from workflow defaults) */
+    public string $activeWorkflowMode = 'generate';
+
     // Location Bible Modal state
     public bool $showLocationBibleModal = false;
     public int $editingLocationIndex = 0;
@@ -5273,14 +5276,23 @@ PROMPT;
             'conceptVideoUpload' => 'required|file|mimes:mp4,mov,webm,avi|max:102400',
         ]);
 
+        // Workflow: input_video node completed (user provided upload)
+        $this->workflowTrackNode('input_video', 'completed', ['source' => 'upload']);
+
         $this->videoAnalysisStage = 'analyzing';
 
         try {
             $filePath = $this->conceptVideoUpload->getRealPath();
             $mimeType = $this->conceptVideoUpload->getMimeType() ?? 'video/mp4';
 
-            // Extract first frame before analysis (for Clone mode base image)
+            // Workflow: extract_frame node
+            $this->workflowTrackNode('extract_frame', 'running');
             $firstFrameUrl = $this->extractFirstFrame($filePath);
+            $this->workflowTrackNode('extract_frame', 'completed', ['frame_url' => $firstFrameUrl]);
+
+            // Workflow: analyze_video + transcribe_audio + synthesize_concept (all inside analyzeVideoForConcept)
+            $this->workflowTrackNode('analyze_video', 'running');
+            $this->workflowTrackNode('transcribe_audio', 'running');
 
             $conceptService = app(ConceptService::class);
             $result = $conceptService->analyzeVideoForConcept($filePath, [
@@ -5292,6 +5304,11 @@ PROMPT;
                 'template' => $this->cloneTemplate,
             ]);
 
+            // Mark all analysis sub-nodes as completed
+            $this->workflowTrackNode('analyze_video', 'completed');
+            $this->workflowTrackNode('transcribe_audio', 'completed');
+            $this->workflowTrackNode('synthesize_concept', 'completed', ['concept' => $result['title'] ?? 'generated']);
+
             if ($firstFrameUrl) {
                 $result['firstFrameUrl'] = $firstFrameUrl;
             }
@@ -5299,9 +5316,13 @@ PROMPT;
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
 
+            // Workflow: pause at user_approve node
+            $this->workflowTrackNode('user_approve', 'paused');
+
         } catch (\Exception $e) {
             $this->videoAnalysisError = $e->getMessage();
             $this->videoAnalysisStage = null;
+            $this->workflowTrackNode('analyze_video', 'failed', ['error' => $e->getMessage()]);
             Log::error('VideoWizard: Video analysis failed', ['error' => $e->getMessage()]);
         }
     }
@@ -5327,6 +5348,9 @@ PROMPT;
             return;
         }
 
+        // Workflow: input_video node completed (user provided URL)
+        $this->workflowTrackNode('input_video', 'completed', ['source' => 'url', 'url' => $url]);
+
         $this->urlDownloadStage = 'downloading';
 
         try {
@@ -5334,6 +5358,9 @@ PROMPT;
             $outputFile = $tempDir . DIRECTORY_SEPARATOR . 'url_video_' . uniqid() . '.mp4';
 
             Log::info('VideoWizard: URL import — downloading video', ['url' => $url]);
+
+            // Workflow: download_video node
+            $this->workflowTrackNode('download_video', 'running');
 
             // Try download methods in order: yt-dlp → RapidAPI fallback
             $downloaded = $this->downloadVideoWithYtDlp($url, $outputFile);
@@ -5345,18 +5372,25 @@ PROMPT;
 
             if (!$downloaded) {
                 $this->urlDownloadStage = null;
-                // $videoAnalysisError is already set by the download methods
+                $this->workflowTrackNode('download_video', 'failed', ['error' => 'Download failed']);
                 if (empty($this->videoAnalysisError)) {
                     $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
                 }
                 return;
             }
 
+            $this->workflowTrackNode('download_video', 'completed');
             $this->urlDownloadStage = null;
             $this->videoAnalysisStage = 'analyzing';
 
-            // Extract first frame before analysis (for Clone mode base image)
+            // Workflow: extract_frame node
+            $this->workflowTrackNode('extract_frame', 'running');
             $firstFrameUrl = $this->extractFirstFrame($outputFile);
+            $this->workflowTrackNode('extract_frame', 'completed', ['frame_url' => $firstFrameUrl]);
+
+            // Workflow: analyze_video + transcribe_audio + synthesize_concept (all inside analyzeVideoForConcept)
+            $this->workflowTrackNode('analyze_video', 'running');
+            $this->workflowTrackNode('transcribe_audio', 'running');
 
             // Run same pipeline as uploaded videos
             $conceptService = app(ConceptService::class);
@@ -5369,12 +5403,20 @@ PROMPT;
                 'template' => $this->cloneTemplate,
             ]);
 
+            // Mark all analysis sub-nodes as completed
+            $this->workflowTrackNode('analyze_video', 'completed');
+            $this->workflowTrackNode('transcribe_audio', 'completed');
+            $this->workflowTrackNode('synthesize_concept', 'completed', ['concept' => $result['title'] ?? 'generated']);
+
             if ($firstFrameUrl) {
                 $result['firstFrameUrl'] = $firstFrameUrl;
             }
 
             $this->videoAnalysisResult = $result;
             $this->videoAnalysisStage = null;
+
+            // Workflow: pause at user_approve node
+            $this->workflowTrackNode('user_approve', 'paused');
 
             // Cleanup temp file
             @unlink($outputFile);
@@ -5383,6 +5425,7 @@ PROMPT;
             $this->urlDownloadStage = null;
             $this->videoAnalysisStage = null;
             $this->videoAnalysisError = $e->getMessage();
+            $this->workflowTrackNode('analyze_video', 'failed', ['error' => $e->getMessage()]);
             Log::error('VideoWizard: URL video analysis failed', ['error' => $e->getMessage()]);
         }
     }
@@ -5615,6 +5658,9 @@ PROMPT;
         if (!$this->videoAnalysisResult) {
             return;
         }
+
+        // Workflow: user_approve node completed
+        $this->workflowTrackNode('user_approve', 'completed');
 
         $idea = $this->videoAnalysisResult;
         $idea['source'] = 'cloned';
@@ -37333,7 +37379,13 @@ PROMPT;
                 ->forEngine($this->videoEngine)
                 ->visibleTo($userId, $teamId)
                 ->get()
-                ->map(fn($w) => ['id' => $w->id, 'name' => $w->name, 'slug' => $w->slug, 'description' => $w->description])
+                ->map(fn($w) => [
+                    'id' => $w->id,
+                    'name' => $w->name,
+                    'slug' => $w->slug,
+                    'description' => $w->description,
+                    'mode' => $w->defaults['mode'] ?? 'generate',
+                ])
                 ->toArray();
         } catch (\Throwable $e) {
             return [];
@@ -37353,7 +37405,15 @@ PROMPT;
         $this->useWorkflowMode = true;
         $this->activeWorkflowId = $workflow->id;
         $this->activeWorkflowName = $workflow->name;
+        $this->activeWorkflowMode = $workflow->defaults['mode'] ?? 'generate';
         $this->socialCreateTab = 'workflow';
+
+        // Derive cloneTemplate from workflow slug for backward compatibility
+        if (str_contains($workflow->slug, 'animal-chaos')) {
+            $this->cloneTemplate = 'animal-chaos';
+        } else {
+            $this->cloneTemplate = 'adaptive';
+        }
     }
 
     /**
@@ -37647,6 +37707,7 @@ PROMPT;
         $this->useWorkflowMode = false;
         $this->activeWorkflowId = null;
         $this->activeWorkflowName = null;
+        $this->activeWorkflowMode = 'generate';
         $this->activeExecutionId = null;
         $this->workflowExecutionSummary = null;
         $this->socialCreateTab = 'create';
