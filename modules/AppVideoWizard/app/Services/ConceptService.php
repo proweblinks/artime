@@ -679,11 +679,16 @@ SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
 Seedance responds to specific intensity words, NOT literary English adverbs.
 The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
 powerfully, wildly, crazy, fast, intense, strong, greatly.
+USE EXACT FORMS ONLY — do NOT convert to other grammatical forms:
+"intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly". "violent" use "violently" (it IS official).
 "crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy roar".
 COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency",
 "at high frequency and crazy intensity".
-NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
-"savagely", "relentlessly", "deafening", "razor-sharp", "audible" — Seedance does NOT interpret these.
+NEVER use literary adverbs or non-official intensity words: "ferociously", "furiously", "aggressively",
+"frantically", "explosively", "savagely", "relentlessly", "deafening", "razor-sharp", "audible",
+"intensely", "strongly", "sharply", "fiercely", "rapidly", "tremendously", "enormously" — Seedance does NOT interpret these.
+NEVER use emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate",
+"shocked", "stunned" — convey emotion through BODY ACTIONS with degree words, not adjectives.
 Only the official list works. Even in examples: "man's roar" → "man's crazy roar", "wing flapping" → "wing flapping greatly".
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
@@ -718,7 +723,7 @@ FACE & IDENTITY PRESERVATION — Critical for character consistency:
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
 - Instead, convey emotion through BODY LANGUAGE and ACTIONS:
   WRONG: "her face shows shock, eyes widening, mouth dropping open"
-  RIGHT: "she jerks back sharply, hands flying up defensively"
+  RIGHT: "she jerks back fast, hands flying up defensively"
   WRONG: "his expression shifts to anger, brow furrowing, jaw clenching"
   RIGHT: "he leans forward fast, fist slamming the table powerfully"
 - Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
@@ -742,7 +747,8 @@ BANNED:
 - No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- No literary adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically" — use ONLY the official degree words listed above
+- No literary adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically", "intensely", "strongly", "fiercely", "rapidly", "tremendously", "enormously" — use ONLY the official degree words listed above
+- No emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate", "shocked", "stunned" — convey emotion through body actions with degree words instead
 - ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack", "musical accompaniment", or ANY variation. Seedance auto-generates audio from prompt text — any music mention will cause Seedance to play unwanted background music. ONLY describe: character voices/sounds, dialogue, and environmental sound effects caused by physical actions (crashes, shattering, splashing, clattering)
 RULES;
     }
