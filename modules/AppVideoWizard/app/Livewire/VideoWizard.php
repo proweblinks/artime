@@ -3177,7 +3177,9 @@ class VideoWizard extends Component
                     $this->activeExecutionId = $latestExecution->id;
                     $this->activeWorkflowId = $latestExecution->workflow_id;
                     $this->useWorkflowMode = true;
-                    $this->socialCreateTab = 'workflow';
+                    // Keep socialCreateTab as 'create' (default) — don't force Workflow tab.
+                    // User can click Workflow tab themselves. Forcing it changes hash state
+                    // and can trigger unintended saves.
 
                     $workflow = $latestExecution->workflow;
                     if ($workflow) {
@@ -3189,6 +3191,12 @@ class VideoWizard extends Component
                             $this->cloneTemplate = 'adaptive';
                         }
                     }
+
+                    Log::info('VideoWizard: Legacy workflow state reconstructed', [
+                        'projectId' => $project->id,
+                        'executionId' => $latestExecution->id,
+                        'workflowId' => $latestExecution->workflow_id,
+                    ]);
                 }
             }
 
