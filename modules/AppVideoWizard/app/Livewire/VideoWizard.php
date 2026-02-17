@@ -33476,10 +33476,10 @@ PROMPT;
         // Now prepend face prefix and append style anchor
         $result['videoPrompt'] = $facePrefix . ' ' . trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — trim to 140 if over 150
+        // Word count enforcement — trim to 130 if over 140
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 150) {
-            Log::info('VideoWizard: Clone passthrough over 150 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 140) {
+            Log::info('VideoWizard: Clone passthrough over 140 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
                 $opening = array_slice($sentences, 0, 2);
@@ -33489,7 +33489,7 @@ PROMPT;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 135) {
+                    if ($currentWords + $sentenceWords <= 130) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }

@@ -896,11 +896,27 @@ RULES;
             '/\bdistinct\b/i' => 'crazy',
             '/\bpiercing\b/i' => 'crazy loud',
             '/\bsynchronized\b/i' => 'crazy',
+            '/\bsteady\b/i' => 'strong',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
+
+        // Phase 2a: Catch-all for ANY remaining non-official -ly adverb
+        // Official -ly words that are ALLOWED: violently, quickly, powerfully, wildly, greatly, strongly
+        // Also allow: photorealistic (style anchor)
+        $text = preg_replace_callback('/\b(\w+ly)\b/i', function ($matches) {
+            $word = strtolower($matches[1]);
+            $allowed = ['violently', 'quickly', 'powerfully', 'wildly', 'greatly', 'strongly',
+                'photorealistic', 'only', 'partially', 'directly', 'simultaneously', 'continuously',
+                'family', 'belly', 'jelly', 'holly', 'bully', 'early', 'nearly', 'clearly',
+                'mostly', 'especially', 'actually', 'really', 'finally', 'suddenly'];
+            if (in_array($word, $allowed)) {
+                return $matches[0]; // Keep allowed words
+            }
+            return ''; // Remove all other -ly words
+        }, $text);
 
         // Phase 2b: Replace passive/weak verbs and fix compound forms Gemini loves
         $passiveReplacements = [
@@ -1003,10 +1019,16 @@ RULES;
             '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing|locked|fixed|focused|trained)\s+(?:\w+\s+)?(?:at|on|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
             // "toward/at the camera" anywhere
             '/,?\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\s+(?:at|on|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
+            // standalone "at camera" / "at the camera" / "to camera"
+            '/\s+(?:at|to|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
             // "cheeks puffing/puffed/bulging" — facial micro-expression
             '/,?\s*(?:with\s+)?cheeks?\s+(?:puffing|puffed|bulging|inflating|inflated)\b[^,.]*[.,]?/i' => '',
             // "smiles/smiled/smiling [adverb] with [emotion]" — facial expression + emotional
             '/,?\s*\b(?:smiles?|smiled|smiling)\s+\w*\s*(?:with\s+\w+)?/i' => '',
+            // "face transforms/changes/shifts [anything]" — facial structure changes
+            '/,?\s*\bface\s+(?:transforms?|changes?|shifts?|contorts?|morphs?|lights?\s+up)\s*\w*[^,.]*[.,]?/i' => '',
+            // "mouth forms/makes shape/shape" — facial description
+            '/\bmouth\s+(?:forms?|makes?|creates?)\s+(?:a?\s*)?(?:shape|circle|oval|o\b)[^,.]*[.,]?/i' => 'mouth opens',
             // "with joy/delight/glee/satisfaction" — emotional phrase
             '/\bwith\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\b/i' => 'powerfully',
             // "Sleeping/resting [noun]" as appearance descriptor
@@ -1027,9 +1049,9 @@ RULES;
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
             '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
-            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit", "bright room"
+            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit", "bright [any setting]"
             '/\b(?:brightly|dimly|softly|warmly|harshly)\s+lit\b/i' => '',
-            '/\bbright\s+(?=(?:hospital|room|space|area|kitchen|office|studio|interior|scene))/i' => '',
+            '/\bbright\s+(?=\w)/i' => '',
             // "clear" as non-official descriptor (clear plastic, clear shhh, clear gesture)
             '/\bclear\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))/i' => '',
         ];
