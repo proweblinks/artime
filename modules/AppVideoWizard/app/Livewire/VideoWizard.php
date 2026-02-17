@@ -33466,20 +33466,15 @@ PROMPT;
             }
         }
 
-        // Ensure face stability prefix
+        // Ensure face stability prefix is at the START (not just present somewhere)
         $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
-        if (!str_contains($result['videoPrompt'], 'Character face stable')) {
-            if (str_contains($result['videoPrompt'], 'Maintain face')) {
-                $result['videoPrompt'] = preg_replace('/Maintain face[^.]*\./', $facePrefix, $result['videoPrompt'], 1);
-            } else {
-                $result['videoPrompt'] = $facePrefix . ' ' . $result['videoPrompt'];
-            }
-        }
-
-        // Ensure style anchor
-        if (!str_contains($result['videoPrompt'], 'Cinematic, photorealistic')) {
-            $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
-        }
+        // First strip any existing face prefix from anywhere in the prompt
+        $result['videoPrompt'] = preg_replace('/Maintain face and clothing consistency[^.]*\.\s*Character face stable[^.]*\.\s*/i', '', $result['videoPrompt']);
+        $result['videoPrompt'] = preg_replace('/Maintain face[^.]*\.\s*/i', '', $result['videoPrompt']);
+        // Strip style anchor too — we'll re-add at end
+        $result['videoPrompt'] = preg_replace('/\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $result['videoPrompt']);
+        // Now prepend face prefix and append style anchor
+        $result['videoPrompt'] = $facePrefix . ' ' . trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
         // Word count enforcement — trim to 140 if over 150
         $cloneWordCount = str_word_count($result['videoPrompt']);

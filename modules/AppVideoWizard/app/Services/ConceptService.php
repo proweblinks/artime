@@ -893,7 +893,7 @@ RULES;
             '/\bamplified\b/i' => 'crazy',
             '/\bdistinct\b/i' => 'crazy',
             '/\bpiercing\b/i' => 'crazy loud',
-            '/\bclear\b(?=\s+(?:chewing|slapping|tapping|hitting|crashing|banging|crunching|smacking|clinking|splashing)\b)/i' => '',
+            '/\bsynchronized\b/i' => 'crazy',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -997,10 +997,10 @@ RULES;
             '/\b(?:\w+\s+)?(?:toothless|wide|bright|warm|soft|gentle|sly|knowing|wicked)\s+smile\b/i' => '',
             // Standalone "smile/grin/frown/smirk" as action result
             '/\bbreaks?\s+into\s+(?:a\s+)?(?:smile|grin|laugh)\b/i' => '',
-            // "eyes looking at/toward camera"
-            '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing)\s+(?:\w+\s+)?(?:at|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
+            // "eyes looking/locked/fixed at/on camera"
+            '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing|locked|fixed|focused|trained)\s+(?:\w+\s+)?(?:at|on|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
             // "toward/at the camera" anywhere
-            '/,?\s*(?:looking|facing|turning|glancing)\s+(?:at|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
+            '/,?\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\s+(?:at|on|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
             // "Sleeping/resting [noun]" as appearance descriptor
             '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
@@ -1019,6 +1019,10 @@ RULES;
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
             '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
+            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit"
+            '/\b(?:brightly|dimly|softly|warmly|harshly)\s+lit\b/i' => '',
+            // "clear" as non-official descriptor (clear plastic, clear shhh, clear gesture)
+            '/\bclear\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))/i' => '',
         ];
 
         foreach ($appearancePatterns as $pattern => $replacement) {
@@ -1096,10 +1100,12 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 - NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
 - NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
 - Convey emotion ONLY through body actions + degree words
-- NO camera references (toward camera, camera angle, camera shakes)
+- NO camera references (toward camera, camera angle, camera shakes, eyes locked on camera)
 - If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
 - Must start with "Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements."
 - Must end with "Cinematic, photorealistic."
+- Object color/material descriptors for SCENE ITEMS (yellow can, silver tray, clear plastic) are ALLOWED and NOT violations — only character appearance descriptions are violations
+- "brightly lit", "dimly lit" lighting descriptors should be removed
 
 === WORD COUNT RULE (CRITICAL) ===
 The TOTAL prompt (including prefix and suffix) must be 100-140 words.
