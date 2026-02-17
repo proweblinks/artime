@@ -5316,68 +5316,9 @@ PROMPT;
                 $isNeutralClone = ($this->activeWorkflowMode === 'clone') && ($this->cloneTemplate === 'adaptive');
 
                 if ($isNeutralClone) {
-                    // Clone mode: only sanitize for Seedance compatibility, don't restructure
-                    $this->workflowTrackNode('fit_to_skeleton', 'running');
-                    $originalPrompt = $result['videoPrompt'];
-                    $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
-
-                    // Fix truncation
-                    $result['videoPrompt'] = rtrim($result['videoPrompt']);
-                    if (!preg_match('/[.!"]$/', $result['videoPrompt'])) {
-                        $lastPeriod = strrpos($result['videoPrompt'], '.');
-                        $lastExclamation = strrpos($result['videoPrompt'], '!');
-                        $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0);
-                        if ($cutPoint > 50) {
-                            $result['videoPrompt'] = substr($result['videoPrompt'], 0, $cutPoint + 1);
-                        }
-                    }
-
-                    // Ensure style anchor
-                    if (!str_contains($result['videoPrompt'], 'Cinematic, photorealistic')) {
-                        $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
-                    }
-
-                    $result['_skeleton'] = ['type' => 'clone_passthrough', 'original' => $originalPrompt];
-                    $this->workflowTrackNode('fit_to_skeleton', 'completed', [
-                        'skeleton_type' => 'clone_passthrough',
-                        'mode' => 'sanitize_only',
-                        'original_word_count' => str_word_count($originalPrompt),
-                        'fitted_word_count' => str_word_count($result['videoPrompt']),
-                    ]);
+                    $result = $this->applyClonePassthrough($result, $conceptService);
                 } else {
-                    // Non-clone workflows: apply full skeleton fitting
-                    $this->workflowTrackNode('fit_to_skeleton', 'running');
-                    try {
-                        $skeletonResult = $conceptService->fitPromptToSkeleton(
-                            $result['videoPrompt'],
-                            $result,
-                            $this->content['aiModelTier'] ?? 'economy',
-                            session('current_team_id', 0),
-                            $this->cloneTemplate ?? 'adaptive',
-                            [
-                                'chaosLevel' => $this->chaosLevel ?? 0,
-                                'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
-                                'chaosDescription' => $this->chaosDescription ?? '',
-                            ]
-                        );
-                        $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
-                        $result['_skeleton'] = [
-                            'type' => $skeletonResult['skeletonType'],
-                            'original' => $skeletonResult['originalPrompt'],
-                        ];
-                        $this->workflowTrackNode('fit_to_skeleton', 'completed', [
-                            'skeleton_type' => $skeletonResult['skeletonType'],
-                            'original_prompt' => $skeletonResult['originalPrompt'],
-                            'fitted_prompt' => $skeletonResult['fittedPrompt'],
-                            'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
-                            'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
-                            'chaos_level' => $skeletonResult['chaosLevel'] ?? 0,
-                            'chaos_mode' => $skeletonResult['chaosMode'] ?? false,
-                        ]);
-                    } catch (\Exception $e) {
-                        Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
-                        $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
-                    }
+                    $result = $this->applySkeletonFitting($result, $conceptService);
                 }
 
                 // Seedance Compliance Check — AI-powered validation pass
@@ -5525,68 +5466,9 @@ PROMPT;
                 $isNeutralClone = ($this->activeWorkflowMode === 'clone') && ($this->cloneTemplate === 'adaptive');
 
                 if ($isNeutralClone) {
-                    // Clone mode: only sanitize for Seedance compatibility, don't restructure
-                    $this->workflowTrackNode('fit_to_skeleton', 'running');
-                    $originalPrompt = $result['videoPrompt'];
-                    $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
-
-                    // Fix truncation
-                    $result['videoPrompt'] = rtrim($result['videoPrompt']);
-                    if (!preg_match('/[.!"]$/', $result['videoPrompt'])) {
-                        $lastPeriod = strrpos($result['videoPrompt'], '.');
-                        $lastExclamation = strrpos($result['videoPrompt'], '!');
-                        $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0);
-                        if ($cutPoint > 50) {
-                            $result['videoPrompt'] = substr($result['videoPrompt'], 0, $cutPoint + 1);
-                        }
-                    }
-
-                    // Ensure style anchor
-                    if (!str_contains($result['videoPrompt'], 'Cinematic, photorealistic')) {
-                        $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
-                    }
-
-                    $result['_skeleton'] = ['type' => 'clone_passthrough', 'original' => $originalPrompt];
-                    $this->workflowTrackNode('fit_to_skeleton', 'completed', [
-                        'skeleton_type' => 'clone_passthrough',
-                        'mode' => 'sanitize_only',
-                        'original_word_count' => str_word_count($originalPrompt),
-                        'fitted_word_count' => str_word_count($result['videoPrompt']),
-                    ]);
+                    $result = $this->applyClonePassthrough($result, $conceptService);
                 } else {
-                    // Non-clone workflows: apply full skeleton fitting
-                    $this->workflowTrackNode('fit_to_skeleton', 'running');
-                    try {
-                        $skeletonResult = $conceptService->fitPromptToSkeleton(
-                            $result['videoPrompt'],
-                            $result,
-                            $this->content['aiModelTier'] ?? 'economy',
-                            session('current_team_id', 0),
-                            $this->cloneTemplate ?? 'adaptive',
-                            [
-                                'chaosLevel' => $this->chaosLevel ?? 0,
-                                'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
-                                'chaosDescription' => $this->chaosDescription ?? '',
-                            ]
-                        );
-                        $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
-                        $result['_skeleton'] = [
-                            'type' => $skeletonResult['skeletonType'],
-                            'original' => $skeletonResult['originalPrompt'],
-                        ];
-                        $this->workflowTrackNode('fit_to_skeleton', 'completed', [
-                            'skeleton_type' => $skeletonResult['skeletonType'],
-                            'original_prompt' => $skeletonResult['originalPrompt'],
-                            'fitted_prompt' => $skeletonResult['fittedPrompt'],
-                            'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
-                            'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
-                            'chaos_level' => $skeletonResult['chaosLevel'] ?? 0,
-                            'chaos_mode' => $skeletonResult['chaosMode'] ?? false,
-                        ]);
-                    } catch (\Exception $e) {
-                        Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
-                        $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
-                    }
+                    $result = $this->applySkeletonFitting($result, $conceptService);
                 }
 
                 // Seedance Compliance Check — AI-powered validation pass
@@ -33561,6 +33443,120 @@ PROMPT;
             \Log::error('Video Extend: generateContinuationPrompt error', ['error' => $e->getMessage()]);
             return '';
         }
+    }
+
+    /**
+     * Apply clone passthrough: sanitize + face prefix + style anchor + word count trimming.
+     * Used for neutral clone workflows (adaptive template) — preserves the video's original style.
+     */
+    protected function applyClonePassthrough(array $result, $conceptService): array
+    {
+        $this->workflowTrackNode('fit_to_skeleton', 'running');
+        $originalPrompt = $result['videoPrompt'];
+        $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
+
+        // Fix truncation
+        $result['videoPrompt'] = rtrim($result['videoPrompt']);
+        if (!preg_match('/[.!"]$/', $result['videoPrompt'])) {
+            $lastPeriod = strrpos($result['videoPrompt'], '.');
+            $lastExclamation = strrpos($result['videoPrompt'], '!');
+            $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0);
+            if ($cutPoint > 50) {
+                $result['videoPrompt'] = substr($result['videoPrompt'], 0, $cutPoint + 1);
+            }
+        }
+
+        // Ensure face stability prefix
+        $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
+        if (!str_contains($result['videoPrompt'], 'Character face stable')) {
+            if (str_contains($result['videoPrompt'], 'Maintain face')) {
+                $result['videoPrompt'] = preg_replace('/Maintain face[^.]*\./', $facePrefix, $result['videoPrompt'], 1);
+            } else {
+                $result['videoPrompt'] = $facePrefix . ' ' . $result['videoPrompt'];
+            }
+        }
+
+        // Ensure style anchor
+        if (!str_contains($result['videoPrompt'], 'Cinematic, photorealistic')) {
+            $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
+        }
+
+        // Word count enforcement — trim to 140 if over 150
+        $cloneWordCount = str_word_count($result['videoPrompt']);
+        if ($cloneWordCount > 150) {
+            Log::info('VideoWizard: Clone passthrough over 150 words, trimming', ['wordCount' => $cloneWordCount]);
+            $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
+            if (count($sentences) > 3) {
+                $opening = array_slice($sentences, 0, 2);
+                $closing = [array_pop($sentences)];
+                $middle = array_slice($sentences, 2);
+                $kept = $opening;
+                $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
+                foreach ($middle as $sentence) {
+                    $sentenceWords = str_word_count($sentence);
+                    if ($currentWords + $sentenceWords <= 135) {
+                        $kept[] = $sentence;
+                        $currentWords += $sentenceWords;
+                    }
+                }
+                $result['videoPrompt'] = implode(' ', array_merge($kept, $closing));
+                if (!str_contains($result['videoPrompt'], 'Cinematic, photorealistic.')) {
+                    $result['videoPrompt'] = rtrim($result['videoPrompt'], '. ') . '. Cinematic, photorealistic.';
+                }
+            }
+        }
+
+        $result['_skeleton'] = ['type' => 'clone_passthrough', 'original' => $originalPrompt];
+        $this->workflowTrackNode('fit_to_skeleton', 'completed', [
+            'skeleton_type' => 'clone_passthrough',
+            'mode' => 'sanitize_only',
+            'original_word_count' => str_word_count($originalPrompt),
+            'fitted_word_count' => str_word_count($result['videoPrompt']),
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * Apply full skeleton fitting via ConceptService::fitPromptToSkeleton().
+     * Used for non-clone workflows (adaptive, animal-chaos, etc.)
+     */
+    protected function applySkeletonFitting(array $result, $conceptService): array
+    {
+        $this->workflowTrackNode('fit_to_skeleton', 'running');
+        try {
+            $skeletonResult = $conceptService->fitPromptToSkeleton(
+                $result['videoPrompt'],
+                $result,
+                $this->content['aiModelTier'] ?? 'economy',
+                session('current_team_id', 0),
+                $this->cloneTemplate ?? 'adaptive',
+                [
+                    'chaosLevel' => $this->chaosLevel ?? 0,
+                    'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                    'chaosDescription' => $this->chaosDescription ?? '',
+                ]
+            );
+            $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
+            $result['_skeleton'] = [
+                'type' => $skeletonResult['skeletonType'],
+                'original' => $skeletonResult['originalPrompt'],
+            ];
+            $this->workflowTrackNode('fit_to_skeleton', 'completed', [
+                'skeleton_type' => $skeletonResult['skeletonType'],
+                'original_prompt' => $skeletonResult['originalPrompt'],
+                'fitted_prompt' => $skeletonResult['fittedPrompt'],
+                'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
+                'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
+                'chaos_level' => $skeletonResult['chaosLevel'] ?? 0,
+                'chaos_mode' => $skeletonResult['chaosMode'] ?? false,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
+            $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
+        }
+
+        return $result;
     }
 
     /**

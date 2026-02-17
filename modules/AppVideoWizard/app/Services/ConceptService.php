@@ -985,6 +985,7 @@ RULES;
     public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiModelTier = 'economy'): array
     {
         $rules = $this->getSeedanceTechnicalRules();
+        $wordCount = str_word_count($prompt);
 
         $validationPrompt = <<<PROMPT
 You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt below against ALL rules and fix every violation.
@@ -993,14 +994,24 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 {$rules}
 
 === ADDITIONAL RULES ===
-- Word count should be 100-140 words (not counting "Maintain face..." prefix and "Cinematic, photorealistic." suffix)
 - Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)
 - NO -ly adverbs except "violently" and "quickly" (which ARE official)
 - NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
 - NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
 - Convey emotion ONLY through body actions + degree words
+- NO camera references (toward camera, camera angle, camera shakes)
 - If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
+- Must start with "Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements."
 - Must end with "Cinematic, photorealistic."
+
+=== WORD COUNT RULE (CRITICAL) ===
+The TOTAL prompt (including prefix and suffix) must be 100-140 words.
+If the prompt exceeds 140 words, you MUST TRIM it by:
+1. Removing redundant modifiers and padding words
+2. Combining actions where possible ("grips and bites" instead of two separate sentences)
+3. Removing the LEAST important actions if still over budget
+NEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.
+Current word count: {wordCount} words.
 
 === PROMPT TO VALIDATE ===
 {$prompt}
@@ -1008,13 +1019,13 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 === INSTRUCTIONS ===
 1. Scan EVERY word and phrase against the rules
 2. List ALL violations found
-3. Provide the COMPLETE fixed prompt with violations corrected
-4. Rate compliance 0-100
+3. Provide the COMPLETE fixed prompt with violations corrected AND trimmed to 100-140 words
+4. Rate compliance 0-100 (score below 80 if word count exceeds 140)
 
 Return ONLY valid JSON (no markdown, no explanation):
-{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt","summary":"one sentence summary"}
+{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt under 140 words","summary":"one sentence summary"}
 
-CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt.
+CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. But DO trim to stay under 140 words.
 PROMPT;
 
         try {
@@ -1051,9 +1062,42 @@ PROMPT;
                         $fixedPrompt = rtrim($fixedPrompt, '. ') . '. Cinematic, photorealistic.';
                     }
 
-                    // Safety: ensure fixedPrompt starts with face consistency phrase
-                    if (!str_contains($fixedPrompt, 'Maintain face and clothing consistency')) {
-                        $fixedPrompt = 'Maintain face and clothing consistency, no distortion, high detail. ' . $fixedPrompt;
+                    // Safety: ensure fixedPrompt starts with face consistency phrase + character face stable
+                    $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
+                    if (!str_contains($fixedPrompt, 'Character face stable')) {
+                        if (str_contains($fixedPrompt, 'Maintain face')) {
+                            $fixedPrompt = preg_replace('/Maintain face[^.]*\.(\s*Character face[^.]*\.)?/', $facePrefix, $fixedPrompt, 1);
+                        } else {
+                            $fixedPrompt = $facePrefix . ' ' . $fixedPrompt;
+                        }
+                    }
+
+                    // Hard word count enforcement — if AI still produced over 150 words, trim
+                    $fixedWordCount = str_word_count($fixedPrompt);
+                    if ($fixedWordCount > 150) {
+                        \Log::warning('SeedanceCompliance: AI fixedPrompt still over 150 words, trimming', [
+                            'wordCount' => $fixedWordCount,
+                        ]);
+                        // Trim by removing middle sentences, keeping opening and closing
+                        $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $fixedPrompt);
+                        if (count($sentences) > 3) {
+                            $opening = array_slice($sentences, 0, 2);
+                            $closing = [array_pop($sentences)];
+                            $middle = array_slice($sentences, 2);
+                            $result = $opening;
+                            $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
+                            foreach ($middle as $sentence) {
+                                $sentenceWords = str_word_count($sentence);
+                                if ($currentWords + $sentenceWords <= 135) {
+                                    $result[] = $sentence;
+                                    $currentWords += $sentenceWords;
+                                }
+                            }
+                            $fixedPrompt = implode(' ', array_merge($result, $closing));
+                            if (!str_contains($fixedPrompt, 'Cinematic, photorealistic.')) {
+                                $fixedPrompt = rtrim($fixedPrompt, '. ') . '. Cinematic, photorealistic.';
+                            }
+                        }
                     }
 
                     \Log::info('SeedanceCompliance: Validation complete', [
@@ -1971,44 +2015,33 @@ PROMPT;
         }
 
         $prompt = <<<PROMPT
-Rewrite the source material below into EXACTLY 5 sentences following this MANDATORY structure:
+Rewrite the source material below following the MANDATORY STRUCTURE. Match the energy and beat pattern EXACTLY.
 
-REFERENCE (match this flow):
+REFERENCE (match this flow and energy):
 {$example}
 
-MANDATORY SENTENCE STRUCTURE (follow EXACTLY — 5 sentences):
-Sentence 1 — TRIGGER: "[Human character] [action verb] and says '[ONE short punchy line under 15 words]' while [physical gesture with degree word]."
-   NO emotional adjectives (frustrated, angry, furious). Convey emotion through BODY ACTION.
-   GOOD: "The man slams his hands on the counter powerfully and says 'There's no caramel in this!'"
-   BAD: "The frustrated customer leans forward in anger and says 'How do you mess up...'"
-Sentence 2 — INSTANT REACTION: "Instantly the [animal type] [sound with degree word] and [single explosive physical strike with 2-3 degree words]."
-   NO roles/titles (employee, worker). Just species: "the cat", "the dog".
-   Start with "Instantly". ONE flowing action, not a list.
-Sentence 3 — CHAIN DESTRUCTION: "The [animal]'s [specific body part] [hits specific named object], [visible consequence with degree word and impact sound]."
-   The body part MUST be named. The object MUST be named. The consequence MUST be visual.
-Sentence 4 — PEAK CHAOS: "[Animal] [biggest action of the whole prompt — goes wild, smashes everything, maximum degree words]."
-   This is the climax. Maximum destruction. 2-3 stacked degree words. One flowing sentence.
-Sentence 5 — CLOSING: "[Resolution action]. Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
-   The resolution is a FINAL ACTION (character flees, collapses, leaps away). Then the style anchor. MANDATORY.
+MANDATORY STRUCTURE — follow these beats EXACTLY:
+{$skeleton}
 
 SOURCE MATERIAL (use characters, dialogue, objects — NOT its sentence structure):
 Situation: {$concept['situation']}{$dialogueContext}
 {$characterContext}
 Raw: "{$rawPrompt}"
 
-RULES:
-- EXACTLY 5 sentences. Each sentence = ONE flowing action. No run-on sentences with multiple actions.
-- NEVER use emotional adjectives: frustrated, angry, feisty, furious, terrified, desperate, pained.
+SEEDANCE TECHNICAL RULES — apply to ALL content:
+- NEVER use emotional adjectives: frustrated, angry, feisty, furious, terrified, desperate, pained, mischievous, satisfied, playful, joyful, content, smug.
 - NEVER use banned adverbs: tightly, briefly, crazily, precariously, fiercely, loudly, sharply, aggressively.
 - ONLY use these degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
 - Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
 - Use "at high frequency" NOT "high-frequency". Use "crazy loud" NOT "high-pitched".
-- NO clothing descriptions (jacket, shirt, hoodie, polo). Identify characters by species/body only.
+- NO clothing/appearance descriptions (jacket, shirt, hoodie, fur color). Identify characters by type/body only.
+- NO facial expression descriptions (eyes widening, brow furrowing, mouth curving). Convey emotion through BODY ACTIONS.
+- NO camera references (toward camera, camera shakes). Describe character direction only.
 - NO weak verbs: walks, goes, moves, does, gets, starts, begins, tries.
-- Sentence 5 MUST end with "Cinematic, photorealistic." — this is NOT optional.
-- 100-150 words total. The reference is ~130 words.
+- MUST end with "Cinematic, photorealistic." — this is NOT optional.
+- MUST start with "Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements."
 {$chaosScalingBlock}
-Output ONLY the 5 sentences. Nothing else.
+Output ONLY the rewritten prompt. Nothing else.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
@@ -2039,6 +2072,17 @@ PROMPT;
         // Sanitize the fitted prompt (AI may reintroduce banned words)
         $fittedPrompt = self::sanitizeSeedancePrompt($fittedPrompt);
 
+        // Ensure face stability prefix is present
+        $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
+        if (!str_contains($fittedPrompt, 'Character face stable')) {
+            if (str_contains($fittedPrompt, 'Maintain face')) {
+                // Has partial prefix — replace with full version
+                $fittedPrompt = preg_replace('/Maintain face[^.]*\./', $facePrefix, $fittedPrompt, 1);
+            } else {
+                $fittedPrompt = $facePrefix . ' ' . $fittedPrompt;
+            }
+        }
+
         // Fix truncation — if prompt ends mid-sentence, trim to last complete sentence
         $fittedPrompt = rtrim($fittedPrompt);
         if (!preg_match('/[.!"]$/', $fittedPrompt)) {
@@ -2051,24 +2095,42 @@ PROMPT;
             }
         }
 
-        // Ensure it ends with the style anchor
+        // Ensure it ends with the style anchor (template-aware)
         if (!str_contains($fittedPrompt, 'Cinematic, photorealistic.')) {
             $fittedPrompt = rtrim($fittedPrompt, '. ');
-            if (!str_contains($fittedPrompt, 'screaming throughout')) {
+            if (($energyType === 'CHAOTIC' || $templateId === 'animal-chaos') && !str_contains($fittedPrompt, 'screaming throughout')) {
                 $fittedPrompt .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
             } else {
-                $fittedPrompt .= ' Cinematic, photorealistic.';
+                $fittedPrompt .= '. Cinematic, photorealistic.';
             }
         }
 
-        // Word count enforcement — if AI still exceeded 200 words, trim by removing middle sentences
+        // Word count enforcement — template-aware limits
         $wordCount = str_word_count($fittedPrompt);
-        if ($wordCount > 200) {
-            Log::warning('ConceptService: fitPromptToSkeleton exceeded 200 words, trimming', [
+        $maxWords = match ($energyType) {
+            'GENTLE' => 145,       // Skeleton says 80-130, allow small margin
+            'PHYSICAL COMEDY' => 165, // Skeleton says 100-150
+            'CHAOTIC' => 185,      // Skeleton says 100-170
+            'RHYTHMIC' => 155,     // Skeleton says 80-140
+            'DRAMATIC' => 165,     // Skeleton says 100-150
+            default => 165,
+        };
+        $trimTarget = match ($energyType) {
+            'GENTLE' => 125,
+            'PHYSICAL COMEDY' => 140,
+            'CHAOTIC' => 160,
+            'RHYTHMIC' => 130,
+            'DRAMATIC' => 140,
+            default => 140,
+        };
+        if ($wordCount > $maxWords) {
+            Log::warning('ConceptService: fitPromptToSkeleton exceeded word limit, trimming', [
                 'wordCount' => $wordCount,
-                'target' => '150-180',
+                'maxWords' => $maxWords,
+                'trimTarget' => $trimTarget,
+                'energyType' => $energyType,
             ]);
-            $fittedPrompt = $this->trimPromptToWordCount($fittedPrompt, 175);
+            $fittedPrompt = $this->trimPromptToWordCount($fittedPrompt, $trimTarget);
         }
 
         Log::info('ConceptService: fitPromptToSkeleton completed', [
