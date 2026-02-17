@@ -869,6 +869,24 @@ RULES;
             '/\bdeliberately\b/i' => 'powerfully',
             '/\bsoft\b/i' => '',
             '/\bviolently\s+and\s+violently\b/i' => 'violently',
+            // Additional non-official adverbs caught by compliance checker
+            '/\bslowly\b/i' => 'quickly',
+            '/\bintently\b/i' => 'fast',
+            '/\bsecretly\b/i' => '',
+            '/\bgently\b/i' => 'quickly',
+            '/\bcalmly\b/i' => '',
+            '/\bquietly\b/i' => '',
+            '/\bcautiously\b/i' => 'fast',
+            '/\bsteadily\b/i' => 'strong',
+            '/\bcarefully\b/i' => '',
+            '/\bhurriedly\b/i' => 'fast',
+            '/\bgracefully\b/i' => '',
+            '/\bswiftly\b/i' => 'fast',
+            '/\bvigorously\b/i' => 'powerfully',
+            // Non-official degree-style words used by AI
+            '/\bamplified\b/i' => 'crazy',
+            '/\bdistinct\b/i' => 'crazy',
+            '/\bpiercing\b/i' => 'crazy loud',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -919,6 +937,16 @@ RULES;
             '/\bsmug\s+/i' => '',
             '/\bgleeful\s+/i' => '',
             '/\bcontented\s+/i' => '',
+            '/\bcheerful\s+/i' => '',
+            '/\bcurious\s+/i' => '',
+            '/\bdevious\s+/i' => '',
+            '/\bguilty\s+/i' => '',
+            '/\bproud\s+/i' => '',
+            '/\btriumphal\s+/i' => '',
+            '/\btriumphant\s+/i' => '',
+            '/\binnocent\s+/i' => '',
+            '/\bsneaky\s+/i' => '',
+            '/\bconspiratorial\s+/i' => '',
         ];
 
         foreach ($emotionalAdjectives as $pattern => $replacement) {
@@ -942,9 +970,37 @@ RULES;
             '/\bin\s+(?:amusement|delight|horror|disgust|surprise|wonder|disbelief|shock)\b/i' => '',
             // "with a [adj] glint/grin/smirk"
             '/\bwith\s+(?:a\s+)?(?:\w+\s+)?(?:glint|grin|smirk|sneer)\b/i' => '',
+            // "expression shifts/changes to [adj] smile/grin"
+            '/\bexpression\s+(?:shifts?|changes?)\s+to\s+[^,.]*(?:smile|grin|frown|smirk)/i' => '',
+            // "wide/toothless/bright/warm smile" — any smile description
+            '/\b(?:\w+\s+)?(?:toothless|wide|bright|warm|soft|gentle|sly|knowing|wicked)\s+smile\b/i' => '',
+            // Standalone "smile/grin/frown/smirk" as action result
+            '/\bbreaks?\s+into\s+(?:a\s+)?(?:smile|grin|laugh)\b/i' => '',
+            // "eyes looking at/toward camera"
+            '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing)\s+(?:\w+\s+)?(?:at|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
+            // "toward/at the camera" anywhere
+            '/,?\s*(?:looking|facing|turning|glancing)\s+(?:at|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
+            // "Sleeping/resting [noun]" as appearance descriptor
+            '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
 
         foreach ($facialPatterns as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 3c: Remove appearance/clothing descriptions
+        $appearancePatterns = [
+            // "wrapped from waist down", "wrapped in [cloth]"
+            '/,?\s*wrapped\s+(?:from|around)\s+[^,.]+/i' => '',
+            // "food/sauce smudged/splattered on/around [body part]"
+            '/,?\s*(?:food|sauce|liquid|cream|crumbs?)\s+(?:smudged|splattered|dripping|stuck|remaining)\s+(?:on|around|over)\s+[^,.]+/i' => '',
+            // "wearing/dressed in [clothing]"
+            '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
+            // Specific clothing items
+            '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
+        ];
+
+        foreach ($appearancePatterns as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
 
