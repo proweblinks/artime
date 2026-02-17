@@ -1188,7 +1188,7 @@
                     {{ $selectedIdea['situation'] ?? '' }}
                     <br><span style="color: #94a3b8; font-size: 0.75rem;">
                         @if($isSeedance)
-                            <i class="fa-solid fa-bolt"></i> Seedance &mdash; {{ __('Silent video (add audio separately)') }}
+                            <i class="fa-solid fa-bolt"></i> Seedance &mdash; {{ __('Auto-generated audio') }}
                         @elseif(!empty($selectedIdea['audioType']))
                             <i class="fa-solid fa-microphone"></i> InfiniteTalk &mdash; {{ $selectedIdea['audioType'] === 'music-lipsync' ? 'Music Lip-Sync' : 'Voiceover' }}
                         @endif
