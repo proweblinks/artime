@@ -33443,6 +33443,8 @@ PROMPT;
                 'chaosDirection' => $this->extendMode['chaosDirection'],
                 'narrativeChain' => $this->buildNarrativeChain($shot),
                 'extensionNumber' => $extensionNumber,
+                'workflowMode' => $this->activeWorkflowMode ?? '',
+                'cloneTemplate' => $this->cloneTemplate ?? 'adaptive',
             ]);
 
             $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
@@ -33462,11 +33464,8 @@ PROMPT;
     }
 
     /**
-     * Generate a Hollywood-quality AI continuation prompt by analyzing the extracted frame.
-     * Follows the same Seedance prompt structure as getMotionDescriptionForShot():
-     * Subject Action + Camera Movement + Emotional/Body Language + Atmospheric Motion
-     *
-     * Each successive take ESCALATES intensity dramatically.
+     * Generate an AI continuation prompt by analyzing the extracted frame.
+     * Routes to neutral (clone) or chaos prompt builder based on workflow mode.
      */
     protected function generateContinuationPrompt(string $frameUrl, string $originalPrompt, float $timestamp, array $context = []): string
     {
@@ -33480,43 +33479,209 @@ PROMPT;
             $base64 = base64_encode($imageContent);
             $mimeType = 'image/png';
 
-            $concept = $context['concept'] ?? '';
-            $narration = $context['narration'] ?? '';
-            $chaosDirection = trim($context['chaosDirection'] ?? '');
-            $intensity = (int) ($context['intensity'] ?? 50);
+            // Determine if this is a neutral/clone workflow or chaos workflow
+            $workflowMode = $context['workflowMode'] ?? '';
+            $cloneTemplate = $context['cloneTemplate'] ?? 'adaptive';
+            $isNeutralExtension = ($workflowMode === 'clone' && $cloneTemplate === 'adaptive');
 
-            $chaosMode = (bool) ($context['chaosMode'] ?? false);
-            $narrativeChain = $context['narrativeChain'] ?? [];
-            $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
+            if ($isNeutralExtension) {
+                $prompt = $this->buildNeutralContinuationPrompt($originalPrompt, $timestamp, $context);
+            } else {
+                $prompt = $this->buildChaosContinuationPrompt($originalPrompt, $timestamp, $context);
+            }
 
-            $chaosBlock = '';
-            if ($chaosDirection !== '') {
-                $chaosBlock = <<<PROMPT
+            $gemini = app(\App\Services\GeminiService::class);
+            $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => $mimeType,
+            ]);
+
+            if ($result['success'] && !empty($result['text'])) {
+                $text = trim($result['text']);
+                // Strip any markdown formatting or headers the AI might add
+                $text = preg_replace('/^#+\s+.*$/m', '', $text);
+                $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
+                $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
+                $text = trim($text);
+
+                // Sanitize banned Seedance words that Gemini keeps using despite instructions
+                $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
+
+                // Remove clothing descriptions Gemini insists on adding
+                $text = preg_replace('/\b(his|her|the|a)\s+(pink|blue|green|red|white|black|gray|grey|brown|yellow|orange|purple)\s+(polo\s+shirt|shirt|jacket|hoodie|sweater|vest|coat|jeans|pants|shorts|dress|skirt|blouse|apron|uniform)\b/i', '$1 torso', $text);
+                $text = preg_replace('/\b(into|onto|on|against|from)\s+(the\s+)?(man\'s|her|his)\s+(jacket|shirt|hoodie|polo|sweater|vest|coat|sleeve|collar|pocket)\b/i', '$1 $3 torso', $text);
+
+                // Fix truncation — if prompt ends mid-sentence (no period/exclamation at end), trim to last complete sentence
+                $text = rtrim($text);
+                if (!preg_match('/[.!"]$/', $text)) {
+                    // Truncated — find last complete sentence
+                    $lastPeriod = strrpos($text, '.');
+                    $lastExclamation = strrpos($text, '!');
+                    $lastQuote = strrpos($text, '"');
+                    $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0, $lastQuote ?: 0);
+                    if ($cutPoint > 50) {
+                        $text = substr($text, 0, $cutPoint + 1);
+                    }
+                }
+
+                // Ensure style anchor is present at the end
+                if (!str_contains($text, 'Cinematic, photorealistic')) {
+                    $text = rtrim($text, '. ');
+                    if ($isNeutralExtension) {
+                        // Neutral clone — just add the cinematic anchor, no forced screaming
+                        $text .= '. Cinematic, photorealistic.';
+                    } else {
+                        // Chaos mode — add aggressive sound + cinematic anchor
+                        if (!str_contains($text, 'screaming throughout')) {
+                            $text .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
+                        } else {
+                            $text .= ' Cinematic, photorealistic.';
+                        }
+                    }
+                }
+
+                // Add face consistency prefix if not present
+                if (!str_contains($text, 'Maintain face and clothing consistency')) {
+                    $text = 'Maintain face and clothing consistency, no distortion, high detail. ' . $text;
+                }
+
+                // Final cleanup — double spaces from removals
+                $text = preg_replace('/\s{2,}/', ' ', $text);
+                $text = trim($text);
+
+                return $text;
+            }
+
+            \Log::warning('Video Extend: Gemini continuation prompt failed', [
+                'error' => $result['error'] ?? 'empty response',
+            ]);
+            return '';
+
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend: generateContinuationPrompt error', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Build a NEUTRAL continuation prompt for clone/adaptive workflows.
+     * Matches the original video's tone — no forced chaos, destruction, or escalation.
+     */
+    protected function buildNeutralContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
+    {
+        $concept = $context['concept'] ?? '';
+        $narration = $context['narration'] ?? '';
+        $narrativeChain = $context['narrativeChain'] ?? [];
+        $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
+
+        // Build narrative chain context
+        $narrativeContext = '';
+        if (!empty($narrativeChain)) {
+            $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
+        } else {
+            $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
+        }
+
+        return <<<PROMPT
+You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
+
+ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
+Study it carefully — character positions, body posture, what they're holding, the environment.
+
+ORIGINAL CONCEPT: {$concept}
+NARRATION: {$narration}
+
+{$narrativeContext}
+
+=== NEUTRAL CONTINUATION RULES ===
+
+This is a CLONE workflow — the continuation must match the SAME tone, energy, and style
+as the original video. Do NOT escalate, do NOT add violence, do NOT change the character's behavior.
+
+CRITICAL — MATCH THE ORIGINAL ENERGY:
+- Study the original prompt above. If the character was calm and gentle, the continuation stays calm and gentle.
+- If the character was eating, they continue eating or do the NEXT natural thing.
+- If the character was talking softly, they continue at the same volume.
+- NEVER inject aggression, destruction, screaming, or chaos into a calm/gentle video.
+- The continuation is what would NATURALLY happen next in this scene.
+
+WORD COUNT: 100-130 words. Concise and action-focused.
+
+STRUCTURE (flexible, NOT rigid):
+1. Re-establish the character in their current position from the frame.
+2. Continue the NATURAL next action (what would logically happen next in this scene).
+3. Add 1-2 secondary actions (small natural movements, interactions with nearby objects).
+4. Include appropriate sounds matching the original energy level (soft sounds for calm videos, louder for energetic ones).
+5. End with "Cinematic, photorealistic."
+
+SEEDANCE 1.5 TECHNICAL RULES:
+- Use ONLY official degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly
+- For CALM/GENTLE videos: use milder degree words like "quickly", "fast", "strong" — NOT "violently", "wildly", "crazy"
+- Every action needs at least one degree word
+- NO -ly adverbs except "violently" and "quickly"
+- NO emotional adjectives (happy, sad, mischievous, satisfied, etc.)
+- NO facial micro-expressions (eyes widening, mouth curving into smile, brow furrowing)
+- Convey emotion through BODY ACTIONS only
+- NO camera movements (controlled separately by API)
+- NO background music
+- NO dialogue or speech text
+- NO clothing descriptions
+- NO passive voice or weak verbs (goes, moves, starts, begins)
+- Describe explicit motion and trajectory for every movement
+- Include sound descriptions appropriate to the action
+
+ABSOLUTELY BANNED IN NEUTRAL MODE:
+- "aggressive", "violent", "destruction", "chaos", "thrashing", "slamming", "smashing"
+- Forced escalation — do NOT make things more intense than the original
+- Chain reactions, flying objects, things breaking (unless it happened in the original)
+- "Continuous crazy aggressive screaming throughout" — this is for chaos videos ONLY
+- Any behavior that contradicts the original video's character
+
+STYLE ANCHOR — end with: "Cinematic, photorealistic."
+The face/clothing prefix ("Maintain face and clothing consistency...") will be added automatically — do NOT include it.
+
+Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
+PROMPT;
+    }
+
+    /**
+     * Build a CHAOS continuation prompt for animal-chaos and high-energy workflows.
+     */
+    protected function buildChaosContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
+    {
+        $concept = $context['concept'] ?? '';
+        $narration = $context['narration'] ?? '';
+        $chaosDirection = trim($context['chaosDirection'] ?? '');
+        $intensity = (int) ($context['intensity'] ?? 50);
+        $chaosMode = (bool) ($context['chaosMode'] ?? false);
+        $narrativeChain = $context['narrativeChain'] ?? [];
+        $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
+
+        $chaosBlock = '';
+        if ($chaosDirection !== '') {
+            $chaosBlock = <<<CB
 
 USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — the continuation MUST follow this):
 {$chaosDirection}
-PROMPT;
-            }
+CB;
+        }
 
-            // Use unified chaos tier system from ConceptService
-            $conceptService = app(\Modules\AppVideoWizard\Services\ConceptService::class);
-            $intensityBlock = $conceptService->getChaosPromptModifier($intensity, $chaosDirection);
+        // Use unified chaos tier system from ConceptService
+        $conceptService = app(\Modules\AppVideoWizard\Services\ConceptService::class);
+        $intensityBlock = $conceptService->getChaosPromptModifier($intensity, $chaosDirection);
 
-            // Add chaos mode supercharger when active
-            if ($chaosMode) {
-                $intensityBlock .= "\n\n" . $conceptService->getChaosModeSupercharger();
-            }
+        if ($chaosMode) {
+            $intensityBlock .= "\n\n" . $conceptService->getChaosModeSupercharger();
+        }
 
-            // Build narrative chain context for multi-extension continuity
-            $narrativeContext = '';
-            if (!empty($narrativeChain)) {
-                $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
-            } else {
-                // Fallback: no chain data available, use original prompt directly
-                $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
-            }
+        $narrativeContext = '';
+        if (!empty($narrativeChain)) {
+            $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
+        } else {
+            $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
+        }
 
-            $prompt = <<<PROMPT
+        return <<<PROMPT
 You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
 
 ANALYZE THIS FRAME: This is the exact frame the video continues from (captured at {$timestamp}s).
@@ -33607,67 +33772,6 @@ EXAMPLE — COMPLIANT 7-SENTENCE CONTINUATION PROMPT (~170 words):
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
-
-            $gemini = app(\App\Services\GeminiService::class);
-            $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
-                'model' => 'gemini-2.5-flash',
-                'mimeType' => $mimeType,
-            ]);
-
-            if ($result['success'] && !empty($result['text'])) {
-                $text = trim($result['text']);
-                // Strip any markdown formatting or headers the AI might add
-                $text = preg_replace('/^#+\s+.*$/m', '', $text);
-                $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
-                $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
-                $text = trim($text);
-
-                // Sanitize banned Seedance words that Gemini keeps using despite instructions
-                $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
-
-                // Remove clothing descriptions Gemini insists on adding
-                $text = preg_replace('/\b(his|her|the|a)\s+(pink|blue|green|red|white|black|gray|grey|brown|yellow|orange|purple)\s+(polo\s+shirt|shirt|jacket|hoodie|sweater|vest|coat|jeans|pants|shorts|dress|skirt|blouse|apron|uniform)\b/i', '$1 torso', $text);
-                $text = preg_replace('/\b(into|onto|on|against|from)\s+(the\s+)?(man\'s|her|his)\s+(jacket|shirt|hoodie|polo|sweater|vest|coat|sleeve|collar|pocket)\b/i', '$1 $3 torso', $text);
-
-                // Fix truncation — if prompt ends mid-sentence (no period/exclamation at end), trim to last complete sentence
-                $text = rtrim($text);
-                if (!preg_match('/[.!"]$/', $text)) {
-                    // Truncated — find last complete sentence
-                    $lastPeriod = strrpos($text, '.');
-                    $lastExclamation = strrpos($text, '!');
-                    $lastQuote = strrpos($text, '"');
-                    $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0, $lastQuote ?: 0);
-                    if ($cutPoint > 50) {
-                        $text = substr($text, 0, $cutPoint + 1);
-                    }
-                }
-
-                // Ensure style anchor is present at the end
-                if (!str_contains($text, 'Cinematic, photorealistic')) {
-                    $text = rtrim($text, '. ');
-                    if (!str_contains($text, 'screaming throughout')) {
-                        $text .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
-                    } else {
-                        $text .= ' Cinematic, photorealistic.';
-                    }
-                }
-
-                // Final cleanup — double spaces from removals
-                $text = preg_replace('/\s{2,}/', ' ', $text);
-                $text = trim($text);
-
-                return $text;
-            }
-
-            \Log::warning('Video Extend: Gemini continuation prompt failed', [
-                'error' => $result['error'] ?? 'empty response',
-            ]);
-            return '';
-
-        } catch (\Throwable $e) {
-            \Log::error('Video Extend: generateContinuationPrompt error', ['error' => $e->getMessage()]);
-            return '';
-        }
     }
 
     /**

@@ -993,7 +993,7 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 {$rules}
 
 === ADDITIONAL RULES ===
-- Word count should be 120-180 words (not counting "Maintain face..." prefix and "Cinematic, photorealistic." suffix)
+- Word count should be 100-140 words (not counting "Maintain face..." prefix and "Cinematic, photorealistic." suffix)
 - Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)
 - NO -ly adverbs except "violently" and "quickly" (which ARE official)
 - NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
@@ -1197,7 +1197,7 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-WORD COUNT: 150-180 words. Aim for 160-175.
+WORD COUNT: 100-130 words. Be concise — capture ALL actions from the analysis with no padding or filler.
 DO NOT describe character appearances (fur color, clothing) — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
@@ -1816,7 +1816,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE RULES BELOW — 140-170 words, dialogue trigger → instant chaos, continuous character sounds, intensity qualifiers on every action",
+  "videoPrompt": "SEE SEEDANCE RULES BELOW — 100-130 words, concise action-dense prompt, continuous character sounds, degree words on every action",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -1828,10 +1828,11 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 =======================================================================
 
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
-You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference.
+You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 150-180 words. This is the proven sweet spot for Seedance 1.5 Pro.
-Under 140 words loses critical intensity. Over 200 words gets redundant. Aim for 160-175.
+WORD COUNT: 100-130 words. Be CONCISE — include ALL actions from the analysis but with zero padding.
+Every word must earn its place. Aim for 110-120 words. Under 90 may miss key actions. Over 140 is too verbose.
+CRITICAL: Include EVERY distinct action seen in the analysis — do NOT omit any. Just describe them efficiently.
 
 DO NOT describe character appearances (fur color, clothing, accessories) — that's in "character" and "characters" fields.
 The videoPrompt describes actions, reactions, sounds, voice, AND SIZE/SCALE.
@@ -1841,7 +1842,7 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 {$technicalRules}
 
-EXAMPLE — GOOD CLONE PROMPT (~170 words):
+EXAMPLE — GOOD CLONE PROMPT (~120 words):
 {$templateExample}
 
 NOW generate the JSON — make the videoPrompt faithfully capture the reference video's energy.
