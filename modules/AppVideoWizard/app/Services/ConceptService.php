@@ -1031,6 +1031,8 @@ RULES;
             '/,?\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\s+(?:at|on|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
             // standalone "at camera" / "at the camera" / "to camera"
             '/\s+(?:at|to|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
+            // "eye contact" — facial/camera reference
+            '/,?\s*(?:maintaining|making|holding|with)\s+(?:direct\s+)?eye\s+contact\b[^,.]*[.,]?/i' => '',
             // "cheeks puffing/puffed/bulging" — facial micro-expression
             '/,?\s*(?:with\s+)?cheeks?\s+(?:puffing|puffed|bulging|inflating|inflated)\b[^,.]*[.,]?/i' => '',
             // "smiles/smiled/smiling [adverb] with [emotion]" — facial expression + emotional
@@ -1045,6 +1047,8 @@ RULES;
             '/\bin\s+(?:laugh|laughter|giggle|giggling)\s+with\s+[^,.]+/i' => 'producing crazy giggle',
             // "face brightens/glows/lights" — additional facial expression verbs
             '/,?\s*\bface\s+(?:brightens?|glows?|beams?|softens?|hardens?|relaxes?|tenses?|scrunches?|crumples?|falls?)\b[^,.]*[.,]?/i' => '',
+            // "looks satisfied/happy/guilty" — emotional appearance description
+            '/,?\s*\blooks?\s+(?:satisfied|happy|pleased|guilty|innocent|content|proud|sad|angry|worried|confused|surprised|shocked|terrified|bored|amused|annoyed|disgusted|excited)\b[^,.]*[.,]?/i' => '',
             // "Sleeping/resting [noun]" as appearance descriptor
             '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
@@ -1108,9 +1112,13 @@ RULES;
         // Standalone "loud" → "crazy" (official degree word)
         $text = preg_replace('/\bloud\b/i', 'crazy', $text);
 
-        // Phase 4b: Fix truncated/dangling sentence fragments
+        // Phase 4b: Fix truncated/dangling sentence fragments from regex removals
         // ", some" / ", with some" at end of clause → remove
         $text = preg_replace('/,\s*(?:with\s+)?some\s*(?=[.,]|$)/i', '', $text);
+        // "word in," or "word with," — dangling preposition before comma
+        $text = preg_replace('/\b(?:in|with|from|by|on|at|to|for|of)\s*,/i', ',', $text);
+        // "lined with," → remove (artifact from clothing/appearance removal)
+        $text = preg_replace('/\blined\s+(?:with)?\s*,/i', ',', $text);
         // "powerfully, [1-2 words]." at end → "powerfully." (remove dangling fragment)
         $text = preg_replace('/(\bpowerfully),\s+\w{1,6}\s*\./i', '$1.', $text);
 
