@@ -883,10 +883,17 @@ RULES;
             '/\bgracefully\b/i' => '',
             '/\bswiftly\b/i' => 'fast',
             '/\bvigorously\b/i' => 'powerfully',
+            '/\bactively\b/i' => 'powerfully',
+            '/\bfirmly\b/i' => 'strong',
+            '/\beagerly\b/i' => 'fast',
+            '/\brapidly\b/i' => 'fast',
+            '/\bdeliberately\b/i' => '',
+            '/\bdirectly\b/i' => '',
             // Non-official degree-style words used by AI
             '/\bamplified\b/i' => 'crazy',
             '/\bdistinct\b/i' => 'crazy',
             '/\bpiercing\b/i' => 'crazy loud',
+            '/\bclear\b(?=\s+(?:chewing|slapping|tapping|hitting|crashing|banging|crunching|smacking|clinking|splashing)\b)/i' => '',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -947,6 +954,16 @@ RULES;
             '/\binnocent\s+/i' => '',
             '/\bsneaky\s+/i' => '',
             '/\bconspiratorial\s+/i' => '',
+            '/\bcute\s+/i' => '',
+            '/\bamused\s*/i' => '',
+            '/\bserious\s+/i' => '',
+            '/\badoring\s+/i' => '',
+            '/\bexcited\s+/i' => '',
+            '/\bnervous\s+/i' => '',
+            '/\bworried\s+/i' => '',
+            '/\bpanicked\s+/i' => '',
+            '/\brelaxed\s+/i' => '',
+            '/\bconfident\s+/i' => '',
         ];
 
         foreach ($emotionalAdjectives as $pattern => $replacement) {
@@ -956,10 +973,14 @@ RULES;
         // Phase 3b: Remove/fix banned facial expression descriptions
         // Seedance preserves faces best when prompt focuses on BODY MOTION, not facial micro-expressions
         $facialPatterns = [
-            // "eyes crinkling/widening/narrowing [words]" — facial micro-expression
-            '/\beyes\s+(?:crinkling|widening|narrowing|squinting|twinkling|sparkling|gleaming|glinting)\s+\w*/i' => '',
-            // "mouth curves/twists/forms into [adj] smile/grin/frown"
-            '/\bmouth\s+(?:curves|twists|forms|breaks)\s+into\s+(?:\w+\s+){0,2}(?:smile|grin|frown|smirk)/i' => '',
+            // "eyes crinkling/widening/narrowing/crinkle/widen [words]" — facial micro-expression (all verb forms)
+            '/,?\s*\beyes?\s+(?:crinkling|crinkel|crinkle|crinkled|widening|widen|widened|narrowing|narrow|narrowed|squinting|squint|twinkling|twinkle|sparkling|sparkle|gleaming|gleam|glinting|glint)\s*\w*/i' => '',
+            // "eyes wide [adj]" — eyes wide open/serious/etc
+            '/,?\s*\beyes?\s+wide\s*\w*/i' => '',
+            // "mouth curves/twists/forms into/in [adj] smile/grin/frown"
+            '/,?\s*\bmouth\s+(?:curves?|twists?|forms?|breaks?|turns?)\s+(?:wide\s+)?(?:into|in)\s+(?:\w+\s+){0,2}(?:smile|grin|frown|smirk)/i' => '',
+            // "mouth curves wide in smile as [anything]" — catch the compound form
+            '/,?\s*\bmouth\s+curves?\s+wide\s+in\s+\w+[^.]*(?=\.)/i' => '',
             // "eyes lock on [target] with [emotional] glint/gleam/look"
             '/\beyes\s+lock\s+on\s+[^,.]*(?:glint|gleam|look|gaze|stare)\b/i' => '',
             // "brow furrowing/furrowed"
@@ -992,8 +1013,8 @@ RULES;
         $appearancePatterns = [
             // "wrapped from waist down", "wrapped in [cloth]"
             '/,?\s*wrapped\s+(?:from|around)\s+[^,.]+/i' => '',
-            // "food/sauce smudged/splattered on/around [body part]"
-            '/,?\s*(?:food|sauce|liquid|cream|crumbs?)\s+(?:smudged|splattered|dripping|stuck|remaining)\s+(?:on|around|over)\s+[^,.]+/i' => '',
+            // "food/sauce smudged/splattered/visible on/around [body part]"
+            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+(?:residue\s+)?(?:smudged|splattered|dripping|stuck|remaining|visible|smeared|caked)\s+(?:on|around|over)\s+[^,.]+/i' => '',
             // "wearing/dressed in [clothing]"
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
@@ -1003,6 +1024,26 @@ RULES;
         foreach ($appearancePatterns as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
+
+        // Phase 3d: Fix sound/phrasing patterns
+        // "sound effect" → "sounds" (Seedance prefers plural natural sounds)
+        $text = preg_replace('/\bsound\s+effects?\b/i', 'sounds', $text);
+        // "sound" at end of phrase → "sounds" (pluralize for natural phrasing)
+        $text = preg_replace('/\bsound\b(?=\s*[.,])/i', 'sounds', $text);
+
+        // Phase 3e: Ensure "Continuous X throughout" has a degree word
+        // "Continuous baby gurgles" → "Continuous crazy baby gurgles"
+        if (preg_match('/\bContinuous\s+(?!crazy|intense|wild|strong|powerful)/i', $text)) {
+            $text = preg_replace('/\bContinuous\s+/i', 'Continuous crazy ', $text);
+        }
+
+        // Phase 3f: Fix dangling "wrapped" not part of "unwrapped"
+        // "bassinet wrapped," → "bassinet," (remove standalone wrapped)
+        $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
+
+        // Phase 3g: Fix "strong" used as adjective after noun instead of degree word for action
+        // "shawarma strong" → "shawarma" (remove misplaced strong)
+        $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray)\s+strong\b/i', '$1', $text);
 
         // Phase 4: Replace non-official "loud" when used as standalone adjective (not "crazy loud")
         $text = preg_replace('/\b(?<!crazy\s)loud\b/i', 'intense', $text);
