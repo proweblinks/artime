@@ -1223,6 +1223,10 @@ EXAMPLE,
         $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine, $chaosMode, $templateId);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
+        // Store full analysis for debugging/inspection
+        $concept['_visualAnalysis'] = $visualAnalysis;
+        $concept['_audioTranscript'] = $transcript;
+
         return $concept;
     }
 
