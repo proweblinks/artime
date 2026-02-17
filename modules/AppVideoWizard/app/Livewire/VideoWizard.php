@@ -5318,7 +5318,12 @@ PROMPT;
                         $result,
                         $this->content['aiModelTier'] ?? 'economy',
                         session('current_team_id', 0),
-                        $this->cloneTemplate ?? 'adaptive'
+                        $this->cloneTemplate ?? 'adaptive',
+                        [
+                            'chaosLevel' => $this->chaosLevel ?? 0,
+                            'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                            'chaosDescription' => $this->chaosDescription ?? '',
+                        ]
                     );
                     $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
                     $result['_skeleton'] = [
@@ -5331,6 +5336,8 @@ PROMPT;
                         'fitted_prompt' => $skeletonResult['fittedPrompt'],
                         'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
                         'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
+                        'chaos_level' => $skeletonResult['chaosLevel'] ?? 0,
+                        'chaos_mode' => $skeletonResult['chaosMode'] ?? false,
                     ]);
                 } catch (\Exception $e) {
                     Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
@@ -5446,7 +5453,12 @@ PROMPT;
                         $result,
                         $this->content['aiModelTier'] ?? 'economy',
                         session('current_team_id', 0),
-                        $this->cloneTemplate ?? 'adaptive'
+                        $this->cloneTemplate ?? 'adaptive',
+                        [
+                            'chaosLevel' => $this->chaosLevel ?? 0,
+                            'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
+                            'chaosDescription' => $this->chaosDescription ?? '',
+                        ]
                     );
                     $result['videoPrompt'] = $skeletonResult['fittedPrompt'];
                     $result['_skeleton'] = [
@@ -5459,6 +5471,8 @@ PROMPT;
                         'fitted_prompt' => $skeletonResult['fittedPrompt'],
                         'original_word_count' => str_word_count($skeletonResult['originalPrompt']),
                         'fitted_word_count' => str_word_count($skeletonResult['fittedPrompt']),
+                        'chaos_level' => $skeletonResult['chaosLevel'] ?? 0,
+                        'chaos_mode' => $skeletonResult['chaosMode'] ?? false,
                     ]);
                 } catch (\Exception $e) {
                     Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
@@ -33220,8 +33234,9 @@ PROMPT;
             'frameUrl' => null,
             'continuationPrompt' => '',
             'duration' => 8,
-            'intensity' => 50,
-            'chaosDirection' => '',
+            'intensity' => $this->chaosLevel ?? 50,
+            'chaosMode' => $shot['seedanceChaosMode'] ?? false,
+            'chaosDirection' => $this->chaosDescription ?? '',
             'status' => 'extracting',
         ];
         $this->saveProject();
@@ -33266,16 +33281,29 @@ PROMPT;
                 }
             }
 
+            $extensionNumber = count(array_filter($segments, fn($s) => ($s['type'] ?? '') === 'extension')) + 1;
+            $this->workflowTrackNode("extend_{$extensionNumber}_analyze", 'running');
+
             $continuationPrompt = $this->generateContinuationPrompt($frameUrl, $originalPrompt, $timestamp, [
                 'takeNumber' => count($segments),
                 'sceneDescription' => $sceneData['description'] ?? $shot['description'] ?? '',
                 'concept' => $concept,
                 'characters' => $characterDescriptions,
                 'narration' => $narration,
-                'intensity' => $this->extendMode['intensity'] ?? 50,
+                'intensity' => $this->extendMode['intensity'],
+                'chaosMode' => $this->extendMode['chaosMode'],
+                'chaosDirection' => $this->extendMode['chaosDirection'],
+                'narrativeChain' => $this->buildNarrativeChain($shot),
+                'extensionNumber' => $extensionNumber,
             ]);
 
             $this->extendMode['continuationPrompt'] = $continuationPrompt ?: 'The action intensifies dramatically...';
+            $this->workflowTrackNode("extend_{$extensionNumber}_analyze", 'completed', [
+                'extension_number' => $extensionNumber,
+                'prompt_length' => strlen($continuationPrompt),
+                'intensity' => $this->extendMode['intensity'],
+                'chaos_mode' => $this->extendMode['chaosMode'],
+            ]);
             $this->saveProject();
 
         } catch (\Throwable $e) {
@@ -33309,6 +33337,10 @@ PROMPT;
             $chaosDirection = trim($context['chaosDirection'] ?? '');
             $intensity = (int) ($context['intensity'] ?? 50);
 
+            $chaosMode = (bool) ($context['chaosMode'] ?? false);
+            $narrativeChain = $context['narrativeChain'] ?? [];
+            $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
+
             $chaosBlock = '';
             if ($chaosDirection !== '') {
                 $chaosBlock = <<<PROMPT
@@ -33318,38 +33350,22 @@ USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — the continuation MUST follow thi
 PROMPT;
             }
 
-            if ($intensity <= 25) {
-                $intensityBlock = <<<'IBLOCK'
-ENERGY LEVEL: LOW (gentle continuation)
-- Continue with calm, deliberate actions. Small movements, gentle interactions.
-- Degree words: 2-4 total. Use only "quickly" and "fast". One per action.
-- No escalation, no destruction. Warm, wholesome energy.
-- Structure: Gentle continuation → small environmental reaction → warm resolution.
-IBLOCK;
-            } elseif ($intensity <= 50) {
-                $intensityBlock = <<<'IBLOCK'
-ENERGY LEVEL: MODERATE (physical comedy continuation)
-- Continue with exaggerated physical reactions. Slapstick, not destruction.
-- Degree words: 5-8 total. Use "quickly", "fast", "powerfully", "strong". One per action.
-- Some chain reactions but controlled — objects slide, tip, rattle. Not shatter.
-- Structure: Action escalation → chain reaction → comedic peak → resolution.
-IBLOCK;
-            } elseif ($intensity <= 75) {
-                $intensityBlock = <<<'IBLOCK'
-ENERGY LEVEL: HIGH (intense action continuation)
-- Continue with aggressive, fast-paced action. Stack 2 degree words per action.
-- Degree words: 9-14 total. Use "powerfully", "wildly", "violently", "crazy", "with large amplitude".
-- Chain reactions with destruction — objects break, fall, shatter. Impacts have consequences.
-- Structure: Mid-action → rapid escalation → peak destruction → resolution.
-IBLOCK;
+            // Use unified chaos tier system from ConceptService
+            $conceptService = app(\Modules\AppVideoWizard\Services\ConceptService::class);
+            $intensityBlock = $conceptService->getChaosPromptModifier($intensity, $chaosDirection);
+
+            // Add chaos mode supercharger when active
+            if ($chaosMode) {
+                $intensityBlock .= "\n\n" . $conceptService->getChaosModeSupercharger();
+            }
+
+            // Build narrative chain context for multi-extension continuity
+            $narrativeContext = '';
+            if (!empty($narrativeChain)) {
+                $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
             } else {
-                $intensityBlock = <<<'IBLOCK'
-ENERGY LEVEL: MAXIMUM CHAOS (total destruction continuation)
-- Continue with explosive, non-stop chaos. Stack 2-3 degree words per action. "crazy" on most.
-- Degree words: 14-18 total. Heavy use of "crazy", "wildly", "violently", "with large amplitude", "at high frequency".
-- Maximum chain reactions — everything breaks, shatters, flies. Every body part active simultaneously.
-- Structure: Pure chaos from first word → constant escalation → peak destruction → dramatic resolution.
-IBLOCK;
+                // Fallback: no chain data available, use original prompt directly
+                $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
             }
 
             $prompt = <<<PROMPT
@@ -33361,7 +33377,7 @@ Study it carefully — character positions, body posture, facial expressions, th
 ORIGINAL CONCEPT: {$concept}
 NARRATION: {$narration}
 
-PREVIOUS PROMPT (for continuity): {$originalPrompt}
+{$narrativeContext}
 {$chaosBlock}
 
 === SEEDANCE CONTINUATION PROMPT RULES ===
@@ -33372,17 +33388,18 @@ WORD COUNT: 150-190 words. Concise and dense with action — no filler.
 
 The continuation starts mid-action — no setup, no trigger, no dialogue. Action from the first word.
 
-STRUCTURE:
-1. RE-ESTABLISH (one short phrase ONLY): Identify the main character by species/type.
-   GOOD: "The orange tabby cat shrieks a crazy yowl" / "The calico cat hisses wildly"
-   BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter"
-   NO clothing, NO emotional adjectives (enraged, furious, terrified), NO colors of clothes. Just animal type + immediate action.
-2. BODY PART DECOMPOSITION: 4-7 body parts with distinct simultaneous actions.
-   Animals: head, ears, mouth/jaw, front paws, hind legs, tail, body/torso.
-   NEVER write "the cat attacks" — decompose into specific body part actions.
-3. CHAIN REACTIONS (minimum 2): action causes object to move → secondary consequence.
-   Name objects before they participate in chain reactions.
-4. RESOLUTION: The scene has an ENDING — character flees, opponent collapses, final dramatic moment.
+MANDATORY SENTENCE STRUCTURE (follow this EXACTLY — 7 sentences):
+Sentence 1: [Animal type] [sound with degree word], [body position from frame]. (RE-ESTABLISH — NO clothing, NO emotional adjectives)
+   GOOD: "The orange tabby cat shrieks a crazy yowl, its head pressing powerfully against the man's shoulder."
+   BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter."
+Sentence 2: "Its [body part A] [action] [degree words], [body part B] [simultaneous action] [degree words]." (BODY PARTS — 2 parts per sentence)
+Sentence 3: "Simultaneously, its [body part C] [action] [degree words], [sound description]." (MORE BODY PARTS + SOUND)
+Sentence 4: "[Other character] [physical reaction] [degree words], [impact sound]." (REACTION — body language only, no emotions)
+Sentence 5: "The [animal]'s [body part D] [action hitting specific object], [chain reaction consequence]." (CHAIN REACTION 1)
+Sentence 6: "[Bigger chain reaction from sentence 5 impact], [another object destroyed with sound]." (CHAIN REACTION 2 — ESCALATION)
+Sentence 7: "[Resolution — character flees/leaps away/collapses]. Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic." (MANDATORY ENDING)
+
+CRITICAL: You MUST write exactly 7 sentences. The LAST sentence MUST end with "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic." This is NOT optional.
 
 SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
 quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
@@ -33437,8 +33454,8 @@ ABSOLUTELY BANNED:
 
 STYLE ANCHOR — end with: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
 
-EXAMPLE — COMPLIANT CONTINUATION PROMPT (~170 words):
-"The orange tabby cat shrieks a crazy intense yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man's chest. Claws dig powerfully into the man's jacket with large amplitude as the man jerks his head back fast, gasping. Simultaneously the cat's hind legs kick at high frequency, knocking the iced coffee cup off the counter edge — it crashes to the tiled floor and shatters, spraying dark liquid violently across the surface. The man stumbles backward fast, hands thrown up defensively, body twisting with large amplitude. The cat clings with crazy intense force onto the man's torso, front claws raking downward powerfully while rear legs thrash wildly against his midsection. Its rigid tail whips violently, striking a metal display rack that topples with large amplitude, sending four packaged pastries crashing to the floor. The cat leaps fast to the ground, lands strong, and sprints wildly at high speed behind the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+EXAMPLE — COMPLIANT 7-SENTENCE CONTINUATION PROMPT (~170 words):
+"The orange tabby cat shrieks a crazy intense yowl, its body clinging to the man's torso. Its front paws slam powerfully into the man's chest, claws digging in strong as its head thrashes with large amplitude. Simultaneously, its hind legs kick wildly at high frequency against the man's midsection, a crazy loud hiss echoing out. The man stumbles backward fast, hands thrown up defensively, body twisting with large amplitude as a sharp gasp escapes. The cat's rigid tail whips violently, striking a metal display rack with a sharp crack, sending four packaged pastries crashing to the floor. The toppling rack slams into a shelf of ceramic mugs strong, two mugs shattering on the tiled floor with a loud crash, dark liquid spraying wildly across the surface. The cat leaps fast to the ground, lands strong, and sprints wildly behind the counter as the man collapses powerfully onto one knee. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
@@ -33456,8 +33473,41 @@ PROMPT;
                 $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = trim($text);
+
                 // Sanitize banned Seedance words that Gemini keeps using despite instructions
                 $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
+
+                // Remove clothing descriptions Gemini insists on adding
+                $text = preg_replace('/\b(his|her|the|a)\s+(pink|blue|green|red|white|black|gray|grey|brown|yellow|orange|purple)\s+(polo\s+shirt|shirt|jacket|hoodie|sweater|vest|coat|jeans|pants|shorts|dress|skirt|blouse|apron|uniform)\b/i', '$1 torso', $text);
+                $text = preg_replace('/\b(into|onto|on|against|from)\s+(the\s+)?(man\'s|her|his)\s+(jacket|shirt|hoodie|polo|sweater|vest|coat|sleeve|collar|pocket)\b/i', '$1 $3 torso', $text);
+
+                // Fix truncation — if prompt ends mid-sentence (no period/exclamation at end), trim to last complete sentence
+                $text = rtrim($text);
+                if (!preg_match('/[.!"]$/', $text)) {
+                    // Truncated — find last complete sentence
+                    $lastPeriod = strrpos($text, '.');
+                    $lastExclamation = strrpos($text, '!');
+                    $lastQuote = strrpos($text, '"');
+                    $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0, $lastQuote ?: 0);
+                    if ($cutPoint > 50) {
+                        $text = substr($text, 0, $cutPoint + 1);
+                    }
+                }
+
+                // Ensure style anchor is present at the end
+                if (!str_contains($text, 'Cinematic, photorealistic')) {
+                    $text = rtrim($text, '. ');
+                    if (!str_contains($text, 'screaming throughout')) {
+                        $text .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
+                    } else {
+                        $text .= ' Cinematic, photorealistic.';
+                    }
+                }
+
+                // Final cleanup — double spaces from removals
+                $text = preg_replace('/\s{2,}/', ' ', $text);
+                $text = trim($text);
+
                 return $text;
             }
 
@@ -33494,6 +33544,8 @@ PROMPT;
 
         $segments = $shot['segments'] ?? [];
         $projectId = $this->projectId ?? 0;
+        $extensionNumber = count(array_filter($segments, fn($s) => ($s['type'] ?? '') === 'extension')) + 1;
+        $this->workflowTrackNode("extend_{$extensionNumber}_generate", 'running');
 
         // Determine which segments to keep based on the timestamp
         $cumulative = 0;
@@ -33590,12 +33642,19 @@ PROMPT;
                         'duration' => $duration,
                         'promptLength' => strlen($prompt),
                     ]);
+                    $this->workflowTrackNode("extend_{$extensionNumber}_generate", 'completed', [
+                        'task_id' => $result['taskId'],
+                        'extension_number' => $extensionNumber,
+                        'duration' => $duration,
+                        'prompt_length' => strlen($prompt),
+                    ]);
                 } else {
                     throw new \Exception($result['error'] ?? 'Seedance extension failed');
                 }
             }
         } catch (\Throwable $e) {
             \Log::error('Video Extend: executeVideoExtend failed', ['error' => $e->getMessage()]);
+            $this->workflowTrackNode("extend_{$extensionNumber}_generate", 'failed', ['error' => $e->getMessage()]);
             $shot['videoStatus'] = 'error';
             $shot['videoError'] = 'Extension failed: ' . $e->getMessage();
             $this->extendMode = null;
@@ -33613,6 +33672,8 @@ PROMPT;
         $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
         $segments = $shot['segments'] ?? [];
         $projectId = $this->projectId ?? 0;
+        $extensionNumber = count(array_filter($segments, fn($s) => ($s['type'] ?? '') === 'extension')) + 1;
+        $this->workflowTrackNode("extend_{$extensionNumber}_assemble", 'running');
 
         // Read prompt/frame from job metadata (reliable) with extendMode as fallback
         $extensionPrompt = $jobMeta['prompt'] ?? $this->extendMode['continuationPrompt'] ?? '';
@@ -33674,14 +33735,148 @@ PROMPT;
                 'segmentCount' => count($segments),
                 'finalUrl' => substr($finalUrl, 0, 100),
             ]);
+            $this->workflowTrackNode("extend_{$extensionNumber}_assemble", 'completed', [
+                'extension_number' => $extensionNumber,
+                'segment_count' => count($segments),
+            ]);
         } else {
             $shot['videoStatus'] = 'error';
             $shot['videoError'] = 'Extension assembly failed: ffmpeg concatenation error';
             \Log::error('Video Extend: assembly FAILED');
+            $this->workflowTrackNode("extend_{$extensionNumber}_assemble", 'failed', ['error' => 'ffmpeg concatenation error']);
         }
 
         $this->extendMode = null;
         $this->saveProject();
+    }
+
+    /**
+     * Build the narrative chain from all prior segments in a shot.
+     * Returns an array of [segment, type, prompt] entries for continuity tracking.
+     */
+    protected function buildNarrativeChain(array $shot): array
+    {
+        $segments = $shot['segments'] ?? [];
+        $chain = [];
+
+        // Original video prompt is always segment 0 / base
+        $basePrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
+        if ($basePrompt) {
+            $chain[] = [
+                'segment' => 0,
+                'type' => 'original',
+                'prompt' => $basePrompt,
+            ];
+        }
+
+        // Extension segments carry their prompt in the segment data
+        $extensionNum = 1;
+        foreach ($segments as $seg) {
+            if (($seg['type'] ?? '') === 'extension' && !empty($seg['prompt'])) {
+                $chain[] = [
+                    'segment' => $extensionNum,
+                    'type' => 'extension',
+                    'prompt' => $seg['prompt'],
+                ];
+                $extensionNum++;
+            }
+        }
+
+        return $chain;
+    }
+
+    /**
+     * Build the narrative chain prompt block for the continuation prompt.
+     * Includes full context for recent segments, summaries for older ones,
+     * anti-repetition rules, and narrative arc guidance.
+     */
+    protected function buildNarrativeChainPromptBlock(array $narrativeChain, int $extensionNumber): string
+    {
+        if (empty($narrativeChain)) {
+            return '';
+        }
+
+        // Single segment (original only) — use simple format
+        if (count($narrativeChain) === 1) {
+            return "PREVIOUS PROMPT (for continuity): {$narrativeChain[0]['prompt']}";
+        }
+
+        $parts = [];
+        $parts[] = '=== STORY SO FAR (DO NOT REPEAT THESE — CONTINUE FROM WHERE THEY END) ===';
+        $parts[] = '';
+
+        // Word budget: for chains with 3+ segments, summarize early ones
+        if (count($narrativeChain) > 3) {
+            $earlySummaries = [];
+            foreach (array_slice($narrativeChain, 0, -2) as $seg) {
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
+                $earlySummaries[] = "SEGMENT {$seg['segment']} ({$label}): " . $this->summarizePrompt($seg['prompt'], 30);
+            }
+            $parts[] = 'EARLIER SEGMENTS (summary):';
+            $parts[] = implode("\n", $earlySummaries);
+            $parts[] = '';
+
+            // Full text for last 2 segments
+            $recentChain = array_slice($narrativeChain, -2);
+            foreach ($recentChain as $seg) {
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
+                $parts[] = "SEGMENT {$seg['segment']} ({$label}):";
+                $parts[] = $seg['prompt'];
+                $parts[] = '';
+            }
+        } else {
+            // 2-3 segments — include all in full
+            foreach ($narrativeChain as $seg) {
+                $segNum = $seg['segment'] + 1;
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
+                $parts[] = "SEGMENT {$segNum} ({$label}):";
+                $parts[] = $seg['prompt'];
+                $parts[] = '';
+            }
+        }
+
+        $parts[] = "=== THIS IS EXTENSION {$extensionNumber} — CONTINUE THE STORY ===";
+        $parts[] = '';
+
+        // Anti-repetition rules (critical for multi-extension coherence)
+        $parts[] = 'ANTI-REPETITION RULES (CRITICAL — read every previous segment):';
+        $parts[] = '- NEVER repeat an action from any previous segment. If the cat already "slammed paws on counter" — do NOT write that again.';
+        $parts[] = '- NEVER destroy the same object twice. If a "coffee cup shattered" in segment 2, it is already broken.';
+        $parts[] = '- Each extension must introduce NEW objects, NEW body-part combinations, and NEW chain reactions.';
+        $parts[] = '- Reference the AFTERMATH of previous segments: if something was broken, it is now debris on the floor.';
+        $parts[] = '- The story ESCALATES — each extension is MORE intense than the last.';
+        if ($extensionNumber >= 3) {
+            $parts[] = '- The environment should show CUMULATIVE damage (broken items, scattered debris, knocked-over furniture).';
+        }
+        $parts[] = '';
+
+        // Narrative arc guidance based on extension number
+        $arcGuidance = match (true) {
+            $extensionNumber <= 2 => 'Escalation — new attacks, new objects destroyed, wider area of impact.',
+            $extensionNumber <= 4 => 'Peak chaos — maximum simultaneous destruction, character reaches peak intensity.',
+            default => 'Resolution arc — character exhausts surroundings, final dramatic moment, or flees the scene.',
+        };
+        $parts[] = "NARRATIVE ARC — EXTENSION {$extensionNumber}: {$arcGuidance}";
+
+        return implode("\n", $parts);
+    }
+
+    /**
+     * Summarize a prompt to a short form (first sentence + last sentence).
+     * Used for word budget management in long narrative chains.
+     */
+    protected function summarizePrompt(string $prompt, int $maxWords = 30): string
+    {
+        $sentences = preg_split('/(?<=\.)\s+/', trim($prompt));
+        $first = $sentences[0] ?? '';
+        $last = count($sentences) > 1 ? end($sentences) : '';
+
+        $summary = $last ? "{$first} ... {$last}" : $first;
+
+        $words = explode(' ', $summary);
+        return count($words) > $maxWords
+            ? implode(' ', array_slice($words, 0, $maxWords)) . '...'
+            : $summary;
     }
 
     /**

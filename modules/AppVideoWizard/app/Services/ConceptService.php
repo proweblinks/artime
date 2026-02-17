@@ -539,7 +539,7 @@ STYLE,
      * NEVER write passive chaos ("spaghetti flying") — always write CAUSED chaos
      * ("the cat SLAMS the table, SENDING spaghetti flying").
      */
-    protected function getChaosPromptModifier(int $chaosLevel, string $chaosDescription = ''): string
+    public function getChaosPromptModifier(int $chaosLevel, string $chaosDescription = ''): string
     {
         // Chaos levels aligned with official Seedance degree words:
         // quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
@@ -615,7 +615,7 @@ STYLE,
      * Chaos Mode structural override — fewer mega-beats, front-loaded explosion.
      * Appended to chaos modifier when Chaos Mode toggle is active.
      */
-    protected function getChaosModeSupercharger(): string
+    public function getChaosModeSupercharger(): string
     {
         return <<<'CHAOS'
 === CHAOS MODE ACTIVE — OVERRIDE STRUCTURE ===
@@ -654,6 +654,47 @@ KEY DIFFERENCES FROM NORMAL MODE:
 - "crazy" appears 3+ times
 - Every action has 2+ combined degree words
 CHAOS;
+    }
+
+    /**
+     * Get chaos-aware degree word instruction that overrides skeleton defaults.
+     * Scales the skeleton's fixed degree word targets based on the user's chaos slider.
+     */
+    public function getChaosDegreeInstruction(int $chaosLevel, string $energyType): string
+    {
+        // Base degree word counts per energy type from getSkeletonTemplates()
+        $baseCounts = [
+            'GENTLE' => [2, 4],
+            'PHYSICAL COMEDY' => [6, 10],
+            'RHYTHMIC' => [5, 8],
+            'DRAMATIC' => [6, 12],
+            'CHAOTIC' => [12, 18],
+        ];
+
+        $base = $baseCounts[$energyType] ?? $baseCounts['PHYSICAL COMEDY'];
+
+        return match (true) {
+            $chaosLevel <= 20 => sprintf(
+                'DEGREE WORD OVERRIDE (CALM — %d/100): Reduce degree words to %d-%d total. Actions are slow, gentle, small. Use only "quickly" and "fast".',
+                $chaosLevel, max(1, (int)($base[0] * 0.5)), max(2, (int)($base[1] * 0.5))
+            ),
+            $chaosLevel <= 45 => sprintf(
+                'DEGREE WORD SCALING (MODERATE — %d/100): Use skeleton defaults: %d-%d degree words. Standard energy.',
+                $chaosLevel, $base[0], $base[1]
+            ),
+            $chaosLevel <= 65 => sprintf(
+                'DEGREE WORD OVERRIDE (HIGH — %d/100): Increase to %d-%d degree words. Stack 2 per action. Use "powerfully", "wildly", "fast", "violently".',
+                $chaosLevel, (int)($base[0] * 1.3), (int)($base[1] * 1.3)
+            ),
+            $chaosLevel <= 85 => sprintf(
+                'DEGREE WORD OVERRIDE (PEAK — %d/100): Increase to %d-%d degree words. Combine words: "fast and violently", "powerfully with large amplitude". Use "crazy" on peak actions.',
+                $chaosLevel, (int)($base[0] * 1.6), (int)($base[1] * 1.6)
+            ),
+            default => sprintf(
+                'DEGREE WORD OVERRIDE (MAXIMUM OVERDRIVE — %d/100): Increase to %d-%d degree words. "crazy" on every action. Stack 2-3 combined degree words per beat. Go maximum.',
+                $chaosLevel, $base[0] * 2, $base[1] * 2
+            ),
+        };
     }
 
     /**
@@ -808,9 +849,40 @@ RULES;
             '/\bsavagely\b/i' => 'violently',
             '/\brelentlessly\b/i' => 'powerfully',
             '/\bdeafening\b/i' => 'crazy loud',
+            // Additional Gemini favorites not in original list
+            '/\bprecariously\b/i' => 'wildly',
+            '/\bdesperately\b/i' => 'wildly',
+            '/\bfuriously\b/i' => 'wildly',
+            '/\bviciously\b/i' => 'violently',
+            '/\bmercilessly\b/i' => 'powerfully',
+            '/\bforcefully\b/i' => 'powerfully',
+            '/\btightly\b/i' => 'strong',
+            '/\bbriefly\b/i' => 'fast',
+            '/\bcrazily\b/i' => 'crazy',
+            '/\bviolently\s+and\s+violently\b/i' => 'violently',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 2b: Replace passive/weak verbs and fix compound forms Gemini loves
+        $passiveReplacements = [
+            '/\bnestled\b/i' => 'pressing',
+            '/\bnestling\b/i' => 'pressing',
+            '/\btrying to\b/i' => '',
+            '/\battempting to\b/i' => '',
+            '/\bbegins to\b/i' => '',
+            '/\bstarts to\b/i' => '',
+            '/\bwalks\b/i' => 'moves',
+            '/\bwalking\b/i' => 'moving',
+            '/\bin anger\b/i' => 'powerfully',
+            '/\bin frustration\b/i' => 'powerfully',
+            '/\bhigh-pitched\b/i' => 'crazy loud',
+            '/\bhigh-frequency\b/i' => 'at high frequency',
+        ];
+
+        foreach ($passiveReplacements as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
 
@@ -822,6 +894,13 @@ RULES;
             '/\bhorrified\s+/i' => '',
             '/\bshocked\s+/i' => '',
             '/\bstunned\s+/i' => '',
+            '/\bpained\s+/i' => '',
+            '/\bfrantic\s+/i' => '',
+            '/\bdesperate\s+/i' => '',
+            '/\bfrustrated\s+/i' => '',
+            '/\bfeisty\s+/i' => '',
+            '/\bangry\s+/i' => '',
+            '/\banxious\s+/i' => '',
         ];
 
         foreach ($emotionalAdjectives as $pattern => $replacement) {
@@ -1643,12 +1722,22 @@ PROMPT;
      * @param string $templateId Template to use ('adaptive', 'animal-chaos')
      * @return array ['skeletonType' => string, 'originalPrompt' => string, 'fittedPrompt' => string]
      */
-    public function fitPromptToSkeleton(string $rawPrompt, array $concept, string $aiModelTier, int $teamId, string $templateId = 'adaptive'): array
+    public function fitPromptToSkeleton(string $rawPrompt, array $concept, string $aiModelTier, int $teamId, string $templateId = 'adaptive', array $chaosParams = []): array
     {
         $mood = strtolower($concept['mood'] ?? 'funny');
 
+        // Extract chaos values
+        $chaosLevel = (int) ($chaosParams['chaosLevel'] ?? 0);
+        $chaosMode = (bool) ($chaosParams['chaosMode'] ?? false);
+        $chaosDescription = $chaosParams['chaosDescription'] ?? '';
+
         // Detect energy type from mood
         $energyType = $this->detectEnergyType($mood, $templateId);
+
+        // MAXIMUM OVERDRIVE (86+) forces CHAOTIC energy regardless of detected mood
+        if ($chaosLevel >= 86) {
+            $energyType = 'CHAOTIC';
+        }
 
         // Get the specific skeleton for this energy type
         $skeletons = $this->getSkeletonTemplates($templateId);
@@ -1681,17 +1770,42 @@ PROMPT;
         }
         $dialogueContext = $dialogueLine ? "\nDIALOGUE FROM SOURCE: \"{$dialogueLine}\"" : '';
 
-        $prompt = <<<PROMPT
-Rewrite the source material below into EXACTLY 5-6 sentences that match this reference structure:
+        // Build chaos scaling block for the skeleton prompt
+        $chaosScalingBlock = '';
+        if ($chaosLevel > 0) {
+            $chaosLabel = match (true) {
+                $chaosLevel <= 20 => 'CALM',
+                $chaosLevel <= 45 => 'MODERATE',
+                $chaosLevel <= 65 => 'HIGH',
+                $chaosLevel <= 85 => 'PEAK',
+                default => 'MAXIMUM OVERDRIVE',
+            };
+            $degreeOverride = $this->getChaosDegreeInstruction($chaosLevel, $energyType);
+            $supercharger = $chaosMode ? "\n" . $this->getChaosModeSupercharger() : '';
 
-REFERENCE (match this sentence-by-sentence):
+            $chaosScalingBlock = "\n\nCHAOS SCALING ({$chaosLabel} — {$chaosLevel}/100):\n{$degreeOverride}{$supercharger}\n";
+        }
+
+        $prompt = <<<PROMPT
+Rewrite the source material below into EXACTLY 5 sentences following this MANDATORY structure:
+
+REFERENCE (match this flow):
 {$example}
 
-Sentence 1: [Character] does [action] and says "[dialogue]" while [gesture]. (ONE sentence, under 25 words)
-Sentence 2: "Instantly" [animal/character] reacts with [sound] and [physical strike], [degree words]. (ONE flowing action)
-Sentence 3: [Character] [smashes/breaks specific object], [visual consequence]. (Short cause-and-effect)
-Sentence 4: [Character] [bigger action] and then [peak chaos — goes wild, smashes everything, runs amok]. (Flowing escalation)
-Sentence 5: [Sound closing]. Camera [movement]. Cinematic, photorealistic.
+MANDATORY SENTENCE STRUCTURE (follow EXACTLY — 5 sentences):
+Sentence 1 — TRIGGER: "[Human character] [action verb] and says '[ONE short punchy line under 15 words]' while [physical gesture with degree word]."
+   NO emotional adjectives (frustrated, angry, furious). Convey emotion through BODY ACTION.
+   GOOD: "The man slams his hands on the counter powerfully and says 'There's no caramel in this!'"
+   BAD: "The frustrated customer leans forward in anger and says 'How do you mess up...'"
+Sentence 2 — INSTANT REACTION: "Instantly the [animal type] [sound with degree word] and [single explosive physical strike with 2-3 degree words]."
+   NO roles/titles (employee, worker). Just species: "the cat", "the dog".
+   Start with "Instantly". ONE flowing action, not a list.
+Sentence 3 — CHAIN DESTRUCTION: "The [animal]'s [specific body part] [hits specific named object], [visible consequence with degree word and impact sound]."
+   The body part MUST be named. The object MUST be named. The consequence MUST be visual.
+Sentence 4 — PEAK CHAOS: "[Animal] [biggest action of the whole prompt — goes wild, smashes everything, maximum degree words]."
+   This is the climax. Maximum destruction. 2-3 stacked degree words. One flowing sentence.
+Sentence 5 — CLOSING: "[Resolution action]. Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+   The resolution is a FINAL ACTION (character flees, collapses, leaps away). Then the style anchor. MANDATORY.
 
 SOURCE MATERIAL (use characters, dialogue, objects — NOT its sentence structure):
 Situation: {$concept['situation']}{$dialogueContext}
@@ -1699,13 +1813,18 @@ Situation: {$concept['situation']}{$dialogueContext}
 Raw: "{$rawPrompt}"
 
 RULES:
-- EXACTLY 5-6 sentences. Each sentence = ONE flowing action, not a list of body parts.
-- Good: "both paws swiping wildly and powerfully" — Bad: "front right paw swatting at face while hind legs push off counter while tail lashes crazy"
-- Degree words (wildly, violently, powerfully, fast, crazy, at high frequency): weave into actions naturally.
+- EXACTLY 5 sentences. Each sentence = ONE flowing action. No run-on sentences with multiple actions.
+- NEVER use emotional adjectives: frustrated, angry, feisty, furious, terrified, desperate, pained.
+- NEVER use banned adverbs: tightly, briefly, crazily, precariously, fiercely, loudly, sharply, aggressively.
+- ONLY use these degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
+- Use "crazy" (adjective) NOT "crazily". Use "strong" NOT "strongly". Use "intense" NOT "intensely".
+- Use "at high frequency" NOT "high-frequency". Use "crazy loud" NOT "high-pitched".
+- NO clothing descriptions (jacket, shirt, hoodie, polo). Identify characters by species/body only.
+- NO weak verbs: walks, goes, moves, does, gets, starts, begins, tries.
+- Sentence 5 MUST end with "Cinematic, photorealistic." — this is NOT optional.
 - 100-150 words total. The reference is ~130 words.
-- Start with the character action. NEVER start with "Maintain face", settings, or appearance.
-
-Output ONLY the 5-6 sentences. Nothing else.
+{$chaosScalingBlock}
+Output ONLY the 5 sentences. Nothing else.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
@@ -1736,9 +1855,26 @@ PROMPT;
         // Sanitize the fitted prompt (AI may reintroduce banned words)
         $fittedPrompt = self::sanitizeSeedancePrompt($fittedPrompt);
 
+        // Fix truncation — if prompt ends mid-sentence, trim to last complete sentence
+        $fittedPrompt = rtrim($fittedPrompt);
+        if (!preg_match('/[.!"]$/', $fittedPrompt)) {
+            $lastPeriod = strrpos($fittedPrompt, '.');
+            $lastExclamation = strrpos($fittedPrompt, '!');
+            $lastQuote = strrpos($fittedPrompt, '"');
+            $cutPoint = max($lastPeriod ?: 0, $lastExclamation ?: 0, $lastQuote ?: 0);
+            if ($cutPoint > 50) {
+                $fittedPrompt = substr($fittedPrompt, 0, $cutPoint + 1);
+            }
+        }
+
         // Ensure it ends with the style anchor
         if (!str_contains($fittedPrompt, 'Cinematic, photorealistic.')) {
-            $fittedPrompt = rtrim($fittedPrompt, '. ') . '. Cinematic, photorealistic.';
+            $fittedPrompt = rtrim($fittedPrompt, '. ');
+            if (!str_contains($fittedPrompt, 'screaming throughout')) {
+                $fittedPrompt .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
+            } else {
+                $fittedPrompt .= ' Cinematic, photorealistic.';
+            }
         }
 
         // Word count enforcement — if AI still exceeded 200 words, trim by removing middle sentences
@@ -1755,12 +1891,16 @@ PROMPT;
             'energyType' => $energyType,
             'originalWords' => str_word_count($rawPrompt),
             'fittedWords' => str_word_count($fittedPrompt),
+            'chaosLevel' => $chaosLevel,
+            'chaosMode' => $chaosMode,
         ]);
 
         return [
             'skeletonType' => $energyType,
             'originalPrompt' => $rawPrompt,
             'fittedPrompt' => $fittedPrompt,
+            'chaosLevel' => $chaosLevel,
+            'chaosMode' => $chaosMode,
         ];
     }
 
