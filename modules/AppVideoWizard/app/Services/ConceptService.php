@@ -1682,36 +1682,30 @@ PROMPT;
         $dialogueContext = $dialogueLine ? "\nDIALOGUE FROM SOURCE: \"{$dialogueLine}\"" : '';
 
         $prompt = <<<PROMPT
-You are a screenwriter rewriting a video prompt to match a PROVEN formula that produces viral Seedance videos.
+You are rewriting a video prompt to match a PROVEN formula. Your output must read EXACTLY like the reference example below — same structure, same sentence count, same cinematic flow.
 
-Your job: take the raw analysis below and rewrite it as a CINEMATIC SCENE — like you're directing a movie, not writing a technical document.
-
-RAW ANALYSIS:
-"{$rawPrompt}"
-
-SCENE CONTEXT:
-- Characters: {$concept['situation']}{$dialogueContext}
-{$characterContext}
-
-=== THE FORMULA (follow this EXACTLY) ===
-
-{$skeleton}
-
-=== REFERENCE — THIS IS WHAT YOUR OUTPUT SHOULD READ LIKE ===
+=== REFERENCE EXAMPLE (YOUR OUTPUT MUST MATCH THIS STRUCTURE) ===
 {$example}
 
-=== CRITICAL RULES ===
-1. NO PREAMBLE. Start DIRECTLY with the character action. Never start with "Maintain face...", setting inventory, or appearance descriptions.
-2. WRITE CINEMATICALLY. "The cat lunges forward fast and violently, both paws swiping wildly" — NOT "front right paw swatting violently at the man's face with large amplitude while hind legs push powerfully off the counter." Flowing actions, NOT body-part inventories.
-3. CHAIN REACTIONS FLOW NATURALLY. Action → object breaks → consequence. Each sentence flows into the next.
-4. Each BEAT is one flowing sentence of action. Maximum 4-5 beats before the closing.
-5. STYLE ANCHOR: Always end with "Cinematic, photorealistic."
-6. Keep 100-170 words. The reference example is ~130 words. Match that density.
-7. Use the ACTUAL dialogue, character names, and actions from the raw analysis. Adapt them to the formula.
-8. Use Seedance degree words naturally in flowing actions: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
+=== THE FORMULA ===
+{$skeleton}
 
-Output ONLY the rewritten prompt. No JSON, no quotes, no explanation.
-Write it like the reference example — same flow, same sentence cadence, same energy.
+=== SOURCE MATERIAL (extract characters, dialogue, and key actions — then COMPLETELY RESTRUCTURE) ===
+Situation: {$concept['situation']}{$dialogueContext}
+{$characterContext}
+
+Raw analysis to extract from (DO NOT copy its sentence structure — only use it for character names, actions, and objects):
+"{$rawPrompt}"
+
+=== MANDATORY RULES ===
+1. Your output MUST have the same number of sentences as the reference example. Count them.
+2. Each sentence must serve the same ROLE as the corresponding reference sentence (trigger, reaction, destruction, peak, closing).
+3. NEVER start with "Maintain face...", setting descriptions, or object inventories. Start with a character DOING something.
+4. NEVER list body parts separately. Write flowing cinematic action: "both paws swiping wildly and powerfully" NOT "front right paw swatting violently at the face while hind legs push off the counter."
+5. Use degree words (wildly, violently, powerfully, fast, crazy, at high frequency, with large amplitude) naturally WITHIN flowing actions.
+6. 100-170 words total. The reference is ~130 words. Match that.
+
+Output ONLY the rewritten prompt. No explanation, no quotes, no JSON.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
