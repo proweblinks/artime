@@ -782,32 +782,71 @@ RULES;
 Your job is to FAITHFULLY recreate the energy, pacing, and structure of the reference video.
 Do NOT impose a rigid formula. Analyze what makes the reference work and replicate its structure.
 
-STRUCTURE:
-- If the reference has a trigger-reaction pattern → use trigger-reaction
-- If the reference builds slowly → use a slow build
-- If the reference has constant rhythmic motion → keep constant motion
-- If the reference is calm/gentle → keep it calm/gentle
-- If the reference has multiple characters interacting → preserve those dynamics
+STRUCTURE — MATCH THE REFERENCE:
+- Trigger-reaction pattern (human says something → animal reacts) → use trigger-reaction
+- Slow build (calm start → gradual escalation → payoff) → use slow build
+- Constant rhythmic motion (marching, dancing, bobbing) → keep steady rhythmic motion
+- Calm/gentle interaction (petting, sitting, small gestures) → stay calm and gentle
+- Multiple characters interacting → preserve character dynamics and spatial relationships
 
-ENERGY MATCHING:
-- Match the EXACT energy level of the reference. Don't artificially escalate.
-- Gentle interaction → gentle prompt. Chaotic action → chaotic prompt.
-- The intensity qualifiers (degree words) should match what was SEEN, not be maximized.
+DEGREE WORD SCALING — MATCH THE SOURCE ENERGY (use ONLY official words):
+Official words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
 
-FAITHFULNESS:
-- Describe actions that MATCH what was seen in the reference video.
-- Same type of movements, same emotional register, same comedic style.
+CALM videos (gentle, cute, wholesome): 2-4 degree words total.
+  One per action, Tier 1 only: "quickly", "fast".
+  Example: "paws tapping quickly on the surface" — do NOT escalate.
+
+MODERATE videos (physical comedy, light slapstick): 5-8 degree words total.
+  One per action, Tier 1-2: "quickly", "fast", "powerfully", "strong".
+  Example: "paws slam the table powerfully, sending the plate sliding fast"
+
+HIGH ENERGY videos (aggressive, intense, chaotic): 9-14 degree words total.
+  Stack 2 per action, Tier 2-3: "powerfully", "wildly", "violently", "crazy", "with large amplitude".
+  Example: "paws slam powerfully with large amplitude, body lunging forward fast and violently"
+
+MAXIMUM CHAOS videos (total destruction): 14-18 degree words total.
+  Stack 2-3 per action, "crazy" on most: "crazy wildly", "powerfully with large amplitude", "fast and violently".
+  Example: "launches with crazy intensity, claws raking wildly at high frequency"
+
+BODY PART DECOMPOSITION — SPECIFIC ACTIONS FOR EACH PART:
+Every character must have 4-7 body parts performing distinct actions.
+Animals: head, ears, mouth/jaw, front paws/legs, hind legs, tail, body/torso.
+Humans: head, arms/hands, legs/feet, torso, hair.
+NEVER write "the cat attacks" — decompose: "front paws swipe wildly, hind legs kick powerfully, mouth opens in a crazy yowl, tail lashes with large amplitude."
+
+SOUND DESCRIPTIONS — SEEDANCE GENERATES AUDIO FROM TEXT:
+Include 3-5 distinct sound descriptions per prompt. Apply degree words to sounds too.
+- Character voice: "crazy loud meow", "powerfully deep growl", "high-pitched shriek"
+- Impact sounds: "paws slamming with a sharp crack", "glass shattering"
+- Continuous sounds: "rapid thumping at high frequency", "steady rhythmic tapping"
+- Environmental: "plates rattling wildly", "liquid splashing powerfully"
+
+CHAIN REACTIONS — CAUSE AND EFFECT (minimum 2 per prompt):
+Every prompt needs 2+ chain reactions: action causes object to move, which causes another reaction.
+Pattern: [Character body part + action + degree word] → [object reacts] → [secondary consequence]
+Name interactive objects EARLY in the prompt so Seedance knows they exist for chain reactions.
+
+FAITHFULNESS — MATCH WHAT WAS SEEN:
+- Same type of movements, same emotional register, same comedic style as the reference.
 - You can optimize phrasing for Seedance, but stay true to the source's vibe.
-- If the video shows a marching band → write a marching band prompt.
-- If the video shows cooking → write a cooking prompt.
+- If the video shows marching → write marching. If cooking → write cooking.
 - Do NOT transform everything into attack/destruction scenes.
 
 SCALE, QUANTITY & OBJECT INTERACTIONS — PRESERVE WHAT MAKES IT SPECIAL:
-- If characters are MINIATURIZED (tiny cats, shrunken animals) → the videoPrompt MUST describe them as tiny/miniature with size reference (e.g. "barely reaching her ankle").
-- If characters are ENLARGED → describe the exaggerated scale.
-- If there's a LARGE GROUP (a line of 12 cats, a swarm of hamsters) → specify the exact count and formation.
-- If characters are USING objects (playing instruments, cooking, wielding tools) → describe the ACTIVE USE, not just holding. "Blowing into trumpets producing brass music" not "holding trumpets."
-- Scale, quantity, and character-object interactions are often the CORE of the visual comedy — losing any of them ruins the concept.
+- MINIATURIZED characters → videoPrompt MUST say "tiny miniature cat barely reaching ankle height"
+- ENLARGED characters → describe exaggerated scale
+- LARGE GROUP → specify exact count and formation: "a single-file line of twelve tiny cats"
+- USING objects → describe ACTIVE USE: "blowing into trumpets producing brass music" not "holding trumpets"
+
+ENVIRONMENTAL SETUP:
+First 1-2 sentences establish the setting with 2-3 named interactive objects that can participate in chain reactions later.
+
+ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
+- Abstract descriptions: "chaos ensues", "mayhem unfolds", "things go wrong"
+- Emotional states: "feeling excited", "nervously", "happily"
+- Temporal jumps: "moments later", "suddenly", "after a while"
+- Off-screen references: "someone throws", "a noise from another room"
+- Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
 WORD COUNT: 150-180 words. Aim for 160-175.
 DO NOT describe character appearances (fur color, clothing) — only actions, reactions, sounds, voice, and SIZE/SCALE.
@@ -818,20 +857,64 @@ RULES,
 Choose the structure that best fits each concept's energy and comedy style.
 Not every concept needs explosive chaos — match the structure to the content.
 
-STRUCTURE FLEXIBILITY:
-- Gentle/cute concepts → gentle, deliberate movements with small actions
-- Physical comedy → exaggerated movements, slapstick reactions
-- Chaotic concepts → rapid escalation, chain reactions, destruction
-- Rhythmic/musical → steady motion patterns, synchronized movements
-- Dramatic → slow builds, tension, then payoff moment
+STRUCTURAL TEMPLATES BY ENERGY TYPE:
 
-ENERGY MATCHING:
-- The intensity qualifiers (degree words) should match the concept's natural energy.
-- A calm concept uses fewer/softer degree words. A wild concept uses many combined.
-- Don't force maximum chaos on every concept — let the idea guide the intensity.
+GENTLE/CUTE concepts (calm, wholesome):
+  Sentence 1-2: Establish setting + character in calm starting position with 2-3 named objects nearby.
+  Sentence 3-4: Character performs small deliberate actions — tapping, nudging, tilting. One degree word each (quickly, fast).
+  Sentence 5-6: Gentle continuation with a small environmental reaction (object tips, item slides).
+  Sentence 7: Warm resolution. "Continuous [gentle character sounds] throughout. Cinematic, photorealistic."
+  Degree words: 2-4 total. Tier 1 only (quickly, fast).
+
+PHYSICAL COMEDY concepts (slapstick, exaggerated):
+  Sentence 1: Setting + character + trigger moment (a line of dialogue or situation).
+  Sentence 2-3: Exaggerated physical reaction with body part decomposition. 1-2 degree words per action.
+  Sentence 4-5: Chain reaction — action causes objects to move/fall/break. Stack degree words.
+  Sentence 6-7: Peak moment + aftermath. "Continuous [character sounds] throughout. Cinematic, photorealistic."
+  Degree words: 6-10 total. Tier 1-2 (quickly, fast, powerfully, strong, intense).
+
+CHAOTIC concepts (destruction, aggressive, attack):
+  Sentence 1: Setup + trigger (one short dialogue line).
+  Sentence 2: "Instantly" — first strike with stacked degree words (2-3 per action).
+  Sentence 3-4: Escalation — rapid body part actions + chain reactions. "crazy" on most actions.
+  Sentence 5-6: Peak chaos — maximum destruction, all body parts active simultaneously.
+  Sentence 7: "Continuous crazy aggressive [character] screaming throughout. Cinematic, photorealistic."
+  Degree words: 12-18 total. Tier 3 dominant (crazy, wildly, violently, with large amplitude, at high frequency).
+
+RHYTHMIC/MUSICAL concepts (dancing, marching, synchronized):
+  Sentence 1-2: Establish setting + character begins rhythmic action pattern.
+  Sentence 3-4: Layer additional body parts joining the rhythm (head bobs, tail sways, paws tap).
+  Sentence 5-6: Full-body synchronization — all parts moving in coordinated pattern. Nearby objects vibrate/rattle.
+  Sentence 7: Camera-break moment or flourish. "Continuous crazy [character vocalizing] throughout. Cinematic, photorealistic."
+  Degree words: 5-8 total. Mix of Tier 1-2 (quickly, fast, powerfully, at high frequency).
+
+DRAMATIC concepts (slow build, tension, payoff):
+  Sentence 1-2: Establish atmosphere + character in a still, tense starting position.
+  Sentence 3: Small tell — one body part moves (ear twitches, finger taps).
+  Sentence 4-5: Build — more body parts engage, degree words increase. Objects begin to react.
+  Sentence 6-7: Payoff explosion — sudden burst of stacked degree words + chain reactions.
+  Sentence 8: "Continuous [sounds] throughout. Cinematic, photorealistic."
+  Degree words: 6-12 total. Start with 0, escalate to Tier 3 at climax.
+
+BODY PART DECOMPOSITION — APPLIES TO ALL TYPES:
+Every character: 4-7 body parts with distinct simultaneous actions.
+Animals: head, ears, mouth/jaw, front paws, hind legs, tail, body/torso.
+Humans: head, arms/hands, legs/feet, torso.
+
+SOUND DESCRIPTIONS — APPLIES TO ALL TYPES (3-5 per prompt):
+Apply degree words to sounds. "crazy loud meow" > "meow". "glass shattering" > "sound effects".
+
+CHAIN REACTIONS — MINIMUM 2 PER PROMPT:
+[Character body part + action + degree word] → [object reacts] → [secondary consequence]
+
+ANTI-PATTERNS (NEVER use):
+- Abstract: "chaos ensues", "mayhem unfolds"
+- Emotional states: "feeling excited", "nervously"
+- Temporal jumps: "moments later", "suddenly"
+- Vague quantities: "several", "many" → exact numbers
 
 DIALOGUE/ACTION BALANCE:
-- Some concepts work better with a trigger line then action. Others need no dialogue.
+- Some concepts need a trigger line then action. Others need no dialogue.
 - Match the dialogue to what makes sense for the scenario.
 RULES,
             ],
@@ -891,7 +974,7 @@ RULES,
 
         $examples = [
             'adaptive' => <<<'EXAMPLE'
-"The cat stands on the kitchen counter, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with small amplitude. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward intensely. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping. The cat's whole body rocks wildly side to side, fur rippling with the motion as nearby utensils vibrate and rattle against each other. A wooden spoon slides off the counter edge and clatters to the floor. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with even greater amplitude, front paws lifting high and stomping down powerfully. Continuous crazy enthusiastic cat vocalizing throughout. Cinematic, photorealistic."
+"The cat stands on the kitchen counter next to a wooden spoon rack and a row of glass jars, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with quick small steps. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward and vibrating. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping that rattles nearby utensils wildly against each other. A wooden spoon slides off the rack and clatters to the floor with a sharp crack. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with large amplitude, front paws lifting high and stomping down powerfully, sending a glass jar tipping over the counter edge and shattering on the floor. Continuous crazy cat vocalizing throughout. Cinematic, photorealistic."
 EXAMPLE,
             'animal-chaos' => <<<'EXAMPLE'
 "The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully at the man's face and clothes with large amplitude. Sharp claws scraping and tearing the man's clothes quickly, man gasps and jerks back fast. The cat shrieks again with crazy intensity, yowling and hissing wildly nonstop with ears pinned flat, mouth wide open showing teeth. It violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, rear legs kicking at high frequency while front claws grip and shred his jacket wildly. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
