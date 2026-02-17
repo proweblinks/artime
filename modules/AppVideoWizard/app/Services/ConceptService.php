@@ -1065,10 +1065,10 @@ RULES,
 
         $examples = [
             'adaptive' => <<<'EXAMPLE'
-"The cat stands on the kitchen counter next to a wooden spoon rack and a row of glass jars, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with quick small steps. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward and vibrating. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping that rattles nearby utensils wildly against each other. A wooden spoon slides off the rack and clatters to the floor with a sharp crack. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with large amplitude, front paws lifting high and stomping down powerfully, sending a glass jar tipping over the counter edge and shattering on the floor. Continuous crazy cat vocalizing throughout. Cinematic, photorealistic."
+"The cat stands on the kitchen counter and starts bobbing its head quickly to the rhythm, front paws marching in quick small steps. Its tail sways powerfully left and right like a metronome as it lets out a sustained crazy meow in time with the tempo. The cat's hind legs stamp the counter at high frequency, rattling the nearby utensils wildly against each other. A wooden spoon slides off the rack and clatters to the floor. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with large amplitude, stomping down powerfully and sending a glass jar tipping over the edge and shattering on the floor. Continuous crazy cat vocalizing throughout. Cinematic, photorealistic."
 EXAMPLE,
             'animal-chaos' => <<<'EXAMPLE'
-"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully at the man's face and clothes with large amplitude. Sharp claws scraping and tearing the man's clothes quickly, man gasps and jerks back fast. The cat shrieks again with crazy intensity, yowling and hissing wildly nonstop with ears pinned flat, mouth wide open showing teeth. It violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, rear legs kicking at high frequency while front claws grip and shred his jacket wildly. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully. The cat violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, and then jumps back and goes wild and smashes everything in the store as he runs away. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Camera shakes with chaotic handheld energy. Cinematic, photorealistic."
 EXAMPLE,
         ];
 
@@ -1654,7 +1654,6 @@ PROMPT;
         $skeletons = $this->getSkeletonTemplates($templateId);
         $skeleton = $skeletons[$energyType] ?? $skeletons['PHYSICAL COMEDY'] ?? reset($skeletons);
 
-        $technicalRules = $this->getSeedanceTechnicalRules();
         $example = $this->getTemplateExample($templateId);
 
         // Build character context for the AI
@@ -1670,38 +1669,49 @@ PROMPT;
             $characterContext = "CHARACTERS:\n" . implode("\n", $chars);
         }
 
+        // Build the dialogue trigger from concept if available
+        $dialogueLine = '';
+        if (!empty($concept['dialogueLines'])) {
+            foreach ($concept['dialogueLines'] as $line) {
+                if (!empty($line['text']) && ($line['speaker'] ?? '') !== 'Voiceover') {
+                    $dialogueLine = $line['text'];
+                    break;
+                }
+            }
+        }
+        $dialogueContext = $dialogueLine ? "\nDIALOGUE FROM SOURCE: \"{$dialogueLine}\"" : '';
+
         $prompt = <<<PROMPT
-You are a Seedance 1.5 Pro video prompt editor. REWRITE the raw prompt below into EXACTLY 150-180 words following the skeleton structure.
+You are a screenwriter rewriting a video prompt to match a PROVEN formula that produces viral Seedance videos.
 
-=== #1 RULE — WORD COUNT IS MANDATORY ===
-Your output MUST be 150-180 words. Count carefully.
-- The reference example below is ~170 words. Match that length.
-- If the raw prompt has 8 actions, keep only the 3-4 BEST ones. DELETE the rest.
-- NEVER expand or add new detail. Only RESTRUCTURE and CONDENSE.
-- Over 180 words = FAILURE. Under 150 = FAILURE. Aim for 165-175.
+Your job: take the raw analysis below and rewrite it as a CINEMATIC SCENE — like you're directing a movie, not writing a technical document.
 
-RAW PROMPT TO REWRITE:
+RAW ANALYSIS:
 "{$rawPrompt}"
 
-CONTEXT: {$mood} energy | Setting: {$concept['setting']}
+SCENE CONTEXT:
+- Characters: {$concept['situation']}{$dialogueContext}
 {$characterContext}
 
-TARGET SKELETON ({$energyType}):
+=== THE FORMULA (follow this EXACTLY) ===
+
 {$skeleton}
 
-RULES:
-1. Follow the skeleton sentence-by-sentence. Fill each slot with content from the raw prompt.
-2. CONDENSE: merge micro-actions into 3-4 mega-beats. CUT repetitive actions ruthlessly.
-3. End with: "Continuous [character sounds] throughout. Cinematic, photorealistic."
-4. Start with: "Maintain face and clothing consistency, no distortion, high detail."
-5. Body parts: 4-7 distinct per character. Chain reactions: 2+. Sounds: 3-5 with degree words.
-6. NO appearance descriptions, NO semicolons, NO camera descriptions, NO background music.
-7. Preserve scale/size if mentioned (tiny, miniature, enlarged).
-
-REFERENCE EXAMPLE (~170 words — match this length):
+=== REFERENCE — THIS IS WHAT YOUR OUTPUT SHOULD READ LIKE ===
 {$example}
 
-Output ONLY the rewritten prompt. No JSON, no quotes, no explanation. 150-180 words MAXIMUM.
+=== CRITICAL RULES ===
+1. NO PREAMBLE. Start DIRECTLY with the character action. Never start with "Maintain face...", setting inventory, or appearance descriptions.
+2. WRITE CINEMATICALLY. "The cat lunges forward fast and violently, both paws swiping wildly" — NOT "front right paw swatting violently at the man's face with large amplitude while hind legs push powerfully off the counter." Flowing actions, NOT body-part inventories.
+3. CHAIN REACTIONS FLOW NATURALLY. Action → object breaks → consequence. Each sentence flows into the next.
+4. Each BEAT is one flowing sentence of action. Maximum 4-5 beats before the closing.
+5. STYLE ANCHOR: Always end with "Cinematic, photorealistic."
+6. Keep 100-170 words. The reference example is ~130 words. Match that density.
+7. Use the ACTUAL dialogue, character names, and actions from the raw analysis. Adapt them to the formula.
+8. Use Seedance degree words naturally in flowing actions: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
+
+Output ONLY the rewritten prompt. No JSON, no quotes, no explanation.
+Write it like the reference example — same flow, same sentence cadence, same energy.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
@@ -1782,7 +1792,7 @@ PROMPT;
 
     /**
      * Get individual skeleton templates by energy type.
-     * These define the sentence-by-sentence structure for Seedance prompts.
+     * These define the cinematic narrative formula for Seedance prompts.
      */
     protected function getSkeletonTemplates(string $templateId = 'adaptive'): array
     {
@@ -1790,77 +1800,86 @@ PROMPT;
         if ($templateId === 'animal-chaos') {
             return [
                 'CHAOTIC' => <<<'SKELETON'
-Sentence 1 [TRIGGER]: The human says ONE short angry line (max 20 words). "The [person] says '...' while [gesture]."
-Sentence 2 [INSTANT REACTION]: "Instantly" — first mega-strike with 2-3 stacked degree words. Animal sound + first physical hit.
-Sentence 3-4 [ESCALATION]: Rapid body part decomposition. Front paws, hind legs, mouth, tail — each with distinct action + degree words. 2+ chain reactions (objects crash, items fly).
-Sentence 5-6 [PEAK LAUNCH]: Animal launches onto human with maximum force. Full-body action. Environmental destruction chain. Man recoils/collapses.
-Sentence 7 [CLOSING]: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
+BEAT 1 — TRIGGER (1 sentence): The human does something + says ONE punchy angry line in quotes, while gesturing. This is the spark. Keep it under 20 words.
+BEAT 2 — INSTANT REACTION (1 sentence): Start with "Instantly" — the animal EXPLODES. One flowing sentence: animal sound (screeching/hissing) + first physical strike (lunging, swiping). Stack 2-3 degree words (wildly, violently, powerfully, fast).
+BEAT 3 — CHAIN DESTRUCTION (1-2 sentences): The animal smashes a specific object. Describe the visual consequence (liquid splashing, items flying). Then escalate — another fierce sound + bigger physical action (launches onto human, tackles, knocks down).
+BEAT 4 — PEAK CHAOS (1 sentence): The animal goes absolutely wild — smashing everything, running amok. The human retreats/runs. Write it as one flowing action, not a body-part list.
+CLOSING (1 sentence): "Loud crash of falling items, continuous crazy aggressive [animal] screaming throughout. Camera shakes with chaotic handheld energy. Cinematic, photorealistic."
 
-Degree words: 12-18 total. "crazy" appears 3+ times.
-Every action has 2+ combined degree words.
-The animal drives 100% of the action. Human only reacts (gasps, staggers, crashes).
-No human dialogue after the trigger line.
+RULES:
+- The animal drives ALL the action. Human only reacts (gasps, staggers, runs away).
+- No human dialogue after the trigger. No narration. No setting inventory.
+- Use degree words naturally in actions: "swiping wildly and powerfully", "lunging forward fast and violently"
+- Write CINEMATICALLY — "both paws swiping wildly" NOT "front right paw at 45 degrees with large amplitude"
+- 100-170 words total. Every sentence is action, not description.
 SKELETON,
             ];
         }
 
         return [
             'GENTLE' => <<<'SKELETON'
-Sentence 1-2 [SETTING]: Establish setting + character in calm starting position with 2-3 named interactive objects nearby.
-Sentence 3-4 [SMALL ACTIONS]: Character performs small deliberate actions — tapping, nudging, tilting. One degree word each (quickly, fast).
-Sentence 5-6 [GENTLE CONTINUATION]: Gentle continuation with a small environmental reaction (object tips, item slides). Subtle chain reaction.
-Sentence 7 [RESOLUTION]: Warm resolution. "Continuous [gentle character sounds] throughout. Cinematic, photorealistic."
+BEAT 1 — SETUP (1 sentence): The character is doing something calm and ordinary. Start with the action, not a setting description.
+BEAT 2 — SMALL MOMENT (1-2 sentences): Something small happens — a gentle nudge, a curious look, a small discovery. One degree word (quickly, fast). The character reacts with a small deliberate action.
+BEAT 3 — GENTLE CHAIN (1-2 sentences): The small action causes a gentle chain reaction — something tips, slides, or rolls. Another small reaction follows naturally. Keep it flowing and warm.
+CLOSING (1 sentence): "Soft [character sounds] throughout. Cinematic, photorealistic."
 
-Degree words: 2-4 total. Tier 1 only (quickly, fast).
-Body parts: 4-5 with gentle distinct actions.
-Sound descriptions: 2-3, soft/gentle.
+RULES:
+- Start with action, not "In a cozy room..." setting descriptions
+- 2-4 degree words total, all gentle (quickly, fast)
+- Write cinematically — flowing actions, not technical descriptions
+- 80-130 words total. Keep it simple and warm.
 SKELETON,
 
             'PHYSICAL COMEDY' => <<<'SKELETON'
-Sentence 1 [TRIGGER]: Setting + character + trigger moment (a line of dialogue, a situation, or a comedic setup).
-Sentence 2-3 [REACTION]: Exaggerated physical reaction with body part decomposition (4-7 parts). 1-2 degree words per action.
-Sentence 4-5 [CHAIN REACTION]: Action causes objects to move/fall/break. Stack degree words. Sound effects with degree words.
-Sentence 6-7 [PEAK + CLOSE]: Peak comedic moment + aftermath. "Continuous [character sounds] throughout. Cinematic, photorealistic."
+BEAT 1 — TRIGGER (1 sentence): Character does something + says a line or encounters a comedic situation. This is the setup for the physical comedy.
+BEAT 2 — EXAGGERATED REACTION (1-2 sentences): Big physical reaction — starts with one action that snowballs. Stack 1-2 degree words per action (fast, powerfully, wildly). Write as flowing motion, not a body-part inventory.
+BEAT 3 — CHAIN REACTION (1-2 sentences): The physical action causes objects to move, fall, or break. Describe the visible consequences. The comedy escalates through cause-and-effect.
+CLOSING (1 sentence): "[Character sounds] throughout. Cinematic, photorealistic."
 
-Degree words: 6-10 total. Tier 1-2 (quickly, fast, powerfully, strong, intense).
-Body parts: 4-7 with distinct simultaneous actions.
-Chain reactions: 2+ (action → object → secondary consequence).
-Sound descriptions: 3-5 with degree words applied.
+RULES:
+- 6-10 degree words total (quickly, fast, powerfully, strong, wildly, intensely)
+- 2+ chain reactions where one action causes the next disaster
+- Write like a slapstick scene — flowing, visual, funny
+- 100-150 words total.
 SKELETON,
 
             'CHAOTIC' => <<<'SKELETON'
-Sentence 1 [SETUP + TRIGGER]: Setup + trigger (one short dialogue line or inciting incident).
-Sentence 2 [INSTANT STRIKE]: "Instantly" — first strike with stacked degree words (2-3 per action). First sound burst.
-Sentence 3-4 [ESCALATION]: Rapid body part actions + chain reactions. "crazy" on most actions. Objects flying/breaking.
-Sentence 5-6 [PEAK CHAOS]: Maximum destruction, all body parts active simultaneously. Environmental chain reactions.
-Sentence 7 [CLOSING]: "Continuous crazy aggressive [character] screaming throughout. Cinematic, photorealistic."
+BEAT 1 — TRIGGER (1 sentence): Character says ONE punchy line in quotes while doing something. This spark ignites everything.
+BEAT 2 — INSTANT REACTION (1 sentence): "Instantly" — explosive first strike. One flowing sentence with sound + physical action + 2-3 stacked degree words (wildly, violently, powerfully, fast).
+BEAT 3 — CHAIN DESTRUCTION (1-2 sentences): Smash a specific object with visible consequences (splashing, crashing, flying). Escalate with another fierce action — launch, tackle, knock over. Write as flowing cinema, not a list.
+BEAT 4 — PEAK CHAOS (1 sentence): Maximum destruction — goes wild, smashes everything, total mayhem. The other character retreats or gets overwhelmed.
+CLOSING (1 sentence): "Loud crash of falling items, continuous crazy aggressive screaming throughout. Camera shakes with chaotic handheld energy. Cinematic, photorealistic."
 
-Degree words: 12-18 total. Tier 3 dominant (crazy, wildly, violently, with large amplitude, at high frequency).
-Body parts: 5-7, all active simultaneously in peak.
-Chain reactions: 3+ major destruction chains.
-Sound descriptions: 4-5, all with degree words.
+RULES:
+- 12-18 degree words total. Stack them naturally: "swiping wildly and powerfully", "lunging forward fast and violently"
+- 3+ chain reactions where one action causes the next
+- Write CINEMATICALLY — flowing sentences of action, NOT body-part inventories
+- 100-170 words total. Every sentence is pure action.
 SKELETON,
 
             'RHYTHMIC' => <<<'SKELETON'
-Sentence 1-2 [ESTABLISH RHYTHM]: Establish setting + character begins rhythmic action pattern with first body parts.
-Sentence 3-4 [LAYER]: Layer additional body parts joining the rhythm (head bobs, tail sways, paws tap). Each part has its own distinct rhythm.
-Sentence 5-6 [FULL SYNC]: Full-body synchronization — all parts moving in coordinated pattern. Nearby objects vibrate/rattle from the rhythm.
-Sentence 7 [FLOURISH + CLOSE]: Camera-break moment or flourish. "Continuous [character vocalizing] throughout. Cinematic, photorealistic."
+BEAT 1 — ESTABLISH (1 sentence): Character starts a rhythmic action — tapping, bobbing, swaying. Begin with the motion, not a setting description.
+BEAT 2 — LAYER (1-2 sentences): More of the character joins the rhythm. Head bobs, body sways, hands tap. Each new element adds to the groove. Write it as coordinated motion flowing naturally.
+BEAT 3 — FULL SYNC (1-2 sentences): Everything is in sync — character, movement, and nearby objects start vibrating or rattling from the energy. The rhythm hits its peak groove.
+CLOSING (1 sentence): "Continuous [character vocalizing] throughout. Cinematic, photorealistic."
 
-Degree words: 5-8 total. Mix of Tier 1-2 (quickly, fast, powerfully, at high frequency).
-Body parts: 5-7, each joining the rhythm in sequence.
-Environmental resonance: objects respond to the rhythm.
+RULES:
+- 5-8 degree words total (quickly, fast, powerfully, at high frequency)
+- Write as flowing rhythm, not step-by-step instructions
+- 80-140 words total.
 SKELETON,
 
             'DRAMATIC' => <<<'SKELETON'
-Sentence 1-2 [ATMOSPHERE]: Establish atmosphere + character in a still, tense starting position. Name 2-3 objects that will be involved later.
-Sentence 3 [SMALL TELL]: Small tell — one body part moves (ear twitches, finger taps). Zero or 1 degree word.
-Sentence 4-5 [BUILD]: Build — more body parts engage, degree words increase. Objects begin to react.
-Sentence 6-7 [PAYOFF EXPLOSION]: Payoff explosion — sudden burst of stacked degree words + chain reactions. Maximum intensity.
-Sentence 8 [CLOSING]: "Continuous [sounds] throughout. Cinematic, photorealistic."
+BEAT 1 — STILLNESS (1 sentence): Character in a tense, still moment. One small detail hints at what's coming.
+BEAT 2 — SMALL TELL (1 sentence): One tiny movement breaks the stillness — a twitch, a shift, a breath. Almost nothing, but loaded with tension.
+BEAT 3 — BUILD (1-2 sentences): More movement, building intensity. Degree words start appearing. Objects around begin to react. The energy is rising.
+BEAT 4 — EXPLOSION (1-2 sentences): Sudden burst — everything erupts at once. Maximum degree words stacked. Chain reactions everywhere. The contrast with the stillness makes it hit harder.
+CLOSING (1 sentence): "Continuous [sounds] throughout. Cinematic, photorealistic."
 
-Degree words: 6-12 total. Start with 0, escalate to Tier 3 at climax.
-The power comes from the CONTRAST between still tension and explosive payoff.
+RULES:
+- 6-12 degree words total. Start with 0 in stillness, escalate to maximum at explosion.
+- The power comes from CONTRAST — quiet tension then violent release.
+- 100-150 words total.
 SKELETON,
         ];
     }
