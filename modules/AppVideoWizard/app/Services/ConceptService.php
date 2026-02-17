@@ -951,7 +951,21 @@ RULES;
         // Phase 4: Replace non-official "loud" when used as standalone adjective (not "crazy loud")
         $text = preg_replace('/\b(?<!crazy\s)loud\b/i', 'intense', $text);
 
-        // Phase 5: Clean up double spaces from removals
+        // Phase 5: Clean up artifacts from removals
+        // Remove empty comma-separated clauses: ", ," or ", , ," etc.
+        $text = preg_replace('/,\s*,\s*,/i', ',', $text);
+        $text = preg_replace('/,\s*,/', ',', $text);
+        // Remove space before punctuation: "word ." → "word."
+        $text = preg_replace('/\s+([.,!])/', '$1', $text);
+        // Remove comma-space-period: ",." → "."
+        $text = preg_replace('/,\./', '.', $text);
+        // Remove leading comma after period: ". ," → "."
+        $text = preg_replace('/\.\s*,/', '.', $text);
+        // Remove double/triple periods
+        $text = preg_replace('/\.{2,}/', '.', $text);
+        // Fix "word, ." at end of sentence
+        $text = preg_replace('/,\s*\./', '.', $text);
+        // Clean up double spaces
         $text = preg_replace('/\s{2,}/', ' ', $text);
         $text = trim($text);
 
