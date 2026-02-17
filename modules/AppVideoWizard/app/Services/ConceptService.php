@@ -1369,11 +1369,12 @@ Humans: head, arms/hands, legs/feet, torso, hair.
 NEVER write "the cat attacks" — decompose: "front paws swipe wildly, hind legs kick powerfully, mouth opens in a crazy yowl, tail lashes with large amplitude."
 
 SOUND DESCRIPTIONS — SEEDANCE GENERATES AUDIO FROM TEXT:
-Include 3-5 distinct sound descriptions per prompt. Apply degree words to sounds too.
-- Character voice: "crazy loud meow", "powerfully deep growl", "high-pitched shriek"
-- Impact sounds: "paws slamming with a sharp crack", "glass shattering"
-- Continuous sounds: "rapid thumping at high frequency", "steady rhythmic tapping"
-- Environmental: "plates rattling wildly", "liquid splashing powerfully"
+Include character vocalizations ONLY if the visual analysis confirms they were actually HEARD in the audio.
+- If the analysis reports animal vocalizations (meowing, barking, hissing, growling) → include them with degree words
+- If the analysis says "No animal vocalizations detected" or only mentions panting/breathing → do NOT fabricate character sounds
+- Impact/environmental sounds from VISIBLE ACTIONS are always valid: "paws slamming with a sharp crack", "glass shattering", "plates rattling", footsteps, etc.
+- Apply degree words to sounds that ARE included: "crazy loud meow" > "meow"
+- Do NOT invent sounds just to fill a quota — fewer accurate sounds beat more fabricated ones
 
 CHAIN REACTIONS — CAUSE AND EFFECT (minimum 2 per prompt):
 Every prompt needs 2+ chain reactions: action causes object to move, which causes another reaction.
@@ -1845,10 +1846,14 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Be SPECIFIC about the physical destruction: what objects get knocked over, thrown, broken, pushed off surfaces?
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
+   - Report ONLY sounds you can actually HEAR in the audio track. Do NOT infer sounds from visual cues.
    - What sounds do you hear? List them: human speech, animal sounds, background noise, music
    - Is there a VOICEOVER/NARRATION? (a human voice talking OVER the video, not from a character on screen)
    - Which sounds come FROM characters on screen vs. dubbed/added audio?
-   - CRITICAL: If an animal's mouth is open, what sound does it ACTUALLY make? (meowing, hissing, barking — NOT human speech)
+   - CRITICAL FOR ANIMALS: Do NOT infer sounds from visual cues — an open mouth could be panting, breathing, or yawning. Report ONLY vocalizations you can actually HEAR.
+     * If mouth is open but no vocalization heard → report "mouth open, no vocalization heard"
+     * If no animal vocalization detected → explicitly state "No animal vocalizations detected in audio"
+     * Only report specific sounds (meowing, barking, hissing, growling) if you can genuinely HEAR them
    - Is there background music or sound effects?
    - SOUND SOURCE ATTRIBUTION: If music is playing AND characters are holding/playing instruments, is the music PRODUCED BY the characters or is it a separate soundtrack? This matters enormously — a cat PLAYING a trumpet that produces audible music is the core action, not background decoration.
    - Describe any sounds that are CAUSED BY character actions (instrument playing, object impacts, footsteps, clapping).
@@ -1971,7 +1976,7 @@ CRITICAL RULES:
 - Preserve the EXACT mood, humor type, and viral formula.
 - Character names can be creative/fun, but species, appearance, setting, and actions must be FAITHFUL to the source.
 - The "videoPrompt" must describe EXACTLY what was seen — same animal, same setting, same action.
-- ANIMAL SOUNDS ARE REAL: Animals make ANIMAL SOUNDS (meowing, hissing, barking) — NEVER human words. Describe sounds as actions in the scene.
+- ANIMAL SOUNDS — ONLY IF HEARD: If the visual analysis reports animal vocalizations were HEARD in the audio (meowing, hissing, barking, growling), include them as actions in the scene. If the analysis says "No animal vocalizations detected" or only mentions panting/breathing, do NOT add animal sounds. Animals NEVER speak human words.
 - VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video. Animals make their natural sounds. Voiceover goes in the official Seedance voiceover format.
 - The main character (camera focus) should be described FIRST in the videoPrompt.
 - ABSOLUTELY NO background music in the videoPrompt. NEVER write "music plays", "upbeat music", "beat drops", "soundtrack", or any music mention. Seedance generates audio from the prompt text — any music reference causes unwanted background music. Only character sounds, dialogue, and physical sound effects.
@@ -2058,6 +2063,24 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 EXAMPLE — GOOD CLONE PROMPT (~120 words):
 {$templateExample}
+
+=== CLONE FAITHFULNESS — SOUND & ENERGY OVERRIDES ===
+These rules OVERRIDE any general rules above for clone context:
+
+1. CHARACTER SOUNDS OVERRIDE: The general rule "Continuous [animal sounds] throughout" is for generated content.
+   For clones: ONLY include character vocalizations that the visual analysis confirmed were HEARD in the audio.
+   If analysis says "No animal vocalizations detected" or "mouth open, no vocalization heard" → do NOT end with
+   "Continuous [growling/screaming/meowing] throughout." Instead use only environmental sounds or omit the sound line.
+
+2. ENERGY MATCHING: Match the ACTUAL energy level of the source video.
+   A calm walking animal gets calm degree words ("quickly", "fast") — NOT aggressive ones ("violently", "crazy", "wildly").
+   Panting ≠ growling. Walking ≠ charging. Standing ≠ lunging.
+
+3. ENVIRONMENTAL SOUNDS ARE ALWAYS VALID: Impact sounds and environmental sounds from visible actions
+   (footsteps on road, wind, water, objects being touched) are always appropriate — these come from motion, not inference.
+
+4. WHEN IN DOUBT, OMIT: Silence is more faithful than a fabricated growl. If you're unsure whether a sound
+   was actually heard, leave it out. The video will still work without it.
 
 NOW generate the JSON — make the videoPrompt faithfully capture the reference video's energy.
 PROMPT;
