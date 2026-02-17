@@ -5387,10 +5387,12 @@ PROMPT;
                 // Seedance Compliance Check — AI-powered validation pass
                 $this->workflowTrackNode('seedance_compliance', 'running');
                 try {
+                    $complianceContext = ($this->activeWorkflowMode === 'clone') ? 'clone' : 'generate';
                     $compliance = $conceptService->validateSeedanceCompliance(
                         $result['videoPrompt'],
                         session('current_team_id', 0),
-                        $this->content['aiModelTier'] ?? 'economy'
+                        $this->content['aiModelTier'] ?? 'economy',
+                        $complianceContext
                     );
 
                     if ($compliance['success'] && !empty($compliance['fixedPrompt'])) {
@@ -5537,10 +5539,12 @@ PROMPT;
                 // Seedance Compliance Check — AI-powered validation pass
                 $this->workflowTrackNode('seedance_compliance', 'running');
                 try {
+                    $complianceContext = ($this->activeWorkflowMode === 'clone') ? 'clone' : 'generate';
                     $compliance = $conceptService->validateSeedanceCompliance(
                         $result['videoPrompt'],
                         session('current_team_id', 0),
-                        $this->content['aiModelTier'] ?? 'economy'
+                        $this->content['aiModelTier'] ?? 'economy',
+                        $complianceContext
                     );
 
                     if ($compliance['success'] && !empty($compliance['fixedPrompt'])) {
@@ -33544,10 +33548,10 @@ PROMPT;
         // Ensure "Cinematic, photorealistic." suffix
         $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — trim to 110 if over 120 (action-only prompts should be concise)
+        // Word count enforcement — wider limit (180) to preserve all action beats from source video
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 120) {
-            Log::info('VideoWizard: Clone passthrough over 120 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 180) {
+            Log::info('VideoWizard: Clone passthrough over 180 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
                 $closing = [array_pop($sentences)]; // "Cinematic, photorealistic."
@@ -33557,7 +33561,7 @@ PROMPT;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 110) {
+                    if ($currentWords + $sentenceWords <= 170) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }

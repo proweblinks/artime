@@ -1143,10 +1143,24 @@ RULES;
      * @param string $aiModelTier AI model tier (default: economy for speed)
      * @return array {success, score, violations[], fixedPrompt, summary, originalPrompt}
      */
-    public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiModelTier = 'economy'): array
+    public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiModelTier = 'economy', string $context = 'generate'): array
     {
         $rules = $this->getSeedanceTechnicalRules();
         $wordCount = str_word_count($prompt);
+
+        // Clone context: softer degree word rules that preserve faithfulness
+        $degreeWordRule = ($context === 'clone')
+            ? "- Degree words are OPTIONAL for clone prompts. Only add them if the original action is genuinely intense.\n- Do NOT escalate gentle actions: \"brushes against\" should NOT become \"slams powerfully\". Keep the original intensity.\n- \"nearly\", \"gently\", \"slowly\", \"calmly\" are acceptable for calm/moderate videos — do NOT replace them with aggressive words.\n- NEVER change the meaning or intensity of an action. \"Nearly brushes\" ≠ \"slams\". \"Walks\" ≠ \"charges\". \"Glances\" ≠ \"whips head\"."
+            : '- Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)';
+
+        // Clone context: wider word count range and faithfulness override
+        if ($context === 'clone') {
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 60-180 words. If over 180, trim redundant modifiers — but NEVER remove distinct action beats that describe different parts of the video.\nCurrent word count: {$wordCount} words.";
+            $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
+        } else {
+            $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-120 words.\nIf the prompt exceeds 120 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
+            $cloneOverride = '';
+        }
 
         $validationPrompt = <<<PROMPT
 You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt below against ALL rules and fix every violation.
@@ -1155,7 +1169,7 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 {$rules}
 
 === ADDITIONAL RULES ===
-- Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)
+{$degreeWordRule}
 - NO -ly adverbs except "violently" and "quickly" (which ARE official)
 - NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
 - NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
@@ -1168,15 +1182,9 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 - Must end with "Cinematic, photorealistic."
 - Object color/material descriptors for SCENE ITEMS (yellow can, silver tray, clear plastic) are ALLOWED and NOT violations — only character appearance descriptions are violations
 - "brightly lit", "dimly lit" lighting descriptors should be removed
+{$cloneOverride}
 
-=== WORD COUNT RULE (CRITICAL) ===
-The TOTAL prompt (including "Cinematic, photorealistic." suffix) must be 80-120 words.
-If the prompt exceeds 120 words, you MUST TRIM it by:
-1. Removing redundant modifiers and padding words
-2. Combining actions where possible ("grips and bites" instead of two separate sentences)
-3. Removing the LEAST important actions if still over budget
-NEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.
-Current word count: {wordCount} words.
+{$wordCountSection}
 
 === PROMPT TO VALIDATE ===
 {$prompt}
@@ -1184,13 +1192,13 @@ Current word count: {wordCount} words.
 === INSTRUCTIONS ===
 1. Scan EVERY word and phrase against the rules
 2. List ALL violations found
-3. Provide the COMPLETE fixed prompt with violations corrected AND trimmed to 80-120 words
-4. Rate compliance 0-100 (score below 80 if word count exceeds 120 or contains scene descriptions)
+3. Provide the COMPLETE fixed prompt with violations corrected
+4. Rate compliance 0-100 (score below 80 if word count exceeds limit or contains scene descriptions)
 
 Return ONLY valid JSON (no markdown, no explanation):
-{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt under 120 words","summary":"one sentence summary"}
+{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt","summary":"one sentence summary"}
 
-CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. But DO trim to stay under 120 words. Strip any scene descriptions or face prefix text — the prompt should start with the first action.
+CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. Strip any scene descriptions or face prefix text — the prompt should start with the first action.
 PROMPT;
 
         try {
@@ -1233,11 +1241,14 @@ PROMPT;
                     $fixedPrompt = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
                     $fixedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
 
-                    // Hard word count enforcement — if AI still produced over 130 words, trim
+                    // Hard word count enforcement — wider limit for clones to preserve all action beats
+                    $hardLimit = ($context === 'clone') ? 200 : 130;
+                    $targetLimit = ($context === 'clone') ? 180 : 115;
                     $fixedWordCount = str_word_count($fixedPrompt);
-                    if ($fixedWordCount > 130) {
-                        \Log::warning('SeedanceCompliance: AI fixedPrompt still over 130 words, trimming', [
+                    if ($fixedWordCount > $hardLimit) {
+                        \Log::warning("SeedanceCompliance: AI fixedPrompt over {$hardLimit} words, trimming", [
                             'wordCount' => $fixedWordCount,
+                            'context' => $context,
                         ]);
                         // Trim by removing middle sentences, keeping opening and closing
                         $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $fixedPrompt);
@@ -1249,7 +1260,7 @@ PROMPT;
                             $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                             foreach ($middle as $sentence) {
                                 $sentenceWords = str_word_count($sentence);
-                                if ($currentWords + $sentenceWords <= 115) {
+                                if ($currentWords + $sentenceWords <= $targetLimit) {
                                     $result[] = $sentence;
                                     $currentWords += $sentenceWords;
                                 }
