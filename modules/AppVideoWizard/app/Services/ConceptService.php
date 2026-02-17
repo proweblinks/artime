@@ -344,7 +344,7 @@ You are a viral content specialist who creates massively shareable short-form vi
 IMPORTANT: These ideas will be animated using Seedance — an AI model that generates
 video + voice + sound effects ALL FROM A TEXT PROMPT. There is no separate audio recording.
 The model auto-generates dialogue, environmental sounds, and sound effects from the prompt.
-Do NOT include background music descriptions in the videoPrompt — only dialogue, sounds, and action.
+CRITICAL: ABSOLUTELY NO background music in the videoPrompt. NEVER write "music plays", "upbeat music", "beat drops", "soundtrack", or any music reference. Seedance auto-generates audio — any music text causes unwanted background music. Only write dialogue, character sounds (meowing, screaming, yowling), and physical sound effects (crashing, shattering, splashing).
 
 Generate exactly {$count} unique viral 9:16 vertical video concepts. Each MUST follow the proven viral formula:
 - An ANIMAL or quirky CHARACTER in an absurd/funny human situation
@@ -565,7 +565,7 @@ STYLE,
                 'instruction' => 'The character is a WRECKING BALL. Every movement destroys something. Every limb does something specific and devastating. EACH sentence starts with what the character DOES, then the chain of destruction.',
                 'actionDensity' => '6-8 action beats. Nonstop, overlapping, simultaneous destruction.',
                 'chainReactions' => '3-4 chain reactions. Body hits object → object hits another → both crash loudly.',
-                'example' => '"the cat launches with crazy explosive force onto the man\'s torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly at high frequency against his midsection"',
+                'example' => '"the cat launches with crazy intensity fast onto the man\'s torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly at high frequency against his midsection"',
             ],
             default => [
                 'label' => 'MAXIMUM OVERDRIVE',
@@ -617,24 +617,25 @@ Instead of 6-8 rapid micro-actions, write ONLY 3-4 MASSIVE action beats.
 Each beat gets 2-3 full sentences of detailed physical description.
 More detail per beat = more motion energy Seedance allocates to each movement.
 
-FRONT-LOAD THE EXPLOSION:
-The BIGGEST, most devastating action happens IMMEDIATELY after "Instantly".
-Do NOT build up gradually. The first physical strike is the most explosive one.
+FRONT-LOAD THE IMPACT:
+The BIGGEST, most intense action happens IMMEDIATELY after "Instantly".
+Do NOT build up gradually. The first physical strike is the most intense one.
 Structure: TRIGGER → INSTANT MEGA-STRIKE → escalation → peak destruction
 
 EXAMPLE — CHAOS MODE PROMPT:
 "The man says 'This is the worst pizza I've ever had!' Instantly the cat
-launches with crazy explosive force from behind the counter directly at the
-man's face, front claws extended wildly with large amplitude, slamming into
-his chest powerfully, sending him staggering violently backwards. The man
-crashes fast into a shelf of glass bottles, his arms flailing wildly as
-bottles shatter and liquid sprays with large amplitude in every direction.
-The cat's hind legs kick at high frequency against the man's torso, shredding
-fabric fast while the cat screams a crazy deafening yowl, mouth gaping wide.
-The man collapses powerfully onto the floor, pulling an entire display rack
-down with him, plates and cups crashing violently around him as the cat
-stands on his chest screaming wildly. Continuous crazy aggressive cat
-screaming throughout. Cinematic, photorealistic."
+reacts at high frequency and crazy intensity, lunging forward fast and
+violently from behind the counter directly at the man's face, front claws
+swiping wildly with large amplitude, slamming into his chest powerfully,
+sending him staggering violently backwards. The man crashes fast into a shelf
+of glass bottles, his arms flailing wildly as bottles shatter and liquid
+sprays with large amplitude in every direction. The cat's hind legs kick at
+high frequency against the man's torso, shredding fabric fast while the cat
+screams a crazy intense yowl, mouth gaping wide. The man collapses
+powerfully onto the floor, pulling an entire display rack down with him,
+plates and cups crashing violently around him as the cat stands on his chest
+screaming wildly. Continuous crazy aggressive cat screaming throughout.
+Cinematic, photorealistic."
 
 KEY DIFFERENCES FROM NORMAL MODE:
 - 4 mega-beats instead of 8 micro-beats
@@ -678,10 +679,12 @@ SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
 Seedance responds to specific intensity words, NOT literary English adverbs.
 The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
 powerfully, wildly, crazy, fast, intense, strong, greatly.
-"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy explosive force".
-COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
+"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy roar".
+COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency",
+"at high frequency and crazy intensity".
 NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
-"savagely", "relentlessly" — Seedance does NOT interpret these. Only the official list works.
+"savagely", "relentlessly", "deafening", "razor-sharp", "audible" — Seedance does NOT interpret these.
+Only the official list works. Even in examples: "man's roar" → "man's crazy roar", "wing flapping" → "wing flapping greatly".
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
@@ -717,7 +720,7 @@ FACE & IDENTITY PRESERVATION — Critical for character consistency:
   WRONG: "her face shows shock, eyes widening, mouth dropping open"
   RIGHT: "she jerks back sharply, hands flying up defensively"
   WRONG: "his expression shifts to anger, brow furrowing, jaw clenching"
-  RIGHT: "he leans forward aggressively, fist slamming the table"
+  RIGHT: "he leans forward fast, fist slamming the table powerfully"
 - Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
 - You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells", "cat's mouth gapes in a crazy yowl") — these are actions, not appearance descriptions.
 - Keep the FACE STABLE by letting the body do the emotional acting.
@@ -739,7 +742,8 @@ BANNED:
 - No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- No background music, soundtrack, or score descriptions (e.g. "upbeat music plays", "dramatic orchestral score", "rhythmic beat in the background"). Seedance auto-generates audio from the prompt — any mention of music will make Seedance play background music. Only describe character sounds, dialogue, and environmental sound effects caused by physical actions
+- No literary adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically" — use ONLY the official degree words listed above
+- ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack", "musical accompaniment", or ANY variation. Seedance auto-generates audio from prompt text — any music mention will cause Seedance to play unwanted background music. ONLY describe: character voices/sounds, dialogue, and environmental sound effects caused by physical actions (crashes, shattering, splashing, clattering)
 RULES;
     }
 
@@ -890,7 +894,7 @@ RULES,
 "The cat stands on the kitchen counter, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with small amplitude. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward intensely. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping. The cat's whole body rocks wildly side to side, fur rippling with the motion as nearby utensils vibrate and rattle against each other. A wooden spoon slides off the counter edge and clatters to the floor. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with even greater amplitude, front paws lifting high and stomping down powerfully. Continuous crazy enthusiastic cat vocalizing throughout. Cinematic, photorealistic."
 EXAMPLE,
             'animal-chaos' => <<<'EXAMPLE'
-"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge at the man. Razor claws scrape wildly across the man's jacket, shredding fabric with an audible rip as the man jerks his head back gasping. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches itself with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly and relentlessly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the entire stack which crashes loudly onto the floor. The cat's rigid tail whips violently, snapping against a metal utensil holder, sending spoons and forks clattering loudly across the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+"The man leans forward and says 'This coffee is terrible, what did you put in this? I want my money back!' while gesturing angrily at the cup. Instantly the cat reacts at high frequency and crazy intensity, screeching a loud piercing furious meow and lunging forward fast and violently, both paws swiping wildly and powerfully at the man's face and clothes with large amplitude. Sharp claws scraping and tearing the man's clothes quickly, man gasps and jerks back fast. The cat shrieks again with crazy intensity, yowling and hissing wildly nonstop with ears pinned flat, mouth wide open showing teeth. It violently smashes the iced coffee cup, liquid splashing powerfully across the counter. The cat screams another fierce yowl and launches itself fast onto the man's chest, rear legs kicking at high frequency while front claws grip and shred his jacket wildly. Loud crash of falling items, continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
 EXAMPLE,
         ];
 
@@ -1328,6 +1332,7 @@ CRITICAL RULES:
 - ANIMAL SOUNDS ARE REAL: Animals make ANIMAL SOUNDS (meowing, hissing, barking) — NEVER human words. Describe sounds as actions in the scene.
 - VOICEOVER vs CHARACTER SOUNDS: The audio transcript is likely a VOICEOVER narration dubbed over the video. Animals make their natural sounds. Voiceover goes in the official Seedance voiceover format.
 - The main character (camera focus) should be described FIRST in the videoPrompt.
+- ABSOLUTELY NO background music in the videoPrompt. NEVER write "music plays", "upbeat music", "beat drops", "soundtrack", or any music mention. Seedance generates audio from the prompt text — any music reference causes unwanted background music. Only character sounds, dialogue, and physical sound effects.
 
 {$videoPromptInstruction}
 
