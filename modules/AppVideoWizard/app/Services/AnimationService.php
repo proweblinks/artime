@@ -366,7 +366,7 @@ class AnimationService
             'aspect_ratio' => $options['aspect_ratio'] ?? '9:16',
             'duration' => $duration,
             'resolution' => $options['resolution'] ?? '1080p',
-            'generate_audio' => true,
+            'generate_audio' => false,
             'camera_fixed' => $options['camera_fixed'] ?? false,
             'variant' => $options['variant'] ?? 'pro',
             'end_image_url' => $options['end_image_url'] ?? null,

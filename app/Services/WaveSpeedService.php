@@ -51,7 +51,7 @@ class WaveSpeedService
             'aspect_ratio' => $options['aspect_ratio'] ?? '9:16',
             'duration' => $options['duration'] ?? 8,
             'resolution' => $options['resolution'] ?? '1080p',
-            'generate_audio' => $options['generate_audio'] ?? true,
+            'generate_audio' => $options['generate_audio'] ?? false,
             'camera_fixed' => $options['camera_fixed'] ?? false,
             'seed' => $options['seed'] ?? -1,
         ];
