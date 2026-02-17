@@ -898,6 +898,11 @@ RULES;
             '/\bsynchronized\b/i' => 'crazy',
             '/\bsteady\b/i' => 'strong',
             '/\bfirm\b/i' => 'strong',
+            '/\bmuffled\b/i' => '',
+            '/\bcomedic\b/i' => 'crazy',
+            '/\bplayful\b/i' => '',
+            '/\bgentle\b/i' => '',
+            '/\bdelicate\b/i' => '',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -1058,8 +1063,9 @@ RULES;
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
             '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
-            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit", "bright [any setting]"
+            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit", "lit [room/space]", "bright [any word]"
             '/\b(?:brightly|dimly|softly|warmly|harshly)\s+lit\b/i' => '',
+            '/\blit\s+(?=(?:hospital|room|space|corridor|hallway|ward|chamber|studio|kitchen|office|area))/i' => '',
             '/\bbright\s+(?=\w)/i' => '',
             // "clear" as non-official descriptor (clear plastic, clear shhh, clear gesture)
             '/\bclear\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))/i' => '',
@@ -1097,6 +1103,12 @@ RULES;
         $text = preg_replace('/\bcrazy\s+loud\b/i', 'crazy', $text);
         // Standalone "loud" → "crazy" (official degree word)
         $text = preg_replace('/\bloud\b/i', 'crazy', $text);
+
+        // Phase 4b: Fix truncated/dangling sentence fragments
+        // ", some" / ", with some" at end of clause → remove
+        $text = preg_replace('/,\s*(?:with\s+)?some\s*(?=[.,]|$)/i', '', $text);
+        // "powerfully, [1-2 words]." at end → "powerfully." (remove dangling fragment)
+        $text = preg_replace('/(\bpowerfully),\s+\w{1,6}\s*\./i', '$1.', $text);
 
         // Phase 5: Clean up artifacts from removals
         // Remove empty comma-separated clauses: ", ," or ", , ," etc.
