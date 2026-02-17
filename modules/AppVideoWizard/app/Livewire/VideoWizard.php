@@ -33134,6 +33134,7 @@ PROMPT;
             $concept = $context['concept'] ?? '';
             $narration = $context['narration'] ?? '';
             $chaosDirection = trim($context['chaosDirection'] ?? '');
+            $intensity = (int) ($context['intensity'] ?? 50);
 
             $chaosBlock = '';
             if ($chaosDirection !== '') {
@@ -33142,6 +33143,40 @@ PROMPT;
 USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — the continuation MUST follow this):
 {$chaosDirection}
 PROMPT;
+            }
+
+            if ($intensity <= 25) {
+                $intensityBlock = <<<'IBLOCK'
+ENERGY LEVEL: LOW (gentle continuation)
+- Continue with calm, deliberate actions. Small movements, gentle interactions.
+- Degree words: 2-4 total. Use only "quickly" and "fast". One per action.
+- No escalation, no destruction. Warm, wholesome energy.
+- Structure: Gentle continuation → small environmental reaction → warm resolution.
+IBLOCK;
+            } elseif ($intensity <= 50) {
+                $intensityBlock = <<<'IBLOCK'
+ENERGY LEVEL: MODERATE (physical comedy continuation)
+- Continue with exaggerated physical reactions. Slapstick, not destruction.
+- Degree words: 5-8 total. Use "quickly", "fast", "powerfully", "strong". One per action.
+- Some chain reactions but controlled — objects slide, tip, rattle. Not shatter.
+- Structure: Action escalation → chain reaction → comedic peak → resolution.
+IBLOCK;
+            } elseif ($intensity <= 75) {
+                $intensityBlock = <<<'IBLOCK'
+ENERGY LEVEL: HIGH (intense action continuation)
+- Continue with aggressive, fast-paced action. Stack 2 degree words per action.
+- Degree words: 9-14 total. Use "powerfully", "wildly", "violently", "crazy", "with large amplitude".
+- Chain reactions with destruction — objects break, fall, shatter. Impacts have consequences.
+- Structure: Mid-action → rapid escalation → peak destruction → resolution.
+IBLOCK;
+            } else {
+                $intensityBlock = <<<'IBLOCK'
+ENERGY LEVEL: MAXIMUM CHAOS (total destruction continuation)
+- Continue with explosive, non-stop chaos. Stack 2-3 degree words per action. "crazy" on most.
+- Degree words: 14-18 total. Heavy use of "crazy", "wildly", "violently", "with large amplitude", "at high frequency".
+- Maximum chain reactions — everything breaks, shatters, flies. Every body part active simultaneously.
+- Structure: Pure chaos from first word → constant escalation → peak destruction → dramatic resolution.
+IBLOCK;
             }
 
             $prompt = <<<PROMPT
@@ -33160,23 +33195,34 @@ PREVIOUS PROMPT (for continuity): {$originalPrompt}
 
 WORD COUNT: 150-190 words. Concise and dense with action — no filler.
 
-The continuation starts ALREADY IN THE CHAOS — no setup, no trigger, no dialogue. Pure action from the first word.
+{$intensityBlock}
 
-STRUCTURE — MID-CHAOS → ESCALATION → PEAK → RESOLUTION:
-1. RE-ESTABLISH (one short phrase ONLY): Identify the main character by species/type + emotional state.
-   GOOD: "The furious orange tabby cat" / "The enraged calico cat"
+The continuation starts mid-action — no setup, no trigger, no dialogue. Action from the first word.
+
+STRUCTURE:
+1. RE-ESTABLISH (one short phrase ONLY): Identify the main character by species/type.
+   GOOD: "The orange tabby cat shrieks a crazy yowl" / "The calico cat hisses wildly"
    BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter"
-   NO clothing, NO outfit, NO accessories, NO colors of clothes. Just animal type + emotion.
-2. CONTINUOUS ESCALATION: Rapid-fire action beats, each bigger than the last.
-   Every beat includes BOTH physical action AND character sounds happening simultaneously.
-3. PEAK DESTRUCTION: The most explosive moment — character launches onto opponent, smashes environment.
+   NO clothing, NO emotional adjectives (enraged, furious, terrified), NO colors of clothes. Just animal type + immediate action.
+2. BODY PART DECOMPOSITION: 4-7 body parts with distinct simultaneous actions.
+   Animals: head, ears, mouth/jaw, front paws, hind legs, tail, body/torso.
+   NEVER write "the cat attacks" — decompose into specific body part actions.
+3. CHAIN REACTIONS (minimum 2): action causes object to move → secondary consequence.
+   Name objects before they participate in chain reactions.
 4. RESOLUTION: The scene has an ENDING — character flees, opponent collapses, final dramatic moment.
 
 SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
 quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
 fast, intense, strong, greatly. "crazy" is the MAGIC WORD — use liberally.
+USE EXACT FORMS ONLY: "intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly".
 COMBINE them: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
-NEVER use literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively".
+
+BANNED WORDS — Seedance does NOT interpret these (NEVER use any of them):
+Literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
+"deafening", "razor-sharp", "intensely", "strongly", "sharply", "fiercely", "rapidly",
+"loudly", "widely", "broadly", "tremendously", "enormously", "audible", "savagely", "relentlessly".
+Emotional adjectives: "enraged", "furious", "terrified", "frantic", "desperate", "shocked", "stunned", "horrified".
+ANY word ending in -ly that is NOT in the official degree word list is BANNED. Replace with official words.
 
 EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement must be explicitly described.
 If a body part should move, DESCRIBE the exact motion and trajectory.
@@ -33184,38 +33230,42 @@ If a body part should move, DESCRIBE the exact motion and trajectory.
 CHARACTER SOUNDS — CONTINUOUS (most important rule):
 Animal/character sounds must appear in EVERY action beat. Use varied words:
 screeching, yowling, hissing, shrieking, screaming, growling, wailing, crying out.
-Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
+Apply degree words to sounds: "crazy loud hiss", "powerfully deep growl" — not just "hiss".
 End with "Continuous crazy aggressive [animal] screaming throughout."
-The character NEVER stops vocalizing during the chaos.
+
+SOUND DESCRIPTIONS — 3-5 per prompt:
+- Impact sounds: "paws slamming with a sharp crack", "glass shattering"
+- Environmental: "plates rattling wildly", "liquid splashing powerfully"
+- Character voice: "crazy loud hiss", "powerfully deep growl"
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-Describe exact body movements with specific body parts:
-- "front paws slam into the counter powerfully, propelling its body forward"
-- "rear legs kick at high frequency, smashing cup fragments"
-- "front claws raking downward powerfully with large amplitude while rear legs thrash wildly"
-- "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
-Every limb doing something specific. Every impact has a visible/audible consequence.
+GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
+GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
+BAD: "the cat attacks him" (too vague — which body part? what motion? what gets hit?)
 
 ENVIRONMENTAL DESTRUCTION — chain reactions from physical contact:
 Objects must be HIT by a body part before they break/fly:
-"its body smashes into a nearby display, toppling the stack which crashes loudly to the floor"
-"claws scrape wildly across the man's skin, leaving red marks as the man jerks his head back"
+"its body smashes into a nearby display, toppling the stack which crashes to the floor with a sharp crack"
+"claws scrape wildly across the counter surface, sending four plastic cups scattering fast"
 
 ABSOLUTELY BANNED:
-- No clothing descriptions EVER (no "pink polo shirt", "green jacket", "gray hoodie", "ripped clothes")
+- No clothing descriptions EVER (no "pink polo shirt", "green jacket", "gray hoodie")
 - No dialogue or speech in continuations
 - No slow builds or setup — start mid-action
 - No camera movement descriptions (camera is controlled separately by the API)
-- No passive voice, no weak verbs
+- No passive voice, no weak verbs ("goes", "moves", "does", "gets", "starts", "begins")
 - No semicolons
-- No describing what anyone is wearing at any point
-- No background music references or mentions of music playing (audio is controlled separately)
+- No background music references or mentions of music playing
+- No emotional state adjectives ("enraged", "terrified", "furious", "shocked")
+- No literary adverbs ("loudly", "sharply", "fiercely", "intensely", "strongly")
+- No vague quantities ("several", "many", "a bunch of") — use exact numbers
+- No abstract descriptions ("chaos ensues", "mayhem unfolds")
 
 STYLE ANCHOR — end with: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
-Do NOT add any camera lines. Do NOT mention background music. Just end with the style anchor above.
 
-EXAMPLE — GOOD CONTINUATION PROMPT (~170 words):
-"The furious orange tabby cat shrieks a deafening crazy yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man. Razor claws scrape wildly across the man's face with large amplitude as the man jerks his head back gasping in shock. Simultaneously the cat's hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently across the man's chest. The man cries out, body recoiling sharply, hands thrown up defensively as he stumbles backwards fast. The cat launches with crazy explosive force onto the man's torso, front claws raking downward powerfully with large amplitude while rear legs thrash wildly against his midsection. Its body smashes into a nearby display of packaged goods, toppling the stack which crashes loudly to the floor. The cat's rigid tail whips violently, snapping against a metal container, sending items clattering loudly across the counter. The cat suddenly leaps fast to the floor, lands sharply, and sprints wildly at high speed straight out the door, still screaming. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
+EXAMPLE — COMPLIANT CONTINUATION PROMPT (~170 words):
+"The orange tabby cat shrieks a crazy intense yowl, ears flattened, mouth gaping wide showing sharp fangs. Its front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge directly at the man's chest. Claws dig powerfully into the man's jacket with large amplitude as the man jerks his head back fast, gasping. Simultaneously the cat's hind legs kick at high frequency, knocking the iced coffee cup off the counter edge — it crashes to the tiled floor and shatters, spraying dark liquid violently across the surface. The man stumbles backward fast, hands thrown up defensively, body twisting with large amplitude. The cat clings with crazy intense force onto the man's torso, front claws raking downward powerfully while rear legs thrash wildly against his midsection. Its rigid tail whips violently, striking a metal display rack that topples with large amplitude, sending four packaged pastries crashing to the floor. The cat leaps fast to the ground, lands strong, and sprints wildly at high speed behind the counter. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
