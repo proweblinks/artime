@@ -1671,47 +1671,42 @@ PROMPT;
         }
 
         $prompt = <<<PROMPT
-You are a Seedance 1.5 Pro video prompt architect. Your ONLY job is to RESTRUCTURE a raw video prompt to follow a proven skeleton template — sentence by sentence.
+You are a Seedance 1.5 Pro video prompt editor. REWRITE the raw prompt below into EXACTLY 150-180 words following the skeleton structure.
 
-THE RAW PROMPT TO RESTRUCTURE:
+=== #1 RULE — WORD COUNT IS MANDATORY ===
+Your output MUST be 150-180 words. Count carefully.
+- The reference example below is ~170 words. Match that length.
+- If the raw prompt has 8 actions, keep only the 3-4 BEST ones. DELETE the rest.
+- NEVER expand or add new detail. Only RESTRUCTURE and CONDENSE.
+- Over 180 words = FAILURE. Under 150 = FAILURE. Aim for 165-175.
+
+RAW PROMPT TO REWRITE:
 "{$rawPrompt}"
 
-CONCEPT CONTEXT:
-- Mood: {$mood} → Energy type: {$energyType}
-- Setting: {$concept['setting']}
-- Situation: {$concept['situation']}
+CONTEXT: {$mood} energy | Setting: {$concept['setting']}
 {$characterContext}
 
-TARGET SKELETON — {$energyType}:
+TARGET SKELETON ({$energyType}):
 {$skeleton}
 
-{$technicalRules}
+RULES:
+1. Follow the skeleton sentence-by-sentence. Fill each slot with content from the raw prompt.
+2. CONDENSE: merge micro-actions into 3-4 mega-beats. CUT repetitive actions ruthlessly.
+3. End with: "Continuous [character sounds] throughout. Cinematic, photorealistic."
+4. Start with: "Maintain face and clothing consistency, no distortion, high detail."
+5. Body parts: 4-7 distinct per character. Chain reactions: 2+. Sounds: 3-5 with degree words.
+6. NO appearance descriptions, NO semicolons, NO camera descriptions, NO background music.
+7. Preserve scale/size if mentioned (tiny, miniature, enlarged).
 
-RESTRUCTURING RULES:
-1. Follow the skeleton SENTENCE BY SENTENCE. Each numbered sentence slot has a specific PURPOSE — fill each one.
-2. PRESERVE all content from the raw prompt: same characters, same setting, same actions, same scale/size.
-3. CONDENSE into 3-4 MEGA-BEATS. If the raw prompt has 6-8 micro-actions, merge related actions into bigger beats.
-4. Each mega-beat = 2-3 sentences with body part decomposition + degree words + chain reactions.
-5. Word count: 150-180 words. If the raw prompt is longer, CUT redundant actions — keep the best ones.
-6. MUST end with: "Continuous [character sounds] throughout. Cinematic, photorealistic."
-7. Apply degree words from the skeleton's tier specification. Count them — stay in range.
-8. Body part decomposition: 4-7 body parts with distinct simultaneous actions per character.
-9. Chain reactions: minimum 2 per prompt. [action] → [object reacts] → [secondary consequence].
-10. Sound descriptions: 3-5 per prompt, with degree words applied to sounds.
-11. NO appearance descriptions (fur color, clothing) — only actions, sounds, SIZE/SCALE.
-12. If the raw prompt mentions scale/size (tiny, miniature, enlarged), ALWAYS preserve it.
-13. NO semicolons, NO camera descriptions, NO background music.
-
-REFERENCE EXAMPLE (~170 words, good structure):
+REFERENCE EXAMPLE (~170 words — match this length):
 {$example}
 
-Return ONLY the rewritten videoPrompt text. No JSON, no markdown, no explanation, no quotes.
-Just the prompt text, 150-180 words, following the {$energyType} skeleton structure exactly.
+Output ONLY the rewritten prompt. No JSON, no quotes, no explanation. 150-180 words MAXIMUM.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
             'maxResult' => 1,
-            'max_tokens' => 1000,
+            'max_tokens' => 500, // Hard cap — 180 words ≈ 250 tokens, leave margin for formatting
         ]);
 
         if (!empty($result['error'])) {
@@ -1740,6 +1735,16 @@ PROMPT;
         // Ensure it ends with the style anchor
         if (!str_contains($fittedPrompt, 'Cinematic, photorealistic.')) {
             $fittedPrompt = rtrim($fittedPrompt, '. ') . '. Cinematic, photorealistic.';
+        }
+
+        // Word count enforcement — if AI still exceeded 200 words, trim by removing middle sentences
+        $wordCount = str_word_count($fittedPrompt);
+        if ($wordCount > 200) {
+            Log::warning('ConceptService: fitPromptToSkeleton exceeded 200 words, trimming', [
+                'wordCount' => $wordCount,
+                'target' => '150-180',
+            ]);
+            $fittedPrompt = $this->trimPromptToWordCount($fittedPrompt, 175);
         }
 
         Log::info('ConceptService: fitPromptToSkeleton completed', [
@@ -1858,5 +1863,53 @@ Degree words: 6-12 total. Start with 0, escalate to Tier 3 at climax.
 The power comes from the CONTRAST between still tension and explosive payoff.
 SKELETON,
         ];
+    }
+
+    /**
+     * Trim a video prompt to a target word count by removing sentences from the middle.
+     * Preserves the opening setup (first 2 sentences) and closing (last sentence with "Cinematic, photorealistic.").
+     */
+    protected function trimPromptToWordCount(string $prompt, int $targetWords = 175): string
+    {
+        // Split into sentences (period followed by space and uppercase letter, or period at end)
+        $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $prompt);
+
+        if (count($sentences) <= 3) {
+            return $prompt; // Too few sentences to trim
+        }
+
+        // Always keep first 2 sentences (setup) and last sentence (closing with "Cinematic, photorealistic.")
+        $opening = array_slice($sentences, 0, 2);
+        $closing = [array_pop($sentences)];
+        $middle = array_slice($sentences, 2);
+
+        // Build from opening + middle sentences until we approach target
+        $result = $opening;
+        $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
+
+        foreach ($middle as $sentence) {
+            $sentenceWords = str_word_count($sentence);
+            if ($currentWords + $sentenceWords <= $targetWords - 5) { // Leave 5-word buffer for closing
+                $result[] = $sentence;
+                $currentWords += $sentenceWords;
+            }
+        }
+
+        $result = array_merge($result, $closing);
+        $trimmed = implode(' ', $result);
+
+        // Ensure it ends correctly
+        if (!str_contains($trimmed, 'Cinematic, photorealistic.')) {
+            $trimmed = rtrim($trimmed, '. ') . '. Cinematic, photorealistic.';
+        }
+
+        Log::info('ConceptService: trimPromptToWordCount', [
+            'beforeWords' => str_word_count($prompt),
+            'afterWords' => str_word_count($trimmed),
+            'sentencesKept' => count($result),
+            'sentencesTotal' => count($sentences) + 1,
+        ]);
+
+        return $trimmed;
     }
 }
