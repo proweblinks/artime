@@ -33283,6 +33283,8 @@ PROMPT;
                 $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = trim($text);
+                // Sanitize banned Seedance words that Gemini keeps using despite instructions
+                $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
                 return $text;
             }
 

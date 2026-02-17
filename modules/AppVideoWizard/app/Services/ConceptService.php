@@ -314,6 +314,16 @@ PROMPT;
             $variations = json_decode($response, true);
         }
 
+        // Sanitize videoPrompt in each variation to fix banned words
+        if (is_array($variations)) {
+            foreach ($variations as &$variation) {
+                if (!empty($variation['videoPrompt'])) {
+                    $variation['videoPrompt'] = self::sanitizeSeedancePrompt($variation['videoPrompt']);
+                }
+            }
+            unset($variation);
+        }
+
         return [
             'variations' => $variations ?? [],
             '_meta' => [
@@ -751,6 +761,81 @@ BANNED:
 - No emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate", "shocked", "stunned" — convey emotion through body actions with degree words instead
 - ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack", "musical accompaniment", or ANY variation. Seedance auto-generates audio from prompt text — any music mention will cause Seedance to play unwanted background music. ONLY describe: character voices/sounds, dialogue, and environmental sound effects caused by physical actions (crashes, shattering, splashing, clattering)
 RULES;
+    }
+
+    /**
+     * Post-process AI-generated Seedance prompts to fix banned words.
+     * Gemini Flash frequently ignores the banned word list, so this PHP function
+     * programmatically catches and replaces non-compliant words.
+     *
+     * Call this on any AI-generated videoPrompt/continuation prompt BEFORE saving or sending to Seedance.
+     */
+    public static function sanitizeSeedancePrompt(string $text): string
+    {
+        // Phase 1: Fix compound phrases (more specific matches first)
+        $compounds = [
+            '/\bcrazy\s+intensely\b/i' => 'with crazy intensity',
+            '/\brazor[\s-]*sharp\b/i' => 'sharp',
+            '/\brazor\s+claws\b/i' => 'sharp claws',
+            '/\bgasping\s+in\s+shock\b/i' => 'gasping',
+            '/\ba\s+loud\s+crash\b/i' => 'a sharp crack',
+            '/\bwith\s+a\s+loud\b/i' => 'with a sharp',
+            '/\bloud\s+crash\b/i' => 'sharp crack',
+            '/\bloud\s+crack\b/i' => 'sharp crack',
+        ];
+
+        foreach ($compounds as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 2: Replace banned -ly adverbs with official degree words
+        $adverbReplacements = [
+            '/\bintensely\b/i' => 'violently',
+            '/\bstrongly\b/i' => 'strong',
+            '/\bloudly\b/i' => 'powerfully',
+            '/\bwidely\b/i' => 'wildly',
+            '/\bbroadly\b/i' => 'wildly',
+            '/\bdeeply\b/i' => 'powerfully',
+            '/\bsharply\b/i' => 'fast',
+            '/\bfiercely\b/i' => 'wildly',
+            '/\brapidly\b/i' => 'fast',
+            '/\benormously\b/i' => 'greatly',
+            '/\btremendously\b/i' => 'greatly',
+            '/\bexplosively\b/i' => 'violently',
+            '/\bferociously\b/i' => 'wildly',
+            '/\baggressively\b/i' => 'powerfully',
+            '/\bfrantically\b/i' => 'wildly',
+            '/\bsavagely\b/i' => 'violently',
+            '/\brelentlessly\b/i' => 'powerfully',
+            '/\bdeafening\b/i' => 'crazy loud',
+        ];
+
+        foreach ($adverbReplacements as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 3: Remove emotional state adjectives (just strip them)
+        $emotionalAdjectives = [
+            '/\benraged\s+/i' => '',
+            '/\bfurious\s+/i' => '',
+            '/\bterrified\s+/i' => '',
+            '/\bhorrified\s+/i' => '',
+            '/\bshocked\s+/i' => '',
+            '/\bstunned\s+/i' => '',
+        ];
+
+        foreach ($emotionalAdjectives as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 4: Replace non-official "loud" when used as standalone adjective (not "crazy loud")
+        $text = preg_replace('/\b(?<!crazy\s)loud\b/i', 'intense', $text);
+
+        // Phase 5: Clean up double spaces from removals
+        $text = preg_replace('/\s{2,}/', ' ', $text);
+        $text = trim($text);
+
+        return $text;
     }
 
     /**
@@ -1531,6 +1616,11 @@ PROMPT;
 
         // Ensure source is tagged
         $concept['source'] = 'cloned';
+
+        // Sanitize videoPrompt to fix banned words that the AI keeps using
+        if (!empty($concept['videoPrompt'])) {
+            $concept['videoPrompt'] = self::sanitizeSeedancePrompt($concept['videoPrompt']);
+        }
 
         return $concept;
     }
