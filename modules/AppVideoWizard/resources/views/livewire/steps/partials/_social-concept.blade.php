@@ -1104,6 +1104,17 @@
                         @endif
                         <div class="vw-idea-hook">{{ $videoAnalysisResult['viralHook'] ?? '' }}</div>
 
+                        {{-- Visual Analysis (transparency panel) --}}
+                        @if(!empty($videoAnalysisResult['_visualAnalysis']))
+                            <div class="vw-cloned-prompt-preview" x-data="{ showAnalysis: false }" style="margin-top: 0.5rem;">
+                                <a href="#" @click.prevent="showAnalysis = !showAnalysis" style="color: var(--vw-accent); cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
+                                    <i class="fa-solid fa-microscope"></i>
+                                    <span x-text="showAnalysis ? 'Hide Visual Analysis' : 'Show Visual Analysis (Gemini)'"></span>
+                                </a>
+                                <div x-show="showAnalysis" x-cloak style="margin-top: 0.5rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.75rem; line-height: 1.5; color: rgba(255,255,255,0.7); padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 6px;">{{ $videoAnalysisResult['_visualAnalysis'] }}</div>
+                            </div>
+                        @endif
+
                         <button class="vw-use-concept-btn" wire:click="useAnalyzedConcept">
                             <i class="fa-solid fa-check"></i>
                             {{ __('Use This Concept') }}

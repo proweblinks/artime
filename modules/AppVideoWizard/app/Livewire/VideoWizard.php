@@ -33548,10 +33548,10 @@ PROMPT;
         // Ensure "Cinematic, photorealistic." suffix
         $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — wider limit (180) to preserve all action beats from source video
+        // Word count enforcement — wider limit (230) to preserve all action beats from source video
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 180) {
-            Log::info('VideoWizard: Clone passthrough over 180 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 230) {
+            Log::info('VideoWizard: Clone passthrough over 230 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
                 $closing = [array_pop($sentences)]; // "Cinematic, photorealistic."
@@ -33561,7 +33561,7 @@ PROMPT;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 170) {
+                    if ($currentWords + $sentenceWords <= 210) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }

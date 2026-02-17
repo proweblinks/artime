@@ -1155,7 +1155,7 @@ RULES;
 
         // Clone context: wider word count range and faithfulness override
         if ($context === 'clone') {
-            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 60-180 words. If over 180, trim redundant modifiers — but NEVER remove distinct action beats that describe different parts of the video.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 100-220 words. If over 220, trim redundant modifiers — but NEVER remove distinct action beats that describe different parts of the video.\nEvery distinct phase of the video timeline MUST be preserved. Under 130 words likely means action phases are missing.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
         } else {
             $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-120 words.\nIf the prompt exceeds 120 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
@@ -1242,8 +1242,8 @@ PROMPT;
                     $fixedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
 
                     // Hard word count enforcement — wider limit for clones to preserve all action beats
-                    $hardLimit = ($context === 'clone') ? 200 : 130;
-                    $targetLimit = ($context === 'clone') ? 180 : 115;
+                    $hardLimit = ($context === 'clone') ? 250 : 130;
+                    $targetLimit = ($context === 'clone') ? 220 : 115;
                     $fixedWordCount = str_word_count($fixedPrompt);
                     if ($fixedWordCount > $hardLimit) {
                         \Log::warning("SeedanceCompliance: AI fixedPrompt over {$hardLimit} words, trimming", [
@@ -1415,7 +1415,8 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-WORD COUNT: 80-110 words of pure action (plus "Cinematic, photorealistic." at end).
+WORD COUNT: 150-200 words of pure action (plus "Cinematic, photorealistic." at end).
+You MUST describe EVERY distinct phase/action from the visual analysis — do NOT skip ANY part of the video timeline.
 DO NOT describe the scene, setting, character appearances, or starting positions — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
@@ -2038,7 +2039,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE RULES BELOW — 100-130 words, concise action-dense prompt, continuous character sounds, degree words on every action",
+  "videoPrompt": "SEE SEEDANCE RULES BELOW — 150-200 words, action-dense prompt capturing EVERY phase of the video timeline",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2052,9 +2053,10 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 80-110 words of pure action (plus "Cinematic, photorealistic." at end).
-Every word must earn its place. Aim for 90-105 words. Under 70 may miss key actions. Over 120 is too verbose.
-CRITICAL: Include EVERY distinct action seen in the analysis — do NOT omit any. Just describe them efficiently.
+WORD COUNT: 150-200 words of pure action (plus "Cinematic, photorealistic." at end).
+You MUST describe EVERY distinct phase and action from the visual analysis — do NOT omit ANY part of the video timeline.
+Aim for 160-180 words. Under 130 means you are likely missing key actions. Over 210 is too verbose.
+If the video has 4 phases (e.g., walking → pausing → dancing → resuming), ALL 4 phases MUST appear in the videoPrompt.
 Remember: NO scene setup, NO character descriptions — start with the first action.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
