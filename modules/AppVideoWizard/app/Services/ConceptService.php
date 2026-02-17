@@ -1682,30 +1682,30 @@ PROMPT;
         $dialogueContext = $dialogueLine ? "\nDIALOGUE FROM SOURCE: \"{$dialogueLine}\"" : '';
 
         $prompt = <<<PROMPT
-You are rewriting a video prompt to match a PROVEN formula. Your output must read EXACTLY like the reference example below — same structure, same sentence count, same cinematic flow.
+Rewrite the source material below into EXACTLY 5-6 sentences that match this reference structure:
 
-=== REFERENCE EXAMPLE (YOUR OUTPUT MUST MATCH THIS STRUCTURE) ===
+REFERENCE (match this sentence-by-sentence):
 {$example}
 
-=== THE FORMULA ===
-{$skeleton}
+Sentence 1: [Character] does [action] and says "[dialogue]" while [gesture]. (ONE sentence, under 25 words)
+Sentence 2: "Instantly" [animal/character] reacts with [sound] and [physical strike], [degree words]. (ONE flowing action)
+Sentence 3: [Character] [smashes/breaks specific object], [visual consequence]. (Short cause-and-effect)
+Sentence 4: [Character] [bigger action] and then [peak chaos — goes wild, smashes everything, runs amok]. (Flowing escalation)
+Sentence 5: [Sound closing]. Camera [movement]. Cinematic, photorealistic.
 
-=== SOURCE MATERIAL (extract characters, dialogue, and key actions — then COMPLETELY RESTRUCTURE) ===
+SOURCE MATERIAL (use characters, dialogue, objects — NOT its sentence structure):
 Situation: {$concept['situation']}{$dialogueContext}
 {$characterContext}
+Raw: "{$rawPrompt}"
 
-Raw analysis to extract from (DO NOT copy its sentence structure — only use it for character names, actions, and objects):
-"{$rawPrompt}"
+RULES:
+- EXACTLY 5-6 sentences. Each sentence = ONE flowing action, not a list of body parts.
+- Good: "both paws swiping wildly and powerfully" — Bad: "front right paw swatting at face while hind legs push off counter while tail lashes crazy"
+- Degree words (wildly, violently, powerfully, fast, crazy, at high frequency): weave into actions naturally.
+- 100-150 words total. The reference is ~130 words.
+- Start with the character action. NEVER start with "Maintain face", settings, or appearance.
 
-=== MANDATORY RULES ===
-1. Your output MUST have the same number of sentences as the reference example. Count them.
-2. Each sentence must serve the same ROLE as the corresponding reference sentence (trigger, reaction, destruction, peak, closing).
-3. NEVER start with "Maintain face...", setting descriptions, or object inventories. Start with a character DOING something.
-4. NEVER list body parts separately. Write flowing cinematic action: "both paws swiping wildly and powerfully" NOT "front right paw swatting violently at the face while hind legs push off the counter."
-5. Use degree words (wildly, violently, powerfully, fast, crazy, at high frequency, with large amplitude) naturally WITHIN flowing actions.
-6. 100-170 words total. The reference is ~130 words. Match that.
-
-Output ONLY the rewritten prompt. No explanation, no quotes, no JSON.
+Output ONLY the 5-6 sentences. Nothing else.
 PROMPT;
 
         $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
