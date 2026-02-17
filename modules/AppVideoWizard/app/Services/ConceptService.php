@@ -732,7 +732,7 @@ The OFFICIAL degree words are: quickly, violently, with large amplitude, at high
 powerfully, wildly, crazy, fast, intense, strong, greatly.
 USE EXACT FORMS ONLY — do NOT convert to other grammatical forms:
 "intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly". "violent" use "violently" (it IS official).
-"crazy" is the MAGIC WORD — use it liberally: "crazy yowl", "crazy intensity", "crazy roar".
+"crazy" enhances high-energy moments — use on 2-4 key actions, not every action: "crazy yowl", "crazy intensity".
 COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency",
 "at high frequency and crazy intensity".
 NEVER use literary adverbs or non-official intensity words: "ferociously", "furiously", "aggressively",
@@ -752,7 +752,7 @@ CHARACTER SOUNDS — CONTINUOUS:
 Animal/character sounds must appear in EVERY action beat. Use varied words:
 screeching, yowling, hissing, shrieking, screaming, growling, wailing.
 Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
-End with "continuous crazy aggressive [animal/character] sounds throughout."
+End with "Continuous [character sounds] throughout." or just "Continuous." then "Cinematic, photorealistic."
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
 GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
@@ -765,23 +765,15 @@ Don't just say "things crash." Invent specific destruction chains:
 Every object must be HIT by a body part before it breaks. More destruction = better video.
 
 FACE & IDENTITY PRESERVATION — Critical for character consistency:
-- Add this constraint phrase near the START of the prompt:
-  "Maintain face and clothing consistency, no distortion, high detail."
-- Add this constraint phrase near character introductions:
-  "Character face stable without deformation, normal human structure, natural and smooth movements."
-- Include 3-6 identity anchors per character: hair color/style, skin tone, distinctive accessories.
-  Example: "dark curly-haired woman with warm brown skin and gold hoop earrings"
+- Do NOT add face/identity prefix text like "Maintain face consistency" — the source IMAGE defines the face.
+- Do NOT include identity anchors (hair color, skin tone, accessories) — the image shows them.
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
-- Instead, convey emotion through BODY LANGUAGE and ACTIONS:
+- Convey emotion through BODY LANGUAGE and ACTIONS:
   WRONG: "her face shows shock, eyes widening, mouth dropping open"
   RIGHT: "she jerks back fast, hands flying up defensively"
-  WRONG: "his expression shifts to anger, brow furrowing, jaw clenching"
-  RIGHT: "he leans forward fast, fist slamming the table powerfully"
 - Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
-- You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells", "cat's mouth gapes in a crazy yowl") — these are actions, not appearance descriptions.
-- Keep the FACE STABLE by letting the body do the emotional acting.
+- You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells") — these are actions, not appearance descriptions.
 - AVOID: rapid lighting changes, complex multi-person fighting/hugging, exaggerated descriptions.
-- PREFER: composition/framing first, then character details, then motion, then mood/style.
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
@@ -848,7 +840,7 @@ RULES;
             '/\bfrantically\b/i' => 'wildly',
             '/\bsavagely\b/i' => 'violently',
             '/\brelentlessly\b/i' => 'powerfully',
-            '/\bdeafening\b/i' => 'crazy loud',
+            '/\bdeafening\b/i' => 'intense',
             // Additional Gemini favorites not in original list
             '/\bprecariously\b/i' => 'wildly',
             '/\bdesperately\b/i' => 'wildly',
@@ -891,15 +883,15 @@ RULES;
             '/\bdirectly\b/i' => '',
             '/\bechoing\b/i' => '',
             '/\bfrantically\b/i' => 'wildly',
-            // Non-official degree-style words used by AI
-            '/\bamplified\b/i' => 'crazy',
-            '/\bdistinct\b/i' => 'crazy',
-            '/\bpiercing\b/i' => 'crazy',
-            '/\bsynchronized\b/i' => 'crazy',
+            // Non-official degree-style words used by AI — remove, don't replace with "crazy"
+            '/\bamplified\b/i' => '',
+            '/\bdistinct\b/i' => '',
+            '/\bpiercing\b/i' => '',
+            '/\bsynchronized\b/i' => '',
             '/\bsteady\b/i' => 'strong',
             '/\bfirm\b/i' => 'strong',
             '/\bmuffled\b/i' => '',
-            '/\bcomedic\b/i' => 'crazy',
+            '/\bcomedic\b/i' => '',
             '/\bplayful\b/i' => '',
             '/\bgentle\b/i' => '',
             '/\bdelicate\b/i' => '',
@@ -936,7 +928,7 @@ RULES;
             '/\bwalking\b/i' => 'moving',
             '/\bin anger\b/i' => 'powerfully',
             '/\bin frustration\b/i' => 'powerfully',
-            '/\bhigh-pitched\b/i' => 'crazy loud',
+            '/\bhigh-pitched\b/i' => '',
             '/\bhigh-frequency\b/i' => 'at high frequency',
         ];
 
@@ -1087,11 +1079,9 @@ RULES;
         // "sound" at end of phrase → "sounds" (pluralize for natural phrasing)
         $text = preg_replace('/\bsound\b(?=\s*[.,])/i', 'sounds', $text);
 
-        // Phase 3e: Ensure "Continuous X throughout" has a degree word
-        // "Continuous baby gurgles" → "Continuous crazy baby gurgles"
-        if (preg_match('/\bContinuous\s+(?!crazy|intense|wild|strong|powerful)/i', $text)) {
-            $text = preg_replace('/\bContinuous\s+/i', 'Continuous crazy ', $text);
-        }
+        // Phase 3e: "Continuous" is fine on its own — don't force "crazy" into it
+        // "Continuous crazy aggressive screaming throughout" → just leave it
+        // "Continuous." → leave as-is (clean ending)
 
         // Phase 3f: Fix dangling "wrapped" not part of "unwrapped"
         // "bassinet wrapped," → "bassinet," (remove standalone wrapped)
@@ -1107,10 +1097,10 @@ RULES;
         $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray|hands?|fingers?|arms?|legs?|grip)\s+strong\b/i', '$1 powerfully', $text);
 
         // Phase 4: Handle "loud" — not an official Seedance degree word
-        // "crazy loud" → "crazy" (redundant, "crazy" is already official)
+        // "crazy loud" → "crazy" (redundant)
         $text = preg_replace('/\bcrazy\s+loud\b/i', 'crazy', $text);
-        // Standalone "loud" → "crazy" (official degree word)
-        $text = preg_replace('/\bloud\b/i', 'crazy', $text);
+        // Standalone "loud" → just remove it (don't replace with "crazy" — overuse)
+        $text = preg_replace('/\bloud\b/i', '', $text);
 
         // Phase 4b: Fix truncated/dangling sentence fragments from regex removals
         // ", some" / ", with some" at end of clause → remove
@@ -1172,14 +1162,16 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 - Convey emotion ONLY through body actions + degree words
 - NO camera references (toward camera, camera angle, camera shakes, eyes locked on camera)
 - If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
-- Must start with "Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements."
+- Must NOT contain face/identity prefix text like "Maintain face consistency" — this wastes word budget.
+- Must NOT contain scene/setting descriptions — the source image already shows the scene.
+- Must start directly with the first physical action beat.
 - Must end with "Cinematic, photorealistic."
 - Object color/material descriptors for SCENE ITEMS (yellow can, silver tray, clear plastic) are ALLOWED and NOT violations — only character appearance descriptions are violations
 - "brightly lit", "dimly lit" lighting descriptors should be removed
 
 === WORD COUNT RULE (CRITICAL) ===
-The TOTAL prompt (including prefix and suffix) must be 100-140 words.
-If the prompt exceeds 140 words, you MUST TRIM it by:
+The TOTAL prompt (including "Cinematic, photorealistic." suffix) must be 80-120 words.
+If the prompt exceeds 120 words, you MUST TRIM it by:
 1. Removing redundant modifiers and padding words
 2. Combining actions where possible ("grips and bites" instead of two separate sentences)
 3. Removing the LEAST important actions if still over budget
@@ -1192,13 +1184,13 @@ Current word count: {wordCount} words.
 === INSTRUCTIONS ===
 1. Scan EVERY word and phrase against the rules
 2. List ALL violations found
-3. Provide the COMPLETE fixed prompt with violations corrected AND trimmed to 100-140 words
-4. Rate compliance 0-100 (score below 80 if word count exceeds 140)
+3. Provide the COMPLETE fixed prompt with violations corrected AND trimmed to 80-120 words
+4. Rate compliance 0-100 (score below 80 if word count exceeds 120 or contains scene descriptions)
 
 Return ONLY valid JSON (no markdown, no explanation):
-{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt under 140 words","summary":"one sentence summary"}
+{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt under 120 words","summary":"one sentence summary"}
 
-CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. But DO trim to stay under 140 words.
+CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. But DO trim to stay under 120 words. Strip any scene descriptions or face prefix text — the prompt should start with the first action.
 PROMPT;
 
         try {
@@ -1235,20 +1227,16 @@ PROMPT;
                         $fixedPrompt = rtrim($fixedPrompt, '. ') . '. Cinematic, photorealistic.';
                     }
 
-                    // Safety: ensure fixedPrompt starts with face consistency phrase + character face stable
-                    $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
-                    if (!str_contains($fixedPrompt, 'Character face stable')) {
-                        if (str_contains($fixedPrompt, 'Maintain face')) {
-                            $fixedPrompt = preg_replace('/Maintain face[^.]*\.(\s*Character face[^.]*\.)?/', $facePrefix, $fixedPrompt, 1);
-                        } else {
-                            $fixedPrompt = $facePrefix . ' ' . $fixedPrompt;
-                        }
-                    }
+                    // Strip any face prefix the AI may have added (wastes word budget — image defines the face)
+                    $fixedPrompt = preg_replace('/Maintain face[^.]*\.(\s*Character face[^.]*\.)?\s*/i', '', $fixedPrompt);
+                    // Strip scene/setting descriptions
+                    $fixedPrompt = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
+                    $fixedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
 
-                    // Hard word count enforcement — if AI still produced over 150 words, trim
+                    // Hard word count enforcement — if AI still produced over 130 words, trim
                     $fixedWordCount = str_word_count($fixedPrompt);
-                    if ($fixedWordCount > 150) {
-                        \Log::warning('SeedanceCompliance: AI fixedPrompt still over 150 words, trimming', [
+                    if ($fixedWordCount > 130) {
+                        \Log::warning('SeedanceCompliance: AI fixedPrompt still over 130 words, trimming', [
                             'wordCount' => $fixedWordCount,
                         ]);
                         // Trim by removing middle sentences, keeping opening and closing
@@ -1261,7 +1249,7 @@ PROMPT;
                             $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                             foreach ($middle as $sentence) {
                                 $sentenceWords = str_word_count($sentence);
-                                if ($currentWords + $sentenceWords <= 135) {
+                                if ($currentWords + $sentenceWords <= 115) {
                                     $result[] = $sentence;
                                     $currentWords += $sentenceWords;
                                 }
@@ -1404,8 +1392,9 @@ SCALE, QUANTITY & OBJECT INTERACTIONS — PRESERVE WHAT MAKES IT SPECIAL:
 - LARGE GROUP → specify exact count and formation: "a single-file line of twelve tiny cats"
 - USING objects → describe ACTIVE USE: "blowing into trumpets producing brass music" not "holding trumpets"
 
-ENVIRONMENTAL SETUP:
-First 1-2 sentences establish the setting with 2-3 named interactive objects that can participate in chain reactions later.
+NO SCENE SETUP — IMAGE-TO-VIDEO:
+Do NOT describe the scene, setting, or starting positions. The source IMAGE already shows all of this.
+Start DIRECTLY with the first action beat. Name objects only AS PART OF actions (e.g. "grips the shawarma powerfully").
 
 ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Abstract descriptions: "chaos ensues", "mayhem unfolds", "things go wrong"
@@ -1414,8 +1403,8 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-WORD COUNT: 100-130 words. Be concise — capture ALL actions from the analysis with no padding or filler.
-DO NOT describe character appearances (fur color, clothing) — only actions, reactions, sounds, voice, and SIZE/SCALE.
+WORD COUNT: 80-110 words of pure action (plus "Cinematic, photorealistic." at end).
+DO NOT describe the scene, setting, character appearances, or starting positions — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
 === ADAPTIVE MODE — CHOOSE THE BEST STRUCTURE ===
@@ -2047,13 +2036,21 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 100-130 words. Be CONCISE — include ALL actions from the analysis but with zero padding.
-Every word must earn its place. Aim for 110-120 words. Under 90 may miss key actions. Over 140 is too verbose.
+WORD COUNT: 80-110 words of pure action (plus "Cinematic, photorealistic." at end).
+Every word must earn its place. Aim for 90-105 words. Under 70 may miss key actions. Over 120 is too verbose.
 CRITICAL: Include EVERY distinct action seen in the analysis — do NOT omit any. Just describe them efficiently.
+Remember: NO scene setup, NO character descriptions — start with the first action.
 
-DO NOT describe character appearances (fur color, clothing, accessories) — that's in "character" and "characters" fields.
-The videoPrompt describes actions, reactions, sounds, voice, AND SIZE/SCALE.
-EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, giant), you MUST mention this in the videoPrompt — e.g. "tiny miniature cat barely reaching ankle height" — because Seedance needs this to render the correct scale.
+CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
+The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image already shows the scene, setting, characters, props, and starting positions.
+Therefore the videoPrompt must contain ONLY actions, movements, and sounds that CHANGE from the starting image.
+- DO NOT describe the scene, setting, location, lighting, or background — the image shows it.
+- DO NOT describe character appearances, clothing, postures, or starting positions — the image shows it.
+- DO NOT describe what objects are on tables/counters/floors — the image shows them.
+- DO NOT include face/identity preservation instructions — the image defines the face.
+- Start DIRECTLY with the first physical action beat.
+- You may name objects AS PART OF actions (e.g. "grips the shawarma powerfully") but do NOT list/describe them separately.
+EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, giant), you MUST mention this — e.g. "tiny miniature cat barely reaching ankle height" — because Seedance needs this to render the correct scale.
 
 {$structureRules}
 
@@ -2212,7 +2209,9 @@ SEEDANCE TECHNICAL RULES — apply to ALL content:
 - NO camera references (toward camera, camera shakes). Describe character direction only.
 - NO weak verbs: walks, goes, moves, does, gets, starts, begins, tries.
 - MUST end with "Cinematic, photorealistic." — this is NOT optional.
-- MUST start with "Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements."
+- MUST NOT include face/identity prefix text — the source image defines the face.
+- MUST NOT include scene/setting descriptions — the source image shows the scene.
+- Start directly with the first physical action beat.
 {$chaosScalingBlock}
 Output ONLY the rewritten prompt. Nothing else.
 PROMPT;
@@ -2245,16 +2244,11 @@ PROMPT;
         // Sanitize the fitted prompt (AI may reintroduce banned words)
         $fittedPrompt = self::sanitizeSeedancePrompt($fittedPrompt);
 
-        // Ensure face stability prefix is present
-        $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
-        if (!str_contains($fittedPrompt, 'Character face stable')) {
-            if (str_contains($fittedPrompt, 'Maintain face')) {
-                // Has partial prefix — replace with full version
-                $fittedPrompt = preg_replace('/Maintain face[^.]*\./', $facePrefix, $fittedPrompt, 1);
-            } else {
-                $fittedPrompt = $facePrefix . ' ' . $fittedPrompt;
-            }
-        }
+        // Strip any face prefix the AI may have added (wastes word budget — image defines the face)
+        $fittedPrompt = preg_replace('/Maintain face[^.]*\.(\s*Character face[^.]*\.)?\s*/i', '', $fittedPrompt);
+        // Strip scene/setting descriptions the AI may have added
+        $fittedPrompt = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fittedPrompt);
+        $fittedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fittedPrompt);
 
         // Fix truncation — if prompt ends mid-sentence, trim to last complete sentence
         $fittedPrompt = rtrim($fittedPrompt);
@@ -2281,20 +2275,20 @@ PROMPT;
         // Word count enforcement — template-aware limits
         $wordCount = str_word_count($fittedPrompt);
         $maxWords = match ($energyType) {
-            'GENTLE' => 145,       // Skeleton says 80-130, allow small margin
-            'PHYSICAL COMEDY' => 165, // Skeleton says 100-150
-            'CHAOTIC' => 185,      // Skeleton says 100-170
-            'RHYTHMIC' => 155,     // Skeleton says 80-140
-            'DRAMATIC' => 165,     // Skeleton says 100-150
-            default => 165,
-        };
-        $trimTarget = match ($energyType) {
-            'GENTLE' => 125,
+            'GENTLE' => 120,       // No face prefix — pure action prompts are shorter
             'PHYSICAL COMEDY' => 140,
             'CHAOTIC' => 160,
             'RHYTHMIC' => 130,
             'DRAMATIC' => 140,
             default => 140,
+        };
+        $trimTarget = match ($energyType) {
+            'GENTLE' => 100,
+            'PHYSICAL COMEDY' => 120,
+            'CHAOTIC' => 140,
+            'RHYTHMIC' => 110,
+            'DRAMATIC' => 120,
+            default => 120,
         };
         if ($wordCount > $maxWords) {
             Log::warning('ConceptService: fitPromptToSkeleton exceeded word limit, trimming', [

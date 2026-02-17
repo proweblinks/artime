@@ -33422,10 +33422,8 @@ PROMPT;
                     }
                 }
 
-                // Add face consistency prefix if not present
-                if (!str_contains($text, 'Maintain face and clothing consistency')) {
-                    $text = 'Maintain face and clothing consistency, no distortion, high detail. ' . $text;
-                }
+                // Strip any face prefix the AI may have added (image defines the face)
+                $text = preg_replace('/Maintain face[^.]*\.\s*/i', '', $text);
 
                 // Final cleanup — double spaces from removals
                 $text = preg_replace('/\s{2,}/', ' ', $text);
@@ -33466,30 +33464,37 @@ PROMPT;
             }
         }
 
-        // Ensure face stability prefix is at the START (not just present somewhere)
-        $facePrefix = 'Maintain face and clothing consistency, no distortion, high detail. Character face stable without deformation, normal human structure, natural and smooth movements.';
-        // First strip any existing face prefix from anywhere in the prompt
+        // Strip any face stability prefix the AI may have included (wastes word budget — image already shows the face)
         $result['videoPrompt'] = preg_replace('/Maintain face and clothing consistency[^.]*\.\s*Character face stable[^.]*\.\s*/i', '', $result['videoPrompt']);
         $result['videoPrompt'] = preg_replace('/Maintain face[^.]*\.\s*/i', '', $result['videoPrompt']);
-        // Strip style anchor too — we'll re-add at end
-        $result['videoPrompt'] = preg_replace('/\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $result['videoPrompt']);
-        // Now prepend face prefix and append style anchor
-        $result['videoPrompt'] = $facePrefix . ' ' . trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — trim to 130 if over 140
+        // Strip scene/setting descriptions — image-to-video means the image IS the scene
+        // Pattern: "In a/an/the [place], [long description]." at the start
+        $result['videoPrompt'] = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $result['videoPrompt']);
+        // Pattern: "Inside/Within/At the [place], [description]." at the start
+        $result['videoPrompt'] = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $result['videoPrompt']);
+        // Pattern: "A [character] sits/stands/lies in [place description]." at the start
+        $result['videoPrompt'] = preg_replace('/^(?:A|An|The)\s+\w+\s+(?:infant|baby|child|woman|man|person|cat|dog|animal)\s+(?:sits|stands|lies|rests|is\s+seated|is\s+standing)\s+[^.]+\.\s*/i', '', $result['videoPrompt']);
+
+        // Strip style anchor — we'll re-add at end
+        $result['videoPrompt'] = preg_replace('/\s*Cinematic,?\s*photorealistic\.?\s*$/i', '', $result['videoPrompt']);
+        // Ensure "Cinematic, photorealistic." suffix
+        $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
+
+        // Word count enforcement — trim to 110 if over 120 (action-only prompts should be concise)
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 140) {
-            Log::info('VideoWizard: Clone passthrough over 140 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 120) {
+            Log::info('VideoWizard: Clone passthrough over 120 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
+                $closing = [array_pop($sentences)]; // "Cinematic, photorealistic."
                 $opening = array_slice($sentences, 0, 2);
-                $closing = [array_pop($sentences)];
                 $middle = array_slice($sentences, 2);
                 $kept = $opening;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 130) {
+                    if ($currentWords + $sentenceWords <= 110) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }
@@ -33629,7 +33634,8 @@ ABSOLUTELY BANNED IN NEUTRAL MODE:
 - Any behavior that contradicts the original video's character
 
 STYLE ANCHOR — end with: "Cinematic, photorealistic."
-The face/clothing prefix ("Maintain face and clothing consistency...") will be added automatically — do NOT include it.
+Do NOT include any face/clothing prefix ("Maintain face...") — the source image defines the face.
+Do NOT describe the scene or setting — the source image shows it. Start with the first action.
 
 Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
@@ -33707,7 +33713,7 @@ CRITICAL: You MUST write exactly 7 sentences. The LAST sentence MUST end with "C
 
 SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
 quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
-fast, intense, strong, greatly. "crazy" is the MAGIC WORD — use liberally.
+fast, intense, strong, greatly. "crazy" enhances key moments — use on 3-5 peak actions.
 USE EXACT FORMS ONLY: "intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly".
 COMBINE them: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
 
