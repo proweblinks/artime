@@ -1654,7 +1654,7 @@ PROMPT;
         $skeletons = $this->getSkeletonTemplates($templateId);
         $skeleton = $skeletons[$energyType] ?? $skeletons['PHYSICAL COMEDY'] ?? reset($skeletons);
 
-        $example = $this->getTemplateExample($templateId);
+        $example = $this->getSkeletonExample($templateId, $energyType);
 
         // Build character context for the AI
         $characterContext = '';
@@ -1876,6 +1876,28 @@ RULES:
 - 100-150 words total.
 SKELETON,
         ];
+    }
+
+    /**
+     * Get a reference example that matches the energy type.
+     * For chaotic energy, always use the animal-chaos example (proven viral formula).
+     */
+    protected function getSkeletonExample(string $templateId, string $energyType): string
+    {
+        // Animal-chaos template always uses its own example
+        if ($templateId === 'animal-chaos') {
+            return $this->getTemplateExample('animal-chaos');
+        }
+
+        // For adaptive template, match example to energy type
+        $chaosExample = $this->getTemplateExample('animal-chaos');
+        $adaptiveExample = $this->getTemplateExample('adaptive');
+
+        return match ($energyType) {
+            'CHAOTIC' => $chaosExample,
+            'PHYSICAL COMEDY' => $chaosExample,  // Close enough in energy
+            default => $adaptiveExample,
+        };
     }
 
     /**
