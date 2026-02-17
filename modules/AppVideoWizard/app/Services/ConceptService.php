@@ -973,6 +973,130 @@ RULES;
     }
 
     /**
+     * AI-powered Seedance 1.5 compliance validator.
+     * Sends the prompt to AI with ALL Seedance rules and gets back violations + fixed prompt + score.
+     * This is the second pass after the regex sanitizer — catches everything regex misses.
+     *
+     * @param string $prompt The videoPrompt to validate (should already be regex-sanitized)
+     * @param int $teamId Team ID for AI quota tracking
+     * @param string $aiModelTier AI model tier (default: economy for speed)
+     * @return array {success, score, violations[], fixedPrompt, summary, originalPrompt}
+     */
+    public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiModelTier = 'economy'): array
+    {
+        $rules = $this->getSeedanceTechnicalRules();
+
+        $validationPrompt = <<<PROMPT
+You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt below against ALL rules and fix every violation.
+
+=== SEEDANCE 1.5 RULES ===
+{$rules}
+
+=== ADDITIONAL RULES ===
+- Word count should be 120-180 words (not counting "Maintain face..." prefix and "Cinematic, photorealistic." suffix)
+- Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)
+- NO -ly adverbs except "violently" and "quickly" (which ARE official)
+- NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
+- NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
+- Convey emotion ONLY through body actions + degree words
+- If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
+- Must end with "Cinematic, photorealistic."
+
+=== PROMPT TO VALIDATE ===
+{$prompt}
+
+=== INSTRUCTIONS ===
+1. Scan EVERY word and phrase against the rules
+2. List ALL violations found
+3. Provide the COMPLETE fixed prompt with violations corrected
+4. Rate compliance 0-100
+
+Return ONLY valid JSON (no markdown, no explanation):
+{"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt","summary":"one sentence summary"}
+
+CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt.
+PROMPT;
+
+        try {
+            $result = $this->callAIWithTier($validationPrompt, $aiModelTier, $teamId, [
+                'maxResult' => 1,
+                'max_tokens' => 4000,
+            ]);
+
+            if (!empty($result['error'])) {
+                \Log::warning('SeedanceCompliance: AI call failed', ['error' => $result['error']]);
+                return [
+                    'success' => false,
+                    'score' => 0,
+                    'violations' => [],
+                    'fixedPrompt' => $prompt,
+                    'summary' => 'Validation failed: ' . $result['error'],
+                    'originalPrompt' => $prompt,
+                ];
+            }
+
+            $text = $result['data'][0] ?? '';
+
+            // Extract JSON from response (handle potential markdown wrapping)
+            $text = preg_replace('/^```(?:json)?\s*/m', '', $text);
+            $text = preg_replace('/```\s*$/m', '', $text);
+
+            if (preg_match('/\{[\s\S]*\}/m', $text, $matches)) {
+                $parsed = json_decode($matches[0], true);
+                if ($parsed && isset($parsed['score'])) {
+                    $fixedPrompt = $parsed['fixedPrompt'] ?? $prompt;
+
+                    // Safety: ensure fixedPrompt ends with style anchor
+                    if (!str_contains($fixedPrompt, 'Cinematic, photorealistic')) {
+                        $fixedPrompt = rtrim($fixedPrompt, '. ') . '. Cinematic, photorealistic.';
+                    }
+
+                    // Safety: ensure fixedPrompt starts with face consistency phrase
+                    if (!str_contains($fixedPrompt, 'Maintain face and clothing consistency')) {
+                        $fixedPrompt = 'Maintain face and clothing consistency, no distortion, high detail. ' . $fixedPrompt;
+                    }
+
+                    \Log::info('SeedanceCompliance: Validation complete', [
+                        'score' => $parsed['score'],
+                        'violationCount' => count($parsed['violations'] ?? []),
+                        'originalWords' => str_word_count($prompt),
+                        'fixedWords' => str_word_count($fixedPrompt),
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'score' => (int) $parsed['score'],
+                        'violations' => $parsed['violations'] ?? [],
+                        'fixedPrompt' => $fixedPrompt,
+                        'summary' => $parsed['summary'] ?? 'Validation complete',
+                        'originalPrompt' => $prompt,
+                    ];
+                }
+            }
+
+            \Log::warning('SeedanceCompliance: Failed to parse AI response', ['response' => mb_substr($text, 0, 500)]);
+            return [
+                'success' => false,
+                'score' => 0,
+                'violations' => [],
+                'fixedPrompt' => $prompt,
+                'summary' => 'Failed to parse validation response',
+                'originalPrompt' => $prompt,
+            ];
+        } catch (\Exception $e) {
+            \Log::error('SeedanceCompliance: Exception', ['error' => $e->getMessage()]);
+            return [
+                'success' => false,
+                'score' => 0,
+                'violations' => [],
+                'fixedPrompt' => $prompt,
+                'summary' => 'Validation error: ' . $e->getMessage(),
+                'originalPrompt' => $prompt,
+            ];
+        }
+    }
+
+    /**
      * Get template-specific structure rules.
      *
      * @param string $templateId Template ID ('adaptive', 'animal-chaos')

@@ -650,6 +650,25 @@ RULES;
                 ],
             ],
             [
+                'id' => 'seedance_compliance',
+                'type' => 'ai_validation',
+                'name' => 'Seedance Compliance Check',
+                'description' => 'AI-powered validation that scans the videoPrompt against all Seedance 1.5 rules, reports violations, and auto-fixes them.',
+                'config' => [
+                    'service' => 'ConceptService',
+                    'method' => 'validateSeedanceCompliance',
+                    'ai_tier' => 'economy',
+                ],
+                'inputs' => [
+                    'prompt' => 'data_bus.fitted_video_prompt',
+                ],
+                'outputs' => [
+                    'score' => 'data_bus.compliance_score',
+                    'violations' => 'data_bus.compliance_violations',
+                    'fixed_prompt' => 'data_bus.compliant_video_prompt',
+                ],
+            ],
+            [
                 'id' => 'user_approve',
                 'type' => 'user_input',
                 'name' => 'Approve Concept',
@@ -804,7 +823,8 @@ RULES;
             ['from' => 'analyze_video', 'to' => 'synthesize_concept'],
             ['from' => 'transcribe_audio', 'to' => 'synthesize_concept'],
             ['from' => 'synthesize_concept', 'to' => 'fit_to_skeleton'],
-            ['from' => 'fit_to_skeleton', 'to' => 'user_approve'],
+            ['from' => 'fit_to_skeleton', 'to' => 'seedance_compliance'],
+            ['from' => 'seedance_compliance', 'to' => 'user_approve'],
             ['from' => 'user_approve', 'to' => 'build_script'],
             ['from' => 'user_approve', 'to' => 'build_image_prompt'],
             ['from' => 'user_approve', 'to' => 'sanitize_prompt'],

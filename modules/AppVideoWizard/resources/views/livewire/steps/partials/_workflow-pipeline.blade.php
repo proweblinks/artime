@@ -549,8 +549,115 @@
                         @endif
                     @endif
 
+                    {{-- Special: Seedance Compliance Check node --}}
+                    @if($nodeId === 'seedance_compliance' && in_array($nodeStatus, ['completed', 'failed']))
+                        @php
+                            $complianceOutput = null;
+                            if ($this->activeExecutionId) {
+                                $exec = \Modules\AppVideoWizard\Models\VwWorkflowExecution::find($this->activeExecutionId);
+                                $complianceOutput = $exec ? ($exec->getNodeResult($nodeId)['output'] ?? null) : null;
+                            }
+                        @endphp
+                        @if($complianceOutput)
+                            {{-- Score Badge --}}
+                            <div class="vw-node-detail-section">
+                                <div class="vw-node-detail-label">
+                                    <i class="fa-solid fa-shield-check"></i> {{ __('Compliance Score') }}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    @php
+                                        $score = $complianceOutput['score'] ?? 0;
+                                        $violationCount = $complianceOutput['violation_count'] ?? 0;
+                                        if ($score >= 80) {
+                                            $scoreBg = '#166534'; $scoreColor = '#4ade80'; $scoreLabel = 'PASS';
+                                        } elseif ($score >= 50) {
+                                            $scoreBg = '#713f12'; $scoreColor = '#facc15'; $scoreLabel = 'WARN';
+                                        } else {
+                                            $scoreBg = '#7f1d1d'; $scoreColor = '#f87171'; $scoreLabel = 'FAIL';
+                                        }
+                                    @endphp
+                                    <span style="background: {{ $scoreBg }}; color: {{ $scoreColor }}; font-size: 0.85rem; padding: 0.25rem 0.7rem; border-radius: 0.3rem; font-weight: 700;">
+                                        {{ $score }}/100 — {{ $scoreLabel }}
+                                    </span>
+                                    @if($violationCount > 0)
+                                        <span style="color: #f87171; font-size: 0.7rem; font-weight: 600;">
+                                            {{ $violationCount }} {{ $violationCount === 1 ? 'violation' : 'violations' }} fixed
+                                        </span>
+                                    @else
+                                        <span style="color: #4ade80; font-size: 0.7rem; font-weight: 600;">
+                                            No violations found
+                                        </span>
+                                    @endif
+                                    <span style="color: #64748b; font-size: 0.7rem;">
+                                        {{ ($complianceOutput['original_word_count'] ?? '?') }} → {{ ($complianceOutput['fixed_word_count'] ?? '?') }} words
+                                    </span>
+                                </div>
+                                @if(!empty($complianceOutput['summary']))
+                                    <div style="color: #94a3b8; font-size: 0.7rem; margin-top: 0.3rem;">
+                                        {{ $complianceOutput['summary'] }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Violations List --}}
+                            @if($violationCount > 0)
+                                <div class="vw-node-detail-section" x-data="{ showViolations: false }">
+                                    <div class="vw-node-detail-label">
+                                        <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> {{ __('Violations Found') }}
+                                        <button class="vw-node-btn" style="margin-left: auto;"
+                                                @click="showViolations = !showViolations">
+                                            <i class="fa-solid" :class="showViolations ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                        </button>
+                                    </div>
+                                    <div x-show="showViolations" x-collapse>
+                                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                            @foreach(($complianceOutput['violations'] ?? []) as $violation)
+                                                <div style="background: rgba(127, 29, 29, 0.3); border: 1px solid rgba(248, 113, 113, 0.2); border-radius: 0.3rem; padding: 0.4rem 0.6rem; font-size: 0.7rem;">
+                                                    <span style="color: #f87171; font-weight: 600;">{{ $violation['word'] ?? '?' }}</span>
+                                                    <span style="color: #64748b;"> — {{ $violation['rule'] ?? '' }}</span>
+                                                    @if(!empty($violation['fix']))
+                                                        <span style="color: #4ade80;"> → {{ $violation['fix'] }}</span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Before/After comparison --}}
+                            <div class="vw-node-detail-section" x-data="{ showComparison: false }">
+                                <div class="vw-node-detail-label">
+                                    <i class="fa-solid fa-code-compare"></i> {{ __('Before / After') }}
+                                    <button class="vw-node-btn" style="margin-left: auto;"
+                                            @click="showComparison = !showComparison">
+                                        <i class="fa-solid" :class="showComparison ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                    </button>
+                                </div>
+                                <div x-show="showComparison" x-collapse>
+                                    @if(!empty($complianceOutput['original_prompt']))
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <div style="font-size: 0.65rem; color: #ef4444; font-weight: 600; margin-bottom: 0.2rem;">
+                                                <i class="fa-solid fa-minus"></i> PRE-COMPLIANCE ({{ $complianceOutput['original_word_count'] ?? '?' }} words)
+                                            </div>
+                                            <div class="vw-node-detail-content" style="border-color: #7f1d1d; max-height: 8rem; font-size: 0.7rem;">{{ $complianceOutput['original_prompt'] }}</div>
+                                        </div>
+                                    @endif
+                                    @if(!empty($complianceOutput['fixed_prompt']))
+                                        <div>
+                                            <div style="font-size: 0.65rem; color: #22c55e; font-weight: 600; margin-bottom: 0.2rem;">
+                                                <i class="fa-solid fa-plus"></i> POST-COMPLIANCE ({{ $complianceOutput['fixed_word_count'] ?? '?' }} words)
+                                            </div>
+                                            <div class="vw-node-detail-content" style="border-color: #166534; max-height: 8rem; font-size: 0.7rem;">{{ $complianceOutput['fixed_prompt'] }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
                     {{-- Node Output (if completed) --}}
-                    @if($hasOutput && $nodeStatus === 'completed' && $nodeId !== 'fit_to_skeleton')
+                    @if($hasOutput && $nodeStatus === 'completed' && !in_array($nodeId, ['fit_to_skeleton', 'seedance_compliance']))
                         <div class="vw-node-detail-section" x-data="{ showOutput: false, outputData: null }">
                             <div class="vw-node-detail-label">
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i> {{ __('Output') }}

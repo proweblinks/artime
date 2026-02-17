@@ -5379,6 +5379,44 @@ PROMPT;
                         $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
                     }
                 }
+
+                // Seedance Compliance Check — AI-powered validation pass
+                $this->workflowTrackNode('seedance_compliance', 'running');
+                try {
+                    $compliance = $conceptService->validateSeedanceCompliance(
+                        $result['videoPrompt'],
+                        session('current_team_id', 0),
+                        $this->content['aiModelTier'] ?? 'economy'
+                    );
+
+                    if ($compliance['success'] && !empty($compliance['fixedPrompt'])) {
+                        $preCompliancePrompt = $result['videoPrompt'];
+                        $result['videoPrompt'] = $compliance['fixedPrompt'];
+                        $result['_compliance'] = $compliance;
+
+                        $this->workflowTrackNode('seedance_compliance', 'completed', [
+                            'score' => $compliance['score'],
+                            'violation_count' => count($compliance['violations']),
+                            'violations' => $compliance['violations'],
+                            'summary' => $compliance['summary'],
+                            'original_prompt' => $preCompliancePrompt,
+                            'fixed_prompt' => $compliance['fixedPrompt'],
+                            'original_word_count' => str_word_count($preCompliancePrompt),
+                            'fixed_word_count' => str_word_count($compliance['fixedPrompt']),
+                        ]);
+                    } else {
+                        $result['_compliance'] = $compliance;
+                        $this->workflowTrackNode('seedance_compliance', 'completed', [
+                            'score' => 0,
+                            'violation_count' => 0,
+                            'summary' => $compliance['summary'] ?? 'Validation skipped',
+                            'note' => 'AI validation failed, using regex-sanitized prompt',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: Seedance compliance check failed', ['error' => $e->getMessage()]);
+                    $this->workflowTrackNode('seedance_compliance', 'failed', ['error' => $e->getMessage()]);
+                }
             }
 
             if ($firstFrameUrl) {
@@ -5549,6 +5587,44 @@ PROMPT;
                         Log::warning('VideoWizard: fitPromptToSkeleton failed, using original', ['error' => $e->getMessage()]);
                         $this->workflowTrackNode('fit_to_skeleton', 'failed', ['error' => $e->getMessage()]);
                     }
+                }
+
+                // Seedance Compliance Check — AI-powered validation pass
+                $this->workflowTrackNode('seedance_compliance', 'running');
+                try {
+                    $compliance = $conceptService->validateSeedanceCompliance(
+                        $result['videoPrompt'],
+                        session('current_team_id', 0),
+                        $this->content['aiModelTier'] ?? 'economy'
+                    );
+
+                    if ($compliance['success'] && !empty($compliance['fixedPrompt'])) {
+                        $preCompliancePrompt = $result['videoPrompt'];
+                        $result['videoPrompt'] = $compliance['fixedPrompt'];
+                        $result['_compliance'] = $compliance;
+
+                        $this->workflowTrackNode('seedance_compliance', 'completed', [
+                            'score' => $compliance['score'],
+                            'violation_count' => count($compliance['violations']),
+                            'violations' => $compliance['violations'],
+                            'summary' => $compliance['summary'],
+                            'original_prompt' => $preCompliancePrompt,
+                            'fixed_prompt' => $compliance['fixedPrompt'],
+                            'original_word_count' => str_word_count($preCompliancePrompt),
+                            'fixed_word_count' => str_word_count($compliance['fixedPrompt']),
+                        ]);
+                    } else {
+                        $result['_compliance'] = $compliance;
+                        $this->workflowTrackNode('seedance_compliance', 'completed', [
+                            'score' => 0,
+                            'violation_count' => 0,
+                            'summary' => $compliance['summary'] ?? 'Validation skipped',
+                            'note' => 'AI validation failed, using regex-sanitized prompt',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('VideoWizard: Seedance compliance check failed', ['error' => $e->getMessage()]);
+                    $this->workflowTrackNode('seedance_compliance', 'failed', ['error' => $e->getMessage()]);
                 }
             }
 

@@ -387,7 +387,9 @@ class WorkflowEngineService
             'edges' => $edges,
         ];
 
+        $templateNodeIds = [];
         foreach ($nodes as $node) {
+            $templateNodeIds[] = $node['id'];
             $result = $nodeResults[$node['id']] ?? null;
             $summary['nodes'][] = [
                 'id' => $node['id'],
@@ -400,6 +402,48 @@ class WorkflowEngineService
                 'has_output' => !empty($result['output']),
                 'config' => $node['config'] ?? [],
             ];
+        }
+
+        // Include dynamically tracked nodes not in the template (e.g. seedance_compliance)
+        $dynamicNodeNames = [
+            'seedance_compliance' => 'Seedance Compliance Check',
+        ];
+        foreach ($nodeResults as $nodeId => $result) {
+            if (!in_array($nodeId, $templateNodeIds)) {
+                // Insert dynamic node after its logical predecessor
+                $insertAfter = match ($nodeId) {
+                    'seedance_compliance' => 'fit_to_skeleton',
+                    default => null,
+                };
+
+                $newNode = [
+                    'id' => $nodeId,
+                    'type' => 'ai_validation',
+                    'name' => $dynamicNodeNames[$nodeId] ?? str_replace('_', ' ', ucfirst($nodeId)),
+                    'description' => '',
+                    'status' => $result['status'] ?? 'pending',
+                    'timing' => $result['timing'] ?? null,
+                    'error' => $result['error'] ?? null,
+                    'has_output' => !empty($result['output']),
+                    'config' => [],
+                ];
+
+                if ($insertAfter) {
+                    // Find position of predecessor and insert after it
+                    $insertIndex = null;
+                    foreach ($summary['nodes'] as $i => $n) {
+                        if ($n['id'] === $insertAfter) {
+                            $insertIndex = $i + 1;
+                            break;
+                        }
+                    }
+                    if ($insertIndex !== null) {
+                        array_splice($summary['nodes'], $insertIndex, 0, [$newNode]);
+                        continue;
+                    }
+                }
+                $summary['nodes'][] = $newNode;
+            }
         }
 
         return $summary;
