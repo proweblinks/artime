@@ -638,6 +638,59 @@
     .vw-social-concept .vw-chaos-desc-input::placeholder {
         color: #4b5563;
     }
+
+    /* User template additions */
+    .vw-social-concept .vw-template-divider {
+        font-size: 0.7rem; color: #64748b; margin: 0.6rem 0 0.3rem;
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .vw-social-concept .vw-template-pill-wrap {
+        position: relative; display: inline-flex;
+    }
+    .vw-social-concept .vw-template-delete {
+        position: absolute; top: -4px; right: -4px;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: rgba(239, 68, 68, 0.8); border: none;
+        color: white; font-size: 0.55rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.2s;
+    }
+    .vw-social-concept .vw-template-pill-wrap:hover .vw-template-delete { opacity: 1; }
+
+    /* Save as Template */
+    .vw-save-template-wrap { margin-top: 0.75rem; }
+    .vw-save-template-btn {
+        font-size: 0.78rem; color: #94a3b8; background: none;
+        border: 1px dashed rgba(139, 92, 246, 0.3); border-radius: 0.5rem;
+        padding: 0.4rem 0.8rem; cursor: pointer; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .vw-save-template-btn:hover {
+        border-color: rgba(139, 92, 246, 0.6); color: #e2e8f0;
+    }
+    .vw-save-template-form {
+        margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;
+        padding: 0.75rem; background: rgba(15, 15, 30, 0.6);
+        border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 0.5rem;
+    }
+    .vw-save-template-input {
+        background: rgba(0,0,0,0.3); border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: 0.35rem; padding: 0.4rem 0.6rem; color: #e2e8f0;
+        font-size: 0.8rem; outline: none;
+    }
+    .vw-save-template-input:focus { border-color: rgba(139, 92, 246, 0.5); }
+    .vw-save-template-toggle {
+        display: flex; align-items: center; gap: 0.4rem;
+        font-size: 0.75rem; color: #94a3b8; cursor: pointer;
+    }
+    .vw-save-template-confirm {
+        align-self: flex-start; padding: 0.35rem 0.7rem;
+        background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5);
+        border-radius: 0.35rem; color: #e2e8f0; font-size: 0.78rem;
+        cursor: pointer; transition: all 0.2s;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+    }
+    .vw-save-template-confirm:hover { background: rgba(139, 92, 246, 0.5); }
 </style>
 
 <div class="vw-social-concept" x-data="{ viralTheme: '', activeTab: 'generate', chaosLevel: @entangle('chaosLevel'), chaosDesc: @entangle('chaosDescription') }">
@@ -744,6 +797,63 @@
                            placeholder="{{ __('Describe the chaos you want (e.g., food fight explosion, office supplies flying everywhere...)') }}" />
                 </div>
 
+                {{-- Template Picker (Generate tab) --}}
+                <div class="vw-template-picker">
+                    <div class="vw-template-label">
+                        <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
+                    </div>
+                    <div class="vw-template-pills">
+                        @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                            <button type="button"
+                                class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
+                                wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
+                                title="{{ $tpl['description'] }}">
+                                <i class="{{ $tpl['icon'] }}"></i>
+                                <span>{{ $tpl['name'] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                    @if(count($userTemplates) > 0)
+                        <div class="vw-template-divider">{{ __('My Templates') }}</div>
+                        <div class="vw-template-pills">
+                            @foreach($userTemplates as $tpl)
+                                <div class="vw-template-pill-wrap">
+                                    <button type="button"
+                                        class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
+                                        wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
+                                        title="{{ $tpl['description'] }}">
+                                        <i class="{{ $tpl['icon'] }}"></i>
+                                        <span>{{ $tpl['name'] }}</span>
+                                        @if($tpl['is_shared'])
+                                            <i class="fa-solid fa-users" style="font-size: 0.6rem; opacity: 0.5;" title="{{ __('Shared with team') }}"></i>
+                                        @endif
+                                    </button>
+                                    @if($tpl['is_own'])
+                                        <button class="vw-template-delete"
+                                                wire:click="deleteUserTemplate({{ (int) str_replace('user-', '', $tpl['id']) }})"
+                                                wire:confirm="{{ __('Delete this template?') }}"
+                                                title="{{ __('Delete') }}">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <div class="vw-template-desc">
+                        @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                            @if($cloneTemplate === $tpl['id'])
+                                {{ $tpl['description'] }}
+                            @endif
+                        @endforeach
+                        @foreach($userTemplates as $tpl)
+                            @if($cloneTemplate === $tpl['id'])
+                                {{ $tpl['description'] }}
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+
                 {{-- Loading Skeleton --}}
                 @if($isLoading && empty($conceptVariations))
                     <div class="vw-skeleton-grid">
@@ -835,6 +945,33 @@
                             </span>
                         </button>
                     </div>
+
+                    {{-- Save as Template --}}
+                    @php
+                        $selectedIdea = $conceptVariations[$selectedConceptIndex ?? 0] ?? [];
+                    @endphp
+                    @if(!empty($selectedIdea['videoPrompt']))
+                        <div x-data="{ showSaveForm: false, tplName: '', tplDesc: '', tplShared: false }" class="vw-save-template-wrap">
+                            <button @click="showSaveForm = !showSaveForm" class="vw-save-template-btn" type="button">
+                                <i class="fa-solid fa-bookmark"></i> {{ __('Save as Template') }}
+                            </button>
+
+                            <div x-show="showSaveForm" x-cloak class="vw-save-template-form">
+                                <input type="text" x-model="tplName" placeholder="{{ __('Template name...') }}"
+                                       class="vw-save-template-input" maxlength="100" />
+                                <input type="text" x-model="tplDesc" placeholder="{{ __('Description (optional)...') }}"
+                                       class="vw-save-template-input" maxlength="255" />
+                                <label class="vw-save-template-toggle">
+                                    <input type="checkbox" x-model="tplShared" />
+                                    <span>{{ __('Share with team') }}</span>
+                                </label>
+                                <button @click="if(tplName.trim()) { $wire.saveAsTemplate(tplName.trim(), tplDesc.trim(), tplShared); showSaveForm = false; tplName = ''; tplDesc = ''; tplShared = false; }"
+                                        class="vw-save-template-confirm" type="button">
+                                    <i class="fa-solid fa-check"></i> {{ __('Save') }}
+                                </button>
+                            </div>
+                        </div>
+                    @endif
                 @endif
             </div>
 
@@ -860,6 +997,8 @@
                         <div class="vw-template-label">
                             <i class="fa-solid fa-layer-group"></i> {{ __('Style Template') }}
                         </div>
+
+                        {{-- System Templates --}}
                         <div class="vw-template-pills">
                             @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
                                 <button type="button"
@@ -871,8 +1010,44 @@
                                 </button>
                             @endforeach
                         </div>
+
+                        {{-- User Templates --}}
+                        @if(count($userTemplates) > 0)
+                            <div class="vw-template-divider">{{ __('My Templates') }}</div>
+                            <div class="vw-template-pills">
+                                @foreach($userTemplates as $tpl)
+                                    <div class="vw-template-pill-wrap">
+                                        <button type="button"
+                                            class="vw-template-pill {{ $cloneTemplate === $tpl['id'] ? 'active' : '' }}"
+                                            wire:click="$set('cloneTemplate', '{{ $tpl['id'] }}')"
+                                            title="{{ $tpl['description'] }}">
+                                            <i class="{{ $tpl['icon'] }}"></i>
+                                            <span>{{ $tpl['name'] }}</span>
+                                            @if($tpl['is_shared'])
+                                                <i class="fa-solid fa-users" style="font-size: 0.6rem; opacity: 0.5;" title="{{ __('Shared with team') }}"></i>
+                                            @endif
+                                        </button>
+                                        @if($tpl['is_own'])
+                                            <button class="vw-template-delete"
+                                                    wire:click="deleteUserTemplate({{ (int) str_replace('user-', '', $tpl['id']) }})"
+                                                    wire:confirm="{{ __('Delete this template?') }}"
+                                                    title="{{ __('Delete') }}">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        {{-- Active description --}}
                         <div class="vw-template-desc">
                             @foreach(\Modules\AppVideoWizard\Services\ConceptService::getVideoPromptTemplates() as $tpl)
+                                @if($cloneTemplate === $tpl['id'])
+                                    {{ $tpl['description'] }}
+                                @endif
+                            @endforeach
+                            @foreach($userTemplates as $tpl)
                                 @if($cloneTemplate === $tpl['id'])
                                     {{ $tpl['description'] }}
                                 @endif
@@ -1061,6 +1236,30 @@
                                 <i class="fa-solid fa-check"></i>
                                 {{ __('Use This Concept') }}
                             </button>
+
+                            {{-- Save as Template (clone result) --}}
+                            @if(!empty($videoAnalysisResult['videoPrompt']))
+                                <div x-data="{ showSaveForm: false, tplName: '', tplDesc: '', tplShared: false }" class="vw-save-template-wrap">
+                                    <button @click="showSaveForm = !showSaveForm" class="vw-save-template-btn" type="button">
+                                        <i class="fa-solid fa-bookmark"></i> {{ __('Save as Template') }}
+                                    </button>
+
+                                    <div x-show="showSaveForm" x-cloak class="vw-save-template-form">
+                                        <input type="text" x-model="tplName" placeholder="{{ __('Template name...') }}"
+                                               class="vw-save-template-input" maxlength="100" />
+                                        <input type="text" x-model="tplDesc" placeholder="{{ __('Description (optional)...') }}"
+                                               class="vw-save-template-input" maxlength="255" />
+                                        <label class="vw-save-template-toggle">
+                                            <input type="checkbox" x-model="tplShared" />
+                                            <span>{{ __('Share with team') }}</span>
+                                        </label>
+                                        <button @click="if(tplName.trim()) { $wire.saveAsTemplate(tplName.trim(), tplDesc.trim(), tplShared); showSaveForm = false; tplName = ''; tplDesc = ''; tplShared = false; }"
+                                                class="vw-save-template-confirm" type="button">
+                                            <i class="fa-solid fa-check"></i> {{ __('Save') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     @endif
                 </div>

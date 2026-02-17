@@ -26,6 +26,7 @@ use Modules\AppVideoWizard\Services\StoryBibleService;
 use Modules\AppVideoWizard\Services\ExportEnhancementService;
 use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
+use Modules\AppVideoWizard\Models\VwUserTemplate;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
 use Modules\AppVideoWizard\Services\ShotProgressionService;
 use Modules\AppVideoWizard\Services\DynamicShotEngine;
@@ -1135,6 +1136,7 @@ class VideoWizard extends Component
     public ?string $conceptVideoUrl = null;        // URL for video import (YouTube, Instagram, TikTok, etc.)
     public ?string $urlDownloadStage = null;       // 'downloading'|null
     public string $cloneTemplate = 'adaptive';     // Video prompt template for clone & generate
+    public array $userTemplates = [];              // User/team templates from DB
 
     // Script generation options
     public string $scriptTone = 'engaging';
@@ -1977,6 +1979,9 @@ class VideoWizard extends Component
             // This prevents state leaking from previously loaded projects
             $this->resetToDefaults();
         }
+
+        // Load user/team prompt templates
+        $this->loadUserTemplates();
     }
 
     /**
@@ -2507,6 +2512,100 @@ class VideoWizard extends Component
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Load user-created and team-shared prompt templates from DB.
+     */
+    protected function loadUserTemplates(): void
+    {
+        try {
+            $userId = auth()->id();
+            $teamId = session('current_team_id');
+
+            if (!$userId) {
+                $this->userTemplates = [];
+                return;
+            }
+
+            $this->userTemplates = VwUserTemplate::visibleTo($userId, $teamId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'description', 'icon', 'is_shared', 'user_id'])
+                ->map(fn($t) => [
+                    'id' => 'user-' . $t->id,
+                    'name' => $t->name,
+                    'description' => $t->description,
+                    'icon' => $t->icon,
+                    'is_shared' => $t->is_shared,
+                    'is_own' => $t->user_id === $userId,
+                ])
+                ->toArray();
+        } catch (\Throwable $e) {
+            // Table may not exist yet (pre-migration)
+            $this->userTemplates = [];
+        }
+    }
+
+    /**
+     * Save the current project's video prompt as a reusable template.
+     */
+    public function saveAsTemplate(string $name, string $description = '', bool $isShared = false): void
+    {
+        $selectedIdea = $this->concept['socialContent']
+            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
+            ?? null;
+
+        if (!$selectedIdea || empty($selectedIdea['videoPrompt'])) {
+            $this->error = __('No video prompt to save as template');
+            return;
+        }
+
+        // Capture current shot settings from first decomposed shot (if available)
+        $shot = $this->multiShotMode['decomposedScenes'][0]['shots'][0] ?? [];
+        $seedanceSettings = [
+            'resolution' => $shot['selectedResolution'] ?? '1080p',
+            'quality' => $shot['seedanceQuality'] ?? 'pro',
+            'cameraMove' => $shot['seedanceCameraMove'] ?? 'none',
+            'cameraMoveIntensity' => $shot['seedanceCameraMoveIntensity'] ?? 'moderate',
+            'chaosMode' => $shot['seedanceChaosMode'] ?? false,
+            'backgroundMusic' => $shot['seedanceBackgroundMusic'] ?? false,
+            'duration' => $shot['selectedDuration'] ?? 8,
+        ];
+
+        // Capture concept snapshot (without the videoPrompt which is stored separately)
+        $conceptSnapshot = [
+            'characters' => $selectedIdea['characters'] ?? [],
+            'setting' => $selectedIdea['setting'] ?? '',
+            'mood' => $selectedIdea['mood'] ?? '',
+            'tone' => $selectedIdea['tone'] ?? '',
+            'genre' => $selectedIdea['genre'] ?? '',
+            'audioDescription' => $selectedIdea['audioDescription'] ?? '',
+        ];
+
+        VwUserTemplate::create([
+            'user_id' => auth()->id(),
+            'team_id' => session('current_team_id'),
+            'name' => substr(trim($name), 0, 100),
+            'description' => substr(trim($description), 0, 255) ?: null,
+            'is_shared' => $isShared,
+            'video_prompt' => $selectedIdea['videoPrompt'],
+            'concept' => $conceptSnapshot,
+            'seedance_settings' => $seedanceSettings,
+        ]);
+
+        $this->loadUserTemplates();
+    }
+
+    /**
+     * Delete a user-created template (only own templates).
+     */
+    public function deleteUserTemplate(int $templateDbId): void
+    {
+        VwUserTemplate::where('id', $templateDbId)
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        $this->loadUserTemplates();
     }
 
     /**

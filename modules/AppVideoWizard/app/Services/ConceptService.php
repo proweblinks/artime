@@ -750,6 +750,25 @@ RULES;
      */
     protected function getTemplateStructureRules(string $templateId, string $context = 'clone'): string
     {
+        // User-created template — use generic "follow the example" rules
+        if (str_starts_with($templateId, 'user-')) {
+            return <<<'RULES'
+=== USER TEMPLATE MODE — FOLLOW THE REFERENCE EXAMPLE ===
+
+Below is a reference videoPrompt that defines the target style.
+Your job is to generate a NEW videoPrompt that follows the SAME structure,
+energy, pacing, and creative pattern as the reference — but adapted to
+the new concept/video being analyzed.
+
+Match the reference's: action density, comedic style, escalation pattern,
+character dynamics, and emotional register.
+Do NOT copy the reference literally — capture its FORMULA and apply it.
+
+WORD COUNT: 150-180 words. Aim for 160-175.
+DO NOT describe character appearances — only actions, reactions, sounds, and voice.
+RULES;
+        }
+
         $templates = [
             'adaptive' => [
                 'clone' => <<<'RULES'
@@ -855,6 +874,16 @@ RULES,
      */
     protected function getTemplateExample(string $templateId): string
     {
+        // User-created template — load example from DB
+        if (str_starts_with($templateId, 'user-')) {
+            $userTemplateId = (int) substr($templateId, 5);
+            $userTemplate = \Modules\AppVideoWizard\Models\VwUserTemplate::find($userTemplateId);
+            if ($userTemplate) {
+                return $userTemplate->video_prompt;
+            }
+            // Fallback to adaptive if template not found
+        }
+
         $examples = [
             'adaptive' => <<<'EXAMPLE'
 "The cat stands on the kitchen counter, head bobbing quickly to the rhythm, front paws stepping in precise marching formation with small amplitude. Its tail sways powerfully left and right like a metronome, whiskers twitching fast with each beat. The cat's mouth opens wide letting out a sustained crazy meow in time with the tempo, ears perked forward intensely. Its hind legs stamp the counter surface at high frequency, creating a steady rhythmic tapping. The cat's whole body rocks wildly side to side, fur rippling with the motion as nearby utensils vibrate and rattle against each other. A wooden spoon slides off the counter edge and clatters to the floor. The cat pauses, looks directly at the camera with wide intense eyes, then resumes marching with even greater amplitude, front paws lifting high and stomping down powerfully. Continuous crazy enthusiastic cat vocalizing throughout. Cinematic, photorealistic."
