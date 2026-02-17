@@ -739,6 +739,7 @@ BANNED:
 - No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
+- No background music, soundtrack, or score descriptions (e.g. "upbeat music plays", "dramatic orchestral score", "rhythmic beat in the background"). Seedance auto-generates audio from the prompt — any mention of music will make Seedance play background music. Only describe character sounds, dialogue, and environmental sound effects caused by physical actions
 RULES;
     }
 

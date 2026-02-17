@@ -3672,9 +3672,22 @@ class VideoWizard extends Component
         $prompt = trim($basePrompt);
         $chaosMode = $shot['seedanceChaosMode'] ?? false;
 
-        // Inject background music instruction if enabled
+        // Strip background music references unless explicitly enabled.
+        // Seedance generates audio from prompt text — any music mention causes
+        // unwanted background music. Remove common patterns the AI might produce.
         $bgMusic = $shot['seedanceBackgroundMusic'] ?? false;
-        if ($bgMusic) {
+        if (!$bgMusic) {
+            $prompt = preg_replace(
+                '/\b(upbeat|dramatic|energetic|soft|gentle|intense|epic|cinematic|rhythmic|pulsing|driving|ambient|orchestral|electronic|funky|jazzy|lively|triumphant|suspenseful|melancholic|cheerful|playful)?\s*(background\s+)?music\s+(plays?|playing|in the background|throughout|swells?|builds?|intensifies|fades?|loops?|accompanies)\b[^.]*\.\s*/i',
+                '',
+                $prompt
+            );
+            $prompt = preg_replace(
+                '/\b(soundtrack|musical score|score plays|orchestral score|beat drops|bass drops|drum beat|rhythm plays)\b[^.]*\.\s*/i',
+                '',
+                $prompt
+            );
+        } else {
             $prompt .= ' Energetic background music playing throughout.';
         }
 
