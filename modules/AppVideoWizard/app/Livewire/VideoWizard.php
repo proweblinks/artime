@@ -38094,12 +38094,21 @@ PROMPT;
             $existing = $execution->getNodeResult($nodeId) ?? [];
             $now = now()->toISOString();
 
-            $nodeResult = array_merge($existing, [
-                'status' => $status,
-            ]);
+            // When restarting a node (running), clear stale error/timing from previous attempts
+            if ($status === 'running') {
+                $nodeResult = [
+                    'status' => 'running',
+                    'started_at' => $now,
+                ];
+            } else {
+                $nodeResult = array_merge($existing, [
+                    'status' => $status,
+                ]);
+            }
 
-            if ($status === 'running' && empty($existing['started_at'])) {
-                $nodeResult['started_at'] = $now;
+            if ($status === 'completed') {
+                // Clear any stale error from previous failed attempt
+                unset($nodeResult['error']);
             }
 
             if ($status === 'completed') {
