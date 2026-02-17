@@ -894,9 +894,10 @@ RULES;
             // Non-official degree-style words used by AI
             '/\bamplified\b/i' => 'crazy',
             '/\bdistinct\b/i' => 'crazy',
-            '/\bpiercing\b/i' => 'crazy loud',
+            '/\bpiercing\b/i' => 'crazy',
             '/\bsynchronized\b/i' => 'crazy',
             '/\bsteady\b/i' => 'strong',
+            '/\bfirm\b/i' => 'strong',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -995,6 +996,10 @@ RULES;
             '/,?\s*\beyes?\s+(?:crinkling|crinkel|crinkle|crinkled|widening|widen|widened|narrowing|narrow|narrowed|squinting|squint|twinkling|twinkle|sparkling|sparkle|gleaming|gleam|glinting|glint)\s*\w*/i' => '',
             // "eyes wide [adj]" — eyes wide open/serious/etc
             '/,?\s*\beyes?\s+wide\s*\w*/i' => '',
+            // "eyes stare/gaze/peer/glare/look [at/toward something]" — direct eye action
+            '/,?\s*\beyes?\s+(?:stare|stares?|staring|gaze|gazes?|gazing|peer|peers?|peering|glare|glares?|glaring|look|looks?|looking)\b[^,.]*[.,]?/i' => '',
+            // "crinkled/squinted/narrowed/widened eyes" — inverted adjective+noun form
+            '/,?\s*(?:with\s+)?(?:crinkled|squinted|narrowed|widened|teary|watery|half-closed|droopy)\s+eyes?\b[^,.]*[.,]?/i' => '',
             // "mouth curves/twists/forms into/in [adj] smile/grin/frown"
             '/,?\s*\bmouth\s+(?:curves?|twists?|forms?|breaks?|turns?)\s+(?:wide\s+)?(?:into|in)\s+(?:\w+\s+){0,2}(?:smile|grin|frown|smirk)/i' => '',
             // "mouth curves wide in smile as [anything]" — catch the compound form
@@ -1031,6 +1036,8 @@ RULES;
             '/\bmouth\s+(?:forms?|makes?|creates?)\s+(?:a?\s*)?(?:shape|circle|oval|o\b)[^,.]*[.,]?/i' => 'mouth opens',
             // "with joy/delight/glee/satisfaction" — emotional phrase
             '/\bwith\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\b/i' => 'powerfully',
+            // "in laugh/laughter/giggle with [anything]" — facial description compound
+            '/\bin\s+(?:laugh|laughter|giggle|giggling)\s+with\s+[^,.]+/i' => 'producing crazy giggle',
             // "Sleeping/resting [noun]" as appearance descriptor
             '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
@@ -1045,6 +1052,8 @@ RULES;
             '/,?\s*wrapped\s+(?:from|around)\s+[^,.]+/i' => '',
             // "food/sauce smudged/splattered/visible on/around [body part]"
             '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+(?:residue\s+)?(?:smudged|splattered|dripping|stuck|remaining|visible|smeared|caked)\s+(?:on|around|over)\s+[^,.]+/i' => '',
+            // "food residue on [body part]" — direct appearance (no verb like visible/smudged)
+            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+residue\s+(?:on|around|over)\s+[^,.]+/i' => '',
             // "wearing/dressed in [clothing]"
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
@@ -1076,12 +1085,18 @@ RULES;
         // "bassinet wrapped," → "bassinet," (remove standalone wrapped)
         $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
 
-        // Phase 3g: Fix "strong" used as adjective after noun instead of degree word for action
-        // "shawarma strong", "both hands strong" → replace with proper degree word
+        // Phase 3g: Fix "strong" used as trailing modifier → "powerfully"
+        // "shawarma strong", "both hands strong", "reaches out strong" → powerfully
+        // Match "strong" at end of clause (before comma, period, or end of string)
+        $text = preg_replace('/\bstrong\s*(?=[.,]|$)/i', 'powerfully', $text);
+        // Also: "[word] strong [word]" where strong modifies a verb — only catch specific noun patterns
         $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray|hands?|fingers?|arms?|legs?|grip)\s+strong\b/i', '$1 powerfully', $text);
 
-        // Phase 4: Replace non-official "loud" when used as standalone adjective (not "crazy loud")
-        $text = preg_replace('/\b(?<!crazy\s)loud\b/i', 'intense', $text);
+        // Phase 4: Handle "loud" — not an official Seedance degree word
+        // "crazy loud" → "crazy" (redundant, "crazy" is already official)
+        $text = preg_replace('/\bcrazy\s+loud\b/i', 'crazy', $text);
+        // Standalone "loud" → "crazy" (official degree word)
+        $text = preg_replace('/\bloud\b/i', 'crazy', $text);
 
         // Phase 5: Clean up artifacts from removals
         // Remove empty comma-separated clauses: ", ," or ", , ," etc.
