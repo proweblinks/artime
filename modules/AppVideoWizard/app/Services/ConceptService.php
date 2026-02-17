@@ -889,6 +889,8 @@ RULES;
             '/\brapidly\b/i' => 'fast',
             '/\bdeliberately\b/i' => '',
             '/\bdirectly\b/i' => '',
+            '/\bechoing\b/i' => '',
+            '/\bfrantically\b/i' => 'wildly',
             // Non-official degree-style words used by AI
             '/\bamplified\b/i' => 'crazy',
             '/\bdistinct\b/i' => 'crazy',
@@ -1001,6 +1003,12 @@ RULES;
             '/,?\s*eyes?\s+(?:looking|gazing|staring|glancing|locked|fixed|focused|trained)\s+(?:\w+\s+)?(?:at|on|toward|towards)\s+(?:the\s+)?camera\b[^,.]*[.,]?/i' => '',
             // "toward/at the camera" anywhere
             '/,?\s*(?:looking|facing|turning|glancing|locked|fixed|focused)\s+(?:at|on|toward|towards)\s+(?:the\s+)?camera\b/i' => '',
+            // "cheeks puffing/puffed/bulging" — facial micro-expression
+            '/,?\s*(?:with\s+)?cheeks?\s+(?:puffing|puffed|bulging|inflating|inflated)\b[^,.]*[.,]?/i' => '',
+            // "smiles/smiled/smiling [adverb] with [emotion]" — facial expression + emotional
+            '/,?\s*\b(?:smiles?|smiled|smiling)\s+\w*\s*(?:with\s+\w+)?/i' => '',
+            // "with joy/delight/glee/satisfaction" — emotional phrase
+            '/\bwith\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\b/i' => 'powerfully',
             // "Sleeping/resting [noun]" as appearance descriptor
             '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
@@ -1019,8 +1027,9 @@ RULES;
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
             '/,?\s*(?:in\s+)?(?:a\s+)?(?:white|blue|red|black|green|pink|yellow|brown)\s+(?:shirt|jacket|hoodie|polo|sweater|dress|gown|towel|blanket)\b/i' => '',
-            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit"
+            // Lighting descriptors: "brightly lit", "dimly lit", "well-lit", "bright room"
             '/\b(?:brightly|dimly|softly|warmly|harshly)\s+lit\b/i' => '',
+            '/\bbright\s+(?=(?:hospital|room|space|area|kitchen|office|studio|interior|scene))/i' => '',
             // "clear" as non-official descriptor (clear plastic, clear shhh, clear gesture)
             '/\bclear\s+(?=(?:plastic|glass|shhh|shush|gesture|chewing|slapping|tapping|sound))/i' => '',
         ];
@@ -1046,8 +1055,8 @@ RULES;
         $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
 
         // Phase 3g: Fix "strong" used as adjective after noun instead of degree word for action
-        // "shawarma strong" → "shawarma" (remove misplaced strong)
-        $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray)\s+strong\b/i', '$1', $text);
+        // "shawarma strong", "both hands strong" → replace with proper degree word
+        $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray|hands?|fingers?|arms?|legs?|grip)\s+strong\b/i', '$1 powerfully', $text);
 
         // Phase 4: Replace non-official "loud" when used as standalone adjective (not "crazy loud")
         $text = preg_replace('/\b(?<!crazy\s)loud\b/i', 'intense', $text);
