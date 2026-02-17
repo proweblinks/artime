@@ -1043,6 +1043,8 @@ RULES;
             '/\bwith\s+(?:joy|delight|glee|satisfaction|pleasure|excitement|enthusiasm|pride|happiness)\b/i' => 'powerfully',
             // "in laugh/laughter/giggle with [anything]" — facial description compound
             '/\bin\s+(?:laugh|laughter|giggle|giggling)\s+with\s+[^,.]+/i' => 'producing crazy giggle',
+            // "face brightens/glows/lights" — additional facial expression verbs
+            '/,?\s*\bface\s+(?:brightens?|glows?|beams?|softens?|hardens?|relaxes?|tenses?|scrunches?|crumples?|falls?)\b[^,.]*[.,]?/i' => '',
             // "Sleeping/resting [noun]" as appearance descriptor
             '/\b(?:sleeping|resting|dozing|napping)\s+(?=(?:mother|father|woman|man|person|baby|infant|child))/i' => '',
         ];
@@ -1057,8 +1059,8 @@ RULES;
             '/,?\s*wrapped\s+(?:from|around)\s+[^,.]+/i' => '',
             // "food/sauce smudged/splattered/visible on/around [body part]"
             '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+(?:residue\s+)?(?:smudged|splattered|dripping|stuck|remaining|visible|smeared|caked)\s+(?:on|around|over)\s+[^,.]+/i' => '',
-            // "food residue on [body part]" — direct appearance (no verb like visible/smudged)
-            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+residue\s+(?:on|around|over)\s+[^,.]+/i' => '',
+            // "food residue [anything]" — ANY food residue mention is appearance description
+            '/,?\s*(?:with\s+)?(?:food|sauce|liquid|cream|crumbs?)\s+residue\b[^,.]*[.,]?/i' => '',
             // "wearing/dressed in [clothing]"
             '/,?\s*(?:wearing|dressed\s+in|clad\s+in)\s+[^,.]+/i' => '',
             // Specific clothing items
@@ -1091,11 +1093,13 @@ RULES;
         // "bassinet wrapped," → "bassinet," (remove standalone wrapped)
         $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
 
-        // Phase 3g: Fix "strong" used as trailing modifier → "powerfully"
-        // "shawarma strong", "both hands strong", "reaches out strong" → powerfully
-        // Match "strong" at end of clause (before comma, period, or end of string)
+        // Phase 3g: Fix "strong" used as post-verb modifier → "powerfully"
+        // "grasp it strong", "hold it strong", "reaches out strong" → powerfully
+        // Pattern 1: "it/them/that strong" — common verb+pronoun+strong
+        $text = preg_replace('/\b(it|them|that)\s+strong\b/i', '$1 powerfully', $text);
+        // Pattern 2: "strong" at end of clause (before comma, period, or end of string)
         $text = preg_replace('/\bstrong\s*(?=[.,]|$)/i', 'powerfully', $text);
-        // Also: "[word] strong [word]" where strong modifies a verb — only catch specific noun patterns
+        // Pattern 3: specific noun + strong
         $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray|hands?|fingers?|arms?|legs?|grip)\s+strong\b/i', '$1 powerfully', $text);
 
         // Phase 4: Handle "loud" — not an official Seedance degree word
