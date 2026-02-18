@@ -1117,8 +1117,8 @@ CLONE_RULES;
 
         // Phase 3d: Remove animal/character sound words — Seedance renders from text, sound words create unwanted audio
         $soundPatterns = [
-            // "Continuous hissing and yowling throughout" — full sound sentence
-            '/\bContinuous\s+(?:[\w\s,]+(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)[\w\s,]*)\s*(?:throughout|continuously)?\s*\.?/i' => '',
+            // "Continuous hissing and yowling throughout" or "Continuous yowling throughout" — full sound sentence
+            '/\bContinuous\s+(?:[\w\s,]*(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)[\w\s,]*)\s*(?:throughout|continuously)?\s*\.?/i' => '',
             // Standalone sound words as action descriptors
             '/,?\s*\b(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)\s*(?=[.,]|$)/i' => '',
             // "while hissing/yowling/meowing" mid-sentence
@@ -2202,19 +2202,26 @@ PROMPT;
             $prompt .= "\n\n" . $this->getChaosModeSupercharger();
         }
 
+        // Count action phases from the visual analysis to set exact expectations
+        preg_match_all('/\d+:\d+[-–]\d+:\d+/', $visualAnalysis, $phaseMatches);
+        $phaseCount = count($phaseMatches[0]);
+        if ($phaseCount < 3) $phaseCount = 7; // fallback if parsing fails
+
         // Use system/user message split for better instruction following.
         // System message contains the critical videoPrompt rules that must always be followed.
         // User message contains the analysis data and JSON template.
         $systemMessage = <<<SYSTEM
 You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — an ACCURATE SUMMARY of the video's action timeline.
 
-VIDEOROMPT RULES (MUST FOLLOW):
-1. ACCURATE SUMMARY: The videoPrompt summarizes ALL action phases from the analysis timeline. Every phase gets ONE sentence. 8 phases = 8 sentences. Do NOT skip, merge, or compress phases.
+The analysis contains {$phaseCount} action phases. Your videoPrompt MUST have {$phaseCount} action sentences + "Cinematic, photorealistic." at the end.
+
+VIDEOPROMPT RULES (MUST FOLLOW):
+1. ACCURATE SUMMARY: Write exactly ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip, merge, or compress phases.
 2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target. Adverbs BEFORE verbs.
 3. OFFICIAL ADVERBS ONLY: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Modifiers: with large amplitude, at high frequency.
 4. EMOTIONAL STATE IN EVERY ACTION: "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If analysis says angry/aggressive/surprised/exasperated — that emotion MUST appear in the sentence as a visible physical state.
 5. WORD COUNT: 90-100 words. Under 80 = missing phases. Over 110 = too verbose. Count your words.
-6. BANNED — NO sound words (hissing, meowing, growling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
+6. BANNED — NO sound words (hissing, meowing, growling, yowling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
 7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
 8. End with "Cinematic, photorealistic."
 9. NO REPETITION — each sentence must describe a DIFFERENT action. Do not repeat the same motion with different words.
