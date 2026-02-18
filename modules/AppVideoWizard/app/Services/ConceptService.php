@@ -1675,9 +1675,16 @@ EXAMPLE,
         Log::info('ConceptCloner: Stage 2 complete', ['hasTranscript' => !empty($transcript)]);
 
         // Stage 3: Synthesize into structured concept
-        Log::info('ConceptCloner: Stage 3 — Synthesizing concept');
+        // Clone synthesis requires 'standard' tier minimum for reliable instruction following.
+        // Economy tier (grok-4-fast) consistently truncates prompts to 4-6 sentences,
+        // ignoring instructions to cover all action phases from the analysis timeline.
+        $synthesisTier = ($aiModelTier === 'economy') ? 'standard' : $aiModelTier;
+        Log::info('ConceptCloner: Stage 3 — Synthesizing concept', [
+            'requestedTier' => $aiModelTier,
+            'synthesisTier' => $synthesisTier,
+        ]);
         $templateId = $options['template'] ?? 'adaptive';
-        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiModelTier, $teamId, $videoEngine, $chaosMode, $templateId);
+        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $synthesisTier, $teamId, $videoEngine, $chaosMode, $templateId);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
         // Store full analysis for debugging/inspection
