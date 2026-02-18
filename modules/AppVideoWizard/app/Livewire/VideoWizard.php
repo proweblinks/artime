@@ -37620,8 +37620,12 @@ PROMPT;
     /**
      * Apply a prompt-based edit in the Universal AI Image Studio.
      */
-    public function applyImageStudioEdit(): void
+    public function applyImageStudioEdit(?string $prompt = null): void
     {
+        if ($prompt !== null) {
+            $this->imageStudioPrompt = $prompt;
+        }
+
         if (empty($this->imageStudioPrompt)) {
             $this->imageStudioError = __('Please describe what you want to change');
             return;

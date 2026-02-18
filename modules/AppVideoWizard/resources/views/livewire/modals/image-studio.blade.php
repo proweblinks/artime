@@ -68,9 +68,9 @@
                     </div>
                 @endif
 
-                {{-- Loading overlay --}}
-                <div wire:loading wire:target="applyImageStudioEdit, reimagineImageStudio"
-                     style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
+                {{-- Loading overlay (wire:loading.flex so Livewire hides by default, shows as flex when loading) --}}
+                <div wire:loading.flex wire:target="applyImageStudioEdit, reimagineImageStudio"
+                     style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border: 3px solid rgba(139,92,246,0.3); border-top-color: #a78bfa; border-radius: 50%; animation: imgStudioSpin 1s linear infinite;"></div>
                     <span style="color: #c4b5fd; font-size: 0.85rem;">{{ __('Applying changes...') }}</span>
                 </div>
@@ -123,8 +123,7 @@
                         @foreach($editPresets as $idx => $preset)
                             <button type="button"
                                     @if($preset['auto'])
-                                        wire:click="$set('imageStudioPrompt', '{{ addslashes($preset['prompt']) }}')"
-                                        x-on:click="$nextTick(() => $wire.applyImageStudioEdit())"
+                                        wire:click="applyImageStudioEdit('{{ addslashes($preset['prompt']) }}')"
                                     @else
                                         wire:click="$set('imageStudioPrompt', '{{ addslashes($preset['prompt']) }}')"
                                         x-on:click="$nextTick(() => document.getElementById('studio-edit-prompt').focus())"
