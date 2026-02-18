@@ -9026,8 +9026,11 @@ PROMPT;
                     'expansionMethod' => $project->getAttribute('_lastExpansionMethod') ?? 'template',
                 ];
 
-                // Track in asset history
+                // Track in asset history (scene + shot for Social Content gallery)
                 $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', 'generated', $result['imageUrl'], $result['prompt'] ?? null, $result['model'] ?? 'nanobanana');
+                if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0])) {
+                    $this->addAssetHistoryEntry('shot', $sceneIndex, 0, 'image', 'generated', $result['imageUrl'], $result['prompt'] ?? null, $result['model'] ?? 'nanobanana');
+                }
 
                 $this->saveProject();
             }
@@ -9412,8 +9415,11 @@ PROMPT;
                             'status' => 'ready',
                         ];
 
-                        // Track in asset history
+                        // Track in asset history (scene + shot for Social Content gallery)
                         $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', 'generated', $result['imageUrl'], $job->input_data['prompt'] ?? null, 'hidream');
+                        if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0])) {
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, 0, 'image', 'generated', $result['imageUrl'], $job->input_data['prompt'] ?? null, 'hidream');
+                        }
 
                         $this->saveProject();
 
@@ -11895,6 +11901,7 @@ PROMPT;
 
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] ?? null, $provider);
 
                 // Workflow tracking: video completed
                 if ($sceneIndex === 0 && $shotIndex === 0) {
@@ -32685,6 +32692,7 @@ PROMPT;
                         } elseif ($result['success'] && isset($result['videoUrl'])) {
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $result['videoUrl'], $shot['videoPrompt'] ?? null, 'seedance');
                             $this->saveProject();
                         } else {
                             throw new \Exception($result['error'] ?? __('Seedance video generation failed'));
@@ -32990,6 +32998,7 @@ PROMPT;
 
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? null, $selectedModel);
                             \Log::info('🎬 Video immediately ready', ['videoUrl' => substr($finalVideoUrl, 0, 80)]);
                         } elseif (isset($result['taskId'])) {
                             // Async job - store for polling
@@ -37865,6 +37874,55 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $restoredUrl;
             }
         }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Activate an asset from the inline gallery (Social Content Create step).
+     * Hardcoded to shot 0, scene 0 — the only context for social content.
+     */
+    public function activateAssetFromGallery(string $historyId): void
+    {
+        $history = $this->multiShotMode['decomposedScenes'][0]['shots'][0]['assetHistory'] ?? [];
+
+        $entry = null;
+        foreach ($history as $h) {
+            if (($h['id'] ?? '') === $historyId) {
+                $entry = $h;
+                break;
+            }
+        }
+
+        if (!$entry) {
+            return;
+        }
+
+        $assetType = $entry['type']; // 'image' or 'video'
+        $url = $entry['url'];
+
+        // Update active flags for this asset type
+        foreach ($history as $i => $h) {
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['assetHistory'][$i]['isActive'] =
+                (($h['type'] ?? '') === $assetType && ($h['id'] ?? '') === $historyId);
+        }
+
+        // Write URL to the appropriate property
+        if ($assetType === 'image') {
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $url;
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = null;
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'pending';
+            // Sync to storyboard
+            if (isset($this->storyboard['scenes'][0])) {
+                $this->storyboard['scenes'][0]['imageUrl'] = $url;
+            }
+        } elseif ($assetType === 'video') {
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = $url;
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'ready';
+        }
+
+        // Add a 'restored' entry
+        $this->addAssetHistoryEntry('shot', 0, 0, $assetType, 'restored', $url, null, null);
 
         $this->saveProject();
     }

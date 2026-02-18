@@ -776,10 +776,146 @@
     }
     .vw-social-action-btn.orange:hover { filter: brightness(1.15); }
 
+    /* Inline Asset Gallery */
+    .vw-asset-gallery {
+        width: 100%;
+        max-width: 380px;
+        margin-top: 0.6rem;
+    }
+    .vw-asset-gallery-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.35rem;
+        padding: 0 0.15rem;
+    }
+    .vw-asset-gallery-label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .vw-asset-gallery-label i { font-size: 0.6rem; color: rgba(139,92,246,0.6); }
+    .vw-asset-gallery-count {
+        background: rgba(139,92,246,0.2);
+        color: #c4b5fd;
+        font-size: 0.6rem;
+        padding: 0.05rem 0.35rem;
+        border-radius: 1rem;
+        font-weight: 700;
+    }
+    .vw-asset-gallery-nav { display: flex; gap: 0.2rem; }
+    .vw-gallery-arrow {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.4);
+        width: 22px; height: 22px;
+        border-radius: 0.3rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        transition: all 0.15s;
+    }
+    .vw-gallery-arrow:hover {
+        background: rgba(139,92,246,0.15);
+        color: #c4b5fd;
+        border-color: rgba(139,92,246,0.3);
+    }
+    .vw-asset-gallery-strip {
+        display: flex;
+        gap: 0.45rem;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding: 0.2rem 0.1rem 0.3rem;
+        scrollbar-width: none;
+    }
+    .vw-asset-gallery-strip::-webkit-scrollbar { display: none; }
+    .vw-asset-thumb {
+        flex-shrink: 0;
+        width: 68px;
+        cursor: pointer;
+        background: rgba(255,255,255,0.03);
+        border: 2px solid rgba(255,255,255,0.06);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: all 0.2s;
+        position: relative;
+        padding: 0;
+    }
+    .vw-asset-thumb:hover {
+        border-color: rgba(139,92,246,0.4);
+        background: rgba(139,92,246,0.05);
+        transform: translateY(-1px);
+    }
+    .vw-asset-thumb.active {
+        border-color: rgba(139,92,246,0.7);
+        background: rgba(139,92,246,0.08);
+        box-shadow: 0 0 12px rgba(139,92,246,0.2);
+        cursor: default;
+    }
+    .vw-asset-thumb-img {
+        width: 100%;
+        height: 80px;
+        overflow: hidden;
+        position: relative;
+        background: rgba(0,0,0,0.3);
+    }
+    .vw-asset-thumb-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .vw-asset-thumb-video-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        width: 22px; height: 22px;
+        background: rgba(0,0,0,0.6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.5rem;
+    }
+    .vw-asset-thumb-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        padding: 0.2rem 0;
+        font-size: 0.55rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.5);
+        background: rgba(0,0,0,0.3);
+    }
+    .vw-asset-thumb-badge i { font-size: 0.5rem; }
+    .vw-asset-thumb-badge.image i { color: #34d399; }
+    .vw-asset-thumb-badge.video i { color: #06b6d4; }
+    .vw-asset-thumb-active-dot {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 7px; height: 7px;
+        background: #a78bfa;
+        border-radius: 50%;
+        box-shadow: 0 0 6px rgba(139,92,246,0.6);
+    }
+
     @media (max-width: 768px) {
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: auto; max-height: 50vh; }
         .vw-social-workflow-panel { width: 100%; border-left: none; border-top: 1px solid rgba(100,100,140,0.15); }
+        .vw-asset-gallery { max-width: 100%; }
     }
 </style>
 
@@ -906,6 +1042,78 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Inline Asset Gallery — all generated images & videos --}}
+            @php
+                $assetHistory = $shot['assetHistory'] ?? [];
+            @endphp
+            @if(count($assetHistory) > 1)
+            <div class="vw-asset-gallery" x-data="{ scrollEl: null }" x-init="scrollEl = $refs.galleryScroll">
+                <div class="vw-asset-gallery-header">
+                    <span class="vw-asset-gallery-label">
+                        <i class="fa-solid fa-layer-group"></i>
+                        {{ __('Versions') }}
+                        <span class="vw-asset-gallery-count">{{ count($assetHistory) }}</span>
+                    </span>
+                    <div class="vw-asset-gallery-nav">
+                        <button type="button" @click="scrollEl.scrollBy({ left: -160, behavior: 'smooth' })" class="vw-gallery-arrow"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button type="button" @click="scrollEl.scrollBy({ left: 160, behavior: 'smooth' })" class="vw-gallery-arrow"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="vw-asset-gallery-strip" x-ref="galleryScroll">
+                    @foreach(array_reverse($assetHistory) as $hIdx => $histEntry)
+                        @php
+                            $isActive = $histEntry['isActive'] ?? false;
+                            $hType = $histEntry['type'] ?? 'image';
+                            $hAction = $histEntry['action'] ?? 'generated';
+                            $hUrl = $histEntry['url'] ?? '';
+                            $hId = $histEntry['id'] ?? '';
+                            $hTimestamp = $histEntry['timestamp'] ?? null;
+                            $hTimeAgo = $hTimestamp ? \Carbon\Carbon::parse($hTimestamp)->diffForHumans(null, true, true) : '';
+                            $actionIcon = match($hAction) {
+                                'generated', 'regenerated' => 'fa-wand-magic-sparkles',
+                                'edited' => 'fa-pen-to-square',
+                                'reimagined' => 'fa-palette',
+                                'animated' => 'fa-film',
+                                'stock' => 'fa-image',
+                                'restored' => 'fa-rotate-left',
+                                default => 'fa-circle',
+                            };
+                            $actionLabel = match($hAction) {
+                                'generated' => __('Gen'),
+                                'regenerated' => __('Regen'),
+                                'edited' => __('Edit'),
+                                'reimagined' => __('Style'),
+                                'animated' => __('Video'),
+                                'stock' => __('Stock'),
+                                'restored' => __('Restored'),
+                                default => ucfirst($hAction),
+                            };
+                        @endphp
+                        <button type="button"
+                                class="vw-asset-thumb {{ $isActive ? 'active' : '' }} {{ $hType }}"
+                                @if(!$isActive)
+                                    wire:click="activateAssetFromGallery('{{ $hId }}')"
+                                @endif
+                                title="{{ ucfirst($hAction) }} — {{ $hTimeAgo }}">
+                            <div class="vw-asset-thumb-img">
+                                @if($hType === 'video')
+                                    <div class="vw-asset-thumb-video-icon"><i class="fa-solid fa-play"></i></div>
+                                @endif
+                                <img src="{{ $hType === 'video' ? ($shot['imageUrl'] ?? '') : $hUrl }}" alt="{{ $actionLabel }}" loading="lazy" />
+                            </div>
+                            <div class="vw-asset-thumb-badge {{ $hType }}">
+                                <i class="fa-solid {{ $actionIcon }}"></i>
+                                <span>{{ $actionLabel }}</span>
+                            </div>
+                            @if($isActive)
+                                <div class="vw-asset-thumb-active-dot"></div>
+                            @endif
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{-- Visual Timeline Bar — below the video, full panel width --}}
             @if(!empty($shot['segments']) && count($shot['segments']) > 0 && ($videoStatus === 'ready' || ($shot['videoJobType'] ?? '') === 'segment_regen'))
