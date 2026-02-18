@@ -797,6 +797,65 @@ RULES;
     }
 
     /**
+     * Technical rules for CLONE videoPrompts — prioritizes ACTION TIMELINE faithfulness
+     * over the aggressive Seedance formatting rules used for generated content.
+     */
+    protected function getCloneTechnicalRules(): string
+    {
+        return <<<'RULES'
+=== CLONE VIDEO PROMPT — ACTION TIMELINE IS YOUR PRIMARY SOURCE ===
+
+The videoPrompt MUST be built directly from the ACTION TIMELINE section of the visual analysis.
+85% of the prompt should come from the timeline. Each timeline phase = 1-2 sentences.
+
+CORE RULE: FAITHFULNESS OVER FORMATTING
+- Translate each ACTION TIMELINE phase into Seedance-compatible sentences IN ORDER.
+- Preserve the EXACT sequence, timing, and details described in the analysis.
+- Do NOT fabricate actions, body movements, or details that are NOT in the analysis.
+- Do NOT add chain reactions, destruction, or environmental effects not described.
+- If the analysis says "walks steadily" → write "walks steadily", NOT "charges powerfully".
+- If the analysis says "hips sway rhythmically" → write that, NOT "hips slam violently".
+
+SEEDANCE DEGREE WORDS — USE SPARINGLY AND HONESTLY:
+Official words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
+- Only add degree words where they MATCH the actual intensity in the analysis.
+- Calm/steady actions → "quickly" or "fast" at most. Do NOT use "violently", "wildly", "crazy" for calm movements.
+- Intense/dramatic actions → use stronger degree words ("powerfully", "with large amplitude").
+- It is OK to have sentences WITHOUT degree words if the action is genuinely calm.
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+If a body part should move, DESCRIBE the motion. But only describe motions that ARE in the analysis.
+
+WHAT TO INCLUDE FROM THE ANALYSIS:
+- Every distinct phase (setup, transition, climax, resolution)
+- Movement changes (e.g., "walk changes to rhythmic sway")
+- Head turns, glances, body shifts
+- Proximity/distance changes between characters/objects
+- Environmental sounds caused by visible actions (footsteps, tire crunching, impacts)
+
+WHAT TO NEVER ADD (not in the analysis = not in the prompt):
+- Fabricated body part decomposition (don't invent "front legs extending powerfully" if analysis just says "walking")
+- Fabricated chain reactions (don't invent "stones dislodging" if not described)
+- Fabricated character sounds (no growling/screeching if not heard)
+- Background music descriptions (NEVER — Seedance auto-generates audio from text)
+
+BANNED:
+- No semicolons
+- No camera movement descriptions (camera is controlled separately by the API)
+- No appearance/clothing descriptions (only what they DO and how BIG they are)
+- No direct facial expression descriptions — convey emotion through body language
+- No passive voice — only active verbs
+- No background music, soundtrack, or melody descriptions
+- ABSOLUTELY NO background music mentions — Seedance generates audio from text, any music reference causes unwanted audio
+
+STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
+
+SCALE & SIZE — If characters are miniaturized/enlarged, you MUST mention it.
+RULES;
+    }
+
+    /**
      * Post-process AI-generated Seedance prompts to fix banned words.
      * Gemini Flash frequently ignores the banned word list, so this PHP function
      * programmatically catches and replaces non-compliant words.
@@ -1373,24 +1432,21 @@ MAXIMUM CHAOS videos (total destruction): 14-18 degree words total.
   Stack 2-3 per action, "crazy" on most: "crazy wildly", "powerfully with large amplitude", "fast and violently".
   Example: "launches with crazy intensity, claws raking wildly at high frequency"
 
-BODY PART DECOMPOSITION — SPECIFIC ACTIONS FOR EACH PART:
-Every character must have 4-7 body parts performing distinct actions.
-Animals: head, ears, mouth/jaw, front paws/legs, hind legs, tail, body/torso.
-Humans: head, arms/hands, legs/feet, torso, hair.
-NEVER write "the cat attacks" — decompose: "front paws swipe wildly, hind legs kick powerfully, mouth opens in a crazy yowl, tail lashes with large amplitude."
+BODY PARTS — ONLY DESCRIBE WHAT THE ANALYSIS MENTIONS:
+If the analysis describes specific body parts moving (head turns, hips sway, paws step), include those.
+Do NOT decompose into 4-7 body parts if the analysis doesn't mention them.
+If the analysis says "the bear walks" → write "the bear walks", do NOT invent "front paws extend powerfully, hind legs push off greatly".
+Only add body part detail that IS in the ACTION TIMELINE.
 
-SOUND DESCRIPTIONS — SEEDANCE GENERATES AUDIO FROM TEXT:
+SOUND DESCRIPTIONS — ONLY FROM THE ANALYSIS:
 Include character vocalizations ONLY if the visual analysis confirms they were actually HEARD in the audio.
-- If the analysis reports animal vocalizations (meowing, barking, hissing, growling) → include them with degree words
-- If the analysis says "No animal vocalizations detected" or only mentions panting/breathing → do NOT fabricate character sounds
-- Impact/environmental sounds from VISIBLE ACTIONS are always valid: "paws slamming with a sharp crack", "glass shattering", "plates rattling", footsteps, etc.
-- Apply degree words to sounds that ARE included: "crazy loud meow" > "meow"
-- Do NOT invent sounds just to fill a quota — fewer accurate sounds beat more fabricated ones
+- If the analysis says "No animal vocalizations detected" → do NOT fabricate character sounds
+- Environmental sounds from VISIBLE ACTIONS are valid: footsteps, tire crunching, impacts, splashing
+- Do NOT invent sounds to fill a quota — fewer accurate sounds beat fabricated ones
 
-CHAIN REACTIONS — CAUSE AND EFFECT (minimum 2 per prompt):
-Every prompt needs 2+ chain reactions: action causes object to move, which causes another reaction.
-Pattern: [Character body part + action + degree word] → [object reacts] → [secondary consequence]
-Name interactive objects EARLY in the prompt so Seedance knows they exist for chain reactions.
+CHAIN REACTIONS — ONLY IF DESCRIBED IN ANALYSIS:
+If the analysis describes cause-and-effect (object falls, liquid spills, items scatter), include those.
+Do NOT fabricate chain reactions not in the analysis (no "stones dislodging", "clouds scattering" unless described).
 
 FAITHFULNESS — MATCH WHAT WAS SEEN:
 - Same type of movements, same emotional register, same comedic style as the reference.
@@ -1979,7 +2035,7 @@ PROMPT;
 
         // Get template rules for Seedance video prompt
         $structureRules = $this->getTemplateStructureRules($templateId, 'clone');
-        $technicalRules = $this->getSeedanceTechnicalRules();
+        $technicalRules = $this->getCloneTechnicalRules();
         $templateExample = $this->getTemplateExample($templateId);
 
         $prompt = <<<PROMPT
