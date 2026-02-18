@@ -2220,11 +2220,11 @@ STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical actio
    WRONG: "The man grabs the cat." (no detail on HOW)
    RIGHT: "The customer rapidly bends down and scoops up the struggling cat from the floor."
 STEP 3: CHECK FOR OBJECT DISPLACEMENT. Re-read the analysis — did ANY objects get knocked off, scattered, displaced, or sent flying? If yes, that MUST appear in your videoPrompt. Objects falling off counters/tables during chaos are ESSENTIAL visual elements. If the analysis says "cup falls off counter" or "items scatter" and your videoPrompt doesn't mention it, you FAILED.
-STEP 4: LAST sentence = FINAL phase (resolution/departure), NOT the climax.
+STEP 4: LAST sentence MUST be the FINAL phase (resolution/departure/exit). If the subject walks away, holds something up, or gives up — that is the ending. Do NOT stop at the climax and skip the resolution.
 STEP 5: NO sound words (hissing, yowling, meowing, yelling). NO dialogue. VISIBLE MOTION only.
 STEP 6: End with "Cinematic, photorealistic."
 
-The videoPrompt MUST be 90-120 words. Count your words before outputting.
+The videoPrompt MUST be 100-150 words. Count your words before outputting. Use the FULL budget — do NOT stop early at 90 words when there are more action phases to cover.
 PROMPT;
 
         if ($chaosMode) {
@@ -2235,7 +2235,7 @@ PROMPT;
         preg_match_all('/\d+:\d+[-–]\d+:\d+/', $visualAnalysis, $phaseMatches);
         $phaseCount = count($phaseMatches[0]);
         if ($phaseCount < 3) $phaseCount = 7; // fallback if parsing fails
-        $targetWords = $phaseCount * 12; // 12 words per sentence average
+        $targetWords = $phaseCount * 15; // 15 words per sentence average
 
         // Use system/user message split for better instruction following.
         // System message contains the critical videoPrompt rules that must always be followed.
@@ -2243,10 +2243,10 @@ PROMPT;
         $systemMessage = <<<SYSTEM
 You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a COMPRESSED ACTION TIMELINE of the video.
 
-The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases in ~100 words total.
+The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases — especially the FINAL resolution/departure beat.
 
 COMPRESSION TECHNIQUE — THIS IS THE KEY SKILL:
-The analysis timeline has ~30-50 words per beat. You must compress each beat to ~12 words while keeping the SPECIFIC physical action.
+The analysis timeline has ~30-50 words per beat. You must compress each beat to ~15 words while keeping the SPECIFIC physical action.
 - DROP: timestamps, phase labels, dialogue text, explanations, emotional context
 - KEEP: WHO + WHAT body part + WHAT action + direction/result + emotional state adverb
 
@@ -2264,9 +2264,9 @@ VIDEOPROMPT RULES:
 2. FORMAT: Subject + [adverb] + specific motion verb + body parts/target + direction/result.
 3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "scoops up the cat from the floor" not "grabs the cat". Say "flails front and hind legs in the air" not "struggles". The SPECIFIC body part and direction make the video accurate.
 4. OFFICIAL ADVERBS: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly.
-5. WORD COUNT: 90-120 words. {$phaseCount} sentences × ~13 words = {$targetWords} words.
+5. WORD COUNT: 100-150 words. {$phaseCount} sentences × ~15 words = {$targetWords} words. USE the full budget — do NOT stop early.
 6. BANNED — NO sound words (hissing, meowing, yelling, growling). NO dialogue text. NO scene/appearance. VISIBLE MOTION ONLY.
-7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
+7. LAST SENTENCE = the FINAL action (resolution/departure/exit), NOT the climax. If the video ends with someone leaving, holding something, or giving up — that MUST be the last sentence.
 8. End with "Cinematic, photorealistic."
 9. Every sentence describes a DIFFERENT action — no repetition.
 
