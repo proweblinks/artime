@@ -2131,7 +2131,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE 1.5 PRO RULES BELOW — 50-90 words. Subject + Adverb + Motion format. Adverbs BEFORE verbs. NO sounds. Main action gets most detail with body parts + intensity modifiers.",
+  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 90-100 words. Accurate summary of ALL action phases. Subject + Adverb + Motion. NO sounds, NO dialogue.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2145,7 +2145,7 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 50-120 words (videos with 8+ action phases should aim for 90-120 words). Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
+WORD COUNT: 90-100 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
 Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
 CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
@@ -2195,14 +2195,37 @@ STEP 3: Check your LAST sentence — it must describe the FINAL phase of the vid
 STEP 4: NO sound words (hissing, yowling, meowing, barking, growling). NO dialogue text (saying 'Get off!', declares 'I'm leaving!'). Seedance renders VISIBLE MOTION only — not speech, not sounds.
 STEP 5: End with "Cinematic, photorealistic."
 
-If the analysis has 8-10 phases, your videoPrompt should have 8-10 action sentences (90-120 words).
+The videoPrompt MUST be 90-100 words. Count your words before outputting.
 PROMPT;
 
         if ($chaosMode) {
             $prompt .= "\n\n" . $this->getChaosModeSupercharger();
         }
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        // Use system/user message split for better instruction following.
+        // System message contains the critical videoPrompt rules that must always be followed.
+        // User message contains the analysis data and JSON template.
+        $systemMessage = <<<SYSTEM
+You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — an ACCURATE SUMMARY of the video's action timeline.
+
+VIDEOROMPT RULES (MUST FOLLOW):
+1. ACCURATE SUMMARY: The videoPrompt summarizes ALL action phases from the analysis timeline. Every phase gets ONE sentence. 8 phases = 8 sentences. Do NOT skip, merge, or compress phases.
+2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target. Adverbs BEFORE verbs.
+3. OFFICIAL ADVERBS ONLY: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Modifiers: with large amplitude, at high frequency.
+4. EMOTIONAL STATE IN EVERY ACTION: "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If analysis says angry/aggressive/surprised/exasperated — that emotion MUST appear in the sentence as a visible physical state.
+5. WORD COUNT: 90-100 words. Under 80 = missing phases. Over 110 = too verbose. Count your words.
+6. BANNED — NO sound words (hissing, meowing, growling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
+7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
+8. End with "Cinematic, photorealistic."
+9. NO REPETITION — each sentence must describe a DIFFERENT action. Do not repeat the same motion with different words.
+SYSTEM;
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemMessage],
+            ['role' => 'user', 'content' => $prompt],
+        ];
+
+        $result = $this->callAIWithTier($messages, $aiModelTier, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 4000,
         ]);
