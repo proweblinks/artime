@@ -2219,11 +2219,12 @@ STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical actio
    RIGHT: "The cat violently swats at his outstretched hand with right paw in aggressive fury."
    WRONG: "The man grabs the cat." (no detail on HOW)
    RIGHT: "The customer rapidly bends down and scoops up the struggling cat from the floor."
-STEP 3: LAST sentence = FINAL phase (resolution/departure), NOT the climax.
-STEP 4: NO sound words (hissing, yowling, meowing, yelling). NO dialogue. VISIBLE MOTION only.
-STEP 5: End with "Cinematic, photorealistic."
+STEP 3: CHECK FOR OBJECT DISPLACEMENT. Re-read the analysis — did ANY objects get knocked off, scattered, displaced, or sent flying? If yes, that MUST appear in your videoPrompt. Objects falling off counters/tables during chaos are ESSENTIAL visual elements. If the analysis says "cup falls off counter" or "items scatter" and your videoPrompt doesn't mention it, you FAILED.
+STEP 4: LAST sentence = FINAL phase (resolution/departure), NOT the climax.
+STEP 5: NO sound words (hissing, yowling, meowing, yelling). NO dialogue. VISIBLE MOTION only.
+STEP 6: End with "Cinematic, photorealistic."
 
-The videoPrompt MUST be 90-110 words. Count your words before outputting.
+The videoPrompt MUST be 90-120 words. Count your words before outputting.
 PROMPT;
 
         if ($chaosMode) {
@@ -2263,11 +2264,18 @@ VIDEOPROMPT RULES:
 2. FORMAT: Subject + [adverb] + specific motion verb + body parts/target + direction/result.
 3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "scoops up the cat from the floor" not "grabs the cat". Say "flails front and hind legs in the air" not "struggles". The SPECIFIC body part and direction make the video accurate.
 4. OFFICIAL ADVERBS: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly.
-5. WORD COUNT: 90-110 words. {$phaseCount} sentences × ~13 words = {$targetWords} words.
+5. WORD COUNT: 90-120 words. {$phaseCount} sentences × ~13 words = {$targetWords} words.
 6. BANNED — NO sound words (hissing, meowing, yelling, growling). NO dialogue text. NO scene/appearance. VISIBLE MOTION ONLY.
 7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
 8. End with "Cinematic, photorealistic."
 9. Every sentence describes a DIFFERENT action — no repetition.
+
+CRITICAL — OBJECT DISPLACEMENT IS A MANDATORY SEPARATE BEAT:
+If the analysis describes objects being knocked off, scattered, displaced, or sent flying during an action, this MUST be its own sentence or included in the action sentence that causes it. NEVER omit object displacement.
+Example timeline: "The cat jumps onto the counter, knocking over the iced coffee cup and the straw dispenser. Both items fall off the counter to the floor."
+CORRECT: "The cat crazily jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
+WRONG: "The cat crazily jumps onto the counter." (MISSING the objects being knocked off — this loses a key visual element)
+Objects flying, falling, scattering = VISUAL CHAOS that makes the video compelling. If you omit it, the generated video will look flat and wrong.
 SYSTEM;
 
         $messages = [
