@@ -2476,12 +2476,22 @@ SYSTEM;
         $concept = json_decode($response, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::warning('ConceptCloner: Synthesis JSON parse failed, attempting repair');
+            Log::warning('ConceptCloner: Synthesis JSON parse failed, attempting repair', [
+                'error' => json_last_error_msg(),
+                'responsePreview' => substr($response, 0, 500),
+                'responseTail' => substr($response, -200),
+                'responseLength' => strlen($response),
+            ]);
             $response = $this->repairTruncatedJson($response);
             $concept = json_decode($response, true);
         }
 
         if (!$concept || !isset($concept['title'])) {
+            Log::error('ConceptCloner: Failed to parse synthesized concept after repair', [
+                'hasData' => !empty($concept),
+                'keys' => $concept ? array_keys($concept) : [],
+                'responsePreview' => substr($response, 0, 800),
+            ]);
             throw new \Exception('Failed to parse synthesized concept');
         }
 
