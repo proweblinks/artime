@@ -5425,9 +5425,9 @@ PROMPT;
                 }
             }
 
-            // Post-compliance regex sanitization — the AI validator may reintroduce adverb repetitions
+            // Post-compliance: only deduplicate adverbs (Phase 6) — full sanitizer is too destructive on rewritten text
             if (!empty($result['videoPrompt'])) {
-                $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
+                $result['videoPrompt'] = ConceptService::deduplicateSeedanceAdverbs($result['videoPrompt']);
             }
 
             if ($firstFrameUrl) {
@@ -5582,9 +5582,9 @@ PROMPT;
                 }
             }
 
-            // Post-compliance regex sanitization — the AI validator may reintroduce adverb repetitions
+            // Post-compliance: only deduplicate adverbs (Phase 6) — full sanitizer is too destructive on rewritten text
             if (!empty($result['videoPrompt'])) {
-                $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
+                $result['videoPrompt'] = ConceptService::deduplicateSeedanceAdverbs($result['videoPrompt']);
             }
 
             if ($firstFrameUrl) {

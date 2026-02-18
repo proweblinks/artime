@@ -1230,6 +1230,38 @@ CLONE_RULES;
     }
 
     /**
+     * Lightweight post-compliance pass: only deduplicate overused adverbs.
+     * Use this AFTER the AI compliance validator instead of the full sanitizer,
+     * which is too destructive on rewritten text.
+     */
+    public static function deduplicateSeedanceAdverbs(string $text): string
+    {
+        $adverbAlternatives = [
+            'crazily' => ['violently', 'intensely', 'rapidly'],
+            'violently' => ['crazily', 'intensely', 'rapidly'],
+            'rapidly' => ['crazily', 'intensely', 'violently'],
+            'intensely' => ['crazily', 'violently', 'rapidly'],
+        ];
+        foreach ($adverbAlternatives as $adverb => $alternatives) {
+            $count = preg_match_all('/\b' . $adverb . '\b/i', $text);
+            if ($count > 2) {
+                $n = 0;
+                $altIdx = 0;
+                $text = preg_replace_callback('/\b' . $adverb . '\b/i', function ($match) use (&$n, &$altIdx, $alternatives) {
+                    $n++;
+                    if ($n > 2) {
+                        $alt = $alternatives[$altIdx % count($alternatives)];
+                        $altIdx++;
+                        return $alt;
+                    }
+                    return $match[0];
+                }, $text);
+            }
+        }
+        return $text;
+    }
+
+    /**
      * AI-powered Seedance 1.5 compliance validator.
      * Sends the prompt to AI with ALL Seedance rules and gets back violations + fixed prompt + score.
      * This is the second pass after the regex sanitizer — catches everything regex misses.
