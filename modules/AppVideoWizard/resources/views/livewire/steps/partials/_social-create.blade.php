@@ -1261,6 +1261,22 @@
                                 </span>
                             </button>
                         @endif
+
+                        {{-- AI Image Studio button --}}
+                        <button class="vw-social-action-btn"
+                                wire:click="openImageStudio('scene', 0)"
+                                title="{{ __('Edit image with AI') }}"
+                                style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Edit') }}
+                        </button>
+
+                        {{-- Asset History button --}}
+                        <button class="vw-social-action-btn"
+                                wire:click="openAssetHistory('scene', 0)"
+                                title="{{ __('View image history') }}"
+                                style="background: rgba(255,255,255,0.08); min-width: auto; padding: 0.5rem 0.75rem;">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </button>
                     </div>
                 @else
                     <button class="vw-social-action-btn orange"
