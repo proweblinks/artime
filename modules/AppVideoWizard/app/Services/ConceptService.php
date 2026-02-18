@@ -816,7 +816,7 @@ RULES:
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
 - Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
-- Target: 50-120 words (8+ action phases → aim for 90-120 words). Under 40 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
+- Target: 100-150 words (8+ action phases → aim for 120-150 words). Under 90 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
 
 GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
 "The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
@@ -1249,10 +1249,10 @@ CLONE_RULES;
 
         // Clone context: wider word count range and faithfulness override
         if ($context === 'clone') {
-            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 80-110 words. This is a clone prompt — preserve ALL action sentences and word count.\nUnder 70 words = missing key actions. Over 120 = trim scene/sound descriptions only.\nDo NOT condense or merge action sentences — each sentence describes a distinct phase of the video.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 100-150 words. This is a clone prompt — preserve ALL action sentences and word count.\nUnder 90 words = missing key actions. Over 155 = trim scene/sound descriptions only.\nDo NOT condense or merge action sentences — each sentence describes a distinct phase of the video.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
         } else {
-            $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-120 words.\nIf the prompt exceeds 120 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-150 words.\nIf the prompt exceeds 155 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = '';
         }
 
@@ -1337,9 +1337,9 @@ PROMPT;
                     $fixedPrompt = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
                     $fixedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
 
-                    // Hard word count enforcement — clone needs concise prompts for 10-second videos
-                    $hardLimit = ($context === 'clone') ? 120 : 130;
-                    $targetLimit = ($context === 'clone') ? 100 : 115;
+                    // Hard word count enforcement — clone prompts need room for all action beats
+                    $hardLimit = ($context === 'clone') ? 155 : 155;
+                    $targetLimit = ($context === 'clone') ? 140 : 140;
                     $fixedWordCount = str_word_count($fixedPrompt);
                     if ($fixedWordCount > $hardLimit) {
                         \Log::warning("SeedanceCompliance: AI fixedPrompt over {$hardLimit} words, trimming", [
