@@ -3857,23 +3857,34 @@ EOT;
             $finfo = new \finfo(FILEINFO_MIME_TYPE);
             $mimeType = $finfo->buffer($imageData) ?: 'image/png';
 
-            // Detect image dimensions and add aspect ratio guidance to the prompt
+            // Detect image dimensions to determine aspect ratio for output
+            $detectedAspectRatio = '1:1';
             $imageSize = @getimagesizefromstring($imageData);
             if ($imageSize) {
                 $w = $imageSize[0];
                 $h = $imageSize[1];
                 $ratio = $w / $h;
-                $aspectLabel = $ratio < 0.7 ? '9:16 portrait' : ($ratio > 1.3 ? '16:9 landscape' : ($ratio < 0.9 ? '4:5 portrait' : ($ratio > 1.1 ? '5:4 landscape' : '1:1 square')));
-                $editPrompt .= "\n\nIMPORTANT: Output the image in {$aspectLabel} format ({$w}x{$h} pixels). Keep the exact same aspect ratio and dimensions as the input.";
+                // Map to nearest supported Gemini aspect ratio
+                if ($ratio < 0.6) $detectedAspectRatio = '9:16';
+                elseif ($ratio < 0.8) $detectedAspectRatio = '3:4';
+                elseif ($ratio < 0.95) $detectedAspectRatio = '4:5';
+                elseif ($ratio <= 1.05) $detectedAspectRatio = '1:1';
+                elseif ($ratio < 1.25) $detectedAspectRatio = '5:4';
+                elseif ($ratio < 1.5) $detectedAspectRatio = '4:3';
+                else $detectedAspectRatio = '16:9';
             }
+
+            $editOptions = [
+                'mimeType' => $mimeType,
+                'aspectRatio' => $detectedAspectRatio,
+            ];
 
             // Use gemini-2.5-flash-image as primary for image editing — it's reliable.
             // gemini-3-pro-image-preview has a persistent MALFORMED_FUNCTION_CALL bug
             // with image-to-image editing (its internal thinking mechanism breaks).
-            $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
+            $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, array_merge($editOptions, [
                 'model' => 'gemini-2.5-flash-image',
-                'mimeType' => $mimeType,
-            ]);
+            ]));
 
             // Fallback to gemini-3-pro-image-preview if flash fails
             if (empty($result['imageData'])) {
@@ -3883,10 +3894,9 @@ EOT;
                     'primaryError' => $result['error'] ?? 'No image data',
                 ]);
 
-                $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
+                $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, array_merge($editOptions, [
                     'model' => 'gemini-3-pro-image-preview',
-                    'mimeType' => $mimeType,
-                ]);
+                ]));
             }
 
             if (!empty($result['imageData'])) {

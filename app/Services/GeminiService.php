@@ -640,10 +640,17 @@ EOT;
             ],
         ];
 
-        // Build generation config
+        // Build generation config with aspect ratio from input image
         $generationConfig = [
             'responseModalities' => ['image', 'text'],
         ];
+
+        // Add imageConfig.aspectRatio to match the input image's proportions
+        if (!empty($options['aspectRatio'])) {
+            $generationConfig['imageConfig'] = [
+                'aspectRatio' => $options['aspectRatio'],
+            ];
+        }
 
         // Retry loop — Gemini 3 Pro Image Preview has an intermittent issue where
         // it returns MALFORMED_FUNCTION_CALL instead of image data. This is related
