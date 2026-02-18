@@ -2150,7 +2150,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 90-100 words. Accurate summary of ALL action phases. Subject + Adverb + Motion. NO sounds, NO dialogue.",
+  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 90-110 words. Compressed action timeline: one sentence per phase with SPECIFIC body parts, motions, and directions. NO sounds, NO dialogue.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2164,7 +2164,7 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 90-100 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
+WORD COUNT: 90-110 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + specific motion + body parts + direction.
 Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
 CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
@@ -2208,13 +2208,22 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
-STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:01 = setup, 0:01-0:02 = escalation, ... 0:09-0:11 = departure).
-STEP 2: Write ONE sentence per phase. Use: Subject + [Seedance adverb] + motion + body parts. INCLUDE the visible emotional state FROM THE ANALYSIS in each action — "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If the analysis says a character is angry/aggressive/surprised/exasperated, that emotion MUST be in the sentence.
-STEP 3: Check your LAST sentence — it must describe the FINAL phase of the video (NOT the climax). If the video ends with someone leaving/giving up, that is your last sentence.
-STEP 4: NO sound words (hissing, yowling, meowing, barking, growling). NO dialogue text (saying 'Get off!', declares 'I'm leaving!'). Seedance renders VISIBLE MOTION only — not speech, not sounds.
+STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:02 = setup, 0:02-0:03 = escalation, ... 0:08-0:09 = resolution).
+STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical action:
+   - WHO does it (the customer, the cat, both)
+   - WHAT body part (hand, paw, mouth, legs, arms, chest)
+   - WHAT specific motion (leans forward, opens mouth wide, swats with right paw, jumps off counter, scoops up from floor, flails front and hind legs)
+   - WHAT direction/result (toward the cat, to the floor, around the counter, against his chest)
+   - Use adverbs: rapidly, violently, crazily, intensely, swiftly, gently, steadily, smoothly
+   WRONG: "The cat attacks the man." (too vague)
+   RIGHT: "The cat violently swats at his outstretched hand with right paw in aggressive fury."
+   WRONG: "The man grabs the cat." (no detail on HOW)
+   RIGHT: "The customer rapidly bends down and scoops up the struggling cat from the floor."
+STEP 3: LAST sentence = FINAL phase (resolution/departure), NOT the climax.
+STEP 4: NO sound words (hissing, yowling, meowing, yelling). NO dialogue. VISIBLE MOTION only.
 STEP 5: End with "Cinematic, photorealistic."
 
-The videoPrompt MUST be 90-100 words. Count your words before outputting.
+The videoPrompt MUST be 90-110 words. Count your words before outputting.
 PROMPT;
 
         if ($chaosMode) {
@@ -2231,25 +2240,34 @@ PROMPT;
         // System message contains the critical videoPrompt rules that must always be followed.
         // User message contains the analysis data and JSON template.
         $systemMessage = <<<SYSTEM
-You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — an ACCURATE SUMMARY of the video's action timeline.
+You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a COMPRESSED ACTION TIMELINE of the video.
 
-The analysis contains {$phaseCount} action phases. Your videoPrompt MUST have {$phaseCount} action sentences + "Cinematic, photorealistic." at the end.
+The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases in ~100 words total.
 
-VIDEOPROMPT RULES (MUST FOLLOW):
-1. ACCURATE SUMMARY: Write exactly ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip, merge, or compress phases.
-2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target + emotional state. Adverbs BEFORE verbs.
-3. OFFICIAL ADVERBS ONLY: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Modifiers: with large amplitude, at high frequency.
-4. EMOTIONAL STATE IN EVERY ACTION: Every sentence MUST end with a physical emotional state from the analysis.
-5. MINIMUM 11 WORDS PER SENTENCE. Sentences under 11 words are TOO SHORT — expand with body parts, direction, or emotional state.
-   WRONG (6 words): "The cat looks up at him."
-   RIGHT (13 words): "The cat slowly looks up at him with alert wide-eyed curiosity."
-   WRONG (8 words): "The man throws his hands up, walking away."
-   RIGHT (14 words): "The man rapidly throws both hands up in exasperation, walking away in defeat."
-6. WORD COUNT: 90-100 words MANDATORY. Count your words. {$phaseCount} sentences × 12 words average = {$targetWords} words. Hit this target.
-7. BANNED — NO sound words (hissing, meowing, growling, yowling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
-8. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
-9. End with "Cinematic, photorealistic."
-10. NO REPETITION — each sentence must describe a DIFFERENT action.
+COMPRESSION TECHNIQUE — THIS IS THE KEY SKILL:
+The analysis timeline has ~30-50 words per beat. You must compress each beat to ~12 words while keeping the SPECIFIC physical action.
+- DROP: timestamps, phase labels, dialogue text, explanations, emotional context
+- KEEP: WHO + WHAT body part + WHAT action + direction/result + emotional state adverb
+
+EXAMPLE — How to compress a timeline beat into one sentence:
+Timeline: "0:04-0:05 (Escalation - Evasion): The cat swiftly jumps off the counter to the floor, disappearing from view momentarily. The human male quickly moves to his right, around the counter."
+Compressed: "The cat swiftly jumps off the counter to the floor as the customer rapidly moves around the counter."
+(19 words — captures both characters' actions, specific body movements, and direction)
+
+Timeline: "0:06-0:07 (Struggle - Lifting): The human male stands up, holding the cat in his arms. The cat is actively struggling, flailing its front and hind legs in the air."
+Compressed: "The customer stands up holding the cat who violently flails front and hind legs in the air."
+(16 words — captures the physical detail of WHICH limbs are flailing)
+
+VIDEOPROMPT RULES:
+1. ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip or merge any phase.
+2. FORMAT: Subject + [adverb] + specific motion verb + body parts/target + direction/result.
+3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "scoops up the cat from the floor" not "grabs the cat". Say "flails front and hind legs in the air" not "struggles". The SPECIFIC body part and direction make the video accurate.
+4. OFFICIAL ADVERBS: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly.
+5. WORD COUNT: 90-110 words. {$phaseCount} sentences × ~13 words = {$targetWords} words.
+6. BANNED — NO sound words (hissing, meowing, yelling, growling). NO dialogue text. NO scene/appearance. VISIBLE MOTION ONLY.
+7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
+8. End with "Cinematic, photorealistic."
+9. Every sentence describes a DIFFERENT action — no repetition.
 SYSTEM;
 
         $messages = [
@@ -2288,7 +2306,7 @@ SYSTEM;
         // Expand videoPrompt if under word target — GPT-4o tends to be too concise
         if (!empty($concept['videoPrompt'])) {
             $wordCount = str_word_count($concept['videoPrompt']);
-            if ($wordCount < 85) {
+            if ($wordCount < 80) {
                 Log::info("ConceptCloner: videoPrompt only {$wordCount} words, expanding to 90-100");
                 $expandPrompt = [
                     ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit exactly 90-100 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional physical states (in fury, with alarm, in exasperation). Official adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. NO sound words. NO dialogue. Return ONLY the rewritten prompt, nothing else."],
