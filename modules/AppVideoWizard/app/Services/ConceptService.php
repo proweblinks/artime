@@ -1846,9 +1846,16 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
      Phase 2 (seconds 5-10): Escalation — character starts doing something unexpected (attacking, throwing, running, chasing, etc.)
      Phase 3 (seconds 10-15): Climax/punchline — peak chaos, surprise reaction, or payoff
    - You MUST identify ALL phases. Do NOT flatten the video into one static description.
-   - Describe EVERY physical action: pushing, throwing, knocking things over, swatting, chasing, jumping, etc.
+   - Describe EVERY physical action: pushing, throwing, knocking things over, swatting, chasing, jumping, dancing, swaying, bouncing, bobbing, shuffling, performing, etc.
    - Note the EXACT SECOND when each new action begins
    - Describe what EACH character does independently at each phase
+   - MOVEMENT QUALITY CHANGES — CRITICAL, DO NOT SKIP:
+     * Does the character's movement TYPE change at any point? (walking → dancing, standing → swaying, sitting → bouncing)
+     * Does movement become RHYTHMIC, SYNCHRONIZED, or DANCE-LIKE at any point? If so, at what second?
+     * Does the body sway, bounce, bob, shuffle, or groove in a pattern? Describe the specific dance/rhythmic movement.
+     * If music starts playing, does the character's movement CHANGE or appear to synchronize with the beat?
+     * Even subtle changes matter: a bear walking normally then starting to sway its hips counts as a movement change.
+     * IMPORTANT: Do not flatten a multi-phase video into one description. If the bear walks for 5 seconds then dances for 5 seconds, both phases MUST be described separately.
    - ACTION INTENSITY RATING: Rate the peak physical intensity of the scene:
      * CALM: characters mostly standing still, gentle movements, talking
      * MODERATE: some physical movement, light gestures, minor comedy
@@ -1856,6 +1863,7 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
      * EXTREME/WILD: chaotic, things breaking/flying, characters leaping, total pandemonium
    - What SPECIFIC DESTRUCTIVE or WILD actions happen? (breaking objects, knocking things over, throwing items, jumping on things, pushing things off surfaces, crashing into things)
    - Be SPECIFIC about the physical destruction: what objects get knocked over, thrown, broken, pushed off surfaces?
+   - What NON-DESTRUCTIVE notable actions happen? (dancing, singing, performing, gesturing, playing, mimicking, posing, flexing)
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
    - Report ONLY sounds you can actually HEAR in the audio track. Do NOT infer sounds from visual cues.
