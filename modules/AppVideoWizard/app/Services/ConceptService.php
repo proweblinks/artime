@@ -1654,7 +1654,7 @@ EXAMPLE,
     /**
      * Main pipeline: Analyze an uploaded video and produce a structured concept.
      *
-     * Stage 1: Upload video to Gemini File API + analyze with Gemini 2.5 Flash (native video understanding)
+     * Stage 1: Upload video to Gemini File API + analyze with Gemini 2.5 Pro (native video understanding)
      * Stage 2: Extract audio + transcribe with Whisper
      * Stage 3: AI synthesis into viral idea format
      *
@@ -1683,7 +1683,7 @@ EXAMPLE,
             throw new \Exception('Failed to upload video to Gemini: ' . ($upload['error'] ?? 'unknown'));
         }
 
-        Log::info('ConceptCloner: Video uploaded, analyzing with Gemini 2.5 Flash', [
+        Log::info('ConceptCloner: Video uploaded, analyzing with Gemini 2.5 Pro', [
             'fileUri' => $upload['fileUri'],
         ]);
 
@@ -1701,9 +1701,12 @@ EXAMPLE,
 
         Log::info('ConceptCloner: Stage 1 complete — Visual analysis received', [
             'textLength' => strlen($visualAnalysis),
-            'model' => $analysisResult['model'] ?? 'gemini-2.5-flash',
+            'model' => $analysisResult['model'] ?? 'gemini-2.5-pro',
             'analysisPreview' => mb_substr($visualAnalysis, 0, 500),
         ]);
+
+        // Stage 1b: Post-analysis validation — object displacement consistency check
+        $visualAnalysis = $this->validateObjectDisplacement($visualAnalysis, $upload['fileUri'], $geminiService, $mimeType);
 
         // Stage 2: Extract audio + transcribe (if audio exists)
         Log::info('ConceptCloner: Stage 2 — Extracting and transcribing audio');
@@ -1885,6 +1888,85 @@ EXAMPLE,
         }
 
         return $text;
+    }
+
+    /**
+     * Post-analysis validation: detect contradictions in object displacement.
+     *
+     * Gemini sometimes describes objects on surfaces (cups, dispensers) but then
+     * claims "all objects remain undisturbed" in the action timeline — which contradicts
+     * what the video actually shows. This method detects that pattern and re-queries
+     * Gemini with a focused displacement-only question.
+     */
+    protected function validateObjectDisplacement(string $analysis, string $fileUri, $geminiService, string $mimeType): string
+    {
+        // Check for the contradictory pattern: objects described on surfaces + "undisturbed"/"remain"
+        $hasObjectsOnSurfaces = preg_match('/(?:cup|dispenser|bottle|glass|container|mug|can|lid|tray|plate)\b.*(?:on the|on a|sitting on|placed on)\b.*(?:counter|table|desk|shelf|surface)/i', $analysis);
+        $claimsUndisturbed = preg_match('/(?:remain undisturbed|objects remain|stay in place|not displaced|undisturbed|were not knocked)/i', $analysis);
+        $hasIntenseAction = preg_match('/(?:INTENSE|EXTREME|WILD|lunges|jumps onto|leaps|attacks|swat|knock)/i', $analysis);
+
+        // Also check: does the analysis have an Object Displacement section that says "no displacement"?
+        $displacementSectionEmpty = preg_match('/Object Displacement.*?(?:no (?:significant |notable )?displacement|no objects (?:were |are )?displaced|none|minimal|slightly displaced|only.*lid)/is', $analysis);
+
+        $needsRecheck = ($hasObjectsOnSurfaces && $claimsUndisturbed && $hasIntenseAction)
+                     || ($hasObjectsOnSurfaces && $hasIntenseAction && $displacementSectionEmpty);
+
+        if (!$needsRecheck) {
+            Log::info('ConceptCloner: Object displacement validation passed — no contradictions detected');
+            return $analysis;
+        }
+
+        Log::warning('ConceptCloner: Object displacement contradiction detected — re-querying Gemini', [
+            'hasObjectsOnSurfaces' => (bool) $hasObjectsOnSurfaces,
+            'claimsUndisturbed' => (bool) $claimsUndisturbed,
+            'hasIntenseAction' => (bool) $hasIntenseAction,
+            'displacementSectionEmpty' => (bool) $displacementSectionEmpty,
+        ]);
+
+        // Focused re-query: ask Gemini specifically about object displacement
+        $recheckPrompt = <<<'PROMPT'
+Watch the video carefully, frame by frame, paying close attention to ALL objects on surfaces (counters, tables, shelves).
+
+QUESTION: During any physical action (jumping, lunging, struggling, fighting), do ANY objects get knocked off, fall, tip over, slide, scatter, or get displaced from where they were?
+
+List EVERY object that moves, falls, or gets displaced during the video. For each:
+- What object (be specific: "iced coffee cup", "straw dispenser", "red lid")
+- What caused it (e.g., "cat jumping onto counter")
+- Where it went (e.g., "fell to the floor", "slid to the edge")
+- Approximate timestamp
+
+If truly NO objects are displaced during the entire video, say "CONFIRMED: No objects displaced."
+PROMPT;
+
+        try {
+            $recheckResult = $geminiService->analyzeVideoWithPrompt(
+                $fileUri,
+                $recheckPrompt,
+                ['mimeType' => $mimeType, 'temperature' => 0.05]
+            );
+
+            if ($recheckResult['success'] && !empty($recheckResult['text'])) {
+                $recheckText = $recheckResult['text'];
+                Log::info('ConceptCloner: Object displacement recheck result', [
+                    'preview' => mb_substr($recheckText, 0, 500),
+                ]);
+
+                // If the recheck found displacement, append correction to the analysis
+                $confirmedNoDisplacement = preg_match('/CONFIRMED.*No objects displaced/i', $recheckText);
+                if (!$confirmedNoDisplacement) {
+                    $analysis .= "\n\n--- OBJECT DISPLACEMENT CORRECTION (verified by second analysis pass) ---\n" . $recheckText;
+                    Log::info('ConceptCloner: Object displacement correction appended to analysis');
+                } else {
+                    Log::info('ConceptCloner: Recheck confirmed no object displacement');
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('ConceptCloner: Object displacement recheck failed, continuing with original analysis', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $analysis;
     }
 
     /**

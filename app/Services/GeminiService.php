@@ -945,7 +945,7 @@ EOT;
      */
     public function analyzeVideoWithPrompt(string $fileUri, string $prompt, array $options = []): array
     {
-        $model = $options['model'] ?? 'gemini-2.5-flash';
+        $model = $options['model'] ?? 'gemini-2.5-pro';
         $mimeType = $options['mimeType'] ?? 'video/mp4';
 
         $payload = [
@@ -958,12 +958,13 @@ EOT;
         ];
 
         $generationConfig = [
-            'temperature' => 0.2,
+            'temperature' => $options['temperature'] ?? 0.1,
             'maxOutputTokens' => 8192,
         ];
 
         try {
-            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, 120);
+            $timeout = $options['timeout'] ?? 180; // Pro needs more time than Flash
+            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, $timeout);
             $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';
 
             return [
