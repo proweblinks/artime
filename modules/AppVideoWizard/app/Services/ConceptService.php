@@ -30,7 +30,7 @@ class ConceptService
     /**
      * Call AI with tier-based model selection.
      */
-    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    protected function callAIWithTier(string|array $prompt, string $tier, int $teamId, array $options = []): array
     {
         $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
 
