@@ -33528,7 +33528,7 @@ PROMPT;
     {
         $this->workflowTrackNode('fit_to_skeleton', 'running');
         $originalPrompt = $result['videoPrompt'];
-        $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
+        // NOTE: sanitizeSeedancePrompt() already ran during synthesis — do NOT run it again here
 
         // Fix truncation
         $result['videoPrompt'] = rtrim($result['videoPrompt']);
@@ -33546,11 +33546,8 @@ PROMPT;
         $result['videoPrompt'] = preg_replace('/Maintain face[^.]*\.\s*/i', '', $result['videoPrompt']);
 
         // Strip scene/setting descriptions — image-to-video means the image IS the scene
-        // Pattern: "In a/an/the [place], [long description]." at the start
         $result['videoPrompt'] = preg_replace('/^(?:In\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $result['videoPrompt']);
-        // Pattern: "Inside/Within/At the [place], [description]." at the start
         $result['videoPrompt'] = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $result['videoPrompt']);
-        // Pattern: "A [character] sits/stands/lies in [place description]." at the start
         $result['videoPrompt'] = preg_replace('/^(?:A|An|The)\s+\w+\s+(?:infant|baby|child|woman|man|person|cat|dog|animal)\s+(?:sits|stands|lies|rests|is\s+seated|is\s+standing)\s+[^.]+\.\s*/i', '', $result['videoPrompt']);
 
         // Strip style anchor — we'll re-add at end
@@ -33558,10 +33555,10 @@ PROMPT;
         // Ensure "Cinematic, photorealistic." suffix
         $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — concise limit (100) for 10-second Seedance videos
+        // Word count enforcement — trim only if severely over target (>120 words)
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 100) {
-            Log::info('VideoWizard: Clone passthrough over 100 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 120) {
+            Log::info('VideoWizard: Clone passthrough over 120 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
                 $closing = [array_pop($sentences)]; // "Cinematic, photorealistic."
@@ -33571,7 +33568,7 @@ PROMPT;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 85) {
+                    if ($currentWords + $sentenceWords <= 100) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }
