@@ -2233,6 +2233,7 @@ PROMPT;
         preg_match_all('/\d+:\d+[-–]\d+:\d+/', $visualAnalysis, $phaseMatches);
         $phaseCount = count($phaseMatches[0]);
         if ($phaseCount < 3) $phaseCount = 7; // fallback if parsing fails
+        $targetWords = $phaseCount * 12; // 12 words per sentence average
 
         // Use system/user message split for better instruction following.
         // System message contains the critical videoPrompt rules that must always be followed.
@@ -2244,14 +2245,19 @@ The analysis contains {$phaseCount} action phases. Your videoPrompt MUST have {$
 
 VIDEOPROMPT RULES (MUST FOLLOW):
 1. ACCURATE SUMMARY: Write exactly ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip, merge, or compress phases.
-2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target. Adverbs BEFORE verbs.
+2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target + emotional state. Adverbs BEFORE verbs.
 3. OFFICIAL ADVERBS ONLY: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Modifiers: with large amplitude, at high frequency.
-4. EMOTIONAL STATE IN EVERY ACTION: "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If analysis says angry/aggressive/surprised/exasperated — that emotion MUST appear in the sentence as a visible physical state.
-5. WORD COUNT: 90-100 words MANDATORY. If your draft is under 85 words, ADD more physical detail to each sentence (body parts, directions, intensity). Each sentence should be 10-14 words. Count before outputting.
-6. BANNED — NO sound words (hissing, meowing, growling, yowling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
-7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
-8. End with "Cinematic, photorealistic."
-9. NO REPETITION — each sentence must describe a DIFFERENT action. Do not repeat the same motion with different words.
+4. EMOTIONAL STATE IN EVERY ACTION: Every sentence MUST end with a physical emotional state from the analysis.
+5. MINIMUM 11 WORDS PER SENTENCE. Sentences under 11 words are TOO SHORT — expand with body parts, direction, or emotional state.
+   WRONG (6 words): "The cat looks up at him."
+   RIGHT (13 words): "The cat slowly looks up at him with alert wide-eyed curiosity."
+   WRONG (8 words): "The man throws his hands up, walking away."
+   RIGHT (14 words): "The man rapidly throws both hands up in exasperation, walking away in defeat."
+6. WORD COUNT: 90-100 words MANDATORY. Count your words. {$phaseCount} sentences × 12 words average = {$targetWords} words. Hit this target.
+7. BANNED — NO sound words (hissing, meowing, growling, yowling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
+8. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
+9. End with "Cinematic, photorealistic."
+10. NO REPETITION — each sentence must describe a DIFFERENT action.
 SYSTEM;
 
         $messages = [
