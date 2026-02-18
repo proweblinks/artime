@@ -809,17 +809,28 @@ The videoPrompt MUST be built directly from the ACTION TIMELINE section of the v
 85% of the prompt should come from the timeline.
 
 CONCISENESS IS CRITICAL — Seedance has only 10 seconds to execute ALL actions.
-- Each timeline phase = ONE short sentence (8-15 words). No padding, no filler.
-- MERGE closely related sub-actions: "bike rolls close, nearly pressing into bear's hindquarters" (1 sentence, not 2).
-- Do NOT repeat the same detail: mention crunching sounds ONCE, not in every sentence.
-- Do NOT describe the same action from multiple angles — state it once, move on.
-- The MAIN action (what makes the video interesting/viral) should get proportionally MORE coverage.
-- Target: 4-6 action sentences + style anchor. NOT 8-9 sentences.
 - 80-130 words total. Under 70 = missing phases. Over 140 = Seedance won't finish all actions.
+- Target: 3-5 action sentences + style anchor. NOT 7-9 sentences.
+- Do NOT repeat the same detail: mention sounds ONCE, not in every sentence.
+
+CRITICAL MOMENTS — FOCUS ON WHAT MATTERS:
+Identify the 2-3 moments that DEFINE the video (the hook, the twist, the main action).
+Give them the MOST words. Setup and transitions get FEWER words.
+- SETUP (20% of words): Brief context — what's happening before the interesting part.
+- TRIGGER/TWIST (20%): The key moment that changes everything.
+- MAIN ACTION (50%): The thing that makes the video interesting/viral/shareable.
+- RESOLUTION (10%): How it ends, if different from main action.
+
+CAUSE-EFFECT CHAINS — Express linked actions as ONE flowing beat:
+When actions are causally connected (A causes B causes C), write them as a single compound sentence.
+- BAD (3 sentences, 30 words): "The bike touches the bear's rear. The bear turns its head back, glancing over its shoulder. The bear turns its head forward and continues moving."
+- GOOD (1 sentence, 15 words): "The bike bumps the bear's rear, the bear glances back fast for a half-second."
+Transitions like "turns head back" → "turns head forward" are NOT separate beats.
+A half-second glance is ONE beat, not two. Don't narrate the return to neutral position.
 
 CORE RULE: FAITHFULNESS OVER FORMATTING
-- Translate each ACTION TIMELINE phase into Seedance-compatible sentences IN ORDER.
-- Preserve the EXACT sequence and key details described in the analysis.
+- Translate the ACTION TIMELINE into Seedance-compatible sentences IN ORDER.
+- Preserve the sequence and key details from the analysis.
 - Do NOT fabricate actions, body movements, or details that are NOT in the analysis.
 - Do NOT add chain reactions, destruction, or environmental effects not described.
 - If the analysis says "walks steadily" → write "walks steadily", NOT "charges powerfully".
@@ -837,11 +848,12 @@ Every movement must be EXPLICITLY described. The model will NOT animate what you
 If a body part should move, DESCRIBE the motion. But only describe motions that ARE in the analysis.
 
 WHAT TO INCLUDE FROM THE ANALYSIS:
-- Every distinct phase (setup, transition, climax, resolution)
-- Movement changes (e.g., "walk changes to rhythmic sway")
-- Head turns, glances, body shifts
-- Proximity/distance changes between characters/objects
-- Environmental sounds caused by visible actions — mention ONCE, not repeatedly
+- The TRIGGER moment (what causes the main action to start)
+- The MAIN ACTION (what makes the video interesting — give this the most detail)
+- Movement changes (e.g., "walk shifts into rhythmic sway")
+- Key contact/collision moments between characters/objects
+- Environmental sounds from visible actions — mention ONCE only
+DO NOT DWELL ON: setup walking, returning to neutral position after a glance, repeated descriptions of following/trailing.
 
 WHAT TO NEVER ADD (not in the analysis = not in the prompt):
 - Fabricated body part decomposition (don't invent "front legs extending powerfully" if analysis just says "walking")
@@ -1223,7 +1235,7 @@ RULES;
 
         // Clone context: wider word count range and faithfulness override
         if ($context === 'clone') {
-            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 70-140 words. If over 140, CONDENSE sentences (merge related actions, remove repeated sounds) — but NEVER remove distinct action beats that describe different parts of the video.\nEvery distinct phase of the video timeline MUST be preserved. Under 60 words likely means action phases are missing. Over 140 means Seedance won't complete all actions in 10 seconds.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 60-110 words. If over 110, CONDENSE by merging cause-effect chains into single sentences and removing repeated sounds — but NEVER remove the trigger moment or main action.\nThe MAIN ACTION (viral/interesting part) should get the most words. Setup and transitions should be brief.\nUnder 50 words likely means critical moments are missing. Over 120 means Seedance won't complete all actions in 10 seconds.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
         } else {
             $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-120 words.\nIf the prompt exceeds 120 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
@@ -1312,8 +1324,8 @@ PROMPT;
                     $fixedPrompt = preg_replace('/^(?:(?:Inside|Within|At|On)\s+(?:a|an|the)\s+[^.]+\.\s*)+/i', '', $fixedPrompt);
 
                     // Hard word count enforcement — clone needs concise prompts for 10-second videos
-                    $hardLimit = ($context === 'clone') ? 160 : 130;
-                    $targetLimit = ($context === 'clone') ? 140 : 115;
+                    $hardLimit = ($context === 'clone') ? 120 : 130;
+                    $targetLimit = ($context === 'clone') ? 100 : 115;
                     $fixedWordCount = str_word_count($fixedPrompt);
                     if ($fixedWordCount > $hardLimit) {
                         \Log::warning("SeedanceCompliance: AI fixedPrompt over {$hardLimit} words, trimming", [
@@ -1482,9 +1494,9 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-WORD COUNT: 80-130 words of pure action (plus "Cinematic, photorealistic." at end).
-CONCISE BUT COMPLETE: cover EVERY distinct phase — but each phase in ONE short sentence (8-15 words).
-4-6 sentences total. Merge related sub-actions. Don't repeat sounds. Under 70 = missing phases. Over 140 = too slow for Seedance.
+WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
+FOCUS ON CRITICAL MOMENTS: Setup = 1 short sentence. Trigger+reaction = 1 cause-effect sentence. Main action = most words.
+3-5 sentences total. Cause-effect chains in ONE sentence. Don't dwell on transitions. Under 60 = missing moments. Over 110 = too slow for Seedance.
 DO NOT describe the scene, setting, character appearances, or starting positions — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
@@ -2115,7 +2127,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE RULES BELOW — 80-130 words, concise action-dense prompt capturing EVERY phase of the video timeline",
+  "videoPrompt": "SEE SEEDANCE RULES BELOW — 60-100 words, focused on CRITICAL MOMENTS (trigger, main action), cause-effect chains as single sentences",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2129,11 +2141,13 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 80-130 words of pure action (plus "Cinematic, photorealistic." at end).
-CONCISE BUT COMPLETE: Every distinct phase MUST appear, but each phase = ONE short sentence (8-15 words).
-Aim for 90-120 words. Under 70 means you are missing key actions. Over 140 means Seedance won't finish all actions in 10 seconds.
-MERGE related sub-actions. Don't repeat sounds/details mentioned earlier. 4-6 action sentences is the sweet spot.
-If the video has 4 phases (e.g., walking → bike approaches → head turn → dancing), ALL 4 phases MUST appear.
+WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
+FOCUS ON CRITICAL MOMENTS: Identify the 2-3 moments that define the video. Give them the most words.
+- Setup/context: 1 short sentence. Don't dwell on walking, standing, or other passive states.
+- Trigger + reaction: Express as ONE cause-effect sentence, not two separate beats.
+- Main action (the viral/interesting part): 1-2 detailed sentences — this gets the MOST coverage.
+Aim for 70-90 words in 3-5 sentences. Under 60 = missing key moments. Over 110 = too verbose for 10 seconds.
+If an action lasts half a second (like a quick glance), it gets half a sentence — not a full sentence.
 Remember: NO scene setup, NO character descriptions — start with the first action.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
@@ -2151,7 +2165,7 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 {$technicalRules}
 
-EXAMPLE — GOOD CLONE PROMPT (~100 words):
+EXAMPLE — GOOD CLONE PROMPT (~75 words):
 {$templateExample}
 
 === CLONE FAITHFULNESS — SOUND & ENERGY OVERRIDES ===
