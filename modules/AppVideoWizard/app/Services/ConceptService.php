@@ -826,7 +826,7 @@ RULES:
 - NO sound effect words (SMACK, THUD, crash, meow) — but DO describe visible expressions that produce sounds (mouth open screaming, paw slamming, aggressive attack posture).
 - NO scene/setting/environment descriptions — the source image provides the scene.
 - NO appearance/clothing/color descriptions — the source image provides appearance.
-- INCLUDE visible emotional states during actions: angry, aggressive, surprised, distressed. These are physical expressions Seedance must render.
+- INCLUDE visible emotional states AS PART OF each action: angry, aggressive, surprised, distressed, defiant. "Opens mouth wide" is WRONG (emotionless). "Violently opens mouth in aggressive fury" is RIGHT. The emotion is HOW the action looks — it changes what Seedance renders.
 - NO camera movement descriptions — the API controls the camera separately.
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
 - NO semicolons, NO passive voice.
@@ -2118,12 +2118,14 @@ CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 Use intensity adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
 Connect actions with temporal words: then, instantly, after, finally.
 NO scene, NO appearance — only actions, motions, and visible expressions. Simple, clear language.
-VISIBLE EMOTIONAL EXPRESSIONS ARE ACTIONS — include them:
-- A cat angrily opening its mouth wide in an aggressive attack posture = PHYSICAL action (Seedance needs to render the anger)
-- A man's face showing surprise/distress while struggling = PHYSICAL expression
-- Ears flattening, body tensing aggressively, teeth baring = PHYSICAL details that define the action
-- DO NOT write sound effect words (SMACK, THUD, crash) but DO describe the visible behavior that PRODUCES sound (mouth open screaming, paw slamming down)
-- "Cat violently opens mouth in aggressive attack" is correct. "Cat meows" is a sound description — avoid it.
+EMOTIONAL STATE MUST BE PART OF EACH ACTION — not separate, not optional:
+- WRONG: "The cat opens its mouth wide then lunges forward." (mechanical, emotionless — Seedance renders a yawn, not an attack)
+- RIGHT: "The cat violently opens its mouth wide in aggressive fury then crazily lunges forward." (anger is VISIBLE, Seedance renders aggression)
+- WRONG: "The man recoils, turning away." (no emotion — could be casual)
+- RIGHT: "The man crazily recoils in surprise, turning away." (shock is VISIBLE)
+- If the analysis says a character is angry, aggressive, surprised, distressed, defiant — that emotion MUST appear as an adjective/phrase IN the action sentence.
+- Ears flattening, body tensing aggressively, teeth baring = PHYSICAL details that define HOW the action looks.
+- DO NOT write sound effect words (SMACK, THUD, crash) but DO describe the visible behavior that PRODUCES sound (mouth open screaming, paw slamming down).
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
 The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image already shows the scene, setting, characters, props, and starting positions.
@@ -2147,6 +2149,13 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
 4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
 5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt. "Cups and items violently scatter off counter" or "objects fly off surface with large amplitude" are action beats that create visual chaos — omitting them loses a key visual element of the original video.
+
+=== FINAL CHECKLIST — VERIFY BEFORE GENERATING ===
+Before writing the videoPrompt, count EVERY action phase in the analysis timeline above.
+MOST COMMON ERRORS (you MUST avoid these):
+1. STOPPING TOO EARLY: You wrote the climax but skipped the resolution. If the analysis has phases after the main action (pulling off, throwing, dropping, walking away, final reaction), they MUST be in the prompt. The ENDING is as important as the beginning.
+2. EMOTIONLESS ACTIONS: You described mechanics without emotion. "Opens mouth wide" = emotionless. "Violently opens mouth in aggressive fury" = correct. EVERY action by an emotional character must include the visible emotion.
+3. MERGING PHASES: You compressed 3 phases into 1 sentence. Each phase = its own sentence.
 
 NOW generate the JSON — write the videoPrompt using the Seedance 1.5 Pro format from the rules above.
 PROMPT;
