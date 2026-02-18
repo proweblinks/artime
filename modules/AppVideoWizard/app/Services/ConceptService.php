@@ -835,18 +835,20 @@ RULES:
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
 - Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
-- Target: 50-120 words. Under 40 = missing key actions. Completeness over brevity — include every phase.
+- Target: 50-120 words (8+ action phases → aim for 90-120 words). Under 40 = missing key actions. Completeness over brevity — include every phase from FIRST to LAST.
 
 GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
 "The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
 
 WHY IT WORKS — Follow this pattern for ANY video:
-- Setup: "The bear steadily walks forward." (adverb BEFORE verb, 1 short sentence)
-- Trigger: "The bike's front wheel bumps into the bear's butt." (clear contact/event)
-- Reaction: "The bear rapidly glances back... then turns his head forward." ("rapidly" + "then")
-- Main action: "Instantly the bear starts... hips crazily bobbing... its whole body bouncing..." (body parts + modifiers — MOST detail here)
-- Mood: "Continuous comedic energy throughout." (sets overall feel)
+- Setup: First action — what starts the scene (1 sentence)
+- Trigger: What causes the chain reaction (1 sentence)
+- Reaction: Immediate response (1-2 sentences)
+- Main action: The core — most detail here (1-3 sentences)
+- Aftermath/Resolution: What happens AFTER the climax — pulling off, throwing, walking away, giving up. DO NOT SKIP THIS. (1-3 sentences)
 - Style: "Cinematic, photorealistic." (always last)
+The bear example is SHORT because the bear has no resolution phase. For videos with more phases, write MORE sentences.
+CRITICAL: Your LAST action sentence should describe the FINAL thing that happens in the video, NOT the climax.
 CLONE_RULES;
     }
 
@@ -2108,7 +2110,7 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 50-120 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
+WORD COUNT: 50-120 words (videos with 8+ action phases should aim for 90-120 words). Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
 Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
 CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
@@ -2151,10 +2153,17 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt. "Cups and items violently scatter off counter" or "objects fly off surface with large amplitude" are action beats that create visual chaos — omitting them loses a key visual element of the original video.
 
 === FINAL CHECKLIST — VERIFY BEFORE GENERATING ===
-Before writing the videoPrompt, count EVERY action phase in the analysis timeline above.
+Before writing the videoPrompt, mentally count EVERY action phase in the analysis timeline.
+Then write one sentence per phase, from FIRST to LAST. Your prompt must cover the ENTIRE video, not just the first half.
+
+SELF-CHECK (do this before outputting):
+- What is the LAST action phase in the analysis? (e.g., "man walks away exasperated")
+- Is that action in your videoPrompt? If NO → you stopped too early. Add the missing ending phases.
+- Count your action sentences. Do they match the number of phases? If you have 6 sentences but 10 phases, you skipped phases.
+
 MOST COMMON ERRORS (you MUST avoid these):
-1. STOPPING TOO EARLY: You wrote the climax but skipped the resolution. If the analysis has phases after the main action (pulling off, throwing, dropping, walking away, final reaction), they MUST be in the prompt. The ENDING is as important as the beginning.
-2. EMOTIONLESS ACTIONS: You described mechanics without emotion. "Opens mouth wide" = emotionless. "Violently opens mouth in aggressive fury" = correct. EVERY action by an emotional character must include the visible emotion.
+1. STOPPING AT THE CLIMAX: You wrote up to "cat clings to back" but skipped the entire resolution (pulling off, throwing, walking away). The ENDING phases are NOT optional — they complete the story arc. If the video has 10 phases, write 10 sentences.
+2. EMOTIONLESS ACTIONS: "Opens mouth wide" = emotionless. "Violently opens mouth in aggressive fury" = correct.
 3. MERGING PHASES: You compressed 3 phases into 1 sentence. Each phase = its own sentence.
 
 NOW generate the JSON — write the videoPrompt using the Seedance 1.5 Pro format from the rules above.
