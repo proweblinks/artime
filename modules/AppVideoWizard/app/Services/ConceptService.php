@@ -1900,42 +1900,73 @@ EXAMPLE,
      */
     protected function validateObjectDisplacement(string $analysis, string $fileUri, $geminiService, string $mimeType): string
     {
-        // Check for the contradictory pattern: objects described on surfaces + "undisturbed"/"remain"
-        $hasObjectsOnSurfaces = preg_match('/(?:cup|dispenser|bottle|glass|container|mug|can|lid|tray|plate)\b.*(?:on the|on a|sitting on|placed on)\b.*(?:counter|table|desk|shelf|surface)/i', $analysis);
-        $claimsUndisturbed = preg_match('/(?:remain undisturbed|objects remain|stay in place|not displaced|undisturbed|were not knocked)/i', $analysis);
-        $hasIntenseAction = preg_match('/(?:INTENSE|EXTREME|WILD|lunges|jumps onto|leaps|attacks|swat|knock)/i', $analysis);
+        $hasIntenseAction = preg_match('/(?:INTENSE|EXTREME|WILD|lunges|jumps onto|leaps|attacks|swat|knock|chaotic|pandemonium|violent)/i', $analysis);
 
-        // Also check: does the analysis have an Object Displacement section that says "no displacement"?
-        $displacementSectionEmpty = preg_match('/Object Displacement.*?(?:no (?:significant |notable )?displacement|no objects (?:were |are )?displaced|none|minimal|slightly displaced|only.*lid)/is', $analysis);
-
-        $needsRecheck = ($hasObjectsOnSurfaces && $claimsUndisturbed && $hasIntenseAction)
-                     || ($hasObjectsOnSurfaces && $hasIntenseAction && $displacementSectionEmpty);
-
-        if (!$needsRecheck) {
-            Log::info('ConceptCloner: Object displacement validation passed — no contradictions detected');
+        if (!$hasIntenseAction) {
+            Log::info('ConceptCloner: Object displacement validation skipped — no intense action detected');
             return $analysis;
         }
 
-        Log::warning('ConceptCloner: Object displacement contradiction detected — re-querying Gemini', [
-            'hasObjectsOnSurfaces' => (bool) $hasObjectsOnSurfaces,
-            'claimsUndisturbed' => (bool) $claimsUndisturbed,
-            'hasIntenseAction' => (bool) $hasIntenseAction,
-            'displacementSectionEmpty' => (bool) $displacementSectionEmpty,
+        // Extract ALL objects mentioned on surfaces in the analysis
+        $surfaceObjects = [];
+        // Match patterns like "iced coffee cup on the counter", "stack of white cups on a shelf"
+        if (preg_match_all('/\b((?:iced |plastic |white |orange |red |large |small |stack of |pile of )?(?:coffee |caramel )?(?:cup|cups|dispenser|straw dispenser|bottle|glass|container|mug|can|lid|tray|plate|bowl|napkin|menu|box|bag)s?)\b/i', $analysis, $objectMatches)) {
+            $surfaceObjects = array_unique(array_map('strtolower', $objectMatches[1]));
+        }
+
+        // Also extract specific named objects mentioned as "undisturbed" or "remained in place"
+        $undisturbedClaims = [];
+        if (preg_match_all('/\b([\w\s]+?)\s*(?:remain(?:s|ed)?|stay(?:s|ed)?)\s*(?:undisturbed|in place|stationary|unmoved|on the|intact)/i', $analysis, $undisturbedMatches)) {
+            $undisturbedClaims = array_map('trim', $undisturbedMatches[1]);
+        }
+
+        // Check for blanket "undisturbed" claims
+        $blanketUndisturbed = preg_match('/(?:all (?:other )?objects (?:on|remain)|remain(?:s|ed)? (?:completely |totally )?undisturbed|no (?:significant |notable )?displacement|no objects (?:were |are )?displaced)/i', $analysis);
+
+        $needsRecheck = !empty($surfaceObjects) || $blanketUndisturbed || !empty($undisturbedClaims);
+
+        if (!$needsRecheck) {
+            Log::info('ConceptCloner: Object displacement validation passed — no surface objects found to verify');
+            return $analysis;
+        }
+
+        $objectList = !empty($surfaceObjects) ? implode(', ', array_slice($surfaceObjects, 0, 15)) : 'various objects on surfaces';
+        $undisturbedList = !empty($undisturbedClaims) ? implode(', ', $undisturbedClaims) : '';
+
+        Log::warning('ConceptCloner: Object displacement verification needed — re-querying Gemini', [
+            'surfaceObjects' => $surfaceObjects,
+            'undisturbedClaims' => $undisturbedClaims,
+            'blanketUndisturbed' => (bool) $blanketUndisturbed,
         ]);
 
-        // Focused re-query: ask Gemini specifically about object displacement
-        $recheckPrompt = <<<'PROMPT'
-Watch the video carefully, frame by frame, paying close attention to ALL objects on surfaces (counters, tables, shelves).
+        // Build a targeted re-query that names specific objects
+        $specificChallenge = '';
+        if ($blanketUndisturbed || !empty($undisturbedClaims)) {
+            $specificChallenge = "\n\nIMPORTANT: A previous analysis claimed that some objects were \"undisturbed\" during the action. This may be WRONG. Do NOT assume objects stayed in place. Watch the video frame by frame and verify EACH object independently.";
+            if (!empty($undisturbedList)) {
+                $specificChallenge .= "\nSpecifically claimed as undisturbed: {$undisturbedList}. Verify each of these carefully.";
+            }
+        }
 
-QUESTION: During any physical action (jumping, lunging, struggling, fighting), do ANY objects get knocked off, fall, tip over, slide, scatter, or get displaced from where they were?
+        $recheckPrompt = <<<PROMPT
+Watch this video frame by frame. The video contains INTENSE physical action.
 
-List EVERY object that moves, falls, or gets displaced during the video. For each:
-- What object (be specific: "iced coffee cup", "straw dispenser", "red lid")
-- What caused it (e.g., "cat jumping onto counter")
-- Where it went (e.g., "fell to the floor", "slid to the edge")
-- Approximate timestamp
+The following objects were identified on surfaces (counters, tables, shelves, etc.): {$objectList}
+{$specificChallenge}
 
-If truly NO objects are displaced during the entire video, say "CONFIRMED: No objects displaced."
+YOUR TASK: For EACH of these objects, watch what happens to it during the video. Track it from start to end.
+
+For EACH object, report ONE of:
+- DISPLACED: "[object name]" — knocked off/fell/slid/scattered at approximately [timestamp] because [cause]. Landed [where].
+- STAYED: "[object name]" — verified it remained in place throughout the video.
+- UNCLEAR: "[object name]" — object went out of frame / could not verify.
+
+RULES:
+- Check EVERY object listed above, do not skip any.
+- When characters move aggressively on or near a surface, objects almost always get displaced. Look carefully.
+- Pay special attention to the moments when characters jump, lunge, swat, or land on surfaces.
+- If an object disappears from view during action, it was likely displaced — report it as DISPLACED unless you can see it still in place in a later frame.
+- Do NOT assume objects stayed in place. VERIFY by looking at the frames AFTER the action.
 PROMPT;
 
         try {
@@ -1947,21 +1978,27 @@ PROMPT;
 
             if ($recheckResult['success'] && !empty($recheckResult['text'])) {
                 $recheckText = $recheckResult['text'];
-                Log::info('ConceptCloner: Object displacement recheck result', [
+                Log::info('ConceptCloner: Object displacement verification result', [
                     'preview' => mb_substr($recheckText, 0, 500),
                 ]);
 
-                // If the recheck found displacement, append correction to the analysis
-                $confirmedNoDisplacement = preg_match('/CONFIRMED.*No objects displaced/i', $recheckText);
-                if (!$confirmedNoDisplacement) {
-                    $analysis .= "\n\n--- OBJECT DISPLACEMENT CORRECTION (verified by second analysis pass) ---\n" . $recheckText;
-                    Log::info('ConceptCloner: Object displacement correction appended to analysis');
+                // Check if any displacement was found
+                $hasDisplacement = preg_match('/DISPLACED/i', $recheckText);
+                if ($hasDisplacement) {
+                    // Replace any existing "undisturbed" claims in the original analysis
+                    $analysis = preg_replace(
+                        '/(?:all (?:other )?objects (?:on the |on a )?(?:counter|table|surface|desk|shelf).*?(?:remain(?:s|ed)?|stay(?:s|ed)?).*?(?:undisturbed|in place|stationary|unmoved|intact))[.\s]*/i',
+                        '',
+                        $analysis
+                    );
+                    $analysis .= "\n\n--- OBJECT DISPLACEMENT CORRECTION (verified frame-by-frame) ---\n" . $recheckText;
+                    Log::info('ConceptCloner: Object displacement correction appended — removed false undisturbed claims');
                 } else {
-                    Log::info('ConceptCloner: Recheck confirmed no object displacement');
+                    Log::info('ConceptCloner: Verification confirmed objects stayed in place');
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('ConceptCloner: Object displacement recheck failed, continuing with original analysis', [
+            Log::warning('ConceptCloner: Object displacement verification failed, continuing with original analysis', [
                 'error' => $e->getMessage(),
             ]);
         }
@@ -2047,7 +2084,8 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
      * When a character moves aggressively on or near a surface (counter, table, desk, shelf), do ANY objects on that surface get displaced, knocked over, pushed aside, or sent flying?
      * Example: If a cat swats aggressively on a counter that has cups and a straw dispenser, do those items get knocked off? Do they scatter? Do they fall to the floor?
      * Even if the displacement is a SECONDARY EFFECT (not the main action), it MUST be reported — objects flying off a counter during a fight is visually dramatic and essential for recreation.
-     * If objects REMAIN in place despite aggressive action nearby, explicitly say "objects on counter remained undisturbed" — do NOT simply omit mention of them.
+     * For EACH object you identified on a surface in section 2, explicitly state what happened to it: "iced coffee cup — knocked off counter to floor at 0:03" or "stack of cups — remained in place."
+     * Do NOT write a blanket "all objects remained undisturbed" — track EACH object individually. Aggressive action near objects almost always displaces them.
    - What NON-DESTRUCTIVE notable actions happen? (dancing, singing, performing, gesturing, playing, mimicking, posing, flexing)
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
