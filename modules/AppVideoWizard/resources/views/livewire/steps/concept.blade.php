@@ -575,6 +575,7 @@
     @if($isSocialContent ?? false)
         @include('appvideowizard::livewire.steps.partials._social-concept')
         @include('appvideowizard::livewire.modals.image-studio')
+        @include('appvideowizard::livewire.modals.asset-history-panel')
     @else
     <div class="vw-concept-card">
         {{-- Error Message --}}
