@@ -823,9 +823,10 @@ TEMPORAL WORDS to connect actions in order: then, instantly, after, finally, sud
 
 RULES:
 - Use simple words. Short sentences. Active verbs.
-- NO sound/audio descriptions — Seedance auto-generates audio from the visual action.
+- NO sound effect words (SMACK, THUD, crash, meow) — but DO describe visible expressions that produce sounds (mouth open screaming, paw slamming, aggressive attack posture).
 - NO scene/setting/environment descriptions — the source image provides the scene.
 - NO appearance/clothing/color descriptions — the source image provides appearance.
+- INCLUDE visible emotional states during actions: angry, aggressive, surprised, distressed. These are physical expressions Seedance must render.
 - NO camera movement descriptions — the API controls the camera separately.
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
 - NO semicolons, NO passive voice.
@@ -2116,7 +2117,13 @@ CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - Do NOT jump from "cat clings to back" to "man throws cat" — the STRUGGLE phase between them is critical.
 Use intensity adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
 Connect actions with temporal words: then, instantly, after, finally.
-NO sounds, NO scene, NO appearance — only actions and motions. Simple, clear language.
+NO scene, NO appearance — only actions, motions, and visible expressions. Simple, clear language.
+VISIBLE EMOTIONAL EXPRESSIONS ARE ACTIONS — include them:
+- A cat angrily opening its mouth wide in an aggressive attack posture = PHYSICAL action (Seedance needs to render the anger)
+- A man's face showing surprise/distress while struggling = PHYSICAL expression
+- Ears flattening, body tensing aggressively, teeth baring = PHYSICAL details that define the action
+- DO NOT write sound effect words (SMACK, THUD, crash) but DO describe the visible behavior that PRODUCES sound (mouth open screaming, paw slamming down)
+- "Cat violently opens mouth in aggressive attack" is correct. "Cat meows" is a sound description — avoid it.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
 The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image already shows the scene, setting, characters, props, and starting positions.
@@ -2135,7 +2142,7 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 {$technicalRules}
 
 === CLONE FAITHFULNESS OVERRIDES ===
-1. NO SOUND DESCRIPTIONS in videoPrompt — Seedance auto-generates audio from the visual action. Do NOT write sounds, thuds, crashes, music, or vocalizations in the prompt.
+1. NO SOUND EFFECT WORDS in videoPrompt — Do NOT write onomatopoeia (SMACK, THUD, crash, bang) or music references. BUT DO describe the VISIBLE physical behavior that produces sounds: "cat violently opens mouth wide in aggressive attack posture" is correct (visible action). "Cat meows loudly" is wrong (sound description). The distinction: describe what you SEE, not what you HEAR.
 2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = crazily/violently.
 3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
 4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
