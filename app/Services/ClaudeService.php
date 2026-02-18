@@ -148,18 +148,36 @@ class ClaudeService
     protected function sendRequest(string $model, array $messages, int $maxTokens = 1024): array
     {
         try {
+            // Claude Messages API requires system prompts as top-level parameter,
+            // not as role:"system" in the messages array (unlike OpenAI-compatible APIs)
+            $systemParts = [];
+            $filteredMessages = [];
+            foreach ($messages as $msg) {
+                if (($msg['role'] ?? '') === 'system') {
+                    $systemParts[] = $msg['content'] ?? '';
+                } else {
+                    $filteredMessages[] = $msg;
+                }
+            }
+
+            $payload = [
+                'model'     => $model,
+                'max_tokens'=> $maxTokens,
+                'messages'  => $filteredMessages,
+            ];
+
+            if (!empty($systemParts)) {
+                $payload['system'] = implode("\n\n", $systemParts);
+            }
+
             $response = $this->client->request('POST', 'messages', [
                 'headers' => [
                     'x-api-key'         => $this->apiKey,
                     'anthropic-version' => '2023-06-01',
                     'Content-Type'      => 'application/json',
                 ],
-                'json' => [
-                    'model'     => $model,
-                    'max_tokens'=> $maxTokens,
-                    'messages'  => $messages,
-                ],
-                'timeout' => 60,
+                'json' => $payload,
+                'timeout' => 120,
             ]);
 
             $body = json_decode($response->getBody(), true);
@@ -179,7 +197,6 @@ class ClaudeService
             );
 
         } catch (\Throwable $e) {
-            dd($e);
             return $this->errorResponse($model, $e, 'text');
         }
     }
