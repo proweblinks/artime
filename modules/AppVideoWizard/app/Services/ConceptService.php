@@ -2044,6 +2044,26 @@ PROMPT;
                         $analysis .= "\n\n--- OBJECT DISPLACEMENT (verified frame-by-frame) ---\n" . $recheckText;
                     }
 
+                    // CRITICAL: Inject displacement summary at TOP of analysis so synthesis AI sees it first.
+                    // When Gemini omits displacement from the action timeline entirely (no false claims to replace),
+                    // the correction at the bottom gets ignored by synthesis AI. Putting it at the top forces attention.
+                    if (!empty($displacedObjects)) {
+                        $displacementLines = [];
+                        foreach ($displacedObjects as $objName) {
+                            $escaped = preg_quote($objName, '/');
+                            // Extract timestamp and cause from re-query for this object
+                            if (preg_match('/DISPLACED[^"]*"' . $escaped . '"[^—]*(?:—|--)\s*([^\n]+)/i', $recheckText, $causeMatch)) {
+                                $displacementLines[] = '- "' . ucwords($objName) . '": ' . trim($causeMatch[1]);
+                            } else {
+                                $displacementLines[] = '- "' . ucwords($objName) . '": DISPLACED during the action';
+                            }
+                        }
+                        $alert = "⚠️ FRAME-BY-FRAME VERIFIED OBJECT DISPLACEMENT (MUST appear in videoPrompt):\n"
+                            . implode("\n", $displacementLines)
+                            . "\n---\n\n";
+                        $analysis = $alert . $analysis;
+                    }
+
                     Log::info('ConceptCloner: Object displacement correction applied', [
                         'displacedObjects' => $displacedObjects,
                     ]);
