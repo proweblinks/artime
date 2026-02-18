@@ -5425,6 +5425,11 @@ PROMPT;
                 }
             }
 
+            // Post-compliance regex sanitization — the AI validator may reintroduce adverb repetitions
+            if (!empty($result['videoPrompt'])) {
+                $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
+            }
+
             if ($firstFrameUrl) {
                 $result['firstFrameUrl'] = $firstFrameUrl;
             }
@@ -5575,6 +5580,11 @@ PROMPT;
                     Log::warning('VideoWizard: Seedance compliance check failed', ['error' => $e->getMessage()]);
                     $this->workflowTrackNode('seedance_compliance', 'failed', ['error' => $e->getMessage()]);
                 }
+            }
+
+            // Post-compliance regex sanitization — the AI validator may reintroduce adverb repetitions
+            if (!empty($result['videoPrompt'])) {
+                $result['videoPrompt'] = ConceptService::sanitizeSeedancePrompt($result['videoPrompt']);
             }
 
             if ($firstFrameUrl) {
