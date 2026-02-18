@@ -1196,6 +1196,32 @@ CLONE_RULES;
         $text = preg_replace('/\.{2,}/', '.', $text);
         // Fix "word, ." at end of sentence
         $text = preg_replace('/,\s*\./', '.', $text);
+        // Phase 6: Deduplicate overused Seedance adverbs
+        // If any adverb appears 3+ times, replace alternating occurrences with other high-energy adverbs
+        $adverbAlternatives = [
+            'crazily' => ['violently', 'intensely', 'rapidly'],
+            'violently' => ['crazily', 'intensely', 'rapidly'],
+            'rapidly' => ['crazily', 'intensely', 'violently'],
+            'intensely' => ['crazily', 'violently', 'rapidly'],
+        ];
+        foreach ($adverbAlternatives as $adverb => $alternatives) {
+            $count = preg_match_all('/\b' . $adverb . '\b/i', $text);
+            if ($count > 2) {
+                $n = 0;
+                $altIdx = 0;
+                $text = preg_replace_callback('/\b' . $adverb . '\b/i', function ($match) use (&$n, &$altIdx, $alternatives) {
+                    $n++;
+                    // Keep 1st and 2nd occurrence, replace 3rd+ with alternatives
+                    if ($n > 2) {
+                        $alt = $alternatives[$altIdx % count($alternatives)];
+                        $altIdx++;
+                        return $alt;
+                    }
+                    return $match[0];
+                }, $text);
+            }
+        }
+
         // Clean up double spaces
         $text = preg_replace('/\s{2,}/', ' ', $text);
         $text = trim($text);
@@ -2221,7 +2247,7 @@ VIDEOPROMPT RULES (MUST FOLLOW):
 2. FORMAT: Subject + [Seedance adverb] + motion verb + body parts/target. Adverbs BEFORE verbs.
 3. OFFICIAL ADVERBS ONLY: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Modifiers: with large amplitude, at high frequency.
 4. EMOTIONAL STATE IN EVERY ACTION: "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If analysis says angry/aggressive/surprised/exasperated — that emotion MUST appear in the sentence as a visible physical state.
-5. WORD COUNT: 90-100 words. Under 80 = missing phases. Over 110 = too verbose. Count your words.
+5. WORD COUNT: 90-100 words MANDATORY. If your draft is under 85 words, ADD more physical detail to each sentence (body parts, directions, intensity). Each sentence should be 10-14 words. Count before outputting.
 6. BANNED — NO sound words (hissing, meowing, growling, yowling). NO dialogue text (saying 'Get off!'). NO scene/appearance descriptions. VISIBLE MOTION ONLY.
 7. LAST SENTENCE = the FINAL action (resolution/departure), NOT the climax.
 8. End with "Cinematic, photorealistic."
