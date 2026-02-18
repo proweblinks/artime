@@ -1987,7 +1987,9 @@ PROMPT;
                 if ($hasDisplacement) {
                     // Extract displaced object names from re-query results
                     $displacedObjects = [];
-                    if (preg_match_all('/DISPLACED:\s*"?([^"—\n]+)"?\s*—/i', $recheckText, $dMatches)) {
+                    // Match: DISPLACED (with optional markdown **) ... "object name" —
+                    // Handles: **DISPLACED:** "iced coffee cup" —  and  DISPLACED: "cup" —
+                    if (preg_match_all('/DISPLACED[^"]*"([^"]+)"\s*(?:—|--)/i', $recheckText, $dMatches)) {
                         $displacedObjects = array_map(function($name) {
                             return trim(strtolower($name));
                         }, $dMatches[1]);
@@ -2007,24 +2009,38 @@ PROMPT;
                         );
                     }
 
-                    // Also remove blanket "all objects remained undisturbed" claims
+                    // Remove blanket "undisturbed" claims in various formats:
+                    // "all objects remained undisturbed", "remain on the counter, undisturbed"
+                    // "OBJECTS THAT STAYED: The iced coffee cup... remain... undisturbed"
                     $analysis = preg_replace(
                         '/(?:all (?:other )?objects (?:on the |on a )?(?:counter|table|surface|desk|shelf)?.*?(?:remain(?:s|ed)?|stay(?:s|ed)?).*?(?:undisturbed|in place|stationary|unmoved|intact))[.\s]*/i',
                         '',
                         $analysis
                     );
+                    // Also catch: "The iced coffee cup, the stack of lids, and the straw dispenser remain on the counter, undisturbed."
+                    $analysis = preg_replace(
+                        '/(?:The [\w\s,]+(?:and the [\w\s]+)?remain(?:s|ed)?\s+(?:on the |on a )?[\w\s]*,?\s*undisturbed)[.\s]*/i',
+                        '',
+                        $analysis
+                    );
+                    // Remove "OBJECTS THAT STAYED:" lines that list items as undisturbed
+                    $analysis = preg_replace(
+                        '/\*{0,2}OBJECTS THAT STAYED:?\*{0,2}[^\n]*(?:undisturbed|in place|remained)[^\n]*/i',
+                        '',
+                        $analysis
+                    );
 
-                    // Replace the entire Object Displacement Tracking section if it exists
-                    if (preg_match('/(?:\*{1,2}\s*)?(?:####?\s*)?OBJECT DISPLACEMENT TRACKING[^\n]*\n/i', $analysis)) {
-                        // Find the section and replace its content with the corrected version
+                    // Replace the entire Object Displacement section if it exists
+                    // Handles: "OBJECT DISPLACEMENT TRACKING", "Object Displacement Summary:", etc.
+                    $sectionPattern = '/(?:\*{1,2}\s*)?(?:####?\s*)?(?:OBJECT DISPLACEMENT(?:\s+TRACKING|\s+SUMMARY)?):?[^\n]*\n/i';
+                    if (preg_match($sectionPattern, $analysis)) {
                         $analysis = preg_replace(
-                            '/((?:\*{1,2}\s*)?(?:####?\s*)?OBJECT DISPLACEMENT TRACKING[^\n]*\n)(.+?)(?=\n(?:###|\*\*\*|---|\d+\.\s|$))/is',
+                            '/((?:\*{1,2}\s*)?(?:####?\s*)?(?:OBJECT DISPLACEMENT(?:\s+TRACKING|\s+SUMMARY)?):?[^\n]*\n)(.+?)(?=\n(?:###|\*\*\*|---|\d+\.\s|$))/is',
                             "$1" . $recheckText . "\n",
                             $analysis
                         );
-                        Log::info('ConceptCloner: Replaced Object Displacement Tracking section with corrected version');
+                        Log::info('ConceptCloner: Replaced Object Displacement section with corrected version');
                     } else {
-                        // No existing section found — append the correction
                         $analysis .= "\n\n--- OBJECT DISPLACEMENT (verified frame-by-frame) ---\n" . $recheckText;
                     }
 
