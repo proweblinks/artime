@@ -1196,31 +1196,8 @@ CLONE_RULES;
         $text = preg_replace('/\.{2,}/', '.', $text);
         // Fix "word, ." at end of sentence
         $text = preg_replace('/,\s*\./', '.', $text);
-        // Phase 6: Deduplicate overused Seedance adverbs
-        // If any adverb appears 3+ times, replace alternating occurrences with other high-energy adverbs
-        $adverbAlternatives = [
-            'crazily' => ['violently', 'intensely', 'rapidly'],
-            'violently' => ['crazily', 'intensely', 'rapidly'],
-            'rapidly' => ['crazily', 'intensely', 'violently'],
-            'intensely' => ['crazily', 'violently', 'rapidly'],
-        ];
-        foreach ($adverbAlternatives as $adverb => $alternatives) {
-            $count = preg_match_all('/\b' . $adverb . '\b/i', $text);
-            if ($count > 2) {
-                $n = 0;
-                $altIdx = 0;
-                $text = preg_replace_callback('/\b' . $adverb . '\b/i', function ($match) use (&$n, &$altIdx, $alternatives) {
-                    $n++;
-                    // Keep 1st and 2nd occurrence, replace 3rd+ with alternatives
-                    if ($n > 2) {
-                        $alt = $alternatives[$altIdx % count($alternatives)];
-                        $altIdx++;
-                        return $alt;
-                    }
-                    return $match[0];
-                }, $text);
-            }
-        }
+        // Phase 6: Deduplicate overused Seedance adverbs — use count-aware replacement
+        $text = self::deduplicateSeedanceAdverbs($text);
 
         // Clean up double spaces
         $text = preg_replace('/\s{2,}/', ' ', $text);
@@ -1236,27 +1213,35 @@ CLONE_RULES;
      */
     public static function deduplicateSeedanceAdverbs(string $text): string
     {
-        $adverbAlternatives = [
-            'crazily' => ['violently', 'intensely', 'rapidly'],
-            'violently' => ['crazily', 'intensely', 'rapidly'],
-            'rapidly' => ['crazily', 'intensely', 'violently'],
-            'intensely' => ['crazily', 'violently', 'rapidly'],
-        ];
-        foreach ($adverbAlternatives as $adverb => $alternatives) {
-            $count = preg_match_all('/\b' . $adverb . '\b/i', $text);
-            if ($count > 2) {
-                $n = 0;
-                $altIdx = 0;
-                $text = preg_replace_callback('/\b' . $adverb . '\b/i', function ($match) use (&$n, &$altIdx, $alternatives) {
-                    $n++;
-                    if ($n > 2) {
-                        $alt = $alternatives[$altIdx % count($alternatives)];
-                        $altIdx++;
-                        return $alt;
-                    }
-                    return $match[0];
-                }, $text);
-            }
+        $allAdverbs = ['crazily', 'violently', 'rapidly', 'intensely', 'slowly', 'gently', 'steadily', 'smoothly'];
+
+        // Count all adverbs first to pick alternatives that aren't already overused
+        $counts = [];
+        foreach ($allAdverbs as $adv) {
+            $counts[$adv] = preg_match_all('/\b' . $adv . '\b/i', $text);
+        }
+
+        foreach ($allAdverbs as $adverb) {
+            if ($counts[$adverb] <= 2) continue;
+
+            // Find alternatives that have room (under 2 uses)
+            $available = array_filter($allAdverbs, fn($a) => $a !== $adverb && $counts[$a] < 2);
+            if (empty($available)) continue;
+
+            $available = array_values($available);
+            $n = 0;
+            $altIdx = 0;
+            $text = preg_replace_callback('/\b' . $adverb . '\b/i', function ($match) use (&$n, &$altIdx, $available, &$counts, $adverb) {
+                $n++;
+                if ($n > 2) {
+                    $alt = $available[$altIdx % count($available)];
+                    $altIdx++;
+                    $counts[$alt]++;
+                    $counts[$adverb]--;
+                    return $alt;
+                }
+                return $match[0];
+            }, $text);
         }
         return $text;
     }
