@@ -33548,10 +33548,10 @@ PROMPT;
         // Ensure "Cinematic, photorealistic." suffix
         $result['videoPrompt'] = trim($result['videoPrompt']) . '. Cinematic, photorealistic.';
 
-        // Word count enforcement — wider limit (230) to preserve all action beats from source video
+        // Word count enforcement — concise limit (150) for 10-second Seedance videos
         $cloneWordCount = str_word_count($result['videoPrompt']);
-        if ($cloneWordCount > 230) {
-            Log::info('VideoWizard: Clone passthrough over 230 words, trimming', ['wordCount' => $cloneWordCount]);
+        if ($cloneWordCount > 150) {
+            Log::info('VideoWizard: Clone passthrough over 150 words, trimming', ['wordCount' => $cloneWordCount]);
             $sentences = preg_split('/(?<=\.)\s+(?=[A-Z"])/', $result['videoPrompt']);
             if (count($sentences) > 3) {
                 $closing = [array_pop($sentences)]; // "Cinematic, photorealistic."
@@ -33561,7 +33561,7 @@ PROMPT;
                 $currentWords = str_word_count(implode(' ', $opening)) + str_word_count(implode(' ', $closing));
                 foreach ($middle as $sentence) {
                     $sentenceWords = str_word_count($sentence);
-                    if ($currentWords + $sentenceWords <= 210) {
+                    if ($currentWords + $sentenceWords <= 140) {
                         $kept[] = $sentence;
                         $currentWords += $sentenceWords;
                     }
