@@ -1264,7 +1264,7 @@
 
                         {{-- AI Image Studio button --}}
                         <button class="vw-social-action-btn"
-                                wire:click="openImageStudio('scene', 0)"
+                                wire:click="openImageStudio('shot', 0, 0)"
                                 title="{{ __('Edit image with AI') }}"
                                 style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Edit') }}

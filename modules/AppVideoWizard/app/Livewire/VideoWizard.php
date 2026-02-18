@@ -37720,10 +37720,21 @@ PROMPT;
             if (isset($this->videoAnalysisResult)) {
                 $this->videoAnalysisResult['firstFrameUrl'] = $url;
             }
+            // Also sync to scene and shot data for Social Content
+            if (isset($this->storyboard['scenes'][0])) {
+                $this->storyboard['scenes'][0]['imageUrl'] = $url;
+            }
+            if (isset($this->multiShotMode['decomposedScenes'][0]['shots'][0])) {
+                $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $url;
+            }
         } elseif ($type === 'scene' && $sceneIndex !== null) {
             if (isset($this->storyboard['scenes'][$sceneIndex])) {
                 $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $url;
                 $this->storyboard['scenes'][$sceneIndex]['edited'] = true;
+            }
+            // Also sync to multiShot shot 0 if it exists
+            if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][0]['imageUrl'] = $url;
             }
             $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', $action, $url, $prompt, 'gemini-3-pro');
         } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
