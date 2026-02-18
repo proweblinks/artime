@@ -37283,7 +37283,8 @@ PROMPT;
         }
 
         $this->cloneImageEditPrompt = $styles[$styleKey]['prompt'];
-        $this->applyCloneImageEdit();
+        $this->cloneImageEditError = null;
+        // User can now review, customize, and click Apply
     }
 
     /**
@@ -37316,80 +37317,81 @@ PROMPT;
      */
     protected function getReimaginationStyles(): array
     {
-        $suffix = ' Maintain the exact same composition, characters, poses, and scene layout.';
+        $core = 'Completely reimagine this entire scene as if it exists in';
+        $rule = 'Transform everything — characters, clothing, materials, environment, objects, lighting, textures, and atmosphere — so that everything authentically belongs to this world. Keep the same characters and their interactions but reimagine HOW they look if they were native to this reality.';
 
         return [
             'anime' => [
-                'name' => 'Anime / Manga',
+                'name' => 'Anime World',
                 'icon' => 'fa-solid fa-star',
                 'color' => '#f472b6',
-                'prompt' => 'Transform this image into anime/manga style with clean line art, vibrant colors, expressive eyes, and cel-shading typical of Japanese animation.' . $suffix,
+                'prompt' => "{$core} a Japanese anime universe. {$rule} Characters become anime-styled with large expressive eyes, stylized hair, and dynamic poses. The environment transforms into a hand-painted anime backdrop with vivid saturated colors and dramatic lighting.",
             ],
             'ghibli' => [
                 'name' => 'Studio Ghibli',
                 'icon' => 'fa-solid fa-cloud',
                 'color' => '#34d399',
-                'prompt' => 'Transform this image into Studio Ghibli style with soft watercolor textures, warm natural lighting, lush detailed backgrounds, and gentle whimsical atmosphere.' . $suffix,
+                'prompt' => "{$core} a Studio Ghibli film by Hayao Miyazaki. {$rule} Everything becomes warm, magical, and painterly — soft watercolor skies, lush hand-painted nature, whimsical details everywhere. Characters have Ghibli's gentle rounded features and expressive simplicity. The world feels alive with quiet wonder.",
             ],
             'pixar' => [
-                'name' => 'Pixar 3D',
+                'name' => 'Pixar / Disney',
                 'icon' => 'fa-solid fa-cube',
                 'color' => '#60a5fa',
-                'prompt' => 'Transform this image into Pixar 3D animation style with smooth subsurface skin rendering, cartoon proportions, expressive features, and polished CGI look.' . $suffix,
-            ],
-            'oil_painting' => [
-                'name' => 'Oil Painting',
-                'icon' => 'fa-solid fa-palette',
-                'color' => '#f59e0b',
-                'prompt' => 'Transform this image into a classical oil painting with rich impasto brushstrokes, chiaroscuro lighting, deep saturated colors, and museum-quality fine art aesthetics.' . $suffix,
-            ],
-            'watercolor' => [
-                'name' => 'Watercolor',
-                'icon' => 'fa-solid fa-droplet',
-                'color' => '#818cf8',
-                'prompt' => 'Transform this image into a watercolor painting with soft color washes, paint bleeding effects, translucent layers, visible paper texture, and delicate artistic quality.' . $suffix,
-            ],
-            'comic_book' => [
-                'name' => 'Comic Book',
-                'icon' => 'fa-solid fa-bolt',
-                'color' => '#ef4444',
-                'prompt' => 'Transform this image into comic book style with thick bold outlines, cel-shading, halftone dots, vivid primary colors, and dynamic graphic novel aesthetics.' . $suffix,
+                'prompt' => "{$core} a Pixar or Disney 3D animated film. {$rule} Everything becomes polished CGI with smooth subsurface skin, exaggerated cartoon proportions, big expressive eyes, and the warm cinematic lighting of a Pixar movie. The environment looks like a detailed 3D-rendered film set.",
             ],
             'cyberpunk' => [
-                'name' => 'Cyberpunk',
+                'name' => 'Cyberpunk 2077',
                 'icon' => 'fa-solid fa-microchip',
                 'color' => '#06b6d4',
-                'prompt' => 'Transform this image into cyberpunk style with neon lights, rain-slicked surfaces, holographic elements, futuristic tech, and dystopian atmosphere with pink and cyan color palette.' . $suffix,
+                'prompt' => "{$core} a cyberpunk dystopian future city. {$rule} Everything is reimagined with neon lights, holographic displays, chrome and titanium surfaces, cybernetic augmentations, rain-slicked streets, and towering megastructures. Clothing becomes tech-wear with glowing accents. Pink and cyan neon dominates the palette.",
             ],
-            'vintage_film' => [
-                'name' => 'Vintage Film',
-                'icon' => 'fa-solid fa-film',
+            'art_deco_1920s' => [
+                'name' => '1920s Art Deco',
+                'icon' => 'fa-solid fa-building-columns',
                 'color' => '#d97706',
-                'prompt' => 'Transform this image into vintage film photography style with warm amber tones, visible film grain, slightly faded contrast, soft vignette, and nostalgic 1970s Kodachrome feel.' . $suffix,
+                'prompt' => "{$core} the 1920s Art Deco era — the Roaring Twenties. {$rule} Everything transforms into gold, brass, geometric patterns, and lavish glamour. Characters wear period-appropriate flapper dresses, three-piece suits, fedoras. The environment features Art Deco architecture, ornate patterns, warm amber lighting, and the elegant excess of the Jazz Age.",
+            ],
+            'medieval' => [
+                'name' => 'Medieval Fantasy',
+                'icon' => 'fa-solid fa-chess-rook',
+                'color' => '#a3e635',
+                'prompt' => "{$core} a medieval fantasy kingdom. {$rule} Characters wear armor, robes, or peasant garb. Modern objects become their medieval equivalents — phones become scrolls, cars become horses, buildings become stone castles or thatched cottages. Candlelight and torches provide warm flickering illumination. The world is swords, shields, and ancient stone.",
+            ],
+            'post_apocalyptic' => [
+                'name' => 'Post-Apocalyptic',
+                'icon' => 'fa-solid fa-radiation',
+                'color' => '#78716c',
+                'prompt' => "{$core} a post-apocalyptic wasteland after civilization collapsed. {$rule} Everything is worn, rusted, patched together from salvage. Characters wear makeshift survival gear, goggles, and tattered layers. The environment is desolate ruins, overgrown decay, dust storms, and harsh survivalist aesthetics. Colors are muted earth tones with occasional fire glow.",
+            ],
+            'retro_80s' => [
+                'name' => 'Retro 80s',
+                'icon' => 'fa-solid fa-compact-disc',
+                'color' => '#e879f9',
+                'prompt' => "{$core} the 1980s synthwave / retrowave aesthetic. {$rule} Everything glows with neon pink, purple, and electric blue. Chrome surfaces, laser grids, sunset gradients, VHS scan lines, and Miami Vice vibes. Characters wear 80s fashion — shoulder pads, leather jackets, sunglasses at night. The world pulses with synthwave energy.",
             ],
             'dark_gothic' => [
                 'name' => 'Dark Gothic',
                 'icon' => 'fa-solid fa-skull',
                 'color' => '#6b7280',
-                'prompt' => 'Transform this image into dark gothic style with deep dramatic shadows, desaturated moody palette, Victorian ornate details, and atmospheric haunting quality.' . $suffix,
+                'prompt' => "{$core} a dark Victorian Gothic world. {$rule} Everything becomes shadowy, ornate, and haunting — wrought iron, gargoyles, candelabras, velvet, stained glass. Characters wear dark Victorian clothing with dramatic silhouettes. The atmosphere is fog, moonlight, deep shadows, and eerie beauty. Think Tim Burton meets Gothic cathedral.",
             ],
-            'minimalist' => [
-                'name' => 'Minimalist',
-                'icon' => 'fa-solid fa-minus',
-                'color' => '#e2e8f0',
-                'prompt' => 'Transform this image into minimalist art style with geometric shapes, limited color palette, generous negative space, clean lines, and simple elegant composition.' . $suffix,
+            'comic_book' => [
+                'name' => 'Comic Book',
+                'icon' => 'fa-solid fa-bolt',
+                'color' => '#ef4444',
+                'prompt' => "{$core} a bold comic book / graphic novel universe. {$rule} Everything is rendered with thick black outlines, cel-shading, halftone dot patterns, vivid primary colors, and dynamic action lines. Characters look like they stepped out of a Marvel or DC comic panel. The scene has the dramatic energy and visual punch of a splash page.",
             ],
-            'sketch' => [
-                'name' => 'Pencil Sketch',
-                'icon' => 'fa-solid fa-pencil',
-                'color' => '#9ca3af',
-                'prompt' => 'Transform this image into a detailed pencil sketch with graphite textures, cross-hatching shading, clean line work on white paper background, and hand-drawn artistic quality.' . $suffix,
+            'steampunk' => [
+                'name' => 'Steampunk',
+                'icon' => 'fa-solid fa-gear',
+                'color' => '#b45309',
+                'prompt' => "{$core} a steampunk world where Victorian era meets steam-powered technology. {$rule} Everything is reimagined with brass gears, copper pipes, leather straps, clockwork mechanisms, and steam vents. Characters wear goggles, corsets, top hats, and mechanical prosthetics. The environment is a workshop of impossible brass machinery and Victorian industrial grandeur.",
             ],
-            'pop_art' => [
-                'name' => 'Pop Art',
-                'icon' => 'fa-solid fa-shapes',
+            'ancient_mythology' => [
+                'name' => 'Ancient World',
+                'icon' => 'fa-solid fa-landmark',
                 'color' => '#fbbf24',
-                'prompt' => 'Transform this image into pop art style with bold primary colors, Ben-Day dots pattern, strong outlines, high contrast, and Andy Warhol-inspired graphic aesthetics.' . $suffix,
+                'prompt' => "{$core} the ancient Greco-Roman classical world of mythology. {$rule} Everything transforms into white marble, gold laurels, flowing togas, and grand columned temples. Characters become like figures from Greek mythology — heroic proportions, draped fabrics, sandals. The environment features Mediterranean sunlight, olive groves, marble statues, and the grandeur of Mount Olympus.",
             ],
         ];
     }
@@ -37465,6 +37467,9 @@ PROMPT;
         $this->isApplyingStudioEdit = true;
         $this->imageStudioError = null;
 
+        // Determine action type based on active tab
+        $action = ($this->imageStudioTab === 'reimagine') ? 'reimagined' : 'edited';
+
         try {
             $imageService = app(ImageGenerationService::class);
             $result = $imageService->editImageWithPrompt($currentUrl, $this->imageStudioPrompt);
@@ -37475,7 +37480,7 @@ PROMPT;
                 $this->imageStudioTarget['imageUrl'] = $result['imageUrl'];
 
                 // Write back to the source data
-                $this->writeImageToTarget($result['imageUrl'], 'edited', $this->imageStudioPrompt);
+                $this->writeImageToTarget($result['imageUrl'], $action, $this->imageStudioPrompt);
                 $this->imageStudioPrompt = '';
             } else {
                 throw new \Exception($result['error'] ?? __('Edit failed'));
@@ -37488,7 +37493,8 @@ PROMPT;
     }
 
     /**
-     * Reimagine the image in a specific art style via the Universal AI Image Studio.
+     * Select a reimagination style — populates the prompt field for user review/customization.
+     * Does NOT auto-apply. User must click "Reimagine" to execute.
      */
     public function reimagineImageStudio(string $styleKey): void
     {
@@ -37500,7 +37506,8 @@ PROMPT;
         }
 
         $this->imageStudioPrompt = $styles[$styleKey]['prompt'];
-        $this->applyImageStudioEdit();
+        $this->imageStudioError = null;
+        // User can now review, customize, and click Apply
     }
 
     /**

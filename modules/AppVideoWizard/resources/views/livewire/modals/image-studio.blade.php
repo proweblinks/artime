@@ -69,7 +69,7 @@
                 @endif
 
                 {{-- Loading overlay (wire:loading.flex so Livewire hides by default, shows as flex when loading) --}}
-                <div wire:loading.flex wire:target="applyImageStudioEdit, reimagineImageStudio"
+                <div wire:loading.flex wire:target="applyImageStudioEdit"
                      style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border: 3px solid rgba(139,92,246,0.3); border-top-color: #a78bfa; border-radius: 50%; animation: imgStudioSpin 1s linear infinite;"></div>
                     <span style="color: #c4b5fd; font-size: 0.85rem;">{{ __('Applying changes...') }}</span>
@@ -155,63 +155,81 @@
             </div>
 
             {{-- ============ REIMAGINE TAB ============ --}}
-            <div x-show="activeTab === 'reimagine'" x-cloak>
+            <div x-show="activeTab === 'reimagine'" x-cloak
+                 x-data="{ selectedStyle: null }">
+
+                {{-- Explanation --}}
+                <p style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.45); font-size: 0.75rem; line-height: 1.4;">
+                    {{ __('Reimagine transforms the entire scene into a different world — characters, environment, clothing, and atmosphere all change to match the chosen reality.') }}
+                </p>
+
                 {{-- Style Grid --}}
                 <div style="margin-bottom: 0.75rem;">
-                    <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a Style') }}</label>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                    <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.5rem;">{{ __('Choose a World') }}</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem;">
                         @php
                             $reimagineStyles = [
-                                'anime' => ['name' => __('Anime / Manga'), 'icon' => 'fa-solid fa-star', 'color' => '#f472b6'],
+                                'anime' => ['name' => __('Anime World'), 'icon' => 'fa-solid fa-star', 'color' => '#f472b6'],
                                 'ghibli' => ['name' => __('Studio Ghibli'), 'icon' => 'fa-solid fa-cloud', 'color' => '#34d399'],
-                                'pixar' => ['name' => __('Pixar 3D'), 'icon' => 'fa-solid fa-cube', 'color' => '#60a5fa'],
-                                'oil_painting' => ['name' => __('Oil Painting'), 'icon' => 'fa-solid fa-palette', 'color' => '#f59e0b'],
-                                'watercolor' => ['name' => __('Watercolor'), 'icon' => 'fa-solid fa-droplet', 'color' => '#818cf8'],
-                                'comic_book' => ['name' => __('Comic Book'), 'icon' => 'fa-solid fa-bolt', 'color' => '#ef4444'],
-                                'cyberpunk' => ['name' => __('Cyberpunk'), 'icon' => 'fa-solid fa-microchip', 'color' => '#06b6d4'],
-                                'vintage_film' => ['name' => __('Vintage Film'), 'icon' => 'fa-solid fa-film', 'color' => '#d97706'],
+                                'pixar' => ['name' => __('Pixar / Disney'), 'icon' => 'fa-solid fa-cube', 'color' => '#60a5fa'],
+                                'cyberpunk' => ['name' => __('Cyberpunk 2077'), 'icon' => 'fa-solid fa-microchip', 'color' => '#06b6d4'],
+                                'art_deco_1920s' => ['name' => __('1920s Art Deco'), 'icon' => 'fa-solid fa-building-columns', 'color' => '#d97706'],
+                                'medieval' => ['name' => __('Medieval Fantasy'), 'icon' => 'fa-solid fa-chess-rook', 'color' => '#a3e635'],
+                                'post_apocalyptic' => ['name' => __('Post-Apocalyptic'), 'icon' => 'fa-solid fa-radiation', 'color' => '#78716c'],
+                                'retro_80s' => ['name' => __('Retro 80s'), 'icon' => 'fa-solid fa-compact-disc', 'color' => '#e879f9'],
                                 'dark_gothic' => ['name' => __('Dark Gothic'), 'icon' => 'fa-solid fa-skull', 'color' => '#6b7280'],
-                                'minimalist' => ['name' => __('Minimalist'), 'icon' => 'fa-solid fa-minus', 'color' => '#e2e8f0'],
-                                'sketch' => ['name' => __('Pencil Sketch'), 'icon' => 'fa-solid fa-pencil', 'color' => '#9ca3af'],
-                                'pop_art' => ['name' => __('Pop Art'), 'icon' => 'fa-solid fa-shapes', 'color' => '#fbbf24'],
+                                'comic_book' => ['name' => __('Comic Book'), 'icon' => 'fa-solid fa-bolt', 'color' => '#ef4444'],
+                                'steampunk' => ['name' => __('Steampunk'), 'icon' => 'fa-solid fa-gear', 'color' => '#b45309'],
+                                'ancient_mythology' => ['name' => __('Ancient World'), 'icon' => 'fa-solid fa-landmark', 'color' => '#fbbf24'],
                             ];
                         @endphp
 
                         @foreach($reimagineStyles as $key => $style)
                             <button type="button"
+                                    @click="selectedStyle = '{{ $key }}'"
                                     wire:click="reimagineImageStudio('{{ $key }}')"
-                                    style="padding: 0.6rem 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; transition: background 0.2s, border-color 0.2s, transform 0.2s;"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='{{ $style['color'] }}50'; this.style.transform='translateY(-1px)';"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)';">
-                                <i class="{{ $style['icon'] }}" style="font-size: 1.1rem; color: {{ $style['color'] }};"></i>
-                                <span style="color: rgba(255,255,255,0.8); font-size: 0.7rem; font-weight: 500; text-align: center; line-height: 1.2;">{{ $style['name'] }}</span>
+                                    :class="selectedStyle === '{{ $key }}' ? 'img-studio-style-active' : 'img-studio-style'"
+                                    style="padding: 0.5rem 0.35rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; transition: all 0.2s;"
+                                    :style="selectedStyle === '{{ $key }}'
+                                        ? 'background: {{ $style['color'] }}18; border: 2px solid {{ $style['color'] }}; transform: translateY(-1px);'
+                                        : 'background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08);'">
+                                <i class="{{ $style['icon'] }}" style="font-size: 1rem; color: {{ $style['color'] }};"></i>
+                                <span style="color: rgba(255,255,255,0.8); font-size: 0.65rem; font-weight: 500; text-align: center; line-height: 1.15;">{{ $style['name'] }}</span>
                             </button>
                         @endforeach
                     </div>
                 </div>
 
-                {{-- Custom reimagine prompt --}}
-                <div>
-                    <label for="studio-reimagine-prompt" style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.35rem;">{{ __('Custom Style Description') }}</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <textarea id="studio-reimagine-prompt"
-                                  wire:model.blur="imageStudioPrompt"
-                                  rows="2"
-                                  placeholder="{{ __('Describe a custom style, e.g. "Medieval tapestry", "Neon noir"...') }}"
-                                  style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: white; font-size: 0.85rem; resize: none; outline: none; font-family: inherit;"
-                                  onfocus="this.style.borderColor='rgba(236,72,153,0.5)'"
-                                  onblur="this.style.borderColor='rgba(255,255,255,0.12)'"></textarea>
-                        <button type="button"
-                                wire:click="applyImageStudioEdit"
-                                wire:loading.attr="disabled"
-                                wire:target="applyImageStudioEdit"
-                                style="padding: 0.5rem 0.85rem; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; border-radius: 0.5rem; color: white; font-size: 0.8rem; font-weight: 500; cursor: pointer; white-space: nowrap; align-self: flex-end;"
-                                onmouseover="this.style.opacity='0.9'"
-                                onmouseout="this.style.opacity='1'">
-                            <i class="fa-solid fa-palette" style="margin-right: 0.3rem;"></i> {{ __('Apply') }}
-                        </button>
-                    </div>
+                {{-- Reimagine prompt textarea --}}
+                <div style="margin-bottom: 0.75rem;">
+                    <label for="studio-reimagine-prompt" style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 500; margin-bottom: 0.35rem;">
+                        {{ __('Reimagine Description') }}
+                        <span style="color: rgba(255,255,255,0.3); font-weight: 400;">— {{ __('customize or write your own') }}</span>
+                    </label>
+                    <textarea id="studio-reimagine-prompt"
+                              wire:model.blur="imageStudioPrompt"
+                              rows="3"
+                              placeholder="{{ __('Choose a world above, or describe your own: "1920s silent film era", "Underwater coral kingdom", "Ancient Egyptian palace"...') }}"
+                              style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: white; font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
+                              onfocus="this.style.borderColor='rgba(236,72,153,0.5)'"
+                              onblur="this.style.borderColor='rgba(255,255,255,0.12)'"></textarea>
                 </div>
+
+                {{-- Reimagine Apply Button --}}
+                <button type="button"
+                        wire:click="applyImageStudioEdit"
+                        wire:loading.attr="disabled"
+                        wire:target="applyImageStudioEdit"
+                        style="width: 100%; padding: 0.65rem 1rem; background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; border-radius: 0.5rem; color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.9'"
+                        onmouseout="this.style.opacity='1'">
+                    <span wire:loading.remove wire:target="applyImageStudioEdit">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 0.3rem;"></i> {{ __('Reimagine') }}
+                    </span>
+                    <span wire:loading wire:target="applyImageStudioEdit">
+                        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.3rem;"></i> {{ __('Reimagining...') }}
+                    </span>
+                </button>
             </div>
         </div>
 
@@ -222,6 +240,7 @@
                     style="padding: 0.45rem 1rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); font-size: 0.85rem; cursor: pointer;">
                 {{ __('Close') }}
             </button>
+            {{-- Apply Edit button (Edit tab only) --}}
             <button type="button"
                     x-show="activeTab === 'edit'"
                     wire:click="applyImageStudioEdit"
