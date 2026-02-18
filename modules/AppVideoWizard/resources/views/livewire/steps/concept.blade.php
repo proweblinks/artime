@@ -574,7 +574,7 @@
 <div class="vw-concept-step">
     @if($isSocialContent ?? false)
         @include('appvideowizard::livewire.steps.partials._social-concept')
-        @include('appvideowizard::livewire.modals.clone-image-editor')
+        @include('appvideowizard::livewire.modals.image-studio')
     @else
     <div class="vw-concept-card">
         {{-- Error Message --}}

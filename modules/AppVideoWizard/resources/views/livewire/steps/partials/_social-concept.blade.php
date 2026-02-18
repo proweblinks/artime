@@ -1070,7 +1070,7 @@
                                      style="width: 100%; max-height: 280px; object-fit: contain; background: #000;">
                                 {{-- AI Image Studio floating button --}}
                                 <button type="button"
-                                        wire:click="openCloneImageEditor"
+                                        wire:click="openImageStudio('clone')"
                                         title="{{ __('AI Image Studio — Edit or Reimagine') }}"
                                         style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
                                         onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(139, 92, 246, 0.6)';"

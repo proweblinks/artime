@@ -1369,6 +1369,23 @@ class VideoWizard extends Component
     public bool $isApplyingCloneEdit = false;
     public array $cloneImageEditHistory = [];
 
+    // Universal AI Image Studio state
+    public bool $showImageStudioModal = false;
+    public string $imageStudioTab = 'edit';
+    public string $imageStudioPrompt = '';
+    public ?string $imageStudioError = null;
+    public bool $isApplyingStudioEdit = false;
+    public array $imageStudioTarget = [
+        'type' => null, 'sceneIndex' => null, 'shotIndex' => null,
+        'imageUrl' => null, 'originalUrl' => null, 'editStack' => [],
+    ];
+
+    // Asset History Panel state
+    public bool $showAssetHistoryPanel = false;
+    public array $assetHistoryTarget = [
+        'type' => null, 'sceneIndex' => null, 'shotIndex' => null,
+    ];
+
     // Character Bible Modal state
     public bool $showCharacterBibleModal = false;
     public int $editingCharacterIndex = 0;
@@ -2392,6 +2409,22 @@ class VideoWizard extends Component
         $this->cloneImageEditError = null;
         $this->isApplyingCloneEdit = false;
         $this->cloneImageEditHistory = [];
+
+        // Reset Universal Image Studio state
+        $this->showImageStudioModal = false;
+        $this->imageStudioTab = 'edit';
+        $this->imageStudioPrompt = '';
+        $this->imageStudioError = null;
+        $this->isApplyingStudioEdit = false;
+        $this->imageStudioTarget = [
+            'type' => null, 'sceneIndex' => null, 'shotIndex' => null,
+            'imageUrl' => null, 'originalUrl' => null, 'editStack' => [],
+        ];
+        $this->showAssetHistoryPanel = false;
+        $this->assetHistoryTarget = [
+            'type' => null, 'sceneIndex' => null, 'shotIndex' => null,
+        ];
+
         $this->detectionSummary = [
             'characters' => [],
             'speechTypes' => [],
@@ -8993,6 +9026,9 @@ PROMPT;
                     'expansionMethod' => $project->getAttribute('_lastExpansionMethod') ?? 'template',
                 ];
 
+                // Track in asset history
+                $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', 'generated', $result['imageUrl'], $result['prompt'] ?? null, $result['model'] ?? 'nanobanana');
+
                 $this->saveProject();
             }
 
@@ -9375,6 +9411,9 @@ PROMPT;
                             'source' => 'ai',
                             'status' => 'ready',
                         ];
+
+                        // Track in asset history
+                        $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', 'generated', $result['imageUrl'], $job->input_data['prompt'] ?? null, 'hidream');
 
                         $this->saveProject();
 
@@ -9768,6 +9807,9 @@ PROMPT;
                             }
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+
+                            // Track in asset history
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] ?? null, $jobType === 'dual_take' ? 'infinitetalk' : ($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] ?? 'minimax'));
 
                             // Initialize segments array for Video Extend support
                             $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
@@ -12896,6 +12938,17 @@ PROMPT;
         $this->cloneImageEditError = null;
         $this->isApplyingCloneEdit = false;
         $this->cloneImageEditHistory = [];
+
+        // Reset Universal Image Studio state
+        $this->showImageStudioModal = false;
+        $this->imageStudioPrompt = '';
+        $this->imageStudioError = null;
+        $this->isApplyingStudioEdit = false;
+        $this->imageStudioTarget = [
+            'type' => null, 'sceneIndex' => null, 'shotIndex' => null,
+            'imageUrl' => null, 'originalUrl' => null, 'editStack' => [],
+        ];
+        $this->showAssetHistoryPanel = false;
 
         // Close the modal
         $this->showProjectManager = false;
@@ -37312,6 +37365,10 @@ PROMPT;
                     'prompt' => $this->aiEditPrompt,
                     'timestamp' => now()->toIso8601String(),
                 ];
+
+                // Track in asset history
+                $this->addAssetHistoryEntry('scene', $this->aiEditSceneIndex, null, 'image', 'edited', $result['imageUrl'], $this->aiEditPrompt, 'gemini-flash');
+
                 $this->saveProject();
                 $this->showAIEditModal = false;
             } else {
@@ -37330,22 +37387,11 @@ PROMPT;
 
     /**
      * Open the Clone Image Editor modal.
-     * Stores the original first frame URL on first open for reset capability.
+     * Now delegates to the Universal AI Image Studio.
      */
     public function openCloneImageEditor(): void
     {
-        if (empty($this->videoAnalysisResult['firstFrameUrl'])) {
-            return;
-        }
-
-        // Store original URL only on first open
-        if ($this->originalFirstFrameUrl === null) {
-            $this->originalFirstFrameUrl = $this->videoAnalysisResult['firstFrameUrl'];
-        }
-
-        $this->cloneImageEditError = null;
-        $this->cloneImageEditPrompt = '';
-        $this->showCloneImageEditorModal = true;
+        $this->openImageStudio('clone');
     }
 
     /**
@@ -37521,6 +37567,309 @@ PROMPT;
                 'prompt' => 'Transform this image into pop art style with bold primary colors, Ben-Day dots pattern, strong outlines, high contrast, and Andy Warhol-inspired graphic aesthetics.' . $suffix,
             ],
         ];
+    }
+
+    // =========================================================================
+    // UNIVERSAL AI IMAGE STUDIO (Edit + Reimagine — any target)
+    // =========================================================================
+
+    /**
+     * Open the Universal AI Image Studio for any target type.
+     */
+    public function openImageStudio(string $type, ?int $sceneIndex = null, ?int $shotIndex = null): void
+    {
+        $imageUrl = null;
+
+        if ($type === 'clone') {
+            $imageUrl = $this->videoAnalysisResult['firstFrameUrl'] ?? null;
+        } elseif ($type === 'scene') {
+            $imageUrl = $this->storyboard['scenes'][$sceneIndex]['imageUrl'] ?? null;
+        } elseif ($type === 'shot') {
+            $imageUrl = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] ?? null;
+        }
+
+        if (empty($imageUrl)) {
+            return;
+        }
+
+        $this->imageStudioTarget = [
+            'type' => $type,
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+            'imageUrl' => $imageUrl,
+            'originalUrl' => $imageUrl,
+            'editStack' => [],
+        ];
+
+        $this->imageStudioPrompt = '';
+        $this->imageStudioError = null;
+        $this->imageStudioTab = 'edit';
+        $this->showImageStudioModal = true;
+    }
+
+    /**
+     * Close the Universal AI Image Studio.
+     */
+    public function closeImageStudio(): void
+    {
+        $this->showImageStudioModal = false;
+        $this->imageStudioError = null;
+        $this->imageStudioPrompt = '';
+    }
+
+    /**
+     * Apply a prompt-based edit in the Universal AI Image Studio.
+     */
+    public function applyImageStudioEdit(): void
+    {
+        if (empty($this->imageStudioPrompt)) {
+            $this->imageStudioError = __('Please describe what you want to change');
+            return;
+        }
+
+        $currentUrl = $this->imageStudioTarget['imageUrl'] ?? null;
+        if (empty($currentUrl)) {
+            $this->imageStudioError = __('No image to edit');
+            return;
+        }
+
+        $this->isApplyingStudioEdit = true;
+        $this->imageStudioError = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+            $result = $imageService->editImageWithPrompt($currentUrl, $this->imageStudioPrompt);
+
+            if ($result['success'] && isset($result['imageUrl'])) {
+                // Push current URL to undo stack
+                $this->imageStudioTarget['editStack'][] = $currentUrl;
+                $this->imageStudioTarget['imageUrl'] = $result['imageUrl'];
+
+                // Write back to the source data
+                $this->writeImageToTarget($result['imageUrl'], 'edited', $this->imageStudioPrompt);
+                $this->imageStudioPrompt = '';
+            } else {
+                throw new \Exception($result['error'] ?? __('Edit failed'));
+            }
+        } catch (\Exception $e) {
+            $this->imageStudioError = __('Failed to apply edit: ') . $e->getMessage();
+        } finally {
+            $this->isApplyingStudioEdit = false;
+        }
+    }
+
+    /**
+     * Reimagine the image in a specific art style via the Universal AI Image Studio.
+     */
+    public function reimagineImageStudio(string $styleKey): void
+    {
+        $styles = $this->getReimaginationStyles();
+
+        if (!isset($styles[$styleKey])) {
+            $this->imageStudioError = __('Unknown style');
+            return;
+        }
+
+        $this->imageStudioPrompt = $styles[$styleKey]['prompt'];
+        $this->applyImageStudioEdit();
+    }
+
+    /**
+     * Undo the last Image Studio edit.
+     */
+    public function undoImageStudioEdit(): void
+    {
+        if (!empty($this->imageStudioTarget['editStack'])) {
+            $previousUrl = array_pop($this->imageStudioTarget['editStack']);
+            $this->imageStudioTarget['imageUrl'] = $previousUrl;
+            $this->writeImageToTarget($previousUrl, 'restored', null);
+        } elseif (!empty($this->imageStudioTarget['originalUrl'])) {
+            $this->imageStudioTarget['imageUrl'] = $this->imageStudioTarget['originalUrl'];
+            $this->writeImageToTarget($this->imageStudioTarget['originalUrl'], 'restored', null);
+        }
+        $this->imageStudioError = null;
+    }
+
+    /**
+     * Reset Image Studio to the original image.
+     */
+    public function resetImageStudioToOriginal(): void
+    {
+        if (!empty($this->imageStudioTarget['originalUrl'])) {
+            $this->imageStudioTarget['imageUrl'] = $this->imageStudioTarget['originalUrl'];
+            $this->imageStudioTarget['editStack'] = [];
+            $this->writeImageToTarget($this->imageStudioTarget['originalUrl'], 'restored', null);
+            $this->imageStudioError = null;
+        }
+    }
+
+    /**
+     * Write the edited image URL back to the correct data location and add asset history.
+     */
+    protected function writeImageToTarget(string $url, string $action, ?string $prompt): void
+    {
+        $type = $this->imageStudioTarget['type'] ?? null;
+        $sceneIndex = $this->imageStudioTarget['sceneIndex'] ?? null;
+        $shotIndex = $this->imageStudioTarget['shotIndex'] ?? null;
+
+        if ($type === 'clone') {
+            if (isset($this->videoAnalysisResult)) {
+                $this->videoAnalysisResult['firstFrameUrl'] = $url;
+            }
+        } elseif ($type === 'scene' && $sceneIndex !== null) {
+            if (isset($this->storyboard['scenes'][$sceneIndex])) {
+                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $url;
+                $this->storyboard['scenes'][$sceneIndex]['edited'] = true;
+            }
+            $this->addAssetHistoryEntry('scene', $sceneIndex, null, 'image', $action, $url, $prompt, 'gemini-3-pro');
+        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
+            if (isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $url;
+            }
+            // Also sync to storyboard scene if this is shot 0
+            if ($shotIndex === 0 && isset($this->storyboard['scenes'][$sceneIndex])) {
+                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $url;
+            }
+            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'image', $action, $url, $prompt, 'gemini-3-pro');
+        }
+
+        if ($action !== 'restored') {
+            $this->saveProject();
+        }
+    }
+
+    /**
+     * Add an asset history entry for a scene or shot.
+     */
+    public function addAssetHistoryEntry(string $targetType, int $sceneIndex, ?int $shotIndex, string $assetType, string $action, string $url, ?string $prompt, ?string $model = null): void
+    {
+        $entry = [
+            'id' => 'hist_' . substr(md5(uniqid('', true)), 0, 8),
+            'type' => $assetType,
+            'action' => $action,
+            'url' => $url,
+            'prompt' => $prompt,
+            'model' => $model,
+            'timestamp' => now()->toIso8601String(),
+            'isActive' => true,
+        ];
+
+        if ($targetType === 'scene' && isset($this->storyboard['scenes'][$sceneIndex])) {
+            // Deactivate previous active entries of same type
+            foreach (($this->storyboard['scenes'][$sceneIndex]['assetHistory'] ?? []) as $i => $h) {
+                if (($h['type'] ?? '') === $assetType) {
+                    $this->storyboard['scenes'][$sceneIndex]['assetHistory'][$i]['isActive'] = false;
+                }
+            }
+            $this->storyboard['scenes'][$sceneIndex]['assetHistory'][] = $entry;
+        } elseif ($targetType === 'shot' && $shotIndex !== null && isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            foreach (($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] ?? []) as $i => $h) {
+                if (($h['type'] ?? '') === $assetType) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][$i]['isActive'] = false;
+                }
+            }
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][] = $entry;
+        }
+    }
+
+    // =========================================================================
+    // ASSET HISTORY PANEL
+    // =========================================================================
+
+    /**
+     * Open the Asset History panel for a target.
+     */
+    public function openAssetHistory(string $type, int $sceneIndex, ?int $shotIndex = null): void
+    {
+        $this->assetHistoryTarget = [
+            'type' => $type,
+            'sceneIndex' => $sceneIndex,
+            'shotIndex' => $shotIndex,
+        ];
+        $this->showAssetHistoryPanel = true;
+    }
+
+    /**
+     * Close the Asset History panel.
+     */
+    public function closeAssetHistory(): void
+    {
+        $this->showAssetHistoryPanel = false;
+    }
+
+    /**
+     * Restore an asset from history by its entry ID.
+     */
+    public function restoreAssetFromHistory(string $historyId): void
+    {
+        $type = $this->assetHistoryTarget['type'] ?? null;
+        $sceneIndex = $this->assetHistoryTarget['sceneIndex'] ?? null;
+        $shotIndex = $this->assetHistoryTarget['shotIndex'] ?? null;
+
+        // Get the history array based on target type
+        $history = [];
+        if ($type === 'scene' && $sceneIndex !== null) {
+            $history = $this->storyboard['scenes'][$sceneIndex]['assetHistory'] ?? [];
+        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
+            $history = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] ?? [];
+        } else {
+            return;
+        }
+
+        // Find the entry to restore
+        $restoredEntry = null;
+        foreach ($history as $entry) {
+            if (($entry['id'] ?? '') === $historyId) {
+                $restoredEntry = $entry;
+                break;
+            }
+        }
+
+        if (!$restoredEntry) {
+            return;
+        }
+
+        $assetType = $restoredEntry['type'];
+        $restoredUrl = $restoredEntry['url'];
+
+        // Update active flags and write back to the correct property
+        if ($type === 'scene' && $sceneIndex !== null) {
+            foreach ($this->storyboard['scenes'][$sceneIndex]['assetHistory'] as $i => $entry) {
+                $this->storyboard['scenes'][$sceneIndex]['assetHistory'][$i]['isActive'] = (($entry['type'] ?? '') === $assetType && ($entry['id'] ?? '') === $historyId);
+            }
+            if ($assetType === 'image') {
+                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $restoredUrl;
+            }
+        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
+            foreach ($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] as $i => $entry) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][$i]['isActive'] = (($entry['type'] ?? '') === $assetType && ($entry['id'] ?? '') === $historyId);
+            }
+            if ($assetType === 'image') {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $restoredUrl;
+            } elseif ($assetType === 'video') {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $restoredUrl;
+            }
+        }
+
+        $this->saveProject();
+    }
+
+    /**
+     * Get the asset history array for the current target.
+     */
+    public function getAssetHistoryForTarget(): array
+    {
+        $type = $this->assetHistoryTarget['type'] ?? null;
+        $sceneIndex = $this->assetHistoryTarget['sceneIndex'] ?? null;
+        $shotIndex = $this->assetHistoryTarget['shotIndex'] ?? null;
+
+        if ($type === 'scene' && $sceneIndex !== null) {
+            return $this->storyboard['scenes'][$sceneIndex]['assetHistory'] ?? [];
+        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
+            return $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] ?? [];
+        }
+
+        return [];
     }
 
     /**

@@ -17,7 +17,7 @@
             @if($imageUrl)
                 <button type="button"
                         class="vw-floating-toolbar-btn primary"
-                        wire:click="$parent.openAIEditModal({{ $sceneIndex }})"
+                        wire:click="$parent.openImageStudio('scene', {{ $sceneIndex }})"
                         title="{{ __('Edit with AI') }}">
                     {{ __('Edit') }}
                 </button>
@@ -164,7 +164,7 @@
                     {{-- Action Buttons Overlay - Bottom of image --}}
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
                         <button type="button"
-                                wire:click="$parent.openAIEditModal({{ $sceneIndex }})"
+                                wire:click="$parent.openImageStudio('scene', {{ $sceneIndex }})"
                                 style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
                                 title="{{ __('Edit with AI') }}">
                             {{ __('Edit') }}

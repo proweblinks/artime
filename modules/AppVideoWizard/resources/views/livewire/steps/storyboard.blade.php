@@ -5445,8 +5445,8 @@ function getCameraMovementIcon($movement) {
                         @if($imageUrl)
                             <button type="button"
                                     class="vw-floating-toolbar-btn primary"
-                                    wire:click="openAIEditModal({{ $index }})"
-                                    title="{{ __('Edit with AI') }}">
+                                    wire:click="openImageStudio('scene', {{ $index }})"
+                                    title="{{ __('AI Image Studio') }}">
                                 ✨ {{ __('Edit') }}
                             </button>
                             <button type="button"
@@ -5455,6 +5455,12 @@ function getCameraMovementIcon($movement) {
                                     wire:loading.attr="disabled"
                                     title="{{ __('Regenerate') }}">
                                 🔄 {{ __('Regen') }}
+                            </button>
+                            <button type="button"
+                                    class="vw-floating-toolbar-btn"
+                                    wire:click="openAssetHistory('scene', {{ $index }})"
+                                    title="{{ __('Asset History') }}">
+                                🕐 {{ __('History') }}
                             </button>
                             <div class="vw-floating-toolbar-divider"></div>
                             <button type="button"
@@ -5742,10 +5748,16 @@ function getCameraMovementIcon($movement) {
                                 {{-- Action Buttons Overlay - Bottom of image --}}
                                 <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
                                     <button type="button"
-                                            wire:click="openAIEditModal({{ $index }})"
+                                            wire:click="openImageStudio('scene', {{ $index }})"
                                             style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
-                                            title="{{ __('Edit with AI') }}">
+                                            title="{{ __('AI Image Studio') }}">
                                         ✨ {{ __('Edit') }}
+                                    </button>
+                                    <button type="button"
+                                            wire:click="openAssetHistory('scene', {{ $index }})"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.5); background: rgba(139,92,246,0.2); color: white; cursor: pointer; font-size: 0.85rem;"
+                                            title="{{ __('Asset History') }}">
+                                        🕐
                                     </button>
                                     <button type="button"
                                             wire:click="openEditPromptModal({{ $index }})"
@@ -6429,7 +6441,7 @@ function getCameraMovementIcon($movement) {
                                 @elseif($imageUrl)
                                     <div class="vw-timeline-shot"
                                          style="width: {{ max(80, $sceneDuration * 10) }}px;"
-                                         wire:click="openAIEditModal({{ $index }})"
+                                         wire:click="openImageStudio('scene', {{ $index }})"
                                          title="{{ __('Scene') }} {{ $index + 1 }}">
                                         <img src="{{ $imageUrl }}" alt="Scene {{ $index + 1 }}" loading="lazy">
                                         <span class="vw-timeline-shot-duration">{{ $sceneDuration }}s</span>
@@ -6522,9 +6534,9 @@ function getCameraMovementIcon($movement) {
                         <div class="vw-side-panel-label">{{ __('Quick Actions') }}</div>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <button type="button"
-                                    @click="$wire.openAIEditModal(sidePanel.sceneIndex)"
+                                    @click="$wire.openImageStudio('scene', sidePanel.sceneIndex)"
                                     style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(236,72,153,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                                ✨ {{ __('Edit with AI') }}
+                                ✨ {{ __('AI Image Studio') }}
                             </button>
                             <button type="button"
                                     @click="$wire.generateImage(sidePanel.sceneIndex, $wire.script?.scenes?.[sidePanel.sceneIndex]?.id)"
@@ -6716,6 +6728,12 @@ function getCameraMovementIcon($movement) {
 
     {{-- Shot Face Correction Modal --}}
     @include('appvideowizard::livewire.modals.shot-face-correction')
+
+    {{-- Universal AI Image Studio Modal --}}
+    @include('appvideowizard::livewire.modals.image-studio')
+
+    {{-- Asset History Panel --}}
+    @include('appvideowizard::livewire.modals.asset-history-panel')
 </div>
 
 <script>

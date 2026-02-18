@@ -1200,6 +1200,10 @@ window.multiShotVideoPolling = function() {
                                                 🔄
                                             </button>
                                         </div>
+                                        <div class="msm-action-row" style="margin-top: 0.2rem;">
+                                            <button wire:click.stop="openImageStudio('shot', {{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-studio-btn" title="{{ __('AI Image Studio') }}">✨ {{ __('Edit') }}</button>
+                                            <button wire:click.stop="openAssetHistory('shot', {{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-history-btn" title="{{ __('Asset History') }}">🕐</button>
+                                        </div>
                                         {{-- Warning if animated with wrong model --}}
                                         @if($wrongModel)
                                             <div class="msm-wrong-model-hint">
@@ -1210,6 +1214,10 @@ window.multiShotVideoPolling = function() {
                                         <div class="msm-action-row">
                                             <button wire:click.stop="openVideoModelSelector({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-animate-btn">🎬 {{ __('Animate') }}</button>
                                             <button wire:click.stop="openShotFaceCorrectionModal({{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-face-btn" title="{{ __('Face Correction') }}">👤 {{ __('Fix Face') }}</button>
+                                        </div>
+                                        <div class="msm-action-row" style="margin-top: 0.2rem;">
+                                            <button wire:click.stop="openImageStudio('shot', {{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-studio-btn" title="{{ __('AI Image Studio') }}">✨ {{ __('Edit') }}</button>
+                                            <button wire:click.stop="openAssetHistory('shot', {{ $multiShotSceneIndex }}, {{ $shotIndex }})" class="msm-history-btn" title="{{ __('Asset History') }}">🕐</button>
                                         </div>
                                     @elseif($isGenVid)
                                         @php
@@ -2273,6 +2281,10 @@ window.multiShotVideoPolling = function() {
 .msm-animate-btn:hover { box-shadow: 0 4px 12px rgba(6,182,212,0.35); }
 .msm-face-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(245,158,11,0.35), rgba(251,191,36,0.3)); border: 1px solid rgba(245,158,11,0.6); border-radius: 6px; color: #fbbf24; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
 .msm-face-btn:hover { box-shadow: 0 4px 12px rgba(245,158,11,0.35); background: linear-gradient(135deg, rgba(245,158,11,0.45), rgba(251,191,36,0.4)); }
+.msm-studio-btn { flex: 1; padding: 0.4rem; background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); border: 1px solid rgba(139,92,246,0.5); border-radius: 6px; color: #c4b5fd; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.msm-studio-btn:hover { box-shadow: 0 4px 12px rgba(139,92,246,0.35); background: linear-gradient(135deg, rgba(236,72,153,0.4), rgba(139,92,246,0.4)); }
+.msm-history-btn { padding: 0.4rem 0.5rem; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.35); border-radius: 6px; color: #a78bfa; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease; }
+.msm-history-btn:hover { background: rgba(139,92,246,0.3); }
 
 .msm-render-status { text-align: center; padding: 0.65rem; background: rgba(6,182,212,0.12); border-radius: 8px; position: relative; }
 .msm-render-status span { font-size: 0.85rem; color: #67e8f9; font-weight: 600; }
