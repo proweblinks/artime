@@ -1687,10 +1687,11 @@ EXAMPLE,
         Log::info('ConceptCloner: Stage 2 complete', ['hasTranscript' => !empty($transcript)]);
 
         // Stage 3: Synthesize into structured concept
-        // Clone synthesis requires 'standard' tier minimum for reliable instruction following.
-        // Economy tier (grok-4-fast) consistently truncates prompts to 4-6 sentences,
-        // ignoring instructions to cover all action phases from the analysis timeline.
-        $synthesisTier = ($aiModelTier === 'economy') ? 'standard' : $aiModelTier;
+        // Clone synthesis requires 'premium' tier (gpt-4o) for reliable instruction following.
+        // Economy tier (grok-4-fast) truncates to 4-6 sentences.
+        // Standard tier (gpt-4o-mini) produces 50-70 words despite 90-100 word instructions,
+        // misses setup/resolution phases, and fabricates ending actions.
+        $synthesisTier = 'premium';
         Log::info('ConceptCloner: Stage 3 — Synthesizing concept', [
             'requestedTier' => $aiModelTier,
             'synthesisTier' => $synthesisTier,
