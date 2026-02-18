@@ -803,34 +803,40 @@ RULES;
     protected function getCloneTechnicalRules(): string
     {
         return <<<'RULES'
-=== CLONE VIDEO PROMPT — CONCISE + FAITHFUL TO ACTION TIMELINE ===
+=== CLONE VIDEO PROMPT — CONCISE + FAITHFUL TO SOURCE VIDEO ===
 
-The videoPrompt MUST be built directly from the ACTION TIMELINE section of the visual analysis.
-85% of the prompt should come from the timeline.
+The videoPrompt MUST be SYNTHESIZED from the ACTION TIMELINE — NOT translated line-by-line.
+Read the full timeline, identify what makes the video INTERESTING, then write a focused prompt.
 
 CONCISENESS IS CRITICAL — Seedance has only 10 seconds to execute ALL actions.
-- 80-130 words total. Under 70 = missing phases. Over 140 = Seedance won't finish all actions.
-- Target: 3-5 action sentences + style anchor. NOT 7-9 sentences.
-- Do NOT repeat the same detail: mention sounds ONCE, not in every sentence.
+- 60-100 words total. Under 50 = missing key action. Over 110 = Seedance won't finish all actions.
+- Target: 3-5 sentences + style anchor. NOT 6-9 sentences.
 
-CRITICAL MOMENTS — FOCUS ON WHAT MATTERS:
-Identify the 2-3 moments that DEFINE the video (the hook, the twist, the main action).
-Give them the MOST words. Setup and transitions get FEWER words.
-- SETUP (20% of words): Brief context — what's happening before the interesting part.
-- TRIGGER/TWIST (20%): The key moment that changes everything.
-- MAIN ACTION (50%): The thing that makes the video interesting/viral/shareable.
-- RESOLUTION (10%): How it ends, if different from main action.
+STEP 1 — IDENTIFY THE VIRAL MOMENT:
+Read the entire timeline and ask: "What is the ONE thing that makes this video interesting/funny/shareable?"
+THAT is the MAIN ACTION. Everything else is setup for it.
 
-CAUSE-EFFECT CHAINS — Express linked actions as ONE flowing beat:
-When actions are causally connected (A causes B causes C), write them as a single compound sentence.
-- BAD (3 sentences, 30 words): "The bike touches the bear's rear. The bear turns its head back, glancing over its shoulder. The bear turns its head forward and continues moving."
-- GOOD (1 sentence, 15 words): "The bike bumps the bear's rear, the bear glances back fast for a half-second."
-Transitions like "turns head back" → "turns head forward" are NOT separate beats.
-A half-second glance is ONE beat, not two. Don't narrate the return to neutral position.
+STEP 2 — ALLOCATE WORDS BY IMPORTANCE (not by timeline frequency):
+- SETUP (15%): 1 short sentence — what's happening before the interesting part starts.
+- TRIGGER (15%): The moment that causes/starts the main action. Often a collision, contact, sound, or surprise.
+- MAIN ACTION (60%): The interesting/viral part — dancing, chaos, reaction. Gets the MOST sentences and MOST detail.
+- RESOLUTION (10%): Brief ending if different from main action. Can be omitted.
 
-CORE RULE: FAITHFULNESS OVER FORMATTING
-- Translate the ACTION TIMELINE into Seedance-compatible sentences IN ORDER.
-- Preserve the sequence and key details from the analysis.
+STEP 3 — CONSOLIDATE REPEATED ACTIONS:
+If the same small action happens multiple times in the timeline (e.g., "glances back" appears 3 times):
+- Do NOT write it 3 times as 3 separate sentences.
+- Mention it ONCE, briefly, with a count or pattern if needed.
+- A quick glance is a HALF-SENTENCE, not a full sentence. Fold it into another beat.
+- BAD (3 sentences for repeated glances): "It turns its head left glancing back. It turns its head left again glancing back. It turns its head left once more glancing back."
+- GOOD (half-sentence): "the bear glances back briefly" — then MOVE ON to the main action.
+
+STEP 4 — CAUSE-EFFECT CHAINS as ONE sentence:
+When actions are causally connected (A causes B), write them as a single compound sentence.
+- BAD (2 sentences): "The bike touches the bear's rear. The bear turns its head back."
+- GOOD (1 sentence): "The bike bumps the bear's rear and the bear glances back fast."
+Don't narrate the return to neutral position. "Turns head back" → "turns head forward" is NOT two beats.
+
+CORE RULE: FAITHFULNESS — DO NOT FABRICATE
 - Do NOT fabricate actions, body movements, or details that are NOT in the analysis.
 - Do NOT add chain reactions, destruction, or environmental effects not described.
 - If the analysis says "walks steadily" → write "walks steadily", NOT "charges powerfully".
@@ -847,13 +853,13 @@ EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
 If a body part should move, DESCRIBE the motion. But only describe motions that ARE in the analysis.
 
-WHAT TO INCLUDE FROM THE ANALYSIS:
+WHAT TO INCLUDE:
 - The TRIGGER moment (what causes the main action to start)
-- The MAIN ACTION (what makes the video interesting — give this the most detail)
-- Movement changes (e.g., "walk shifts into rhythmic sway")
+- The MAIN ACTION (what makes the video interesting — give this the MOST detail and MOST words)
+- Movement quality changes (e.g., "walk shifts into rhythmic hip-swaying")
 - Key contact/collision moments between characters/objects
 - Environmental sounds from visible actions — mention ONCE only
-DO NOT DWELL ON: setup walking, returning to neutral position after a glance, repeated descriptions of following/trailing.
+DO NOT DWELL ON: setup walking, returning to neutral position, repeated minor actions (glances, nods), following/trailing.
 
 WHAT TO NEVER ADD (not in the analysis = not in the prompt):
 - Fabricated body part decomposition (don't invent "front legs extending powerfully" if analysis just says "walking")
@@ -1495,8 +1501,9 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
 WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
-FOCUS ON CRITICAL MOMENTS: Setup = 1 short sentence. Trigger+reaction = 1 cause-effect sentence. Main action = most words.
-3-5 sentences total. Cause-effect chains in ONE sentence. Don't dwell on transitions. Under 60 = missing moments. Over 110 = too slow for Seedance.
+MAIN ACTION gets 60% of words. Setup = 1 short sentence. Trigger = 1 cause-effect sentence. 3-5 sentences total.
+CONSOLIDATE repeated actions: if the same minor action happens multiple times, mention ONCE — don't write separate sentences for each occurrence.
+Under 60 = missing moments. Over 110 = too slow for Seedance.
 DO NOT describe the scene, setting, character appearances, or starting positions — only actions, reactions, sounds, voice, and SIZE/SCALE.
 RULES,
                 'generate' => <<<'RULES'
@@ -2127,7 +2134,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE RULES BELOW — 60-100 words, focused on CRITICAL MOMENTS (trigger, main action), cause-effect chains as single sentences",
+  "videoPrompt": "SEE SEEDANCE RULES BELOW — 60-100 words. MAIN ACTION gets 60% of words. Consolidate repeated minor actions (glances, nods) into one mention. Cause-effect chains as single sentences.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2142,12 +2149,13 @@ The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video genera
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
 WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
-FOCUS ON CRITICAL MOMENTS: Identify the 2-3 moments that define the video. Give them the most words.
-- Setup/context: 1 short sentence. Don't dwell on walking, standing, or other passive states.
-- Trigger + reaction: Express as ONE cause-effect sentence, not two separate beats.
-- Main action (the viral/interesting part): 1-2 detailed sentences — this gets the MOST coverage.
+IDENTIFY THE MAIN ACTION: What makes this video interesting/viral? That gets 60% of the words.
+- Setup: 1 short sentence (15% of words). Don't dwell on walking, standing, following.
+- Trigger: The moment that starts the main action — fold into a cause-effect sentence with the reaction (15%).
+- Main action (the viral/interesting part): 2-3 sentences with the MOST detail (60%).
+- Resolution: Brief, only if different from main action (10%).
+CONSOLIDATE REPEATED ACTIONS: If the same small action happens multiple times (e.g., glancing back 3x), mention it ONCE briefly — don't write separate sentences for each occurrence.
 Aim for 70-90 words in 3-5 sentences. Under 60 = missing key moments. Over 110 = too verbose for 10 seconds.
-If an action lasts half a second (like a quick glance), it gets half a sentence — not a full sentence.
 Remember: NO scene setup, NO character descriptions — start with the first action.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
