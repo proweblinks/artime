@@ -2103,6 +2103,18 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
    - Describe EVERY physical action: pushing, throwing, knocking things over, swatting, chasing, jumping, dancing, swaying, bouncing, bobbing, shuffling, performing, etc.
    - Note the EXACT SECOND when each new action begins
    - Describe what EACH character does independently at each phase
+
+   CRITICAL — OBJECT CONSEQUENCES WITHIN EACH ACTION BEAT:
+   When describing each action beat, you MUST also describe what happens to NEARBY OBJECTS as a DIRECT RESULT of that action. Do NOT separate object effects from the action that caused them.
+   - When a character swats, lunges, jumps on, or moves aggressively near a surface with objects — LOOK AT THE OBJECTS in the next frames. Did they move? Fall? Fly off? Get knocked over?
+   - Include object displacement AS PART OF the action sentence, not as a separate section.
+   WRONG: "The cat swats at the man's hand." (what happened to the cup RIGHT NEXT to the cat's paw?)
+   RIGHT: "The cat swats at the man's hand, its paw striking the iced coffee cup and sending it flying off the counter to the floor."
+   WRONG: "The cat leaps from behind the counter onto the man's back." (did ANYTHING on the counter move when the cat pushed off?)
+   RIGHT: "The cat pushes off the counter and leaps onto the man's back, the force sending the straw dispenser and stack of cups scattering across the counter."
+   - EVERY aggressive action near objects has CONSEQUENCES. A cat leaping off a counter displaces items. A person slamming a table knocks things over. A struggle near a shelf sends items falling. If you describe an aggressive action but claim nearby objects "remained undisturbed" — you are almost certainly WRONG. Watch the frames AFTER the action and report what moved.
+   - At the END of the timeline, provide a summary: "OBJECTS DISPLACED: [list each object and what happened]" and "OBJECTS THAT STAYED: [list]"
+
    - MOVEMENT QUALITY CHANGES — CRITICAL, DO NOT SKIP:
      * Does the character's movement TYPE change at any point? (walking → dancing, standing → swaying, sitting → bouncing)
      * Does movement become RHYTHMIC, SYNCHRONIZED, or DANCE-LIKE at any point? If so, at what second?
@@ -2115,15 +2127,6 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
      * MODERATE: some physical movement, light gestures, minor comedy
      * INTENSE: aggressive movements, throwing, pushing, fast actions
      * EXTREME/WILD: chaotic, things breaking/flying, characters leaping, total pandemonium
-   - What SPECIFIC DESTRUCTIVE or WILD actions happen? (breaking objects, knocking things over, throwing items, jumping on things, pushing things off surfaces, crashing into things)
-   - Be SPECIFIC about the physical destruction: what objects get knocked over, thrown, broken, pushed off surfaces?
-   - OBJECT DISPLACEMENT TRACKING — CRITICAL, DO NOT SKIP:
-     * You identified objects on surfaces in section 2 (Setting & Environment). Now track what happens to them during the action.
-     * When a character moves aggressively on or near a surface (counter, table, desk, shelf), do ANY objects on that surface get displaced, knocked over, pushed aside, or sent flying?
-     * Example: If a cat swats aggressively on a counter that has cups and a straw dispenser, do those items get knocked off? Do they scatter? Do they fall to the floor?
-     * Even if the displacement is a SECONDARY EFFECT (not the main action), it MUST be reported — objects flying off a counter during a fight is visually dramatic and essential for recreation.
-     * For EACH object you identified on a surface in section 2, explicitly state what happened to it: "iced coffee cup — knocked off counter to floor at 0:03" or "stack of cups — remained in place."
-     * Do NOT write a blanket "all objects remained undisturbed" — track EACH object individually. Aggressive action near objects almost always displaces them.
    - What NON-DESTRUCTIVE notable actions happen? (dancing, singing, performing, gesturing, playing, mimicking, posing, flexing)
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
