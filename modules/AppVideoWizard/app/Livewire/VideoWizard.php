@@ -33619,8 +33619,8 @@ PROMPT;
     }
 
     /**
-     * Generate an AI continuation prompt by analyzing the extracted frame.
-     * Routes to neutral (clone) or chaos prompt builder based on workflow mode.
+     * Generate an AI continuation prompt by analyzing the extracted frame + story context.
+     * Fully dynamic — adapts tone, energy, and narrative logic from the original prompt.
      */
     protected function generateContinuationPrompt(string $frameUrl, string $originalPrompt, float $timestamp, array $context = []): string
     {
@@ -33632,44 +33632,31 @@ PROMPT;
             }
 
             $base64 = base64_encode($imageContent);
-            $mimeType = 'image/png';
-
-            // Determine if this is a neutral/clone workflow or chaos workflow
-            $workflowMode = $context['workflowMode'] ?? '';
-            $cloneTemplate = $context['cloneTemplate'] ?? 'adaptive';
-            $isNeutralExtension = ($workflowMode === 'clone' && $cloneTemplate === 'adaptive');
-
-            if ($isNeutralExtension) {
-                $prompt = $this->buildNeutralContinuationPrompt($originalPrompt, $timestamp, $context);
-            } else {
-                $prompt = $this->buildChaosContinuationPrompt($originalPrompt, $timestamp, $context);
-            }
+            $prompt = $this->buildDynamicContinuationPrompt($originalPrompt, $timestamp, $context);
 
             $gemini = app(\App\Services\GeminiService::class);
             $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
                 'model' => 'gemini-2.5-flash',
-                'mimeType' => $mimeType,
+                'mimeType' => 'image/png',
             ]);
 
             if ($result['success'] && !empty($result['text'])) {
                 $text = trim($result['text']);
-                // Strip any markdown formatting or headers the AI might add
+                // Strip markdown formatting
                 $text = preg_replace('/^#+\s+.*$/m', '', $text);
                 $text = preg_replace('/^\d+\.\s+\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = trim($text);
 
-                // Sanitize banned Seedance words that Gemini keeps using despite instructions
+                // Sanitize banned Seedance words
                 $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
 
-                // Remove clothing descriptions Gemini insists on adding
+                // Remove clothing descriptions
                 $text = preg_replace('/\b(his|her|the|a)\s+(pink|blue|green|red|white|black|gray|grey|brown|yellow|orange|purple)\s+(polo\s+shirt|shirt|jacket|hoodie|sweater|vest|coat|jeans|pants|shorts|dress|skirt|blouse|apron|uniform)\b/i', '$1 torso', $text);
-                $text = preg_replace('/\b(into|onto|on|against|from)\s+(the\s+)?(man\'s|her|his)\s+(jacket|shirt|hoodie|polo|sweater|vest|coat|sleeve|collar|pocket)\b/i', '$1 $3 torso', $text);
 
-                // Fix truncation — if prompt ends mid-sentence (no period/exclamation at end), trim to last complete sentence
+                // Fix truncation
                 $text = rtrim($text);
                 if (!preg_match('/[.!"]$/', $text)) {
-                    // Truncated — find last complete sentence
                     $lastPeriod = strrpos($text, '.');
                     $lastExclamation = strrpos($text, '!');
                     $lastQuote = strrpos($text, '"');
@@ -33679,28 +33666,14 @@ PROMPT;
                     }
                 }
 
-                // Ensure style anchor is present at the end
+                // Ensure style anchor
                 if (!str_contains($text, 'Cinematic, photorealistic')) {
-                    $text = rtrim($text, '. ');
-                    if ($isNeutralExtension) {
-                        // Neutral clone — just add the cinematic anchor, no forced screaming
-                        $text .= '. Cinematic, photorealistic.';
-                    } else {
-                        // Chaos mode — add aggressive sound + cinematic anchor
-                        if (!str_contains($text, 'screaming throughout')) {
-                            $text .= '. Continuous crazy aggressive screaming throughout. Cinematic, photorealistic.';
-                        } else {
-                            $text .= ' Cinematic, photorealistic.';
-                        }
-                    }
+                    $text = rtrim($text, '. ') . '. Cinematic, photorealistic.';
                 }
 
-                // Strip any face prefix the AI may have added (image defines the face)
+                // Strip face prefix
                 $text = preg_replace('/Maintain face[^.]*\.\s*/i', '', $text);
-
-                // Final cleanup — double spaces from removals
-                $text = preg_replace('/\s{2,}/', ' ', $text);
-                $text = trim($text);
+                $text = preg_replace('/\s{2,}/', ' ', trim($text));
 
                 return $text;
             }
@@ -33833,242 +33806,114 @@ PROMPT;
      * Build a NEUTRAL continuation prompt for clone/adaptive workflows.
      * Matches the original video's tone — no forced chaos, destruction, or escalation.
      */
-    protected function buildNeutralContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
-    {
-        $concept = $context['concept'] ?? '';
-        $narration = $context['narration'] ?? '';
-        $narrativeChain = $context['narrativeChain'] ?? [];
-        $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
-
-        // Build narrative chain context
-        $narrativeContext = '';
-        if (!empty($narrativeChain)) {
-            $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
-        } else {
-            $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
-        }
-
-        return <<<PROMPT
-You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
-
-=== SECTION 1 — FRAME ANALYSIS (HIGHEST PRIORITY) ===
-
-You are looking at the EXACT frame this video continues from (captured at {$timestamp}s).
-Before writing ANYTHING, you MUST answer these 5 questions by studying the frame:
-
-1. What is the character's EXACT body position right now? (sitting, standing, leaning, lying down, mid-motion?)
-2. What are their hands doing / holding? (empty, gripping something, reaching, resting?)
-3. What is their mouth/face doing? (open, closed, chewing, neutral, turned to side?)
-4. What objects are within arm's reach or in contact with the character?
-5. What has CHANGED compared to what the text context below describes?
-
-The frame is TRUTH. Everything described below in text may be OUTDATED — it describes earlier moments.
-If the frame shows the baby holding a shawarma, but the text says "drinking soda" — TRUST THE FRAME.
-Your continuation MUST start from what the frame ACTUALLY shows, not from what the text describes.
-
-=== SECTION 2 — SEEDANCE TECHNICAL RULES + STRUCTURE ===
-
-WORD COUNT: 100-130 words. Concise and action-focused.
-
-STRUCTURE (flexible, NOT rigid):
-1. Re-establish the character in their ACTUAL position from the frame (not from text context).
-2. Continue the NATURAL next action based on what the frame shows happening.
-3. Add 1-2 secondary actions (small natural movements, interactions with nearby objects visible in the frame).
-4. Include appropriate sounds matching the original energy level (soft sounds for calm videos, louder for energetic ones).
-5. End with "Cinematic, photorealistic."
-
-This is a CLONE workflow — the continuation must match the SAME tone, energy, and style
-as the original video. Do NOT escalate, do NOT add violence, do NOT change the character's behavior.
-The continuation is what would NATURALLY happen next from the frame's current state.
-
-SEEDANCE 1.5 TECHNICAL RULES:
-- Use ONLY official degree words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly
-- For CALM/GENTLE videos: use milder degree words like "quickly", "fast", "strong" — NOT "violently", "wildly", "crazy"
-- Every action needs at least one degree word
-- NO -ly adverbs except "violently" and "quickly"
-- NO emotional adjectives (happy, sad, mischievous, satisfied, etc.)
-- NO facial micro-expressions (eyes widening, mouth curving into smile, brow furrowing)
-- Convey emotion through BODY ACTIONS only
-- NO camera movements (controlled separately by API)
-- NO background music
-- NO dialogue or speech text
-- NO clothing descriptions
-- NO passive voice or weak verbs (goes, moves, starts, begins)
-- Describe explicit motion and trajectory for every movement
-- Include sound descriptions appropriate to the action
-
-ABSOLUTELY BANNED IN NEUTRAL MODE:
-- "aggressive", "violent", "destruction", "chaos", "thrashing", "slamming", "smashing"
-- Forced escalation — do NOT make things more intense than the original
-- Chain reactions, flying objects, things breaking (unless it happened in the original)
-- "Continuous crazy aggressive screaming throughout" — this is for chaos videos ONLY
-- Any behavior that contradicts what the frame actually shows
-
-STYLE ANCHOR — end with: "Cinematic, photorealistic."
-Do NOT include any face/clothing prefix ("Maintain face...") — the source image defines the face.
-Do NOT describe the scene or setting — the source image shows it. Start with the first action.
-
-=== SECTION 3 — BACKGROUND CONTEXT (LOWEST PRIORITY — the frame overrides all of this) ===
-
-The following is background context. It may describe EARLIER moments that have already passed.
-DO NOT repeat actions from this context. Describe what happens NEXT based on the frame.
-
-ORIGINAL CONCEPT: {$concept}
-NARRATION: {$narration}
-
-{$narrativeContext}
-
-Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
-PROMPT;
-    }
-
     /**
-     * Build a CHAOS continuation prompt for animal-chaos and high-energy workflows.
+     * Build a DYNAMIC continuation prompt that adapts to the original video's tone,
+     * narrative logic, and energy level. No fixed templates — the AI reads the original
+     * prompt and continues the STORY, not just the physical motion.
      */
-    protected function buildChaosContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
+    protected function buildDynamicContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
     {
         $concept = $context['concept'] ?? '';
         $narration = $context['narration'] ?? '';
         $chaosDirection = trim($context['chaosDirection'] ?? '');
-        $intensity = (int) ($context['intensity'] ?? 50);
-        $chaosMode = (bool) ($context['chaosMode'] ?? false);
         $narrativeChain = $context['narrativeChain'] ?? [];
         $extensionNumber = (int) ($context['extensionNumber'] ?? 1);
+        $characters = $context['characters'] ?? [];
 
-        $chaosBlock = '';
-        if ($chaosDirection !== '') {
-            $chaosBlock = <<<CB
-
-USER'S CREATIVE DIRECTION (HIGHEST PRIORITY — the continuation MUST follow this):
-{$chaosDirection}
-CB;
-        }
-
-        // Use unified chaos tier system from ConceptService
-        $conceptService = app(\Modules\AppVideoWizard\Services\ConceptService::class);
-        $intensityBlock = $conceptService->getChaosPromptModifier($intensity, $chaosDirection);
-
-        if ($chaosMode) {
-            $intensityBlock .= "\n\n" . $conceptService->getChaosModeSupercharger();
-        }
-
-        $narrativeContext = '';
+        // Build the story so far — ALL previous prompts in order
+        $storyChain = '';
         if (!empty($narrativeChain)) {
-            $narrativeContext = $this->buildNarrativeChainPromptBlock($narrativeChain, $extensionNumber);
+            $storyChain = $this->buildStoryChainBlock($narrativeChain, $extensionNumber);
         } else {
-            $narrativeContext = "PREVIOUS PROMPT (for continuity): {$originalPrompt}";
+            $storyChain = "ORIGINAL VIDEO PROMPT:\n{$originalPrompt}";
+        }
+
+        // Optional user direction for this specific extension
+        $userDirection = '';
+        if ($chaosDirection !== '') {
+            $userDirection = <<<UD
+
+=== USER'S CREATIVE DIRECTION FOR THIS EXTENSION ===
+The user wants the next part to go in this direction:
+{$chaosDirection}
+Incorporate this into the continuation while staying true to the story's tone.
+UD;
+        }
+
+        // Character context
+        $characterBlock = '';
+        if (!empty($characters)) {
+            $characterBlock = "\nCHARACTERS IN SCENE: " . implode(' | ', $characters);
         }
 
         return <<<PROMPT
-You are writing a CONTINUATION VIDEO PROMPT for Seedance 1.5 Pro (image-to-video model).
+You are a creative screenwriter writing the NEXT video segment for Seedance 1.5 Pro (image-to-video AI).
 
-=== SECTION 1 — FRAME ANALYSIS (HIGHEST PRIORITY) ===
+=== YOUR TASK ===
 
-You are looking at the EXACT frame this video continues from (captured at {$timestamp}s).
-Before writing ANYTHING, you MUST answer these 6 questions by studying the frame:
+You are continuing a story. You have:
+1. The STORY SO FAR (previous video prompts that were already generated into video)
+2. The EXACT FRAME where the previous video ended (the attached image)
 
-1. What is the character's EXACT body position right now? (sitting, standing, leaning, clinging, mid-leap?)
-2. What are their hands/paws doing? (gripping, swiping, resting, mid-swing?)
-3. What is their mouth/face doing? (open yowling, closed, biting, turned away?)
-4. What objects are within reach or in contact with the character?
-5. What has CHANGED compared to what the text context below describes?
-6. What objects nearby are UNTOUCHED — potential chaos targets for destruction?
+Your job: Write what happens NEXT in this story. The continuation must feel like a NATURAL next scene — same characters, same tone, same energy, same world. Think of it as the next 8-10 seconds of the same movie.
 
-The frame is TRUTH. Everything described below in text may be OUTDATED — it describes earlier moments.
-If the frame shows the cat on the floor, but the text says "clinging to chest" — TRUST THE FRAME.
-Your continuation MUST start from what the frame ACTUALLY shows, not from what the text describes.
+=== THE STORY SO FAR (THIS IS YOUR PRIMARY CREATIVE INPUT) ===
 
-=== SECTION 2 — CHAOS DIRECTION ===
-{$chaosBlock}
+Read these prompts carefully. They define the tone, characters, pacing, humor, drama, and logic of this video. Your continuation MUST match this established style.
 
-{$intensityBlock}
-
-=== SECTION 3 — SEEDANCE RULES + 7-SENTENCE STRUCTURE ===
-
-WORD COUNT: 150-190 words. Concise and dense with action — no filler.
-
-The continuation starts mid-action — no setup, no trigger, no dialogue. Action from the first word.
-
-MANDATORY SENTENCE STRUCTURE (follow this EXACTLY — 7 sentences):
-Sentence 1: [Animal type] [sound with degree word], [body position FROM THE FRAME — describe what you SEE]. (RE-ESTABLISH — NO clothing, NO emotional adjectives)
-   GOOD: "The orange tabby cat shrieks a crazy yowl, its head pressing powerfully against the man's shoulder."
-   BAD: "The furious orange tabby cat in a pink polo shirt standing behind the counter."
-Sentence 2: "Its [body part A] [action] [degree words], [body part B] [simultaneous action] [degree words]." (BODY PARTS — 2 parts per sentence)
-Sentence 3: "Simultaneously, its [body part C] [action] [degree words], [sound description]." (MORE BODY PARTS + SOUND)
-Sentence 4: "[Other character] [physical reaction] [degree words], [impact sound]." (REACTION — body language only, no emotions)
-Sentence 5: "The [animal]'s [body part D] [action hitting specific object visible in frame], [chain reaction consequence]." (CHAIN REACTION 1)
-Sentence 6: "[Bigger chain reaction from sentence 5 impact], [another object destroyed with sound]." (CHAIN REACTION 2 — ESCALATION)
-Sentence 7: "[Resolution — character flees/leaps away/collapses]. Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic." (MANDATORY ENDING)
-
-CRITICAL: You MUST write exactly 7 sentences. The LAST sentence MUST end with "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic." This is NOT optional.
-
-SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
-quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy,
-fast, intense, strong, greatly. "crazy" enhances key moments — use on 3-5 peak actions.
-USE EXACT FORMS ONLY: "intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly".
-COMBINE them: "fast and violently", "powerfully with large amplitude", "wildly at high frequency".
-
-BANNED WORDS — Seedance does NOT interpret these (NEVER use any of them):
-Literary adverbs: "ferociously", "furiously", "aggressively", "frantically", "explosively",
-"deafening", "razor-sharp", "intensely", "strongly", "sharply", "fiercely", "rapidly",
-"loudly", "widely", "broadly", "tremendously", "enormously", "audible", "savagely", "relentlessly".
-Emotional adjectives: "enraged", "furious", "terrified", "frantic", "desperate", "shocked", "stunned", "horrified".
-ANY word ending in -ly that is NOT in the official degree word list is BANNED. Replace with official words.
-
-EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement must be explicitly described.
-If a body part should move, DESCRIBE the exact motion and trajectory.
-
-CHARACTER SOUNDS — CONTINUOUS (most important rule):
-Animal/character sounds must appear in EVERY action beat. Use varied words:
-screeching, yowling, hissing, shrieking, screaming, growling, wailing, crying out.
-Apply degree words to sounds: "crazy loud hiss", "powerfully deep growl" — not just "hiss".
-End with "Continuous crazy aggressive [animal] screaming throughout."
-
-SOUND DESCRIPTIONS — 3-5 per prompt:
-- Impact sounds: "paws slamming with a sharp crack", "glass shattering"
-- Environmental: "plates rattling wildly", "liquid splashing powerfully"
-- Character voice: "crazy loud hiss", "powerfully deep growl"
-
-PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
-GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
-BAD: "the cat attacks him" (too vague — which body part? what motion? what gets hit?)
-
-ENVIRONMENTAL DESTRUCTION — chain reactions from physical contact:
-Objects must be HIT by a body part before they break/fly:
-"its body smashes into a nearby display, toppling the stack which crashes to the floor with a sharp crack"
-"claws scrape wildly across the counter surface, sending four plastic cups scattering fast"
-
-ABSOLUTELY BANNED:
-- No clothing descriptions EVER (no "pink polo shirt", "green jacket", "gray hoodie")
-- No dialogue or speech in continuations
-- No slow builds or setup — start mid-action
-- No camera movement descriptions (camera is controlled separately by the API)
-- No passive voice, no weak verbs ("goes", "moves", "does", "gets", "starts", "begins")
-- No semicolons
-- No background music references or mentions of music playing
-- No emotional state adjectives ("enraged", "terrified", "furious", "shocked")
-- No literary adverbs ("loudly", "sharply", "fiercely", "intensely", "strongly")
-- No vague quantities ("several", "many", "a bunch of") — use exact numbers
-- No abstract descriptions ("chaos ensues", "mayhem unfolds")
-
-STYLE ANCHOR — end with: "Continuous crazy aggressive [animal] screaming throughout. Cinematic, photorealistic."
-
-EXAMPLE — COMPLIANT 7-SENTENCE CONTINUATION PROMPT (~170 words):
-"The orange tabby cat shrieks a crazy intense yowl, its body clinging to the man's torso. Its front paws slam powerfully into the man's chest, claws digging in strong as its head thrashes with large amplitude. Simultaneously, its hind legs kick wildly at high frequency against the man's midsection, a crazy loud hiss echoing out. The man stumbles backward fast, hands thrown up defensively, body twisting with large amplitude as a sharp gasp escapes. The cat's rigid tail whips violently, striking a metal display rack with a sharp crack, sending four packaged pastries crashing to the floor. The toppling rack slams into a shelf of ceramic mugs strong, two mugs shattering on the tiled floor with a loud crash, dark liquid spraying wildly across the surface. The cat leaps fast to the ground, lands strong, and sprints wildly behind the counter as the man collapses powerfully onto one knee. Continuous crazy aggressive cat screaming throughout. Cinematic, photorealistic."
-
-=== SECTION 4 — BACKGROUND CONTEXT (LOWEST PRIORITY — the frame overrides all of this) ===
-
-The following is background context. It may describe EARLIER moments that have already passed.
-DO NOT repeat actions from this context. Describe what happens NEXT based on the frame.
+{$storyChain}
 
 ORIGINAL CONCEPT: {$concept}
-NARRATION: {$narration}
+{$characterBlock}
+{$userDirection}
 
-{$narrativeContext}
+=== FRAME ANALYSIS (PHYSICAL GROUNDING) ===
 
-Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
+The attached image is the EXACT frame where the previous video stopped (at {$timestamp}s).
+Use it to ground your continuation physically:
+- What position are the characters in RIGHT NOW?
+- What are their hands/paws doing?
+- What objects are nearby?
+
+Start your continuation from THIS physical state — don't repeat what already happened.
+If the frame shows something different from what the story described (e.g., a character moved), trust the frame for the physical starting point but trust the story for the narrative direction.
+
+=== CREATIVE RULES ===
+
+1. CONTINUE THE NARRATIVE — What would logically happen next in this story? If the cat was grooming the bear and the bear complained, what does the cat do in response? Think about character motivation and comedic/dramatic timing.
+
+2. MATCH THE TONE EXACTLY — If the original is funny, be funny. If it's calm, be calm. If it's chaotic, be chaotic. If it has dialogue cues (like voiceover narration), include similar voiceover/narration cues. Do NOT flatten a rich creative prompt into a bland physical description.
+
+3. ADVANCE THE STORY — Don't just describe more of the same action. Something new should happen. A reaction, a consequence, a twist, a character doing something unexpected but logical.
+
+4. KEEP THE SAME LEVEL OF DETAIL — If the original prompt was 150 words with rich descriptions, write 150 words with rich descriptions. If it was 80 words and simple, write 80 words and simple.
+
+5. PRESERVE DIALOGUE STYLE — If the original had voiceover narration (like 'the voiceover narrates "..."'), include voiceover in the continuation. If it had character speech, continue with character speech. If it had no dialogue, don't add any.
+
+=== SEEDANCE 1.5 TECHNICAL RULES ===
+
+These are technical requirements of the video generation model:
+
+- WORD COUNT: Match the original prompt's length (typically 100-170 words)
+- Use Seedance degree words for actions: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly
+- Every significant action needs at least one degree word
+- NO -ly adverbs except "violently" and "quickly"
+- NO emotional adjectives (happy, sad, mischievous) — convey emotion through BODY ACTIONS
+- NO camera movements (controlled separately by API)
+- NO background music references
+- NO clothing descriptions (the source image defines appearance)
+- NO passive voice or weak verbs (goes, moves, starts, begins)
+- Describe explicit motion trajectories for every movement
+- Include sound descriptions appropriate to the action
+- End with "Cinematic, photorealistic."
+- Do NOT include any face/clothing prefix — the source image defines the face
+- Do NOT describe the setting — the source image shows it
+
+=== ANTI-REPETITION ===
+
+NEVER repeat an action from any previous segment. Each extension must introduce NEW actions, NEW interactions, NEW story beats. If the cat already "kneaded the bear's hair" — that's done. What happens NEXT?
+
+Output ONLY the continuation prompt text. No headers, no numbering, no explanations, no meta-commentary. Just the video prompt.
 PROMPT;
     }
 
@@ -34336,80 +34181,51 @@ PROMPT;
     }
 
     /**
-     * Build the narrative chain prompt block for the continuation prompt.
-     * Includes full context for recent segments, summaries for older ones,
-     * anti-repetition rules, and narrative arc guidance.
+     * Build story chain block — presents ALL previous prompts as a story timeline.
+     * The AI reads this to understand the narrative arc and continue it creatively.
      */
-    protected function buildNarrativeChainPromptBlock(array $narrativeChain, int $extensionNumber): string
+    protected function buildStoryChainBlock(array $narrativeChain, int $extensionNumber): string
     {
         if (empty($narrativeChain)) {
             return '';
         }
 
-        // Single segment (original only) — use simple format
-        if (count($narrativeChain) === 1) {
-            return "PREVIOUS PROMPT (for continuity): {$narrativeChain[0]['prompt']}";
-        }
-
         $parts = [];
-        $parts[] = '=== PREVIOUS PROMPTS (the frame shows the CURRENT state — these are HISTORY) ===';
-        $parts[] = '';
 
-        // Word budget: for chains with 3+ segments, summarize early ones
-        if (count($narrativeChain) > 3) {
-            $earlySummaries = [];
-            foreach (array_slice($narrativeChain, 0, -2) as $seg) {
-                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
-                $earlySummaries[] = "SEGMENT {$seg['segment']} ({$label}): " . $this->summarizePrompt($seg['prompt'], 30);
+        // For long chains (5+), summarize early ones, keep last 3 in full
+        if (count($narrativeChain) > 4) {
+            foreach (array_slice($narrativeChain, 0, -3) as $seg) {
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'Extension ' . $seg['segment'];
+                $parts[] = "Part {$seg['segment']} ({$label}): " . $this->summarizePrompt($seg['prompt'], 40);
             }
-            $parts[] = 'EARLIER SEGMENTS (summary):';
-            $parts[] = implode("\n", $earlySummaries);
             $parts[] = '';
-
-            // Full text for last 2 segments
-            $recentChain = array_slice($narrativeChain, -2);
-            foreach ($recentChain as $seg) {
-                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
-                $parts[] = "SEGMENT {$seg['segment']} ({$label}):";
+            foreach (array_slice($narrativeChain, -3) as $seg) {
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'Extension ' . $seg['segment'];
+                $parts[] = "Part {$seg['segment']} ({$label}):";
                 $parts[] = $seg['prompt'];
                 $parts[] = '';
             }
         } else {
-            // 2-3 segments — include all in full
+            // 1-4 segments — all in full
             foreach ($narrativeChain as $seg) {
-                $segNum = $seg['segment'] + 1;
-                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'EXTENSION ' . $seg['segment'];
-                $parts[] = "SEGMENT {$segNum} ({$label}):";
+                $label = $seg['type'] === 'original' ? 'ORIGINAL VIDEO' : 'Extension ' . $seg['segment'];
+                $parts[] = "Part {$seg['segment']} ({$label}):";
                 $parts[] = $seg['prompt'];
                 $parts[] = '';
             }
         }
 
-        $parts[] = "=== THIS IS EXTENSION {$extensionNumber} — DESCRIBE WHAT HAPPENS NEXT FROM THE FRAME ===";
-        $parts[] = '';
-
-        // Anti-repetition rules (critical for multi-extension coherence)
-        $parts[] = 'ANTI-REPETITION RULES (CRITICAL — read every previous segment):';
-        $parts[] = '- NEVER repeat an action from any previous segment. If the cat already "slammed paws on counter" — do NOT write that again.';
-        $parts[] = '- NEVER destroy the same object twice. If a "coffee cup shattered" in segment 2, it is already broken.';
-        $parts[] = '- Each extension must introduce NEW objects, NEW body-part combinations, and NEW chain reactions.';
-        $parts[] = '- Reference the AFTERMATH of previous segments: if something was broken, it is now debris on the floor.';
-        $parts[] = '- The FRAME shows the current state. If a previous segment described "grabbing a cup" but the frame shows empty hands — the cup has been put down.';
-        $parts[] = '- The story ESCALATES — each extension is MORE intense than the last.';
-        if ($extensionNumber >= 3) {
-            $parts[] = '- The environment should show CUMULATIVE damage (broken items, scattered debris, knocked-over furniture).';
-        }
-        $parts[] = '';
-
-        // Narrative arc guidance based on extension number
-        $arcGuidance = match (true) {
-            $extensionNumber <= 2 => 'Escalation — new attacks, new objects destroyed, wider area of impact.',
-            $extensionNumber <= 4 => 'Peak chaos — maximum simultaneous destruction, character reaches peak intensity.',
-            default => 'Resolution arc — character exhausts surroundings, final dramatic moment, or flees the scene.',
-        };
-        $parts[] = "NARRATIVE ARC — EXTENSION {$extensionNumber}: {$arcGuidance}";
+        $parts[] = "YOU ARE NOW WRITING: Part {$extensionNumber} — what happens NEXT in this story.";
 
         return implode("\n", $parts);
+    }
+
+    /**
+     * Legacy wrapper — kept for backward compatibility with buildNarrativeChainPromptBlock calls.
+     */
+    protected function buildNarrativeChainPromptBlock(array $narrativeChain, int $extensionNumber): string
+    {
+        return $this->buildStoryChainBlock($narrativeChain, $extensionNumber);
     }
 
     /**
