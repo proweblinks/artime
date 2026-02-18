@@ -3857,23 +3857,34 @@ EOT;
             $finfo = new \finfo(FILEINFO_MIME_TYPE);
             $mimeType = $finfo->buffer($imageData) ?: 'image/png';
 
-            // Try primary model: NanoBanana Pro (gemini-3-pro-image-preview)
-            // This model has retries built-in for MALFORMED_FUNCTION_CALL
+            // Detect image dimensions and add aspect ratio guidance to the prompt
+            $imageSize = @getimagesizefromstring($imageData);
+            if ($imageSize) {
+                $w = $imageSize[0];
+                $h = $imageSize[1];
+                $ratio = $w / $h;
+                $aspectLabel = $ratio < 0.7 ? '9:16 portrait' : ($ratio > 1.3 ? '16:9 landscape' : ($ratio < 0.9 ? '4:5 portrait' : ($ratio > 1.1 ? '5:4 landscape' : '1:1 square')));
+                $editPrompt .= "\n\nIMPORTANT: Output the image in {$aspectLabel} format ({$w}x{$h} pixels). Keep the exact same aspect ratio and dimensions as the input.";
+            }
+
+            // Use gemini-2.5-flash-image as primary for image editing — it's reliable.
+            // gemini-3-pro-image-preview has a persistent MALFORMED_FUNCTION_CALL bug
+            // with image-to-image editing (its internal thinking mechanism breaks).
             $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
-                'model' => 'gemini-3-pro-image-preview',
+                'model' => 'gemini-2.5-flash-image',
                 'mimeType' => $mimeType,
             ]);
 
-            // If primary model failed, try fallback model (NanoBanana = gemini-2.5-flash-image)
+            // Fallback to gemini-3-pro-image-preview if flash fails
             if (empty($result['imageData'])) {
-                Log::warning('Primary model failed for image editing, trying fallback', [
-                    'primary' => 'gemini-3-pro-image-preview',
-                    'fallback' => 'gemini-2.5-flash-image',
+                Log::warning('Primary edit model failed, trying fallback', [
+                    'primary' => 'gemini-2.5-flash-image',
+                    'fallback' => 'gemini-3-pro-image-preview',
                     'primaryError' => $result['error'] ?? 'No image data',
                 ]);
 
                 $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
-                    'model' => 'gemini-2.5-flash-image',
+                    'model' => 'gemini-3-pro-image-preview',
                     'mimeType' => $mimeType,
                 ]);
             }
