@@ -2293,6 +2293,33 @@ SYSTEM;
         // Ensure source is tagged
         $concept['source'] = 'cloned';
 
+        // Expand videoPrompt if under word target — GPT-4o tends to be too concise
+        if (!empty($concept['videoPrompt'])) {
+            $wordCount = str_word_count($concept['videoPrompt']);
+            if ($wordCount < 85) {
+                Log::info("ConceptCloner: videoPrompt only {$wordCount} words, expanding to 90-100");
+                $expandPrompt = [
+                    ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit exactly 90-100 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional physical states (in fury, with alarm, in exasperation). Official adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. NO sound words. NO dialogue. Return ONLY the rewritten prompt, nothing else."],
+                    ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to 11-14 words to reach 90-100 total:\n\n{$concept['videoPrompt']}"],
+                ];
+                $expandResult = $this->callAIWithTier($expandPrompt, $synthesisTier, $teamId, [
+                    'maxResult' => 1,
+                    'max_tokens' => 500,
+                ]);
+                if (empty($expandResult['error']) && !empty($expandResult['data'][0])) {
+                    $expanded = trim($expandResult['data'][0]);
+                    $expandedWordCount = str_word_count($expanded);
+                    // Only use expansion if it's actually longer and not too long
+                    if ($expandedWordCount >= 85 && $expandedWordCount <= 120) {
+                        $concept['videoPrompt'] = $expanded;
+                        Log::info("ConceptCloner: Expanded to {$expandedWordCount} words");
+                    } else {
+                        Log::info("ConceptCloner: Expansion returned {$expandedWordCount} words, keeping original");
+                    }
+                }
+            }
+        }
+
         // Sanitize videoPrompt to fix banned words that the AI keeps using
         if (!empty($concept['videoPrompt'])) {
             $concept['videoPrompt'] = self::sanitizeSeedancePrompt($concept['videoPrompt']);
