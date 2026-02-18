@@ -802,7 +802,7 @@ RULES;
      */
     protected function getCloneTechnicalRules(): string
     {
-        return <<<'RULES'
+        return <<<'CLONE_RULES'
 === SEEDANCE 1.5 PRO — CLONE VIDEO PROMPT FORMAT ===
 
 Follow the official Seedance 1.5 Pro prompt formula: Subject + [Intensity Adverb] + Motion.
@@ -848,7 +848,7 @@ WHY IT WORKS — Follow this pattern for ANY video:
 - Main action: "Instantly the bear starts... hips crazily bobbing... its whole body bouncing..." (body parts + modifiers — MOST detail here)
 - Mood: "Continuous comedic energy throughout." (sets overall feel)
 - Style: "Cinematic, photorealistic." (always last)
-RULES;
+CLONE_RULES;
     }
 
     /**
