@@ -806,12 +806,12 @@ RULES;
 Follow the official Seedance 1.5 Pro prompt formula: Subject + [Intensity Adverb] + Motion.
 Use simple, clear language. Describe what you see. Focus ONLY on moving parts.
 
-PROMPT STRUCTURE — BUILD AS ORDERED ACTION BEATS:
-1. SETUP (1 short sentence): Subject + adverb + starting motion.
-2. TRIGGER (1 sentence): The event/contact that starts the interesting part.
-3. REACTION (1 sentence): Subject + adverb + reaction to trigger, then transition.
-4. MAIN ACTION (2-3 sentences): The viral/interesting action — specific body part motions + intensity modifiers. This gets the MOST words and MOST detail.
-5. MOOD + STYLE: "Continuous [mood] energy throughout. Cinematic, photorealistic."
+PROMPT STRUCTURE — FOLLOW THE COMPLETE ACTION TIMELINE:
+Write one sentence per action phase from the analysis. Cover EVERY phase — do NOT skip any.
+Each sentence: Subject + [adverb] + specific motion with body parts.
+End with: "Cinematic, photorealistic."
+If the analysis describes 8 action phases → write ~8 action sentences.
+NEVER skip a phase. A cat leaping, a man struggling, a throw — each needs its own sentence.
 
 SEEDANCE INTENSITY ADVERBS — Place BEFORE the verb:
 - High: rapidly, violently, largely, crazily, intensely
@@ -829,12 +829,12 @@ RULES:
 - NO camera movement descriptions — the API controls the camera separately.
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
 - NO semicolons, NO passive voice.
-- MAIN ACTION gets 50-60% of the words. Describe specific body parts and HOW they move.
+- Give each action phase enough detail — body parts and HOW they move.
 - Repeated minor actions (glances, nods) → mention ONCE briefly, don't repeat.
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
 - Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
-- Target: 50-90 words. Under 40 = missing key action. Over 100 = too verbose for 10 seconds.
+- Target: 50-120 words. Under 40 = missing key actions. Completeness over brevity — include every phase.
 
 GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
 "The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
@@ -2107,8 +2107,13 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 50-90 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
-Build as ordered action beats: Setup (1 sentence) → Trigger (1 sentence) → Reaction (1 sentence with "then") → Main action (2-3 sentences with body parts + intensity modifiers — gets MOST detail) → "Continuous [mood] energy throughout. Cinematic, photorealistic."
+WORD COUNT: 50-120 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
+Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
+CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
+- The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
+- Do NOT skip, merge, or compress any action phase. If the analysis describes 8 phases, the prompt needs ~8 action sentences.
+- A cat leaping, a man flinching, a struggle, a throw — these are SEPARATE actions requiring SEPARATE sentences.
+- Do NOT jump from "cat clings to back" to "man throws cat" — the STRUGGLE phase between them is critical.
 Use intensity adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
 Connect actions with temporal words: then, instantly, after, finally.
 NO sounds, NO scene, NO appearance — only actions and motions. Simple, clear language.
