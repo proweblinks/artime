@@ -631,11 +631,17 @@ EOT;
             // Prompt comes after all images
             $parts[] = ["text" => $prompt];
 
-            // Build payload
+            // Build payload — explicitly disable function calling to prevent
+            // MALFORMED_FUNCTION_CALL responses from Gemini image models
             $payload = [
                 "contents" => [
                     [
                         "parts" => $parts
+                    ]
+                ],
+                "toolConfig" => [
+                    "functionCallingConfig" => [
+                        "mode" => "NONE"
                     ]
                 ]
             ];
