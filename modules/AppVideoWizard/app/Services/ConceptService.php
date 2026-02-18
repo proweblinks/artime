@@ -1903,6 +1903,12 @@ CRITICAL INSTRUCTION: You MUST identify every character/creature/animal with 100
      * EXTREME/WILD: chaotic, things breaking/flying, characters leaping, total pandemonium
    - What SPECIFIC DESTRUCTIVE or WILD actions happen? (breaking objects, knocking things over, throwing items, jumping on things, pushing things off surfaces, crashing into things)
    - Be SPECIFIC about the physical destruction: what objects get knocked over, thrown, broken, pushed off surfaces?
+   - OBJECT DISPLACEMENT TRACKING — CRITICAL, DO NOT SKIP:
+     * You identified objects on surfaces in section 2 (Setting & Environment). Now track what happens to them during the action.
+     * When a character moves aggressively on or near a surface (counter, table, desk, shelf), do ANY objects on that surface get displaced, knocked over, pushed aside, or sent flying?
+     * Example: If a cat swats aggressively on a counter that has cups and a straw dispenser, do those items get knocked off? Do they scatter? Do they fall to the floor?
+     * Even if the displacement is a SECONDARY EFFECT (not the main action), it MUST be reported — objects flying off a counter during a fight is visually dramatic and essential for recreation.
+     * If objects REMAIN in place despite aggressive action nearby, explicitly say "objects on counter remained undisturbed" — do NOT simply omit mention of them.
    - What NON-DESTRUCTIVE notable actions happen? (dancing, singing, performing, gesturing, playing, mimicking, posing, flexing)
 
 3b. AUDIO & SOUND ANALYSIS (you can hear the actual audio):
@@ -2112,10 +2118,11 @@ The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image al
 Therefore the videoPrompt must contain ONLY actions, movements, and sounds that CHANGE from the starting image.
 - DO NOT describe the scene, setting, location, lighting, or background — the image shows it.
 - DO NOT describe character appearances, clothing, postures, or starting positions — the image shows it.
-- DO NOT describe what objects are on tables/counters/floors — the image shows them.
+- DO NOT describe what objects are on tables/counters/floors in their RESTING state — the image shows them.
+- BUT DO describe objects being DISPLACED, KNOCKED OFF, SCATTERED, or SENT FLYING during character actions — that is an ACTION, not a scene description. Example: "cups and items violently scatter off counter" is an action beat, not a prop description.
 - DO NOT include face/identity preservation instructions — the image defines the face.
 - Start DIRECTLY with the first physical action beat.
-- You may name objects AS PART OF actions (e.g. "grips the shawarma powerfully") but do NOT list/describe them separately.
+- You may name objects AS PART OF actions (e.g. "grips the shawarma powerfully", "cups fly off counter") but do NOT list/describe them in their resting state.
 EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, giant), you MUST mention this — e.g. "tiny miniature cat barely reaching ankle height" — because Seedance needs this to render the correct scale.
 
 {$structureRules}
@@ -2127,6 +2134,7 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = crazily/violently.
 3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
 4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
+5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt. "Cups and items violently scatter off counter" or "objects fly off surface with large amplitude" are action beats that create visual chaos — omitting them loses a key visual element of the original video.
 
 NOW generate the JSON — write the videoPrompt using the Seedance 1.5 Pro format from the rules above.
 PROMPT;
