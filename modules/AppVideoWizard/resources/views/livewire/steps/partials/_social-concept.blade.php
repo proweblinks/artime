@@ -1065,11 +1065,25 @@
                             <i class="fa-solid fa-clone"></i> {{ __('Cloned Concept') }}
                         </div>
                         @if(!empty($videoAnalysisResult['firstFrameUrl']))
-                            <div style="margin: 0.75rem 0; border-radius: 8px; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3);">
+                            <div style="margin: 0.75rem 0; border-radius: 8px; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3); position: relative;">
                                 <img src="{{ $videoAnalysisResult['firstFrameUrl'] }}" alt="{{ __('First frame') }}"
                                      style="width: 100%; max-height: 280px; object-fit: contain; background: #000;">
-                                <div style="padding: 0.4rem 0.6rem; background: rgba(139, 92, 246, 0.1); font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+                                {{-- AI Image Studio floating button --}}
+                                <button type="button"
+                                        wire:click="openCloneImageEditor"
+                                        title="{{ __('AI Image Studio — Edit or Reimagine') }}"
+                                        style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
+                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(139, 92, 246, 0.6)';"
+                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.4)';">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </button>
+                                <div style="padding: 0.4rem 0.6rem; background: rgba(139, 92, 246, 0.1); font-size: 0.75rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="fa-solid fa-image"></i> {{ __('First frame — will be used as base image') }}
+                                    @if($originalFirstFrameUrl && $originalFirstFrameUrl !== ($videoAnalysisResult['firstFrameUrl'] ?? ''))
+                                        <span style="margin-left: auto; padding: 0.15rem 0.4rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3)); border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd; font-weight: 500;">
+                                            <i class="fa-solid fa-pen-fancy" style="font-size: 0.55rem;"></i> {{ __('Edited') }}
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         @endif

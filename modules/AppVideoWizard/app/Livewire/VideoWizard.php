@@ -1360,6 +1360,15 @@ class VideoWizard extends Component
     public int $aiEditBrushSize = 30;
     public bool $isApplyingEdit = false;
 
+    // Clone Image Editor Modal state
+    public bool $showCloneImageEditorModal = false;
+    public string $cloneImageEditPrompt = '';
+    public string $cloneImageEditorTab = 'edit';
+    public ?string $originalFirstFrameUrl = null;
+    public ?string $cloneImageEditError = null;
+    public bool $isApplyingCloneEdit = false;
+    public array $cloneImageEditHistory = [];
+
     // Character Bible Modal state
     public bool $showCharacterBibleModal = false;
     public int $editingCharacterIndex = 0;
@@ -2376,6 +2385,13 @@ class VideoWizard extends Component
         $this->videoAnalysisError = null;
         $this->conceptVideoUrl = null;
         $this->urlDownloadStage = null;
+        $this->showCloneImageEditorModal = false;
+        $this->cloneImageEditPrompt = '';
+        $this->cloneImageEditorTab = 'edit';
+        $this->originalFirstFrameUrl = null;
+        $this->cloneImageEditError = null;
+        $this->isApplyingCloneEdit = false;
+        $this->cloneImageEditHistory = [];
         $this->detectionSummary = [
             'characters' => [],
             'speechTypes' => [],
@@ -5386,6 +5402,8 @@ PROMPT;
     {
         $this->videoAnalysisError = null;
         $this->videoAnalysisResult = null;
+        $this->originalFirstFrameUrl = null;
+        $this->cloneImageEditHistory = [];
 
         if (!$this->conceptVideoUpload) {
             $this->videoAnalysisError = __('Please upload a video first.');
@@ -5514,6 +5532,8 @@ PROMPT;
     {
         $this->videoAnalysisError = null;
         $this->videoAnalysisResult = null;
+        $this->originalFirstFrameUrl = null;
+        $this->cloneImageEditHistory = [];
 
         $url = trim($this->conceptVideoUrl ?? '');
         if (empty($url)) {
@@ -12869,6 +12889,13 @@ PROMPT;
         $this->videoAnalysisError = null;
         $this->conceptVideoUrl = null;
         $this->urlDownloadStage = null;
+        $this->showCloneImageEditorModal = false;
+        $this->cloneImageEditPrompt = '';
+        $this->cloneImageEditorTab = 'edit';
+        $this->originalFirstFrameUrl = null;
+        $this->cloneImageEditError = null;
+        $this->isApplyingCloneEdit = false;
+        $this->cloneImageEditHistory = [];
 
         // Close the modal
         $this->showProjectManager = false;
@@ -37295,6 +37322,205 @@ PROMPT;
         } finally {
             $this->isApplyingEdit = false;
         }
+    }
+
+    // =========================================================================
+    // CLONE IMAGE EDITOR (AI Image Studio — Edit + Reimagine)
+    // =========================================================================
+
+    /**
+     * Open the Clone Image Editor modal.
+     * Stores the original first frame URL on first open for reset capability.
+     */
+    public function openCloneImageEditor(): void
+    {
+        if (empty($this->videoAnalysisResult['firstFrameUrl'])) {
+            return;
+        }
+
+        // Store original URL only on first open
+        if ($this->originalFirstFrameUrl === null) {
+            $this->originalFirstFrameUrl = $this->videoAnalysisResult['firstFrameUrl'];
+        }
+
+        $this->cloneImageEditError = null;
+        $this->cloneImageEditPrompt = '';
+        $this->showCloneImageEditorModal = true;
+    }
+
+    /**
+     * Close the Clone Image Editor modal.
+     */
+    public function closeCloneImageEditor(): void
+    {
+        $this->showCloneImageEditorModal = false;
+        $this->cloneImageEditError = null;
+        $this->cloneImageEditPrompt = '';
+    }
+
+    /**
+     * Apply a prompt-based edit to the clone first frame image.
+     */
+    public function applyCloneImageEdit(): void
+    {
+        if (empty($this->cloneImageEditPrompt)) {
+            $this->cloneImageEditError = __('Please describe what you want to change');
+            return;
+        }
+
+        if (empty($this->videoAnalysisResult['firstFrameUrl'])) {
+            $this->cloneImageEditError = __('No image to edit');
+            return;
+        }
+
+        $this->isApplyingCloneEdit = true;
+        $this->cloneImageEditError = null;
+
+        try {
+            $imageService = app(ImageGenerationService::class);
+
+            $result = $imageService->editImageWithPrompt(
+                $this->videoAnalysisResult['firstFrameUrl'],
+                $this->cloneImageEditPrompt
+            );
+
+            if ($result['success'] && isset($result['imageUrl'])) {
+                // Push current URL to history before replacing
+                $this->cloneImageEditHistory[] = $this->videoAnalysisResult['firstFrameUrl'];
+                $this->videoAnalysisResult['firstFrameUrl'] = $result['imageUrl'];
+                $this->cloneImageEditPrompt = '';
+            } else {
+                throw new \Exception($result['error'] ?? __('Edit failed'));
+            }
+        } catch (\Exception $e) {
+            $this->cloneImageEditError = __('Failed to apply edit: ') . $e->getMessage();
+        } finally {
+            $this->isApplyingCloneEdit = false;
+        }
+    }
+
+    /**
+     * Reimagine the clone image in a specific art style.
+     */
+    public function reimagineCloneImage(string $styleKey): void
+    {
+        $styles = $this->getReimaginationStyles();
+
+        if (!isset($styles[$styleKey])) {
+            $this->cloneImageEditError = __('Unknown style');
+            return;
+        }
+
+        $this->cloneImageEditPrompt = $styles[$styleKey]['prompt'];
+        $this->applyCloneImageEdit();
+    }
+
+    /**
+     * Undo the last clone image edit.
+     */
+    public function undoCloneImageEdit(): void
+    {
+        if (!empty($this->cloneImageEditHistory)) {
+            $this->videoAnalysisResult['firstFrameUrl'] = array_pop($this->cloneImageEditHistory);
+        } elseif ($this->originalFirstFrameUrl) {
+            $this->videoAnalysisResult['firstFrameUrl'] = $this->originalFirstFrameUrl;
+        }
+        $this->cloneImageEditError = null;
+    }
+
+    /**
+     * Reset clone image to the original extracted frame.
+     */
+    public function resetCloneImageToOriginal(): void
+    {
+        if ($this->originalFirstFrameUrl) {
+            $this->videoAnalysisResult['firstFrameUrl'] = $this->originalFirstFrameUrl;
+            $this->cloneImageEditHistory = [];
+            $this->cloneImageEditError = null;
+        }
+    }
+
+    /**
+     * Get available reimagination style presets.
+     */
+    protected function getReimaginationStyles(): array
+    {
+        $suffix = ' Maintain the exact same composition, characters, poses, and scene layout.';
+
+        return [
+            'anime' => [
+                'name' => 'Anime / Manga',
+                'icon' => 'fa-solid fa-star',
+                'color' => '#f472b6',
+                'prompt' => 'Transform this image into anime/manga style with clean line art, vibrant colors, expressive eyes, and cel-shading typical of Japanese animation.' . $suffix,
+            ],
+            'ghibli' => [
+                'name' => 'Studio Ghibli',
+                'icon' => 'fa-solid fa-cloud',
+                'color' => '#34d399',
+                'prompt' => 'Transform this image into Studio Ghibli style with soft watercolor textures, warm natural lighting, lush detailed backgrounds, and gentle whimsical atmosphere.' . $suffix,
+            ],
+            'pixar' => [
+                'name' => 'Pixar 3D',
+                'icon' => 'fa-solid fa-cube',
+                'color' => '#60a5fa',
+                'prompt' => 'Transform this image into Pixar 3D animation style with smooth subsurface skin rendering, cartoon proportions, expressive features, and polished CGI look.' . $suffix,
+            ],
+            'oil_painting' => [
+                'name' => 'Oil Painting',
+                'icon' => 'fa-solid fa-palette',
+                'color' => '#f59e0b',
+                'prompt' => 'Transform this image into a classical oil painting with rich impasto brushstrokes, chiaroscuro lighting, deep saturated colors, and museum-quality fine art aesthetics.' . $suffix,
+            ],
+            'watercolor' => [
+                'name' => 'Watercolor',
+                'icon' => 'fa-solid fa-droplet',
+                'color' => '#818cf8',
+                'prompt' => 'Transform this image into a watercolor painting with soft color washes, paint bleeding effects, translucent layers, visible paper texture, and delicate artistic quality.' . $suffix,
+            ],
+            'comic_book' => [
+                'name' => 'Comic Book',
+                'icon' => 'fa-solid fa-bolt',
+                'color' => '#ef4444',
+                'prompt' => 'Transform this image into comic book style with thick bold outlines, cel-shading, halftone dots, vivid primary colors, and dynamic graphic novel aesthetics.' . $suffix,
+            ],
+            'cyberpunk' => [
+                'name' => 'Cyberpunk',
+                'icon' => 'fa-solid fa-microchip',
+                'color' => '#06b6d4',
+                'prompt' => 'Transform this image into cyberpunk style with neon lights, rain-slicked surfaces, holographic elements, futuristic tech, and dystopian atmosphere with pink and cyan color palette.' . $suffix,
+            ],
+            'vintage_film' => [
+                'name' => 'Vintage Film',
+                'icon' => 'fa-solid fa-film',
+                'color' => '#d97706',
+                'prompt' => 'Transform this image into vintage film photography style with warm amber tones, visible film grain, slightly faded contrast, soft vignette, and nostalgic 1970s Kodachrome feel.' . $suffix,
+            ],
+            'dark_gothic' => [
+                'name' => 'Dark Gothic',
+                'icon' => 'fa-solid fa-skull',
+                'color' => '#6b7280',
+                'prompt' => 'Transform this image into dark gothic style with deep dramatic shadows, desaturated moody palette, Victorian ornate details, and atmospheric haunting quality.' . $suffix,
+            ],
+            'minimalist' => [
+                'name' => 'Minimalist',
+                'icon' => 'fa-solid fa-minus',
+                'color' => '#e2e8f0',
+                'prompt' => 'Transform this image into minimalist art style with geometric shapes, limited color palette, generous negative space, clean lines, and simple elegant composition.' . $suffix,
+            ],
+            'sketch' => [
+                'name' => 'Pencil Sketch',
+                'icon' => 'fa-solid fa-pencil',
+                'color' => '#9ca3af',
+                'prompt' => 'Transform this image into a detailed pencil sketch with graphite textures, cross-hatching shading, clean line work on white paper background, and hand-drawn artistic quality.' . $suffix,
+            ],
+            'pop_art' => [
+                'name' => 'Pop Art',
+                'icon' => 'fa-solid fa-shapes',
+                'color' => '#fbbf24',
+                'prompt' => 'Transform this image into pop art style with bold primary colors, Ben-Day dots pattern, strong outlines, high contrast, and Andy Warhol-inspired graphic aesthetics.' . $suffix,
+            ],
+        ];
     }
 
     /**

@@ -3836,4 +3836,53 @@ EOT;
             ];
         }
     }
+
+    /**
+     * Edit an image using AI with a text prompt (no mask needed).
+     * Uses Nano Banana Pro (Gemini 3 Pro) for prompt-based editing.
+     */
+    public function editImageWithPrompt(string $imageUrl, string $editPrompt): array
+    {
+        try {
+            // Download the original image
+            $response = Http::timeout(30)->get($imageUrl);
+            if (!$response->successful()) {
+                throw new \Exception('Failed to download image for editing');
+            }
+
+            $imageData = $response->body();
+            $base64Image = base64_encode($imageData);
+
+            // Detect MIME type
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($imageData) ?: 'image/png';
+
+            // Call Gemini for prompt-based image editing
+            $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
+                'model' => 'gemini-3-pro-image-preview',
+                'mimeType' => $mimeType,
+                'responseType' => 'image',
+            ]);
+
+            if (!empty($result['imageData'])) {
+                $filename = 'wizard/edited/' . Str::uuid() . '.png';
+                Storage::disk('public')->put($filename, base64_decode($result['imageData']));
+                $editedUrl = $this->getPublicUrl($filename);
+
+                return [
+                    'success' => true,
+                    'imageUrl' => $editedUrl,
+                ];
+            }
+
+            throw new \Exception('Image editing did not return a result');
+
+        } catch (\Exception $e) {
+            Log::error('Prompt-based image edit failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
 }
