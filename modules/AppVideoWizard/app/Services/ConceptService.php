@@ -2302,7 +2302,7 @@ SYSTEM;
                     ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit exactly 90-100 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional physical states (in fury, with alarm, in exasperation). Official adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. NO sound words. NO dialogue. Return ONLY the rewritten prompt, nothing else."],
                     ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to 11-14 words to reach 90-100 total:\n\n{$concept['videoPrompt']}"],
                 ];
-                $expandResult = $this->callAIWithTier($expandPrompt, $synthesisTier, $teamId, [
+                $expandResult = $this->callAIWithTier($expandPrompt, $aiModelTier, $teamId, [
                     'maxResult' => 1,
                     'max_tokens' => 500,
                 ]);
