@@ -589,121 +589,157 @@ EOT;
     public function generateImageFromImage(string $base64Image, string $prompt, array $options = []): array
     {
         $model = $options['model'] ?? $this->getModel('image');
+        $maxAttempts = 3;
 
-        try {
-            // Extract configuration options
-            $aspectRatio = $options['aspectRatio'] ?? '16:9';
-            $resolution = $options['resolution'] ?? '2K'; // Default to 2K for better quality
-            $additionalImages = $options['additionalImages'] ?? [];
+        // Extract configuration options (shared across attempts)
+        $aspectRatio = $options['aspectRatio'] ?? '16:9';
+        $resolution = $options['resolution'] ?? '2K';
+        $additionalImages = $options['additionalImages'] ?? [];
 
-            Log::info("Gemini Image-to-Image Request (Enhanced)", [
-                'model' => $model,
-                'promptLength' => strlen($prompt),
-                'imageDataLength' => strlen($base64Image),
-                'aspectRatio' => $aspectRatio,
-                'resolution' => $resolution,
-                'additionalImagesCount' => count($additionalImages),
-            ]);
+        Log::info("Gemini Image-to-Image Request", [
+            'model' => $model,
+            'promptLength' => strlen($prompt),
+            'imageDataLength' => strlen($base64Image),
+            'aspectRatio' => $aspectRatio,
+            'additionalImagesCount' => count($additionalImages),
+        ]);
 
-            // Build parts array - reference images first, then prompt
-            $parts = [];
+        // Build parts array - reference images first, then prompt
+        $parts = [];
 
-            // Primary reference image
-            $parts[] = [
-                "inlineData" => [
-                    "mimeType" => $options['mimeType'] ?? "image/png",
-                    "data" => $base64Image
-                ]
-            ];
+        // Primary reference image
+        $parts[] = [
+            "inlineData" => [
+                "mimeType" => $options['mimeType'] ?? "image/png",
+                "data" => $base64Image
+            ]
+        ];
 
-            // Additional reference images (for multi-image consistency)
-            foreach ($additionalImages as $img) {
-                if (!empty($img['base64'])) {
-                    $parts[] = [
-                        "inlineData" => [
-                            "mimeType" => $img['mimeType'] ?? "image/png",
-                            "data" => $img['base64']
-                        ]
-                    ];
-                }
-            }
-
-            // Prompt comes after all images
-            $parts[] = ["text" => $prompt];
-
-            // Build payload — explicitly disable function calling to prevent
-            // MALFORMED_FUNCTION_CALL responses from Gemini image models
-            $payload = [
-                "contents" => [
-                    [
-                        "parts" => $parts
+        // Additional reference images (for multi-image consistency)
+        foreach ($additionalImages as $img) {
+            if (!empty($img['base64'])) {
+                $parts[] = [
+                    "inlineData" => [
+                        "mimeType" => $img['mimeType'] ?? "image/png",
+                        "data" => $img['base64']
                     ]
-                ],
-                "toolConfig" => [
-                    "functionCallingConfig" => [
-                        "mode" => "NONE"
-                    ]
-                ]
-            ];
-
-            // Build generation config with native imageConfig
-            $generationConfig = [
-                'responseModalities' => ['image', 'text'],
-            ];
-
-            // NOTE: imageConfig with imageSize was causing "Request contains an invalid argument" error
-            // The Gemini API doesn't support these parameters in generationConfig for image-to-image
-            // Aspect ratio is controlled through text guidance in the prompt instead
-            // If native imageConfig support is added to Gemini API in the future, re-enable this:
-            // if (str_contains($model, '2.5') || str_contains($model, '3-pro') || str_contains($model, 'flash-image')) {
-            //     $generationConfig['imageConfig'] = [
-            //         'aspectRatio' => $aspectRatio,
-            //         'imageSize' => strtoupper($resolution), // Must be uppercase: 1K, 2K, 4K
-            //     ];
-            // }
-
-            // Use longer timeout (180s) for image-to-image generation
-            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, 180);
-
-            // Log response for debugging
-            Log::info("Gemini Image-to-Image Response", [
-                'model' => $model,
-                'candidatesCount' => count($body['candidates'] ?? []),
-                'promptFeedback' => $body['promptFeedback'] ?? null,
-            ]);
-
-            // Check for blocks
-            if (isset($body['promptFeedback']['blockReason'])) {
-                throw new \Exception("Image-to-image blocked: " . $body['promptFeedback']['blockReason']);
+                ];
             }
+        }
 
-            // Extract image from response
-            foreach ($body['candidates'] ?? [] as $candidate) {
-                foreach ($candidate['content']['parts'] ?? [] as $part) {
-                    if (!empty($part['inlineData']['data'])) {
-                        return [
-                            'success' => true,
-                            'imageData' => $part['inlineData']['data'],
-                            'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
-                        ];
+        // Prompt comes after all images
+        $parts[] = ["text" => $prompt];
+
+        // Build payload (no toolConfig — it doesn't prevent MALFORMED_FUNCTION_CALL
+        // on Gemini 3 Pro models which use internal thinking/tool mechanisms)
+        $payload = [
+            "contents" => [
+                [
+                    "parts" => $parts
+                ]
+            ],
+        ];
+
+        // Build generation config
+        $generationConfig = [
+            'responseModalities' => ['image', 'text'],
+        ];
+
+        // Retry loop — Gemini 3 Pro Image Preview has an intermittent issue where
+        // it returns MALFORMED_FUNCTION_CALL instead of image data. This is related
+        // to its internal "thinking" mechanism. Retrying usually succeeds.
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig, 180);
+
+                // Log detailed response for debugging
+                $candidateParts = [];
+                foreach ($body['candidates'][0]['content']['parts'] ?? [] as $p) {
+                    if (isset($p['inlineData'])) {
+                        $candidateParts[] = 'inlineData(' . strlen($p['inlineData']['data'] ?? '') . ' bytes)';
+                    } elseif (isset($p['text'])) {
+                        $candidateParts[] = 'text(' . strlen($p['text']) . ' chars)';
+                    } elseif (isset($p['functionCall'])) {
+                        $candidateParts[] = 'functionCall(' . ($p['functionCall']['name'] ?? 'unknown') . ')';
+                    } else {
+                        $candidateParts[] = 'unknown(' . implode(',', array_keys($p)) . ')';
                     }
                 }
+
+                Log::info("Gemini Image-to-Image Response", [
+                    'model' => $model,
+                    'attempt' => "{$attempt}/{$maxAttempts}",
+                    'finishReason' => $body['candidates'][0]['finishReason'] ?? 'not_set',
+                    'parts' => $candidateParts,
+                    'promptFeedback' => $body['promptFeedback'] ?? null,
+                ]);
+
+                // Check for blocks (non-retryable)
+                if (isset($body['promptFeedback']['blockReason'])) {
+                    return [
+                        'success' => false,
+                        'error' => "Image-to-image blocked: " . $body['promptFeedback']['blockReason'],
+                    ];
+                }
+
+                // Extract image from response
+                foreach ($body['candidates'] ?? [] as $candidate) {
+                    foreach ($candidate['content']['parts'] ?? [] as $part) {
+                        if (!empty($part['inlineData']['data'])) {
+                            if ($attempt > 1) {
+                                Log::info("Gemini Image-to-Image succeeded on retry attempt {$attempt}");
+                            }
+                            return [
+                                'success' => true,
+                                'imageData' => $part['inlineData']['data'],
+                                'mimeType' => $part['inlineData']['mimeType'] ?? 'image/png',
+                            ];
+                        }
+                    }
+                }
+
+                // No image returned — check if retryable
+                $finishReason = $body['candidates'][0]['finishReason'] ?? 'unknown';
+                $lastError = "Image-to-image generation failed. Finish reason: {$finishReason}";
+
+                if ($finishReason === 'MALFORMED_FUNCTION_CALL' && $attempt < $maxAttempts) {
+                    Log::warning("Gemini Image-to-Image: MALFORMED_FUNCTION_CALL, retrying ({$attempt}/{$maxAttempts})...");
+                    sleep($attempt); // 1s, 2s backoff
+                    continue;
+                }
+
+                // Non-retryable finish reason or max attempts reached
+                Log::error("Gemini Image-to-Image: No image data returned", [
+                    'model' => $model,
+                    'finishReason' => $finishReason,
+                    'attempt' => $attempt,
+                ]);
+
+                return ['success' => false, 'error' => $lastError];
+
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+                Log::error("Gemini Image-to-Image Error", [
+                    'model' => $model,
+                    'error' => $lastError,
+                    'attempt' => "{$attempt}/{$maxAttempts}",
+                ]);
+
+                // Only retry on timeout errors, not auth/validation errors
+                $isTimeout = str_contains($lastError, 'timed out') || str_contains($lastError, 'timeout');
+                if ($isTimeout && $attempt < $maxAttempts) {
+                    Log::warning("Gemini Image-to-Image: Timeout, retrying ({$attempt}/{$maxAttempts})...");
+                    sleep($attempt);
+                    continue;
+                }
+
+                return ['success' => false, 'error' => $lastError];
             }
-
-            // No image returned
-            $finishReason = $body['candidates'][0]['finishReason'] ?? 'unknown';
-            throw new \Exception("Image-to-image generation failed. Finish reason: {$finishReason}");
-
-        } catch (\Throwable $e) {
-            Log::error("Gemini Image-to-Image Error", [
-                'model' => $model,
-                'error' => $e->getMessage(),
-            ]);
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
         }
+
+        return ['success' => false, 'error' => $lastError ?? 'Image-to-image generation failed after all attempts'];
     }
 
     /**

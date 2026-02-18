@@ -3857,12 +3857,26 @@ EOT;
             $finfo = new \finfo(FILEINFO_MIME_TYPE);
             $mimeType = $finfo->buffer($imageData) ?: 'image/png';
 
-            // Call Gemini for prompt-based image editing
+            // Try primary model: NanoBanana Pro (gemini-3-pro-image-preview)
+            // This model has retries built-in for MALFORMED_FUNCTION_CALL
             $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
                 'model' => 'gemini-3-pro-image-preview',
                 'mimeType' => $mimeType,
-                'responseType' => 'image',
             ]);
+
+            // If primary model failed, try fallback model (gemini-2.5-flash-image)
+            if (empty($result['imageData'])) {
+                Log::warning('Primary model failed for image editing, trying fallback', [
+                    'primary' => 'gemini-3-pro-image-preview',
+                    'fallback' => 'gemini-2.5-flash-preview-image',
+                    'primaryError' => $result['error'] ?? 'No image data',
+                ]);
+
+                $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
+                    'model' => 'gemini-2.5-flash-preview-image',
+                    'mimeType' => $mimeType,
+                ]);
+            }
 
             if (!empty($result['imageData'])) {
                 $filename = 'wizard/edited/' . Str::uuid() . '.png';
