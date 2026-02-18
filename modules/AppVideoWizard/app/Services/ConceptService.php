@@ -1115,7 +1115,23 @@ CLONE_RULES;
             $text = preg_replace($pattern, $replacement, $text);
         }
 
-        // Phase 3d: Fix sound/phrasing patterns
+        // Phase 3d: Remove animal/character sound words — Seedance renders from text, sound words create unwanted audio
+        $soundPatterns = [
+            // "Continuous hissing and yowling throughout" — full sound sentence
+            '/\bContinuous\s+(?:[\w\s,]+(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)[\w\s,]*)\s*(?:throughout|continuously)?\s*\.?/i' => '',
+            // Standalone sound words as action descriptors
+            '/,?\s*\b(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)\s*(?=[.,]|$)/i' => '',
+            // "while hissing/yowling/meowing" mid-sentence
+            '/,?\s*\bwhile\s+(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|snarling)\b/i' => '',
+            // "lets out a [sound]" / "emits a [sound]"
+            '/,?\s*\b(?:lets?\s+out|emits?|produces?|makes?)\s+(?:a\s+)?(?:loud\s+)?(?:hiss|yowl|meow|bark|growl|howl|screech|scream|roar|purr|snarl|yelp|shriek)\b[^,.]*[.,]?/i' => '',
+        ];
+
+        foreach ($soundPatterns as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 3d2: Fix sound/phrasing patterns
         // "sound effect" → "sounds" (Seedance prefers plural natural sounds)
         $text = preg_replace('/\bsound\s+effects?\b/i', 'sounds', $text);
         // "sound" at end of phrase → "sounds" (pluralize for natural phrasing)
@@ -2152,21 +2168,15 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
 5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt. "Cups and items violently scatter off counter" or "objects fly off surface with large amplitude" are action beats that create visual chaos — omitting them loses a key visual element of the original video.
 
-=== FINAL CHECKLIST — VERIFY BEFORE GENERATING ===
-Before writing the videoPrompt, mentally count EVERY action phase in the analysis timeline.
-Then write one sentence per phase, from FIRST to LAST. Your prompt must cover the ENTIRE video, not just the first half.
+NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
-SELF-CHECK (do this before outputting):
-- What is the LAST action phase in the analysis? (e.g., "man walks away exasperated")
-- Is that action in your videoPrompt? If NO → you stopped too early. Add the missing ending phases.
-- Count your action sentences. Do they match the number of phases? If you have 6 sentences but 10 phases, you skipped phases.
+STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:01 = setup, 0:01-0:02 = escalation, ... 0:09-0:11 = departure).
+STEP 2: Write ONE sentence per phase. Use: Subject + [Seedance adverb] + motion + body parts.
+STEP 3: Check your LAST sentence — it must describe the FINAL phase of the video (NOT the climax). If the video ends with someone leaving/giving up, that is your last sentence.
+STEP 4: NO sound words (hissing, yowling, meowing, barking, growling). Describe VISIBLE actions only.
+STEP 5: End with "Cinematic, photorealistic."
 
-MOST COMMON ERRORS (you MUST avoid these):
-1. STOPPING AT THE CLIMAX: You wrote up to "cat clings to back" but skipped the entire resolution (pulling off, throwing, walking away). The ENDING phases are NOT optional — they complete the story arc. If the video has 10 phases, write 10 sentences.
-2. EMOTIONLESS ACTIONS: "Opens mouth wide" = emotionless. "Violently opens mouth in aggressive fury" = correct.
-3. MERGING PHASES: You compressed 3 phases into 1 sentence. Each phase = its own sentence.
-
-NOW generate the JSON — write the videoPrompt using the Seedance 1.5 Pro format from the rules above.
+If the analysis has 8-10 phases, your videoPrompt should have 8-10 action sentences (90-120 words).
 PROMPT;
 
         if ($chaosMode) {
