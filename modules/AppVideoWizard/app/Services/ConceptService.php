@@ -803,82 +803,51 @@ RULES;
     protected function getCloneTechnicalRules(): string
     {
         return <<<'RULES'
-=== CLONE VIDEO PROMPT — CONCISE + FAITHFUL TO SOURCE VIDEO ===
+=== SEEDANCE 1.5 PRO — CLONE VIDEO PROMPT FORMAT ===
 
-The videoPrompt MUST be SYNTHESIZED from the ACTION TIMELINE — NOT translated line-by-line.
-Read the full timeline, identify what makes the video INTERESTING, then write a focused prompt.
+Follow the official Seedance 1.5 Pro prompt formula: Subject + [Intensity Adverb] + Motion.
+Use simple, clear language. Describe what you see. Focus ONLY on moving parts.
 
-CONCISENESS IS CRITICAL — Seedance has only 10 seconds to execute ALL actions.
-- 60-100 words total. Under 50 = missing key action. Over 110 = Seedance won't finish all actions.
-- Target: 3-5 sentences + style anchor. NOT 6-9 sentences.
+PROMPT STRUCTURE — BUILD AS ORDERED ACTION BEATS:
+1. SETUP (1 short sentence): Subject + adverb + starting motion.
+2. TRIGGER (1 sentence): The event/contact that starts the interesting part.
+3. REACTION (1 sentence): Subject + adverb + reaction to trigger, then transition.
+4. MAIN ACTION (2-3 sentences): The viral/interesting action — specific body part motions + intensity modifiers. This gets the MOST words and MOST detail.
+5. MOOD + STYLE: "Continuous [mood] energy throughout. Cinematic, photorealistic."
 
-STEP 1 — IDENTIFY THE VIRAL MOMENT:
-Read the entire timeline and ask: "What is the ONE thing that makes this video interesting/funny/shareable?"
-THAT is the MAIN ACTION. Everything else is setup for it.
+SEEDANCE INTENSITY ADVERBS — Place BEFORE the verb:
+- High: rapidly, violently, largely, crazily, intensely
+- Medium: slowly, gently, steadily, smoothly
+- Modifiers (place after verb): with large amplitude, at high frequency
+- Example: "The bear rapidly glances back" NOT "The bear glances back fast"
 
-STEP 2 — ALLOCATE WORDS BY IMPORTANCE (not by timeline frequency):
-- SETUP (15%): 1 short sentence — what's happening before the interesting part starts.
-- TRIGGER (15%): The moment that causes/starts the main action. Often a collision, contact, sound, or surprise.
-- MAIN ACTION (60%): The interesting/viral part — dancing, chaos, reaction. Gets the MOST sentences and MOST detail.
-- RESOLUTION (10%): Brief ending if different from main action. Can be omitted.
+TEMPORAL WORDS to connect actions in order: then, instantly, after, finally, suddenly
 
-STEP 3 — CONSOLIDATE REPEATED ACTIONS:
-If the same small action happens multiple times in the timeline (e.g., "glances back" appears 3 times):
-- Do NOT write it 3 times as 3 separate sentences.
-- Mention it ONCE, briefly, with a count or pattern if needed.
-- A quick glance is a HALF-SENTENCE, not a full sentence. Fold it into another beat.
-- BAD (3 sentences for repeated glances): "It turns its head left glancing back. It turns its head left again glancing back. It turns its head left once more glancing back."
-- GOOD (half-sentence): "the bear glances back briefly" — then MOVE ON to the main action.
+RULES:
+- Use simple words. Short sentences. Active verbs.
+- NO sound/audio descriptions — Seedance auto-generates audio from the visual action.
+- NO scene/setting/environment descriptions — the source image provides the scene.
+- NO appearance/clothing/color descriptions — the source image provides appearance.
+- NO camera movement descriptions — the API controls the camera separately.
+- NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
+- NO semicolons, NO passive voice.
+- MAIN ACTION gets 50-60% of the words. Describe specific body parts and HOW they move.
+- Repeated minor actions (glances, nods) → mention ONCE briefly, don't repeat.
+- Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
+- Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
+- If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
+- Target: 50-90 words. Under 40 = missing key action. Over 100 = too verbose for 10 seconds.
 
-STEP 4 — CAUSE-EFFECT CHAINS as ONE sentence:
-When actions are causally connected (A causes B), write them as a single compound sentence.
-- BAD (2 sentences): "The bike touches the bear's rear. The bear turns its head back."
-- GOOD (1 sentence): "The bike bumps the bear's rear and the bear glances back fast."
-Don't narrate the return to neutral position. "Turns head back" → "turns head forward" is NOT two beats.
+GOLD-STANDARD EXAMPLE (~75 words — this prompt produced excellent Seedance results):
+"The bear steadily walks forward. The bike's front wheel bumps into the bear's butt. The bear rapidly glances back over his shoulder, flashing a big funny smile, then turns his head forward. Instantly the bear starts a rhythmic hip-swaying butt dance, hips crazily bobbing side to side with large amplitude at high frequency, its whole body bouncing in a funny groove. The bear's arms swing loosely with large amplitude matching the hip rhythm. Continuous comedic energy throughout. Cinematic, photorealistic."
 
-CORE RULE: FAITHFULNESS — DO NOT FABRICATE
-- Do NOT fabricate actions, body movements, or details that are NOT in the analysis.
-- Do NOT add chain reactions, destruction, or environmental effects not described.
-- If the analysis says "walks steadily" → write "walks steadily", NOT "charges powerfully".
-- If the analysis says "hips sway rhythmically" → write that, NOT "hips slam violently".
-
-SEEDANCE DEGREE WORDS — USE SPARINGLY AND HONESTLY:
-Official words: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly.
-- Only add degree words where they MATCH the actual intensity in the analysis.
-- Calm/steady actions → "quickly" or "fast" at most. Do NOT use "violently", "wildly", "crazy" for calm movements.
-- Intense/dramatic actions → use stronger degree words ("powerfully", "with large amplitude").
-- It is OK to have sentences WITHOUT degree words if the action is genuinely calm.
-
-EXPLICIT MOTION — Seedance CANNOT infer motion:
-Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
-If a body part should move, DESCRIBE the motion. But only describe motions that ARE in the analysis.
-
-WHAT TO INCLUDE:
-- The TRIGGER moment (what causes the main action to start)
-- The MAIN ACTION (what makes the video interesting — give this the MOST detail and MOST words)
-- Movement quality changes (e.g., "walk shifts into rhythmic hip-swaying")
-- Key contact/collision moments between characters/objects
-- Environmental sounds from visible actions — mention ONCE only
-DO NOT DWELL ON: setup walking, returning to neutral position, repeated minor actions (glances, nods), following/trailing.
-
-WHAT TO NEVER ADD (not in the analysis = not in the prompt):
-- Fabricated body part decomposition (don't invent "front legs extending powerfully" if analysis just says "walking")
-- Fabricated chain reactions (don't invent "stones dislodging" if not described)
-- Fabricated character sounds (no growling/screeching if not heard)
-- Background music descriptions (NEVER — Seedance auto-generates audio from text)
-
-BANNED:
-- No semicolons
-- No camera movement descriptions (camera is controlled separately by the API)
-- No appearance/clothing descriptions (only what they DO and how BIG they are)
-- No direct facial expression descriptions — convey emotion through body language
-- No passive voice — only active verbs
-- No background music, soundtrack, or melody descriptions
-- ABSOLUTELY NO background music mentions — Seedance generates audio from text, any music reference causes unwanted audio
-
-STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
-
-SCALE & SIZE — If characters are miniaturized/enlarged, you MUST mention it.
+WHY IT WORKS — Follow this pattern for ANY video:
+- Setup: "The bear steadily walks forward." (adverb BEFORE verb, 1 short sentence)
+- Trigger: "The bike's front wheel bumps into the bear's butt." (clear contact/event)
+- Reaction: "The bear rapidly glances back... then turns his head forward." ("rapidly" + "then")
+- Main action: "Instantly the bear starts... hips crazily bobbing... its whole body bouncing..." (body parts + modifiers — MOST detail here)
+- Mood: "Continuous comedic energy throughout." (sets overall feel)
+- Style: "Cinematic, photorealistic." (always last)
 RULES;
     }
 
@@ -1241,7 +1210,7 @@ RULES;
 
         // Clone context: wider word count range and faithfulness override
         if ($context === 'clone') {
-            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 60-110 words. If over 110, CONDENSE by merging cause-effect chains into single sentences and removing repeated sounds — but NEVER remove the trigger moment or main action.\nThe MAIN ACTION (viral/interesting part) should get the most words. Setup and transitions should be brief.\nUnder 50 words likely means critical moments are missing. Over 120 means Seedance won't complete all actions in 10 seconds.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 50-90 words. If over 90, CONDENSE by removing scene/sound descriptions and merging sentences — but NEVER remove the trigger or main action.\nUnder 40 words = missing key action. Over 100 = too verbose for 10 seconds.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
         } else {
             $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-120 words.\nIf the prompt exceeds 120 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
@@ -1256,7 +1225,7 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 
 === ADDITIONAL RULES ===
 {$degreeWordRule}
-- NO -ly adverbs except "violently" and "quickly" (which ARE official)
+- Allowed -ly adverbs (Seedance official): rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Remove all other -ly adverbs.
 - NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
 - NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
 - EXCEPTION: "glance", "look", "stare", "gaze", "glancing back" are HEAD/EYE ACTIONS — they are NOT facial micro-expressions. Do NOT remove them.
@@ -1500,11 +1469,11 @@ ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
-MAIN ACTION gets 60% of words. Setup = 1 short sentence. Trigger = 1 cause-effect sentence. 3-5 sentences total.
-CONSOLIDATE repeated actions: if the same minor action happens multiple times, mention ONCE — don't write separate sentences for each occurrence.
-Under 60 = missing moments. Over 110 = too slow for Seedance.
-DO NOT describe the scene, setting, character appearances, or starting positions — only actions, reactions, sounds, voice, and SIZE/SCALE.
+SEEDANCE 1.5 PRO FORMAT: Subject + [Adverb] + Motion. 50-90 words total.
+Build as action beats: Setup → Trigger → Reaction (with "then") → Main action (body parts + modifiers) → Mood + Style.
+Adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
+Temporal words: then, instantly, after, finally. NO sounds. NO scene. NO appearance. Only actions.
+Main action gets 50-60% of words with specific body part motions and intensity modifiers.
 RULES,
                 'generate' => <<<'RULES'
 === ADAPTIVE MODE — CHOOSE THE BEST STRUCTURE ===
@@ -2134,7 +2103,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SEEDANCE RULES BELOW — 60-100 words. MAIN ACTION gets 60% of words. Consolidate repeated minor actions (glances, nods) into one mention. Cause-effect chains as single sentences.",
+  "videoPrompt": "SEE SEEDANCE 1.5 PRO RULES BELOW — 50-90 words. Subject + Adverb + Motion format. Adverbs BEFORE verbs. NO sounds. Main action gets most detail with body parts + intensity modifiers.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2148,15 +2117,11 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 60-100 words of pure action (plus "Cinematic, photorealistic." at end).
-IDENTIFY THE MAIN ACTION: What makes this video interesting/viral? That gets 60% of the words.
-- Setup: 1 short sentence (15% of words). Don't dwell on walking, standing, following.
-- Trigger: The moment that starts the main action — fold into a cause-effect sentence with the reaction (15%).
-- Main action (the viral/interesting part): 2-3 sentences with the MOST detail (60%).
-- Resolution: Brief, only if different from main action (10%).
-CONSOLIDATE REPEATED ACTIONS: If the same small action happens multiple times (e.g., glancing back 3x), mention it ONCE briefly — don't write separate sentences for each occurrence.
-Aim for 70-90 words in 3-5 sentences. Under 60 = missing key moments. Over 110 = too verbose for 10 seconds.
-Remember: NO scene setup, NO character descriptions — start with the first action.
+WORD COUNT: 50-90 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + Motion.
+Build as ordered action beats: Setup (1 sentence) → Trigger (1 sentence) → Reaction (1 sentence with "then") → Main action (2-3 sentences with body parts + intensity modifiers — gets MOST detail) → "Continuous [mood] energy throughout. Cinematic, photorealistic."
+Use intensity adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
+Connect actions with temporal words: then, instantly, after, finally.
+NO sounds, NO scene, NO appearance — only actions and motions. Simple, clear language.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
 The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image already shows the scene, setting, characters, props, and starting positions.
@@ -2173,28 +2138,13 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 
 {$technicalRules}
 
-EXAMPLE — GOOD CLONE PROMPT (~75 words):
-{$templateExample}
+=== CLONE FAITHFULNESS OVERRIDES ===
+1. NO SOUND DESCRIPTIONS in videoPrompt — Seedance auto-generates audio from the visual action. Do NOT write sounds, thuds, crashes, music, or vocalizations in the prompt.
+2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = crazily/violently.
+3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
+4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
 
-=== CLONE FAITHFULNESS — SOUND & ENERGY OVERRIDES ===
-These rules OVERRIDE any general rules above for clone context:
-
-1. CHARACTER SOUNDS OVERRIDE: The general rule "Continuous [animal sounds] throughout" is for generated content.
-   For clones: ONLY include character vocalizations that the visual analysis confirmed were HEARD in the audio.
-   If analysis says "No animal vocalizations detected" or "mouth open, no vocalization heard" → do NOT end with
-   "Continuous [growling/screaming/meowing] throughout." Instead use only environmental sounds or omit the sound line.
-
-2. ENERGY MATCHING: Match the ACTUAL energy level of the source video.
-   A calm walking animal gets calm degree words ("quickly", "fast") — NOT aggressive ones ("violently", "crazy", "wildly").
-   Panting ≠ growling. Walking ≠ charging. Standing ≠ lunging.
-
-3. ENVIRONMENTAL SOUNDS ARE ALWAYS VALID: Impact sounds and environmental sounds from visible actions
-   (footsteps on road, wind, water, objects being touched) are always appropriate — these come from motion, not inference.
-
-4. WHEN IN DOUBT, OMIT: Silence is more faithful than a fabricated growl. If you're unsure whether a sound
-   was actually heard, leave it out. The video will still work without it.
-
-NOW generate the JSON — make the videoPrompt faithfully capture the reference video's energy.
+NOW generate the JSON — write the videoPrompt using the Seedance 1.5 Pro format from the rules above.
 PROMPT;
 
         if ($chaosMode) {
