@@ -5507,8 +5507,8 @@ PROMPT;
     }
 
     /**
-     * Analyze a video from a URL (YouTube, Instagram, TikTok, etc.).
-     * Downloads via yt-dlp on the server, then runs the same 3-stage pipeline.
+     * Analyze a YouTube video from URL.
+     * Downloads via YouTube API, then runs the 3-stage pipeline (Gemini vision + transcribe + synthesize).
      */
     public function analyzeVideoFromUrl(): void
     {
@@ -5542,25 +5542,21 @@ PROMPT;
         try {
             $tempDir = sys_get_temp_dir();
             $outputFile = $tempDir . DIRECTORY_SEPARATOR . 'url_video_' . uniqid() . '.mp4';
+            $videoId = $ytService->extractVideoId($url);
 
-            Log::info('VideoWizard: URL import — downloading video', ['url' => $url]);
+            Log::info('VideoWizard: URL import — downloading YouTube video via API', ['url' => $url, 'videoId' => $videoId]);
 
             // Workflow: download_video node
             $this->workflowTrackNode('download_video', 'running');
 
-            // Try download methods in order: yt-dlp → RapidAPI fallback
-            $downloaded = $this->downloadVideoWithYtDlp($url, $outputFile);
-
-            if (!$downloaded) {
-                // Fallback: try RapidAPI social media downloader
-                $downloaded = $this->downloadVideoWithApi($url, $outputFile);
-            }
+            // Download YouTube video via API (no yt-dlp)
+            $downloaded = $this->downloadYouTubeVideo($videoId, $url, $outputFile);
 
             if (!$downloaded) {
                 $this->urlDownloadStage = null;
-                $this->workflowTrackNode('download_video', 'failed', ['error' => 'Download failed']);
+                $this->workflowTrackNode('download_video', 'failed', ['error' => 'YouTube API download failed']);
                 if (empty($this->videoAnalysisError)) {
-                    $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
+                    $this->videoAnalysisError = __('Failed to download YouTube video. Please check the URL and try again.');
                 }
                 return;
             }
@@ -5675,75 +5671,121 @@ PROMPT;
     }
 
     /**
-     * Download video using yt-dlp (with cookies support for Instagram/TikTok/Facebook).
-     * Cookies file enables authenticated downloads from platforms that require login.
-     * Place a Netscape-format cookies.txt at /home/artime/.config/yt-dlp/cookies.txt
+     * Download a YouTube video using RapidAPI YouTube download services.
+     * Configured via admin options: 'youtube_download_api_key' and 'youtube_download_api_host'.
+     * Falls back to 'social_downloader_api_key' if YouTube-specific key is not set.
      *
      * @return bool True if download succeeded
      */
-    protected function downloadVideoWithYtDlp(string $url, string $outputFile): bool
+    protected function downloadYouTubeVideo(string $videoId, string $url, string $outputFile): bool
     {
-        $ytDlpPath = '/home/artime/.local/bin/yt-dlp';
+        // Try YouTube-specific download API first, then fall back to social downloader
+        $apiKey = get_option('youtube_download_api_key', '') ?: get_option('social_downloader_api_key', '');
+        $apiHost = get_option('youtube_download_api_host', 'ytstream-download-youtube-videos.p.rapidapi.com');
 
-        // Check for cookies file — enables Instagram, TikTok, Facebook downloads
-        $cookiesPath = get_option('ytdlp_cookies_path', '/home/artime/.config/yt-dlp/cookies.txt');
-        $cookiesFlag = '';
-        if (!empty($cookiesPath) && file_exists($cookiesPath)) {
-            $cookiesFlag = sprintf('--cookies %s', escapeshellarg($cookiesPath));
-            Log::info('VideoWizard: Using cookies file for yt-dlp', ['path' => $cookiesPath]);
+        if (empty($apiKey)) {
+            Log::error('VideoWizard: No YouTube download API key configured. Set youtube_download_api_key in admin options.');
+            $this->videoAnalysisError = __('YouTube download API is not configured. Please contact the administrator.');
+            return false;
         }
 
-        $command = sprintf(
-            '%s --no-playlist --max-filesize 100M %s -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o %s %s 2>&1',
-            escapeshellcmd($ytDlpPath),
-            $cookiesFlag,
-            escapeshellarg($outputFile),
-            escapeshellarg($url)
-        );
+        Log::info('VideoWizard: Downloading YouTube video via API', ['host' => $apiHost, 'videoId' => $videoId]);
 
-        exec($command, $output, $returnCode);
-        $outputText = implode("\n", $output);
+        try {
+            // Build API URL based on the configured host
+            $apiUrl = $this->buildYouTubeApiUrl($apiHost, $videoId, $url);
 
-        Log::info('VideoWizard: yt-dlp result', [
-            'returnCode' => $returnCode,
-            'outputFile' => $outputFile,
-            'exists' => file_exists($outputFile),
-            'hasCookies' => !empty($cookiesFlag),
-            'output' => mb_substr($outputText, -500),
-        ]);
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTPHEADER => [
+                    'x-rapidapi-host: ' . $apiHost,
+                    'x-rapidapi-key: ' . $apiKey,
+                ],
+            ]);
 
-        if ($returnCode === 0 && file_exists($outputFile) && filesize($outputFile) > 1000) {
-            return true;
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode !== 200 || empty($response)) {
+                Log::warning('VideoWizard: YouTube API returned error', ['httpCode' => $httpCode, 'response' => mb_substr($response ?? '', 0, 500)]);
+                $this->videoAnalysisError = __('YouTube download API error. Please try again later.');
+                return false;
+            }
+
+            $data = json_decode($response, true);
+            if (empty($data) || !empty($data['error'])) {
+                Log::warning('VideoWizard: YouTube API response error', ['data' => mb_substr($response, 0, 500)]);
+                $this->videoAnalysisError = __('Could not fetch video data from YouTube. The video may be private or unavailable.');
+                return false;
+            }
+
+            // Extract best video download URL from response
+            $downloadUrl = $this->extractBestVideoUrl($data);
+            if (empty($downloadUrl)) {
+                Log::warning('VideoWizard: No video URL found in YouTube API response', ['keys' => array_keys($data)]);
+                $this->videoAnalysisError = __('Could not extract a download link for this video.');
+                return false;
+            }
+
+            Log::info('VideoWizard: YouTube API provided download URL, downloading video file');
+
+            // Download the actual video file
+            $ch = curl_init($downloadUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ]);
+
+            $videoData = curl_exec($ch);
+            $dlHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($dlHttpCode === 200 && !empty($videoData) && strlen($videoData) > 10000) {
+                file_put_contents($outputFile, $videoData);
+                Log::info('VideoWizard: YouTube video downloaded successfully', ['size' => strlen($videoData)]);
+                return true;
+            }
+
+            Log::warning('VideoWizard: YouTube video file download failed', ['httpCode' => $dlHttpCode, 'size' => strlen($videoData ?? '')]);
+            $this->videoAnalysisError = __('Failed to download the video file. Please try again.');
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('VideoWizard: YouTube download exception', ['error' => $e->getMessage()]);
+            $this->videoAnalysisError = $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Build the API URL for the configured YouTube download service.
+     * Supports multiple RapidAPI providers with different endpoint formats.
+     */
+    protected function buildYouTubeApiUrl(string $apiHost, string $videoId, string $fullUrl): string
+    {
+        // YTStream (default) — ytstream-download-youtube-videos.p.rapidapi.com
+        if (str_contains($apiHost, 'ytstream')) {
+            return 'https://' . $apiHost . '/dl?id=' . urlencode($videoId);
         }
 
-        // Set specific error messages — these may be overridden by API fallback success
-        $needsAuth = str_contains($outputText, 'login required')
-            || str_contains($outputText, 'Sign in')
-            || str_contains($outputText, 'locked behind the login')
-            || str_contains($outputText, 'Requested content is not available');
-
-        if (str_contains($outputText, 'Unsupported URL') || str_contains($outputText, 'is not a valid URL')) {
-            $this->videoAnalysisError = __('This URL is not supported. Try YouTube, Instagram, TikTok, Twitter/X, or Facebook.');
-        } elseif (str_contains($outputText, 'max-filesize')) {
-            $this->videoAnalysisError = __('Video is too large (over 100MB). Try a shorter clip.');
-        } elseif ($needsAuth && empty($cookiesFlag)) {
-            $platform = $this->detectPlatform($url);
-            $this->videoAnalysisError = __(':platform requires authentication. An admin cookies file is needed for :platform downloads. Trying alternative method...', ['platform' => $platform]);
-        } elseif ($needsAuth) {
-            $platform = $this->detectPlatform($url);
-            $this->videoAnalysisError = __(':platform cookies may be expired. Please re-export cookies from a logged-in browser session.', ['platform' => $platform]);
-        } else {
-            $this->videoAnalysisError = __('Failed to download video. Make sure the URL is a public video from a supported platform.');
+        // YouTube Media Downloader — youtube-media-downloader.p.rapidapi.com
+        if (str_contains($apiHost, 'youtube-media-downloader')) {
+            return 'https://' . $apiHost . '/v2/video/details?videoId=' . urlencode($videoId);
         }
 
-        Log::warning('VideoWizard: yt-dlp download failed, will try API fallback', [
-            'needsAuth' => $needsAuth,
-            'output' => mb_substr($outputText, -300),
-        ]);
+        // Social media video downloader (generic) — social-media-video-downloader.p.rapidapi.com
+        if (str_contains($apiHost, 'social-media-video-downloader')) {
+            return 'https://' . $apiHost . '/smvd/get/all?url=' . urlencode($fullUrl);
+        }
 
-        // Cleanup failed partial file
-        @unlink($outputFile);
-        return false;
+        // Default: pass full URL as query param
+        return 'https://' . $apiHost . '/download?url=' . urlencode($fullUrl);
     }
 
     /**
