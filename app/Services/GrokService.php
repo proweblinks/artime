@@ -87,11 +87,11 @@ class GrokService
         int $maxLength,
         ?int $maxResult = null,
         string $category = 'text',
-        ?string $modelOverride = null,
+        array|string|null $modelOverride = null,
         array $options = []
     ): array {
-        // Use override model if provided, otherwise check options, then fall back to default
-        $model = $modelOverride ?? $options['model'] ?? $this->getModel($category);
+        // Use override model if provided (string or options array), then fall back to default
+        $model = (is_array($modelOverride) ? ($modelOverride['model'] ?? null) : $modelOverride) ?? $options['model'] ?? $this->getModel($category);
 
         $messages = is_array($content)
             ? $content

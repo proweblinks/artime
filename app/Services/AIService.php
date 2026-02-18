@@ -118,7 +118,7 @@ class AIService
 
         // Dispatch theo category
         $response = match ($category) {
-            'text'           => $service->generateText($content, $maxLength, $options['maxResult'] ?? null, $category, $model),
+            'text'           => $service->generateText($content, $maxLength, $options['maxResult'] ?? null, $category, $options),
             'image'          => $service->generateImage($content, $options, $category),
             'video'          => $service->generateVideo($content, $options, $category),
             'speech'         => $service->textToSpeech($content, $options, $category),

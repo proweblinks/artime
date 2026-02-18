@@ -149,7 +149,7 @@ class MiniMaxService
         string $category = 'text',
         array $options = []
     ): array {
-        $model = $this->getModel($category);
+        $model = $options['model'] ?? $this->getModel($category);
 
         $messages = is_array($content)
             ? $content

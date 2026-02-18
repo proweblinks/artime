@@ -91,10 +91,10 @@ class OpenAIService
      * @param string|null $modelOverride Optional specific model to use instead of default
      * @return array
      */
-    public function generateText(string|array $prompt, int $maxLength, int $maxResult = 1, string $category = 'text', ?string $modelOverride = null): array
+    public function generateText(string|array $prompt, int $maxLength, int $maxResult = 1, string $category = 'text', array|string|null $modelOverride = null): array
     {
         // Use override model if provided, otherwise use default from settings
-        $modelKey = $modelOverride ?? $this->getModel($category);
+        $modelKey = (is_array($modelOverride) ? ($modelOverride['model'] ?? null) : $modelOverride) ?? $this->getModel($category);
         $aiModel  = AIModel::where('model_key', $modelKey)->first();
         $apiType  = $aiModel->api_type ?? 'chat';
 
