@@ -726,26 +726,24 @@ CHAOS;
     protected function getSeedanceTechnicalRules(): string
     {
         return <<<'RULES'
-SEEDANCE OFFICIAL DEGREE WORDS — USE ONLY THESE (mandatory on every action):
-Seedance responds to specific intensity words, NOT literary English adverbs.
-The OFFICIAL degree words are: quickly, violently, with large amplitude, at high frequency,
-powerfully, wildly, crazy, fast, intense, strong, greatly.
-USE EXACT FORMS ONLY — do NOT convert to other grammatical forms:
-"intense" (adjective) NOT "intensely". "strong" (adjective) NOT "strongly". "violent" use "violently" (it IS official).
-"crazy" enhances high-energy moments — use on 2-4 key actions, not every action: "crazy yowl", "crazy intensity".
-COMBINE degree words: "fast and violently", "powerfully with large amplitude", "wildly at high frequency",
-"at high frequency and crazy intensity".
-NEVER use literary adverbs or non-official intensity words: "ferociously", "furiously", "aggressively",
-"frantically", "explosively", "savagely", "relentlessly", "deafening", "razor-sharp", "audible",
-"intensely", "strongly", "sharply", "fiercely", "rapidly", "tremendously", "enormously" — Seedance does NOT interpret these.
+SEEDANCE 1.5 PRO OFFICIAL INTENSITY ADVERBS — USE ONLY THESE:
+Seedance responds to specific intensity adverbs placed BEFORE verbs.
+HIGH intensity: rapidly, violently, largely, crazily, intensely
+MEDIUM intensity: slowly, gently, steadily, smoothly
+MODIFIERS (place AFTER verb): with large amplitude, at high frequency
+Place adverbs BEFORE the verb: "rapidly glances" NOT "glances rapidly".
+COMBINE with modifiers: "crazily bobbing with large amplitude", "rapidly swinging at high frequency".
+NEVER use non-official adverbs: "ferociously", "furiously", "aggressively",
+"frantically", "explosively", "savagely", "relentlessly", "deafening", "razor-sharp",
+"sharply", "fiercely", "tremendously", "enormously", "powerfully", "wildly" — Seedance does NOT interpret these.
 NEVER use emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate",
-"shocked", "stunned" — convey emotion through BODY ACTIONS with degree words, not adjectives.
-Only the official list works. Even in examples: "man's roar" → "man's crazy roar", "wing flapping" → "wing flapping greatly".
+"shocked", "stunned" — convey emotion through BODY ACTIONS with intensity adverbs, not adjectives.
+Only the official list works. Match intensity to the scene: calm = gently/steadily, intense = crazily/violently.
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
 WRONG: "the cat attacks" (model doesn't know HOW it attacks)
-RIGHT: "the cat's front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
+RIGHT: "the cat's front paws violently slam into the counter, propelling its body forward in a rapid lunge"
 If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
 
 CHARACTER SOUNDS — CONTINUOUS:
@@ -755,9 +753,9 @@ Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flatt
 End with "Continuous [character sounds] throughout." or just "Continuous." then "Cinematic, photorealistic."
 
 PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-GOOD: "front paws slam into the counter powerfully, propelling its body forward in a fast violent lunge"
-GOOD: "hind legs kick at high frequency, smashing cup fragments and spraying dark liquid violently"
-GOOD: "rigid tail whips violently, snapping against a metal utensil holder, sending spoons clattering"
+GOOD: "front paws violently slam into the counter, propelling its body forward in a rapid lunge"
+GOOD: "hind legs crazily kick at high frequency, smashing cup fragments and spraying dark liquid violently"
+GOOD: "rigid tail violently whips, snapping against a metal utensil holder, sending spoons clattering"
 BAD: "the cat attacks him aggressively" (too vague — which body part? what motion? what gets hit?)
 
 ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS:
@@ -770,7 +768,7 @@ FACE & IDENTITY PRESERVATION — Critical for character consistency:
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
 - Convey emotion through BODY LANGUAGE and ACTIONS:
   WRONG: "her face shows shock, eyes widening, mouth dropping open"
-  RIGHT: "she jerks back fast, hands flying up defensively"
+  RIGHT: "she rapidly jerks back, hands flying up defensively"
 - Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
 - You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells") — these are actions, not appearance descriptions.
 - AVOID: rapid lighting changes, complex multi-person fighting/hugging, exaggerated descriptions.
@@ -790,7 +788,7 @@ BANNED:
 - No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
 - No passive voice — only active verbs with intensity qualifiers
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- No literary adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically", "intensely", "strongly", "fiercely", "rapidly", "tremendously", "enormously" — use ONLY the official degree words listed above
+- No non-official adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically", "powerfully", "wildly", "fiercely", "tremendously", "enormously" — use ONLY the official Seedance 1.5 Pro adverbs listed above
 - No emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate", "shocked", "stunned" — convey emotion through body actions with degree words instead
 - ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack", "musical accompaniment", or ANY variation. Seedance auto-generates audio from prompt text — any music mention will cause Seedance to play unwanted background music. ONLY describe: character voices/sounds, dialogue, and environmental sound effects caused by physical actions (crashes, shattering, splashing, clattering)
 RULES;
@@ -876,80 +874,62 @@ CLONE_RULES;
             $text = preg_replace($pattern, $replacement, $text);
         }
 
-        // Phase 2: Replace banned -ly adverbs with official degree words
+        // Phase 2: Replace non-official adverbs with Seedance 1.5 Pro official adverbs
+        // Official Seedance adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly
+        // Official modifiers: with large amplitude, at high frequency
         $adverbReplacements = [
-            '/\bintensely\b/i' => 'violently',
-            '/\bstrongly\b/i' => 'strong',
-            '/\bloudly\b/i' => 'powerfully',
-            '/\bwidely\b/i' => 'wildly',
-            '/\bbroadly\b/i' => 'wildly',
-            '/\bdeeply\b/i' => 'powerfully',
-            '/\bsharply\b/i' => 'fast',
-            '/\bfiercely\b/i' => 'wildly',
-            '/\brapidly\b/i' => 'fast',
-            '/\benormously\b/i' => 'greatly',
-            '/\btremendously\b/i' => 'greatly',
+            // Convert NON-official words to official Seedance 1.5 Pro adverbs
+            '/\bfast\b/i' => 'rapidly',
+            '/\bquickly\b/i' => 'rapidly',
+            '/\bpowerfully\b/i' => 'intensely',
+            '/\bstrongly\b/i' => 'intensely',
+            '/\bwildly\b/i' => 'crazily',
+            '/\bgreatly\b/i' => 'largely',
+            '/\bsharply\b/i' => 'rapidly',
+            '/\bfiercely\b/i' => 'violently',
             '/\bexplosively\b/i' => 'violently',
-            '/\bferociously\b/i' => 'wildly',
-            '/\baggressively\b/i' => 'powerfully',
-            '/\bfrantically\b/i' => 'wildly',
+            '/\bferociously\b/i' => 'violently',
+            '/\baggressively\b/i' => 'violently',
+            '/\bfrantically\b/i' => 'crazily',
             '/\bsavagely\b/i' => 'violently',
-            '/\brelentlessly\b/i' => 'powerfully',
-            '/\bdeafening\b/i' => 'intense',
-            // Additional Gemini favorites not in original list
-            '/\bprecariously\b/i' => 'wildly',
-            '/\bdesperately\b/i' => 'wildly',
-            '/\bfuriously\b/i' => 'wildly',
+            '/\bfuriously\b/i' => 'violently',
             '/\bviciously\b/i' => 'violently',
-            '/\bmercilessly\b/i' => 'powerfully',
-            '/\bforcefully\b/i' => 'powerfully',
-            '/\btightly\b/i' => 'strong',
-            '/\bbriefly\b/i' => 'fast',
-            '/\bcrazily\b/i' => 'crazy',
-            '/\bfirmly\b/i' => 'strong',
+            '/\bforcefully\b/i' => 'intensely',
+            '/\bvigorously\b/i' => 'intensely',
+            '/\bswiftly\b/i' => 'rapidly',
+            '/\bhurriedly\b/i' => 'rapidly',
+            '/\beagerly\b/i' => 'rapidly',
+            '/\bdesperately\b/i' => 'crazily',
+            '/\bprecariously\b/i' => 'crazily',
+            '/\brelentlessly\b/i' => 'intensely',
+            '/\bmercilessly\b/i' => 'violently',
+            // Remove literary/emotional adverbs (no official equivalent)
+            '/\bbriefly\b/i' => '',
             '/\bslightly\b/i' => '',
-            '/\bsuddenly\b/i' => 'fast',
-            '/\bimmediately\b/i' => 'fast',
-            '/\bsubtle\b/i' => '',
-            '/\bexaggerated\b/i' => 'intense',
+            '/\bsuddenly\b/i' => '',
+            '/\bimmediately\b/i' => '',
             '/\bcontentedly\b/i' => '',
-            '/\bdeliberately\b/i' => 'powerfully',
-            '/\bsoft\b/i' => '',
-            '/\bviolently\s+and\s+violently\b/i' => 'violently',
-            // Additional non-official adverbs caught by compliance checker
-            '/\bslowly\b/i' => 'quickly',
-            '/\bintently\b/i' => 'fast',
-            '/\bsecretly\b/i' => '',
-            '/\bgently\b/i' => 'quickly',
-            '/\bcalmly\b/i' => '',
-            '/\bquietly\b/i' => '',
-            '/\bcautiously\b/i' => 'fast',
-            '/\bsteadily\b/i' => 'strong',
-            '/\bcarefully\b/i' => '',
-            '/\bhurriedly\b/i' => 'fast',
-            '/\bgracefully\b/i' => '',
-            '/\bswiftly\b/i' => 'fast',
-            '/\bvigorously\b/i' => 'powerfully',
-            '/\bactively\b/i' => 'powerfully',
-            '/\bfirmly\b/i' => 'strong',
-            '/\beagerly\b/i' => 'fast',
-            '/\brapidly\b/i' => 'fast',
             '/\bdeliberately\b/i' => '',
-            '/\bdirectly\b/i' => '',
-            '/\bechoing\b/i' => '',
-            '/\bfrantically\b/i' => 'wildly',
-            // Non-official degree-style words used by AI — remove, don't replace with "crazy"
+            '/\bsecretly\b/i' => '',
+            '/\bquietly\b/i' => '',
+            '/\bcautiously\b/i' => '',
+            '/\bcarefully\b/i' => '',
+            '/\bgracefully\b/i' => '',
+            '/\bactively\b/i' => '',
+            '/\btightly\b/i' => '',
+            '/\bfirmly\b/i' => '',
+            '/\bintently\b/i' => '',
+            // Remove non-Seedance descriptors
+            '/\bdeafening\b/i' => '',
+            '/\bexaggerated\b/i' => '',
+            '/\bsubtle\b/i' => '',
             '/\bamplified\b/i' => '',
             '/\bdistinct\b/i' => '',
             '/\bpiercing\b/i' => '',
-            '/\bsynchronized\b/i' => '',
-            '/\bsteady\b/i' => 'strong',
-            '/\bfirm\b/i' => 'strong',
             '/\bmuffled\b/i' => '',
-            '/\bcomedic\b/i' => '',
-            '/\bplayful\b/i' => '',
-            '/\bgentle\b/i' => '',
             '/\bdelicate\b/i' => '',
+            // Deduplicate
+            '/\bviolently\s+and\s+violently\b/i' => 'violently',
         ];
 
         foreach ($adverbReplacements as $pattern => $replacement) {
@@ -957,14 +937,20 @@ CLONE_RULES;
         }
 
         // Phase 2a: Catch-all for ANY remaining non-official -ly adverb
-        // Official -ly words that are ALLOWED: violently, quickly, powerfully, wildly, greatly, strongly
-        // Also allow: photorealistic (style anchor)
+        // Official Seedance 1.5 Pro -ly adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly
         $text = preg_replace_callback('/\b(\w+ly)\b/i', function ($matches) {
             $word = strtolower($matches[1]);
-            $allowed = ['violently', 'quickly', 'powerfully', 'wildly', 'greatly', 'strongly',
-                'photorealistic', 'only', 'partially', 'directly', 'simultaneously', 'continuously',
+            $allowed = [
+                // Official Seedance 1.5 Pro adverbs
+                'rapidly', 'violently', 'largely', 'crazily', 'intensely',
+                'slowly', 'gently', 'steadily', 'smoothly',
+                // Style/structure words (not adverbs but end in -ly)
+                'photorealistic', 'only', 'partially', 'simultaneously', 'continuously',
+                'instantly', 'finally', 'suddenly',
+                // Common English words ending in -ly that aren't adverbs
                 'family', 'belly', 'jelly', 'holly', 'bully', 'early', 'nearly', 'clearly',
-                'mostly', 'especially', 'actually', 'really', 'finally', 'suddenly'];
+                'mostly', 'really', 'funny', 'loosely',
+            ];
             if (in_array($word, $allowed)) {
                 return $matches[0]; // Keep allowed words
             }
@@ -979,10 +965,8 @@ CLONE_RULES;
             '/\battempting to\b/i' => '',
             '/\bbegins to\b/i' => '',
             '/\bstarts to\b/i' => '',
-            '/\bwalks\b/i' => 'moves',
-            '/\bwalking\b/i' => 'moving',
-            '/\bin anger\b/i' => 'powerfully',
-            '/\bin frustration\b/i' => 'powerfully',
+            '/\bin anger\b/i' => 'intensely',
+            '/\bin frustration\b/i' => 'intensely',
             '/\bhigh-pitched\b/i' => '',
             '/\bhigh-frequency\b/i' => 'at high frequency',
         ];
@@ -1206,7 +1190,7 @@ CLONE_RULES;
         // Clone context: softer degree word rules that preserve faithfulness
         $degreeWordRule = ($context === 'clone')
             ? "- Degree words are OPTIONAL for clone prompts. Only add them if the original action is genuinely intense.\n- Do NOT escalate gentle actions: \"brushes against\" should NOT become \"slams powerfully\". Keep the original intensity.\n- \"nearly\", \"gently\", \"slowly\", \"calmly\" are acceptable for calm/moderate videos — do NOT replace them with aggressive words.\n- NEVER change the meaning or intensity of an action. \"Nearly brushes\" ≠ \"slams\". \"Walks\" ≠ \"charges\". \"Glances\" ≠ \"whips head\"."
-            : '- Every action MUST have at least one official degree word (quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly)';
+            : '- Every action MUST have at least one official Seedance intensity adverb (rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly) or modifier (with large amplitude, at high frequency)';
 
         // Clone context: wider word count range and faithfulness override
         if ($context === 'clone') {
