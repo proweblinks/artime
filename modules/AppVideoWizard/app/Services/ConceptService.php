@@ -1131,7 +1131,19 @@ CLONE_RULES;
             $text = preg_replace($pattern, $replacement, $text);
         }
 
-        // Phase 3d2: Fix sound/phrasing patterns
+        // Phase 3d2: Remove dialogue/speech quotes — Seedance renders motion, not spoken words
+        $dialoguePatterns = [
+            // "saying 'Get off!'" / "saying \"Get off!\"" / "saying 'words words'"
+            '/,?\s*\b(?:saying|declares?|declaring|shouts?|shouting|yells?|yelling|whispers?|whispering|mutters?|muttering|exclaims?|exclaiming|screams?|commands?|demanding|announces?|announcing|pleads?|pleading|asks?|asking|replies?|replying|responds?|responding|tells?|telling|cries?\s+out)\s*[,:]?\s*[\'"][^\'"]*[\'"]\s*(?:and)?/i' => '',
+            // ", 'Get off!'" or ", \"I'm leaving!\"" — standalone quoted speech
+            '/,?\s*[\'"][A-Z][^\'"]{2,}[!\?\.]*[\'"]/i' => '',
+        ];
+
+        foreach ($dialoguePatterns as $pattern => $replacement) {
+            $text = preg_replace($pattern, $replacement, $text);
+        }
+
+        // Phase 3d3: Fix sound/phrasing patterns
         // "sound effect" → "sounds" (Seedance prefers plural natural sounds)
         $text = preg_replace('/\bsound\s+effects?\b/i', 'sounds', $text);
         // "sound" at end of phrase → "sounds" (pluralize for natural phrasing)
@@ -2178,9 +2190,9 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
 STEP 1: List every action phase from the analysis timeline (e.g., 0:00-0:01 = setup, 0:01-0:02 = escalation, ... 0:09-0:11 = departure).
-STEP 2: Write ONE sentence per phase. Use: Subject + [Seedance adverb] + motion + body parts.
+STEP 2: Write ONE sentence per phase. Use: Subject + [Seedance adverb] + motion + body parts. INCLUDE the visible emotional state FROM THE ANALYSIS in each action — "violently opens mouth wide in aggressive fury" NOT "opens mouth wide". If the analysis says a character is angry/aggressive/surprised/exasperated, that emotion MUST be in the sentence.
 STEP 3: Check your LAST sentence — it must describe the FINAL phase of the video (NOT the climax). If the video ends with someone leaving/giving up, that is your last sentence.
-STEP 4: NO sound words (hissing, yowling, meowing, barking, growling). Describe VISIBLE actions only.
+STEP 4: NO sound words (hissing, yowling, meowing, barking, growling). NO dialogue text (saying 'Get off!', declares 'I'm leaving!'). Seedance renders VISIBLE MOTION only — not speech, not sounds.
 STEP 5: End with "Cinematic, photorealistic."
 
 If the analysis has 8-10 phases, your videoPrompt should have 8-10 action sentences (90-120 words).
