@@ -3864,16 +3864,16 @@ EOT;
                 'mimeType' => $mimeType,
             ]);
 
-            // If primary model failed, try fallback model (gemini-2.5-flash-image)
+            // If primary model failed, try fallback model (NanoBanana = gemini-2.5-flash-image)
             if (empty($result['imageData'])) {
                 Log::warning('Primary model failed for image editing, trying fallback', [
                     'primary' => 'gemini-3-pro-image-preview',
-                    'fallback' => 'gemini-2.5-flash-preview-image',
+                    'fallback' => 'gemini-2.5-flash-image',
                     'primaryError' => $result['error'] ?? 'No image data',
                 ]);
 
                 $result = $this->geminiService->generateImageFromImage($base64Image, $editPrompt, [
-                    'model' => 'gemini-2.5-flash-preview-image',
+                    'model' => 'gemini-2.5-flash-image',
                     'mimeType' => $mimeType,
                 ]);
             }
