@@ -4151,6 +4151,12 @@ function getCameraMovementIcon($movement) {
 
 @if($isSocialContent ?? false)
     @include('appvideowizard::livewire.steps.partials._social-create')
+
+    {{-- Universal AI Image Studio Modal (for social content) --}}
+    @include('appvideowizard::livewire.modals.image-studio')
+
+    {{-- Asset History Panel (for social content) --}}
+    @include('appvideowizard::livewire.modals.asset-history-panel')
 @else
 <div class="vw-storyboard-fullscreen" x-data="{
     showSettings: true,
