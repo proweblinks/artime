@@ -707,71 +707,63 @@ CHAOS;
     protected function getSeedanceTechnicalRules(): string
     {
         return <<<'RULES'
-SEEDANCE 1.5 PRO OFFICIAL INTENSITY ADVERBS — USE ONLY THESE:
-Seedance responds to specific intensity adverbs placed BEFORE verbs.
-HIGH intensity: rapidly, violently, largely, crazily, intensely
-MEDIUM intensity: slowly, gently, steadily, smoothly
-MODIFIERS (place AFTER verb): with large amplitude, at high frequency
-Place adverbs BEFORE the verb: "rapidly glances" NOT "glances rapidly".
-COMBINE with modifiers: "crazily bobbing with large amplitude", "rapidly swinging at high frequency".
-NEVER use non-official adverbs: "ferociously", "furiously", "aggressively",
-"frantically", "explosively", "savagely", "relentlessly", "deafening", "razor-sharp",
-"sharply", "fiercely", "tremendously", "enormously", "powerfully", "wildly" — Seedance does NOT interpret these.
-NEVER use emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate",
-"shocked", "stunned" — convey emotion through BODY ACTIONS with intensity adverbs, not adjectives.
-Only the official list works. Match intensity to the scene: calm = gently/steadily, intense = crazily/violently.
+SEEDANCE VIDEO PROMPT RULES:
+
+ADVERBS — Use natural, descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
+- Temporal: suddenly, immediately, then, finally, instantly
+- Place adverbs BEFORE or AFTER verbs naturally. Write as you would narrate the scene.
 
 EXPLICIT MOTION — Seedance CANNOT infer motion:
 Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
-WRONG: "the cat attacks" (model doesn't know HOW it attacks)
-RIGHT: "the cat's front paws violently slam into the counter, propelling its body forward in a rapid lunge"
+WRONG: "the cat attacks" (too vague — HOW does it attack?)
+RIGHT: "the cat slaps the man's face with its right paw"
 If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
 
-CHARACTER SOUNDS — CONTINUOUS:
-Animal/character sounds must appear in EVERY action beat. Use varied words:
-screeching, yowling, hissing, shrieking, screaming, growling, wailing.
-Describe sounds physically: "mouth gaping wide showing sharp fangs", "ears flattened".
-End with "Continuous [character sounds] throughout." or just "Continuous." then "Cinematic, photorealistic."
+DIALOGUE & SOUNDS — INCLUDE THEM:
+- Include character dialogue in quotes: yells "Get off me!"
+- Include character sounds: meows, yells, screams, growls, hisses
+- Include environmental sounds caused by actions: crashes, clattering, shattering
+- These help Seedance generate accurate audio and mouth movements.
 
-PHYSICAL ACTION — SPECIFIC BODY PARTS + AMPLITUDE:
-GOOD: "front paws violently slam into the counter, propelling its body forward in a rapid lunge"
-GOOD: "hind legs crazily kick at high frequency, smashing cup fragments and spraying dark liquid violently"
-GOOD: "rigid tail violently whips, snapping against a metal utensil holder, sending spoons clattering"
-BAD: "the cat attacks him aggressively" (too vague — which body part? what motion? what gets hit?)
+CAMERA STYLE — Describe when relevant:
+- "A chaotic, shaking handheld camera follows the action"
+- "Smooth tracking shot" or "Static wide shot"
+- Camera style helps set the visual tone.
 
-ENVIRONMENTAL DESTRUCTION — CREATIVE CHAIN REACTIONS:
-Don't just say "things crash." Invent specific destruction chains:
-Every object must be HIT by a body part before it breaks. More destruction = better video.
+PHYSICAL ACTION — SPECIFIC BODY PARTS:
+GOOD: "slaps the man's face with its right paw"
+GOOD: "lands violently on the man's left shoulder, its claws gripping wildly"
+GOOD: "jumps onto the counter and violently knocks over the iced coffee cup and other items"
+BAD: "the cat attacks him" (which body part? what motion? what gets hit?)
 
-FACE & IDENTITY PRESERVATION — Critical for character consistency:
+OBJECT DISPLACEMENT — ALWAYS INCLUDE:
+When characters interact with objects during action, describe what happens:
+"jumps onto the counter and violently knocks over the iced coffee cup"
+"slams his hand down, sending napkins flying off the counter"
+Objects flying, falling, scattering = essential visual chaos.
+
+FACE & IDENTITY PRESERVATION:
 - Do NOT add face/identity prefix text like "Maintain face consistency" — the source IMAGE defines the face.
-- Do NOT include identity anchors (hair color, skin tone, accessories) — the image shows them.
+- Do NOT include identity anchors (hair color, skin tone) — the image shows them.
 - NEVER describe face structure changes: "face shifts", "expression changes to", "features contort".
-- Convey emotion through BODY LANGUAGE and ACTIONS:
-  WRONG: "her face shows shock, eyes widening, mouth dropping open"
-  RIGHT: "she rapidly jerks back, hands flying up defensively"
-- Seedance preserves faces best when the prompt focuses on BODY MOTION, not facial micro-expressions.
-- You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "mouth opens as she yells") — these are actions, not appearance descriptions.
-- AVOID: rapid lighting changes, complex multi-person fighting/hugging, exaggerated descriptions.
+- You may mention mouth opening for SPEAKING or SOUND PRODUCTION (e.g. "yells", "mouth opens wide") — these are actions.
 
 STYLE ANCHOR — ALWAYS end with: "Cinematic, photorealistic."
 
 SCALE & SIZE — Seedance renders characters at DEFAULT size unless told otherwise:
-- If characters are miniaturized/tiny/shrunken → you MUST say so: "tiny miniature cat barely ankle-height"
+- If characters are miniaturized/tiny → you MUST say so: "tiny miniature cat barely ankle-height"
 - If characters are enlarged/giant → you MUST say so: "enormous cat towering over the table"
-- If there's a specific COUNT of characters → state it: "a line of twelve tiny cats" not just "cats"
-- Without explicit size cues, Seedance renders normal-sized characters — losing the visual comedy.
+- Without explicit size cues, Seedance renders normal-sized characters.
 
 BANNED:
 - No semicolons
-- No camera movement descriptions (camera is controlled separately by the API)
-- No appearance/clothing descriptions (fur color, clothing, accessories — only what they DO and how BIG they are)
-- No direct facial expression descriptions ("expression shifts to", "face shows", "eyes widen", "brow furrows") — convey emotion through body language instead
-- No passive voice — only active verbs with intensity qualifiers
+- No appearance/clothing descriptions (fur color, clothing details — only what they DO)
+- No facial micro-expression descriptions ("eyes widen", "brow furrows", "expression shifts") — convey emotion through body language
+- No passive voice — only active verbs
 - No weak/generic verbs: "goes", "moves", "does", "gets", "starts", "begins"
-- No non-official adverbs: "deafening", "razor-sharp", "audible", "sharply", "explosively", "relentlessly", "ferociously", "frantically", "powerfully", "wildly", "fiercely", "tremendously", "enormously" — use ONLY the official Seedance 1.5 Pro adverbs listed above
-- No emotional state adjectives: "enraged", "terrified", "horrified", "furious", "frantic", "desperate", "shocked", "stunned" — convey emotion through body actions with degree words instead
-- ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack", "musical accompaniment", or ANY variation. Seedance auto-generates audio from prompt text — any music mention will cause Seedance to play unwanted background music. ONLY describe: character voices/sounds, dialogue, and environmental sound effects caused by physical actions (crashes, shattering, splashing, clattering)
+- ABSOLUTELY NO background music, soundtrack, score, beat, rhythm, or melody descriptions. NEVER write "music plays", "upbeat music", "dramatic score", "beat drops", "soundtrack". Seedance auto-generates audio from prompt text — any music mention creates unwanted background music.
 RULES;
     }
 
@@ -782,37 +774,31 @@ RULES;
     protected function getCloneTechnicalRules(): string
     {
         return <<<'CLONE_RULES'
-=== SEEDANCE 1.5 PRO — CLONE VIDEO PROMPT FORMAT ===
+=== CLONE VIDEO PROMPT FORMAT ===
 
-Follow the official Seedance 1.5 Pro prompt formula: Subject + [Intensity Adverb] + Motion.
-Use simple, clear language. Describe what you see. Focus ONLY on moving parts.
+Write a natural, vivid narrative that describes the complete action of the source video.
+Use clear, descriptive language. Include dialogue, sounds, and camera style.
 
 PROMPT STRUCTURE — FOLLOW THE COMPLETE ACTION TIMELINE:
-Write one sentence per action phase from the analysis. Cover EVERY phase — do NOT skip any.
-Each sentence: Subject + [adverb] + specific motion with body parts.
+Write flowing prose that covers EVERY action phase from the analysis. Do NOT skip any phase.
+Connect actions with natural transitions: "then", "suddenly", "in a quick motion".
 End with: "Cinematic, photorealistic."
-If the analysis describes 8 action phases → write ~8 action sentences.
-NEVER skip a phase. A cat leaping, a man struggling, a throw — each needs its own sentence.
+If the analysis describes 8 action phases → cover ALL 8 in your narrative.
 
-SEEDANCE INTENSITY ADVERBS — Place BEFORE the verb:
-- High: rapidly, violently, largely, crazily, intensely
-- Medium: slowly, gently, steadily, smoothly
-- Modifiers (place after verb): with large amplitude, at high frequency
-- Example: "The bear rapidly glances back" NOT "The bear glances back fast"
+INCLUDE:
+- Dialogue in quotes from the audio transcript: yells "How can you ruin this?"
+- Character sounds: meows, yells, screams — these drive accurate audio generation
+- Camera style when notable: "A chaotic, shaking handheld camera follows the action"
+- Emotional states as part of actions: "leans aggressively", "angrily points"
+- Specific body parts: "slaps the man's face with its right paw", "lands on the man's left shoulder"
+- Object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
 
-TEMPORAL WORDS to connect actions in order: then, instantly, after, finally, suddenly
-
-RULES:
-- Use simple words. Short sentences. Active verbs.
-- NO sound effect words (SMACK, THUD, crash, meow) — but DO describe visible expressions that produce sounds (mouth open screaming, paw slamming, aggressive attack posture).
+DO NOT INCLUDE:
 - NO scene/setting/environment descriptions — the source image provides the scene.
 - NO appearance/clothing/color descriptions — the source image provides appearance.
-- INCLUDE visible emotional states AS PART OF each action: angry, aggressive, surprised, distressed, defiant. "Opens mouth wide" is WRONG (emotionless). "Violently opens mouth in aggressive fury" is RIGHT. The emotion is HOW the action looks — it changes what Seedance renders.
-- NO camera movement descriptions — the API controls the camera separately.
 - NO background music mentions — Seedance generates audio from text, any music reference creates unwanted audio.
+- NO facial micro-expressions ("eyes widen", "brow furrows") — convey emotion through body language.
 - NO semicolons, NO passive voice.
-- Give each action phase enough detail — body parts and HOW they move.
-- Repeated minor actions (glances, nods) → mention ONCE briefly, don't repeat.
 - Do NOT fabricate actions not in the analysis. Faithful to what actually happened.
 - Match intensity to the analysis: calm scene = gently/steadily, intense scene = crazily/violently.
 - If characters are miniaturized/enlarged, MENTION the size — it affects rendering.
@@ -842,170 +828,25 @@ CLONE_RULES;
      */
     public static function sanitizeSeedancePrompt(string $text): string
     {
-        // Phase 1: Fix compound phrases (more specific matches first)
+        // Phase 1: Fix compound phrases
         $compounds = [
-            '/\bcrazy\s+intensely\b/i' => 'with crazy intensity',
             '/\brazor[\s-]*sharp\b/i' => 'sharp',
             '/\brazor\s+claws\b/i' => 'sharp claws',
-            '/\bgasping\s+in\s+shock\b/i' => 'gasping',
-            '/\ba\s+loud\s+crash\b/i' => 'a sharp crack',
-            '/\bwith\s+a\s+loud\b/i' => 'with a sharp',
-            '/\bloud\s+crash\b/i' => 'sharp crack',
-            '/\bloud\s+crack\b/i' => 'sharp crack',
         ];
 
         foreach ($compounds as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
 
-        // Phase 2: Replace non-official adverbs with Seedance 1.5 Pro official adverbs
-        // Official Seedance adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly
-        // Official modifiers: with large amplitude, at high frequency
-        $adverbReplacements = [
-            // Convert NON-official words to official Seedance 1.5 Pro adverbs
-            '/\bfast\b/i' => 'rapidly',
-            '/\bquickly\b/i' => 'rapidly',
-            '/\bpowerfully\b/i' => 'intensely',
-            '/\bstrongly\b/i' => 'intensely',
-            '/\bwildly\b/i' => 'crazily',
-            '/\bgreatly\b/i' => 'largely',
-            '/\bsharply\b/i' => 'rapidly',
-            '/\bfiercely\b/i' => 'violently',
-            '/\bexplosively\b/i' => 'violently',
-            '/\bferociously\b/i' => 'violently',
-            '/\baggressively\b/i' => 'violently',
-            '/\bfrantically\b/i' => 'crazily',
-            '/\bsavagely\b/i' => 'violently',
-            '/\bfuriously\b/i' => 'violently',
-            '/\bviciously\b/i' => 'violently',
-            '/\bforcefully\b/i' => 'intensely',
-            '/\bvigorously\b/i' => 'intensely',
-            '/\bswiftly\b/i' => 'rapidly',
-            '/\bhurriedly\b/i' => 'rapidly',
-            '/\beagerly\b/i' => 'rapidly',
-            '/\bdesperately\b/i' => 'crazily',
-            '/\bprecariously\b/i' => 'crazily',
-            '/\brelentlessly\b/i' => 'intensely',
-            '/\bmercilessly\b/i' => 'violently',
-            // Remove literary/emotional adverbs (no official equivalent)
-            '/\bbriefly\b/i' => '',
-            '/\bslightly\b/i' => '',
-            '/\bsuddenly\b/i' => '',
-            '/\bimmediately\b/i' => '',
-            '/\bcontentedly\b/i' => '',
-            '/\bdeliberately\b/i' => '',
-            '/\bsecretly\b/i' => '',
-            '/\bquietly\b/i' => '',
-            '/\bcautiously\b/i' => '',
-            '/\bcarefully\b/i' => '',
-            '/\bgracefully\b/i' => '',
-            '/\bactively\b/i' => '',
-            '/\btightly\b/i' => '',
-            '/\bfirmly\b/i' => '',
-            '/\bintently\b/i' => '',
-            // Remove non-Seedance descriptors
-            '/\bdeafening\b/i' => '',
-            '/\bexaggerated\b/i' => '',
-            '/\bsubtle\b/i' => '',
-            '/\bamplified\b/i' => '',
-            '/\bdistinct\b/i' => '',
-            '/\bpiercing\b/i' => '',
-            '/\bmuffled\b/i' => '',
-            '/\bdelicate\b/i' => '',
-            // Deduplicate
-            '/\bviolently\s+and\s+violently\b/i' => 'violently',
-        ];
-
-        foreach ($adverbReplacements as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
-        }
-
-        // Phase 2a: Catch-all for ANY remaining non-official -ly adverb
-        // Official Seedance 1.5 Pro -ly adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly
-        $text = preg_replace_callback('/\b(\w+ly)\b/i', function ($matches) {
-            $word = strtolower($matches[1]);
-            $allowed = [
-                // Official Seedance 1.5 Pro adverbs
-                'rapidly', 'violently', 'largely', 'crazily', 'intensely',
-                'slowly', 'gently', 'steadily', 'smoothly',
-                // Style/structure words (not adverbs but end in -ly)
-                'photorealistic', 'only', 'partially', 'simultaneously', 'continuously',
-                'instantly', 'finally', 'suddenly',
-                // Common English words ending in -ly that aren't adverbs
-                'family', 'belly', 'jelly', 'holly', 'bully', 'early', 'nearly', 'clearly',
-                'mostly', 'really', 'funny', 'loosely',
-            ];
-            if (in_array($word, $allowed)) {
-                return $matches[0]; // Keep allowed words
-            }
-            return ''; // Remove all other -ly words
-        }, $text);
-
-        // Phase 2b: Replace passive/weak verbs and fix compound forms Gemini loves
+        // Phase 2b: Replace passive/weak verbs
         $passiveReplacements = [
             '/\bnestled\b/i' => 'pressing',
             '/\bnestling\b/i' => 'pressing',
-            '/\btrying to\b/i' => '',
-            '/\battempting to\b/i' => '',
             '/\bbegins to\b/i' => '',
             '/\bstarts to\b/i' => '',
-            '/\bin anger\b/i' => 'intensely',
-            '/\bin frustration\b/i' => 'intensely',
-            '/\bhigh-pitched\b/i' => '',
-            '/\bhigh-frequency\b/i' => 'at high frequency',
         ];
 
         foreach ($passiveReplacements as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
-        }
-
-        // Phase 3: Remove emotional state adjectives (just strip them)
-        $emotionalAdjectives = [
-            '/\benraged\s+/i' => '',
-            '/\bfurious\s+/i' => '',
-            '/\bterrified\s+/i' => '',
-            '/\bhorrified\s+/i' => '',
-            '/\bshocked\s+/i' => '',
-            '/\bstunned\s+/i' => '',
-            '/\bpained\s+/i' => '',
-            '/\bfrantic\s+/i' => '',
-            '/\bdesperate\s+/i' => '',
-            '/\bfrustrated\s+/i' => '',
-            '/\bfeisty\s+/i' => '',
-            '/\bangry\s+/i' => '',
-            '/\banxious\s+/i' => '',
-            '/\bmischievous\s+/i' => '',
-            '/\bsatisfied\s+/i' => '',
-            '/\bplayful\s+/i' => '',
-            '/\bjoyful\s+/i' => '',
-            '/\bserene\s+/i' => '',
-            '/\bdelighted\s+/i' => '',
-            '/\bsmug\s+/i' => '',
-            '/\bgleeful\s+/i' => '',
-            '/\bcontented\s+/i' => '',
-            '/\bcheerful\s+/i' => '',
-            '/\bcurious\s+/i' => '',
-            '/\bdevious\s+/i' => '',
-            '/\bguilty\s+/i' => '',
-            '/\bproud\s+/i' => '',
-            '/\btriumphal\s+/i' => '',
-            '/\btriumphant\s+/i' => '',
-            '/\binnocent\s+/i' => '',
-            '/\bsneaky\s+/i' => '',
-            '/\bconspiratorial\s+/i' => '',
-            '/\bcute\s+/i' => '',
-            '/\bamused\s*/i' => '',
-            '/\bserious\s+/i' => '',
-            '/\badoring\s+/i' => '',
-            '/\bexcited\s+/i' => '',
-            '/\bnervous\s+/i' => '',
-            '/\bworried\s+/i' => '',
-            '/\bpanicked\s+/i' => '',
-            '/\brelaxed\s+/i' => '',
-            '/\bconfident\s+/i' => '',
-        ];
-
-        foreach ($emotionalAdjectives as $pattern => $replacement) {
             $text = preg_replace($pattern, $replacement, $text);
         }
 
@@ -1096,72 +937,8 @@ CLONE_RULES;
             $text = preg_replace($pattern, $replacement, $text);
         }
 
-        // Phase 3d: Remove animal/character sound words — Seedance renders from text, sound words create unwanted audio
-        $soundPatterns = [
-            // "Continuous hissing and yowling throughout" or "Continuous yowling throughout" — full sound sentence
-            '/\bContinuous\s+(?:[\w\s,]*(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)[\w\s,]*)\s*(?:throughout|continuously)?\s*\.?/i' => '',
-            // Standalone sound words as action descriptors
-            '/,?\s*\b(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|chirping|squealing|whimpering|snarling|yelping|mewing|cooing|cackling|squawking|braying|bleating|mooing)\s*(?=[.,]|$)/i' => '',
-            // "while hissing/yowling/meowing" mid-sentence
-            '/,?\s*\bwhile\s+(?:hissing|yowling|meowing|barking|growling|howling|screeching|screaming|roaring|purring|snarling)\b/i' => '',
-            // "lets out a [sound]" / "emits a [sound]"
-            '/,?\s*\b(?:lets?\s+out|emits?|produces?|makes?)\s+(?:a\s+)?(?:loud\s+)?(?:hiss|yowl|meow|bark|growl|howl|screech|scream|roar|purr|snarl|yelp|shriek)\b[^,.]*[.,]?/i' => '',
-        ];
-
-        foreach ($soundPatterns as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
-        }
-
-        // Phase 3d2: Remove dialogue/speech quotes — Seedance renders motion, not spoken words
-        $dialoguePatterns = [
-            // "saying 'Get off!'" / "saying \"Get off!\"" / "saying 'words words'"
-            '/,?\s*\b(?:saying|declares?|declaring|shouts?|shouting|yells?|yelling|whispers?|whispering|mutters?|muttering|exclaims?|exclaiming|screams?|commands?|demanding|announces?|announcing|pleads?|pleading|asks?|asking|replies?|replying|responds?|responding|tells?|telling|cries?\s+out)\s*[,:]?\s*[\'"][^\'"]*[\'"]\s*(?:and)?/i' => '',
-            // ", 'Get off!'" or ", \"I'm leaving!\"" — standalone quoted speech
-            '/,?\s*[\'"][A-Z][^\'"]{2,}[!\?\.]*[\'"]/i' => '',
-        ];
-
-        foreach ($dialoguePatterns as $pattern => $replacement) {
-            $text = preg_replace($pattern, $replacement, $text);
-        }
-
-        // Phase 3d3: Fix sound/phrasing patterns
-        // "sound effect" → "sounds" (Seedance prefers plural natural sounds)
-        $text = preg_replace('/\bsound\s+effects?\b/i', 'sounds', $text);
-        // "sound" at end of phrase → "sounds" (pluralize for natural phrasing)
-        $text = preg_replace('/\bsound\b(?=\s*[.,])/i', 'sounds', $text);
-
-        // Phase 3e: "Continuous" is fine on its own — don't force "crazy" into it
-        // "Continuous crazy aggressive screaming throughout" → just leave it
-        // "Continuous." → leave as-is (clean ending)
-
         // Phase 3f: Fix dangling "wrapped" not part of "unwrapped"
-        // "bassinet wrapped," → "bassinet," (remove standalone wrapped)
         $text = preg_replace('/\b(?<!un)wrapped(?!\s+(?:around|in|from|shawarma|food|burger|wrap))\s*,/i', ',', $text);
-
-        // Phase 3g: Fix "strong" used as post-verb modifier → "powerfully"
-        // "grasp it strong", "hold it strong", "reaches out strong" → powerfully
-        // Pattern 1: "it/them/that strong" — common verb+pronoun+strong
-        $text = preg_replace('/\b(it|them|that)\s+strong\b/i', '$1 powerfully', $text);
-        // Pattern 2: "strong" at end of clause (before comma, period, or end of string)
-        $text = preg_replace('/\bstrong\s*(?=[.,]|$)/i', 'powerfully', $text);
-        // Pattern 3: specific noun + strong
-        $text = preg_replace('/\b(shawarma|burger|food|sandwich|pizza|drink|can|bottle|tray|hands?|fingers?|arms?|legs?|grip)\s+strong\b/i', '$1 powerfully', $text);
-
-        // Phase 4: Handle "loud" — not an official Seedance degree word
-        // "crazy loud" → "crazy" (redundant)
-        $text = preg_replace('/\bcrazy\s+loud\b/i', 'crazy', $text);
-        // Standalone "loud" → just remove it (don't replace with "crazy" — overuse)
-        $text = preg_replace('/\bloud\b/i', '', $text);
-
-        // Phase 4b: Fix truncated/dangling sentence fragments from regex removals
-        // ", some" / ", with some" at end of clause → remove
-        $text = preg_replace('/,\s*(?:with\s+)?some\s*(?=[.,]|$)/i', '', $text);
-        // "word in," or "word with," — dangling preposition before comma
-        $text = preg_replace('/\b(?:in|with|from|by|on|at|to|for|of)\s*,/i', ',', $text);
-        // "lined with," → remove (artifact from clothing/appearance removal)
-        $text = preg_replace('/\blined\s+(?:with)?\s*,/i', ',', $text);
-        // "powerfully, [1-2 words]." at end → "powerfully." (remove dangling fragment)
-        $text = preg_replace('/(\bpowerfully),\s+\w{1,6}\s*\./i', '$1.', $text);
 
         // Phase 5: Clean up artifacts from removals
         // Remove empty comma-separated clauses: ", ," or ", , ," etc.
@@ -1242,42 +1019,36 @@ CLONE_RULES;
         $rules = $this->getSeedanceTechnicalRules();
         $wordCount = str_word_count($prompt);
 
-        // Clone context: softer degree word rules that preserve faithfulness
-        $degreeWordRule = ($context === 'clone')
-            ? "- Degree words are OPTIONAL for clone prompts. Only add them if the original action is genuinely intense.\n- Do NOT escalate gentle actions: \"brushes against\" should NOT become \"slams powerfully\". Keep the original intensity.\n- \"nearly\", \"gently\", \"slowly\", \"calmly\" are acceptable for calm/moderate videos — do NOT replace them with aggressive words.\n- NEVER change the meaning or intensity of an action. \"Nearly brushes\" ≠ \"slams\". \"Walks\" ≠ \"charges\". \"Glances\" ≠ \"whips head\"."
-            : '- Every action MUST have at least one official Seedance intensity adverb (rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly) or modifier (with large amplitude, at high frequency)';
-
-        // Clone context: wider word count range and faithfulness override
+        // Clone context: preserve faithfulness
         if ($context === 'clone') {
-            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 100-150 words. This is a clone prompt — preserve ALL action sentences and word count.\nUnder 90 words = missing key actions. Over 155 = trim scene/sound descriptions only.\nDo NOT condense or merge action sentences — each sentence describes a distinct phase of the video.\nCurrent word count: {$wordCount} words.";
-            $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER add sounds or actions not in the original prompt.\n- NEVER remove action beats that describe distinct parts of the video — every part matters.\n- Preserve the COMPLETE timeline: if the prompt describes events at different time points, keep ALL of them.\n- Only fix genuine technical violations (banned words, camera references, scene descriptions).\n- When in doubt, keep the original wording rather than \"fixing\" it into something unfaithful.";
+            $wordCountSection = "=== WORD COUNT RULE ===\nThe TOTAL prompt should be 80-150 words. Preserve ALL action sentences, dialogue, and sounds.\nUnder 80 words = missing key actions. Over 155 = trim redundant descriptions only.\nDo NOT remove dialogue or sound descriptions — they drive audio generation.\nCurrent word count: {$wordCount} words.";
+            $cloneOverride = "\n=== CLONE FAITHFULNESS (HIGHEST PRIORITY) ===\nThis is a CLONED video prompt. The #1 rule is FAITHFULNESS to the source video.\n- NEVER escalate action intensity. If the source shows calm walking, keep it calm.\n- NEVER remove dialogue, sounds, or camera style descriptions — these are intentional.\n- NEVER remove action beats that describe distinct parts of the video.\n- Preserve the COMPLETE timeline.\n- Only fix genuine technical violations (appearance descriptions, background music mentions, scene descriptions).\n- When in doubt, keep the original wording.";
         } else {
-            $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt (including \"Cinematic, photorealistic.\" suffix) must be 80-150 words.\nIf the prompt exceeds 155 words, you MUST TRIM it by:\n1. Removing redundant modifiers and padding words\n2. Combining actions where possible (\"grips and bites\" instead of two separate sentences)\n3. Removing the LEAST important actions if still over budget\nNEVER add words that inflate the count. When replacing a violation, use an EQUAL or SHORTER replacement.\nCurrent word count: {$wordCount} words.";
+            $wordCountSection = "=== WORD COUNT RULE (CRITICAL) ===\nThe TOTAL prompt must be 80-150 words.\nIf over 155 words, TRIM by removing redundant modifiers — do NOT remove dialogue, sounds, or object displacement.\nCurrent word count: {$wordCount} words.";
             $cloneOverride = '';
         }
 
         $validationPrompt = <<<PROMPT
-You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt below against ALL rules and fix every violation.
+You are a Seedance video prompt compliance validator. Scan the prompt below and fix violations.
 
-=== SEEDANCE 1.5 RULES ===
+=== RULES ===
 {$rules}
 
 === ADDITIONAL RULES ===
-{$degreeWordRule}
-- Allowed -ly adverbs (Seedance official): rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. Remove all other -ly adverbs.
-- NO emotional adjectives as standalone descriptors (happy, sad, angry, mischievous, satisfied, playful, joyful, content, smug)
-- NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile, eyes crinkling, jaw clenching)
-- EXCEPTION: "glance", "look", "stare", "gaze", "glancing back" are HEAD/EYE ACTIONS — they are NOT facial micro-expressions. Do NOT remove them.
-- Convey emotion ONLY through body actions + degree words
-- NO camera references (toward camera, camera angle, camera shakes, eyes locked on camera)
-- When removing a camera reference, KEEP the underlying action and rewrite the direction without camera mention (e.g., "moving away from camera" → "moving forward", "toward camera" → "forward")
+- Dialogue in quotes is ALLOWED and should be PRESERVED — it drives audio generation
+- Character sounds (meowing, yelling, screaming) are ALLOWED and should be PRESERVED
+- Camera style descriptions are ALLOWED (e.g., "chaotic handheld camera")
+- Natural adverbs are ALLOWED — do NOT restrict to a fixed set
+- Emotional states as part of actions are ALLOWED (e.g., "leans aggressively", "angrily points")
+- NO facial micro-expression descriptions (eyes widening, brow furrowing, mouth curving into smile)
+- EXCEPTION: "glance", "look", "stare", "gaze" are HEAD/EYE ACTIONS — keep them.
+- NO "toward camera", "at the camera", "eyes locked on camera" — rewrite direction without camera mention
 - If the prompt is truncated (ends mid-sentence), fix it by completing or trimming to last complete sentence
-- Must NOT contain face/identity prefix text like "Maintain face consistency" — this wastes word budget.
-- Must NOT contain scene/setting descriptions — the source image already shows the scene.
-- Must start directly with the first physical action beat.
+- Must NOT contain face/identity prefix text like "Maintain face consistency"
+- Must NOT contain scene/setting descriptions — the source image already shows the scene
+- Must start directly with the first action
 - Must end with "Cinematic, photorealistic."
-- Object color/material descriptors for SCENE ITEMS (yellow can, silver tray, clear plastic) are ALLOWED and NOT violations — only character appearance descriptions are violations
-- "brightly lit", "dimly lit" lighting descriptors should be removed
+- ABSOLUTELY NO background music mentions (soundtrack, score, beat, rhythm, melody)
 {$cloneOverride}
 
 {$wordCountSection}
@@ -1286,15 +1057,15 @@ You are a Seedance 1.5 Pro video prompt compliance validator. Scan the prompt be
 {$prompt}
 
 === INSTRUCTIONS ===
-1. Scan EVERY word and phrase against the rules
+1. Scan for violations of the rules above
 2. List ALL violations found
 3. Provide the COMPLETE fixed prompt with violations corrected
-4. Rate compliance 0-100 (score below 80 if word count exceeds limit or contains scene descriptions)
+4. Rate compliance 0-100
 
 Return ONLY valid JSON (no markdown, no explanation):
 {"score":85,"violations":[{"word":"the violating text","rule":"rule broken","fix":"correction"}],"fixedPrompt":"entire corrected prompt","summary":"one sentence summary"}
 
-CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only fix rule violations — do NOT rewrite or restructure the prompt. Strip any scene descriptions or face prefix text — the prompt should start with the first action.
+CRITICAL: Preserve ALL original actions, dialogue, sounds, and camera descriptions. Only fix genuine violations.
 PROMPT;
 
         try {
@@ -1503,15 +1274,15 @@ Start DIRECTLY with the first action beat. Name objects only AS PART OF actions 
 
 ANTI-PATTERNS (Seedance ignores or misinterprets these — NEVER use):
 - Abstract descriptions: "chaos ensues", "mayhem unfolds", "things go wrong"
-- Emotional states: "feeling excited", "nervously", "happily"
+- Standalone emotional states without action: "feeling excited", "happily" — instead attach emotion TO action: "leans aggressively", "angrily points"
 - Temporal jumps: "moments later", "suddenly", "after a while"
 - Off-screen references: "someone throws", "a noise from another room"
 - Vague quantities: "several", "many", "a bunch of" → use exact numbers
 
-SEEDANCE 1.5 PRO FORMAT: Subject + [Adverb] + Motion. 50-90 words total.
-Build as action beats: Setup → Trigger → Reaction (with "then") → Main action (body parts + modifiers) → Mood + Style.
-Adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
-Temporal words: then, instantly, after, finally. NO sounds. NO scene. NO appearance. Only actions.
+SEEDANCE 1.5 PRO FORMAT: Natural vivid narrative. 80-150 words total.
+Build as action beats: Setup → Trigger → Reaction → Main action (body parts + modifiers) → Mood + Style.
+Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, crazily, intensely, gently, steadily.
+Temporal words: then, instantly, after, finally. Include dialogue in quotes and character sounds. NO scene descriptions. NO appearance.
 Main action gets 50-60% of words with specific body part motions and intensity modifiers.
 RULES,
                 'generate' => <<<'RULES'
@@ -2347,7 +2118,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     {"speaker": "Character Name", "text": "What they actually say or do (for animals: 'meows angrily', for humans: 'actual spoken words')"},
     {"speaker": "Voiceover", "text": "Narration text if applicable"}
   ],
-  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 90-110 words. Compressed action timeline: one sentence per phase with SPECIFIC body parts, motions, and directions. NO sounds, NO dialogue.",
+  "videoPrompt": "SEE SYSTEM RULES + SEEDANCE RULES BELOW — 120-200 words. Natural vivid narrative: one sentence per phase with SPECIFIC body parts, motions, directions, dialogue in quotes, character sounds, and camera style.",
   "cameraFixed": true or false,
   "mood": "funny" or "absurd" or "wholesome" or "chaotic" or "cute",
   "viralHook": "Why this would go viral (one sentence)",
@@ -2361,16 +2132,16 @@ SEEDANCE VIDEO PROMPT RULES — READ THIS LAST, FOLLOW EXACTLY
 The "videoPrompt" is THE MOST IMPORTANT FIELD. It drives the actual video generation.
 You are CLONING a reference video — capture the ENERGY and CONCEPT of the reference FAITHFULLY.
 
-WORD COUNT: 90-110 words. Follow Seedance 1.5 Pro format: Subject + [Adverb] + specific motion + body parts + direction.
+WORD COUNT: 120-200 words. Write a vivid natural narrative with specific motions, body parts, directions, dialogue in quotes, character sounds, and camera style.
 Build as ordered action beats following the COMPLETE action timeline from the analysis. End with "Cinematic, photorealistic."
 CRITICAL — EVERY ACTION PHASE MUST BE REPRESENTED:
 - The analysis describes a second-by-second action timeline. Each distinct action phase MUST appear as at least one sentence in the videoPrompt.
 - Do NOT skip, merge, or compress any action phase. If the analysis describes 8 phases, the prompt needs ~8 action sentences.
 - A cat leaping, a man flinching, a struggle, a throw — these are SEPARATE actions requiring SEPARATE sentences.
 - Do NOT jump from "cat clings to back" to "man throws cat" — the STRUGGLE phase between them is critical.
-Use intensity adverbs BEFORE verbs: rapidly, crazily, steadily, gently. Modifiers after: with large amplitude, at high frequency.
+Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, crazily, intensely, gently, steadily, desperately.
 Connect actions with temporal words: then, instantly, after, finally.
-NO scene, NO appearance — only actions, motions, and visible expressions. Simple, clear language.
+NO scene descriptions, NO appearance/clothing — only actions, motions, dialogue, sounds, and camera style.
 EMOTIONAL STATE MUST BE PART OF EACH ACTION — not separate, not optional:
 - WRONG: "The cat opens its mouth wide then lunges forward." (mechanical, emotionless — Seedance renders a yawn, not an attack)
 - RIGHT: "The cat violently opens its mouth wide in aggressive fury then crazily lunges forward." (anger is VISIBLE, Seedance renders aggression)
@@ -2378,11 +2149,11 @@ EMOTIONAL STATE MUST BE PART OF EACH ACTION — not separate, not optional:
 - RIGHT: "The man crazily recoils in surprise, turning away." (shock is VISIBLE)
 - If the analysis says a character is angry, aggressive, surprised, distressed, defiant — that emotion MUST appear as an adjective/phrase IN the action sentence.
 - Ears flattening, body tensing aggressively, teeth baring = PHYSICAL details that define HOW the action looks.
-- DO NOT write sound effect words (SMACK, THUD, crash) but DO describe the visible behavior that PRODUCES sound (mouth open screaming, paw slamming down).
+- DO NOT write onomatopoeia (SMACK, THUD, crash, bang) but DO include character dialogue in quotes and character sounds (meows, yells, screams) — these drive Seedance's audio generation.
 
 CRITICAL — IMAGE-TO-VIDEO (NO SCENE DESCRIPTION IN videoPrompt):
 The videoPrompt is sent to Seedance together with the SOURCE IMAGE. The image already shows the scene, setting, characters, props, and starting positions.
-Therefore the videoPrompt must contain ONLY actions, movements, and sounds that CHANGE from the starting image.
+Therefore the videoPrompt must contain ONLY actions, movements, dialogue, sounds, and camera style — things that CHANGE from the starting image.
 - DO NOT describe the scene, setting, location, lighting, or background — the image shows it.
 - DO NOT describe character appearances, clothing, postures, or starting positions — the image shows it.
 - DO NOT describe what objects are on tables/counters/floors in their RESTING state — the image shows them.
@@ -2397,11 +2168,11 @@ EXCEPTION: If characters are UNUSUALLY SIZED (miniaturized, enlarged, tiny, gian
 {$technicalRules}
 
 === CLONE FAITHFULNESS OVERRIDES ===
-1. NO SOUND EFFECT WORDS in videoPrompt — Do NOT write onomatopoeia (SMACK, THUD, crash, bang) or music references. BUT DO describe the VISIBLE physical behavior that produces sounds: "cat violently opens mouth wide in aggressive attack posture" is correct (visible action). "Cat meows loudly" is wrong (sound description). The distinction: describe what you SEE, not what you HEAR.
-2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = crazily/violently.
+1. DIALOGUE & SOUNDS ARE ESSENTIAL: Include character dialogue in quotes from the audio transcript. Include character sounds (meows, yells, screams, growls) — these drive Seedance's audio generation. Do NOT write onomatopoeia (SMACK, THUD, crash, bang) or music references.
+2. ENERGY MATCHING: Match the ACTUAL energy level. Calm scene = gently/steadily. Intense scene = violently/aggressively/wildly.
 3. Do NOT fabricate actions. Only describe what the analysis confirms happened.
-4. The "Continuous [mood] energy throughout" line describes the MOOD (comedic, chaotic, gentle) — NOT sounds.
-5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt. "Cups and items violently scatter off counter" or "objects fly off surface with large amplitude" are action beats that create visual chaos — omitting them loses a key visual element of the original video.
+4. CAMERA STYLE: If the analysis describes the camera movement (handheld, tracking, static), include it in the videoPrompt.
+5. OBJECT DISPLACEMENT IS AN ACTION: If the analysis describes objects being knocked off surfaces, scattered, or sent flying during character actions, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
 
 NOW generate the JSON. For videoPrompt, follow these steps IN ORDER:
 
@@ -2418,10 +2189,11 @@ STEP 2: For EACH phase, write ONE sentence capturing the SPECIFIC physical actio
    RIGHT: "The customer rapidly bends down and scoops up the struggling cat from the floor."
 STEP 3: CHECK FOR OBJECT DISPLACEMENT. Re-read the analysis — did ANY objects get knocked off, scattered, displaced, or sent flying? If yes, that MUST appear in your videoPrompt. Objects falling off counters/tables during chaos are ESSENTIAL visual elements. If the analysis says "cup falls off counter" or "items scatter" and your videoPrompt doesn't mention it, you FAILED.
 STEP 4: LAST sentence MUST be the FINAL phase (resolution/departure/exit). If the subject walks away, holds something up, or gives up — that is the ending. Do NOT stop at the climax and skip the resolution.
-STEP 5: NO sound words (hissing, yowling, meowing, yelling). NO dialogue. VISIBLE MOTION only.
-STEP 6: End with "Cinematic, photorealistic."
+STEP 5: ADD DIALOGUE & SOUNDS. Extract key dialogue from the audio transcript and include it in quotes. Include character sounds (meows, yells, screams). These drive Seedance's audio generation.
+STEP 6: ADD CAMERA STYLE if notable (e.g., "A chaotic, shaking handheld camera follows the action").
+STEP 7: End with "Cinematic, photorealistic."
 
-The videoPrompt MUST be 100-150 words. Count your words before outputting. Use the FULL budget — do NOT stop early at 90 words when there are more action phases to cover.
+The videoPrompt MUST be 120-200 words. Count your words before outputting. Use the FULL budget — do NOT stop early when there are more action phases to cover.
 PROMPT;
 
         if ($chaosMode) {
@@ -2438,41 +2210,38 @@ PROMPT;
         // System message contains the critical videoPrompt rules that must always be followed.
         // User message contains the analysis data and JSON template.
         $systemMessage = <<<SYSTEM
-You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a COMPRESSED ACTION TIMELINE of the video.
+You are a Seedance 1.5 Pro video prompt specialist. Your #1 job is generating the "videoPrompt" field — a vivid, natural narrative describing ALL actions in the video.
 
 The analysis contains {$phaseCount} action phases. Your videoPrompt MUST cover ALL {$phaseCount} phases — especially the FINAL resolution/departure beat.
 
-COMPRESSION TECHNIQUE — THIS IS THE KEY SKILL:
-The analysis timeline has ~30-50 words per beat. You must compress each beat to ~15 words while keeping the SPECIFIC physical action.
-- DROP: timestamps, phase labels, dialogue text, explanations, emotional context
-- KEEP: WHO + WHAT body part + WHAT action + direction/result + emotional state adverb
+WRITING STYLE — NATURAL NARRATIVE:
+Write as if you're vividly narrating the scene to someone who can't see it. Use natural, descriptive language.
+- INCLUDE dialogue in quotes: yells "How can you ruin this?" or screams "Get off me!"
+- INCLUDE character sounds: meows, yells, screams, growls, hisses — these drive accurate audio generation
+- INCLUDE camera style when notable: "A chaotic, shaking handheld camera follows the action"
+- INCLUDE emotional states as part of actions: "leans aggressively", "angrily points", "desperately struggles"
+- INCLUDE specific body parts: "slaps the man's face with its right paw", "claws gripping wildly"
+- INCLUDE object displacement as cause-and-effect: "jumps onto the counter and violently knocks over the iced coffee cup"
 
-EXAMPLE — How to compress a timeline beat into one sentence:
-Timeline: "0:04-0:05 (Escalation - Evasion): The cat swiftly jumps off the counter to the floor, disappearing from view momentarily. The human male quickly moves to his right, around the counter."
-Compressed: "The cat swiftly jumps off the counter to the floor as the customer rapidly moves around the counter."
-(19 words — captures both characters' actions, specific body movements, and direction)
-
-Timeline: "0:06-0:07 (Struggle - Lifting): The human male stands up, holding the cat in his arms. The cat is actively struggling, flailing its front and hind legs in the air."
-Compressed: "The customer stands up holding the cat who violently flails front and hind legs in the air."
-(16 words — captures the physical detail of WHICH limbs are flailing)
+EXAMPLE — Good videoPrompt narrative:
+"The man leans aggressively over the coffee shop counter and yells 'How can you ruin such a bad iced coffee? There's no caramel in my caramel swirl!' Angrily points at the cat in the orange hat. The cat meows repeatedly and slaps the man's face with its right paw. Then, in a quick, powerful motion, the cat jumps onto the counter and violently knocks over the iced coffee cup and other items, then the cat jumps again and lands violently on the man's left shoulder, its claws gripping wildly at high frequency and speed. A chaotic, shaking handheld camera follows the action. Cinematic, photorealistic."
 
 VIDEOPROMPT RULES:
 1. ONE sentence per action phase. {$phaseCount} phases = {$phaseCount} sentences. Do NOT skip or merge any phase.
-2. FORMAT: Subject + [adverb] + specific motion verb + body parts/target + direction/result.
-3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "scoops up the cat from the floor" not "grabs the cat". Say "flails front and hind legs in the air" not "struggles". The SPECIFIC body part and direction make the video accurate.
-4. OFFICIAL ADVERBS: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly.
-5. WORD COUNT: 100-150 words. {$phaseCount} sentences × ~15 words = {$targetWords} words. USE the full budget — do NOT stop early.
-6. BANNED — NO sound words (hissing, meowing, yelling, growling). NO dialogue text. NO scene/appearance. VISIBLE MOTION ONLY.
+2. Use natural adverbs freely: rapidly, violently, aggressively, wildly, fiercely, powerfully, crazily, intensely, slowly, gently, steadily, desperately, furiously — whatever fits the action.
+3. SPECIFICITY IS CRITICAL: Say "swats at his hand with right paw" not "attacks him". Say "claws gripping wildly at high frequency" not "struggles". The SPECIFIC body part and direction make the video accurate.
+4. DIALOGUE: Extract key dialogue from the audio transcript and include it in quotes within the action. This drives Seedance's audio generation.
+5. SOUNDS: Include character vocalizations (meows, yells, screams, growls) — Seedance uses these for audio.
+6. WORD COUNT: 120-200 words. Use the full budget — do NOT stop early.
 7. LAST SENTENCE = the FINAL action (resolution/departure/exit), NOT the climax. If the video ends with someone leaving, holding something, or giving up — that MUST be the last sentence.
 8. End with "Cinematic, photorealistic."
 9. Every sentence describes a DIFFERENT action — no repetition.
+10. BANNED: NO appearance/clothing descriptions (Seedance uses the reference image). NO background music references. NO facial micro-expressions (pupils dilating, brows furrowing).
 
-CRITICAL — OBJECT DISPLACEMENT IS A MANDATORY SEPARATE BEAT:
-If the analysis describes objects being knocked off, scattered, displaced, or sent flying during an action, this MUST be its own sentence or included in the action sentence that causes it. NEVER omit object displacement.
-Example timeline: "The cat jumps onto the counter, knocking over the iced coffee cup and the straw dispenser. Both items fall off the counter to the floor."
+CRITICAL — OBJECT DISPLACEMENT:
+If objects are knocked off, scattered, displaced, or sent flying, this MUST appear in the videoPrompt as cause-and-effect within the action sentence.
 CORRECT: "The cat crazily jumps onto the counter, violently knocking the iced coffee cup and straw dispenser off the counter to the floor."
-WRONG: "The cat crazily jumps onto the counter." (MISSING the objects being knocked off — this loses a key visual element)
-Objects flying, falling, scattering = VISUAL CHAOS that makes the video compelling. If you omit it, the generated video will look flat and wrong.
+WRONG: "The cat crazily jumps onto the counter." (MISSING the objects — the generated video will look flat and wrong)
 SYSTEM;
 
         $messages = [
@@ -2521,11 +2290,11 @@ SYSTEM;
         // Expand videoPrompt if under word target — GPT-4o tends to be too concise
         if (!empty($concept['videoPrompt'])) {
             $wordCount = str_word_count($concept['videoPrompt']);
-            if ($wordCount < 80) {
-                Log::info("ConceptCloner: videoPrompt only {$wordCount} words, expanding to 90-100");
+            if ($wordCount < 100) {
+                Log::info("ConceptCloner: videoPrompt only {$wordCount} words, expanding to 120-150");
                 $expandPrompt = [
-                    ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit exactly 90-100 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional physical states (in fury, with alarm, in exasperation). Official adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. NO sound words. NO dialogue. Return ONLY the rewritten prompt, nothing else."],
-                    ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to 11-14 words to reach 90-100 total:\n\n{$concept['videoPrompt']}"],
+                    ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit 120-150 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional states as part of actions (leans aggressively, angrily points), dialogue in quotes from the scene, character sounds (meows, yells, screams). Use natural adverbs freely. PRESERVE existing dialogue and sounds — never remove them. Return ONLY the rewritten prompt, nothing else."],
+                    ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to reach 120-150 total:\n\n{$concept['videoPrompt']}"],
                 ];
                 $expandResult = $this->callAIWithEngine($expandPrompt, $aiEngine, $teamId, [
                     'maxResult' => 1,
@@ -2535,7 +2304,7 @@ SYSTEM;
                     $expanded = trim($expandResult['data'][0]);
                     $expandedWordCount = str_word_count($expanded);
                     // Only use expansion if it's actually longer and not too long
-                    if ($expandedWordCount >= 85 && $expandedWordCount <= 120) {
+                    if ($expandedWordCount >= 110 && $expandedWordCount <= 200) {
                         $concept['videoPrompt'] = $expanded;
                         Log::info("ConceptCloner: Expanded to {$expandedWordCount} words");
                     } else {
