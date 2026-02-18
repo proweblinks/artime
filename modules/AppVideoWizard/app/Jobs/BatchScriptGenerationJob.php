@@ -136,7 +136,7 @@ class BatchScriptGenerationJob implements ShouldQueue
 
             // Track the actual AI generation
             $aiTimerId = $performanceService->startOperation('script_ai_generation', [
-                'ai_tier' => $generationOptions['aiModelTier'] ?? 'economy',
+                'ai_tier' => $generationOptions['aiEngine'] ?? $generationOptions['aiModelTier'] ?? 'grok',
             ]);
 
             // Generate the script

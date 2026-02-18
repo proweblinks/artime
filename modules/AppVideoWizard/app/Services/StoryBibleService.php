@@ -23,23 +23,7 @@ use Modules\AppVideoWizard\Models\VwGenerationLog;
  */
 class StoryBibleService
 {
-    /**
-     * AI Model Tier configurations.
-     */
-    const AI_MODEL_TIERS = [
-        'economy' => [
-            'provider' => 'grok',
-            'model' => 'grok-4-fast',
-        ],
-        'standard' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o-mini',
-        ],
-        'premium' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o',
-        ],
-    ];
+    // AI engine resolution delegated to VideoWizard::resolveEngine()
 
     /**
      * Structure templates for different story formats
@@ -84,22 +68,14 @@ class StoryBibleService
     }
 
     /**
-     * Get AI config from tier.
+     * Call AI with engine-based model selection.
      */
-    protected function getAIConfigFromTier(string $tier): array
+    protected function callAIWithEngine(string $prompt, string $engine, int $teamId, array $options = []): array
     {
-        return self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
-    }
+        $config = \Modules\AppVideoWizard\Livewire\VideoWizard::resolveEngine($engine);
 
-    /**
-     * Call AI with tier-based model selection.
-     */
-    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
-    {
-        $config = $this->getAIConfigFromTier($tier);
-
-        Log::info('StoryBible: AI call with tier', [
-            'tier' => $tier,
+        Log::info('StoryBible: AI call with engine', [
+            'engine' => $engine,
             'provider' => $config['provider'],
             'model' => $config['model'],
         ]);
@@ -140,7 +116,7 @@ class StoryBibleService
         $productionSubtype = $project->production_subtype ?? null;
         $visualMode = $options['visualMode'] ?? 'cinematic-realistic';
         $structureTemplate = $options['structureTemplate'] ?? 'three-act';
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
         $teamId = $options['teamId'] ?? $project->team_id ?? session('current_team_id', 0);
 
         // Get structure template
@@ -152,7 +128,7 @@ class StoryBibleService
             'duration' => $duration,
             'productionType' => $productionType,
             'structureTemplate' => $structureTemplate,
-            'aiModelTier' => $aiModelTier,
+            'aiEngine' => $aiEngine,
         ]);
 
         // Build the comprehensive prompt
@@ -169,7 +145,7 @@ class StoryBibleService
 
         // Call AI (single pass - leveraging large context)
         // Increase max_tokens to ensure full JSON response isn't truncated
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 15000, // Ensure enough tokens for full Story Bible JSON
         ]);
@@ -212,7 +188,7 @@ class StoryBibleService
         $storyBible['status'] = 'ready';
         $storyBible['generatedAt'] = now()->toIso8601String();
         $storyBible['structureTemplate'] = $structureTemplate;
-        $storyBible['aiModelTier'] = $aiModelTier;
+        $storyBible['aiEngine'] = $aiEngine;
 
         // Include token metadata for external tracking
         $storyBible['_meta'] = [

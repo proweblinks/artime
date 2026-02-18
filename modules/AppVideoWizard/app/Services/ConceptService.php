@@ -9,30 +9,11 @@ use Modules\AppVideoWizard\Models\WizardProject;
 class ConceptService
 {
     /**
-     * AI Model Tier configurations.
-     * Maps tier names to provider/model pairs.
+     * Call AI with engine-based model selection.
      */
-    const AI_MODEL_TIERS = [
-        'economy' => [
-            'provider' => 'grok',
-            'model' => 'grok-4-fast',
-        ],
-        'standard' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o-mini',
-        ],
-        'premium' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o',
-        ],
-    ];
-
-    /**
-     * Call AI with tier-based model selection.
-     */
-    protected function callAIWithTier(string|array $prompt, string $tier, int $teamId, array $options = []): array
+    protected function callAIWithEngine(string|array $prompt, string $engine, int $teamId, array $options = []): array
     {
-        $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+        $config = \Modules\AppVideoWizard\Livewire\VideoWizard::resolveEngine($engine);
 
         return AI::processWithOverride(
             $prompt,
@@ -52,11 +33,11 @@ class ConceptService
         $productionType = $options['productionType'] ?? null;
         $productionSubType = $options['productionSubType'] ?? null;
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
 
         $prompt = $this->buildImprovePrompt($rawInput, $productionType, $productionSubType);
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 8000, // Ensure enough tokens for full JSON response
         ]);
@@ -212,7 +193,7 @@ PROMPT;
     public function generateVariations(string $concept, int $count = 3, array $options = []): array
     {
         $teamId = $options['teamId'] ?? session('current_team_id', 0);
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
 
         $prompt = <<<PROMPT
 Based on this video concept, generate {$count} unique variations that explore different angles or approaches:
@@ -231,7 +212,7 @@ Return as JSON array:
 ]
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 8000, // Ensure enough tokens for variations
         ]);
@@ -269,7 +250,7 @@ PROMPT;
     {
         $count = $options['count'] ?? 6;
         $teamId = $options['teamId'] ?? 0;
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
         $productionSubtype = $options['productionSubtype'] ?? 'viral';
         $chaosLevel = (int) ($options['chaosLevel'] ?? 50);
@@ -293,7 +274,7 @@ PROMPT;
             $prompt = $this->buildInfiniteTalkViralPrompt($themeContext, $count, $styleModifier, $chaosModifier);
         }
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 4000,
         ]);
@@ -1253,10 +1234,10 @@ CLONE_RULES;
      *
      * @param string $prompt The videoPrompt to validate (should already be regex-sanitized)
      * @param int $teamId Team ID for AI quota tracking
-     * @param string $aiModelTier AI model tier (default: economy for speed)
+     * @param string $aiEngine AI model tier (default: economy for speed)
      * @return array {success, score, violations[], fixedPrompt, summary, originalPrompt}
      */
-    public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiModelTier = 'economy', string $context = 'generate'): array
+    public function validateSeedanceCompliance(string $prompt, int $teamId, string $aiEngine = 'economy', string $context = 'generate'): array
     {
         $rules = $this->getSeedanceTechnicalRules();
         $wordCount = str_word_count($prompt);
@@ -1317,7 +1298,7 @@ CRITICAL: The fixedPrompt must preserve ALL original actions and meaning. Only f
 PROMPT;
 
         try {
-            $result = $this->callAIWithTier($validationPrompt, $aiModelTier, $teamId, [
+            $result = $this->callAIWithEngine($validationPrompt, $aiEngine, $teamId, [
                 'maxResult' => 1,
                 'max_tokens' => 4000,
             ]);
@@ -1678,13 +1659,13 @@ EXAMPLE,
      * Stage 3: AI synthesis into viral idea format
      *
      * @param string $videoPath Absolute path to the uploaded video file
-     * @param array $options teamId, aiModelTier, mimeType
+     * @param array $options teamId, aiEngine, mimeType
      * @return array Structured concept matching generateViralIdeas() output format
      */
     public function analyzeVideoForConcept(string $videoPath, array $options = []): array
     {
         $teamId = $options['teamId'] ?? 0;
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
         $videoEngine = $options['videoEngine'] ?? 'seedance';
         $mimeType = $options['mimeType'] ?? 'video/mp4';
         $chaosMode = !empty($options['chaosMode']);
@@ -1729,18 +1710,12 @@ EXAMPLE,
         $transcript = $this->extractAndTranscribeAudio($videoPath);
         Log::info('ConceptCloner: Stage 2 complete', ['hasTranscript' => !empty($transcript)]);
 
-        // Stage 3: Synthesize into structured concept
-        // Clone synthesis requires 'premium' tier (gpt-4o) for reliable instruction following.
-        // Economy tier (grok-4-fast) truncates to 4-6 sentences.
-        // Standard tier (gpt-4o-mini) produces 50-70 words despite 90-100 word instructions,
-        // misses setup/resolution phases, and fabricates ending actions.
-        $synthesisTier = 'premium';
+        // Stage 3: Synthesize into structured concept using user's chosen engine
         Log::info('ConceptCloner: Stage 3 — Synthesizing concept', [
-            'requestedTier' => $aiModelTier,
-            'synthesisTier' => $synthesisTier,
+            'aiEngine' => $aiEngine,
         ]);
         $templateId = $options['template'] ?? 'adaptive';
-        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $synthesisTier, $teamId, $videoEngine, $chaosMode, $templateId);
+        $concept = $this->synthesizeConcept($visualAnalysis, $transcript, $aiEngine, $teamId, $videoEngine, $chaosMode, $templateId);
         Log::info('ConceptCloner: Pipeline complete', ['conceptTitle' => $concept['title'] ?? 'unknown']);
 
         // Store full analysis for debugging/inspection
@@ -2095,7 +2070,7 @@ PROMPT;
      * Synthesize Grok visual analysis + Whisper transcript into a structured concept.
      * Output matches the exact format returned by generateViralIdeas().
      */
-    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiModelTier, int $teamId, string $videoEngine = 'seedance', bool $chaosMode = false, string $templateId = 'adaptive'): array
+    protected function synthesizeConcept(string $visualAnalysis, ?string $transcript, string $aiEngine, int $teamId, string $videoEngine = 'seedance', bool $chaosMode = false, string $templateId = 'adaptive'): array
     {
         $transcriptSection = $transcript
             ? "AUDIO TRANSCRIPT:\n\"{$transcript}\"\n\nCRITICAL AUDIO ANALYSIS:\n- This transcript was captured from the video's audio track.\n- On TikTok/Reels, human dialogue over animal videos is almost ALWAYS a dubbed voiceover/narration — the animal is NOT actually speaking.\n- If the visual analysis shows an ANIMAL with mouth open, the animal is making ANIMAL SOUNDS (meowing, barking, hissing, screaming) — NOT speaking human words.\n- The transcript above is likely a VOICEOVER narration added for comedy, NOT the animal's actual voice.\n- IMPORTANT FOR VOICEOVER TEXT: Strip out ALL animal sound words (meow, woof, bark, hiss, growl, etc.) from the voiceover narration. Only include the HUMAN SPEECH parts. If the transcript is 'This is not what I ordered! Meow meow meow! I asked for chicken!' the voiceover should be 'This is not what I ordered! I asked for chicken!' — no animal sounds in the voiceover.\n- The voiceover narration must contain ONLY clean human speech. Animal sounds happen VISUALLY in the scene, not in the voiceover audio."
@@ -2282,7 +2257,7 @@ SYSTEM;
             ['role' => 'user', 'content' => $prompt],
         ];
 
-        $result = $this->callAIWithTier($messages, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($messages, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 4000,
         ]);
@@ -2319,7 +2294,7 @@ SYSTEM;
                     ['role' => 'system', 'content' => "You rewrite Seedance 1.5 Pro video prompts to hit exactly 90-100 words. Keep the SAME actions in the SAME order. Expand short sentences by adding: body parts (arms, paws, chest, fingers), directions (forward, backward, upward), emotional physical states (in fury, with alarm, in exasperation). Official adverbs: rapidly, violently, largely, crazily, intensely, slowly, gently, steadily, smoothly. NO sound words. NO dialogue. Return ONLY the rewritten prompt, nothing else."],
                     ['role' => 'user', 'content' => "This prompt is only {$wordCount} words. Expand each sentence to 11-14 words to reach 90-100 total:\n\n{$concept['videoPrompt']}"],
                 ];
-                $expandResult = $this->callAIWithTier($expandPrompt, $aiModelTier, $teamId, [
+                $expandResult = $this->callAIWithEngine($expandPrompt, $aiEngine, $teamId, [
                     'maxResult' => 1,
                     'max_tokens' => 500,
                 ]);
@@ -2358,12 +2333,12 @@ SYSTEM;
      *
      * @param string $rawPrompt The raw videoPrompt from synthesis
      * @param array $concept Full concept array (needs 'mood', 'characters', 'setting', 'situation')
-     * @param string $aiModelTier AI model tier to use
+     * @param string $aiEngine AI model tier to use
      * @param int $teamId Team ID for credit tracking
      * @param string $templateId Template to use ('adaptive', 'animal-chaos')
      * @return array ['skeletonType' => string, 'originalPrompt' => string, 'fittedPrompt' => string]
      */
-    public function fitPromptToSkeleton(string $rawPrompt, array $concept, string $aiModelTier, int $teamId, string $templateId = 'adaptive', array $chaosParams = []): array
+    public function fitPromptToSkeleton(string $rawPrompt, array $concept, string $aiEngine, int $teamId, string $templateId = 'adaptive', array $chaosParams = []): array
     {
         $mood = strtolower($concept['mood'] ?? 'funny');
 
@@ -2459,7 +2434,7 @@ SEEDANCE TECHNICAL RULES — apply to ALL content:
 Output ONLY the rewritten prompt. Nothing else.
 PROMPT;
 
-        $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+        $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
             'maxResult' => 1,
             'max_tokens' => 500, // Hard cap — 180 words ≈ 250 tokens, leave margin for formatting
         ]);

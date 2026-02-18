@@ -161,8 +161,8 @@ class VideoWizard extends Component
         // MASTER VISUAL MODE - Enforced across ALL AI generation (locations, characters, images)
         // This is the TOP-LEVEL style authority - prevents style conflicts
         'visualMode' => 'cinematic-realistic', // 'cinematic-realistic' | 'stylized-animation' | 'mixed-hybrid'
-        // AI Model Tier for script generation (cost vs quality)
-        'aiModelTier' => 'economy',     // 'economy' | 'standard' | 'premium'
+        // AI Engine for all text generation
+        'aiEngine' => 'grok',           // 'grok' | 'gemini' | 'deepseek' | 'claude' | 'claude-haiku' | 'openai'
         // Content generation language
         'language' => 'en',             // ISO 639-1 language code
         'videoModel' => [
@@ -173,41 +173,93 @@ class VideoWizard extends Component
     ];
 
     /**
-     * AI Model Tiers - Cost vs Quality options
-     * Users can choose based on their budget and quality needs.
+     * AI Engines - Direct engine selection for all text generation.
+     * Users choose the exact AI provider/model for their prompts.
      */
-    public const AI_MODEL_TIERS = [
-        'economy' => [
-            'label' => 'Economy',
-            'description' => 'Best value, great quality',
-            'icon' => '💰',
+    public const AI_ENGINES = [
+        'grok' => [
+            'label' => 'Grok',
+            'description' => 'Fast and affordable',
+            'icon' => 'fa-solid fa-bolt',
             'provider' => 'grok',
             'model' => 'grok-4-fast',
-            'pricing' => '$0.20 / $0.50 per 1M tokens',
-            'badge' => 'BEST VALUE',
+            'badge' => 'DEFAULT',
+            'badgeColor' => 'gray',
+        ],
+        'gemini' => [
+            'label' => 'Gemini AI',
+            'description' => 'Google\'s fastest model',
+            'icon' => 'fa-solid fa-gem',
+            'provider' => 'gemini',
+            'model' => 'gemini-2.5-flash',
+            'badge' => 'FAST',
+            'badgeColor' => 'cyan',
+        ],
+        'deepseek' => [
+            'label' => 'DeepSeek AI',
+            'description' => 'Best price-to-quality ratio',
+            'icon' => 'fa-solid fa-magnifying-glass-dollar',
+            'provider' => 'deepseek',
+            'model' => 'deepseek-chat',
+            'badge' => 'VALUE',
             'badgeColor' => 'green',
         ],
-        'standard' => [
-            'label' => 'Standard',
-            'description' => 'Balanced performance',
-            'icon' => '⚡',
+        'claude' => [
+            'label' => 'Claude AI',
+            'description' => 'Best creative writing',
+            'icon' => 'fa-solid fa-feather',
+            'provider' => 'claude',
+            'model' => 'claude-sonnet-4-20250514',
+            'badge' => 'CREATIVE',
+            'badgeColor' => 'orange',
+        ],
+        'claude-haiku' => [
+            'label' => 'Claude Haiku',
+            'description' => 'Claude quality, budget price',
+            'icon' => 'fa-solid fa-feather-pointed',
+            'provider' => 'claude',
+            'model' => 'claude-3.5-haiku-20241022',
+            'badge' => 'BUDGET',
+            'badgeColor' => 'yellow',
+        ],
+        'openai' => [
+            'label' => 'OpenAI',
+            'description' => 'GPT-4o flagship model',
+            'icon' => 'fa-solid fa-brain',
             'provider' => 'openai',
-            'model' => 'gpt-4o-mini',
-            'pricing' => '$0.15 / $0.60 per 1M tokens',
+            'model' => 'gpt-4o',
             'badge' => 'POPULAR',
             'badgeColor' => 'blue',
         ],
-        'premium' => [
-            'label' => 'Premium',
-            'description' => 'Maximum quality',
-            'icon' => '👑',
-            'provider' => 'openai',
-            'model' => 'gpt-4o',
-            'pricing' => '$2.50 / $10 per 1M tokens',
-            'badge' => 'BEST QUALITY',
-            'badgeColor' => 'purple',
-        ],
     ];
+
+    /**
+     * Legacy tier-to-engine mapping for backward compatibility.
+     * Existing projects with aiModelTier values get mapped to engine keys.
+     */
+    public const TIER_TO_ENGINE_MAP = [
+        'economy' => 'grok',
+        'standard' => 'openai',
+        'premium' => 'openai',
+    ];
+
+    /**
+     * Resolve an engine key (or legacy tier name) to provider/model config.
+     *
+     * @param string $engineOrTier Engine key or legacy tier name
+     * @return array ['provider' => string, 'model' => string, ...]
+     */
+    public static function resolveEngine(string $engineOrTier): array
+    {
+        // Direct engine key lookup
+        if (isset(self::AI_ENGINES[$engineOrTier])) {
+            return self::AI_ENGINES[$engineOrTier];
+        }
+
+        // Legacy tier name → engine key
+        $mapped = self::TIER_TO_ENGINE_MAP[$engineOrTier] ?? 'grok';
+        return self::AI_ENGINES[$mapped] ?? self::AI_ENGINES['grok'];
+    }
 
     /**
      * Supported languages for content generation
@@ -2067,7 +2119,7 @@ class VideoWizard extends Component
             'productionMode' => 'standard',
             'genre' => null,
             'visualMode' => 'cinematic-realistic',
-            'aiModelTier' => 'economy',
+            'aiEngine' => 'grok',
             'language' => 'en',
             'videoModel' => [
                 'model' => 'hailuo-2.3',
@@ -3145,6 +3197,11 @@ class VideoWizard extends Component
             }
             if (isset($config['content'])) {
                 $this->content = array_merge($this->content, $config['content']);
+                // Migrate legacy aiModelTier → aiEngine for existing projects
+                if (isset($this->content['aiModelTier']) && !isset($this->content['aiEngine'])) {
+                    $this->content['aiEngine'] = self::TIER_TO_ENGINE_MAP[$this->content['aiModelTier']] ?? 'grok';
+                    unset($this->content['aiModelTier']);
+                }
             }
 
             // PHASE 3: Restore character portrait generation tracking
@@ -4565,7 +4622,7 @@ class VideoWizard extends Component
                 'productionType' => $this->productionType,
                 'productionSubType' => $this->productionSubtype,
                 'teamId' => session('current_team_id', 0),
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
             ]);
 
             $durationMs = (int)((microtime(true) - $startTime) * 1000);
@@ -5061,7 +5118,7 @@ PROMPT;
                     'productionType' => $this->productionType,
                     'productionSubType' => $this->productionSubtype,
                     'teamId' => session('current_team_id', 0),
-                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                    'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 ]);
 
                 $this->concept['refinedConcept'] = $result['improvedConcept'] ?? '';
@@ -5078,7 +5135,7 @@ PROMPT;
                 3,
                 [
                     'teamId' => session('current_team_id', 0),
-                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                    'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 ]
             );
 
@@ -5179,7 +5236,7 @@ PROMPT;
                 3,
                 [
                     'teamId' => session('current_team_id', 0),
-                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                    'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 ]
             );
 
@@ -5218,7 +5275,7 @@ PROMPT;
                 $theme ?? $this->concept['rawInput'] ?? '',
                 [
                     'teamId' => session('current_team_id', 0),
-                    'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                    'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                     'count' => 6,
                     'videoEngine' => $this->videoEngine,
                     'productionSubtype' => $this->productionSubtype,
@@ -5360,7 +5417,7 @@ PROMPT;
             $conceptService = app(ConceptService::class);
             $result = $conceptService->analyzeVideoForConcept($filePath, [
                 'teamId' => session('current_team_id', 0),
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 'mimeType' => $mimeType,
                 'videoEngine' => $this->videoEngine,
                 'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
@@ -5391,7 +5448,7 @@ PROMPT;
                     $compliance = $conceptService->validateSeedanceCompliance(
                         $result['videoPrompt'],
                         session('current_team_id', 0),
-                        $this->content['aiModelTier'] ?? 'economy',
+                        $this->content['aiEngine'] ?? 'grok',
                         $complianceContext
                     );
 
@@ -5517,7 +5574,7 @@ PROMPT;
             $conceptService = app(ConceptService::class);
             $result = $conceptService->analyzeVideoForConcept($outputFile, [
                 'teamId' => session('current_team_id', 0),
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 'mimeType' => 'video/mp4',
                 'videoEngine' => $this->videoEngine,
                 'chaosMode' => $this->multiShotMode['decomposedScenes'][0]['shots'][0]['seedanceChaosMode'] ?? false,
@@ -5548,7 +5605,7 @@ PROMPT;
                     $compliance = $conceptService->validateSeedanceCompliance(
                         $result['videoPrompt'],
                         session('current_team_id', 0),
-                        $this->content['aiModelTier'] ?? 'economy',
+                        $this->content['aiEngine'] ?? 'grok',
                         $complianceContext
                     );
 
@@ -5964,7 +6021,7 @@ PROMPT;
                 'tensionCurve' => $this->tensionCurve,
                 'emotionalJourney' => $this->emotionalJourney,
                 // AI Model Tier selection
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 // Dynamic cast and location guidance based on duration
                 'suggestedCharacterCount' => $suggestedCharacterCount,
                 'suggestedLocationCount' => $suggestedLocationCount,
@@ -7373,7 +7430,7 @@ PROMPT;
                 $regeneratedScene = $scriptService->regenerateSceneWithContext($project, $sceneIndex, $this->script['scenes'], [
                     'teamId' => session('current_team_id', 0),
                     'tone' => $this->scriptTone,
-                    'aiModelTier' => $this->aiModelTier ?? 'economy',
+                    'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 ]);
             } else {
                 // Fallback to standard regeneration
@@ -7422,7 +7479,7 @@ PROMPT;
             }
 
             $scriptService = app(ScriptGenerationService::class);
-            return $scriptService->getContextUtilization($project, $this->aiModelTier ?? 'economy');
+            return $scriptService->getContextUtilization($project, $this->content['aiEngine'] ?? 'grok');
         } catch (\Exception $e) {
             return [];
         }
@@ -13838,7 +13895,7 @@ PROMPT;
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
                 'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
             ]);
 
             if ($result['success'] && !empty($result['characters'])) {
@@ -13979,7 +14036,7 @@ PROMPT;
                                 'visualMode' => $this->getVisualMode(),
                                 'batchSize' => $batchSize,
                                 'minDescriptionLength' => $minDescLength,
-                                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                             ]
                         );
 
@@ -14922,7 +14979,7 @@ PROMPT;
                 'productionMode' => 'standard',
                 'styleBible' => $this->sceneMemory['styleBible'] ?? null,
                 'visualMode' => $this->getVisualMode(), // Master visual mode enforcement
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
             ]);
 
             if ($result['success'] && !empty($result['locations'])) {
@@ -15434,7 +15491,7 @@ PROMPT;
                 'teamId' => session('current_team_id', 0),
                 'visualMode' => $this->content['visualMode'] ?? 'cinematic-realistic',
                 'structureTemplate' => $this->storyBible['structureTemplate'] ?? 'three-act',
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 'additionalInstructions' => $this->additionalInstructions ?? '',
             ]);
 
@@ -22684,7 +22741,7 @@ PROMPT;
             'genre' => $this->content['genre'] ?? 'general',
             'pacing' => $this->content['pacing'] ?? 'balanced',
             'mood' => $scene['mood'] ?? 'neutral',
-            'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+            'aiEngine' => $this->content['aiEngine'] ?? 'grok',
             'characters' => array_keys($this->sceneMemory['characterBible']['characters'] ?? []),
 
             // PHASE 6: Narrative progression context (from wizard UI selections)
@@ -33602,7 +33659,7 @@ PROMPT;
             $skeletonResult = $conceptService->fitPromptToSkeleton(
                 $result['videoPrompt'],
                 $result,
-                $this->content['aiModelTier'] ?? 'economy',
+                $this->content['aiEngine'] ?? 'grok',
                 session('current_team_id', 0),
                 $this->cloneTemplate ?? 'adaptive',
                 [
@@ -37556,7 +37613,7 @@ PROMPT;
             $jobId = $jobsManager->dispatchScriptGeneration($project, [
                 'tone' => $this->scriptTone,
                 'contentDepth' => $this->contentDepth,
-                'aiModelTier' => $this->content['aiModelTier'] ?? 'economy',
+                'aiEngine' => $this->content['aiEngine'] ?? 'grok',
                 'narrativePreset' => $this->narrativePreset,
                 'teamId' => session('current_team_id', 0),
             ]);

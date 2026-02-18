@@ -81,24 +81,24 @@ class AiTextExecutor implements NodeExecutorInterface
         $promptTemplate = $config['prompt_template'] ?? '';
         $rules = $config['rules'] ?? '';
         $example = $config['example'] ?? '';
-        $aiTier = $config['ai_tier'] ?? 'economy';
+        $aiEngine = $config['ai_tier'] ?? $config['ai_engine'] ?? 'grok';
         $maxTokens = (int) ($config['max_tokens'] ?? 4000);
         $temperature = (float) ($config['temperature'] ?? 0.85);
 
         // Replace {placeholders} in template with input values
         $prompt = $this->buildPrompt($promptTemplate, $rules, $example, $inputs);
 
-        // Resolve AI tier config
-        $tierConfig = ConceptService::AI_MODEL_TIERS[$aiTier] ?? ConceptService::AI_MODEL_TIERS['economy'];
+        // Resolve AI engine config
+        $engineConfig = \Modules\AppVideoWizard\Livewire\VideoWizard::resolveEngine($aiEngine);
 
         $teamId = $project->team_id ?? session('current_team_id', 0);
 
-        Log::info("[AiTextExecutor] Calling AI with tier '{$aiTier}', model '{$tierConfig['model']}'");
+        Log::info("[AiTextExecutor] Calling AI with engine '{$aiEngine}', model '{$engineConfig['model']}'");
 
         $result = AI::processWithOverride(
             $prompt,
-            $tierConfig['provider'],
-            $tierConfig['model'],
+            $engineConfig['provider'],
+            $engineConfig['model'],
             'text',
             [
                 'maxResult' => 1,

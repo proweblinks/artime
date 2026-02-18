@@ -12,30 +12,11 @@ use Illuminate\Support\Facades\Log;
 class LocationExtractionService
 {
     /**
-     * AI Model Tier configurations.
-     * Maps tier names to provider/model pairs.
+     * Call AI with engine-based model selection.
      */
-    const AI_MODEL_TIERS = [
-        'economy' => [
-            'provider' => 'grok',
-            'model' => 'grok-4-fast',
-        ],
-        'standard' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o-mini',
-        ],
-        'premium' => [
-            'provider' => 'openai',
-            'model' => 'gpt-4o',
-        ],
-    ];
-
-    /**
-     * Call AI with tier-based model selection.
-     */
-    protected function callAIWithTier(string $prompt, string $tier, int $teamId, array $options = []): array
+    protected function callAIWithEngine(string $prompt, string $engine, int $teamId, array $options = []): array
     {
-        $config = self::AI_MODEL_TIERS[$tier] ?? self::AI_MODEL_TIERS['economy'];
+        $config = \Modules\AppVideoWizard\Livewire\VideoWizard::resolveEngine($engine);
 
         return AI::processWithOverride(
             $prompt,
@@ -71,7 +52,7 @@ class LocationExtractionService
         $productionMode = $options['productionMode'] ?? 'standard';
         $styleBible = $options['styleBible'] ?? null;
         $visualMode = $options['visualMode'] ?? null; // Master visual mode enforcement
-        $aiModelTier = $options['aiModelTier'] ?? 'economy';
+        $aiEngine = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
 
         try {
             // Build scene content for analysis
@@ -90,7 +71,7 @@ class LocationExtractionService
             $startTime = microtime(true);
 
             // Call AI with tier-based model selection
-            $result = $this->callAIWithTier($prompt, $aiModelTier, $teamId, [
+            $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
                 'maxResult' => 1,
                 'max_tokens' => 10000, // Ensure enough tokens for all locations
             ]);

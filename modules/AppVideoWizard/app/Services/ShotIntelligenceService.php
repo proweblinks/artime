@@ -710,11 +710,11 @@ class ShotIntelligenceService
     protected function callAI(string $prompt, array $context): array
     {
         try {
-            // Use the AI model tier from context or default to economy
-            $modelTier = $context['aiModelTier'] ?? 'economy';
+            // Use the AI engine from context or default to grok
+            $aiEngine = $context['aiEngine'] ?? $context['aiModelTier'] ?? 'grok';
 
-            // Get AI service based on tier
-            $aiConfig = $this->getAIConfig($modelTier);
+            // Get AI service config
+            $aiConfig = $this->getAIConfig($aiEngine);
 
             // Make the API call
             $response = $this->makeAIRequest($prompt, $aiConfig);
@@ -733,47 +733,16 @@ class ShotIntelligenceService
     }
 
     /**
-     * Get AI configuration based on model tier.
-     * Uses VwSetting for provider/model configuration with fallback to defaults.
+     * Get AI configuration based on engine key.
+     * Uses VideoWizard::resolveEngine() for consistent provider/model resolution.
      */
-    protected function getAIConfig(string $tier): array
+    protected function getAIConfig(string $engine): array
     {
-        // Get provider and model from unified settings
-        $provider = VwSetting::getValue('ai_shot_analysis_provider', 'openai');
-        $model = VwSetting::getValue('ai_shot_analysis_model', 'gpt-4');
-
-        // Tier-based model overrides - matches VideoWizard::AI_MODEL_TIERS
-        // Economy: Best value, great quality
-        // Standard: Balanced performance
-        // Premium: Maximum quality
-        $tierModels = [
-            'economy' => [
-                'openai' => 'gpt-4o-mini',
-                'grok' => 'grok-4-fast', // Updated: xAI's latest fast model
-                'gemini' => 'gemini-2.5-flash',
-                'anthropic' => 'claude-3.5-haiku',
-            ],
-            'standard' => [
-                'openai' => 'gpt-4o-mini',
-                'grok' => 'grok-4-fast',
-                'gemini' => 'gemini-2.5-pro',
-                'anthropic' => 'claude-sonnet-4',
-            ],
-            'premium' => [
-                'openai' => 'gpt-4o',
-                'grok' => 'grok-4', // Full Grok 4 for premium
-                'gemini' => 'gemini-2.5-pro',
-                'anthropic' => 'claude-opus-4',
-            ],
-        ];
-
-        // Use tier-specific model if available, otherwise use the configured model
-        $tierConfig = $tierModels[$tier] ?? $tierModels['economy'];
-        $finalModel = $tierConfig[$provider] ?? $model;
+        $config = \Modules\AppVideoWizard\Livewire\VideoWizard::resolveEngine($engine);
 
         return [
-            'provider' => $provider,
-            'model' => $finalModel,
+            'provider' => $config['provider'],
+            'model' => $config['model'],
         ];
     }
 

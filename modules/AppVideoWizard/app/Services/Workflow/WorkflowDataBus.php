@@ -153,7 +153,7 @@ class WorkflowDataBus
             'format' => $project->format,
             'production_type' => $project->production_type,
             'production_subtype' => $project->production_subtype,
-            'ai_tier' => $project->content_config['aiModelTier'] ?? 'economy',
+            'ai_tier' => $project->content_config['aiEngine'] ?? $project->content_config['aiModelTier'] ?? 'grok',
             'video_engine' => $project->content_config['videoModel']['model'] ?? 'seedance',
             'language' => $project->content_config['language'] ?? 'en',
         ];

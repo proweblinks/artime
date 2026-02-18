@@ -480,14 +480,20 @@
         color: rgba(0, 0, 0, 0.8);
     }
 
-    /* AI Model Tier Cards */
-    .vw-platform-step .vw-tier-options {
-        display: flex;
-        flex-direction: column;
+    /* AI Engine Selection Grid */
+    .vw-platform-step .vw-engine-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 0.5rem;
     }
 
-    .vw-platform-step .vw-tier-card {
+    @media (max-width: 768px) {
+        .vw-platform-step .vw-engine-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .vw-platform-step .vw-engine-card {
         display: flex;
         align-items: center;
         gap: 0.75rem;
@@ -497,82 +503,90 @@
         cursor: pointer;
         transition: all 0.2s ease;
         background: white;
+        position: relative;
     }
 
-    .vw-platform-step .vw-tier-card:hover {
+    .vw-platform-step .vw-engine-card:hover {
         border-color: rgba(139, 92, 246, 0.3);
         background: rgba(139, 92, 246, 0.02);
     }
 
-    .vw-platform-step .vw-tier-card.selected {
+    .vw-platform-step .vw-engine-card.selected {
         border-color: #8b5cf6;
         background: rgba(139, 92, 246, 0.08);
     }
 
-    .vw-platform-step .vw-tier-icon {
-        font-size: 1.25rem;
-        width: 32px;
+    .vw-platform-step .vw-engine-icon {
+        font-size: 1.1rem;
+        width: 28px;
         text-align: center;
+        color: rgba(0, 0, 0, 0.5);
     }
 
-    .vw-platform-step .vw-tier-info {
+    .vw-platform-step .vw-engine-card.selected .vw-engine-icon {
+        color: #8b5cf6;
+    }
+
+    .vw-platform-step .vw-engine-info {
         flex: 1;
         min-width: 0;
     }
 
-    .vw-platform-step .vw-tier-name {
+    .vw-platform-step .vw-engine-name {
         font-size: 0.85rem;
         font-weight: 600;
         color: rgba(0, 0, 0, 0.8);
-        display: inline;
     }
 
-    .vw-platform-step .vw-tier-card.selected .vw-tier-name {
+    .vw-platform-step .vw-engine-card.selected .vw-engine-name {
         color: #8b5cf6;
     }
 
-    .vw-platform-step .vw-tier-model {
+    .vw-platform-step .vw-engine-desc {
         font-size: 0.7rem;
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        color: rgba(0, 0, 0, 0.4);
-        margin-left: 0.35rem;
-        padding: 0.1rem 0.35rem;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 0.25rem;
+        color: rgba(0, 0, 0, 0.45);
     }
 
-    .vw-platform-step .vw-tier-card.selected .vw-tier-model {
-        color: rgba(139, 92, 246, 0.7);
-        background: rgba(139, 92, 246, 0.1);
-    }
-
-    .vw-platform-step .vw-tier-price {
-        font-size: 0.7rem;
-        color: rgba(0, 0, 0, 0.5);
-    }
-
-    .vw-platform-step .vw-tier-badge {
+    .vw-platform-step .vw-engine-badge {
         font-size: 0.55rem;
         font-weight: 700;
         padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
         text-transform: uppercase;
         letter-spacing: 0.03em;
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
     }
 
-    .vw-platform-step .vw-tier-badge.green {
+    .vw-platform-step .vw-engine-badge.gray {
+        background: rgba(0, 0, 0, 0.08);
+        color: rgba(0, 0, 0, 0.5);
+    }
+
+    .vw-platform-step .vw-engine-badge.cyan {
+        background: rgba(6, 182, 212, 0.15);
+        color: #0891b2;
+    }
+
+    .vw-platform-step .vw-engine-badge.green {
         background: rgba(16, 185, 129, 0.15);
         color: #059669;
     }
 
-    .vw-platform-step .vw-tier-badge.blue {
-        background: rgba(59, 130, 246, 0.15);
-        color: #2563eb;
+    .vw-platform-step .vw-engine-badge.orange {
+        background: rgba(249, 115, 22, 0.15);
+        color: #ea580c;
     }
 
-    .vw-platform-step .vw-tier-badge.purple {
-        background: rgba(139, 92, 246, 0.15);
-        color: #7c3aed;
+    .vw-platform-step .vw-engine-badge.yellow {
+        background: rgba(234, 179, 8, 0.15);
+        color: #ca8a04;
+    }
+
+    .vw-platform-step .vw-engine-badge.blue {
+        background: rgba(59, 130, 246, 0.15);
+        color: #2563eb;
     }
 
     /* Language Selector - Custom Dropdown */
@@ -981,9 +995,9 @@
     {{-- Production Settings Card - Now appears after just productionType is selected --}}
     @if($productionType)
         @php
-            $aiModelTiers = \Modules\AppVideoWizard\Livewire\VideoWizard::AI_MODEL_TIERS;
+            $aiEngines = \Modules\AppVideoWizard\Livewire\VideoWizard::AI_ENGINES;
             $languages = \Modules\AppVideoWizard\Livewire\VideoWizard::SUPPORTED_LANGUAGES;
-            $selectedTier = $content['aiModelTier'] ?? 'economy';
+            $selectedEngine = $content['aiEngine'] ?? 'grok';
             $selectedLang = $content['language'] ?? 'en';
 
             // Get duration range - use subtype if available, otherwise use type defaults
@@ -1008,25 +1022,22 @@
             </div>
 
             <div class="vw-settings-grid">
-                {{-- AI Model Tier Selection --}}
+                {{-- AI Engine Selection --}}
                 <div class="vw-setting-section">
                     <div class="vw-setting-header">
                         <span class="vw-setting-icon">🤖</span>
-                        <span class="vw-setting-title">{{ __('AI Model') }}</span>
+                        <span class="vw-setting-title">{{ __('AI Engine') }}</span>
                     </div>
-                    <div class="vw-tier-options">
-                        @foreach($aiModelTiers as $tierKey => $tier)
-                            <div class="vw-tier-card {{ $selectedTier === $tierKey ? 'selected' : '' }}"
-                                 wire:click="$set('content.aiModelTier', '{{ $tierKey }}')">
-                                <span class="vw-tier-icon">{{ $tier['icon'] }}</span>
-                                <div class="vw-tier-info">
-                                    <div>
-                                        <span class="vw-tier-name">{{ $tier['label'] }}</span>
-                                        <span class="vw-tier-model">{{ $tier['model'] }}</span>
-                                    </div>
-                                    <div class="vw-tier-price">{{ $tier['pricing'] }}</div>
+                    <div class="vw-engine-grid">
+                        @foreach($aiEngines as $engineKey => $engine)
+                            <div class="vw-engine-card {{ $selectedEngine === $engineKey ? 'selected' : '' }}"
+                                 wire:click="$set('content.aiEngine', '{{ $engineKey }}')">
+                                <span class="vw-engine-icon"><i class="{{ $engine['icon'] }}"></i></span>
+                                <div class="vw-engine-info">
+                                    <span class="vw-engine-name">{{ $engine['label'] }}</span>
+                                    <div class="vw-engine-desc">{{ $engine['description'] }}</div>
                                 </div>
-                                <span class="vw-tier-badge {{ $tier['badgeColor'] }}">{{ $tier['badge'] }}</span>
+                                <span class="vw-engine-badge {{ $engine['badgeColor'] }}">{{ $engine['badge'] }}</span>
                             </div>
                         @endforeach
                     </div>

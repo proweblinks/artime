@@ -20,33 +20,70 @@ use Illuminate\Support\Facades\Log;
 class ContextWindowService
 {
     /**
-     * Context window limits per model tier (in approximate tokens).
+     * Context window limits per engine (in approximate tokens).
      * Conservative estimates to leave room for output.
      */
     public const CONTEXT_LIMITS = [
-        'economy' => [
-            'model' => 'grok-beta', // Grok 4-fast
-            'inputLimit' => 100000,  // ~100K tokens input
+        'grok' => [
+            'model' => 'grok-4-fast',
+            'inputLimit' => 100000,
             'outputLimit' => 8000,
             'description' => 'Fast generation with moderate context',
         ],
-        'standard' => [
-            'model' => 'gpt-4o-mini',
-            'inputLimit' => 120000,  // ~120K tokens input
+        'gemini' => [
+            'model' => 'gemini-2.5-flash',
+            'inputLimit' => 900000,  // Gemini has 1M context
             'outputLimit' => 16000,
-            'description' => 'Balanced speed and quality',
+            'description' => 'Large context, fast generation',
+        ],
+        'deepseek' => [
+            'model' => 'deepseek-chat',
+            'inputLimit' => 60000,
+            'outputLimit' => 8000,
+            'description' => 'Best value for moderate context',
+        ],
+        'claude' => [
+            'model' => 'claude-sonnet-4-20250514',
+            'inputLimit' => 180000,  // 200K context
+            'outputLimit' => 16000,
+            'description' => 'Creative writing with large context',
+        ],
+        'claude-haiku' => [
+            'model' => 'claude-3.5-haiku-20241022',
+            'inputLimit' => 180000,  // 200K context
+            'outputLimit' => 8000,
+            'description' => 'Fast Claude with large context',
+        ],
+        'openai' => [
+            'model' => 'gpt-4o',
+            'inputLimit' => 120000,
+            'outputLimit' => 16000,
+            'description' => 'Flagship model, balanced context',
+        ],
+        'unlimited' => [
+            'model' => 'grok-4',
+            'inputLimit' => 1500000,
+            'outputLimit' => 32000,
+            'description' => 'Maximum context for complex narratives',
+        ],
+        // Legacy tier names for backward compatibility
+        'economy' => [
+            'model' => 'grok-4-fast',
+            'inputLimit' => 100000,
+            'outputLimit' => 8000,
+            'description' => 'Legacy: maps to grok',
+        ],
+        'standard' => [
+            'model' => 'gpt-4o',
+            'inputLimit' => 120000,
+            'outputLimit' => 16000,
+            'description' => 'Legacy: maps to openai',
         ],
         'premium' => [
             'model' => 'gpt-4o',
-            'inputLimit' => 120000,  // ~120K tokens input
+            'inputLimit' => 120000,
             'outputLimit' => 16000,
-            'description' => 'Highest quality generation',
-        ],
-        'unlimited' => [
-            'model' => 'grok-4', // Grok 4.1 with 2M context
-            'inputLimit' => 1500000, // ~1.5M tokens (leave 500K for output)
-            'outputLimit' => 32000,
-            'description' => 'Maximum context for complex narratives',
+            'description' => 'Legacy: maps to openai',
         ],
     ];
 
@@ -67,7 +104,7 @@ class ContextWindowService
         array $existingScenes = [],
         array $options = []
     ): array {
-        $tier = $options['aiModelTier'] ?? 'economy';
+        $tier = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
         $limits = self::CONTEXT_LIMITS[$tier] ?? self::CONTEXT_LIMITS['economy'];
 
         $contextParts = [];
@@ -397,7 +434,7 @@ class ContextWindowService
         int $targetSceneIndex,
         array $options = []
     ): string {
-        $tier = $options['aiModelTier'] ?? 'economy';
+        $tier = $options['aiEngine'] ?? $options['aiModelTier'] ?? 'grok';
         $limits = self::CONTEXT_LIMITS[$tier] ?? self::CONTEXT_LIMITS['economy'];
 
         $context = "";
