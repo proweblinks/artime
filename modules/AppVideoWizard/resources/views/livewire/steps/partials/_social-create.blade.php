@@ -1099,8 +1099,10 @@
                             <div class="vw-asset-thumb-img">
                                 @if($hType === 'video')
                                     <div class="vw-asset-thumb-video-icon"><i class="fa-solid fa-play"></i></div>
+                                    <div style="width:100%;height:100%;background:linear-gradient(135deg,#0f172a,#1e1b4b);"></div>
+                                @else
+                                    <img src="{{ $hUrl }}" alt="{{ $actionLabel }}" loading="lazy" />
                                 @endif
-                                <img src="{{ $hType === 'video' ? ($shot['imageUrl'] ?? '') : $hUrl }}" alt="{{ $actionLabel }}" loading="lazy" />
                             </div>
                             <div class="vw-asset-thumb-badge {{ $hType }}">
                                 <i class="fa-solid {{ $actionIcon }}"></i>

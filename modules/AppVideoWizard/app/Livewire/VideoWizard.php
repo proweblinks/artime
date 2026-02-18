@@ -37901,10 +37901,10 @@ PROMPT;
         $assetType = $entry['type']; // 'image' or 'video'
         $url = $entry['url'];
 
-        // Update active flags for this asset type
+        // Deactivate ALL entries, then mark only the clicked one as active
         foreach ($history as $i => $h) {
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['assetHistory'][$i]['isActive'] =
-                (($h['type'] ?? '') === $assetType && ($h['id'] ?? '') === $historyId);
+                (($h['id'] ?? '') === $historyId);
         }
 
         // Write URL to the appropriate property
@@ -37912,6 +37912,7 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $url;
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = null;
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'pending';
+            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['segments'] = [];
             // Sync to storyboard
             if (isset($this->storyboard['scenes'][0])) {
                 $this->storyboard['scenes'][0]['imageUrl'] = $url;
@@ -37920,9 +37921,6 @@ PROMPT;
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = $url;
             $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'ready';
         }
-
-        // Add a 'restored' entry
-        $this->addAssetHistoryEntry('shot', 0, 0, $assetType, 'restored', $url, null, null);
 
         $this->saveProject();
     }
