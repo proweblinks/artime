@@ -935,11 +935,11 @@
                     <div class="vw-url-import-box">
                         <div class="vw-url-input-row">
                             <div class="vw-url-input-wrap">
-                                <i class="fa-solid fa-link vw-url-input-icon"></i>
+                                <i class="fa-brands fa-youtube vw-url-input-icon" style="color: #ff0000;"></i>
                                 <input type="url"
                                        wire:model.defer="conceptVideoUrl"
                                        class="vw-url-input"
-                                       placeholder="{{ __('Paste video URL here...') }}"
+                                       placeholder="{{ __('Paste a YouTube video URL...') }}"
                                        @keydown.enter="$wire.analyzeVideoFromUrl()" />
                             </div>
                             <button class="vw-url-analyze-btn"
@@ -957,12 +957,8 @@
                             </button>
                         </div>
                         <div class="vw-url-platforms">
-                            <i class="fa-brands fa-youtube"></i>
-                            <i class="fa-brands fa-instagram"></i>
-                            <i class="fa-brands fa-tiktok"></i>
-                            <i class="fa-brands fa-x-twitter"></i>
-                            <i class="fa-brands fa-facebook"></i>
-                            <span>{{ __('& 1000+ platforms') }}</span>
+                            <i class="fa-brands fa-youtube" style="color: #ff0000; opacity: 1;"></i>
+                            <span>{{ __('YouTube videos only') }}</span>
                         </div>
                     </div>
                 </div>

@@ -28,6 +28,7 @@ use Modules\AppVideoWizard\Models\VwGenerationLog;
 use Modules\AppVideoWizard\Models\VwSetting;
 use Modules\AppVideoWizard\Models\VwUserTemplate;
 use Modules\AppVideoWizard\Models\VwWorkflow;
+use Modules\AppAITools\Services\YouTubeDataService;
 use Modules\AppVideoWizard\Models\VwWorkflowExecution;
 use Modules\AppVideoWizard\Services\WorkflowEngineService;
 use Modules\AppVideoWizard\Services\ShotIntelligenceService;
@@ -5523,6 +5524,13 @@ PROMPT;
         // Basic URL validation
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             $this->videoAnalysisError = __('Please enter a valid URL.');
+            return;
+        }
+
+        // Only allow YouTube URLs
+        $ytService = app(YouTubeDataService::class);
+        if (!$ytService->extractVideoId($url)) {
+            $this->videoAnalysisError = __('Only YouTube video URLs are supported for cloning.');
             return;
         }
 
