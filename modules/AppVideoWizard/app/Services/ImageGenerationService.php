@@ -3874,6 +3874,12 @@ EOT;
                 else $detectedAspectRatio = '16:9';
             }
 
+            // Add text-based aspect ratio guidance (some models ignore imageConfig)
+            if ($detectedAspectRatio !== '1:1') {
+                $orientationLabel = str_contains($detectedAspectRatio, '16') && strpos($detectedAspectRatio, '9') === 0 ? 'tall portrait' : (str_contains($detectedAspectRatio, '16') ? 'wide landscape' : 'portrait');
+                $editPrompt .= "\n\nCRITICAL: The output image MUST be in {$detectedAspectRatio} {$orientationLabel} orientation. Do NOT add black bars, padding, or letterboxing. Fill the entire frame.";
+            }
+
             $editOptions = [
                 'mimeType' => $mimeType,
                 'aspectRatio' => $detectedAspectRatio,
