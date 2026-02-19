@@ -16,16 +16,17 @@ class BusinessDnaService
         $this->scraper = $scraper;
     }
 
-    public function analyzeWebsite(string $url, int $teamId): ContentBusinessDna
+    public function analyzeWebsite(string $url, int $teamId, ?int $dnaId = null): ContentBusinessDna
     {
-        // Create or update DNA record
-        $dna = ContentBusinessDna::updateOrCreate(
-            ['team_id' => $teamId],
-            [
+        // Find existing DNA record (created by Livewire) or create new one
+        $dna = $dnaId ? ContentBusinessDna::find($dnaId) : null;
+        if (!$dna) {
+            $dna = ContentBusinessDna::create([
+                'team_id' => $teamId,
                 'website_url' => $url,
                 'status' => 'analyzing',
-            ]
-        );
+            ]);
+        }
 
         try {
             // Scrape the website

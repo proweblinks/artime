@@ -47,12 +47,7 @@ class BusinessDna extends Component
             $this->dna = ContentBusinessDna::find($this->dnaId);
         }
 
-        if (!$this->dna) {
-            $teamId = auth()->user()->current_team_id ?? auth()->id();
-            $this->dna = ContentBusinessDna::where('team_id', $teamId)->first();
-            $this->dnaId = $this->dna?->id;
-        }
-
+        // Don't auto-load first DNA — rely on the dnaId passed from ContentHub
         if ($this->dna && $this->dna->status === 'analyzing') {
             $this->isAnalyzing = true;
         }
@@ -70,17 +65,19 @@ class BusinessDna extends Component
         $this->isAnalyzing = true;
         $teamId = auth()->user()->current_team_id ?? auth()->id();
 
-        // Create placeholder DNA record
-        $this->dna = ContentBusinessDna::updateOrCreate(
-            ['team_id' => $teamId],
-            ['website_url' => $url, 'status' => 'analyzing']
-        );
+        // Create new DNA record (multi-business: always create, never updateOrCreate)
+        $this->dna = ContentBusinessDna::create([
+            'team_id' => $teamId,
+            'website_url' => $url,
+            'status' => 'analyzing',
+        ]);
         $this->dnaId = $this->dna->id;
 
         // Dispatch to queue for background processing
-        dispatch(function () use ($url, $teamId) {
+        $dnaId = $this->dna->id;
+        dispatch(function () use ($url, $teamId, $dnaId) {
             $service = new BusinessDnaService(new WebScraperService());
-            $service->analyzeWebsite($url, $teamId);
+            $service->analyzeWebsite($url, $teamId, $dnaId);
         })->afterResponse();
     }
 

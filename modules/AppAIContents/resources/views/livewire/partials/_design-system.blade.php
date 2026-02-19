@@ -55,10 +55,6 @@
     --cs-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
     --cs-glass-sm: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 
-    /* ── Sidebar ── */
-    --cs-sidebar-w: 240px;
-    --cs-sidebar-collapsed-w: 60px;
-
     /* ── Transition ── */
     --cs-transition: 200ms ease;
 
@@ -133,192 +129,196 @@
     66% { transform: translate(-20px, -15px) scale(0.98); }
 }
 
-/* ── Main Layout ── */
-.cs-layout {
+/* ── Vertical Layout (top tabs, no sidebar) ── */
+.cs-layout-vertical {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
     position: relative;
     z-index: 1;
 }
 
-/* ── Sidebar ── */
-.cs-sidebar {
-    width: var(--cs-sidebar-w);
-    min-height: 100vh;
+/* ── Top Navigation Bar ── */
+.cs-topbar {
     background: var(--cs-bg-surface);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid var(--cs-border);
-    display: flex;
-    flex-direction: column;
-    transition: width 300ms ease;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 50;
-    padding-top: env(safe-area-inset-top, 0px);
-}
-
-.cs-sidebar.collapsed {
-    width: var(--cs-sidebar-collapsed-w);
-}
-
-.cs-sidebar-header {
-    padding: 20px 16px;
     border-bottom: 1px solid var(--cs-border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.cs-topbar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 72px;
+    gap: 16px;
+    height: 56px;
 }
 
-.cs-sidebar-header .cs-logo {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    background: linear-gradient(135deg, var(--cs-primary), var(--cs-primary-hover));
-    border-radius: var(--cs-radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--cs-text-on-primary);
-    font-size: 16px;
-}
-
-.cs-sidebar-header .cs-brand-text {
-    font-family: var(--cs-font);
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--cs-text);
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: opacity 200ms ease;
-}
-
-.cs-sidebar.collapsed .cs-brand-text,
-.cs-sidebar.collapsed .cs-experiment-badge {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-}
-
-.cs-experiment-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--cs-primary-text);
-    background: var(--cs-primary-soft);
-    border: 1px solid var(--cs-border-accent);
-    padding: 2px 6px;
-    border-radius: var(--cs-radius-pill);
-    white-space: nowrap;
-    transition: opacity 200ms ease;
-}
-
-/* Sidebar Navigation */
-.cs-sidebar-nav {
-    flex: 1;
-    padding: 12px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.cs-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: var(--cs-radius-sm);
-    cursor: pointer;
-    transition: all var(--cs-transition);
-    color: var(--cs-text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
+/* ── Business Selector ── */
+.cs-business-selector {
     position: relative;
-    white-space: nowrap;
-    overflow: hidden;
+    flex-shrink: 0;
 }
 
-.cs-nav-item:hover {
+.cs-business-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 6px;
+    border-radius: var(--cs-radius);
+    border: 1px solid var(--cs-border-strong);
+    background: var(--cs-bg-elevated);
+    cursor: pointer;
+    transition: all var(--cs-transition);
+    max-width: 220px;
+}
+
+.cs-business-btn:hover {
+    background: var(--cs-bg-hover);
+    border-color: var(--cs-border-accent);
+}
+
+.cs-business-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.cs-business-logo-placeholder {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--cs-primary), var(--cs-primary-hover));
+    color: var(--cs-text-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.cs-business-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cs-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cs-business-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 280px;
+    background: var(--cs-bg-surface-solid);
+    border: 1px solid var(--cs-border-strong);
+    border-radius: var(--cs-radius);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    z-index: 60;
+    padding: 6px;
+}
+
+.cs-business-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--cs-radius-sm);
+    cursor: pointer;
+    transition: all var(--cs-transition);
+}
+
+.cs-business-dropdown-item:hover {
+    background: var(--cs-primary-soft);
+}
+
+.cs-business-dropdown-item.active {
+    background: var(--cs-primary-soft);
+}
+
+.cs-business-mini-logo {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+.cs-business-mini-logo-placeholder {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--cs-primary), var(--cs-primary-hover));
+    color: var(--cs-text-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ── Section Tabs ── */
+.cs-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    justify-content: center;
+}
+
+.cs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: var(--cs-radius-pill);
+    border: none;
+    background: transparent;
+    color: var(--cs-text-secondary);
+    font-family: var(--cs-font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--cs-transition);
+    white-space: nowrap;
+}
+
+.cs-tab:hover:not(:disabled) {
     background: var(--cs-bg-hover);
     color: var(--cs-text);
 }
 
-.cs-nav-item.active {
+.cs-tab.active {
     background: var(--cs-primary-soft);
     color: var(--cs-primary-text);
 }
 
-.cs-nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 6px;
-    bottom: 6px;
-    width: 3px;
-    background: var(--cs-primary);
-    border-radius: 0 3px 3px 0;
+.cs-tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
-.cs-nav-item i {
-    font-size: 18px;
-    width: 24px;
-    min-width: 24px;
-    text-align: center;
+.cs-tab i {
+    font-size: 15px;
 }
 
-.cs-nav-item .cs-nav-label {
-    transition: opacity 200ms ease;
+.cs-topbar-btn-label {
+    /* Hidden on small screens */
 }
 
-.cs-sidebar.collapsed .cs-nav-label {
-    opacity: 0;
-    width: 0;
-    overflow: hidden;
-}
-
-/* Sidebar Toggle */
-.cs-sidebar-toggle {
-    padding: 12px;
-    border-top: 1px solid var(--cs-border);
-    display: flex;
-    justify-content: center;
-}
-
-.cs-sidebar-toggle button {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--cs-radius-sm);
-    border: 1px solid var(--cs-border);
-    background: var(--cs-bg-elevated);
-    color: var(--cs-text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--cs-transition);
-}
-
-.cs-sidebar-toggle button:hover {
-    background: var(--cs-bg-hover);
-    color: var(--cs-text);
-}
-
-/* ── Main Content ── */
-.cs-main {
+/* ── Main Content (full width, no sidebar offset) ── */
+.cs-main-full {
     flex: 1;
-    margin-left: var(--cs-sidebar-w);
-    transition: margin-left 300ms ease;
-    min-height: 100vh;
-}
-
-.cs-sidebar.collapsed ~ .cs-main,
-.cs-main.sidebar-collapsed {
-    margin-left: var(--cs-sidebar-collapsed-w);
+    min-height: calc(100vh - 56px);
 }
 
 .cs-content {
@@ -1060,19 +1060,17 @@ textarea.cs-input {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-    .cs-sidebar {
-        width: var(--cs-sidebar-collapsed-w);
+    .cs-topbar-inner {
+        padding: 0 12px;
+        gap: 8px;
     }
-    .cs-main {
-        margin-left: var(--cs-sidebar-collapsed-w);
+    .cs-topbar-btn-label {
+        display: none;
     }
-    .cs-sidebar .cs-nav-label,
-    .cs-sidebar .cs-brand-text,
-    .cs-sidebar .cs-experiment-badge {
-        opacity: 0;
-        width: 0;
-        overflow: hidden;
+    .cs-business-name {
+        max-width: 80px;
     }
+    .cs-tab span { display: none; }
     .cs-content {
         padding: 20px 16px;
     }

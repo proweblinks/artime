@@ -135,6 +135,7 @@ class PhotoshootHub extends Component
     {
         $teamId = auth()->user()->current_team_id ?? auth()->id();
         $recentPhotoshoots = ContentPhotoshoot::where('team_id', $teamId)
+            ->when($this->dnaId, fn($q) => $q->where('dna_id', $this->dnaId))
             ->where('status', 'ready')
             ->orderByDesc('created_at')
             ->limit(6)

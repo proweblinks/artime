@@ -94,6 +94,7 @@ class CampaignsHub extends Component
         $teamId = auth()->user()->current_team_id ?? auth()->id();
 
         $campaigns = ContentCampaign::where('team_id', $teamId)
+            ->when($this->dnaId, fn($q) => $q->where('dna_id', $this->dnaId))
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();

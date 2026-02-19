@@ -8,7 +8,6 @@ use Modules\AppAIContents\Models\ContentBusinessDna;
 class ContentHub extends Component
 {
     public string $section = 'dna';
-    public bool $sidebarCollapsed = false;
     public ?int $dnaId = null;
     public ?int $activeCampaignId = null;
     public ?int $activeCreativeId = null;
@@ -24,10 +23,12 @@ class ContentHub extends Component
     public function mount()
     {
         $teamId = auth()->user()->current_team_id ?? auth()->id();
-        $dna = ContentBusinessDna::where('team_id', $teamId)->first();
+        $dna = ContentBusinessDna::where('team_id', $teamId)
+            ->where('status', 'ready')
+            ->orderByDesc('updated_at')
+            ->first();
         $this->dnaId = $dna?->id;
 
-        // If no DNA exists, always show DNA section first
         if (!$this->dnaId) {
             $this->section = 'dna';
         }
@@ -40,9 +41,24 @@ class ContentHub extends Component
         $this->activeCreativeId = null;
     }
 
-    public function toggleSidebar()
+    public function switchBusiness(int $dnaId)
     {
-        $this->sidebarCollapsed = !$this->sidebarCollapsed;
+        $teamId = auth()->user()->current_team_id ?? auth()->id();
+        $dna = ContentBusinessDna::where('id', $dnaId)->where('team_id', $teamId)->first();
+        if ($dna) {
+            $this->dnaId = $dna->id;
+            $this->section = 'dna';
+            $this->activeCampaignId = null;
+            $this->activeCreativeId = null;
+        }
+    }
+
+    public function newBusiness()
+    {
+        $this->dnaId = null;
+        $this->section = 'dna';
+        $this->activeCampaignId = null;
+        $this->activeCreativeId = null;
     }
 
     public function openCampaign(int $campaignId)
@@ -74,6 +90,19 @@ class ContentHub extends Component
 
     public function render()
     {
-        return view('appaicontents::livewire.content-hub');
+        $teamId = auth()->user()->current_team_id ?? auth()->id();
+        $businesses = ContentBusinessDna::where('team_id', $teamId)
+            ->whereIn('status', ['ready', 'analyzing'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $activeBusiness = $this->dnaId
+            ? $businesses->firstWhere('id', $this->dnaId)
+            : null;
+
+        return view('appaicontents::livewire.content-hub', [
+            'businesses' => $businesses,
+            'activeBusiness' => $activeBusiness,
+        ]);
     }
 }
