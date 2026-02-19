@@ -23,7 +23,7 @@
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         width: 100vw; height: 100vh;
-        background: linear-gradient(135deg, #0a0a14 0%, #141428 100%);
+        background: var(--vw-bg-deep);
         z-index: 999999;
         display: flex;
         flex-direction: column;
@@ -34,14 +34,14 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem 1.5rem;
-        background: rgba(10, 10, 20, 0.95);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(7, 20, 55, 0.95);
+        border-bottom: 1px solid var(--vw-border);
         flex-shrink: 0;
     }
     .vw-social-create-header h2 {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #f1f5f9;
+        color: var(--vw-text);
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -51,17 +51,17 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.4rem 0.8rem;
-        background: rgba(100, 100, 140, 0.15);
-        border: 1px solid rgba(100, 100, 140, 0.3);
-        border-radius: 0.5rem;
-        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--vw-border);
+        border-radius: var(--vw-radius);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
         cursor: pointer;
         transition: all 0.2s;
     }
     .vw-social-create-header .vw-back-btn:hover {
-        background: rgba(100, 100, 140, 0.25);
-        color: #e2e8f0;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--vw-text);
     }
     .vw-social-create-body {
         flex: 1;
@@ -76,7 +76,7 @@
         align-items: center;
         justify-content: center;
         padding: 1.5rem;
-        background: rgba(5, 5, 15, 0.5);
+        background: rgba(7, 20, 55, 0.5);
         overflow-y: auto;
     }
     .vw-social-preview-inner {
@@ -86,8 +86,8 @@
     .vw-social-preview-frame {
         width: 100%;
         aspect-ratio: 9/16;
-        background: rgba(20, 20, 35, 0.8);
-        border: 2px solid rgba(139, 92, 246, 0.3);
+        background: var(--vw-bg-surface);
+        border: 2px solid var(--vw-border-accent);
         border-radius: 1rem;
         overflow: hidden;
         display: flex;
@@ -107,7 +107,7 @@
     }
     .vw-social-preview-placeholder {
         text-align: center;
-        color: #64748b;
+        color: var(--vw-text-muted);
     }
     .vw-social-preview-placeholder i {
         font-size: 3rem;
@@ -120,18 +120,18 @@
         width: 45%;
         overflow-y: auto;
         padding: 1.5rem;
-        border-left: 1px solid rgba(100, 100, 140, 0.15);
+        border-left: 1px solid var(--vw-border);
     }
     .vw-social-section {
-        background: rgba(25, 25, 45, 0.6);
-        border: 1px solid rgba(100, 100, 140, 0.2);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1rem;
         transition: all 0.2s;
     }
     .vw-social-section.completed {
-        border-color: rgba(16, 185, 129, 0.3);
+        border-color: var(--vw-border-success);
     }
     .vw-social-section-header {
         display: flex;
@@ -149,30 +149,30 @@
         justify-content: center;
         font-size: 0.8rem;
         font-weight: 700;
-        background: rgba(139, 92, 246, 0.2);
-        color: #a78bfa;
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: var(--vw-primary-soft);
+        color: #a49eff;
+        border: 1px solid var(--vw-border-accent);
     }
     .vw-social-section.completed .vw-social-section-num {
-        background: rgba(16, 185, 129, 0.2);
+        background: var(--vw-success-soft);
         color: #6ee7b7;
-        border-color: rgba(16, 185, 129, 0.3);
+        border-color: var(--vw-border-success);
     }
     .vw-social-section-title {
         font-size: 0.95rem;
         font-weight: 600;
-        color: #e2e8f0;
+        color: var(--vw-text);
     }
     .vw-social-section-subtitle {
         font-size: 0.75rem;
-        color: #64748b;
+        color: var(--vw-text-muted);
     }
     .vw-social-action-btn {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
         padding: 0.6rem 1.25rem;
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
         color: white;
         border: none;
         border-radius: 0.6rem;
@@ -185,14 +185,14 @@
     }
     .vw-social-action-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.3);
     }
     .vw-social-action-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
     .vw-social-action-btn.success {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        background: var(--vw-success);
     }
     .vw-social-action-btn.orange {
         background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
@@ -234,26 +234,26 @@
         font-size: 0.7rem;
         font-weight: 600;
     }
-    .vw-social-status-badge.pending { background: rgba(100,100,140,0.2); color: #94a3b8; }
-    .vw-social-status-badge.generating { background: rgba(139,92,246,0.2); color: #a78bfa; animation: vw-pulse-badge 1.5s infinite; }
-    .vw-social-status-badge.ready { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .vw-social-status-badge.pending { background: var(--vw-border); color: var(--vw-text-secondary); }
+    .vw-social-status-badge.generating { background: var(--vw-primary-soft); color: #a49eff; animation: vw-pulse-badge 1.5s infinite; }
+    .vw-social-status-badge.ready { background: var(--vw-success-soft); color: #6ee7b7; }
     .vw-social-status-badge.processing { background: rgba(249,115,22,0.2); color: #fb923c; animation: vw-pulse-badge 1.5s infinite; }
     .vw-social-status-badge.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
     @keyframes vw-pulse-badge { 0%,100%{opacity:0.6} 50%{opacity:1} }
     .vw-social-swap-btn {
         display: inline-flex; align-items: center; gap: 0.3rem;
         padding: 0.2rem 0.5rem; border-radius: 0.3rem;
-        background: rgba(139,92,246,0.15); color: #a78bfa;
-        border: 1px solid rgba(139,92,246,0.3);
+        background: var(--vw-primary-soft); color: #a49eff;
+        border: 1px solid var(--vw-border-accent);
         font-size: 0.7rem; font-weight: 600; cursor: pointer;
         transition: all 0.2s;
     }
-    .vw-social-swap-btn:hover { background: rgba(139,92,246,0.3); color: #c4b5fd; }
+    .vw-social-swap-btn:hover { background: var(--vw-border-accent); color: #c4b5fd; }
 
-    .vw-mode-btn { padding: 0.35rem 0.75rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.2s; font-size: 0.75rem; }
-    .vw-mode-btn.active { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.4); color: #a78bfa; }
-    .vw-mode-btn:hover { border-color: rgba(139,92,246,0.3); color: #a78bfa; }
-    .vw-mode-hint { font-size: 0.65rem; color: #64748b; margin-top: 0.25rem; }
+    .vw-mode-btn { padding: 0.35rem 0.75rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--vw-text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.75rem; }
+    .vw-mode-btn.active { background: var(--vw-primary-soft); border-color: rgba(var(--vw-primary-rgb), 0.4); color: #a49eff; }
+    .vw-mode-btn:hover { border-color: var(--vw-border-accent); color: #a49eff; }
+    .vw-mode-hint { font-size: 0.65rem; color: var(--vw-text-muted); margin-top: 0.25rem; }
 
     .vw-social-progress-bar {
         margin-top: 0.75rem;
@@ -287,7 +287,7 @@
     }
     .vw-social-progress-hint {
         font-size: 0.7rem;
-        color: #94a3b8;
+        color: var(--vw-text-secondary);
         margin-top: 0.4rem;
     }
 
@@ -335,7 +335,7 @@
         margin-bottom: 1rem;
         border-radius: 0.5rem;
         overflow: hidden;
-        border: 1px solid rgba(100,100,140,0.25);
+        border: 1px solid var(--vw-border);
     }
     .vw-social-audio-tab {
         flex: 1;
@@ -344,32 +344,32 @@
         font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
-        background: rgba(25,25,45,0.8);
-        color: #94a3b8;
+        background: var(--vw-bg-elevated);
+        color: var(--vw-text-secondary);
         border: none;
         transition: all 0.2s;
     }
     .vw-social-audio-tab.active {
-        background: rgba(139,92,246,0.2);
-        color: #a78bfa;
+        background: var(--vw-primary-soft);
+        color: #a49eff;
     }
     .vw-social-model-select {
         width: 100%;
         padding: 0.5rem 0.75rem;
-        background: rgba(20,20,40,0.8);
-        border: 1px solid rgba(100,100,140,0.25);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: #e2e8f0;
+        color: var(--vw-text);
         font-size: 0.8rem;
         margin-bottom: 0.75rem;
     }
     .vw-social-file-upload {
         width: 100%;
         padding: 0.5rem;
-        background: rgba(20,20,40,0.5);
+        background: var(--vw-bg-surface);
         border: 1px dashed rgba(100,100,140,0.3);
         border-radius: 0.5rem;
-        color: #94a3b8;
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
         margin-bottom: 0.75rem;
     }
@@ -386,7 +386,7 @@
         gap: 0.5rem;
         width: 100%;
         padding: 0.75rem;
-        background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
         color: white;
         border: none;
         border-radius: 0.6rem;
@@ -397,52 +397,52 @@
     }
     .vw-social-next-btn:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+        box-shadow: 0 4px 20px rgba(var(--vw-primary-rgb), 0.4);
     }
     .vw-social-idea-summary {
-        background: rgba(139,92,246,0.08);
-        border: 1px solid rgba(139,92,246,0.2);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border: 1px solid var(--vw-primary-soft);
         border-radius: 0.5rem;
         padding: 0.75rem;
         margin-bottom: 1rem;
         font-size: 0.8rem;
-        color: #cbd5e1;
+        color: var(--vw-text-secondary);
     }
-    .vw-social-idea-summary strong { color: #a78bfa; }
+    .vw-social-idea-summary strong { color: #a49eff; }
 
     /* Creation Details Debug Panel */
     .vw-social-debug-panel { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem; }
-    .vw-social-debug-toggle { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.15); border-radius: 0.5rem; color: #a78bfa; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .vw-social-debug-toggle:hover { background: rgba(139,92,246,0.15); }
+    .vw-social-debug-toggle { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-primary-soft); border-radius: 0.5rem; color: #a49eff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .vw-social-debug-toggle:hover { background: var(--vw-primary-soft); }
     .vw-social-debug-toggle span { flex: 1; text-align: left; }
-    .vw-debug-section { margin-top: 0.5rem; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 0.5rem; overflow: hidden; }
-    .vw-debug-section summary { padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
-    .vw-debug-section summary:hover { color: #e2e8f0; }
+    .vw-debug-section { margin-top: 0.5rem; background: var(--vw-bg-elevated); border: 1px solid rgba(255,255,255,0.06); border-radius: 0.5rem; overflow: hidden; }
+    .vw-debug-section summary { padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--vw-text-secondary); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+    .vw-debug-section summary:hover { color: var(--vw-text); }
     .vw-debug-section summary::-webkit-details-marker { display: none; }
-    .vw-debug-section summary::after { content: '+'; margin-left: auto; font-size: 0.9rem; color: #64748b; }
+    .vw-debug-section summary::after { content: '+'; margin-left: auto; font-size: 0.9rem; color: var(--vw-text-muted); }
     .vw-debug-section[open] summary::after { content: '\2212'; }
     .vw-debug-content { padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); }
     .vw-debug-field { display: flex; gap: 0.5rem; margin-bottom: 0.35rem; font-size: 0.7rem; }
-    .vw-debug-label { color: #64748b; min-width: 80px; flex-shrink: 0; }
-    .vw-debug-value { color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
-    .vw-debug-prompt { color: #a78bfa; font-size: 0.65rem; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 0.375rem; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; word-break: break-word; max-height: 120px; overflow-y: auto; }
+    .vw-debug-label { color: var(--vw-text-muted); min-width: 80px; flex-shrink: 0; }
+    .vw-debug-value { color: var(--vw-text); font-family: 'JetBrains Mono', monospace; }
+    .vw-debug-prompt { color: #a49eff; font-size: 0.65rem; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 0.375rem; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; word-break: break-word; max-height: 120px; overflow-y: auto; }
     .vw-debug-speaker { padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 0.375rem; margin-bottom: 0.35rem; }
     .vw-debug-speaker-name { font-size: 0.7rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.25rem; }
     .vw-debug-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; display: inline-block; margin: 0.25rem 0; }
     .vw-debug-badge.swap { background: rgba(249,115,22,0.15); color: #fb923c; }
 
     .vw-social-prompt-editor { margin-bottom: 0.75rem; }
-    .vw-social-prompt-editor label { display: block; font-size: 0.8rem; font-weight: 600; color: #a78bfa; margin-bottom: 0.35rem; }
+    .vw-social-prompt-editor label { display: block; font-size: 0.8rem; font-weight: 600; color: #a49eff; margin-bottom: 0.35rem; }
     .vw-social-prompt-editor textarea {
-        width: 100%; min-height: 100px; padding: 0.6rem 0.75rem; background: rgba(20,20,40,0.8);
-        border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
+        width: 100%; min-height: 100px; padding: 0.6rem 0.75rem; background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text);
         font-size: 0.8rem; line-height: 1.5; resize: vertical; outline: none; transition: border-color 0.2s;
     }
     .vw-social-prompt-editor textarea:focus { border-color: rgba(139,92,246,0.5); }
-    .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: #64748b; margin-top: 0.25rem; }
+    .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: var(--vw-text-muted); margin-top: 0.25rem; }
     .vw-social-duration-select, .vw-social-resolution-select, .vw-social-quality-select {
-        width: 100%; padding: 0.5rem 0.75rem; background: rgba(20,20,40,0.8);
-        border: 1px solid rgba(100,100,140,0.25); border-radius: 0.5rem; color: #e2e8f0;
+        width: 100%; padding: 0.5rem 0.75rem; background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text);
         font-size: 0.8rem; margin-bottom: 0.75rem;
     }
     .vw-seedance-options-row {
@@ -455,8 +455,8 @@
         display: flex; align-items: center; gap: 0.75rem;
         margin-bottom: 0.75rem;
         padding: 0.5rem 0.75rem;
-        background: rgba(20, 20, 40, 0.5);
-        border: 1px solid rgba(100, 100, 140, 0.2);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
     }
     .vw-music-toggle-label {
@@ -477,17 +477,17 @@
         background: #94a3b8; transition: all 0.2s;
     }
     .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch {
-        background: rgba(139, 92, 246, 0.5);
+        background: rgba(var(--vw-primary-rgb), 0.5);
     }
     .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch::after {
         left: 18px; background: #c4b5fd;
     }
     .vw-music-toggle-text {
-        font-size: 0.8rem; font-weight: 600; color: #e2e8f0;
+        font-size: 0.8rem; font-weight: 600; color: var(--vw-text);
     }
-    .vw-music-toggle-text i { color: #8b5cf6; margin-right: 0.15rem; }
+    .vw-music-toggle-text i { color: var(--vw-primary); margin-right: 0.15rem; }
     .vw-music-toggle-hint {
-        font-size: 0.7rem; color: #64748b; margin-left: auto;
+        font-size: 0.7rem; color: var(--vw-text-muted); margin-left: auto;
     }
 
     /* Chaos Mode Toggle */
@@ -501,7 +501,7 @@
         background: rgba(40, 20, 10, 0.8);
         border: 1px solid rgba(200, 80, 30, 0.3);
         border-radius: 2rem;
-        color: #94a3b8; font-size: 0.8rem; font-weight: 700;
+        color: var(--vw-text-secondary); font-size: 0.8rem; font-weight: 700;
         cursor: pointer; transition: all 0.2s;
         letter-spacing: 0.05em;
     }
@@ -526,47 +526,47 @@
 
     /* Camera Movement Picker */
     .vw-camera-section { margin-bottom: 0.75rem; }
-    .vw-camera-section > label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; }
+    .vw-camera-section > label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.4rem; }
     .vw-camera-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .vw-camera-pill {
         display: flex; align-items: center; gap: 0.35rem;
         padding: 0.4rem 0.7rem;
-        background: rgba(20,20,40,0.8);
-        border: 1px solid rgba(100,100,140,0.25);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
         border-radius: 2rem;
-        color: #94a3b8; font-size: 0.75rem;
+        color: var(--vw-text-secondary); font-size: 0.75rem;
         cursor: pointer; transition: all 0.15s;
     }
-    .vw-camera-pill:hover { border-color: rgba(139,92,246,0.4); color: #c4b5fd; }
+    .vw-camera-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: #c4b5fd; }
     .vw-camera-pill.active {
-        border-color: rgba(139,92,246,0.6);
-        background: rgba(139,92,246,0.15);
-        color: #e2e8f0;
-        box-shadow: 0 0 12px rgba(139,92,246,0.2);
+        border-color: rgba(var(--vw-primary-rgb), 0.6);
+        background: var(--vw-primary-soft);
+        color: var(--vw-text);
+        box-shadow: 0 0 12px var(--vw-primary-soft);
     }
     .vw-camera-pill i { font-size: 0.7rem; }
     .vw-camera-intensity { margin-top: 0.5rem; }
-    .vw-camera-intensity > label { display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.3rem; }
+    .vw-camera-intensity > label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--vw-text-muted); margin-bottom: 0.3rem; }
     .vw-intensity-pills { display: flex; gap: 0.35rem; }
     .vw-intensity-pill {
         display: flex; align-items: center; gap: 0.3rem;
         padding: 0.3rem 0.6rem;
-        background: rgba(20,20,40,0.8);
-        border: 1px solid rgba(100,100,140,0.25);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
         border-radius: 2rem;
-        color: #94a3b8; font-size: 0.7rem;
+        color: var(--vw-text-secondary); font-size: 0.7rem;
         cursor: pointer; transition: all 0.15s;
     }
-    .vw-intensity-pill:hover { border-color: rgba(139,92,246,0.4); color: #c4b5fd; }
+    .vw-intensity-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: #c4b5fd; }
     .vw-intensity-pill.active {
-        border-color: rgba(139,92,246,0.6);
-        background: rgba(139,92,246,0.15);
-        color: #e2e8f0;
+        border-color: rgba(var(--vw-primary-rgb), 0.6);
+        background: var(--vw-primary-soft);
+        color: var(--vw-text);
     }
     .vw-social-engine-badge {
         display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
         border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600;
-        background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2);
+        background: rgba(var(--vw-primary-rgb), 0.12); color: #a49eff; border: 1px solid var(--vw-primary-soft);
     }
 
     /* Video Extend — player overlay */
@@ -593,7 +593,7 @@
         font-size: 0.7rem; color: rgba(255,255,255,0.85); min-width: 0;
     }
     .vw-timeline-segment:hover { filter: brightness(1.3); }
-    .vw-timeline-segment.original { background: rgba(139,92,246,0.4); }
+    .vw-timeline-segment.original { background: rgba(var(--vw-primary-rgb), 0.4); }
     .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
     .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
     .vw-timeline-segment.selected { outline: 2px solid #f97316; outline-offset: -2px; filter: brightness(1.4); }
@@ -604,19 +604,19 @@
     .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]):hover::after {
         content: attr(data-tooltip);
         position: absolute; top: 100%; left: 0; z-index: 10;
-        background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.15);
+        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.15);
         border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
-        font-size: 0.7rem; color: #94a3b8; pointer-events: none;
+        font-size: 0.7rem; color: var(--vw-text-secondary); pointer-events: none;
         white-space: normal; width: max-content; max-width: 300px;
     }
     .vw-timeline-total {
-        font-size: 0.72rem; color: #94a3b8; margin-top: 0.25rem; text-align: right;
+        font-size: 0.72rem; color: var(--vw-text-secondary); margin-top: 0.25rem; text-align: right;
         display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
     }
 
     /* Video Extend — Extend Panel */
     .vw-extend-panel {
-        background: rgba(30,30,50,0.95); border: 1px solid rgba(255,255,255,0.1);
+        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.1);
         border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem; width: 100%;
     }
     .vw-extend-header {
@@ -643,7 +643,7 @@
 
     /* Segment Edit Panel — compact layout */
     .vw-seg-edit {
-        background: rgba(20,20,40,0.95); border: 1px solid rgba(255,255,255,0.08);
+        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.08);
         border-radius: 0.6rem; padding: 0.6rem; margin-top: 0.5rem; width: 100%;
     }
     .vw-seg-edit-top {
@@ -684,15 +684,15 @@
     }
     .vw-seg-edit-btn.auto {
         background: rgba(139,92,246,0.25); color: #c4b5fd;
-        border: 1px solid rgba(139,92,246,0.3);
+        border: 1px solid var(--vw-border-accent);
     }
-    .vw-seg-edit-btn.auto:hover { background: rgba(139,92,246,0.4); }
+    .vw-seg-edit-btn.auto:hover { background: rgba(var(--vw-primary-rgb), 0.4); }
     .vw-seg-edit-btn.regen {
         background: rgba(249,115,22,0.3); color: #fdba74;
         border: 1px solid rgba(249,115,22,0.4);
     }
     .vw-seg-edit-btn.regen:hover { background: rgba(249,115,22,0.5); color: #fff; }
-    .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: #94a3b8; }
+    .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: var(--vw-text-secondary); }
     .vw-dur-btn {
         padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.2);
         background: transparent; color: #ccc; cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
@@ -701,7 +701,7 @@
     .vw-dur-btn:hover { border-color: rgba(249,115,22,0.5); }
     .vw-extend-prompt {
         width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
-        color: #e2e8f0; border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
+        color: var(--vw-text); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
         resize: vertical; font-size: 0.8rem; font-family: inherit;
     }
     .vw-extend-direction {
@@ -719,7 +719,7 @@
     }
     .vw-intensity-header {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 0.4rem; font-size: 0.8rem; color: #94a3b8;
+        margin-bottom: 0.4rem; font-size: 0.8rem; color: var(--vw-text-secondary);
     }
     .vw-intensity-label {
         font-weight: 600; font-size: 0.75rem; padding: 0.1rem 0.5rem;
@@ -749,10 +749,10 @@
     }
     .vw-intensity-ticks {
         display: flex; justify-content: space-between;
-        font-size: 0.6rem; color: #64748b; margin-top: 0.15rem; padding: 0 2px;
+        font-size: 0.6rem; color: var(--vw-text-muted); margin-top: 0.15rem; padding: 0 2px;
     }
     .vw-intensity-regen-btn {
-        margin-top: 0.5rem; font-size: 0.72rem; color: #94a3b8;
+        margin-top: 0.5rem; font-size: 0.72rem; color: var(--vw-text-secondary);
         background: none; border: 1px solid rgba(255,255,255,0.1);
         border-radius: 1rem; padding: 0.25rem 0.7rem; cursor: pointer;
         transition: all 0.15s;
@@ -760,13 +760,13 @@
     .vw-intensity-regen-btn:hover { color: #f97316; border-color: rgba(249,115,22,0.4); }
 
     .vw-extend-undo-btn, .vw-extend-redo-btn {
-        font-size: 0.72rem; color: #94a3b8; background: none; border: none; cursor: pointer;
+        font-size: 0.72rem; color: var(--vw-text-secondary); background: none; border: none; cursor: pointer;
         padding: 0; margin-left: 0.5rem; transition: color 0.15s;
     }
     .vw-extend-undo-btn:hover { color: #fca5a5; }
     .vw-extend-redo-btn:hover { color: #86efac; }
     .vw-extend-cancel-btn {
-        background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;
+        background: none; border: none; color: var(--vw-text-secondary); font-size: 1.2rem; cursor: pointer;
         line-height: 1; padding: 0;
     }
     .vw-extend-cancel-btn:hover { color: #f87171; }
@@ -799,9 +799,9 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
-    .vw-asset-gallery-label i { font-size: 0.6rem; color: rgba(139,92,246,0.6); }
+    .vw-asset-gallery-label i { font-size: 0.6rem; color: rgba(var(--vw-primary-rgb), 0.6); }
     .vw-asset-gallery-count {
-        background: rgba(139,92,246,0.2);
+        background: var(--vw-primary-soft);
         color: #c4b5fd;
         font-size: 0.6rem;
         padding: 0.05rem 0.35rem;
@@ -823,9 +823,9 @@
         transition: all 0.15s;
     }
     .vw-gallery-arrow:hover {
-        background: rgba(139,92,246,0.15);
+        background: var(--vw-primary-soft);
         color: #c4b5fd;
-        border-color: rgba(139,92,246,0.3);
+        border-color: var(--vw-border-accent);
     }
     .vw-asset-gallery-strip {
         display: flex;
@@ -849,14 +849,14 @@
         padding: 0;
     }
     .vw-asset-thumb:hover {
-        border-color: rgba(139,92,246,0.4);
-        background: rgba(139,92,246,0.05);
+        border-color: rgba(var(--vw-primary-rgb), 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.05);
         transform: translateY(-1px);
     }
     .vw-asset-thumb.active {
-        border-color: rgba(139,92,246,0.7);
-        background: rgba(139,92,246,0.08);
-        box-shadow: 0 0 12px rgba(139,92,246,0.2);
+        border-color: rgba(var(--vw-primary-rgb), 0.7);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        box-shadow: 0 0 12px var(--vw-primary-soft);
         cursor: default;
     }
     .vw-asset-thumb-img {
@@ -908,7 +908,7 @@
         width: 7px; height: 7px;
         background: #a78bfa;
         border-radius: 50%;
-        box-shadow: 0 0 6px rgba(139,92,246,0.6);
+        box-shadow: 0 0 6px rgba(var(--vw-primary-rgb), 0.6);
     }
 
     @media (max-width: 768px) {
@@ -1147,7 +1147,7 @@
                              data-tooltip="{{ $segPromptPreview ? 'Prompt: ' . $segPromptPreview : '' }}">
                             <span class="vw-seg-label">
                                 {{ ($segment['type'] ?? 'original') === 'original' ? 'Original' : 'Ext ' . $segIdx }}
-                                @if($segIntensityVal > 0)<span class="vw-seg-fire" title="Chaos: {{ $segIntensityVal }}%">🔥{{ $segIntensityVal }}</span>@endif
+                                @if($segIntensityVal > 0)<span class="vw-seg-fire" title="Chaos: {{ $segIntensityVal }}%"><i class="fa-solid fa-fire"></i>{{ $segIntensityVal }}</span>@endif
                             </span>
                             <span class="vw-seg-duration">{{ number_format($segment['duration'], 1) }}s</span>
                         </div>
@@ -1274,7 +1274,7 @@
                     </div>
 
                     @if(($extendMode['status'] ?? '') === 'extracting')
-                        <div style="text-align: center; padding: 1rem; color: #94a3b8;">
+                        <div style="text-align: center; padding: 1rem; color: var(--vw-text-secondary);">
                             <i class="fa-solid fa-spinner fa-spin"></i> Extracting frame...
                         </div>
                     @else
@@ -1412,7 +1412,7 @@
                 <div class="vw-social-idea-summary">
                     <strong>{{ $selectedIdea['character'] ?? '' }}</strong> &mdash;
                     {{ $selectedIdea['situation'] ?? '' }}
-                    <br><span style="color: #94a3b8; font-size: 0.75rem;">
+                    <br><span style="color: var(--vw-text-secondary); font-size: 0.75rem;">
                         @if($isSeedance)
                             <i class="fa-solid fa-bolt"></i> Seedance &mdash; {{ __('Auto-generated audio') }}
                         @elseif(!empty($selectedIdea['audioType']))
@@ -1633,7 +1633,7 @@
 
                 <div class="vw-seedance-options-row">
                     <div>
-                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Duration') }}</label>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.35rem;">{{ __('Duration') }}</label>
                         <select class="vw-social-duration-select"
                                 wire:model.live="multiShotMode.decomposedScenes.0.shots.0.selectedDuration">
                             <option value="4">4 {{ __('seconds') }}</option>
@@ -1655,7 +1655,7 @@
                             });
                         }
                     }">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Resolution') }}</label>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.35rem;">{{ __('Resolution') }}</label>
                         <select class="vw-social-resolution-select" x-model="resolution">
                             <option value="480p" x-show="quality !== 'fast'">480p ({{ __('Faster / Cheaper') }})</option>
                             <option value="720p">720p ({{ __('Recommended') }})</option>
@@ -1663,7 +1663,7 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.35rem;">{{ __('Quality') }}</label>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.35rem;">{{ __('Quality') }}</label>
                         <select class="vw-social-quality-select"
                                 wire:model.live="multiShotMode.decomposedScenes.0.shots.0.seedanceQuality">
                             <option value="pro">{{ __('Pro') }} ({{ __('Best Quality') }})</option>
@@ -1713,10 +1713,10 @@
                 {{-- Voice Tab --}}
                 <div x-show="audioTab === 'voice'" x-cloak>
                     @if($isDialogueShot)
-                        <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 0.5rem;">
-                            <i class="fa-solid fa-comments" style="color: #a78bfa;"></i>
+                        <div style="font-size: 0.78rem; color: var(--vw-text-secondary); margin-bottom: 0.5rem;">
+                            <i class="fa-solid fa-comments" style="color: #a49eff;"></i>
                             {{ __('Generates separate voices for') }}
-                            <strong style="color: #a78bfa;">{{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}</strong>
+                            <strong style="color: #a49eff;">{{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}</strong>
                             {{ __('and') }}
                             <strong style="color: #67e8f9;">{{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}</strong>
                         </div>
@@ -1760,7 +1760,7 @@
                 {{-- Audio Player --}}
                 @if($audioUrl && $audioStatus === 'ready')
                     @if($isDialogueShot && $audioUrl2)
-                        <div style="font-size: 0.75rem; color: #a78bfa; margin-bottom: 0.25rem; font-weight: 600;">
+                        <div style="font-size: 0.75rem; color: #a49eff; margin-bottom: 0.25rem; font-weight: 600;">
                             <i class="fa-solid fa-comments"></i> {{ __('Dialogue Mode') }} &mdash; {{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}
                         </div>
                     @endif
@@ -1831,7 +1831,7 @@
                 {{-- Swap Speaker Faces button for dialogue shots (InfiniteTalk only) --}}
                 @if(!$isSeedance && $isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')
                     <div class="vw-social-face-order" style="margin-top: 0.5rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--vw-text-secondary);">
                             <span><i class="fa-solid fa-arrow-left"></i> {{ $faceOrder[0] ?? '?' }}</span>
                             <span style="color: #475569;">|</span>
                             <span>{{ $faceOrder[1] ?? '?' }} <i class="fa-solid fa-arrow-right"></i></span>
@@ -1953,7 +1953,7 @@
                             @else
                                 <div class="vw-debug-field">
                                     <span class="vw-debug-label">{{ __('Prompt') }}</span>
-                                    <span class="vw-debug-value" style="color: #64748b;">{{ __('Generate image to see prompt') }}</span>
+                                    <span class="vw-debug-value" style="color: var(--vw-text-muted);">{{ __('Generate image to see prompt') }}</span>
                                 </div>
                             @endif
                         </div>

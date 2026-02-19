@@ -1,12 +1,12 @@
 {{-- Step 1: Platform & Format Selection --}}
 
-{{-- Scoped CSS for Platform Step - uses parent selector for specificity instead of !important --}}
+{{-- Scoped CSS for Platform Step - uses design system tokens --}}
 <style>
     /* Content Card Container */
     .vw-platform-step .vw-content-card {
-        background: rgba(0, 0, 0, 0.03);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 1.5rem;
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
@@ -19,27 +19,28 @@
     }
 
     .vw-platform-step .vw-card-icon {
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        border-radius: 0.75rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        border-radius: var(--vw-radius-lg);
+        background: var(--vw-primary-soft);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.1rem;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-card-title {
-        font-size: 1.25rem;
+        font-size: var(--vw-text-lg);
         font-weight: 700;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
         margin: 0;
     }
 
     .vw-platform-step .vw-card-subtitle {
-        font-size: 0.875rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: var(--vw-text-sm);
+        color: var(--vw-text-muted);
         margin: 0;
     }
 
@@ -58,25 +59,25 @@
 
     /* Format Cards */
     .vw-platform-step .vw-format-card {
-        background: rgba(0, 0, 0, 0.03);
-        border: 2px solid transparent;
-        border-radius: 1rem;
+        background: var(--vw-bg-elevated);
+        border: 2px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         padding: 1.25rem 1rem;
         text-align: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--vw-transition);
         position: relative;
     }
 
     .vw-platform-step .vw-format-card:hover {
-        background: rgba(0, 0, 0, 0.06);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: var(--vw-bg-hover);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-platform-step .vw-format-card.selected {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: #8b5cf6;
-        box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
+        border-color: var(--vw-primary);
+        box-shadow: var(--vw-primary-glow);
     }
 
     .vw-platform-step .vw-format-card.recommended::after {
@@ -85,40 +86,48 @@
         top: 0.5rem;
         right: 0.5rem;
         font-size: 0.75rem;
-        color: #f59e0b;
+        color: var(--vw-warning);
     }
 
     .vw-platform-step .vw-format-icon {
-        font-size: 2rem;
+        font-size: 1.5rem;
         margin-bottom: 0.75rem;
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--vw-text-secondary);
+        height: 2rem;
+    }
+
+    .vw-platform-step .vw-format-card.selected .vw-format-icon {
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-format-name {
-        font-size: 0.95rem;
+        font-size: var(--vw-text-md);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
         margin-bottom: 0.25rem;
     }
 
     .vw-platform-step .vw-format-card.selected .vw-format-name {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-format-ratio {
-        font-size: 0.8rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: var(--vw-text-sm);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.25rem;
     }
 
     .vw-platform-step .vw-format-desc {
-        font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.4);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
     }
 
     .vw-platform-step .vw-format-recommendation {
-        font-size: 0.7rem;
-        color: #f59e0b;
+        font-size: var(--vw-text-xs);
+        color: var(--vw-warning);
         margin-top: 0.25rem;
         font-weight: 500;
     }
@@ -137,45 +146,53 @@
     }
 
     .vw-platform-step .vw-production-card {
-        background: rgba(0, 0, 0, 0.03);
-        border: 2px solid transparent;
-        border-radius: 1rem;
+        background: var(--vw-bg-elevated);
+        border: 2px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         text-align: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--vw-transition);
     }
 
     .vw-platform-step .vw-production-card:hover {
-        background: rgba(0, 0, 0, 0.06);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: var(--vw-bg-hover);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-platform-step .vw-production-card.selected {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: #8b5cf6;
-        box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
+        border-color: var(--vw-primary);
+        box-shadow: var(--vw-primary-glow);
     }
 
     .vw-platform-step .vw-production-icon {
-        font-size: 2rem;
+        font-size: 1.5rem;
         margin-bottom: 0.5rem;
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--vw-text-secondary);
+        height: 2rem;
+    }
+
+    .vw-platform-step .vw-production-card.selected .vw-production-icon {
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-production-name {
-        font-size: 0.95rem;
+        font-size: var(--vw-text-md);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-platform-step .vw-production-card.selected .vw-production-name {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-production-desc {
-        font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
         margin-top: 0.25rem;
     }
 
@@ -199,24 +216,25 @@
     }
 
     .vw-platform-step .vw-subtype-card {
-        background: rgba(0, 0, 0, 0.03);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 0.75rem;
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         padding: 1rem;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--vw-transition);
         text-align: center;
+        position: relative;
     }
 
     .vw-platform-step .vw-subtype-card:hover {
-        background: rgba(139, 92, 246, 0.06);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: var(--vw-bg-hover);
+        border-color: var(--vw-border-accent);
         transform: translateY(-1px);
     }
 
     .vw-platform-step .vw-subtype-card.selected {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
+        border-color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-subtype-header {
@@ -227,28 +245,28 @@
     }
 
     .vw-platform-step .vw-subtype-icon {
-        font-size: 1.5rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: 1.25rem;
+        color: var(--vw-text-muted);
         margin-bottom: 0.15rem;
     }
 
     .vw-platform-step .vw-subtype-card.selected .vw-subtype-icon {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-subtype-name {
-        font-size: 0.85rem;
+        font-size: var(--vw-text-sm);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.7);
+        color: var(--vw-text-secondary);
     }
 
     .vw-platform-step .vw-subtype-card.selected .vw-subtype-name {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-subtype-desc {
-        font-size: 0.72rem;
-        color: rgba(0, 0, 0, 0.4);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
         margin-top: 0.35rem;
         line-height: 1.3;
     }
@@ -261,29 +279,26 @@
         width: 22px;
         height: 22px;
         border-radius: 50%;
-        background: rgba(139, 92, 246, 0.1);
+        background: var(--vw-primary-soft);
         border: none;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--vw-transition);
         z-index: 10;
         padding: 0;
     }
     .vw-platform-step .vw-subtype-info-btn:hover {
-        background: rgba(139, 92, 246, 0.25);
+        background: rgba(var(--vw-primary-rgb), 0.3);
         transform: scale(1.1);
     }
     .vw-platform-step .vw-subtype-info-btn i {
         font-size: 0.65rem;
-        color: #8b5cf6;
-    }
-    .vw-platform-step .vw-subtype-card {
-        position: relative;
+        color: var(--vw-primary);
     }
 
-    /* Glass-morphism Popover */
+    /* Dark Glass-morphism Popover */
     .vw-platform-step .vw-style-popover {
         position: absolute;
         bottom: calc(100% + 10px);
@@ -292,13 +307,13 @@
         width: 340px;
         max-height: 380px;
         overflow-y: auto;
-        background: rgba(255, 255, 255, 0.88);
+        background: rgba(15, 29, 61, 0.95);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(139, 92, 246, 0.25);
-        border-radius: 1rem;
+        border: 1px solid var(--vw-border-accent);
+        border-radius: var(--vw-radius-lg);
         padding: 1rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.08);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(var(--vw-primary-rgb), 0.08);
         z-index: 200;
         opacity: 0;
         pointer-events: none;
@@ -318,9 +333,9 @@
         transform: translateX(-50%) rotate(45deg);
         width: 14px;
         height: 14px;
-        background: rgba(255, 255, 255, 0.88);
-        border-right: 1px solid rgba(139, 92, 246, 0.25);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.25);
+        background: rgba(15, 29, 61, 0.95);
+        border-right: 1px solid var(--vw-border-accent);
+        border-bottom: 1px solid var(--vw-border-accent);
     }
 
     .vw-platform-step .vw-popover-header {
@@ -329,26 +344,26 @@
         gap: 0.4rem;
         margin-bottom: 0.5rem;
         padding-bottom: 0.4rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--vw-border);
     }
     .vw-platform-step .vw-popover-header i {
         font-size: 0.95rem;
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
     .vw-platform-step .vw-popover-title {
-        font-size: 0.85rem;
+        font-size: var(--vw-text-sm);
         font-weight: 700;
-        color: rgba(0, 0, 0, 0.85);
+        color: var(--vw-text);
     }
     .vw-platform-step .vw-popover-duration {
-        font-size: 0.7rem;
-        color: rgba(0, 0, 0, 0.4);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
         margin-left: auto;
     }
     .vw-platform-step .vw-popover-desc {
-        font-size: 0.75rem;
+        font-size: var(--vw-text-xs);
         line-height: 1.45;
-        color: rgba(0, 0, 0, 0.65);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.6rem;
     }
     .vw-platform-step .vw-popover-section-label {
@@ -356,7 +371,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: rgba(139, 92, 246, 0.7);
+        color: rgba(var(--vw-primary-rgb), 0.7);
         margin-bottom: 0.25rem;
     }
     .vw-platform-step .vw-popover-bullets {
@@ -365,27 +380,30 @@
         margin: 0 0 0.6rem 0;
     }
     .vw-platform-step .vw-popover-bullets li {
-        font-size: 0.72rem;
-        color: rgba(0, 0, 0, 0.6);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-secondary);
         padding: 0.1rem 0;
         padding-left: 0.85rem;
         position: relative;
     }
     .vw-platform-step .vw-popover-bullets li::before {
-        content: '•';
+        content: '';
         position: absolute;
         left: 0;
-        color: #8b5cf6;
-        font-weight: 700;
+        top: 0.5em;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--vw-primary);
     }
     .vw-platform-step .vw-popover-example {
-        background: rgba(139, 92, 246, 0.06);
-        border: 1px solid rgba(139, 92, 246, 0.12);
-        border-radius: 0.5rem;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.15);
+        border-radius: var(--vw-radius);
         padding: 0.5rem 0.65rem;
-        font-size: 0.72rem;
+        font-size: var(--vw-text-xs);
         line-height: 1.4;
-        color: rgba(0, 0, 0, 0.6);
+        color: var(--vw-text-secondary);
         font-style: italic;
     }
 
@@ -397,11 +415,11 @@
         background: transparent;
     }
     .vw-platform-step .vw-style-popover::-webkit-scrollbar-thumb {
-        background: rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.25);
         border-radius: 4px;
     }
     .vw-platform-step .vw-style-popover::-webkit-scrollbar-thumb:hover {
-        background: rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.45);
     }
 
     /* Mobile: popover below card instead of above */
@@ -416,8 +434,8 @@
             top: -7px;
             border-right: none;
             border-bottom: none;
-            border-left: 1px solid rgba(139, 92, 246, 0.25);
-            border-top: 1px solid rgba(139, 92, 246, 0.25);
+            border-left: 1px solid var(--vw-border-accent);
+            border-top: 1px solid var(--vw-border-accent);
         }
     }
 
@@ -425,20 +443,20 @@
     .vw-platform-step .vw-divider {
         margin-top: 1.5rem;
         padding-top: 1.5rem;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-platform-step .vw-subtype-label {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.9rem;
+        font-size: var(--vw-text-base);
         font-weight: 500;
-        color: rgba(0, 0, 0, 0.6);
+        color: var(--vw-text-secondary);
         margin-bottom: 1rem;
     }
     .vw-platform-step .vw-subtype-label i {
-        color: #8b5cf6;
+        color: var(--vw-primary);
         font-size: 1rem;
     }
 
@@ -457,9 +475,9 @@
     }
 
     .vw-platform-step .vw-setting-section {
-        background: rgba(255, 255, 255, 0.6);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        border-radius: 1rem;
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
     }
 
@@ -471,13 +489,22 @@
     }
 
     .vw-platform-step .vw-setting-icon {
-        font-size: 1.25rem;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: var(--vw-radius);
+        background: var(--vw-primary-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-setting-title {
-        font-size: 0.9rem;
+        font-size: var(--vw-text-base);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
     }
 
     /* AI Engine Selection Grid */
@@ -498,33 +525,33 @@
         align-items: center;
         gap: 0.75rem;
         padding: 0.75rem;
-        border: 2px solid rgba(0, 0, 0, 0.08);
-        border-radius: 0.75rem;
+        border: 2px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
         cursor: pointer;
-        transition: all 0.2s ease;
-        background: white;
+        transition: all var(--vw-transition);
+        background: rgba(255, 255, 255, 0.03);
         position: relative;
     }
 
     .vw-platform-step .vw-engine-card:hover {
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.02);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-platform-step .vw-engine-card.selected {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.08);
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-platform-step .vw-engine-icon {
         font-size: 1.1rem;
         width: 28px;
         text-align: center;
-        color: rgba(0, 0, 0, 0.5);
+        color: var(--vw-text-muted);
     }
 
     .vw-platform-step .vw-engine-card.selected .vw-engine-icon {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-engine-info {
@@ -533,18 +560,18 @@
     }
 
     .vw-platform-step .vw-engine-name {
-        font-size: 0.85rem;
+        font-size: var(--vw-text-sm);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-platform-step .vw-engine-card.selected .vw-engine-name {
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-platform-step .vw-engine-desc {
-        font-size: 0.7rem;
-        color: rgba(0, 0, 0, 0.45);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
     }
 
     .vw-platform-step .vw-engine-badge {
@@ -560,36 +587,36 @@
     }
 
     .vw-platform-step .vw-engine-badge.gray {
-        background: rgba(0, 0, 0, 0.08);
-        color: rgba(0, 0, 0, 0.5);
+        background: rgba(75, 86, 117, 0.25);
+        color: var(--vw-text-secondary);
     }
 
     .vw-platform-step .vw-engine-badge.cyan {
-        background: rgba(6, 182, 212, 0.15);
-        color: #0891b2;
+        background: var(--vw-info-soft);
+        color: #67e8f9;
     }
 
     .vw-platform-step .vw-engine-badge.green {
-        background: rgba(16, 185, 129, 0.15);
-        color: #059669;
+        background: var(--vw-success-soft);
+        color: #6ee7b7;
     }
 
     .vw-platform-step .vw-engine-badge.orange {
-        background: rgba(249, 115, 22, 0.15);
-        color: #ea580c;
+        background: var(--vw-warning-soft);
+        color: #fde68a;
     }
 
     .vw-platform-step .vw-engine-badge.yellow {
-        background: rgba(234, 179, 8, 0.15);
-        color: #ca8a04;
+        background: var(--vw-warning-soft);
+        color: #fde68a;
     }
 
     .vw-platform-step .vw-engine-badge.blue {
         background: rgba(59, 130, 246, 0.15);
-        color: #2563eb;
+        color: #93c5fd;
     }
 
-    /* Language Selector - Custom Dropdown */
+    /* Language Selector - Dark Dropdown */
     .vw-platform-step .vw-lang-dropdown {
         position: relative;
     }
@@ -600,21 +627,21 @@
         gap: 0.75rem;
         width: 100%;
         padding: 0.75rem 1rem;
-        border: 2px solid rgba(0, 0, 0, 0.08);
-        border-radius: 0.75rem;
-        background: white;
+        border: 2px solid var(--vw-border);
+        border-radius: var(--vw-radius-lg);
+        background: rgba(255, 255, 255, 0.03);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all var(--vw-transition);
     }
 
     .vw-platform-step .vw-lang-trigger:hover {
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.02);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-platform-step .vw-lang-trigger.open {
-        border-color: #8b5cf6;
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-primary);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.15);
     }
 
     .vw-platform-step .vw-lang-trigger-flag {
@@ -622,21 +649,21 @@
         height: 20px;
         border-radius: 3px;
         object-fit: cover;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
     .vw-platform-step .vw-lang-trigger-text {
         flex: 1;
-        font-size: 0.9rem;
+        font-size: var(--vw-text-base);
         font-weight: 500;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
         text-align: left;
     }
 
     .vw-platform-step .vw-lang-trigger-arrow {
         width: 16px;
         height: 16px;
-        color: rgba(0, 0, 0, 0.4);
+        color: var(--vw-text-muted);
         transition: transform 0.2s ease;
     }
 
@@ -649,10 +676,10 @@
         top: calc(100% + 4px);
         left: 0;
         right: 0;
-        background: white;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border-accent);
+        border-radius: var(--vw-radius-lg);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
         max-height: 280px;
         overflow-y: auto;
         z-index: 100;
@@ -669,23 +696,23 @@
         gap: 0.75rem;
         padding: 0.625rem 1rem;
         cursor: pointer;
-        transition: background 0.15s ease;
+        transition: background 150ms ease;
     }
 
     .vw-platform-step .vw-lang-option:first-child {
-        border-radius: 0.75rem 0.75rem 0 0;
+        border-radius: var(--vw-radius-lg) var(--vw-radius-lg) 0 0;
     }
 
     .vw-platform-step .vw-lang-option:last-child {
-        border-radius: 0 0 0.75rem 0.75rem;
+        border-radius: 0 0 var(--vw-radius-lg) var(--vw-radius-lg);
     }
 
     .vw-platform-step .vw-lang-option:hover {
-        background: rgba(139, 92, 246, 0.08);
+        background: rgba(var(--vw-primary-rgb), 0.1);
     }
 
     .vw-platform-step .vw-lang-option.selected {
-        background: rgba(139, 92, 246, 0.12);
+        background: rgba(var(--vw-primary-rgb), 0.15);
     }
 
     .vw-platform-step .vw-lang-option-flag {
@@ -693,24 +720,24 @@
         height: 16px;
         border-radius: 2px;
         object-fit: cover;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     .vw-platform-step .vw-lang-option-text {
         flex: 1;
-        font-size: 0.85rem;
-        color: rgba(0, 0, 0, 0.8);
+        font-size: var(--vw-text-sm);
+        color: var(--vw-text);
     }
 
     .vw-platform-step .vw-lang-option-native {
-        font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.4);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
     }
 
     .vw-platform-step .vw-lang-option-check {
         width: 16px;
         height: 16px;
-        color: #8b5cf6;
+        color: var(--vw-primary);
         opacity: 0;
     }
 
@@ -723,10 +750,10 @@
         align-items: center;
         gap: 0.75rem;
         padding: 0.75rem 1rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
-        border-radius: 0.75rem;
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-radius: var(--vw-radius-lg);
         margin-top: 0.75rem;
-        border: 1px solid rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-platform-step .vw-language-flag {
@@ -734,7 +761,7 @@
         height: 22px;
         border-radius: 3px;
         object-fit: cover;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.25);
     }
 
     .vw-platform-step .vw-language-info {
@@ -744,14 +771,14 @@
     }
 
     .vw-platform-step .vw-language-name {
-        font-size: 0.85rem;
+        font-size: var(--vw-text-sm);
         font-weight: 600;
-        color: rgba(0, 0, 0, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-platform-step .vw-language-desc {
-        font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-secondary);
     }
 
     /* Duration Section */
@@ -761,23 +788,23 @@
         justify-content: center;
         gap: 0.5rem;
         padding: 0.75rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-        border-radius: 0.75rem;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border-radius: var(--vw-radius-lg);
         margin-bottom: 1rem;
     }
 
     .vw-platform-step .vw-duration-value {
         font-size: 1.5rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+        background: linear-gradient(135deg, var(--vw-primary) 0%, var(--vw-info) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
 
     .vw-platform-step .vw-duration-unit {
-        font-size: 0.8rem;
-        color: rgba(0, 0, 0, 0.5);
+        font-size: var(--vw-text-sm);
+        color: var(--vw-text-secondary);
     }
 
     .vw-platform-step .vw-duration-slider-wrap {
@@ -788,7 +815,7 @@
         width: 100%;
         height: 8px;
         border-radius: 4px;
-        background: rgba(0, 0, 0, 0.1);
+        background: rgba(75, 86, 117, 0.3);
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
@@ -800,24 +827,26 @@
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+        background: linear-gradient(135deg, var(--vw-primary) 0%, var(--vw-info) 100%);
         cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
     .vw-platform-step .vw-range::-moz-range-thumb {
         width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+        background: linear-gradient(135deg, var(--vw-primary) 0%, var(--vw-info) 100%);
         cursor: pointer;
         border: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
     .vw-platform-step .vw-range-labels {
         display: flex;
         justify-content: space-between;
-        font-size: 0.75rem;
-        color: rgba(0, 0, 0, 0.4);
+        font-size: var(--vw-text-xs);
+        color: var(--vw-text-muted);
         margin-top: 0.5rem;
     }
 
@@ -827,16 +856,17 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1rem;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%);
+        background: var(--vw-warning-soft);
         border: 1px solid rgba(245, 158, 11, 0.2);
-        border-radius: 0.5rem;
+        border-radius: var(--vw-radius);
         margin-bottom: 1rem;
-        font-size: 0.85rem;
-        color: rgba(0, 0, 0, 0.7);
+        font-size: var(--vw-text-sm);
+        color: #fde68a;
     }
 
     .vw-platform-step .vw-format-guidance-icon {
         font-size: 1rem;
+        color: var(--vw-warning);
     }
 </style>
 
@@ -844,7 +874,7 @@
     {{-- Video Format Card --}}
     <div class="vw-content-card">
         <div class="vw-card-header">
-            <div class="vw-card-icon">📐</div>
+            <div class="vw-card-icon"><i class="fas fa-crop-simple"></i></div>
             <div>
                 <div class="vw-card-title">{{ __('Video Format') }}</div>
                 <div class="vw-card-subtitle">{{ __('Choose your aspect ratio') }}</div>
@@ -865,7 +895,7 @@
             @endphp
             @if($formatGuidance)
                 <div class="vw-format-guidance">
-                    <span class="vw-format-guidance-icon">💡</span>
+                    <span class="vw-format-guidance-icon"><i class="fas fa-lightbulb"></i></span>
                     <span>{{ $formatGuidance['text'] }}</span>
                 </div>
             @endif
@@ -881,11 +911,11 @@
                      style="cursor: pointer;">
                     <span class="vw-format-icon" style="pointer-events: none;">
                         @switch($id)
-                            @case('widescreen') 🖥️ @break
-                            @case('vertical') 📱 @break
-                            @case('square') ⬜ @break
-                            @case('tall') 📐 @break
-                            @default 🎬
+                            @case('widescreen') <i class="fas fa-display"></i> @break
+                            @case('vertical') <i class="fas fa-mobile-screen"></i> @break
+                            @case('square') <i class="fas fa-square"></i> @break
+                            @case('tall') <i class="fas fa-rectangle-vertical"></i> @break
+                            @default <i class="fas fa-film"></i>
                         @endswitch
                     </span>
                     <div class="vw-format-name">{{ $formatConfig['name'] }}</div>
@@ -902,7 +932,7 @@
     {{-- Production Type Card --}}
     <div class="vw-content-card">
         <div class="vw-card-header">
-            <div class="vw-card-icon">🎬</div>
+            <div class="vw-card-icon"><i class="fas fa-film"></i></div>
             <div>
                 <div class="vw-card-title">{{ __('What are you creating?') }}</div>
                 <div class="vw-card-subtitle">{{ __('Select your production type') }}</div>
@@ -916,13 +946,13 @@
                      style="cursor: pointer;">
                     <span class="vw-production-icon" style="pointer-events: none;">
                         @switch($typeId)
-                            @case('social') 📱 @break
-                            @case('movie') 🎬 @break
-                            @case('series') 📺 @break
-                            @case('educational') 🎓 @break
-                            @case('music') 🎵 @break
-                            @case('commercial') 📢 @break
-                            @default 🎯
+                            @case('social') <i class="fas fa-mobile-screen"></i> @break
+                            @case('movie') <i class="fas fa-film"></i> @break
+                            @case('series') <i class="fas fa-tv"></i> @break
+                            @case('educational') <i class="fas fa-graduation-cap"></i> @break
+                            @case('music') <i class="fas fa-music"></i> @break
+                            @case('commercial') <i class="fas fa-bullhorn"></i> @break
+                            @default <i class="fas fa-crosshairs"></i>
                         @endswitch
                     </span>
                     <div class="vw-production-name">{{ $type['name'] }}</div>
@@ -955,7 +985,7 @@
                                     <i class="fa-solid fa-circle-info"></i>
                                 </button>
 
-                                {{-- Glass-morphism popover --}}
+                                {{-- Dark glass-morphism popover --}}
                                 <div class="vw-style-popover" :class="{ 'active': showInfo }" @click.stop>
                                     <div class="vw-popover-header">
                                         <i class="{{ $subType['icon'] ?? 'fa-solid fa-circle' }}"></i>
@@ -1012,7 +1042,7 @@
         @endphp
         <div class="vw-content-card">
             <div class="vw-card-header">
-                <div class="vw-card-icon">⚙️</div>
+                <div class="vw-card-icon"><i class="fas fa-gear"></i></div>
                 <div>
                     <div class="vw-card-title">{{ __('Production Settings') }}</div>
                     <div class="vw-card-subtitle">
@@ -1025,7 +1055,7 @@
                 {{-- AI Engine Selection --}}
                 <div class="vw-setting-section">
                     <div class="vw-setting-header">
-                        <span class="vw-setting-icon">🤖</span>
+                        <span class="vw-setting-icon"><i class="fas fa-microchip"></i></span>
                         <span class="vw-setting-title">{{ __('AI Engine') }}</span>
                     </div>
                     <div class="vw-engine-grid">
@@ -1046,7 +1076,7 @@
                 {{-- Language Selection --}}
                 <div class="vw-setting-section">
                     <div class="vw-setting-header">
-                        <span class="vw-setting-icon">🌍</span>
+                        <span class="vw-setting-icon"><i class="fas fa-globe"></i></span>
                         <span class="vw-setting-title">{{ __('Content Language') }}</span>
                     </div>
                     <div class="vw-lang-dropdown" x-data="{ open: false }" @click.away="open = false">
@@ -1098,7 +1128,7 @@
                 {{-- Video Duration --}}
                 <div class="vw-setting-section">
                     <div class="vw-setting-header">
-                        <span class="vw-setting-icon">⏱️</span>
+                        <span class="vw-setting-icon"><i class="fas fa-clock"></i></span>
                         <span class="vw-setting-title">{{ __('Video Duration') }}</span>
                     </div>
                     <div class="vw-duration-display">

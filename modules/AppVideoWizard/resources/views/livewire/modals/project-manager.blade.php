@@ -35,7 +35,7 @@
         <div class="vw-pm-header">
             <div class="vw-pm-header-left">
                 <h2 class="vw-pm-title">
-                    <span class="vw-pm-title-icon">📁</span>
+                    <span class="vw-pm-title-icon"><i class="fa-regular fa-folder-open"></i></span>
                     {{ __('My Projects') }}
                 </h2>
                 <span class="vw-pm-count">{{ $projectManagerStatusCounts['all'] ?? 0 }} {{ __('total') }}</span>
@@ -48,20 +48,20 @@
                            wire:model="importFile"
                            style="display: none;"
                            x-on:change="$wire.importProject($event.target.files[0]); $event.target.value = ''">
-                    <span wire:loading.remove wire:target="importProject, importFile">📥 {{ __('Import') }}</span>
+                    <span wire:loading.remove wire:target="importProject, importFile"><i class="fa-solid fa-file-import"></i> {{ __('Import') }}</span>
                     <span wire:loading wire:target="importProject, importFile">{{ __('Importing...') }}</span>
                 </label>
                 <button type="button"
                         class="vw-pm-new-btn"
                         wire:click="createNewProject"
                         wire:loading.attr="disabled">
-                    <span wire:loading.remove wire:target="createNewProject">➕ {{ __('New Project') }}</span>
+                    <span wire:loading.remove wire:target="createNewProject"><i class="fa-solid fa-plus"></i> {{ __('New Project') }}</span>
                     <span wire:loading wire:target="createNewProject">{{ __('Creating...') }}</span>
                 </button>
                 <button type="button"
                         class="vw-pm-close-btn"
                         @click="$wire.closeProjectManager()">
-                    ✕
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
         </div>
@@ -77,21 +77,21 @@
             <button type="button"
                     class="vw-pm-status-tab {{ $projectManagerStatusFilter === 'draft' ? 'active' : '' }}"
                     wire:click="setProjectManagerStatusFilter('draft')">
-                <span class="vw-pm-status-tab-icon">📝</span>
+                <span class="vw-pm-status-tab-icon"><i class="fa-regular fa-pen-to-square"></i></span>
                 <span class="vw-pm-status-tab-label">{{ __('Draft') }}</span>
                 <span class="vw-pm-status-tab-count">{{ $projectManagerStatusCounts['draft'] ?? 0 }}</span>
             </button>
             <button type="button"
                     class="vw-pm-status-tab {{ $projectManagerStatusFilter === 'in_progress' ? 'active' : '' }}"
                     wire:click="setProjectManagerStatusFilter('in_progress')">
-                <span class="vw-pm-status-tab-icon">🔄</span>
+                <span class="vw-pm-status-tab-icon"><i class="fa-solid fa-arrows-rotate"></i></span>
                 <span class="vw-pm-status-tab-label">{{ __('In Progress') }}</span>
                 <span class="vw-pm-status-tab-count">{{ $projectManagerStatusCounts['in_progress'] ?? 0 }}</span>
             </button>
             <button type="button"
                     class="vw-pm-status-tab {{ $projectManagerStatusFilter === 'complete' ? 'active' : '' }}"
                     wire:click="setProjectManagerStatusFilter('complete')">
-                <span class="vw-pm-status-tab-icon">✅</span>
+                <span class="vw-pm-status-tab-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <span class="vw-pm-status-tab-label">{{ __('Complete') }}</span>
                 <span class="vw-pm-status-tab-count">{{ $projectManagerStatusCounts['complete'] ?? 0 }}</span>
             </button>
@@ -100,7 +100,7 @@
         {{-- Search and Sort --}}
         <div class="vw-pm-filters">
             <div class="vw-pm-search">
-                <span class="vw-pm-search-icon">🔍</span>
+                <span class="vw-pm-search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
                 <input type="text"
                        class="vw-pm-search-input"
                        placeholder="{{ __('Search projects...') }}"
@@ -117,9 +117,9 @@
                         wire:click="toggleProjectManagerSortDirection"
                         title="{{ $projectManagerSortDirection === 'asc' ? __('Ascending') : __('Descending') }}">
                     @if($projectManagerSortDirection === 'asc')
-                        ↑
+                        <i class="fa-solid fa-arrow-up"></i>
                     @else
-                        ↓
+                        <i class="fa-solid fa-arrow-down"></i>
                     @endif
                 </button>
             </div>
@@ -127,7 +127,7 @@
                     class="vw-pm-select-btn {{ $projectManagerSelectMode ? 'active' : '' }}"
                     wire:click="toggleProjectManagerSelectMode"
                     title="{{ __('Select multiple') }}">
-                ☑️ {{ __('Select') }}
+                <i class="fa-regular fa-square-check"></i> {{ __('Select') }}
             </button>
         </div>
 
@@ -154,7 +154,7 @@
                                 class="vw-pm-bulk-btn vw-pm-bulk-btn-delete"
                                 wire:click="deleteSelectedProjects"
                                 wire:confirm="{{ __('Are you sure you want to delete') }} {{ count($projectManagerSelected) }} {{ __('projects? This cannot be undone.') }}">
-                            🗑️ {{ __('Delete Selected') }}
+                            <i class="fa-regular fa-trash-can"></i> {{ __('Delete Selected') }}
                         </button>
                     @endif
                 </div>
@@ -168,7 +168,7 @@
                 <div class="vw-pm-empty">
                     @if($projectManagerStatusFilter !== 'all')
                         {{-- Filtered empty state --}}
-                        <div class="vw-pm-empty-icon">🔍</div>
+                        <div class="vw-pm-empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
                         <h3 class="vw-pm-empty-title">{{ __('No projects found') }}</h3>
                         <p class="vw-pm-empty-text">
                             {{ __('No') }} {{ str_replace('_', ' ', $projectManagerStatusFilter) }} {{ __('projects match your criteria.') }}
@@ -180,13 +180,13 @@
                         </button>
                     @else
                         {{-- No projects at all --}}
-                        <div class="vw-pm-empty-icon">📽️</div>
+                        <div class="vw-pm-empty-icon"><i class="fa-solid fa-video"></i></div>
                         <h3 class="vw-pm-empty-title">{{ __('No projects yet') }}</h3>
                         <p class="vw-pm-empty-text">{{ __('Create your first video project to get started!') }}</p>
                         <button type="button"
                                 class="vw-pm-empty-btn"
                                 wire:click="createNewProject">
-                            ➕ {{ __('Create New Project') }}
+                            <i class="fa-solid fa-plus"></i> {{ __('Create New Project') }}
                         </button>
                     @endif
                 </div>
@@ -217,7 +217,7 @@
                                             wire:click="toggleProjectSelection({{ $project['id'] }})"
                                             @if($isCurrent) disabled title="{{ __('Cannot select currently open project') }}" @endif>
                                         @if(in_array($project['id'], $projectManagerSelected))
-                                            ✓
+                                            <i class="fa-solid fa-check"></i>
                                         @endif
                                     </button>
                                 @endif
@@ -246,12 +246,12 @@
                                         <button type="button"
                                                 class="vw-pm-card-title-btn vw-pm-card-title-save"
                                                 @click="$wire.renameProject({{ $project['id'] }}, editingProjectName); editingProjectId = null">
-                                            ✓
+                                            <i class="fa-solid fa-check"></i>
                                         </button>
                                         <button type="button"
                                                 class="vw-pm-card-title-btn vw-pm-card-title-cancel"
                                                 @click="editingProjectId = null">
-                                            ✕
+                                            <i class="fa-solid fa-xmark"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -261,7 +261,7 @@
                                     @click="editingProjectId = {{ $project['id'] }}; editingProjectName = '{{ addslashes($project['name'] ?? 'Untitled') }}'; $nextTick(() => $refs.renameInput{{ $project['id'] }}?.focus())"
                                     title="{{ __('Click to rename') }}">
                                     {{ $project['name'] ?? __('Untitled Project') }}
-                                    <span class="vw-pm-card-title-edit-icon">✏️</span>
+                                    <span class="vw-pm-card-title-edit-icon"><i class="fa-solid fa-pen"></i></span>
                                 </h3>
                                 @if($isCurrent)
                                     <span class="vw-pm-card-current-badge">{{ __('Currently Open') }}</span>
@@ -271,15 +271,15 @@
                             {{-- Card Meta --}}
                             <div class="vw-pm-card-meta">
                                 <div class="vw-pm-card-meta-item">
-                                    <span class="vw-pm-card-meta-icon">🎬</span>
+                                    <span class="vw-pm-card-meta-icon"><i class="fa-solid fa-film"></i></span>
                                     <span>{{ $sceneCount }} {{ __('scenes') }}</span>
                                 </div>
                                 <div class="vw-pm-card-meta-item">
-                                    <span class="vw-pm-card-meta-icon">⏱️</span>
+                                    <span class="vw-pm-card-meta-icon"><i class="fa-regular fa-clock"></i></span>
                                     <span>{{ $durationText }}</span>
                                 </div>
                                 <div class="vw-pm-card-meta-item">
-                                    <span class="vw-pm-card-meta-icon">📅</span>
+                                    <span class="vw-pm-card-meta-icon"><i class="fa-regular fa-calendar"></i></span>
                                     <span>{{ \Carbon\Carbon::parse($project['updated_at'])->diffForHumans() }}</span>
                                 </div>
                             </div>
@@ -305,7 +305,7 @@
                                     <button type="button"
                                             class="vw-pm-card-btn vw-pm-card-btn-current"
                                             disabled>
-                                        ✓ {{ __('Open') }}
+                                        <i class="fa-solid fa-check"></i> {{ __('Open') }}
                                     </button>
                                 @else
                                     <button type="button"
@@ -313,7 +313,7 @@
                                             wire:click="loadProjectFromManager({{ $project['id'] }})"
                                             wire:loading.attr="disabled"
                                             wire:target="loadProjectFromManager({{ $project['id'] }})">
-                                        <span wire:loading.remove wire:target="loadProjectFromManager({{ $project['id'] }})">📂 {{ __('Load') }}</span>
+                                        <span wire:loading.remove wire:target="loadProjectFromManager({{ $project['id'] }})"><i class="fa-solid fa-folder-open"></i> {{ __('Load') }}</span>
                                         <span wire:loading wire:target="loadProjectFromManager({{ $project['id'] }})">{{ __('Loading...') }}</span>
                                     </button>
                                 @endif
@@ -323,8 +323,8 @@
                                         wire:loading.attr="disabled"
                                         wire:target="exportProject({{ $project['id'] }})"
                                         title="{{ __('Export to JSON') }}">
-                                    <span wire:loading.remove wire:target="exportProject({{ $project['id'] }})">📤</span>
-                                    <span wire:loading wire:target="exportProject({{ $project['id'] }})">⏳</span>
+                                    <span wire:loading.remove wire:target="exportProject({{ $project['id'] }})"><i class="fa-solid fa-file-export"></i></span>
+                                    <span wire:loading wire:target="exportProject({{ $project['id'] }})"><i class="fa-solid fa-spinner fa-spin"></i></span>
                                 </button>
                                 <button type="button"
                                         class="vw-pm-card-btn vw-pm-card-btn-duplicate"
@@ -332,14 +332,14 @@
                                         wire:loading.attr="disabled"
                                         wire:target="duplicateProject({{ $project['id'] }})"
                                         title="{{ __('Duplicate project') }}">
-                                    <span wire:loading.remove wire:target="duplicateProject({{ $project['id'] }})">📋</span>
-                                    <span wire:loading wire:target="duplicateProject({{ $project['id'] }})">⏳</span>
+                                    <span wire:loading.remove wire:target="duplicateProject({{ $project['id'] }})"><i class="fa-regular fa-copy"></i></span>
+                                    <span wire:loading wire:target="duplicateProject({{ $project['id'] }})"><i class="fa-solid fa-spinner fa-spin"></i></span>
                                 </button>
                                 <button type="button"
                                         class="vw-pm-card-btn vw-pm-card-btn-delete"
                                         @click="deleteConfirmId = {{ $project['id'] }}; deleteConfirmName = '{{ addslashes($project['name'] ?? 'Untitled') }}'"
                                         title="{{ __('Delete project') }}">
-                                    🗑️
+                                    <i class="fa-regular fa-trash-can"></i>
                                 </button>
                             </div>
                         </div>
@@ -360,7 +360,7 @@
                                     class="vw-pm-pagination-btn"
                                     wire:click="projectManagerPrevPage"
                                     {{ $projectManagerPage <= 1 ? 'disabled' : '' }}>
-                                ←
+                                <i class="fa-solid fa-chevron-left"></i>
                             </button>
                             @for($p = max(1, $projectManagerPage - 2); $p <= min($totalPages, $projectManagerPage + 2); $p++)
                                 <button type="button"
@@ -373,7 +373,7 @@
                                     class="vw-pm-pagination-btn"
                                     wire:click="projectManagerNextPage"
                                     {{ $projectManagerPage >= $totalPages ? 'disabled' : '' }}>
-                                →
+                                <i class="fa-solid fa-chevron-right"></i>
                             </button>
                         </div>
                     </div>
@@ -394,7 +394,7 @@
     <template x-if="deleteConfirmId !== null">
         <div class="vw-pm-confirm-overlay" @click="deleteConfirmId = null">
             <div class="vw-pm-confirm-modal" @click.stop>
-                <div class="vw-pm-confirm-icon">⚠️</div>
+                <div class="vw-pm-confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <h3 class="vw-pm-confirm-title">{{ __('Delete Project?') }}</h3>
                 <p class="vw-pm-confirm-text">
                     {{ __('Are you sure you want to delete') }} "<span x-text="deleteConfirmName"></span>"?
@@ -410,7 +410,7 @@
                             class="vw-pm-confirm-btn vw-pm-confirm-btn-delete"
                             @click="$wire.deleteProjectFromManager(deleteConfirmId); deleteConfirmId = null"
                             wire:loading.attr="disabled">
-                        🗑️ {{ __('Delete') }}
+                        <i class="fa-regular fa-trash-can"></i> {{ __('Delete') }}
                     </button>
                 </div>
             </div>
@@ -434,7 +434,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
 }
 
 .vw-project-manager-modal {
@@ -442,9 +442,9 @@
     width: 100%;
     max-width: 900px;
     max-height: 85vh;
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%);
+    background: var(--vw-bg-surface);
     border-radius: 1rem;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    border: 1px solid var(--vw-border-accent);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -457,7 +457,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    border-bottom: 1px solid var(--vw-border);
     background: rgba(0, 0, 0, 0.2);
 }
 
@@ -470,7 +470,7 @@
 .vw-pm-title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--vw-text);
     margin: 0;
     display: flex;
     align-items: center;
@@ -478,13 +478,14 @@
 }
 
 .vw-pm-title-icon {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    color: var(--vw-primary);
 }
 
 .vw-pm-count {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.6);
-    background: rgba(139, 92, 246, 0.2);
+    color: var(--vw-text-secondary);
+    background: var(--vw-primary-soft);
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
 }
@@ -500,7 +501,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -512,7 +513,7 @@
 
 .vw-pm-new-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.4);
 }
 
 .vw-pm-new-btn:disabled {
@@ -528,17 +529,17 @@
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text-secondary);
     border: none;
     border-radius: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .vw-pm-close-btn:hover {
     background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    color: var(--vw-text);
 }
 
 /* Status Filter Tabs */
@@ -547,7 +548,7 @@
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     background: rgba(0, 0, 0, 0.15);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    border-bottom: 1px solid var(--vw-border);
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -563,9 +564,9 @@
     gap: 0.375rem;
     padding: 0.5rem 1rem;
     background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(139, 92, 246, 0.15);
+    border: 1px solid var(--vw-border);
     border-radius: 2rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--vw-text-secondary);
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
@@ -574,19 +575,19 @@
 }
 
 .vw-pm-status-tab:hover {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--vw-primary-soft);
+    border-color: var(--vw-border-accent);
+    color: var(--vw-text);
 }
 
 .vw-pm-status-tab.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(var(--vw-primary-rgb), 0.25);
+    border-color: rgba(var(--vw-primary-rgb), 0.5);
     color: #fff;
 }
 
 .vw-pm-status-tab-icon {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
 }
 
 .vw-pm-status-tab-label {
@@ -610,7 +611,7 @@
     display: flex;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    border-bottom: 1px solid var(--vw-border);
 }
 
 .vw-pm-search {
@@ -623,40 +624,40 @@
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 0.875rem;
-    opacity: 0.6;
+    font-size: 0.8rem;
+    color: var(--vw-text-muted);
 }
 
 .vw-pm-search-input {
     width: 100%;
     padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.5rem;
-    color: #fff;
+    color: var(--vw-text);
     font-size: 0.875rem;
 }
 
 .vw-pm-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--vw-text-muted);
 }
 
 .vw-pm-search-input:focus {
     outline: none;
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+    border-color: rgba(var(--vw-primary-rgb), 0.5);
+    box-shadow: 0 0 0 2px rgba(var(--vw-primary-rgb), 0.1);
 }
 
 .vw-pm-sort-select {
     padding: 0.5rem 2rem 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.5rem;
-    color: #fff;
+    color: var(--vw-text);
     font-size: 0.875rem;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2399a1b7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 1rem;
@@ -664,7 +665,12 @@
 
 .vw-pm-sort-select:focus {
     outline: none;
-    border-color: rgba(139, 92, 246, 0.5);
+    border-color: rgba(var(--vw-primary-rgb), 0.5);
+}
+
+.vw-pm-sort-select option {
+    background: var(--vw-bg-elevated);
+    color: var(--vw-text);
 }
 
 .vw-pm-sort-group {
@@ -678,19 +684,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1rem;
+    color: var(--vw-text-secondary);
+    font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .vw-pm-sort-dir-btn:hover {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.4);
-    color: #fff;
+    background: var(--vw-primary-soft);
+    border-color: var(--vw-border-accent);
+    color: var(--vw-text);
 }
 
 .vw-pm-select-btn {
@@ -698,10 +704,10 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text-secondary);
     font-size: 0.8125rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -709,14 +715,14 @@
 }
 
 .vw-pm-select-btn:hover {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.4);
-    color: #fff;
+    background: var(--vw-primary-soft);
+    border-color: var(--vw-border-accent);
+    color: var(--vw-text);
 }
 
 .vw-pm-select-btn.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(var(--vw-primary-rgb), 0.25);
+    border-color: rgba(var(--vw-primary-rgb), 0.5);
     color: #fff;
 }
 
@@ -726,8 +732,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: rgba(var(--vw-primary-rgb), 0.12);
+    border-bottom: 1px solid var(--vw-border);
 }
 
 .vw-pm-bulk-info {
@@ -735,12 +741,12 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text);
 }
 
 .vw-pm-bulk-count {
     font-weight: 700;
-    color: #8b5cf6;
+    color: var(--vw-primary);
 }
 
 .vw-pm-bulk-actions {
@@ -753,7 +759,7 @@
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text);
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -782,23 +788,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(139, 92, 246, 0.4);
+    background: var(--vw-bg-elevated);
+    border: 2px solid rgba(var(--vw-primary-rgb), 0.4);
     border-radius: 0.25rem;
     color: #fff;
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
 }
 
 .vw-pm-card-checkbox:hover:not(:disabled) {
-    border-color: rgba(139, 92, 246, 0.7);
-    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(var(--vw-primary-rgb), 0.7);
+    background: var(--vw-primary-soft);
 }
 
 .vw-pm-card-checkbox.checked {
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
     border-color: transparent;
 }
 
@@ -831,26 +837,27 @@
 }
 
 .vw-pm-empty-icon {
-    font-size: 4rem;
+    font-size: 3rem;
     margin-bottom: 1rem;
+    color: var(--vw-text-muted);
     opacity: 0.5;
 }
 
 .vw-pm-empty-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--vw-text);
     margin: 0 0 0.5rem 0;
 }
 
 .vw-pm-empty-text {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--vw-text-secondary);
     margin: 0 0 1.5rem 0;
 }
 
 .vw-pm-empty-btn {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -862,7 +869,7 @@
 
 .vw-pm-empty-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.4);
 }
 
 /* Grid */
@@ -874,22 +881,22 @@
 
 /* Card */
 .vw-pm-card {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.75rem;
     overflow: hidden;
     transition: all 0.2s;
 }
 
 .vw-pm-card:hover {
-    border-color: rgba(139, 92, 246, 0.4);
+    border-color: var(--vw-border-accent);
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .vw-pm-card-current {
     border-color: rgba(16, 185, 129, 0.5);
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.08);
 }
 
 .vw-pm-card-header {
@@ -897,7 +904,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .vw-pm-card-platform {
@@ -905,7 +912,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-card-platform-icon {
@@ -921,8 +928,8 @@
 }
 
 .vw-pm-status-draft {
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
+    background: var(--vw-primary-soft);
+    color: #a49eff;
 }
 
 .vw-pm-status-in_progress {
@@ -957,7 +964,7 @@
 .vw-pm-card-title {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--vw-text);
     margin: 0 0 0.5rem 0;
     white-space: nowrap;
     overflow: hidden;
@@ -971,7 +978,7 @@
 }
 
 .vw-pm-card-title-editable:hover {
-    color: #a78bfa;
+    color: #a49eff;
 }
 
 .vw-pm-card-title-edit-icon {
@@ -979,9 +986,10 @@
     right: 0;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     opacity: 0;
     transition: opacity 0.2s;
+    color: var(--vw-text-muted);
 }
 
 .vw-pm-card-title-editable:hover .vw-pm-card-title-edit-icon {
@@ -999,17 +1007,17 @@
     flex: 1;
     padding: 0.375rem 0.5rem;
     background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(139, 92, 246, 0.4);
+    border: 1px solid rgba(var(--vw-primary-rgb), 0.4);
     border-radius: 0.375rem;
-    color: #fff;
+    color: var(--vw-text);
     font-size: 0.9375rem;
     font-weight: 600;
 }
 
 .vw-pm-card-title-input:focus {
     outline: none;
-    border-color: rgba(139, 92, 246, 0.7);
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    border-color: rgba(var(--vw-primary-rgb), 0.7);
+    box-shadow: 0 0 0 2px rgba(var(--vw-primary-rgb), 0.2);
 }
 
 .vw-pm-card-title-actions {
@@ -1025,7 +1033,7 @@
     justify-content: center;
     border: none;
     border-radius: 0.25rem;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -1063,7 +1071,7 @@
     gap: 0.75rem;
     padding: 0.75rem 1rem;
     background: rgba(0, 0, 0, 0.1);
-    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    border-top: 1px solid var(--vw-border);
 }
 
 .vw-pm-card-meta-item {
@@ -1071,24 +1079,25 @@
     align-items: center;
     gap: 0.25rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-card-meta-icon {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--vw-text-muted);
 }
 
 /* Step Progress */
 .vw-pm-card-progress {
     padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    border-top: 1px solid var(--vw-border);
 }
 
 .vw-pm-card-progress-label {
     display: flex;
     justify-content: space-between;
     font-size: 0.6875rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-muted);
     margin-bottom: 0.375rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1108,7 +1117,7 @@
 }
 
 .vw-pm-card-progress-step.completed {
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
 }
 
 /* Pagination */
@@ -1118,12 +1127,12 @@
     justify-content: space-between;
     padding: 1rem 0;
     margin-top: 1rem;
-    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    border-top: 1px solid var(--vw-border);
 }
 
 .vw-pm-pagination-info {
     font-size: 0.8125rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-pagination-controls {
@@ -1138,23 +1147,23 @@
     align-items: center;
     justify-content: center;
     padding: 0 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--vw-bg-elevated);
+    border: 1px solid var(--vw-border);
     border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text-secondary);
     font-size: 0.8125rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .vw-pm-pagination-btn:hover:not(:disabled) {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.4);
-    color: #fff;
+    background: var(--vw-primary-soft);
+    border-color: var(--vw-border-accent);
+    color: var(--vw-text);
 }
 
 .vw-pm-pagination-btn.active {
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
     border-color: transparent;
     color: #fff;
 }
@@ -1168,7 +1177,7 @@
     display: flex;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(139, 92, 246, 0.1);
+    border-top: 1px solid var(--vw-border);
 }
 
 .vw-pm-card-btn {
@@ -1187,12 +1196,12 @@
 }
 
 .vw-pm-card-btn-load {
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
+    background: var(--vw-primary-soft);
+    color: #a49eff;
 }
 
 .vw-pm-card-btn-load:hover {
-    background: rgba(139, 92, 246, 0.3);
+    background: rgba(var(--vw-primary-rgb), 0.3);
 }
 
 .vw-pm-card-btn-load:disabled {
@@ -1209,13 +1218,13 @@
 .vw-pm-card-btn-duplicate {
     flex: 0;
     width: 2.25rem;
-    background: rgba(6, 182, 212, 0.1);
-    color: rgba(6, 182, 212, 0.7);
+    background: rgba(var(--vw-primary-rgb), 0.1);
+    color: rgba(var(--vw-primary-rgb), 0.7);
 }
 
 .vw-pm-card-btn-duplicate:hover {
-    background: rgba(6, 182, 212, 0.2);
-    color: #06b6d4;
+    background: var(--vw-primary-soft);
+    color: var(--vw-primary);
 }
 
 .vw-pm-card-btn-duplicate:disabled {
@@ -1290,8 +1299,8 @@
 .vw-pm-loading-spinner {
     width: 2.5rem;
     height: 2.5rem;
-    border: 3px solid rgba(139, 92, 246, 0.2);
-    border-top-color: #8b5cf6;
+    border: 3px solid var(--vw-border);
+    border-top-color: var(--vw-primary);
     border-radius: 50%;
     animation: vw-pm-spin 0.8s linear infinite;
 }
@@ -1301,7 +1310,7 @@
 }
 
 .vw-pm-loading-text {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text);
     font-size: 0.875rem;
 }
 
@@ -1310,6 +1319,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1317,7 +1327,7 @@
 }
 
 .vw-pm-confirm-modal {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    background: var(--vw-bg-surface);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 0.75rem;
     padding: 1.5rem;
@@ -1326,19 +1336,20 @@
 }
 
 .vw-pm-confirm-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin-bottom: 1rem;
+    color: #f59e0b;
 }
 
 .vw-pm-confirm-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--vw-text);
     margin: 0 0 0.75rem 0;
 }
 
 .vw-pm-confirm-text {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text-secondary);
     font-size: 0.875rem;
     margin: 0 0 1.5rem 0;
     line-height: 1.5;
@@ -1362,7 +1373,7 @@
 
 .vw-pm-confirm-btn-cancel {
     background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text);
 }
 
 .vw-pm-confirm-btn-cancel:hover {

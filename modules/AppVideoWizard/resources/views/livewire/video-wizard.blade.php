@@ -8,9 +8,11 @@
 <div class="video-wizard min-h-screen"
      x-data="{ showPreview: false }">
 
-    {{-- Embedded CSS for Stepper (ensures styles aren't overridden) --}}
-    <style>
+    {{-- Design System (tokens, components, animations) --}}
+    @include('appvideowizard::livewire.partials._vw-design-system')
 
+    {{-- Stepper & Navigation CSS --}}
+    <style>
         .vw-stepper {
             display: flex !important;
             flex-direction: row !important;
@@ -31,26 +33,26 @@
             align-items: center !important;
             gap: 0.5rem !important;
             padding: 0.5rem 1rem !important;
-            background: rgba(0, 0, 0, 0.05) !important;
-            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid var(--vw-border) !important;
             border-radius: 2rem !important;
             transition: all 0.2s ease !important;
             cursor: pointer !important;
             white-space: nowrap !important;
             flex-shrink: 0 !important;
         }
-        .vw-step:hover { background: rgba(0, 0, 0, 0.08) !important; }
+        .vw-step:hover { background: rgba(255, 255, 255, 0.07) !important; }
         .vw-step.active {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%) !important;
-            border-color: rgba(139, 92, 246, 0.5) !important;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.15) !important;
+            background: var(--vw-primary-soft) !important;
+            border-color: var(--vw-primary) !important;
+            box-shadow: var(--vw-shadow-glow) !important;
         }
         .vw-step.completed {
-            background: rgba(16, 185, 129, 0.1) !important;
-            border-color: rgba(16, 185, 129, 0.3) !important;
+            background: var(--vw-success-soft) !important;
+            border-color: var(--vw-border-success) !important;
         }
         .vw-step.disabled {
-            opacity: 0.4 !important;
+            opacity: 0.35 !important;
             cursor: not-allowed !important;
         }
 
@@ -59,44 +61,39 @@
             height: 26px !important;
             min-width: 26px !important;
             border-radius: 50% !important;
-            background: rgba(0, 0, 0, 0.1) !important;
+            background: rgba(255, 255, 255, 0.06) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             font-size: 0.75rem !important;
             font-weight: 700 !important;
             flex-shrink: 0 !important;
-            color: inherit !important;
+            color: var(--vw-text-secondary) !important;
         }
         .vw-step.active .vw-step-number {
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+            background: var(--vw-primary) !important;
             color: white !important;
         }
         .vw-step.completed .vw-step-number {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            background: var(--vw-success) !important;
             color: white !important;
         }
 
         .vw-step-label {
             font-size: 0.85rem !important;
             font-weight: 500 !important;
-            color: rgba(0, 0, 0, 0.6) !important;
+            color: var(--vw-text-muted) !important;
         }
-        .vw-step.active .vw-step-label { color: #8b5cf6 !important; }
-        .vw-step.completed .vw-step-label { color: #10b981 !important; }
+        .vw-step.active .vw-step-label { color: var(--vw-text) !important; }
+        .vw-step.completed .vw-step-label { color: #6ee7b7 !important; }
 
         .vw-connector {
             width: 20px !important;
             height: 2px !important;
-            background: rgba(0, 0, 0, 0.1) !important;
+            background: var(--vw-border) !important;
             flex-shrink: 0 !important;
         }
-        .vw-connector.completed { background: rgba(16, 185, 129, 0.5) !important; }
-
-        /* Loading animation */
-        @keyframes vw-spin {
-            to { transform: rotate(360deg); }
-        }
+        .vw-connector.completed { background: rgba(34, 197, 94, 0.4) !important; }
 
         @media (max-width: 768px) {
             .vw-stepper { justify-content: flex-start !important; padding: 0.75rem !important; }
@@ -111,59 +108,60 @@
             justify-content: space-between !important;
             align-items: center !important;
             margin-top: 2.5rem !important;
-            padding: 0 1rem 2.5rem !important;
+            padding: 1rem 1.5rem 2rem !important;
             max-width: 56rem !important;
             margin-left: auto !important;
             margin-right: auto !important;
+            border-top: 1px solid var(--vw-border) !important;
         }
 
-        .vw-btn {
+        .vw-nav-btn {
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.5rem !important;
-            padding: 0.75rem 1.5rem !important;
-            border-radius: 0.5rem !important;
-            font-weight: 500 !important;
-            font-size: 0.95rem !important;
+            padding: 0.65rem 1.25rem !important;
+            border-radius: var(--vw-radius) !important;
+            font-weight: 600 !important;
+            font-size: var(--vw-text-base) !important;
             cursor: pointer !important;
-            transition: all 0.2s ease !important;
+            transition: all 150ms ease !important;
             border: none !important;
+            font-family: var(--vw-font) !important;
         }
 
-        .vw-btn:disabled {
-            opacity: 0.4 !important;
+        .vw-nav-btn:disabled {
+            opacity: 0.35 !important;
             cursor: not-allowed !important;
         }
 
-        .vw-btn-ghost {
-            background: transparent !important;
-            color: rgba(0, 0, 0, 0.6) !important;
-            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        .vw-nav-btn--ghost {
+            background: rgba(255, 255, 255, 0.04) !important;
+            color: var(--vw-text-secondary) !important;
+            border: 1px solid var(--vw-border) !important;
+        }
+        .vw-nav-btn--ghost:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: var(--vw-text) !important;
         }
 
-        .vw-btn-ghost:hover:not(:disabled) {
-            background: rgba(0, 0, 0, 0.05) !important;
-        }
-
-        .vw-btn-primary {
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+        .vw-nav-btn--primary {
+            background: var(--vw-primary) !important;
             color: white !important;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
+            box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.3) !important;
         }
-
-        .vw-btn-primary:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4) !important;
+        .vw-nav-btn--primary:hover:not(:disabled) {
+            background: var(--vw-primary-hover) !important;
+            box-shadow: 0 6px 20px rgba(var(--vw-primary-rgb), 0.4) !important;
             transform: translateY(-1px) !important;
         }
 
-        .vw-btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        .vw-nav-btn--success {
+            background: var(--vw-success) !important;
             color: white !important;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3) !important;
         }
-
-        .vw-btn-success:hover:not(:disabled) {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+        .vw-nav-btn--success:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4) !important;
             transform: translateY(-1px) !important;
         }
 
@@ -171,15 +169,15 @@
             display: flex !important;
             align-items: center !important;
             gap: 0.5rem !important;
-            font-size: 0.875rem !important;
-            color: rgba(0, 0, 0, 0.5) !important;
+            font-size: var(--vw-text-base) !important;
+            color: var(--vw-text-muted) !important;
         }
 
-        .vw-spinner {
+        .vw-nav-spinner {
             width: 16px !important;
             height: 16px !important;
-            border: 2px solid rgba(139, 92, 246, 0.2) !important;
-            border-top-color: #8b5cf6 !important;
+            border: 2px solid rgba(var(--vw-primary-rgb), 0.2) !important;
+            border-top-color: var(--vw-primary) !important;
             border-radius: 50% !important;
             animation: vw-spin 0.8s linear infinite !important;
         }
@@ -189,27 +187,28 @@
             align-items: center !important;
             gap: 0.35rem !important;
             padding: 0.5rem 1rem !important;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            background: var(--vw-success) !important;
             border: none !important;
-            border-radius: 0.5rem !important;
+            border-radius: var(--vw-radius) !important;
             color: white !important;
-            font-weight: 500 !important;
-            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            font-size: var(--vw-text-sm) !important;
             cursor: pointer !important;
-            transition: all 0.2s ease !important;
+            transition: all 150ms ease !important;
         }
         .vw-btn-save:hover {
+            filter: brightness(1.1) !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4) !important;
         }
 
-        /* Modern Transition Overlay */
+        /* Transition Overlay */
         .vw-transition-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(7, 20, 55, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -224,10 +223,11 @@
         }
 
         .vw-transition-content {
-            background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
-            border-radius: 1.5rem;
+            background: var(--vw-bg-surface);
+            border: 1px solid var(--vw-border);
+            border-radius: var(--vw-radius-xl);
             padding: 2.5rem 3rem;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            box-shadow: var(--vw-shadow-lg);
             text-align: center;
             max-width: 400px;
             animation: vw-slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -255,14 +255,14 @@
         }
 
         .vw-transition-spinner::before {
-            border-top-color: #8b5cf6;
-            border-right-color: #06b6d4;
+            border-top-color: var(--vw-primary);
+            border-right-color: #22d3ee;
             animation: vw-spin 1s linear infinite;
         }
 
         .vw-transition-spinner::after {
-            border-bottom-color: #10b981;
-            border-left-color: #f59e0b;
+            border-bottom-color: var(--vw-success);
+            border-left-color: var(--vw-warning);
             animation: vw-spin 1.5s linear infinite reverse;
             inset: 8px;
         }
@@ -270,16 +270,13 @@
         .vw-transition-message {
             font-size: 1.1rem;
             font-weight: 600;
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--vw-text);
             margin-bottom: 0.75rem;
         }
 
         .vw-transition-submessage {
-            font-size: 0.875rem;
-            color: rgba(0, 0, 0, 0.5);
+            font-size: var(--vw-text-base);
+            color: var(--vw-text-muted);
         }
 
         /* Button loading state */
@@ -344,19 +341,16 @@
     <div style="position: relative; text-align: center; padding: 2rem 1rem 1rem;">
         {{-- My Projects Button (Top Right) --}}
         <button wire:click="openProjectManager"
-                style="position: absolute; top: 1.5rem; right: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none; border-radius: 0.5rem; color: white; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);"
-                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.4)';"
-                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(99, 102, 241, 0.3)';">
-            <svg xmlns="http://www.w3.org/2000/svg" style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+                class="vw-btn vw-btn--primary vw-btn--sm"
+                style="position: absolute; top: 1.5rem; right: 1rem;">
+            <i class="fas fa-folder-open" style="font-size: 0.85rem;"></i>
             {{ __('My Projects') }}
         </button>
 
-        <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 50%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        <h1 class="vw-page-title">
             {{ __('Video Creation Wizard') }}
         </h1>
-        <p style="color: rgba(0,0,0,0.5); font-size: 0.95rem;">{{ __('Create professional AI-generated videos from scratch') }}</p>
+        <p class="vw-page-subtitle">{{ __('Create professional AI-generated videos from scratch') }}</p>
     </div>
 
     {{-- Stepper --}}
@@ -444,22 +438,22 @@
     {{-- Navigation --}}
     <div class="vw-navigation">
         <button type="button" wire:click="previousStep"
-                class="vw-btn vw-btn-ghost"
+                class="vw-nav-btn vw-nav-btn--ghost"
                 {{ $currentStep <= 1 ? 'disabled' : '' }}>
-            ← {{ __('Previous') }}
+            <i class="fas fa-arrow-left" style="font-size: 0.8rem;"></i> {{ __('Previous') }}
         </button>
 
         <div class="vw-saving-indicator">
             @if($isSaving)
-                <span class="vw-spinner"></span>
+                <span class="vw-nav-spinner"></span>
                 <span>{{ __('Saving...') }}</span>
             @else
                 <button type="button" wire:click="saveProject" wire:loading.attr="disabled" class="vw-btn-save" title="{{ __('Save Project') }}">
-                    <span wire:loading.remove wire:target="saveProject">💾 {{ __('Save') }}</span>
-                    <span wire:loading wire:target="saveProject">⏳ {{ __('Saving...') }}</span>
+                    <span wire:loading.remove wire:target="saveProject"><i class="fas fa-floppy-disk"></i> {{ __('Save') }}</span>
+                    <span wire:loading wire:target="saveProject"><i class="fas fa-spinner fa-spin"></i> {{ __('Saving...') }}</span>
                 </button>
                 @if($projectId)
-                    <span style="margin-left: 0.5rem; font-size: 0.75rem; color: rgba(0,0,0,0.4);">ID: {{ $projectId }}</span>
+                    <span class="vw-project-id">ID: {{ $projectId }}</span>
                 @endif
             @endif
         </div>
@@ -469,18 +463,18 @@
                     wire:click="nextStep"
                     wire:loading.attr="disabled"
                     wire:loading.class="vw-btn-loading"
-                    class="vw-btn vw-btn-primary {{ $isTransitioning ? 'vw-btn-loading' : '' }}"
+                    class="vw-nav-btn vw-nav-btn--primary {{ $isTransitioning ? 'vw-btn-loading' : '' }}"
                     {{ $isTransitioning ? 'disabled' : '' }}>
                 <span wire:loading.remove wire:target="nextStep,handleDeferredSceneMemoryPopulation">
-                    {{ __('Continue') }} →
+                    {{ __('Continue') }} <i class="fas fa-arrow-right" style="font-size: 0.8rem;"></i>
                 </span>
                 <span wire:loading wire:target="nextStep,handleDeferredSceneMemoryPopulation">
                     {{ __('Loading...') }}
                 </span>
             </button>
         @else
-            <button type="button" wire:click="saveProject" class="vw-btn vw-btn-success">
-                {{ __('Export Video') }}
+            <button type="button" wire:click="saveProject" class="vw-nav-btn vw-nav-btn--success">
+                <i class="fas fa-download" style="font-size: 0.8rem;"></i> {{ __('Export Video') }}
             </button>
         @endif
     </div>

@@ -6,16 +6,16 @@
 
 {{-- Panel --}}
 <div x-data="{ filterType: 'all' }"
-     style="position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw; background: linear-gradient(180deg, rgba(25,25,40,0.99), rgba(15,15,30,0.99)); border-left: 2px solid rgba(139,92,246,0.4); z-index: 10000001; display: flex; flex-direction: column; animation: assetHistorySlideIn 0.3s ease-out;">
+     style="position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw; background: var(--vw-bg-surface); border-left: 2px solid var(--vw-border-accent); z-index: 10000001; display: flex; flex-direction: column; animation: assetHistorySlideIn 0.3s ease-out;">
 
     {{-- Header --}}
-    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">
-                <i class="fa-solid fa-clock-rotate-left" style="color: #a78bfa; margin-right: 0.4rem;"></i>
+            <h3 style="margin: 0; color: var(--vw-text); font-size: 1rem; font-weight: 600;">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #a49eff; margin-right: 0.4rem;"></i>
                 {{ __('Asset History') }}
             </h3>
-            <p style="margin: 0.2rem 0 0 0; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+            <p style="margin: 0.2rem 0 0 0; color: var(--vw-text-muted); font-size: 0.75rem;">
                 @if(($assetHistoryTarget['type'] ?? '') === 'shot')
                     {{ __('Scene') }} {{ ($assetHistoryTarget['sceneIndex'] ?? 0) + 1 }}, {{ __('Shot') }} {{ ($assetHistoryTarget['shotIndex'] ?? 0) + 1 }}
                 @else
@@ -23,17 +23,17 @@
                 @endif
             </p>
         </div>
-        <button type="button" wire:click="closeAssetHistory" style="background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+        <button type="button" wire:click="closeAssetHistory" style="background: none; border: none; color: var(--vw-text); font-size: 1.3rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
     </div>
 
     {{-- Filter Tabs --}}
-    <div style="padding: 0.65rem 1.25rem; display: flex; gap: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
+    <div style="padding: 0.65rem 1.25rem; display: flex; gap: 0.35rem; border-bottom: 1px solid var(--vw-border);">
         @foreach(['all' => __('All'), 'image' => __('Images'), 'video' => __('Videos')] as $filterKey => $filterLabel)
             <button type="button"
                     @click="filterType = '{{ $filterKey }}'"
                     :style="filterType === '{{ $filterKey }}'
-                        ? 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid rgba(139,92,246,0.4); background: rgba(139,92,246,0.15); color: #c4b5fd; font-size: 0.75rem; cursor: pointer;'
-                        : 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.1); background: none; color: rgba(255,255,255,0.5); font-size: 0.75rem; cursor: pointer;'">
+                        ? 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid rgba(var(--vw-primary-rgb),0.4); background: rgba(var(--vw-primary-rgb),0.15); color: #a49eff; font-size: 0.75rem; cursor: pointer;'
+                        : 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid var(--vw-border); background: none; color: var(--vw-text-muted); font-size: 0.75rem; cursor: pointer;'">
                 {{ $filterLabel }}
             </button>
         @endforeach
@@ -48,7 +48,7 @@
 
         @if(empty($history))
             {{-- Empty State --}}
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1rem; color: rgba(255,255,255,0.3);">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1rem; color: var(--vw-text-muted);">
                 <i class="fa-solid fa-clock" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                 <p style="margin: 0; font-size: 0.9rem;">{{ __('No history yet') }}</p>
                 <p style="margin: 0.3rem 0 0 0; font-size: 0.75rem;">{{ __('Generate or edit images to build history') }}</p>
@@ -72,7 +72,7 @@
                         };
                         $actionColor = match($entry['action'] ?? 'generated') {
                             'generated', 'regenerated' => '#34d399',
-                            'edited' => '#a78bfa',
+                            'edited' => '#a49eff',
                             'reimagined' => '#f472b6',
                             'uploaded' => '#38bdf8',
                             'stock' => '#60a5fa',
@@ -85,7 +85,7 @@
                     @endphp
 
                     <div x-show="filterType === 'all' || filterType === '{{ $entryType }}'"
-                         style="background: {{ $isActive ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.02)' }}; border: 1px solid {{ $isActive ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)' }}; border-radius: 0.5rem; overflow: hidden;">
+                         style="background: {{ $isActive ? 'rgba(var(--vw-primary-rgb),0.08)' : 'var(--vw-bg-elevated)' }}; border: 1px solid {{ $isActive ? 'rgba(var(--vw-primary-rgb),0.3)' : 'var(--vw-border)' }}; border-radius: 0.5rem; overflow: hidden;">
 
                         {{-- Thumbnail --}}
                         <div style="position: relative;">
@@ -100,7 +100,7 @@
 
                             {{-- Current badge --}}
                             @if($isActive)
-                                <div style="position: absolute; top: 0.4rem; left: 0.4rem; padding: 0.15rem 0.45rem; background: rgba(139,92,246,0.9); border-radius: 0.25rem; color: white; font-size: 0.65rem; font-weight: 600;">
+                                <div style="position: absolute; top: 0.4rem; left: 0.4rem; padding: 0.15rem 0.45rem; background: rgba(var(--vw-primary-rgb),0.9); border-radius: 0.25rem; color: white; font-size: 0.65rem; font-weight: 600;">
                                     {{ __('Current') }}
                                 </div>
                             @endif
@@ -114,7 +114,7 @@
                         {{-- Info --}}
                         <div style="padding: 0.5rem 0.65rem;">
                             @if(!empty($entry['prompt']))
-                                <p style="margin: 0 0 0.3rem 0; color: rgba(255,255,255,0.6); font-size: 0.72rem; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                <p style="margin: 0 0 0.3rem 0; color: var(--vw-text-secondary); font-size: 0.72rem; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
                                     {{ Str::limit($entry['prompt'], 80) }}
                                 </p>
                             @endif
@@ -122,17 +122,17 @@
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                                     @if(!empty($entry['model']))
-                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.3);">{{ $entry['model'] }}</span>
+                                        <span style="font-size: 0.6rem; color: var(--vw-text-muted);">{{ $entry['model'] }}</span>
                                     @endif
-                                    <span style="font-size: 0.6rem; color: rgba(255,255,255,0.25);">{{ $timeAgo }}</span>
+                                    <span style="font-size: 0.6rem; color: var(--vw-text-muted); opacity: 0.7;">{{ $timeAgo }}</span>
                                 </div>
 
                                 @if(!$isActive)
                                     <button type="button"
                                             wire:click="restoreAssetFromHistory('{{ $entry['id'] ?? '' }}')"
-                                            style="padding: 0.25rem 0.5rem; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.3rem; color: #c4b5fd; font-size: 0.65rem; cursor: pointer; font-weight: 500;"
-                                            onmouseover="this.style.background='rgba(139,92,246,0.3)'"
-                                            onmouseout="this.style.background='rgba(139,92,246,0.15)'">
+                                            style="padding: 0.25rem 0.5rem; background: rgba(var(--vw-primary-rgb),0.15); border: 1px solid rgba(var(--vw-primary-rgb),0.3); border-radius: 0.3rem; color: #a49eff; font-size: 0.65rem; cursor: pointer; font-weight: 500;"
+                                            onmouseover="this.style.background='rgba(103,93,255,0.3)'"
+                                            onmouseout="this.style.background='rgba(103,93,255,0.15)'">
                                         <i class="fa-solid fa-rotate-left" style="font-size: 0.55rem; margin-right: 0.2rem;"></i>
                                         {{ __('Restore') }}
                                     </button>
