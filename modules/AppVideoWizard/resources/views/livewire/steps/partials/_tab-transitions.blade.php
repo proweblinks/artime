@@ -157,13 +157,13 @@
     }
 
     .vw-transition-option:hover {
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: rgba(3, 252, 244, 0.3);
+        background: rgba(3, 252, 244, 0.1);
     }
 
     .vw-transition-option.active {
-        border-color: #8b5cf6;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
         color: white;
     }
 
@@ -198,12 +198,12 @@
     }
 
     .vw-duration-btn:hover {
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(3, 252, 244, 0.3);
     }
 
     .vw-duration-btn.active {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.15);
+        border-color: #03fcf4;
+        background: rgba(3, 252, 244, 0.15);
         color: white;
     }
 
@@ -213,7 +213,7 @@
     }
 
     .vw-duration-btn.active .vw-duration-val {
-        color: #a78bfa;
+        color: #67e8f9;
     }
 
     .vw-scene-transitions {
@@ -245,11 +245,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(139, 92, 246, 0.2);
+        background: rgba(3, 252, 244, 0.2);
         border-radius: 0.25rem;
         font-size: 0.7rem;
         font-weight: 600;
-        color: #a78bfa;
+        color: #67e8f9;
     }
 
     .vw-trans-arrow {

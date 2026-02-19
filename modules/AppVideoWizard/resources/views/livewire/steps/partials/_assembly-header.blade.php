@@ -76,7 +76,7 @@
         height: 56px;
         min-height: 56px;
         background: rgba(20, 20, 30, 0.98);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        border-bottom: 1px solid rgba(3, 252, 244, 0.2);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -200,13 +200,13 @@
     }
 
     .vw-header-btn.primary {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        color: white;
-        box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
+        color: #0a2e2e;
+        box-shadow: 0 2px 10px rgba(3, 252, 244, 0.3);
     }
 
     .vw-header-btn.primary:hover {
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px rgba(3, 252, 244, 0.4);
         transform: translateY(-1px);
     }
 

@@ -74,7 +74,7 @@
             {{-- Multi-Shot Badge - Compact, top right --}}
             @if($hasMultiShot && !empty($decomposed['shots']))
                 <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.35rem;">
-                    <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                    <span style="background: linear-gradient(135deg, #03fcf4, #06b6d4); color: #0a2e2e; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
                         {{ count($decomposed['shots']) }} shots
                     </span>
                 </div>
@@ -105,14 +105,14 @@
                                  }
                              }
                          }"
-                         style="height: 220px; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-                        <div style="position: absolute; inset: 0; background: linear-gradient(45deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1), rgba(236,72,153,0.1)); background-size: 400% 400%; animation: vw-gradient-shift 4s ease infinite;"></div>
+                         style="height: 220px; background: linear-gradient(135deg, rgba(3,252,244,0.1), rgba(6,182,212,0.1)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                        <div style="position: absolute; inset: 0; background: linear-gradient(45deg, rgba(3,252,244,0.1), rgba(6,182,212,0.1), rgba(236,72,153,0.1)); background-size: 400% 400%; animation: vw-gradient-shift 4s ease infinite;"></div>
                         <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                            <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); display: flex; align-items: center; justify-content: center; animation: vw-pulse 1.5s ease-in-out infinite;">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(3,252,244,0.3), rgba(6,182,212,0.3)); display: flex; align-items: center; justify-content: center; animation: vw-pulse 1.5s ease-in-out infinite;">
                                 <span style="font-size: 1.5rem;">AI</span>
                             </div>
                             <div style="width: 180px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                                <div :style="'width: ' + progress + '%'" style="height: 100%; background: linear-gradient(90deg, #8b5cf6, #06b6d4); border-radius: 3px; transition: width 0.5s ease;"></div>
+                                <div :style="'width: ' + progress + '%'" style="height: 100%; background: linear-gradient(90deg, #03fcf4, #06b6d4); border-radius: 3px; transition: width 0.5s ease;"></div>
                             </div>
                             <div x-text="status" style="font-size: 0.85rem; color: white; font-weight: 500;"></div>
                         </div>
@@ -138,14 +138,14 @@
                         <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ __('Image not available') }}</span>
                         <button type="button"
                                 wire:click="$parent.generateImage({{ $sceneIndex }}, '{{ $sceneIdForAction }}')"
-                                style="padding: 0.3rem 0.6rem; border-radius: 0.3rem; border: 1px solid rgba(139,92,246,0.5); background: rgba(139,92,246,0.3); color: white; cursor: pointer; font-size: 0.65rem;">
+                                style="padding: 0.3rem 0.6rem; border-radius: 0.3rem; border: 1px solid rgba(3,252,244,0.5); background: rgba(3,252,244,0.3); color: white; cursor: pointer; font-size: 0.65rem;">
                             {{ __('Regenerate') }}
                         </button>
                     </div>
 
                     @php
                         $isVideo = $source === 'stock-video';
-                        $sourceBgColor = $source === 'stock' ? 'rgba(16,185,129,0.9)' : ($isVideo ? 'rgba(6,182,212,0.9)' : 'rgba(139,92,246,0.9)');
+                        $sourceBgColor = $source === 'stock' ? 'rgba(16,185,129,0.9)' : ($isVideo ? 'rgba(6,182,212,0.9)' : 'rgba(3,252,244,0.9)');
                         $sourceLabel = $source === 'stock' ? __('Stock') : ($isVideo ? __('Video') : __('AI'));
                     @endphp
 
@@ -165,7 +165,7 @@
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
                         <button type="button"
                                 wire:click="$parent.openImageStudio('scene', {{ $sceneIndex }})"
-                                style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
+                                style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(3,252,244,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
                                 title="{{ __('Edit with AI') }}">
                             {{ __('Edit') }}
                         </button>
@@ -191,7 +191,7 @@
                         <button type="button"
                                 wire:click="$parent.openMultiShotModal({{ $sceneIndex }})"
                                 wire:loading.attr="disabled"
-                                style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
+                                style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(3,252,244,0.6); background: linear-gradient(135deg, rgba(3,252,244,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                 title="{{ __('Multi-shot decomposition') }}">
                             Shots
                         </button>
@@ -207,7 +207,7 @@
                             <button type="button"
                                     wire:click="$parent.generateImage({{ $sceneIndex }}, '{{ $sceneIdForAction }}')"
                                     wire:loading.attr="disabled"
-                                    style="flex: 1; padding: 0.75rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                                    style="flex: 1; padding: 0.75rem 0.5rem; background: linear-gradient(135deg, rgba(3,252,244,0.3), rgba(6,182,212,0.3)); border: 1px solid rgba(3,252,244,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                                 <span>{{ __('Retry AI') }}</span>
                             </button>
                             <button type="button"
@@ -258,7 +258,7 @@
         @if($hasMultiShot && !empty($decomposed['shots']))
             <div wire:key="multi-shot-timeline-{{ $sceneIndex }}"
                  x-data="{ expanded: false }"
-                 style="padding: 0.4rem 0.5rem; border-top: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.04);">
+                 style="padding: 0.4rem 0.5rem; border-top: 1px solid rgba(3,252,244,0.15); background: rgba(3,252,244,0.04);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                     <div style="display: flex; align-items: center; gap: 0.4rem;">
                         <button type="button" @click="expanded = !expanded" style="background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.6); font-size: 0.6rem; padding: 0;">
@@ -323,7 +323,7 @@
                         type="button"
                         wire:click="$parent.openSceneTextInspector({{ $sceneIndex }})"
                         class="vw-voice-types-btn"
-                        style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
+                        style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(3,252,244,0.2), rgba(6,182,212,0.15)); border: 1px solid rgba(3,252,244,0.4); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
                     >
                         <span style="font-size: 0.75rem;">Voice</span>
                         <span style="font-weight: 600; font-size: 0.7rem; color: white;">{{ __('Voice Types') }}</span>
@@ -336,7 +336,7 @@
                         wire:click="$parent.openSceneTextInspector({{ $sceneIndex }})"
                         class="vw-inspect-btn"
                         title="{{ __('Full scene details') }}"
-                        style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer;"
+                        style="background: rgba(3, 252, 244, 0.15); border: 1px solid rgba(3, 252, 244, 0.3); color: #67e8f9; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer;"
                     >
                         {{ __('Inspect') }}
                     </button>

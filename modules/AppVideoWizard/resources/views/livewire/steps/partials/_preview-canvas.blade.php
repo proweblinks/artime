@@ -365,17 +365,17 @@
 
     /* Active/Playing glow effect */
     .vw-canvas-frame.is-ready {
-        border-color: rgba(139, 92, 246, 0.2);
+        border-color: rgba(3, 252, 244, 0.2);
     }
 
     .vw-canvas-frame.is-playing {
         box-shadow:
             0 4px 6px rgba(0, 0, 0, 0.3),
             0 10px 40px rgba(0, 0, 0, 0.4),
-            0 0 60px rgba(139, 92, 246, 0.1),
+            0 0 60px rgba(3, 252, 244, 0.1),
             0 0 100px rgba(6, 182, 212, 0.05),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(3, 252, 244, 0.3);
     }
 
     /* Loading shimmer effect */
@@ -427,22 +427,22 @@
         padding: 1rem 2.5rem;
         border-radius: 3rem;
         border: none;
-        background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-        color: white;
+        background: linear-gradient(135deg, #03fcf4 0%, #06b6d4 100%);
+        color: #0a2e2e;
         font-size: 1.1rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow:
-            0 4px 15px rgba(139, 92, 246, 0.4),
-            0 0 40px rgba(139, 92, 246, 0.2);
+            0 4px 15px rgba(3, 252, 244, 0.4),
+            0 0 40px rgba(3, 252, 244, 0.2);
     }
 
     .vw-load-btn:hover {
         transform: translateY(-3px) scale(1.02);
         box-shadow:
-            0 8px 25px rgba(139, 92, 246, 0.5),
-            0 0 60px rgba(139, 92, 246, 0.3);
+            0 8px 25px rgba(3, 252, 244, 0.5),
+            0 0 60px rgba(3, 252, 244, 0.3);
     }
 
     .vw-load-btn:active {
@@ -489,7 +489,7 @@
     }
 
     .vw-loader-ring:nth-child(1) {
-        border-top-color: #8b5cf6;
+        border-top-color: #03fcf4;
         animation-delay: -0.45s;
     }
 
@@ -521,7 +521,7 @@
 
     .vw-loading-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4, #10b981);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4, #10b981);
         background-size: 200% 100%;
         border-radius: 2px;
         transition: width 0.3s ease;
@@ -563,14 +563,14 @@
         width: 80px;
         height: 80px;
         border-radius: 50%;
-        background: rgba(139, 92, 246, 0.9);
+        background: rgba(3, 252, 244, 0.9);
         backdrop-filter: blur(10px);
         display: flex;
         align-items: center;
         justify-content: center;
         box-shadow:
             0 8px 32px rgba(0, 0, 0, 0.4),
-            0 0 40px rgba(139, 92, 246, 0.3);
+            0 0 40px rgba(3, 252, 244, 0.3);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         opacity: 0;
     }
@@ -583,13 +583,13 @@
         transform: scale(1.1);
         box-shadow:
             0 12px 40px rgba(0, 0, 0, 0.5),
-            0 0 60px rgba(139, 92, 246, 0.4);
+            0 0 60px rgba(3, 252, 244, 0.4);
     }
 
     .vw-center-play-btn svg {
         width: 32px;
         height: 32px;
-        color: white;
+        color: #0a2e2e;
         margin-left: 4px;
     }
 
@@ -706,7 +706,7 @@
 
     .vw-progress-bar:hover .vw-progress-track {
         height: 8px;
-        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 0 10px rgba(3, 252, 244, 0.3);
     }
 
     .vw-progress-played {
@@ -714,7 +714,7 @@
         top: 0;
         left: 0;
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4);
         border-radius: 2px;
         transition: width 0.1s linear;
     }
@@ -989,14 +989,14 @@
     .vw-play-pause-btn {
         width: 44px;
         height: 44px;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
+        border: 1px solid rgba(3, 252, 244, 0.3);
     }
 
     .vw-play-pause-btn:hover:not(:disabled) {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.3));
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.5), rgba(6, 182, 212, 0.3));
+        border-color: rgba(3, 252, 244, 0.5);
+        box-shadow: 0 0 20px rgba(3, 252, 244, 0.3);
     }
 
     .vw-play-pause-btn svg {
@@ -1045,8 +1045,8 @@
         height: 100%;
         border-radius: 2px;
         background: linear-gradient(to right,
-            #8b5cf6 0%,
-            #8b5cf6 var(--volume-percent, 100%),
+            #03fcf4 0%,
+            #03fcf4 var(--volume-percent, 100%),
             rgba(255, 255, 255, 0.2) var(--volume-percent, 100%),
             rgba(255, 255, 255, 0.2) 100%
         );
@@ -1079,7 +1079,7 @@
     .vw-volume-slider::-moz-range-progress {
         height: 4px;
         border-radius: 2px;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4);
     }
 
     .vw-volume-slider::-moz-range-thumb {
@@ -1126,8 +1126,8 @@
         align-items: center;
         gap: 0.375rem;
         padding: 0.375rem 0.75rem;
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.25);
+        background: rgba(3, 252, 244, 0.15);
+        border: 1px solid rgba(3, 252, 244, 0.25);
         border-radius: 2rem;
         font-size: 0.75rem;
         color: rgba(255, 255, 255, 0.8);
@@ -1160,7 +1160,7 @@
 
     .vw-speed-btn:hover {
         background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(139, 92, 246, 0.4);
+        border-color: rgba(3, 252, 244, 0.4);
         color: white;
     }
 
@@ -1202,8 +1202,8 @@
     }
 
     .vw-speed-option.is-active {
-        background: rgba(139, 92, 246, 0.2);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.2);
+        color: #67e8f9;
     }
 
     .vw-speed-option svg {
@@ -1259,13 +1259,13 @@
 
     /* ===== Picture-in-Picture Button (Phase 5) ===== */
     .vw-ctrl-btn.is-active {
-        background: rgba(139, 92, 246, 0.3);
-        border: 1px solid rgba(139, 92, 246, 0.5);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.3);
+        border: 1px solid rgba(3, 252, 244, 0.5);
+        color: #67e8f9;
     }
 
     .vw-ctrl-btn.is-active:hover {
-        background: rgba(139, 92, 246, 0.4);
+        background: rgba(3, 252, 244, 0.4);
     }
 
     /* ===== Responsive ===== */

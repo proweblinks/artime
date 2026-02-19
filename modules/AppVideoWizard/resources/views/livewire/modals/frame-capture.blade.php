@@ -276,7 +276,7 @@
 .fc-icon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    background: linear-gradient(135deg, #ec4899, #03fcf4);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -353,7 +353,7 @@
 }
 
 .fc-frame-preview.has-image {
-    border-color: rgba(139, 92, 246, 0.5);
+    border-color: rgba(3, 252, 244, 0.5);
 }
 
 .fc-frame-preview.next-shot {
@@ -464,11 +464,11 @@
 
 .fc-btn-purple-outline {
     background: transparent;
-    border: 2px solid #8b5cf6;
-    color: #a78bfa;
+    border: 2px solid #03fcf4;
+    color: #67e8f9;
 }
 .fc-btn-purple-outline:hover:not(:disabled) {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(3, 252, 244, 0.1);
 }
 .fc-btn-purple-outline:disabled {
     opacity: 0.5;

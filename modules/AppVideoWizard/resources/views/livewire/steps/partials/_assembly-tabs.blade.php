@@ -101,8 +101,8 @@
 
     .vw-tab-btn.active {
         color: white;
-        border-bottom-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.1);
+        border-bottom-color: #03fcf4;
+        background: rgba(3, 252, 244, 0.1);
     }
 
     .vw-tabs-content {

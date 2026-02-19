@@ -158,9 +158,9 @@
     }
 
     .vw-nav-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
         color: white;
-        border-left: 3px solid #8b5cf6;
+        border-left: 3px solid #03fcf4;
     }
 
     .vw-nav-icon {
@@ -178,8 +178,8 @@
     .vw-nav-badge {
         font-size: 0.7rem;
         padding: 0.15rem 0.4rem;
-        background: rgba(139, 92, 246, 0.3);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.3);
+        color: #67e8f9;
         border-radius: 0.25rem;
         font-weight: 600;
     }
@@ -221,13 +221,13 @@
     }
 
     .vw-quick-btn.preview {
-        background: rgba(139, 92, 246, 0.2);
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.2);
+        border: 1px solid rgba(3, 252, 244, 0.3);
+        color: #67e8f9;
     }
 
     .vw-quick-btn.preview:hover:not(:disabled) {
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.3);
     }
 
     .vw-quick-btn.preview:disabled {
@@ -236,12 +236,12 @@
     }
 
     .vw-quick-btn.export {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        color: white;
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
+        color: #0a2e2e;
     }
 
     .vw-quick-btn.export:hover {
-        box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 2px 10px rgba(3, 252, 244, 0.4);
     }
 
     .vw-sidebar-section.duration-display {

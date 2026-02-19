@@ -15,14 +15,14 @@
 
         {{-- Image Skeleton --}}
         <div class="vw-scene-image-container">
-            <div style="height: 220px; background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(6,182,212,0.05)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <div style="height: 220px; background: linear-gradient(135deg, rgba(3,252,244,0.05), rgba(6,182,212,0.05)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
                 {{-- Animated shimmer effect --}}
                 <div style="position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%); animation: shimmer 1.5s infinite; background-size: 200% 100%;"></div>
 
                 {{-- Loading icon --}}
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; z-index: 2;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(139,92,246,0.15); display: flex; align-items: center; justify-content: center;">
-                        <svg style="width: 20px; height: 20px; animation: spin 1s linear infinite; color: rgba(139,92,246,0.5);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(3,252,244,0.15); display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 20px; height: 20px; animation: spin 1s linear infinite; color: rgba(3,252,244,0.5);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
                             <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
                         </svg>
@@ -43,8 +43,8 @@
 
         {{-- Button skeleton --}}
         <div style="margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-            <div style="height: 24px; width: 80px; background: rgba(139,92,246,0.1); border-radius: 0.3rem;"></div>
-            <div style="height: 20px; width: 50px; background: rgba(139,92,246,0.08); border-radius: 0.2rem;"></div>
+            <div style="height: 24px; width: 80px; background: rgba(3,252,244,0.1); border-radius: 0.3rem;"></div>
+            <div style="height: 20px; width: 50px; background: rgba(3,252,244,0.08); border-radius: 0.2rem;"></div>
         </div>
     </div>
 </div>

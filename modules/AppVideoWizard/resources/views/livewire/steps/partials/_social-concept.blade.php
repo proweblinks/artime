@@ -158,7 +158,7 @@
     }
     .vw-social-concept .vw-idea-badge.audio-music {
         background: rgba(168, 85, 247, 0.1);
-        color: #7c3aed;
+        color: #00d4cc;
         border: 1px solid rgba(168, 85, 247, 0.2);
     }
     .vw-social-concept .vw-idea-badge.audio-voice {

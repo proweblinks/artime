@@ -65,7 +65,7 @@
         gap: 1rem;
         padding: 0.6rem 1.25rem;
         background: rgba(15, 15, 28, 0.98);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        border-bottom: 1px solid rgba(3, 252, 244, 0.2);
         backdrop-filter: blur(10px);
     }
 
@@ -78,7 +78,7 @@
     .vw-studio-icon {
         width: 36px;
         height: 36px;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         border-radius: 0.5rem;
         display: flex;
         align-items: center;
@@ -115,8 +115,8 @@
     }
 
     .vw-studio-pill.voiceover {
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.15);
+        border: 1px solid rgba(3, 252, 244, 0.3);
     }
 
     .vw-studio-pill.voiceover.complete {
@@ -125,7 +125,7 @@
     }
 
     .vw-studio-pill.voiceover .pill-value {
-        color: #a78bfa;
+        color: #67e8f9;
         font-weight: 600;
     }
 
@@ -278,9 +278,9 @@
     }
 
     .vw-tool-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
-        color: #a78bfa;
+        border-color: rgba(3, 252, 244, 0.4);
+        background: rgba(3, 252, 244, 0.1);
+        color: #67e8f9;
     }
 
     /* Quick Actions */
@@ -306,12 +306,13 @@
     }
 
     .vw-quick-btn.voice {
-        background: linear-gradient(135deg, #8b5cf6, #a855f7);
+        background: linear-gradient(135deg, #03fcf4, #a855f7);
+        color: #0a2e2e;
     }
 
     .vw-quick-btn.voice:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 2px 8px rgba(3, 252, 244, 0.4);
     }
 
     .vw-quick-btn.animate {
@@ -331,7 +332,7 @@
     /* Hint */
     .vw-scene-grid-hint {
         padding: 0.35rem 1rem;
-        background: rgba(139, 92, 246, 0.05);
+        background: rgba(3, 252, 244, 0.05);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         font-size: 0.55rem;
         color: rgba(255, 255, 255, 0.35);
@@ -387,14 +388,14 @@
     }
 
     .vw-view-mode-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
+        border-color: rgba(3, 252, 244, 0.4);
         color: rgba(255, 255, 255, 0.7);
     }
 
     .vw-view-mode-btn.active {
-        border-color: rgba(139, 92, 246, 0.5);
-        background: rgba(139, 92, 246, 0.15);
-        color: #a78bfa;
+        border-color: rgba(3, 252, 244, 0.5);
+        background: rgba(3, 252, 244, 0.15);
+        color: #67e8f9;
     }
 
     /* Scrollable Scene List */
@@ -419,13 +420,13 @@
     }
 
     .vw-scene-card:hover {
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.05);
+        border-color: rgba(3, 252, 244, 0.3);
+        background: rgba(3, 252, 244, 0.05);
     }
 
     .vw-scene-card.selected {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(3, 252, 244, 0.2);
+        border-color: rgba(3, 252, 244, 0.5);
     }
 
     .vw-scene-card.processing {
@@ -559,8 +560,8 @@
     }
 
     .vw-status-badge.generating {
-        background: rgba(139, 92, 246, 0.2);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.2);
+        color: #67e8f9;
         animation: vw-pulse-badge 1.5s infinite;
     }
 
@@ -678,9 +679,9 @@
     }
 
     .vw-preview-tool-btn.device {
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.1);
-        color: #a78bfa;
+        border: 1px solid rgba(3, 252, 244, 0.3);
+        background: rgba(3, 252, 244, 0.1);
+        color: #67e8f9;
     }
 
     .vw-preview-scene-count {
@@ -711,9 +712,9 @@
     }
 
     .vw-nav-btn:hover:not(:disabled) {
-        border-color: rgba(139, 92, 246, 0.5);
-        background: rgba(139, 92, 246, 0.1);
-        color: #a78bfa;
+        border-color: rgba(3, 252, 244, 0.5);
+        background: rgba(3, 252, 244, 0.1);
+        color: #67e8f9;
     }
 
     .vw-nav-btn:disabled {
@@ -726,15 +727,15 @@
         align-items: center;
         gap: 0.35rem;
         padding: 0.35rem 0.6rem;
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(3, 252, 244, 0.1);
+        border: 1px solid rgba(3, 252, 244, 0.2);
         border-radius: 0.4rem;
     }
 
     .vw-scene-indicator-current {
         font-size: 0.85rem;
         font-weight: 700;
-        color: #a78bfa;
+        color: #67e8f9;
     }
 
     .vw-scene-indicator-total {
@@ -778,7 +779,7 @@
         gap: 1rem;
         padding: 0.5rem 1rem;
         background: rgba(15, 15, 28, 0.95);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(3, 252, 244, 0.3);
         border-radius: 0.5rem;
         font-size: 0.65rem;
         color: rgba(255, 255, 255, 0.6);
@@ -809,7 +810,7 @@
         background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(20, 20, 40, 0.6));
         border-radius: 0.75rem;
         overflow: hidden;
-        border: 2px solid rgba(139, 92, 246, 0.3);
+        border: 2px solid rgba(3, 252, 244, 0.3);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         margin-bottom: 1rem;
     }
@@ -870,14 +871,15 @@
     .vw-preview-play-btn {
         width: 70px;
         height: 70px;
-        background: rgba(139, 92, 246, 0.9);
+        background: rgba(3, 252, 244, 0.9);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 20px rgba(3, 252, 244, 0.4);
         font-size: 1.75rem;
         padding-left: 4px;
+        color: #0a2e2e;
     }
 
     .vw-preview-status-badge {
@@ -897,8 +899,9 @@
     }
 
     .vw-preview-status-badge.generating {
-        background: rgba(139, 92, 246, 0.9);
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.9);
+        box-shadow: 0 2px 8px rgba(3, 252, 244, 0.3);
+        color: #0a2e2e;
     }
 
     /* Scene Info Overlay */
@@ -1050,7 +1053,7 @@
     }
 
     .vw-mini-timeline-item.active {
-        border-color: #8b5cf6;
+        border-color: #03fcf4;
         opacity: 1;
     }
 
@@ -1188,7 +1191,7 @@
 
     .vw-progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4);
         border-radius: 2px;
         transition: width 0.1s;
     }
@@ -1239,12 +1242,13 @@
     .vw-control-btn.play {
         width: 44px;
         height: 44px;
-        background: rgba(139,92,246,0.9);
+        background: rgba(3,252,244,0.9);
         font-size: 1.1rem;
+        color: #0a2e2e;
     }
 
     .vw-control-btn.play:hover {
-        background: rgba(139,92,246,1);
+        background: rgba(3,252,244,1);
     }
 
     /* Time Display */
@@ -1349,22 +1353,22 @@
         transform: translate(-50%, -50%);
         width: 80px;
         height: 80px;
-        background: rgba(139, 92, 246, 0.9);
+        background: rgba(3, 252, 244, 0.9);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 2rem;
-        color: white;
+        color: #0a2e2e;
         cursor: pointer;
-        box-shadow: 0 4px 24px rgba(139, 92, 246, 0.5);
+        box-shadow: 0 4px 24px rgba(3, 252, 244, 0.5);
         transition: all 0.2s;
         padding-left: 5px;
     }
 
     .vw-center-play:hover {
         transform: translate(-50%, -50%) scale(1.08);
-        box-shadow: 0 6px 32px rgba(139, 92, 246, 0.6);
+        box-shadow: 0 6px 32px rgba(3, 252, 244, 0.6);
     }
 
     /* Fullscreen Mode */
@@ -1435,7 +1439,7 @@
     }
 
     .vw-progress-summary-fill.voice {
-        background: linear-gradient(90deg, #8b5cf6, #a855f7);
+        background: linear-gradient(90deg, #03fcf4, #a855f7);
     }
 
     .vw-progress-summary-fill.video {
@@ -1465,8 +1469,8 @@
         align-items: center;
         gap: 0.75rem;
         padding: 0.5rem 0.75rem;
-        background: rgba(139, 92, 246, 0.08);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(3, 252, 244, 0.08);
+        border: 1px solid rgba(3, 252, 244, 0.2);
         border-radius: 0.5rem;
         margin-left: 1rem;
     }
@@ -1730,7 +1734,7 @@
                             $ringRadius = 26;
                             $ringCircumference = 2 * 3.14159 * $ringRadius;
                             $ringOffset = $ringCircumference - ($progress / 100) * $ringCircumference;
-                            $ringColor = $progress === 100 ? '#10b981' : ($progress >= 50 ? '#06b6d4' : ($progress >= 25 ? '#fbbf24' : ($isProcessing ? '#8b5cf6' : 'rgba(255,255,255,0.2)')));
+                            $ringColor = $progress === 100 ? '#10b981' : ($progress >= 50 ? '#06b6d4' : ($progress >= 25 ? '#fbbf24' : ($isProcessing ? '#03fcf4' : 'rgba(255,255,255,0.2)')));
                         @endphp
                         <div class="vw-scene-card {{ $isSelected ? 'selected' : '' }} {{ $isProcessing ? 'processing' : '' }}"
                              wire:click="$set('animation.selectedSceneIndex', {{ $index }})">
@@ -1787,11 +1791,11 @@
                                                 display: inline-flex;
                                                 align-items: center;
                                                 gap: 0.2rem;
-                                                background: {{ $hasVoice ? 'rgba(139, 92, 246, 0.2)' : 'rgba(168, 162, 158, 0.2)' }};
+                                                background: {{ $hasVoice ? 'rgba(3, 252, 244, 0.2)' : 'rgba(168, 162, 158, 0.2)' }};
                                                 padding: 0.15rem 0.4rem;
                                                 border-radius: 0.25rem;
                                                 font-size: 0.6rem;
-                                                color: {{ $hasVoice ? 'rgba(139, 92, 246, 0.95)' : 'rgba(168, 162, 158, 0.9)' }};
+                                                color: {{ $hasVoice ? 'rgba(3, 252, 244, 0.95)' : 'rgba(168, 162, 158, 0.9)' }};
                                             ">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -2079,7 +2083,7 @@
                                 'shimmer' => ['icon' => '💫', 'name' => 'Shimmer', 'desc' => 'Bright'],
                             ];
                         @endphp
-                        <div class="vw-section-card" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.05)); border-color: rgba(139, 92, 246, 0.2);">
+                        <div class="vw-section-card" style="background: linear-gradient(135deg, rgba(3, 252, 244, 0.1), rgba(236, 72, 153, 0.05)); border-color: rgba(3, 252, 244, 0.2);">
                             <div class="vw-section-header">
                                 <div class="vw-section-title">
                                     <span class="vw-section-title-icon">🎙️</span>
@@ -2093,7 +2097,7 @@
                                                wire:click="toggleSceneMusicOnly({{ $selectedIndex }})"
                                                {{ $isMusicOnly ? 'checked' : '' }}
                                                style="opacity: 0; width: 0; height: 0;">
-                                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ $isMusicOnly ? '#8b5cf6' : 'rgba(255,255,255,0.2)' }}; transition: 0.2s; border-radius: 20px;">
+                                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ $isMusicOnly ? '#03fcf4' : 'rgba(255,255,255,0.2)' }}; transition: 0.2s; border-radius: 20px;">
                                             <span style="position: absolute; height: 16px; width: 16px; left: {{ $isMusicOnly ? '18px' : '2px' }}; bottom: 2px; background-color: white; transition: 0.2s; border-radius: 50%;"></span>
                                         </span>
                                     </div>
@@ -2115,7 +2119,7 @@
                                     </audio>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <button type="button"
-                                                style="flex: 1; padding: 0.5rem; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.4rem; color: #a78bfa; font-size: 0.75rem; cursor: pointer;"
+                                                style="flex: 1; padding: 0.5rem; background: rgba(3,252,244,0.15); border: 1px solid rgba(3,252,244,0.3); border-radius: 0.4rem; color: #67e8f9; font-size: 0.75rem; cursor: pointer;"
                                                 wire:click="$dispatch('regenerate-voiceover', { sceneIndex: {{ $selectedIndex }} })">
                                             🔄 {{ __('Regenerate') }}
                                         </button>
@@ -2129,7 +2133,7 @@
                             @elseif($selectedVoiceStatus === 'generating')
                                 {{-- Generating --}}
                                 <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 1.5rem;">
-                                    <div style="width: 24px; height: 24px; border: 2px solid rgba(139,92,246,0.3); border-top-color: #8b5cf6; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
+                                    <div style="width: 24px; height: 24px; border: 2px solid rgba(3,252,244,0.3); border-top-color: #03fcf4; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                                     <span style="color: rgba(255,255,255,0.7);">{{ __('Generating voiceover...') }}</span>
                                 </div>
                             @else
@@ -2140,7 +2144,7 @@
                                         @foreach($voices as $voiceId => $voice)
                                             <button type="button"
                                                     wire:click="$set('animation.voiceover.voice', '{{ $voiceId }}')"
-                                                    style="padding: 0.4rem; border-radius: 0.35rem; border: 1px solid {{ $selectedVoice === $voiceId ? '#8b5cf6' : 'rgba(255,255,255,0.1)' }}; background: {{ $selectedVoice === $voiceId ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.03)' }}; color: {{ $selectedVoice === $voiceId ? 'white' : 'rgba(255,255,255,0.6)' }}; font-size: 0.65rem; cursor: pointer; text-align: center;">
+                                                    style="padding: 0.4rem; border-radius: 0.35rem; border: 1px solid {{ $selectedVoice === $voiceId ? '#03fcf4' : 'rgba(255,255,255,0.1)' }}; background: {{ $selectedVoice === $voiceId ? 'rgba(3,252,244,0.2)' : 'rgba(255,255,255,0.03)' }}; color: {{ $selectedVoice === $voiceId ? 'white' : 'rgba(255,255,255,0.6)' }}; font-size: 0.65rem; cursor: pointer; text-align: center;">
                                                 <div style="font-size: 0.9rem;">{{ $voice['icon'] }}</div>
                                                 <div style="font-weight: 600;">{{ $voice['name'] }}</div>
                                             </button>
@@ -2151,13 +2155,13 @@
                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
                                         <span style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">⚡</span>
                                         <input type="range" wire:model.change="animation.voiceover.speed" min="0.5" max="2.0" step="0.1"
-                                               style="flex: 1; height: 4px; accent-color: #8b5cf6;">
-                                        <span style="font-size: 0.7rem; color: #a78bfa; font-weight: 600; min-width: 35px;">{{ number_format($voiceSpeed, 1) }}x</span>
+                                               style="flex: 1; height: 4px; accent-color: #03fcf4;">
+                                        <span style="font-size: 0.7rem; color: #67e8f9; font-weight: 600; min-width: 35px;">{{ number_format($voiceSpeed, 1) }}x</span>
                                     </div>
 
                                     {{-- Generate Button --}}
                                     <button type="button"
-                                            style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.5rem; color: white; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
+                                            style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #03fcf4, #06b6d4); border: none; border-radius: 0.5rem; color: #0a2e2e; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
                                             wire:click="$dispatch('generate-voiceover', { sceneIndex: {{ $selectedIndex }}, sceneId: '{{ $selectedScene['id'] ?? '' }}' })">
                                         🎙️ {{ __('Generate Voiceover') }}
                                     </button>
@@ -2170,7 +2174,7 @@
                             $currentAnimationType = $selectedAnimScene['animationType'] ?? 'ken_burns';
                             $animationStyles = [
                                 'ken_burns' => ['icon' => '🎬', 'name' => 'Ken Burns', 'desc' => 'Smooth zoom & pan', 'color' => '#06b6d4'],
-                                'talking_head' => ['icon' => '🗣️', 'name' => 'Talking Head', 'desc' => 'Subtle movement', 'color' => '#8b5cf6'],
+                                'talking_head' => ['icon' => '🗣️', 'name' => 'Talking Head', 'desc' => 'Subtle movement', 'color' => '#03fcf4'],
                                 'static' => ['icon' => '🖼️', 'name' => 'Static', 'desc' => 'No animation', 'color' => '#6b7280'],
                             ];
                             // AI Suggestion based on scene content
@@ -2249,7 +2253,7 @@
                                         <span style="font-size: 0.75rem; font-weight: 600; color: white;">{{ __('Camera Movement') }}</span>
                                         <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(6,182,212,0.2); color: #06b6d4; border-radius: 0.25rem;">{{ __('Minimax AI') }}</span>
                                         @if($hasScriptMovements)
-                                            <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(139,92,246,0.2); color: #a78bfa; border-radius: 0.25rem;">{{ __('AI Suggested') }}</span>
+                                            <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(3,252,244,0.2); color: #67e8f9; border-radius: 0.25rem;">{{ __('AI Suggested') }}</span>
                                         @endif
                                     </div>
                                     @if(count($cameraMovements) > 0)
@@ -2344,7 +2348,7 @@
                                     </div>
                                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
                                         <span style="font-size: 0.6rem; padding: 0.2rem 0.4rem; background: rgba(245,158,11,0.2); border-radius: 0.2rem; color: #fbbf24;">🎭 {{ __('atmospheric') }}</span>
-                                        <span style="font-size: 0.6rem; padding: 0.2rem 0.4rem; background: rgba(139,92,246,0.2); border-radius: 0.2rem; color: #a78bfa;">🎵 {{ __('ambient') }}</span>
+                                        <span style="font-size: 0.6rem; padding: 0.2rem 0.4rem; background: rgba(3,252,244,0.2); border-radius: 0.2rem; color: #67e8f9;">🎵 {{ __('ambient') }}</span>
                                         <span style="font-size: 0.6rem; padding: 0.2rem 0.4rem; background: rgba(6,182,212,0.2); border-radius: 0.2rem; color: #22d3ee;">{{ __('cinematic') }}</span>
                                     </div>
                                 </div>
@@ -2361,13 +2365,13 @@
                                                    wire:click="$set('assembly.music.enabled', {{ $musicEnabled ? 'false' : 'true' }})"
                                                    {{ $musicEnabled ? 'checked' : '' }}
                                                    style="opacity: 0; width: 0; height: 0;">
-                                            <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ $musicEnabled ? '#8b5cf6' : 'rgba(255,255,255,0.2)' }}; transition: 0.2s; border-radius: 18px;">
+                                            <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ $musicEnabled ? '#03fcf4' : 'rgba(255,255,255,0.2)' }}; transition: 0.2s; border-radius: 18px;">
                                                 <span style="position: absolute; height: 14px; width: 14px; left: {{ $musicEnabled ? '15px' : '2px' }}; bottom: 2px; background-color: white; transition: 0.2s; border-radius: 50%;"></span>
                                             </span>
                                         </label>
                                     </div>
                                     <input type="range" wire:model.change="assembly.music.volume" min="0" max="100"
-                                           style="width: 100%; height: 4px; cursor: pointer; accent-color: #8b5cf6;" {{ !$musicEnabled ? 'disabled' : '' }}>
+                                           style="width: 100%; height: 4px; cursor: pointer; accent-color: #03fcf4;" {{ !$musicEnabled ? 'disabled' : '' }}>
                                     <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4); text-align: right; margin-top: 0.2rem;">{{ $musicVolume }}%</div>
                                 </div>
 

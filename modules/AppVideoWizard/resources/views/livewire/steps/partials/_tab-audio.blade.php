@@ -543,7 +543,7 @@
     }
 
     .vw-audio-tab-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
         color: white;
     }
 
@@ -556,8 +556,8 @@
     /* Smart Audio AI Card */
     .vw-smart-audio-card {
         padding: 0.75rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.15), rgba(6, 182, 212, 0.1));
+        border: 1px solid rgba(3, 252, 244, 0.3);
         border-radius: 0.5rem;
     }
 
@@ -597,10 +597,10 @@
     .vw-analyze-btn {
         width: 100%;
         padding: 0.6rem;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         border: none;
         border-radius: 0.4rem;
-        color: white;
+        color: #0a2e2e;
         font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
@@ -608,7 +608,7 @@
     }
 
     .vw-analyze-btn:hover:not(:disabled) {
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px rgba(3, 252, 244, 0.4);
     }
 
     .vw-analyze-btn:disabled {
@@ -686,7 +686,7 @@
     .vw-channel-value {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #a78bfa;
+        color: #67e8f9;
     }
 
     .vw-channel-meter {
@@ -704,7 +704,7 @@
     }
 
     .vw-meter-fill.voice {
-        background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+        background: linear-gradient(90deg, #03fcf4, #67e8f9);
     }
 
     .vw-meter-fill.music {
@@ -730,7 +730,7 @@
     }
 
     .vw-channel-slider.voice::-webkit-slider-thumb {
-        background: #8b5cf6;
+        background: #03fcf4;
     }
 
     .vw-channel-slider.music::-webkit-slider-thumb {
@@ -756,7 +756,7 @@
     }
 
     .vw-visual-bar.voice {
-        background: linear-gradient(to top, #8b5cf6, #a78bfa);
+        background: linear-gradient(to top, #03fcf4, #67e8f9);
     }
 
     .vw-visual-bar.music {
@@ -840,7 +840,7 @@
     .vw-control-value {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #8b5cf6;
+        color: #03fcf4;
     }
 
     /* Processing Card */
@@ -923,8 +923,8 @@
     }
 
     .vw-preset-btn.active {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(3, 252, 244, 0.2);
+        border-color: rgba(3, 252, 244, 0.4);
         color: white;
     }
 
@@ -1013,7 +1013,7 @@
     }
 
     .vw-toggle-switch input:checked + .vw-toggle-slider {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
     }
 
     .vw-toggle-switch input:checked + .vw-toggle-slider:before {
@@ -1158,13 +1158,13 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         cursor: pointer;
         border: 2px solid white;
     }
 
     .vw-range-slider.voice::-webkit-slider-thumb {
-        background: #8b5cf6;
+        background: #03fcf4;
     }
 
     .vw-range-slider.music::-webkit-slider-thumb {
@@ -1481,7 +1481,7 @@
     .vw-setting-value {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #8b5cf6;
+        color: #03fcf4;
     }
 
     /* Audio Tips */

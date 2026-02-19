@@ -658,7 +658,7 @@
     }
 
     .vw-toggle-switch input:checked + .vw-toggle-slider {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
     }
 
     .vw-toggle-switch input:checked + .vw-toggle-slider:before {
@@ -697,7 +697,7 @@
     }
 
     .vw-sub-tab.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
         color: white;
     }
 
@@ -758,7 +758,7 @@
     }
 
     .vw-caption-live-preview.style-ali {
-        text-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 20px rgba(139, 92, 246, 0.4);
+        text-shadow: 0 0 10px rgba(3, 252, 244, 0.8), 0 0 20px rgba(3, 252, 244, 0.4);
     }
 
     .vw-caption-live-preview.style-minimal {
@@ -767,7 +767,7 @@
     }
 
     .vw-caption-live-preview.style-neon {
-        text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #8b5cf6, 0 0 20px #8b5cf6;
+        text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #03fcf4, 0 0 20px #03fcf4;
     }
 
     /* Preset Cards */
@@ -804,12 +804,12 @@
 
     .vw-preset-card:hover {
         background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(3, 252, 244, 0.3);
     }
 
     .vw-preset-card.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
     }
 
     .vw-preset-preview {
@@ -842,7 +842,7 @@
     }
 
     .vw-preset-preview.preset-ali {
-        text-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+        text-shadow: 0 0 8px rgba(3, 252, 244, 0.8);
     }
 
     .vw-preset-preview.preset-minimal {
@@ -850,7 +850,7 @@
     }
 
     .vw-preset-preview.preset-neon {
-        text-shadow: 0 0 5px #8b5cf6, 0 0 10px #8b5cf6;
+        text-shadow: 0 0 5px #03fcf4, 0 0 10px #03fcf4;
     }
 
     .vw-preset-info {
@@ -916,8 +916,8 @@
     }
 
     .vw-mode-btn.active {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(3, 252, 244, 0.2);
+        border-color: rgba(3, 252, 244, 0.4);
     }
 
     .vw-mode-icon {
@@ -959,7 +959,7 @@
     .vw-style-value {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #8b5cf6;
+        color: #03fcf4;
     }
 
     .vw-font-select {
@@ -987,7 +987,7 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         cursor: pointer;
         border: 2px solid white;
     }
@@ -1029,8 +1029,8 @@
 
     .vw-position-btn.active,
     .vw-transform-btn.active {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(3, 252, 244, 0.2);
+        border-color: rgba(3, 252, 244, 0.4);
         color: white;
     }
 
@@ -1122,7 +1122,7 @@
 
     .vw-swatch.active {
         border-color: white;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+        box-shadow: 0 0 0 2px rgba(3, 252, 244, 0.5);
     }
 
     /* Mini Toggle */
@@ -1164,7 +1164,7 @@
     }
 
     .vw-mini-toggle input:checked + .vw-mini-slider {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
     }
 
     .vw-mini-toggle input:checked + .vw-mini-slider:before {
@@ -1225,8 +1225,8 @@
     }
 
     .vw-effect-card.active {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(3, 252, 244, 0.2);
+        border-color: rgba(3, 252, 244, 0.4);
     }
 
     .vw-effect-icon {

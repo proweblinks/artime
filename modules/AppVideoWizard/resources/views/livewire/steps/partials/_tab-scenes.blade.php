@@ -97,8 +97,8 @@
     .vw-section-badge {
         font-size: 0.7rem;
         padding: 0.15rem 0.5rem;
-        background: rgba(139, 92, 246, 0.2);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.2);
+        color: #67e8f9;
         border-radius: 1rem;
     }
 
@@ -126,8 +126,8 @@
     }
 
     .vw-scene-item.active {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.15);
+        border-color: rgba(3, 252, 244, 0.3);
     }
 
     .vw-scene-thumb {

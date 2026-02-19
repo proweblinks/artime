@@ -129,7 +129,7 @@
                 custom: {
                     name: 'Custom',
                     icon: '⚙️',
-                    color: '#8b5cf6',
+                    color: '#03fcf4',
                     quality: '1080p',
                     fps: 30,
                     bitrate: 'auto',
@@ -645,7 +645,7 @@
     /* Export Modal Full */
     .vw-export-modal-full {
         background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(15, 15, 30, 0.98));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(3, 252, 244, 0.3);
         border-radius: 1.25rem;
         width: 95%;
         max-width: 680px;
@@ -653,7 +653,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(139, 92, 246, 0.15);
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(3, 252, 244, 0.15);
     }
 
     /* Export Header */
@@ -758,7 +758,7 @@
 
     .vw-export-tab.active {
         color: white;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
     }
 
     /* Export Section */
@@ -798,7 +798,7 @@
     }
 
     .vw-platform-card.active {
-        background: rgba(139, 92, 246, 0.15);
+        background: rgba(3, 252, 244, 0.15);
     }
 
     .vw-platform-icon {
@@ -824,7 +824,7 @@
         display: flex;
         gap: 0.35rem;
         font-size: 0.6rem;
-        color: #8b5cf6;
+        color: #03fcf4;
         margin-top: 0.4rem;
     }
 
@@ -870,8 +870,8 @@
     }
 
     .vw-quality-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
     }
 
     .vw-quality-label {
@@ -924,8 +924,8 @@
     }
 
     .vw-fps-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
     }
 
     .vw-fps-unit {
@@ -955,7 +955,7 @@
     .vw-select:focus,
     .vw-select-sm:focus {
         outline: none;
-        border-color: #8b5cf6;
+        border-color: #03fcf4;
     }
 
     .vw-select option,
@@ -988,8 +988,8 @@
     }
 
     .vw-format-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
     }
 
     .vw-format-icon {
@@ -1032,8 +1032,8 @@
         display: flex;
         justify-content: space-between;
         padding: 0.75rem 1rem;
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(3, 252, 244, 0.1);
+        border: 1px solid rgba(3, 252, 244, 0.2);
         border-radius: 0.5rem;
         margin-top: 1rem;
     }
@@ -1070,8 +1070,8 @@
     .vw-progress-spinner {
         width: 48px;
         height: 48px;
-        border: 3px solid rgba(139, 92, 246, 0.2);
-        border-top-color: #8b5cf6;
+        border: 3px solid rgba(3, 252, 244, 0.2);
+        border-top-color: #03fcf4;
         border-radius: 50%;
         margin: 0 auto 1rem;
         animation: spin 1s linear infinite;
@@ -1109,7 +1109,7 @@
 
     .vw-progress-fill-animated {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4, #8b5cf6);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4, #03fcf4);
         background-size: 200% 100%;
         border-radius: 6px;
         transition: width 0.3s ease;
@@ -1179,14 +1179,14 @@
     }
 
     .vw-scene-dot.current {
-        border-color: #8b5cf6;
-        box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        border-color: #03fcf4;
+        box-shadow: 0 0 15px rgba(3, 252, 244, 0.5);
         animation: pulse 1.5s ease infinite;
     }
 
     @keyframes pulse {
-        0%, 100% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.5); }
-        50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.8); }
+        0%, 100% { box-shadow: 0 0 15px rgba(3, 252, 244, 0.5); }
+        50% { box-shadow: 0 0 25px rgba(3, 252, 244, 0.8); }
     }
 
     .vw-dot-number {
@@ -1202,12 +1202,12 @@
         left: 0;
         right: 0;
         height: 100%;
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.3);
     }
 
     .vw-dot-fill {
         height: 100%;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         transition: width 0.3s;
     }
 
@@ -1234,7 +1234,7 @@
 
     .vw-step.active {
         color: white;
-        background: rgba(139, 92, 246, 0.1);
+        background: rgba(3, 252, 244, 0.1);
         border-radius: 0.4rem;
     }
 
@@ -1290,7 +1290,7 @@
     .vw-preview-thumb {
         width: 60px;
         height: 45px;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
         border-radius: 0.4rem;
         display: flex;
         align-items: center;
@@ -1338,12 +1338,12 @@
     }
 
     .vw-download-btn.primary {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        color: white;
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
+        color: #0a2e2e;
     }
 
     .vw-download-btn.primary:hover {
-        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 20px rgba(3, 252, 244, 0.4);
         transform: translateY(-2px);
     }
 
@@ -1395,7 +1395,7 @@
     .vw-share-btn.tiktok:hover { background: #00F2EA; }
     .vw-share-btn.instagram:hover { background: #E1306C; }
     .vw-share-btn.twitter:hover { background: #1DA1F2; }
-    .vw-share-btn.link:hover { background: #8b5cf6; }
+    .vw-share-btn.link:hover { background: #03fcf4; }
 
     /* Export Footer */
     .vw-export-footer {
@@ -1433,12 +1433,12 @@
     }
 
     .vw-export-btn.primary {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        color: white;
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
+        color: #0a2e2e;
     }
 
     .vw-export-btn.primary:hover {
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px rgba(3, 252, 244, 0.4);
     }
 
     .vw-export-btn.danger {

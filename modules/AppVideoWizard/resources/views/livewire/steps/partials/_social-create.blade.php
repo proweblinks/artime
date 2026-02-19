@@ -920,7 +920,7 @@
         top: 4px;
         right: 4px;
         width: 7px; height: 7px;
-        background: #a78bfa;
+        background: #67e8f9;
         border-radius: 50%;
         box-shadow: 0 0 6px rgba(var(--vw-primary-rgb), 0.6);
     }

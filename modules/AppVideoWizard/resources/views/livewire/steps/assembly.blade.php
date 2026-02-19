@@ -918,8 +918,8 @@
         align-items: center;
         gap: 1rem;
         padding: 0.5rem 1rem;
-        background: linear-gradient(90deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
-        border-top: 1px solid rgba(139, 92, 246, 0.2);
+        background: linear-gradient(90deg, rgba(3, 252, 244, 0.1), rgba(6, 182, 212, 0.1));
+        border-top: 1px solid rgba(3, 252, 244, 0.2);
     }
 
     .vw-multishot-info {
@@ -932,9 +932,9 @@
         font-size: 0.7rem;
         font-weight: 600;
         padding: 0.25rem 0.5rem;
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.3);
         border-radius: 0.25rem;
-        color: #a78bfa;
+        color: #67e8f9;
     }
 
     .vw-multishot-stats {
@@ -959,14 +959,14 @@
 
     .vw-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, #03fcf4, #06b6d4);
         border-radius: 3px;
         transition: width 0.3s;
     }
 
     .vw-progress-text {
         font-size: 0.7rem;
-        color: #a78bfa;
+        color: #67e8f9;
         font-weight: 600;
         min-width: 35px;
     }
@@ -1077,7 +1077,7 @@
     }
 
     .vw-mini-toggle input:checked + .vw-mini-slider {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
     }
 
     .vw-mini-toggle input:checked + .vw-mini-slider:before {
@@ -1143,13 +1143,13 @@
     }
 
     .vw-timeline-scene:hover {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(3, 252, 244, 0.1);
+        border-color: rgba(3, 252, 244, 0.3);
     }
 
     .vw-timeline-scene.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border-color: #8b5cf6;
+        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        border-color: #03fcf4;
     }
 
     .vw-scene-thumb {
@@ -1196,7 +1196,7 @@
 
     .vw-export-modal {
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(3, 252, 244, 0.3);
         border-radius: 1rem;
         width: 90%;
         max-width: 480px;
@@ -1319,12 +1319,12 @@
     }
 
     .vw-modal-btn.primary {
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-        color: white;
+        background: linear-gradient(135deg, #03fcf4, #06b6d4);
+        color: #0a2e2e;
     }
 
     .vw-modal-btn.primary:hover {
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px rgba(3, 252, 244, 0.4);
     }
 
     .vw-modal-btn.warning {

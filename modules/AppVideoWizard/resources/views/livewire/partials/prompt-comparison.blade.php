@@ -139,8 +139,8 @@
     }
 
     .vw-prompt-method-llm {
-        background: rgba(139, 92, 246, 0.15);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.15);
+        color: #67e8f9;
     }
 
     .vw-prompt-method-template {
@@ -169,9 +169,9 @@
     }
 
     .vw-prompt-toggle.active {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.3);
-        color: #a78bfa;
+        background: rgba(3, 252, 244, 0.15);
+        border-color: rgba(3, 252, 244, 0.3);
+        color: #67e8f9;
     }
 
     .vw-prompt-display {
@@ -222,7 +222,7 @@
     }
 
     .vw-prompt-expanded .vw-prompt-panel-label {
-        color: rgba(139, 92, 246, 0.7);
+        color: rgba(3, 252, 244, 0.7);
     }
 
     .vw-prompt-original .vw-prompt-panel-label {

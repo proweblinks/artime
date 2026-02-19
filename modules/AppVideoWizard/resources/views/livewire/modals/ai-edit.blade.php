@@ -239,7 +239,7 @@ if (typeof window.aiEditCanvas === 'undefined') {
                             ] as $suggestion)
                                 <button type="button"
                                         wire:click="$set('aiEditPrompt', '{{ $suggestion }}')"
-                                        style="padding: 0.3rem 0.6rem; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.25rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                                        style="padding: 0.3rem 0.6rem; background: rgba(3,252,244,0.1); border: 1px solid rgba(3,252,244,0.3); border-radius: 0.25rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
                                     {{ __($suggestion) }}
                                 </button>
                             @endforeach
@@ -279,7 +279,7 @@ if (typeof window.aiEditCanvas === 'undefined') {
             <button type="button"
                     @click="applyEdit()"
                     :disabled="isApplying || !$wire.aiEditPrompt"
-                    style="padding: 0.6rem 1.5rem; background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"
+                    style="padding: 0.6rem 1.5rem; background: linear-gradient(135deg, #ec4899, #03fcf4); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;"
                     :style="(isApplying || !$wire.aiEditPrompt) ? 'opacity: 0.5; cursor: not-allowed;' : ''">
                 <span x-show="!isApplying">{{ __('Apply Edit') }}</span>
                 <span x-show="isApplying" style="display: flex; align-items: center; gap: 0.5rem;">
