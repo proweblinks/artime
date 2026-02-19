@@ -23,7 +23,7 @@
         {{-- ━━━ Prompt Input ━━━ --}}
         <div class="cs-card" style="padding: 24px; margin-bottom: 24px;">
             <textarea class="cs-input cs-input-lg"
-                      wire:model="prompt"
+                      wire:model.live="prompt"
                       placeholder="{{ __('Describe the campaign you want to create') }}"
                       rows="3"></textarea>
 

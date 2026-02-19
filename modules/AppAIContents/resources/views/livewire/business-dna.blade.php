@@ -26,7 +26,7 @@
             <div style="display: flex; gap: 8px; max-width: 500px; margin: 0 auto;">
                 <input type="url"
                     class="cs-input"
-                    wire:model="websiteUrl"
+                    wire:model.live="websiteUrl"
                     wire:keydown.enter="analyzeSite"
                     placeholder="https://yourwebsite.com"
                     style="flex: 1;">

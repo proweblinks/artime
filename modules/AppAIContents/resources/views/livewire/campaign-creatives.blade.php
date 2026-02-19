@@ -136,7 +136,7 @@
             </button>
         </div>
 
-        <textarea class="cs-input" wire:model="addCreativePrompt" placeholder="{{ __('Describe the creative you want to make') }}" rows="3"></textarea>
+        <textarea class="cs-input" wire:model.live="addCreativePrompt" placeholder="{{ __('Describe the creative you want to make') }}" rows="3"></textarea>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
             <button class="cs-btn cs-btn-primary" wire:click="addCreative" @click="showAddSheet = false" @if(empty(trim($addCreativePrompt ?? ''))) disabled @endif>
