@@ -581,14 +581,14 @@
         {{-- Error Message --}}
         @if($error)
             <div class="vw-error-alert">
-                <span style="margin-right: 0.5rem;">⚠️</span>
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem;"></i>
                 {{ $error }}
             </div>
         @endif
 
         {{-- Header --}}
         <div class="vw-concept-header">
-            <div class="vw-concept-icon">💡</div>
+            <div class="vw-concept-icon"><i class="fa-solid fa-lightbulb"></i></div>
             <div>
                 <h2 class="vw-concept-title">{{ __('Develop Your Concept') }}</h2>
                 <p class="vw-concept-subtitle">{{ __("Tell us what you want to create - we'll generate unique ideas") }}</p>
@@ -612,12 +612,12 @@
                 <div class="vw-context-left">
                     <span>{{ __('Creating:') }}</span>
                     <span class="vw-context-badge">
-                        🎬 {{ $typeName }}
+                        <i class="fa-solid fa-film"></i> {{ $typeName }}
                     </span>
                     @if($subtypeName)
                         <span class="vw-context-arrow">→</span>
                         <span class="vw-context-badge accent">
-                            🎯 {{ $subtypeName }}
+                            <i class="fa-solid fa-crosshairs"></i> {{ $subtypeName }}
                         </span>
                     @endif
                 </div>
@@ -628,25 +628,25 @@
         {{-- Visual Mode Selector - MASTER STYLE AUTHORITY - Prominent at top --}}
         <div class="vw-visual-mode-section">
             <div class="vw-visual-mode-header">
-                <span class="vw-visual-mode-title">🎨 {{ __('Visual Style') }}</span>
+                <span class="vw-visual-mode-title"><i class="fa-solid fa-palette"></i> {{ __('Visual Style') }}</span>
                 <span class="vw-visual-mode-badge">{{ __('MASTER') }}</span>
             </div>
             <div class="vw-visual-mode-options">
                 <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? 'cinematic-realistic') === 'cinematic-realistic' ? 'active' : '' }}"
                      wire:click="setVisualMode('cinematic-realistic')">
-                    <div class="vw-mode-icon">🎬</div>
+                    <div class="vw-mode-icon"><i class="fa-solid fa-film"></i></div>
                     <div class="vw-mode-label">{{ __('Cinematic Realistic') }}</div>
                     <div class="vw-mode-desc">{{ __('Live-action, photorealistic, Hollywood quality') }}</div>
                 </div>
                 <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? '') === 'stylized-animation' ? 'active' : '' }}"
                      wire:click="setVisualMode('stylized-animation')">
-                    <div class="vw-mode-icon">✨</div>
+                    <div class="vw-mode-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                     <div class="vw-mode-label">{{ __('Stylized Animation') }}</div>
                     <div class="vw-mode-desc">{{ __('2D/3D animation, cartoon, anime') }}</div>
                 </div>
                 <div class="vw-visual-mode-option {{ ($content['visualMode'] ?? '') === 'mixed-hybrid' ? 'active' : '' }}"
                      wire:click="setVisualMode('mixed-hybrid')">
-                    <div class="vw-mode-icon">🎭</div>
+                    <div class="vw-mode-icon"><i class="fa-solid fa-masks-theater"></i></div>
                     <div class="vw-mode-label">{{ __('Mixed / Hybrid') }}</div>
                     <div class="vw-mode-desc">{{ __('Combination of styles') }}</div>
                 </div>
@@ -680,7 +680,7 @@
                             wire:loading.attr="disabled"
                             wire:target="enhanceConcept, generateIdeas"
                             @if(empty($concept['rawInput'])) disabled @endif>
-                        <span wire:loading.remove wire:target="enhanceConcept">✨ {{ __('Enhance with AI') }}</span>
+                        <span wire:loading.remove wire:target="enhanceConcept"><i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Enhance with AI') }}</span>
                         <span wire:loading wire:target="enhanceConcept">
                             <span class="vw-loading-inner">
                                 <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -699,13 +699,13 @@
             @if(!empty($concept['suggestedMood']) || !empty($concept['suggestedTone']) || !empty($concept['keyElements']))
                 <div class="vw-enhancement-meta">
                     @if(!empty($concept['suggestedMood']))
-                        <span class="vw-enhancement-tag mood">🎭 {{ ucfirst($concept['suggestedMood']) }}</span>
+                        <span class="vw-enhancement-tag mood"><i class="fa-solid fa-masks-theater"></i> {{ ucfirst($concept['suggestedMood']) }}</span>
                     @endif
                     @if(!empty($concept['suggestedTone']))
-                        <span class="vw-enhancement-tag tone">🎯 {{ ucfirst($concept['suggestedTone']) }}</span>
+                        <span class="vw-enhancement-tag tone"><i class="fa-solid fa-crosshairs"></i> {{ ucfirst($concept['suggestedTone']) }}</span>
                     @endif
                     @if(!empty($concept['targetAudience']))
-                        <span class="vw-enhancement-tag">👥 {{ $concept['targetAudience'] }}</span>
+                        <span class="vw-enhancement-tag"><i class="fa-solid fa-users"></i> {{ $concept['targetAudience'] }}</span>
                     @endif
                     @if(!empty($concept['keyElements']) && is_array($concept['keyElements']))
                         @foreach(array_slice($concept['keyElements'], 0, 3) as $element)
@@ -722,7 +722,7 @@
         <div class="vw-field-group">
             <label class="vw-field-label">{{ __('Style Inspiration (Optional)') }}</label>
             <div class="vw-field-note">
-                <span class="warning">⚠️</span>
+                <span class="warning"><i class="fa-solid fa-triangle-exclamation"></i></span>
                 <span>{{ __('This is for VISUAL STYLE only - your content will be 100% original') }}</span>
             </div>
             <input type="text"
@@ -747,7 +747,7 @@
                 wire:loading.attr="disabled"
                 wire:target="generateIdeas, enhanceConcept"
                 @if(empty($concept['rawInput'])) disabled @endif>
-            <span wire:loading.remove wire:target="generateIdeas">✨ {{ __('Generate Unique Ideas') }}</span>
+            <span wire:loading.remove wire:target="generateIdeas"><i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Generate Unique Ideas') }}</span>
             <span wire:loading wire:target="generateIdeas">
                 <span class="vw-loading-inner lg">
                     <svg style="width: 18px; height: 18px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -765,7 +765,7 @@
         <div class="vw-your-concept-card">
             {{-- Header --}}
             <div class="vw-your-concept-header">
-                <div class="vw-your-concept-icon">🎬</div>
+                <div class="vw-your-concept-icon"><i class="fa-solid fa-film"></i></div>
                 <div>
                     <h3 class="vw-concept-title">{{ __('Your Concept') }}</h3>
                     <p class="vw-concept-subtitle">{{ __('Select a concept direction below') }}</p>
@@ -782,14 +782,14 @@
                     <p class="vw-main-concept-text">{{ $selectedVariation['concept'] ?? $concept['refinedConcept'] ?? $concept['rawInput'] }}</p>
                     <div class="vw-concept-badges">
                         @if(!empty($concept['suggestedTone']))
-                            <span class="vw-concept-badge engaging">✨ {{ ucfirst($concept['suggestedTone']) }}</span>
+                            <span class="vw-concept-badge engaging"><i class="fa-solid fa-wand-magic-sparkles"></i> {{ ucfirst($concept['suggestedTone']) }}</span>
                         @else
-                            <span class="vw-concept-badge engaging">✨ {{ __('Engaging') }}</span>
+                            <span class="vw-concept-badge engaging"><i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Engaging') }}</span>
                         @endif
                         @if(!empty($concept['suggestedMood']))
-                            <span class="vw-concept-badge professional">🎯 {{ ucfirst($concept['suggestedMood']) }}</span>
+                            <span class="vw-concept-badge professional"><i class="fa-solid fa-crosshairs"></i> {{ ucfirst($concept['suggestedMood']) }}</span>
                         @else
-                            <span class="vw-concept-badge professional">🎯 {{ __('Professional') }}</span>
+                            <span class="vw-concept-badge professional"><i class="fa-solid fa-crosshairs"></i> {{ __('Professional') }}</span>
                         @endif
                     </div>
                 </div>
@@ -817,7 +817,7 @@
                     wire:click="generateDifferentConcepts"
                     wire:loading.attr="disabled"
                     wire:target="generateDifferentConcepts">
-                <span wire:loading.remove wire:target="generateDifferentConcepts">🎬 {{ __('Generate Different Concepts') }}</span>
+                <span wire:loading.remove wire:target="generateDifferentConcepts"><i class="fa-solid fa-film"></i> {{ __('Generate Different Concepts') }}</span>
                 <span wire:loading wire:target="generateDifferentConcepts">
                     <span class="vw-loading-inner">
                         <svg style="width: 14px; height: 14px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
