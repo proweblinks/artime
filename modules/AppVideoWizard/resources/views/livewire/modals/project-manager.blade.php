@@ -501,7 +501,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -804,7 +804,7 @@
 }
 
 .vw-pm-card-checkbox.checked {
-    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     border-color: transparent;
 }
 
@@ -857,7 +857,7 @@
 
 .vw-pm-empty-btn {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -882,7 +882,7 @@
 /* Card */
 .vw-pm-card {
     background: var(--vw-bg-elevated);
-    border: 1px solid var(--vw-border);
+    border: none; box-shadow: var(--vw-clay);
     border-radius: 0.75rem;
     overflow: hidden;
     transition: all 0.2s;
@@ -1117,7 +1117,7 @@
 }
 
 .vw-pm-card-progress-step.completed {
-    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
 }
 
 /* Pagination */
@@ -1163,7 +1163,7 @@
 }
 
 .vw-pm-pagination-btn.active {
-    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     border-color: transparent;
     color: #fff;
 }

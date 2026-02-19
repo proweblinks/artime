@@ -85,7 +85,7 @@
                     @endphp
 
                     <div x-show="filterType === 'all' || filterType === '{{ $entryType }}'"
-                         style="background: {{ $isActive ? 'rgba(var(--vw-primary-rgb),0.08)' : 'var(--vw-bg-elevated)' }}; border: 1px solid {{ $isActive ? 'rgba(var(--vw-primary-rgb),0.3)' : 'var(--vw-border)' }}; border-radius: 0.5rem; overflow: hidden;">
+                         style="background: {{ $isActive ? 'rgba(var(--vw-primary-rgb),0.08)' : 'var(--vw-bg-elevated)' }}; border: none; box-shadow: var(--vw-clay); border-radius: 0.5rem; overflow: hidden;">
 
                         {{-- Thumbnail --}}
                         <div style="position: relative;">
@@ -131,8 +131,8 @@
                                     <button type="button"
                                             wire:click="restoreAssetFromHistory('{{ $entry['id'] ?? '' }}')"
                                             style="padding: 0.25rem 0.5rem; background: rgba(var(--vw-primary-rgb),0.15); border: 1px solid rgba(var(--vw-primary-rgb),0.3); border-radius: 0.3rem; color: var(--vw-text-secondary); font-size: 0.65rem; cursor: pointer; font-weight: 500;"
-                                            onmouseover="this.style.background='rgba(24,24,27,0.12)'"
-                                            onmouseout="this.style.background='rgba(24,24,27,0.06)'">
+                                            onmouseover="this.style.background='rgba(99,102,241,0.12)'"
+                                            onmouseout="this.style.background='rgba(99,102,241,0.06)'">
                                         <i class="fa-solid fa-rotate-left" style="font-size: 0.55rem; margin-right: 0.2rem;"></i>
                                         {{ __('Restore') }}
                                     </button>

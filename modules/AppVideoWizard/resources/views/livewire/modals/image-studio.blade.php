@@ -58,7 +58,7 @@
         <div style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--vw-border);">
 
             {{-- Image Preview --}}
-            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border);">
+            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: var(--vw-bg-elevated); border: none; box-shadow: var(--vw-clay);">
                 @if(!empty($imageStudioTarget['imageUrl']))
                     <img src="{{ $imageStudioTarget['imageUrl'] }}" alt="{{ __('Image preview') }}"
                          style="width: 100%; max-height: 320px; object-fit: contain; display: block; background: #000;">
@@ -129,8 +129,8 @@
                                         x-on:click="$nextTick(() => document.getElementById('studio-edit-prompt').focus())"
                                     @endif
                                     style="padding: 0.4rem 0.7rem; background: rgba(var(--vw-primary-rgb),0.1); border: 1px solid rgba(var(--vw-primary-rgb),0.25); border-radius: 2rem; color: var(--vw-text-secondary); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s;"
-                                    onmouseover="this.style.background='rgba(24,24,27,0.08)'; this.style.borderColor='rgba(24,24,27,0.2)';"
-                                    onmouseout="this.style.background='rgba(24,24,27,0.05)'; this.style.borderColor='rgba(24,24,27,0.1)';">
+                                    onmouseover="this.style.background='rgba(99,102,241,0.08)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                                    onmouseout="this.style.background='rgba(99,102,241,0.05)'; this.style.borderColor='rgba(99,102,241,0.1)';">
                                 <i class="{{ $preset['icon'] }}" style="font-size: 0.7rem;"></i>
                                 {{ $preset['label'] }}
                                 @if($preset['auto'])
@@ -160,7 +160,7 @@
                               rows="3"
                               placeholder="{{ __('Describe what you want to change...') }}"
                               style="width: 100%; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
-                              onfocus="this.style.borderColor='rgba(24,24,27,0.2)'"
+                              onfocus="this.style.borderColor='rgba(99,102,241,0.2)'"
                               onblur="this.style.borderColor='var(--vw-border)'"></textarea>
                 </div>
             </div>
