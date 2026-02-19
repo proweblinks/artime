@@ -33690,7 +33690,7 @@ PROMPT;
                 $text = preg_replace('/^\*\*.*?\*\*:?\s*/m', '', $text);
                 $text = trim($text);
 
-                // Sanitize banned Seedance words
+                // Sanitize banned Seedance words (regex pre-pass)
                 $text = \Modules\AppVideoWizard\Services\ConceptService::sanitizeSeedancePrompt($text);
 
                 // Remove clothing descriptions
@@ -33716,6 +33716,34 @@ PROMPT;
                 // Strip face prefix
                 $text = preg_replace('/Maintain face[^.]*\.\s*/i', '', $text);
                 $text = preg_replace('/\s{2,}/', ' ', trim($text));
+
+                // AI-powered Seedance Compliance Check — same validator used in main workflow
+                try {
+                    $conceptService = app(\Modules\AppVideoWizard\Services\ConceptService::class);
+                    $compliance = $conceptService->validateSeedanceCompliance(
+                        $text,
+                        session('current_team_id', 0),
+                        $this->content['aiEngine'] ?? 'grok',
+                        'generate'
+                    );
+
+                    if ($compliance['success'] && !empty($compliance['fixedPrompt'])) {
+                        \Log::info('VideoExtend: Seedance compliance applied to continuation', [
+                            'score' => $compliance['score'],
+                            'violations' => count($compliance['violations']),
+                            'originalWords' => str_word_count($text),
+                            'fixedWords' => str_word_count($compliance['fixedPrompt']),
+                        ]);
+                        $text = $compliance['fixedPrompt'];
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('VideoExtend: Seedance compliance check failed, using regex-sanitized prompt', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Post-compliance adverb dedup
+                $text = \Modules\AppVideoWizard\Services\ConceptService::deduplicateSeedanceAdverbs($text);
 
                 return $text;
             }
@@ -33932,24 +33960,40 @@ If the frame shows something different from what the story described (e.g., a ch
 
 5. PRESERVE DIALOGUE STYLE — If the original had voiceover narration (like 'the voiceover narrates "..."'), include voiceover in the continuation. If it had character speech, continue with character speech. If it had no dialogue, don't add any.
 
-=== SEEDANCE 1.5 TECHNICAL RULES ===
+=== SEEDANCE 1.5 TECHNICAL RULES (MANDATORY — FOLLOW EXACTLY) ===
 
-These are technical requirements of the video generation model:
+WORD COUNT: Match the original prompt's length (typically 100-155 words). Hard limit: 155 words.
 
-- WORD COUNT: Match the original prompt's length (typically 100-170 words)
-- Use Seedance degree words for actions: quickly, violently, with large amplitude, at high frequency, powerfully, wildly, crazy, fast, intense, strong, greatly
+ADVERBS — Use natural, descriptive adverbs freely:
+- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
+- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
+- Temporal: suddenly, immediately, then, finally, instantly
 - Every significant action needs at least one degree word
-- NO -ly adverbs except "violently" and "quickly"
-- NO emotional adjectives (happy, sad, mischievous) — convey emotion through BODY ACTIONS
-- NO camera movements (controlled separately by API)
-- NO background music references
-- NO clothing descriptions (the source image defines appearance)
-- NO passive voice or weak verbs (goes, moves, starts, begins)
-- Describe explicit motion trajectories for every movement
-- Include sound descriptions appropriate to the action
-- End with "Cinematic, photorealistic."
-- Do NOT include any face/clothing prefix — the source image defines the face
-- Do NOT describe the setting — the source image shows it
+
+EXPLICIT MOTION — Seedance CANNOT infer motion:
+Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+WRONG: "the cat attacks" → RIGHT: "the cat slaps the man's face with its right paw"
+If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
+
+OBJECT DISPLACEMENT — When characters interact with objects, describe what happens:
+"jumps onto the counter and violently knocks over the iced coffee cup"
+Objects flying, falling, scattering = essential visual chaos.
+
+DIALOGUE & SOUNDS — Include character dialogue in quotes and character sounds (meows, yells, screams).
+Include environmental sounds caused by actions (crashes, clattering, shattering).
+
+ABSOLUTELY BANNED — These will break the video:
+- NO facial micro-expressions: "eyes widen", "widening eyes", "brow furrows", "mouth curving", "expression shifts", "gaze softens" — convey emotion through BODY ACTIONS only
+- NO emotional adjectives: happy, sad, mischievous, amused, confused — show don't tell
+- NO appearance/clothing descriptions (fur color, outfit details — image defines them)
+- NO face/identity prefix text ("Maintain face consistency" etc.)
+- NO setting/scene descriptions — the source image already shows the environment
+- NO camera movements — controlled separately by API
+- NO background music, soundtrack, score, beat, rhythm, melody — NEVER
+- NO passive voice, NO weak verbs: goes, moves, starts, begins, does, gets
+- NO semicolons
+- Must start directly with the first action
+- Must end with "Cinematic, photorealistic."
 
 === ANTI-REPETITION ===
 
