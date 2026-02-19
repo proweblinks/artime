@@ -420,7 +420,7 @@
 @endif
 
 <style>
-/* Project Manager Modal — Dark Premium Theme */
+/* Project Manager Modal — Frosted Glass Light Theme */
 .vw-modal-overlay {
     position: fixed;
     inset: 0;
@@ -433,7 +433,7 @@
 .vw-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(12px);
 }
 
@@ -442,10 +442,12 @@
     width: 100%;
     max-width: 900px;
     max-height: 85vh;
-    background: linear-gradient(160deg, #0f172a 0%, #1a1a2e 40%, #0d1b2a 100%);
-    border-radius: 1rem;
-    border: 1px solid rgba(3, 252, 244, 0.2);
-    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(3, 252, 244, 0.05);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(3, 252, 244, 0.08);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -457,8 +459,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(3, 252, 244, 0.1);
-    background: linear-gradient(135deg, rgba(3, 252, 244, 0.06) 0%, rgba(6, 227, 247, 0.02) 100%);
+    border-bottom: 1px solid rgba(3, 252, 244, 0.12);
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .vw-pm-header-left {
@@ -470,7 +472,7 @@
 .vw-pm-title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: #1a1a2e;
     margin: 0;
     display: flex;
     align-items: center;
@@ -479,16 +481,16 @@
 
 .vw-pm-title-icon {
     font-size: 1.25rem;
-    color: #03fcf4;
+    color: #0891b2;
 }
 
 .vw-pm-count {
     font-size: 0.8rem;
-    color: #67e8f9;
-    background: rgba(3, 252, 244, 0.12);
+    color: #0891b2;
+    background: rgba(3, 252, 244, 0.1);
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
-    border: 1px solid rgba(3, 252, 244, 0.15);
+    font-weight: 600;
 }
 
 .vw-pm-header-right {
@@ -505,11 +507,12 @@
     background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
     color: #0a2e2e;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(3, 252, 244, 0.25);
 }
 
 .vw-pm-new-btn:hover {
@@ -529,9 +532,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.05);
+    color: #5a6178;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.5rem;
     font-size: 0.875rem;
     cursor: pointer;
@@ -539,9 +542,9 @@
 }
 
 .vw-pm-close-btn:hover {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 /* Status Filter Tabs */
@@ -549,8 +552,8 @@
     display: flex;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -565,27 +568,30 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 2rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #5a6178;
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    backdrop-filter: blur(8px);
 }
 
 .vw-pm-status-tab:hover {
     background: rgba(3, 252, 244, 0.08);
     border-color: rgba(3, 252, 244, 0.2);
-    color: rgba(255, 255, 255, 0.8);
+    color: #0891b2;
 }
 
 .vw-pm-status-tab.active {
-    background: rgba(3, 252, 244, 0.15);
-    border-color: rgba(3, 252, 244, 0.4);
-    color: #67e8f9;
+    background: linear-gradient(135deg, #06e3f7, #03fcf4);
+    border-color: transparent;
+    color: #0a2e2e;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(3, 252, 244, 0.3);
 }
 
 .vw-pm-status-tab-icon {
@@ -597,7 +603,7 @@
 }
 
 .vw-pm-status-tab-count {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.06);
     padding: 0.125rem 0.5rem;
     border-radius: 1rem;
     font-size: 0.6875rem;
@@ -605,8 +611,8 @@
 }
 
 .vw-pm-status-tab.active .vw-pm-status-tab-count {
-    background: rgba(3, 252, 244, 0.2);
-    color: #67e8f9;
+    background: rgba(0, 0, 0, 0.12);
+    color: #0a2e2e;
 }
 
 /* Filters */
@@ -614,7 +620,7 @@
     display: flex;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .vw-pm-search {
@@ -628,40 +634,41 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a0b8;
 }
 
 .vw-pm-search-input {
     width: 100%;
     padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.625rem;
+    color: #1a1a2e;
     font-size: 0.875rem;
+    backdrop-filter: blur(8px);
 }
 
 .vw-pm-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: #94a0b8;
 }
 
 .vw-pm-search-input:focus {
     outline: none;
-    border-color: rgba(3, 252, 244, 0.4);
-    box-shadow: 0 0 0 2px rgba(3, 252, 244, 0.1);
-    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(3, 252, 244, 0.5);
+    box-shadow: 0 0 0 3px rgba(3, 252, 244, 0.1);
+    background: rgba(255, 255, 255, 0.8);
 }
 
 .vw-pm-sort-select {
     padding: 0.5rem 2rem 0.5rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.625rem;
+    color: #1a1a2e;
     font-size: 0.875rem;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2367e8f9'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230891b2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 1rem;
@@ -669,12 +676,12 @@
 
 .vw-pm-sort-select:focus {
     outline: none;
-    border-color: rgba(3, 252, 244, 0.4);
+    border-color: rgba(3, 252, 244, 0.5);
 }
 
 .vw-pm-sort-select option {
-    background: #1a1a2e;
-    color: #f1f5f9;
+    background: #ffffff;
+    color: #1a1a2e;
 }
 
 .vw-pm-sort-group {
@@ -688,10 +695,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.625rem;
+    color: #5a6178;
     font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -700,7 +707,7 @@
 .vw-pm-sort-dir-btn:hover {
     background: rgba(3, 252, 244, 0.1);
     border-color: rgba(3, 252, 244, 0.25);
-    color: #67e8f9;
+    color: #0891b2;
 }
 
 .vw-pm-select-btn {
@@ -708,10 +715,10 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.625rem;
+    color: #5a6178;
     font-size: 0.8125rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -721,13 +728,13 @@
 .vw-pm-select-btn:hover {
     background: rgba(3, 252, 244, 0.08);
     border-color: rgba(3, 252, 244, 0.2);
-    color: rgba(255, 255, 255, 0.8);
+    color: #0891b2;
 }
 
 .vw-pm-select-btn.active {
-    background: rgba(3, 252, 244, 0.15);
-    border-color: rgba(3, 252, 244, 0.4);
-    color: #67e8f9;
+    background: rgba(3, 252, 244, 0.12);
+    border-color: rgba(3, 252, 244, 0.3);
+    color: #0891b2;
 }
 
 /* Bulk Actions Bar */
@@ -736,8 +743,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1.5rem;
-    background: rgba(3, 252, 244, 0.08);
-    border-bottom: 1px solid rgba(3, 252, 244, 0.12);
+    background: rgba(3, 252, 244, 0.06);
+    border-bottom: 1px solid rgba(3, 252, 244, 0.1);
 }
 
 .vw-pm-bulk-info {
@@ -745,12 +752,12 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: #1a1a2e;
 }
 
 .vw-pm-bulk-count {
     font-weight: 700;
-    color: #03fcf4;
+    color: #0891b2;
 }
 
 .vw-pm-bulk-actions {
@@ -760,29 +767,29 @@
 
 .vw-pm-bulk-btn {
     padding: 0.375rem 0.75rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    color: #5a6178;
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .vw-pm-bulk-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.8);
+    color: #1a1a2e;
 }
 
 .vw-pm-bulk-btn-delete {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
 }
 
 .vw-pm-bulk-btn-delete:hover {
-    background: rgba(239, 68, 68, 0.25);
-    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }
 
 /* Card Checkbox */
@@ -792,10 +799,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.8);
     border: 2px solid rgba(3, 252, 244, 0.3);
     border-radius: 0.25rem;
-    color: #fff;
+    color: #0a2e2e;
     font-size: 0.6rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -804,7 +811,7 @@
 
 .vw-pm-card-checkbox:hover:not(:disabled) {
     border-color: rgba(3, 252, 244, 0.6);
-    background: rgba(3, 252, 244, 0.1);
+    background: rgba(3, 252, 244, 0.08);
 }
 
 .vw-pm-card-checkbox.checked {
@@ -823,7 +830,7 @@
     overflow-y: auto;
     padding: 1.5rem;
     position: relative;
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(240, 244, 248, 0.4);
 }
 
 .vw-pm-content::-webkit-scrollbar {
@@ -861,18 +868,19 @@
 .vw-pm-empty-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
-    color: rgba(3, 252, 244, 0.3);
+    color: #94a0b8;
+    opacity: 0.5;
 }
 
 .vw-pm-empty-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #f1f5f9;
+    color: #1a1a2e;
     margin: 0 0 0.5rem 0;
 }
 
 .vw-pm-empty-text {
-    color: rgba(255, 255, 255, 0.5);
+    color: #5a6178;
     margin: 0 0 1.5rem 0;
 }
 
@@ -881,11 +889,12 @@
     background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
     color: #0a2e2e;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(3, 252, 244, 0.25);
 }
 
 .vw-pm-empty-btn:hover {
@@ -902,24 +911,26 @@
 
 /* Card */
 .vw-pm-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.875rem;
     overflow: hidden;
     transition: all 0.25s;
-    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .vw-pm-card:hover {
     border-color: rgba(3, 252, 244, 0.3);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(3, 252, 244, 0.05);
-    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(3, 252, 244, 0.1);
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .vw-pm-card-current {
     border-color: rgba(16, 185, 129, 0.4);
-    background: rgba(16, 185, 129, 0.06);
+    background: rgba(16, 185, 129, 0.05);
 }
 
 .vw-pm-card-header {
@@ -927,8 +938,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(240, 244, 248, 0.5);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .vw-pm-card-platform {
@@ -936,7 +947,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #5a6178;
 }
 
 .vw-pm-card-platform-icon {
@@ -944,7 +955,7 @@
 }
 
 .vw-pm-card-platform-name {
-    color: rgba(255, 255, 255, 0.5);
+    color: #5a6178;
 }
 
 .vw-pm-card-status {
@@ -952,44 +963,38 @@
     font-weight: 600;
     text-transform: uppercase;
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
     letter-spacing: 0.3px;
 }
 
 .vw-pm-status-draft {
     background: rgba(3, 252, 244, 0.1);
-    color: #67e8f9;
-    border: 1px solid rgba(3, 252, 244, 0.15);
+    color: #0891b2;
 }
 
 .vw-pm-status-in_progress {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.2);
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
 }
 
 .vw-pm-status-processing {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.2);
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
 }
 
 .vw-pm-status-complete {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
 }
 
 .vw-pm-status-completed {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
 }
 
 .vw-pm-status-failed {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
 }
 
 .vw-pm-card-body {
@@ -999,7 +1004,7 @@
 .vw-pm-card-title {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #f1f5f9;
+    color: #1a1a2e;
     margin: 0 0 0.5rem 0;
     white-space: nowrap;
     overflow: hidden;
@@ -1013,7 +1018,7 @@
 }
 
 .vw-pm-card-title-editable:hover {
-    color: #67e8f9;
+    color: #0891b2;
 }
 
 .vw-pm-card-title-edit-icon {
@@ -1024,7 +1029,7 @@
     font-size: 0.65rem;
     opacity: 0;
     transition: opacity 0.2s;
-    color: rgba(3, 252, 244, 0.5);
+    color: #94a0b8;
 }
 
 .vw-pm-card-title-editable:hover .vw-pm-card-title-edit-icon {
@@ -1041,10 +1046,10 @@
 .vw-pm-card-title-input {
     flex: 1;
     padding: 0.375rem 0.5rem;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.8);
     border: 1px solid rgba(3, 252, 244, 0.3);
     border-radius: 0.375rem;
-    color: #f1f5f9;
+    color: #1a1a2e;
     font-size: 0.9375rem;
     font-weight: 600;
 }
@@ -1052,7 +1057,7 @@
 .vw-pm-card-title-input:focus {
     outline: none;
     border-color: rgba(3, 252, 244, 0.6);
-    box-shadow: 0 0 0 2px rgba(3, 252, 244, 0.15);
+    box-shadow: 0 0 0 3px rgba(3, 252, 244, 0.1);
 }
 
 .vw-pm-card-title-actions {
@@ -1074,31 +1079,30 @@
 }
 
 .vw-pm-card-title-save {
-    background: rgba(16, 185, 129, 0.25);
-    color: #34d399;
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
 }
 
 .vw-pm-card-title-save:hover {
-    background: rgba(16, 185, 129, 0.4);
+    background: rgba(34, 197, 94, 0.25);
 }
 
 .vw-pm-card-title-cancel {
-    background: rgba(239, 68, 68, 0.25);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
 }
 
 .vw-pm-card-title-cancel:hover {
-    background: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .vw-pm-card-current-badge {
     display: inline-block;
     font-size: 0.6875rem;
-    color: #34d399;
-    background: rgba(16, 185, 129, 0.15);
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.1);
     padding: 0.125rem 0.5rem;
     border-radius: 0.25rem;
-    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .vw-pm-card-meta {
@@ -1106,8 +1110,8 @@
     flex-wrap: wrap;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    background: rgba(0, 0, 0, 0.15);
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(240, 244, 248, 0.4);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .vw-pm-card-meta-item {
@@ -1115,25 +1119,25 @@
     align-items: center;
     gap: 0.25rem;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: #5a6178;
 }
 
 .vw-pm-card-meta-icon {
     font-size: 0.7rem;
-    color: rgba(3, 252, 244, 0.4);
+    color: #0891b2;
 }
 
 /* Step Progress */
 .vw-pm-card-progress {
     padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .vw-pm-card-progress-label {
     display: flex;
     justify-content: space-between;
     font-size: 0.6875rem;
-    color: rgba(255, 255, 255, 0.35);
+    color: #94a0b8;
     margin-bottom: 0.375rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1147,14 +1151,14 @@
 .vw-pm-card-progress-step {
     flex: 1;
     height: 4px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 2px;
     transition: all 0.2s;
 }
 
 .vw-pm-card-progress-step.completed {
     background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
-    box-shadow: 0 0 6px rgba(3, 252, 244, 0.3);
+    box-shadow: 0 0 4px rgba(3, 252, 244, 0.3);
 }
 
 /* Pagination */
@@ -1164,12 +1168,12 @@
     justify-content: space-between;
     padding: 1rem 0;
     margin-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .vw-pm-pagination-info {
     font-size: 0.8125rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: #5a6178;
 }
 
 .vw-pm-pagination-controls {
@@ -1184,19 +1188,19 @@
     align-items: center;
     justify-content: center;
     padding: 0 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.5rem;
+    color: #5a6178;
     font-size: 0.8125rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .vw-pm-pagination-btn:hover:not(:disabled) {
-    background: rgba(3, 252, 244, 0.1);
-    border-color: rgba(3, 252, 244, 0.25);
-    color: #67e8f9;
+    background: rgba(3, 252, 244, 0.08);
+    border-color: rgba(3, 252, 244, 0.2);
+    color: #0891b2;
 }
 
 .vw-pm-pagination-btn.active {
@@ -1204,6 +1208,7 @@
     border-color: transparent;
     color: #0a2e2e;
     font-weight: 600;
+    box-shadow: 0 2px 6px rgba(3, 252, 244, 0.3);
 }
 
 .vw-pm-pagination-btn:disabled {
@@ -1215,7 +1220,7 @@
     display: flex;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .vw-pm-card-btn {
@@ -1226,7 +1231,7 @@
     gap: 0.375rem;
     padding: 0.5rem;
     border: none;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
@@ -1234,15 +1239,15 @@
 }
 
 .vw-pm-card-btn-load {
-    background: rgba(3, 252, 244, 0.1);
-    color: #67e8f9;
-    border: 1px solid rgba(3, 252, 244, 0.15);
+    background: linear-gradient(135deg, rgba(6, 227, 247, 0.15), rgba(3, 252, 244, 0.1));
+    color: #0891b2;
+    border: 1px solid rgba(3, 252, 244, 0.2);
 }
 
 .vw-pm-card-btn-load:hover {
-    background: rgba(3, 252, 244, 0.2);
-    border-color: rgba(3, 252, 244, 0.35);
-    color: #03fcf4;
+    background: linear-gradient(135deg, rgba(6, 227, 247, 0.25), rgba(3, 252, 244, 0.2));
+    border-color: rgba(3, 252, 244, 0.4);
+    color: #0e7490;
 }
 
 .vw-pm-card-btn-load:disabled {
@@ -1251,9 +1256,9 @@
 }
 
 .vw-pm-card-btn-current {
-    background: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
     cursor: default;
 }
 
@@ -1261,14 +1266,13 @@
     flex: 0;
     width: 2.25rem;
     background: rgba(3, 252, 244, 0.06);
-    color: rgba(103, 232, 249, 0.6);
+    color: #0891b2;
     border: 1px solid rgba(3, 252, 244, 0.1);
 }
 
 .vw-pm-card-btn-duplicate:hover {
-    background: rgba(3, 252, 244, 0.15);
-    border-color: rgba(3, 252, 244, 0.3);
-    color: #67e8f9;
+    background: rgba(3, 252, 244, 0.12);
+    border-color: rgba(3, 252, 244, 0.25);
 }
 
 .vw-pm-card-btn-duplicate:disabled {
@@ -1279,29 +1283,27 @@
 .vw-pm-card-btn-delete {
     flex: 0;
     width: 2.25rem;
-    background: rgba(239, 68, 68, 0.08);
-    color: rgba(248, 113, 113, 0.6);
+    background: rgba(239, 68, 68, 0.06);
+    color: #dc2626;
     border: 1px solid rgba(239, 68, 68, 0.1);
 }
 
 .vw-pm-card-btn-delete:hover {
-    background: rgba(239, 68, 68, 0.18);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
 }
 
 .vw-pm-card-btn-export {
     flex: 0;
     width: 2.25rem;
-    background: rgba(16, 185, 129, 0.08);
-    color: rgba(52, 211, 153, 0.6);
-    border: 1px solid rgba(16, 185, 129, 0.1);
+    background: rgba(34, 197, 94, 0.06);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.1);
 }
 
 .vw-pm-card-btn-export:hover {
-    background: rgba(16, 185, 129, 0.18);
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #34d399;
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.25);
 }
 
 .vw-pm-card-btn-export:disabled {
@@ -1315,10 +1317,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 0.5rem;
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
@@ -1326,8 +1328,8 @@
 }
 
 .vw-pm-import-btn:hover {
-    background: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(34, 197, 94, 0.35);
     transform: translateY(-1px);
 }
 
@@ -1335,7 +1337,7 @@
 .vw-pm-loading-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(10, 15, 30, 0.7);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(4px);
     display: flex;
     flex-direction: column;
@@ -1348,7 +1350,7 @@
 .vw-pm-loading-spinner {
     width: 2.5rem;
     height: 2.5rem;
-    border: 3px solid rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(0, 0, 0, 0.08);
     border-top-color: #03fcf4;
     border-radius: 50%;
     animation: vw-pm-spin 0.8s linear infinite;
@@ -1359,7 +1361,7 @@
 }
 
 .vw-pm-loading-text {
-    color: rgba(255, 255, 255, 0.7);
+    color: #1a1a2e;
     font-size: 0.875rem;
 }
 
@@ -1367,7 +1369,7 @@
 .vw-pm-confirm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -1376,13 +1378,14 @@
 }
 
 .vw-pm-confirm-modal {
-    background: linear-gradient(160deg, #1a1a2e, #0d1b2a);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 1rem;
     padding: 1.5rem;
     max-width: 400px;
     text-align: center;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .vw-pm-confirm-icon {
@@ -1394,12 +1397,12 @@
 .vw-pm-confirm-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #f1f5f9;
+    color: #1a1a2e;
     margin: 0 0 0.75rem 0;
 }
 
 .vw-pm-confirm-text {
-    color: rgba(255, 255, 255, 0.6);
+    color: #5a6178;
     font-size: 0.875rem;
     margin: 0 0 1.5rem 0;
     line-height: 1.5;
@@ -1414,7 +1417,7 @@
 .vw-pm-confirm-btn {
     padding: 0.625rem 1.25rem;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -1422,24 +1425,25 @@
 }
 
 .vw-pm-confirm-btn-cancel {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #5a6178;
 }
 
 .vw-pm-confirm-btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    background: rgba(0, 0, 0, 0.08);
+    color: #1a1a2e;
 }
 
 .vw-pm-confirm-btn-delete {
-    background: rgba(239, 68, 68, 0.8);
+    background: #ef4444;
     color: #fff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .vw-pm-confirm-btn-delete:hover {
-    background: #ef4444;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 /* Responsive */
