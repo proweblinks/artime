@@ -47,7 +47,7 @@ class PhotoshootService
                     $contents = base64_decode($item['b64_json']);
                     $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
                     Storage::disk('public')->put($filename, $contents);
-                    $url = Storage::disk('public')->url($filename);
+                    $url = url('/storage/' . $filename);
                     $results[] = ['path' => $filename, 'url' => $url];
                 } else {
                     $url = is_array($item) ? ($item['url'] ?? '') : $item;
@@ -102,7 +102,7 @@ class PhotoshootService
                     $contents = base64_decode($item['b64_json']);
                     $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
                     Storage::disk('public')->put($filename, $contents);
-                    $url = Storage::disk('public')->url($filename);
+                    $url = url('/storage/' . $filename);
                     $results[] = ['path' => $filename, 'url' => $url];
                 } else {
                     $url = is_array($item) ? ($item['url'] ?? '') : $item;

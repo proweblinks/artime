@@ -97,7 +97,7 @@ class CreativeService
                     $contents = base64_decode($item['b64_json']);
                     $filename = "content-studio/{$campaign->team_id}/" . uniqid() . ".{$ext}";
                     Storage::disk('public')->put($filename, $contents);
-                    $url = Storage::disk('public')->url($filename);
+                    $url = url('/storage/' . $filename);
                     return ['path' => $filename, 'url' => $url, 'prompt' => $prompt];
                 }
 
