@@ -23,18 +23,18 @@
     gap: 0.375rem;
     padding: 0.5rem 1rem;
     border-radius: 12px;
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.6); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 2px 8px rgba(0,0,0,0.04);
+    color: #5a6178;
     font-size: 0.8125rem;
     font-weight: 500;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.35);
     text-decoration: none;
     transition: all 0.2s;
     cursor: pointer;
 }
 .aith-nav-btn:hover {
-    background: rgba(255,255,255,0.15);
-    color: #fff;
+    background: rgba(255,255,255,0.80);
+    color: #1a1a2e;
     transform: translateY(-1px);
 }
 .aith-nav-btn i { font-size: 0.875rem; }
@@ -167,8 +167,8 @@
 .aith-input:focus,
 .aith-select:focus,
 .aith-textarea:focus {
-    border-color: #7c3aed;
-    box-shadow: 0 4px 16px rgba(124,58,237,0.1);
+    border-color: #0891b2;
+    box-shadow: 0 4px 16px rgba(8,145,178,0.1);
     transform: translateY(-1px);
 }
 .aith-input::placeholder,
@@ -202,9 +202,9 @@
     transition: all 0.2s;
 }
 .aith-radio-option.aith-selected {
-    border-color: #7c3aed;
-    background: rgba(124,58,237,0.06);
-    color: #7c3aed;
+    border-color: #0891b2;
+    background: rgba(8,145,178,0.06);
+    color: #0891b2;
     font-weight: 600;
 }
 .aith-checkbox-group {
@@ -223,7 +223,7 @@
 .aith-checkbox-item input[type="checkbox"] {
     width: 1rem;
     height: 1rem;
-    accent-color: #7c3aed;
+    accent-color: #0891b2;
 }
 .aith-range-wrap {
     display: flex;
@@ -232,7 +232,7 @@
 }
 .aith-range {
     width: 100%;
-    accent-color: #7c3aed;
+    accent-color: #0891b2;
 }
 .aith-range-val {
     text-align: center;
@@ -248,7 +248,7 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    background: linear-gradient(135deg, #0891b2, #06b6d4);
     color: #fff;
     font-size: 0.9375rem;
     font-weight: 600;
@@ -256,11 +256,11 @@
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(37,99,235,0.3);
+    box-shadow: 0 4px 15px rgba(8,145,178,0.3);
 }
 .aith-btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(37,99,235,0.4);
+    box-shadow: 0 8px 25px rgba(8,145,178,0.4);
 }
 .aith-btn-primary:disabled {
     opacity: 0.6;
@@ -341,7 +341,7 @@
 }
 .aith-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+    background: linear-gradient(90deg, #0891b2, #06b6d4, #0ea5e9);
     border-radius: 999px;
     transition: width 0.3s ease;
     position: relative;
@@ -360,7 +360,7 @@
 .aith-progress-pct {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #7c3aed;
+    color: #0891b2;
 }
 
 /* Steps grid */
@@ -386,8 +386,8 @@
     text-overflow: ellipsis;
 }
 .aith-step.aith-step-active {
-    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-    color: #4f46e5;
+    background: linear-gradient(135deg, #ecfeff, #cffafe);
+    color: #0891b2;
 }
 .aith-step.aith-step-done {
     background: #ecfdf5;
@@ -406,7 +406,7 @@
     color: #94a3b8;
 }
 .aith-step-active .aith-step-icon {
-    background: #6366f1;
+    background: #0891b2;
     color: #fff;
     animation: aithPulse 1.5s infinite;
 }
@@ -415,8 +415,8 @@
     color: #fff;
 }
 @keyframes aithPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
-    50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(8,145,178,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(8,145,178,0); }
 }
 
 /* Tip box */
@@ -425,10 +425,10 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.625rem 0.875rem;
-    background: rgba(99,102,241,0.06);
+    background: rgba(8,145,178,0.06);
     border-radius: 8px;
     font-size: 0.75rem;
-    color: #6366f1;
+    color: #0891b2;
     line-height: 1.4;
 }
 .aith-tip .aith-emoji { flex-shrink: 0; }
@@ -454,8 +454,8 @@
 }
 .aith-tab:hover { color: #64748b; }
 .aith-tab.aith-tab-active {
-    color: #7c3aed;
-    border-bottom-color: #7c3aed;
+    color: #0891b2;
+    border-bottom-color: #0891b2;
     font-weight: 600;
 }
 .aith-tab-content {
@@ -513,7 +513,7 @@
 .aith-result-label {
     font-size: 0.6875rem;
     font-weight: 600;
-    color: #7c3aed;
+    color: #0891b2;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.25rem;
@@ -607,17 +607,17 @@
     display: inline-flex;
     align-items: center;
     padding: 0.3125rem 0.75rem;
-    background: linear-gradient(135deg, #f5f3ff, #eef2ff);
-    color: #6d28d9;
+    background: linear-gradient(135deg, #ecfeff, #f0fdfa);
+    color: #0891b2;
     font-size: 0.75rem;
     font-weight: 500;
     border-radius: 999px;
-    border: 1px solid #e9d5ff;
+    border: 1px solid #a5f3fc;
     transition: all 0.2s;
     cursor: default;
 }
 .aith-tag:hover {
-    background: linear-gradient(135deg, #ede9fe, #e0e7ff);
+    background: linear-gradient(135deg, #cffafe, #ecfeff);
     transform: translateY(-1px);
 }
 .aith-tags-wrap {
@@ -635,7 +635,7 @@
 .aith-empty-state {
     text-align: center;
     padding: 3rem 1rem;
-    color: rgba(255,255,255,0.3);
+    color: #94a0b8;
 }
 .aith-empty-state i {
     font-size: 3rem;
@@ -743,7 +743,7 @@
 
 /* Strategy banner */
 .aith-strategy-banner {
-    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    background: linear-gradient(135deg, #0891b2, #06b6d4);
     color: #fff;
     padding: 1.25rem;
     border-radius: 12px;
@@ -795,8 +795,8 @@
     background: #fafafa;
 }
 .aith-upload-zone:hover {
-    border-color: #7c3aed;
-    background: rgba(124,58,237,0.03);
+    border-color: #0891b2;
+    background: rgba(8,145,178,0.03);
 }
 .aith-upload-zone.aith-has-file {
     border-color: #10b981;
@@ -856,7 +856,7 @@
 .aith-bar-green { background: linear-gradient(90deg, #10b981, #34d399); }
 .aith-bar-yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .aith-bar-red { background: linear-gradient(90deg, #ef4444, #f87171); }
-.aith-bar-purple { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.aith-bar-purple { background: linear-gradient(90deg, #0891b2, #22d3ee); }
 
 /* Sub-tools grid cards */
 .aith-subtool-card {
@@ -874,7 +874,7 @@
 .aith-subtool-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-    border-color: #c4b5fd;
+    border-color: #a5f3fc;
 }
 .aith-subtool-icon {
     width: 48px;
@@ -941,7 +941,7 @@
 /* Metric dashboard cards */
 .aith-metric-card { text-align:center; padding:1rem; background:#f8fafc; border-radius:10px; border:1px solid #f1f5f9; transition:all 0.2s; }
 .aith-metric-card:hover { background:#f1f5f9; border-color:#e2e8f0; transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
-.aith-metric-value { font-size:1.375rem; font-weight:700; color:#7c3aed; }
+.aith-metric-value { font-size:1.375rem; font-weight:700; color:#0891b2; }
 .aith-metric-label { font-size:0.6875rem; color:#64748b; text-transform:uppercase; letter-spacing:0.03em; margin-top:0.25rem; }
 .aith-metric-sub { font-size:0.6875rem; color:#94a3b8; margin-top:0.125rem; }
 
@@ -959,7 +959,7 @@
 /* Action plan timeline */
 .aith-action-item { display:flex; gap:0.75rem; padding:0.875rem; background:#f8fafc; border-radius:10px; border:1px solid #f1f5f9; margin-bottom:0.625rem; transition:all 0.2s; }
 .aith-action-item:hover { background:#f1f5f9; border-color:#e2e8f0; }
-.aith-action-week { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; padding:0.25rem 0.625rem; border-radius:6px; font-size:0.6875rem; font-weight:600; white-space:nowrap; height:fit-content; }
+.aith-action-week { background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff; padding:0.25rem 0.625rem; border-radius:6px; font-size:0.6875rem; font-weight:600; white-space:nowrap; height:fit-content; }
 .aith-action-info { flex:1; }
 .aith-action-title { font-size:0.875rem; font-weight:600; color:#1e293b; margin-bottom:0.25rem; }
 .aith-action-text { font-size:0.8125rem; color:#64748b; line-height:1.4; }
@@ -990,12 +990,12 @@
 .aith-funnel-bar-wrap { flex:1; }
 .aith-funnel-label { font-size:0.75rem; font-weight:600; color:#334155; margin-bottom:0.25rem; display:flex; justify-content:space-between; }
 .aith-funnel-bar { height:28px; border-radius:8px; position:relative; display:flex; align-items:center; transition:width 1s ease; }
-.aith-funnel-bar-1 { background:linear-gradient(90deg,#6366f1,#818cf8); }
-.aith-funnel-bar-2 { background:linear-gradient(90deg,#8b5cf6,#a78bfa); }
-.aith-funnel-bar-3 { background:linear-gradient(90deg,#a855f7,#c084fc); }
+.aith-funnel-bar-1 { background:linear-gradient(90deg,#0891b2,#22d3ee); }
+.aith-funnel-bar-2 { background:linear-gradient(90deg,#06b6d4,#67e8f9); }
+.aith-funnel-bar-3 { background:linear-gradient(90deg,#0ea5e9,#7dd3fc); }
 .aith-funnel-pct { position:absolute; right:0.75rem; font-size:0.6875rem; font-weight:700; color:#fff; }
 .aith-funnel-arrow { color:#cbd5e1; font-size:0.75rem; }
-.aith-funnel-insight { background:#f5f3ff; border:1px solid #ede9fe; border-radius:8px; padding:0.625rem 0.875rem; font-size:0.8125rem; color:#6d28d9; line-height:1.4; margin-top:0.5rem; }
+.aith-funnel-insight { background:#ecfeff; border:1px solid #cffafe; border-radius:8px; padding:0.625rem 0.875rem; font-size:0.8125rem; color:#0891b2; line-height:1.4; margin-top:0.5rem; }
 
 /* Competitor benchmark bars */
 .aith-bench-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.875rem; }
@@ -1003,7 +1003,7 @@
 .aith-bench-bars { flex:1; position:relative; height:24px; }
 .aith-bench-bg { position:absolute; inset:0; background:#f1f5f9; border-radius:6px; }
 .aith-bench-niche { position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#e2e8f0,#cbd5e1); border-radius:6px; }
-.aith-bench-you { position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#7c3aed,#a78bfa); border-radius:6px; z-index:1; }
+.aith-bench-you { position:absolute; top:0; bottom:0; left:0; background:linear-gradient(90deg,#0891b2,#22d3ee); border-radius:6px; z-index:1; }
 .aith-bench-legend { display:flex; gap:1rem; margin-bottom:0.75rem; }
 .aith-bench-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:0.25rem; }
 
@@ -1032,7 +1032,7 @@
 .aith-cat-icon-red { background:#fef2f2; color:#dc2626; }
 
 /* Key takeaway banner */
-.aith-takeaway { background:linear-gradient(135deg,#7c3aed,#6366f1,#4f46e5); border-radius:14px; padding:1.25rem 1.5rem; color:#fff; margin-bottom:1.25rem; position:relative; overflow:hidden; }
+.aith-takeaway { background:linear-gradient(135deg,#0891b2,#06b6d4,#0284c7); border-radius:14px; padding:1.25rem 1.5rem; color:#fff; margin-bottom:1.25rem; position:relative; overflow:hidden; }
 .aith-takeaway::after { content:''; position:absolute; top:-50%; right:-20%; width:200px; height:200px; background:rgba(255,255,255,0.05); border-radius:50%; }
 .aith-takeaway-label { font-size:0.6875rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; opacity:0.8; margin-bottom:0.375rem; }
 .aith-takeaway-text { font-size:1rem; font-weight:600; line-height:1.5; }
@@ -1049,12 +1049,12 @@
 .aith-card-accent-amber { border-image:linear-gradient(90deg,#f59e0b,#fbbf24) 1; }
 
 /* Milestone progress */
-.aith-milestone { display:flex; align-items:center; gap:1rem; padding:1rem; background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-radius:12px; border:1px solid #ddd6fe; }
-.aith-milestone-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#8b5cf6); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.aith-milestone { display:flex; align-items:center; gap:1rem; padding:1rem; background:linear-gradient(135deg,#ecfeff,#cffafe); border-radius:12px; border:1px solid #a5f3fc; }
+.aith-milestone-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
 .aith-milestone-info { flex:1; }
-.aith-milestone-text { font-size:0.8125rem; font-weight:600; color:#4c1d95; margin-bottom:0.375rem; }
-.aith-milestone-bar { height:6px; background:#ddd6fe; border-radius:999px; overflow:hidden; }
-.aith-milestone-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#a78bfa); border-radius:999px; }
+.aith-milestone-text { font-size:0.8125rem; font-weight:600; color:#164e63; margin-bottom:0.375rem; }
+.aith-milestone-bar { height:6px; background:#a5f3fc; border-radius:999px; overflow:hidden; }
+.aith-milestone-fill { height:100%; background:linear-gradient(90deg,#0891b2,#22d3ee); border-radius:999px; }
 
 /* Blocker/accelerator items */
 .aith-list-icon-item { display:flex; align-items:flex-start; gap:0.5rem; padding:0.5rem 0; font-size:0.8125rem; color:#475569; line-height:1.4; }
@@ -1076,11 +1076,11 @@
 .aith-h2h-row { display:flex; align-items:center; gap:0.5rem; padding:0.625rem 0; border-bottom:1px solid #f1f5f9; }
 .aith-h2h-label { flex:0 0 120px; font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; }
 .aith-h2h-val { flex:1; text-align:center; font-size:0.875rem; font-weight:600; }
-.aith-h2h-you { color:#7c3aed; }
+.aith-h2h-you { color:#0891b2; }
 .aith-h2h-them { color:#dc2626; }
 .aith-h2h-winner { position:relative; }
 .aith-h2h-winner::after { content:''; position:absolute; bottom:-2px; left:10%; right:10%; height:2px; border-radius:1px; }
-.aith-h2h-you.aith-h2h-winner::after { background:#7c3aed; }
+.aith-h2h-you.aith-h2h-winner::after { background:#0891b2; }
 .aith-h2h-them.aith-h2h-winner::after { background:#dc2626; }
 
 /* Spy/intel card accent */
@@ -1109,7 +1109,7 @@
 .aith-phase-3 { border-left-color:#eab308; }
 .aith-phase-4 { border-left-color:#10b981; }
 .aith-phase-name { font-size:0.875rem; font-weight:700; color:#1e293b; margin-bottom:0.25rem; }
-.aith-phase-goal { font-size:0.75rem; color:#7c3aed; font-weight:500; margin-bottom:0.5rem; }
+.aith-phase-goal { font-size:0.75rem; color:#0891b2; font-weight:500; margin-bottom:0.5rem; }
 .aith-phase-actions { list-style:none; padding:0; margin:0; }
 .aith-phase-actions li { font-size:0.8125rem; color:#475569; padding:0.25rem 0; padding-left:1.25rem; position:relative; }
 .aith-phase-actions li::before { content:'\2022'; position:absolute; left:0; color:#94a3b8; }

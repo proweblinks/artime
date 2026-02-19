@@ -1,67 +1,72 @@
 <div class="aith">
     <style>
-        /* ===== AI Tools Hub - Scoped Styles ===== */
+        /* ===== AI Tools Hub - Frosted Glass Styles ===== */
         .aith {
             min-height: 100%;
             position: relative;
             overflow: hidden;
             padding: 2rem 1.5rem 3rem;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #1a1a2e;
         }
 
-        /* Aurora Background Blobs */
-        .aith-aurora { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+        /* Gradient Mesh Background */
+        .aith-aurora { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
         .aith-aurora-blob {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
+            filter: blur(100px);
+            will-change: transform;
         }
         .aith-aurora-blob--1 {
-            top: -10rem; right: -10rem; width: 20rem; height: 20rem;
-            background: radial-gradient(circle, #7c3aed, transparent 70%);
-            opacity: 0.2;
-            animation: aithAurora1 8s ease-in-out infinite;
+            top: -10rem; right: -10rem; width: 25rem; height: 25rem;
+            background: #03fcf4;
+            opacity: 0.12;
+            animation: aithAurora1 25s ease-in-out infinite;
         }
         .aith-aurora-blob--2 {
-            top: 33%; left: -5rem; width: 15rem; height: 15rem;
-            background: radial-gradient(circle, #06b6d4, transparent 70%);
-            opacity: 0.15;
-            animation: aithAurora2 12s ease-in-out infinite;
+            top: 33%; left: -5rem; width: 20rem; height: 20rem;
+            background: #14b8a6;
+            opacity: 0.12;
+            animation: aithAurora2 22s ease-in-out infinite;
+            animation-delay: -8s;
         }
         .aith-aurora-blob--3 {
             bottom: 5rem; right: 25%; width: 18rem; height: 18rem;
-            background: radial-gradient(circle, #ec4899, transparent 70%);
-            opacity: 0.1;
-            animation: aithAurora3 10s ease-in-out infinite;
+            background: #38bdf8;
+            opacity: 0.10;
+            animation: aithAurora3 20s ease-in-out infinite;
+            animation-delay: -5s;
         }
-        @keyframes aithAurora1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,20px) scale(1.1)} }
-        @keyframes aithAurora2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,-30px) scale(1.15)} }
-        @keyframes aithAurora3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-20px,-20px) scale(1.05)} }
+        @keyframes aithAurora1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-20px) scale(1.05)} 66%{transform:translate(-15px,15px) scale(0.97)} }
+        @keyframes aithAurora2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-25px,20px) scale(0.95)} 66%{transform:translate(20px,-10px) scale(1.03)} }
+        @keyframes aithAurora3 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(15px,25px) scale(1.02)} 66%{transform:translate(-20px,-15px) scale(0.98)} }
 
         /* Content layer */
         .aith-content { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
 
         /* Welcome */
         .aith-welcome { margin-bottom: 2rem; }
-        .aith-welcome h1 { font-size: 1.75rem; font-weight: 700; color: #fff; margin: 0; }
+        .aith-welcome h1 { font-size: 1.75rem; font-weight: 700; color: #1a1a2e; margin: 0; }
         .aith-welcome-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
-        .aith-welcome-email { color: rgba(255,255,255,0.5); font-size: 0.875rem; }
+        .aith-welcome-email { color: #5a6178; font-size: 0.875rem; }
         .aith-plan-badge {
             display: inline-flex; align-items: center; gap: 0.25rem;
             padding: 0.25rem 0.75rem; border-radius: 9999px;
             font-size: 0.75rem; font-weight: 700;
-            background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(236,72,153,0.3));
-            border: 1px solid rgba(139,92,246,0.4);
-            color: #c4b5fd;
+            background: rgba(3,252,244,0.1);
+            border: 1px solid rgba(3,252,244,0.25);
+            color: #0891b2;
         }
 
         /* Aggregate Stats Row */
         .aith-agg-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
         @media (max-width:768px) { .aith-agg-row { grid-template-columns:repeat(2,1fr); } }
-        .aith-agg-card { padding:1rem 1.25rem; border-radius:0.75rem; background:rgba(255,255,255,0.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); text-align:center; transition:all 0.3s; }
-        .aith-agg-card:hover { background:rgba(255,255,255,0.08); }
+        .aith-agg-card { padding:1rem 1.25rem; border-radius:0.75rem; background:rgba(255,255,255,0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.35); box-shadow:0 4px 12px rgba(0,0,0,0.05); text-align:center; transition:all 0.3s; }
+        .aith-agg-card:hover { background:rgba(255,255,255,0.70); box-shadow:0 8px 24px rgba(0,0,0,0.07); }
         .aith-agg-emoji { font-size:1.5rem; display:block; margin-bottom:0.25rem; }
-        .aith-agg-num { font-size:1.75rem; font-weight:800; color:#fff; }
-        .aith-agg-label { font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.05em; }
+        .aith-agg-num { font-size:1.75rem; font-weight:800; color:#1a1a2e; }
+        .aith-agg-label { font-size:0.75rem; color:#94a0b8; margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.05em; }
 
         /* Usage Stats Carousel */
         .aith-stats { margin-bottom: 2.5rem; }
@@ -72,19 +77,20 @@
         .aith-stats-scroll::-webkit-scrollbar { display: none; }
         .aith-stat-card {
             flex-shrink: 0; width: 13rem; padding: 1rem; border-radius: 0.75rem;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.55);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.35);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             transition: all 0.3s;
         }
-        .aith-stat-card:hover { background: rgba(255,255,255,0.08); }
+        .aith-stat-card:hover { background: rgba(255,255,255,0.70); box-shadow: 0 8px 24px rgba(0,0,0,0.07); }
         .aith-stat-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
         .aith-stat-emoji { font-size: 1.25rem; }
-        .aith-stat-name { color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .aith-stat-name { color: #5a6178; font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .aith-stat-count { margin-bottom: 0.5rem; }
-        .aith-stat-used { font-size: 1.5rem; font-weight: 700; color: #fff; }
-        .aith-stat-limit { color: rgba(255,255,255,0.3); font-size: 0.875rem; }
-        .aith-stat-bar { width: 100%; height: 6px; border-radius: 9999px; background: rgba(255,255,255,0.1); overflow: hidden; }
+        .aith-stat-used { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; }
+        .aith-stat-limit { color: #94a0b8; font-size: 0.875rem; }
+        .aith-stat-bar { width: 100%; height: 6px; border-radius: 9999px; background: rgba(0,0,0,0.06); overflow: hidden; }
         .aith-stat-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease; }
 
         /* Gradient fills for stat bars */
@@ -97,43 +103,43 @@
         /* Pinned Tools Row */
         .aith-pinned-row { display:flex; gap:0.75rem; overflow-x:auto; margin-bottom:2rem; padding-bottom:0.5rem; }
         .aith-pinned-row::-webkit-scrollbar { display:none; }
-        .aith-pinned-card { flex-shrink:0; display:flex; align-items:center; gap:0.625rem; padding:0.625rem 1rem; border-radius:0.75rem; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
-        .aith-pinned-card:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
+        .aith-pinned-card { flex-shrink:0; display:flex; align-items:center; gap:0.625rem; padding:0.625rem 1rem; border-radius:0.75rem; background:rgba(255,255,255,0.55); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.35); box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
+        .aith-pinned-card:hover { background:rgba(255,255,255,0.70); border-color:rgba(255,255,255,0.50); box-shadow:0 4px 16px rgba(0,0,0,0.06); }
         .aith-pinned-emoji { font-size:1.25rem; }
-        .aith-pinned-name { color:#fff; font-size:0.8125rem; font-weight:600; white-space:nowrap; }
-        .aith-pinned-unpin { color:rgba(255,255,255,0.3); font-size:0.75rem; cursor:pointer; margin-left:0.25rem; transition:color 0.2s; }
+        .aith-pinned-name { color:#1a1a2e; font-size:0.8125rem; font-weight:600; white-space:nowrap; }
+        .aith-pinned-unpin { color:#94a0b8; font-size:0.75rem; cursor:pointer; margin-left:0.25rem; transition:color 0.2s; }
         .aith-pinned-unpin:hover { color:#f87171; }
 
         /* Recommended Row */
         .aith-rec-row { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2rem; }
         @media (max-width:768px) { .aith-rec-row { grid-template-columns:1fr; } }
-        .aith-rec-card { display:flex; align-items:center; gap:0.75rem; padding:0.875rem 1rem; border-radius:0.75rem; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.2); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
-        .aith-rec-card:hover { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.35); }
+        .aith-rec-card { display:flex; align-items:center; gap:0.75rem; padding:0.875rem 1rem; border-radius:0.75rem; background:rgba(3,252,244,0.06); border:1px solid rgba(3,252,244,0.15); cursor:pointer; transition:all 0.2s; text-decoration:none!important; }
+        .aith-rec-card:hover { background:rgba(3,252,244,0.12); border-color:rgba(3,252,244,0.30); }
         .aith-rec-emoji { font-size:1.5rem; }
         .aith-rec-info { flex:1; min-width:0; }
-        .aith-rec-name { color:#fff; font-size:0.875rem; font-weight:600; }
-        .aith-rec-reason { color:rgba(255,255,255,0.4); font-size:0.75rem; }
+        .aith-rec-name { color:#1a1a2e; font-size:0.875rem; font-weight:600; }
+        .aith-rec-reason { color:#94a0b8; font-size:0.75rem; }
 
         /* Suggestion Engine */
-        .aith-suggest { margin-bottom:2rem; padding:1.25rem; border-radius:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
-        .aith-suggest-title { color:rgba(255,255,255,0.6); font-size:0.875rem; font-weight:600; margin-bottom:0.75rem; }
+        .aith-suggest { margin-bottom:2rem; padding:1.25rem; border-radius:1rem; background:rgba(255,255,255,0.45); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.35); box-shadow:0 4px 12px rgba(0,0,0,0.04); }
+        .aith-suggest-title { color:#5a6178; font-size:0.875rem; font-weight:600; margin-bottom:0.75rem; }
         .aith-suggest-chips { display:flex; flex-wrap:wrap; gap:0.5rem; }
-        .aith-suggest-chip { padding:0.375rem 0.875rem; border-radius:9999px; font-size:0.8125rem; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); }
-        .aith-suggest-chip:hover { background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd; }
-        .aith-suggest-chip.active { background:rgba(139,92,246,0.25); border-color:rgba(139,92,246,0.5); color:#e9d5ff; }
-        .aith-suggest-results { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; flex-wrap:wrap; gap:0.5rem; }
-        .aith-suggest-result { display:inline-flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); color:#c4b5fd; font-size:0.8125rem; font-weight:600; text-decoration:none!important; transition:all 0.2s; }
-        .aith-suggest-result:hover { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#e9d5ff; }
+        .aith-suggest-chip { padding:0.375rem 0.875rem; border-radius:9999px; font-size:0.8125rem; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.06); color:#5a6178; }
+        .aith-suggest-chip:hover { background:rgba(3,252,244,0.1); border-color:rgba(3,252,244,0.25); color:#0891b2; }
+        .aith-suggest-chip.active { background:rgba(3,252,244,0.15); border-color:rgba(3,252,244,0.35); color:#0891b2; font-weight:600; }
+        .aith-suggest-results { margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid rgba(0,0,0,0.06); display:flex; flex-wrap:wrap; gap:0.5rem; }
+        .aith-suggest-result { display:inline-flex; align-items:center; gap:0.375rem; padding:0.375rem 0.75rem; border-radius:0.5rem; background:rgba(3,252,244,0.08); border:1px solid rgba(3,252,244,0.20); color:#0891b2; font-size:0.8125rem; font-weight:600; text-decoration:none!important; transition:all 0.2s; }
+        .aith-suggest-result:hover { background:rgba(3,252,244,0.15); border-color:rgba(3,252,244,0.35); color:#0d7a8a; }
 
         /* Category Tabs */
         .aith-cat-tabs { display:flex; gap:0.5rem; overflow-x:auto; margin-bottom:1.5rem; padding-bottom:0.25rem; }
         .aith-cat-tabs::-webkit-scrollbar { display:none; }
-        .aith-cat-tab { padding:0.5rem 1rem; border-radius:9999px; font-size:0.8125rem; font-weight:600; white-space:nowrap; cursor:pointer; transition:all 0.2s; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.5); }
-        .aith-cat-tab:hover { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); }
-        .aith-cat-tab.active { background:rgba(139,92,246,0.2); border-color:rgba(139,92,246,0.4); color:#c4b5fd; }
+        .aith-cat-tab { padding:0.5rem 1rem; border-radius:9999px; font-size:0.8125rem; font-weight:600; white-space:nowrap; cursor:pointer; transition:all 0.2s; border:1px solid rgba(0,0,0,0.06); background:rgba(255,255,255,0.5); color:#5a6178; }
+        .aith-cat-tab:hover { background:rgba(255,255,255,0.70); color:#1a1a2e; }
+        .aith-cat-tab.active { background:rgba(3,252,244,0.12); border-color:rgba(3,252,244,0.30); color:#0891b2; }
 
         /* Section Title */
-        .aith-section-title { font-size: 1.125rem; font-weight: 700; color: #fff; margin-bottom: 1.5rem; }
+        .aith-section-title { font-size: 1.125rem; font-weight: 700; color: #1a1a2e; margin-bottom: 1.5rem; }
 
         /* Tools Grid */
         .aith-grid {
@@ -152,22 +158,23 @@
             overflow: hidden;
             padding: 1.5rem;
             border-radius: 1rem;
-            background: rgba(255,255,255,0.03);
+            background: rgba(255,255,255,0.55);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.35);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
             transition: all 0.3s;
             text-decoration: none !important;
             height: 100%;
         }
         .aith-tool-card:hover {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.70);
+            border-color: rgba(255,255,255,0.50);
             transform: scale(1.02);
-            box-shadow: 0 8px 32px rgba(124,58,237,0.05);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
         }
         .aith-tool-card.aith-highlighted {
-            border-color: rgba(139,92,246,0.5);
-            box-shadow: 0 0 20px rgba(139,92,246,0.15);
+            border-color: rgba(3,252,244,0.4);
+            box-shadow: 0 0 20px rgba(3,252,244,0.12);
         }
 
         /* Tool Icon */
@@ -177,7 +184,7 @@
             display: flex; align-items: center; justify-content: center;
             margin-bottom: 1rem;
             font-size: 1.75rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
         }
         .aith-icon-blue-purple { background: linear-gradient(135deg, #3b82f6, #9333ea); }
         .aith-icon-red-orange { background: linear-gradient(135deg, #ef4444, #ea580c); }
@@ -190,45 +197,45 @@
         .aith-tool-card:hover .aith-tool-icon { transform: scale(1.1); transition: transform 0.3s; }
 
         /* Tool Text */
-        .aith-tool-name { font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
-        .aith-tool-desc { color: rgba(255,255,255,0.4); font-size: 0.875rem; line-height: 1.5; margin-bottom: 1rem; min-height: 2.5rem; }
+        .aith-tool-name { font-size: 1.25rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
+        .aith-tool-desc { color: #5a6178; font-size: 0.875rem; line-height: 1.5; margin-bottom: 1rem; min-height: 2.5rem; }
 
         /* Tool CTA */
         .aith-tool-cta { font-size: 0.875rem; font-weight: 600; transition: transform 0.2s; display: inline-flex; align-items: center; gap: 0.25rem; }
         .aith-tool-card:hover .aith-tool-cta { transform: translateX(4px); }
-        .aith-cta-blue { color: #60a5fa; }
-        .aith-cta-red { color: #f87171; }
-        .aith-cta-cyan { color: #22d3ee; }
-        .aith-cta-pink { color: #f472b6; }
-        .aith-cta-emerald { color: #34d399; }
-        .aith-cta-purple { color: #c084fc; }
-        .aith-cta-amber { color: #fbbf24; }
+        .aith-cta-blue { color: #2563eb; }
+        .aith-cta-red { color: #dc2626; }
+        .aith-cta-cyan { color: #0891b2; }
+        .aith-cta-pink { color: #db2777; }
+        .aith-cta-emerald { color: #059669; }
+        .aith-cta-purple { color: #7c3aed; }
+        .aith-cta-amber { color: #d97706; }
 
         /* Badge: Credit Cost */
-        .aith-badge-credit { position:absolute; top:0.75rem; right:0.75rem; padding:0.2rem 0.5rem; border-radius:9999px; font-size:0.6875rem; font-weight:700; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); z-index:1; }
+        .aith-badge-credit { position:absolute; top:0.75rem; right:0.75rem; padding:0.2rem 0.5rem; border-radius:9999px; font-size:0.6875rem; font-weight:700; background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.08); color:#5a6178; z-index:1; }
 
         /* Badge: NEW */
         .aith-badge-new { position:absolute; top:0.75rem; left:0.75rem; padding:0.15rem 0.5rem; border-radius:9999px; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; background:linear-gradient(135deg,#8b5cf6,#ec4899); color:#fff; animation:aithPulseNew 2s ease-in-out infinite; z-index:1; }
         @keyframes aithPulseNew { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
         /* Badge: Pin */
-        .aith-badge-pin { position:absolute; top:0.75rem; right:3.25rem; width:1.5rem; height:1.5rem; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.6875rem; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); border:1px solid transparent; transition:all 0.2s; z-index:4; }
-        .aith-badge-pin:hover { background:rgba(255,255,255,0.12); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
-        .aith-badge-pin.pinned { color:#fbbf24; background:rgba(251,191,36,0.15); border-color:rgba(251,191,36,0.3); }
+        .aith-badge-pin { position:absolute; top:0.75rem; right:3.25rem; width:1.5rem; height:1.5rem; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.6875rem; background:rgba(0,0,0,0.04); color:#94a0b8; border:1px solid transparent; transition:all 0.2s; z-index:4; }
+        .aith-badge-pin:hover { background:rgba(251,191,36,0.1); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
+        .aith-badge-pin.pinned { color:#d97706; background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.25); }
 
         /* Last Result Preview */
-        .aith-last-preview { margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(255,255,255,0.06); }
-        .aith-last-snippet { font-size:0.75rem; color:rgba(255,255,255,0.35); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .aith-last-time { font-size:0.625rem; color:rgba(255,255,255,0.2); }
+        .aith-last-preview { margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(0,0,0,0.06); }
+        .aith-last-snippet { font-size:0.75rem; color:#94a0b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .aith-last-time { font-size:0.625rem; color:#b4bdd0; }
 
         /* Quick Action Overlay */
-        .aith-quick-actions { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:0.75rem; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s; border-radius:1rem; z-index:3; }
+        .aith-quick-actions { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:0.75rem; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s; border-radius:1rem; z-index:3; }
         .aith-tool-card:hover .aith-quick-actions { opacity:1; }
         .aith-quick-btn { padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.8125rem; font-weight:600; cursor:pointer; transition:all 0.2s; text-decoration:none!important; display:inline-flex; align-items:center; gap:0.375rem; }
-        .aith-quick-primary { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; border:none; }
-        .aith-quick-primary:hover { background:linear-gradient(135deg,#8b5cf6,#7c3aed); transform:scale(1.05); color:#fff; }
-        .aith-quick-secondary { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.8); border:1px solid rgba(255,255,255,0.15); }
-        .aith-quick-secondary:hover { background:rgba(255,255,255,0.15); color:#fff; }
+        .aith-quick-primary { background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff; border:none; }
+        .aith-quick-primary:hover { background:linear-gradient(135deg,#0ea5e9,#0891b2); transform:scale(1.05); color:#fff; }
+        .aith-quick-secondary { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.2); }
+        .aith-quick-secondary:hover { background:rgba(255,255,255,0.25); color:#fff; }
 
         /* Enterprise Banner */
         .aith-enterprise-banner {
@@ -247,15 +254,17 @@
                 linear-gradient(135deg,
                     rgba(251,191,36,0.12) 0%,
                     rgba(245,158,11,0.08) 30%,
-                    rgba(139,92,246,0.1) 70%,
-                    rgba(236,72,153,0.08) 100%);
+                    rgba(3,252,244,0.06) 70%,
+                    rgba(14,165,233,0.05) 100%);
             border: 1px solid rgba(251,191,36,0.2);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
         }
         .aith-enterprise-banner:hover {
             border-color: rgba(251,191,36,0.4);
             transform: translateY(-3px);
             box-shadow:
-                0 12px 40px rgba(251,191,36,0.15),
+                0 12px 40px rgba(251,191,36,0.12),
                 0 0 0 1px rgba(251,191,36,0.1);
         }
         .aith-enterprise-banner::before {
@@ -327,24 +336,24 @@
             letter-spacing: 0.08em;
             background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15));
             border: 1px solid rgba(251,191,36,0.3);
-            color: #fbbf24;
+            color: #b45309;
             margin-bottom: 0.5rem;
         }
         .aith-enterprise-title {
             font-size: 1.375rem;
             font-weight: 800;
-            color: #fff;
+            color: #1a1a2e;
             margin-bottom: 0.375rem;
             line-height: 1.2;
         }
         .aith-enterprise-title span {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            background: linear-gradient(135deg, #d97706, #b45309);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .aith-enterprise-desc {
-            color: rgba(255,255,255,0.45);
+            color: #5a6178;
             font-size: 0.875rem;
             line-height: 1.4;
         }
@@ -362,9 +371,9 @@
             border-radius: 9999px;
             font-size: 0.6875rem;
             font-weight: 500;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.5);
+            background: rgba(251,191,36,0.08);
+            border: 1px solid rgba(251,191,36,0.15);
+            color: #92400e;
         }
         .aith-enterprise-arrow {
             position: relative;
@@ -377,7 +386,7 @@
             border-radius: 50%;
             background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1));
             border: 1px solid rgba(251,191,36,0.25);
-            color: #fbbf24;
+            color: #d97706;
             font-size: 1.125rem;
             transition: all 0.3s;
         }
@@ -399,38 +408,38 @@
         }
 
         /* Recent Activity */
-        .aith-activity { border-radius: 0.75rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+        .aith-activity { border-radius: 0.75rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.35); background:rgba(255,255,255,0.45); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow:0 4px 12px rgba(0,0,0,0.04); }
         .aith-activity-item {
             display: flex; align-items: center; justify-content: space-between;
             padding: 0.875rem 1.25rem;
-            background: rgba(255,255,255,0.04);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
             transition: background 0.2s;
         }
         .aith-activity-item:last-child { border-bottom: none; }
-        .aith-activity-item:hover { background: rgba(255,255,255,0.07); }
+        .aith-activity-item:hover { background: rgba(255,255,255,0.4); }
         .aith-activity-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
         .aith-activity-emoji { font-size: 1.25rem; flex-shrink: 0; }
         .aith-activity-info { min-width: 0; flex: 1; }
-        .aith-activity-label { color: rgba(255,255,255,0.7); font-size: 0.8rem; font-weight: 500; }
-        .aith-activity-title { color: rgba(255,255,255,0.4); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .aith-activity-time { color: rgba(255,255,255,0.25); font-size: 0.8rem; flex-shrink: 0; margin-left: 0.75rem; }
+        .aith-activity-label { color: #1a1a2e; font-size: 0.8rem; font-weight: 500; }
+        .aith-activity-title { color: #5a6178; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .aith-activity-time { color: #94a0b8; font-size: 0.8rem; flex-shrink: 0; margin-left: 0.75rem; }
 
         /* History Link */
         .aith-history-link { text-align: center; margin-top: 1.25rem; }
-        .aith-history-link span { color: rgba(255,255,255,0.3); font-size: 0.875rem; }
+        .aith-history-link span { color: #94a0b8; font-size: 0.875rem; }
 
         /* Empty State */
         .aith-empty { text-align: center; padding: 3rem 0; }
         .aith-empty-card {
             display: inline-block; padding: 2rem 2.5rem; border-radius: 1rem;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.55);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.35);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
         }
         .aith-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-        .aith-empty-title { font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
-        .aith-empty-text { color: rgba(255,255,255,0.4); font-size: 0.875rem; }
+        .aith-empty-title { font-size: 1.25rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
+        .aith-empty-text { color: #5a6178; font-size: 0.875rem; }
 
         @media (min-width: 768px) {
             .aith { padding: 2.5rem 2rem 3rem; }
@@ -481,7 +490,7 @@
             </div>
             <div class="aith-agg-card">
                 <span class="aith-agg-emoji">&#128293;</span>
-                <div class="aith-agg-num">{{ $aggregateStats['streak'] ?? 0 }}<span style="font-size:0.875rem;color:rgba(255,255,255,0.4);"> days</span></div>
+                <div class="aith-agg-num">{{ $aggregateStats['streak'] ?? 0 }}<span style="font-size:0.875rem;color:#94a0b8;"> days</span></div>
                 <div class="aith-agg-label">Activity Streak</div>
             </div>
         </div>
@@ -559,7 +568,7 @@
                         <div class="aith-rec-name">{{ $rt['name'] }}</div>
                         <div class="aith-rec-reason">Based on your usage</div>
                     </div>
-                    <span style="color:rgba(255,255,255,0.3);">&#8594;</span>
+                    <span style="color:#94a0b8;">&#8594;</span>
                 </a>
                 @endif
             @endforeach
