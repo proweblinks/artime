@@ -1102,14 +1102,17 @@ EOT;
                     "parts" => $parts
                 ]
             ],
-            "generationConfig" => [
-                "temperature" => 0.2,
-                "maxOutputTokens" => 4096,
-            ]
+        ];
+
+        // Pass generationConfig as 3rd argument to sendGenerateContentRequest
+        // (putting it in $payload gets overwritten by the method's default parameter)
+        $generationConfig = [
+            "temperature" => $options['temperature'] ?? 0.2,
+            "maxOutputTokens" => $options['maxOutputTokens'] ?? 4096,
         ];
 
         try {
-            $body = $this->sendGenerateContentRequest($model, $payload);
+            $body = $this->sendGenerateContentRequest($model, $payload, $generationConfig);
 
             // Extract text from response
             $text = $body['candidates'][0]['content']['parts'][0]['text'] ?? '';

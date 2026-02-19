@@ -1284,6 +1284,16 @@
                             @if($extendMode['frameUrl'] ?? null)
                             <div class="vw-extend-frame-col">
                                 <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
+                                @if(!empty($extendMode['frameAnalysis']))
+                                <details style="margin-top: 0.4rem; max-width: 180px;">
+                                    <summary style="font-size: 0.65rem; color: rgba(255,255,255,0.35); cursor: pointer; user-select: none;">
+                                        <i class="fa-solid fa-eye" style="margin-right: 0.2rem;"></i> What AI sees
+                                    </summary>
+                                    <p style="font-size: 0.65rem; color: rgba(255,255,255,0.45); margin: 0.25rem 0 0 0; line-height: 1.35; padding: 0.3rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                        {{ $extendMode['frameAnalysis'] }}
+                                    </p>
+                                </details>
+                                @endif
                             </div>
                             @endif
 

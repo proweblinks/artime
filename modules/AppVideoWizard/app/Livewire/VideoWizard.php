@@ -33612,7 +33612,7 @@ PROMPT;
             // Gather rich context: concept, characters, script narration
             $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
             $characters = $shot['charactersInShot'] ?? [];
-            $scriptScene = $this->script['scenes'][0] ?? [];
+            $scriptScene = $this->script['scenes'][$sceneIndex] ?? $this->script['scenes'][0] ?? [];
             $narration = $scriptScene['narration'] ?? $scriptScene['description'] ?? '';
 
             // Build character descriptions from Story Bible
@@ -33674,12 +33674,23 @@ PROMPT;
             }
 
             $base64 = base64_encode($imageContent);
-            $prompt = $this->buildDynamicContinuationPrompt($originalPrompt, $timestamp, $context);
+
+            // Phase 1: Vision-first frame analysis (no story context — prevents narrative bias)
+            $frameAnalysis = $context['cachedFrameAnalysis'] ?? '';
+            if (empty($frameAnalysis)) {
+                $frameAnalysis = $this->analyzeFrameContent($base64);
+                $this->extendMode['frameAnalysis'] = $frameAnalysis;
+                $this->saveProject();
+            }
+
+            // Phase 2: Creative continuation grounded in frame reality
+            $prompt = $this->buildDynamicContinuationPrompt($originalPrompt, $timestamp, $context, $frameAnalysis);
 
             $gemini = app(\App\Services\GeminiService::class);
             $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
                 'model' => 'gemini-2.5-flash',
                 'mimeType' => 'image/png',
+                'temperature' => 0.6,
             ]);
 
             if ($result['success'] && !empty($result['text'])) {
@@ -33755,6 +33766,55 @@ PROMPT;
 
         } catch (\Throwable $e) {
             \Log::error('Video Extend: generateContinuationPrompt error', ['error' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    /**
+     * Phase 1: Pure vision analysis of extracted frame.
+     * No story context provided — prevents narrative bias from contaminating the description.
+     * Returns a structured description of what is physically visible in the frame.
+     */
+    protected function analyzeFrameContent(string $base64): string
+    {
+        try {
+            $gemini = app(\App\Services\GeminiService::class);
+            $prompt = <<<'VISION'
+Describe this video frame in precise physical terms. Answer each question:
+
+1. CHARACTERS: How many characters are present? What type is each (human, cat, dog, bear, etc.)?
+2. POSITIONS: What is each character physically doing? (sitting, standing, reaching, leaning, etc.) Where are they in the frame relative to each other?
+3. HANDS/PAWS: What are their hands or paws doing right now? Holding anything? Reaching for something?
+4. FACES: What direction is each character looking? Mouth open or closed?
+5. OBJECTS: What objects are visible? Where are they relative to the characters? (bags, cups, food, furniture)
+6. INTERACTION: What is happening between the characters right now? Who is doing what to whom?
+
+Be EXACT about what you SEE. If something is unclear, say "unclear" rather than guessing. 60-100 words maximum. Only describe what is VISIBLE in this single frame.
+VISION;
+
+            $result = $gemini->analyzeImageWithPrompt($base64, $prompt, [
+                'model' => 'gemini-2.5-flash',
+                'mimeType' => 'image/png',
+                'temperature' => 0.1,
+                'maxOutputTokens' => 512,
+            ]);
+
+            if ($result['success'] && !empty($result['text'])) {
+                $text = trim($result['text']);
+                \Log::info('Video Extend Phase 1: Frame analysis complete', [
+                    'wordCount' => str_word_count($text),
+                    'analysis' => mb_substr($text, 0, 300),
+                ]);
+                return $text;
+            }
+
+            \Log::warning('Video Extend Phase 1: Gemini frame analysis failed', [
+                'error' => $result['error'] ?? 'empty response',
+            ]);
+            return '';
+
+        } catch (\Throwable $e) {
+            \Log::error('Video Extend Phase 1: analyzeFrameContent error', ['error' => $e->getMessage()]);
             return '';
         }
     }
@@ -33873,15 +33933,11 @@ PROMPT;
     }
 
     /**
-     * Build a NEUTRAL continuation prompt for clone/adaptive workflows.
-     * Matches the original video's tone — no forced chaos, destruction, or escalation.
+     * Build a two-phase continuation prompt. Phase 1 (frame analysis) has already run.
+     * This builds Phase 2: creative continuation grounded in the frame reality.
+     * Frame analysis goes FIRST as authoritative truth; story is secondary direction.
      */
-    /**
-     * Build a DYNAMIC continuation prompt that adapts to the original video's tone,
-     * narrative logic, and energy level. No fixed templates — the AI reads the original
-     * prompt and continues the STORY, not just the physical motion.
-     */
-    protected function buildDynamicContinuationPrompt(string $originalPrompt, float $timestamp, array $context): string
+    protected function buildDynamicContinuationPrompt(string $originalPrompt, float $timestamp, array $context, string $frameAnalysis = ''): string
     {
         $concept = $context['concept'] ?? '';
         $narration = $context['narration'] ?? '';
@@ -33898,15 +33954,20 @@ PROMPT;
             $storyChain = "ORIGINAL VIDEO PROMPT:\n{$originalPrompt}";
         }
 
+        // Frame analysis block — authoritative if available, fallback otherwise
+        $frameAnalysisBlock = !empty($frameAnalysis)
+            ? $frameAnalysis
+            : "Study the attached image carefully — it shows the EXACT frame where the video stopped at {$timestamp}s. Describe what you see: character positions, hand/paw positions, objects, and interactions.";
+
         // Optional user direction for this specific extension
         $userDirection = '';
         if ($chaosDirection !== '') {
             $userDirection = <<<UD
 
-=== USER'S CREATIVE DIRECTION FOR THIS EXTENSION ===
+=== USER'S CREATIVE DIRECTION ===
 The user wants the next part to go in this direction:
 {$chaosDirection}
-Incorporate this into the continuation while staying true to the story's tone.
+Incorporate this while staying true to the story's tone.
 UD;
         }
 
@@ -33917,19 +33978,21 @@ UD;
         }
 
         return <<<PROMPT
-You are a creative screenwriter writing the NEXT video segment for Seedance 1.5 Pro (image-to-video AI).
+You are a creative screenwriter writing the NEXT 8-10 seconds for Seedance 1.5 Pro (image-to-video AI).
+
+=== WHAT THE FRAME SHOWS RIGHT NOW (AUTHORITATIVE — DO NOT CONTRADICT) ===
+
+{$frameAnalysisBlock}
+
+Your continuation MUST start from EXACTLY this physical state. These are the REAL positions of the characters right now. If the story below described something different happening, the frame is correct about where things are NOW. The story only tells you the TONE and DIRECTION — not the current physical state.
 
 === YOUR TASK ===
 
-You are continuing a story. You have:
-1. The STORY SO FAR (previous video prompts that were already generated into video)
-2. The EXACT FRAME where the previous video ended (the attached image)
+Write what happens NEXT starting from the physical state shown in the frame. Same characters, same tone, same energy, same world. Think of it as the next 8-10 seconds of the same movie.
 
-Your job: Write what happens NEXT in this story. The continuation must feel like a NATURAL next scene — same characters, same tone, same energy, same world. Think of it as the next 8-10 seconds of the same movie.
+=== STORY CONTEXT (for narrative DIRECTION only — NOT for physical state) ===
 
-=== THE STORY SO FAR (THIS IS YOUR PRIMARY CREATIVE INPUT) ===
-
-Read these prompts carefully. They define the tone, characters, pacing, humor, drama, and logic of this video. Your continuation MUST match this established style.
+These previous prompts define the tone, humor, drama, and character dynamics. Use them to decide WHERE the story goes next — but NOT where the characters are physically (the frame above is authoritative for that).
 
 {$storyChain}
 
@@ -33937,69 +34000,46 @@ ORIGINAL CONCEPT: {$concept}
 {$characterBlock}
 {$userDirection}
 
-=== FRAME ANALYSIS (PHYSICAL GROUNDING) ===
-
-The attached image is the EXACT frame where the previous video stopped (at {$timestamp}s).
-Use it to ground your continuation physically:
-- What position are the characters in RIGHT NOW?
-- What are their hands/paws doing?
-- What objects are nearby?
-
-Start your continuation from THIS physical state — don't repeat what already happened.
-If the frame shows something different from what the story described (e.g., a character moved), trust the frame for the physical starting point but trust the story for the narrative direction.
-
 === CREATIVE RULES ===
 
-1. CONTINUE THE NARRATIVE — What would logically happen next in this story? If the cat was grooming the bear and the bear complained, what does the cat do in response? Think about character motivation and comedic/dramatic timing.
+1. CONTINUE THE NARRATIVE — What logically happens next? Think about character motivation and comedic/dramatic timing.
+2. MATCH THE TONE EXACTLY — Funny stays funny, calm stays calm, chaotic stays chaotic. Include voiceover/narration cues if the original had them.
+3. ADVANCE THE STORY — Something NEW must happen. A reaction, consequence, twist, or escalation.
+4. KEEP THE SAME DETAIL LEVEL — Match the original prompt's word count and richness.
+5. PRESERVE DIALOGUE STYLE — Match voiceover vs character speech vs no dialogue.
 
-2. MATCH THE TONE EXACTLY — If the original is funny, be funny. If it's calm, be calm. If it's chaotic, be chaotic. If it has dialogue cues (like voiceover narration), include similar voiceover/narration cues. Do NOT flatten a rich creative prompt into a bland physical description.
+=== SEEDANCE 1.5 TECHNICAL RULES (MANDATORY) ===
 
-3. ADVANCE THE STORY — Don't just describe more of the same action. Something new should happen. A reaction, a consequence, a twist, a character doing something unexpected but logical.
+WORD COUNT: 100-155 words. Hard limit 155.
 
-4. KEEP THE SAME LEVEL OF DETAIL — If the original prompt was 150 words with rich descriptions, write 150 words with rich descriptions. If it was 80 words and simple, write 80 words and simple.
+ADVERBS — Use freely: rapidly, violently, wildly, fiercely, powerfully, suddenly, immediately, gently, slowly.
+Every significant action needs at least one degree word.
 
-5. PRESERVE DIALOGUE STYLE — If the original had voiceover narration (like 'the voiceover narrates "..."'), include voiceover in the continuation. If it had character speech, continue with character speech. If it had no dialogue, don't add any.
-
-=== SEEDANCE 1.5 TECHNICAL RULES (MANDATORY — FOLLOW EXACTLY) ===
-
-WORD COUNT: Match the original prompt's length (typically 100-155 words). Hard limit: 155 words.
-
-ADVERBS — Use natural, descriptive adverbs freely:
-- High intensity: rapidly, violently, crazily, intensely, aggressively, wildly, fiercely, powerfully
-- Medium intensity: slowly, gently, steadily, smoothly, carefully, cautiously
-- Temporal: suddenly, immediately, then, finally, instantly
-- Every significant action needs at least one degree word
-
-EXPLICIT MOTION — Seedance CANNOT infer motion:
-Every movement must be EXPLICITLY described. The model will NOT animate what you don't write.
+EXPLICIT MOTION — Seedance CANNOT infer motion. Every movement MUST be described explicitly.
 WRONG: "the cat attacks" → RIGHT: "the cat slaps the man's face with its right paw"
-If a body part should move, DESCRIBE the motion. If an object should fly, DESCRIBE the trajectory.
 
-OBJECT DISPLACEMENT — When characters interact with objects, describe what happens:
-"jumps onto the counter and violently knocks over the iced coffee cup"
-Objects flying, falling, scattering = essential visual chaos.
+OBJECT DISPLACEMENT — Describe what happens to objects: "knocks over the cup", "sends napkins flying".
 
-DIALOGUE & SOUNDS — Include character dialogue in quotes and character sounds (meows, yells, screams).
-Include environmental sounds caused by actions (crashes, clattering, shattering).
+DIALOGUE & SOUNDS — Character dialogue in quotes. Character sounds (meows, yells). Environmental sounds (crashes, clattering).
 
-ABSOLUTELY BANNED — These will break the video:
-- NO facial micro-expressions: "eyes widen", "widening eyes", "brow furrows", "mouth curving", "expression shifts", "gaze softens" — convey emotion through BODY ACTIONS only
-- NO emotional adjectives: happy, sad, mischievous, amused, confused — show don't tell
-- NO appearance/clothing descriptions (fur color, outfit details — image defines them)
-- NO face/identity prefix text ("Maintain face consistency" etc.)
-- NO setting/scene descriptions — the source image already shows the environment
-- NO camera movements — controlled separately by API
-- NO background music, soundtrack, score, beat, rhythm, melody — NEVER
-- NO passive voice, NO weak verbs: goes, moves, starts, begins, does, gets
+BANNED (will break video):
+- NO facial micro-expressions (eyes widen, brow furrows, mouth curves) — body actions only
+- NO emotional adjectives (happy, sad, mischievous) — show through actions
+- NO appearance/clothing descriptions — image defines them
+- NO face/identity prefixes — image defines the face
+- NO setting descriptions — image shows the environment
+- NO camera movements — controlled by API
+- NO background music/soundtrack/score — NEVER
+- NO passive voice, NO weak verbs (goes, moves, starts, begins)
 - NO semicolons
-- Must start directly with the first action
-- Must end with "Cinematic, photorealistic."
+- Start directly with first action
+- End with "Cinematic, photorealistic."
 
 === ANTI-REPETITION ===
 
-NEVER repeat an action from any previous segment. Each extension must introduce NEW actions, NEW interactions, NEW story beats. If the cat already "kneaded the bear's hair" — that's done. What happens NEXT?
+NEVER repeat actions from previous segments. Each extension must introduce NEW actions, NEW interactions, NEW story beats.
 
-Output ONLY the continuation prompt text. No headers, no numbering, no explanations, no meta-commentary. Just the video prompt.
+Output ONLY the continuation prompt text. No headers, no numbering, no explanations.
 PROMPT;
     }
 
@@ -34466,7 +34506,7 @@ PROMPT;
 
         $concept = $this->concept['refinedConcept'] ?? $this->concept['rawInput'] ?? '';
         $characters = $shot['charactersInShot'] ?? [];
-        $scriptScene = $this->script['scenes'][0] ?? [];
+        $scriptScene = $this->script['scenes'][$sceneIndex] ?? $this->script['scenes'][0] ?? [];
         $narration = $scriptScene['narration'] ?? $scriptScene['description'] ?? '';
 
         $characterDescriptions = [];
@@ -34497,6 +34537,7 @@ PROMPT;
                     'narrativeChain' => $this->buildNarrativeChain($shot),
                     'extensionNumber' => count(array_filter($segments, fn($s) => ($s['type'] ?? '') === 'extension')) + 1,
                     'chaosMode' => $this->extendMode['chaosMode'] ?? false,
+                    'cachedFrameAnalysis' => $this->extendMode['frameAnalysis'] ?? '',
                 ]
             );
 
