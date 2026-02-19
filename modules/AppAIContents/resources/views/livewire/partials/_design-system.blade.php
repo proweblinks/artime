@@ -814,6 +814,7 @@ textarea.cs-input {
     aspect-ratio: 9 / 16;
     object-fit: cover;
     display: block;
+    max-height: 480px;
 }
 
 .cs-creative-card .cs-creative-actions {
