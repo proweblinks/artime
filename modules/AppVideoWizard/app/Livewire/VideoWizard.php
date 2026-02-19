@@ -1380,6 +1380,10 @@ class VideoWizard extends Component
         'imageUrl' => null, 'originalUrl' => null, 'editStack' => [],
     ];
 
+    // Image Upload
+    public $uploadedSceneImage;
+    public $uploadedStudioImage;
+
     // Asset History Panel state
     public bool $showAssetHistoryPanel = false;
     public array $assetHistoryTarget = [
@@ -37436,6 +37440,98 @@ PROMPT;
                 'prompt' => "{$core} the ancient Greco-Roman classical world of mythology. {$rule} Everything transforms into white marble, gold laurels, flowing togas, and grand columned temples. Characters become like figures from Greek mythology — heroic proportions, draped fabrics, sandals. The environment features Mediterranean sunlight, olive groves, marble statues, and the grandeur of Mount Olympus.",
             ],
         ];
+    }
+
+    // =========================================================================
+    // IMAGE UPLOAD — Replace scene/shot image with user's own image
+    // =========================================================================
+
+    /**
+     * Handle uploaded scene image — triggered automatically by Livewire when
+     * $uploadedSceneImage is set via wire:model. Validates, stores, and replaces
+     * the current image for the specified target (scene 0, shot 0 for social content).
+     */
+    public function updatedUploadedSceneImage(): void
+    {
+        $this->validate([
+            'uploadedSceneImage' => 'image|max:20480', // 20MB max
+        ]);
+
+        try {
+            $projectId = $this->projectId ?? 0;
+            $filename = 'upload_' . time() . '_' . uniqid() . '.' . $this->uploadedSceneImage->getClientOriginalExtension();
+            $storagePath = "wizard-videos/{$projectId}/{$filename}";
+
+            \Illuminate\Support\Facades\Storage::disk('public')->put(
+                $storagePath,
+                file_get_contents($this->uploadedSceneImage->getRealPath())
+            );
+
+            $imageUrl = url('/files/' . $storagePath);
+
+            // Update shot 0, scene 0 (social content context)
+            if (isset($this->multiShotMode['decomposedScenes'][0]['shots'][0])) {
+                $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $imageUrl;
+                $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = null;
+                $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'pending';
+                $this->multiShotMode['decomposedScenes'][0]['shots'][0]['segments'] = [];
+            }
+            if (isset($this->storyboard['scenes'][0])) {
+                $this->storyboard['scenes'][0]['imageUrl'] = $imageUrl;
+            }
+
+            // Track in asset history
+            $this->addAssetHistoryEntry('shot', 0, 0, 'image', 'uploaded', $imageUrl, null, 'user-upload');
+
+            $this->saveProject();
+            $this->uploadedSceneImage = null;
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('upload-error', ['message' => $e->getMessage()]);
+            $this->uploadedSceneImage = null;
+        } catch (\Exception $e) {
+            \Log::error('Image upload failed', ['error' => $e->getMessage()]);
+            $this->dispatch('upload-error', ['message' => __('Upload failed. Please try again.')]);
+            $this->uploadedSceneImage = null;
+        }
+    }
+
+    /**
+     * Auto-triggered when $uploadedStudioImage is set via wire:model in the Image Studio.
+     * Uploads the image and replaces the current Image Studio target.
+     */
+    public function updatedUploadedStudioImage(): void
+    {
+        $this->validate([
+            'uploadedStudioImage' => 'image|max:20480',
+        ]);
+
+        try {
+            $projectId = $this->projectId ?? 0;
+            $filename = 'upload_' . time() . '_' . uniqid() . '.' . $this->uploadedStudioImage->getClientOriginalExtension();
+            $storagePath = "wizard-videos/{$projectId}/{$filename}";
+
+            \Illuminate\Support\Facades\Storage::disk('public')->put(
+                $storagePath,
+                file_get_contents($this->uploadedStudioImage->getRealPath())
+            );
+
+            $imageUrl = url('/files/' . $storagePath);
+
+            // Push current image to undo stack
+            if (!empty($this->imageStudioTarget['imageUrl'])) {
+                $this->imageStudioTarget['editStack'][] = $this->imageStudioTarget['imageUrl'];
+            }
+            $this->imageStudioTarget['imageUrl'] = $imageUrl;
+
+            // Write to the target location
+            $this->writeImageToTarget($imageUrl, 'uploaded', null);
+            $this->uploadedStudioImage = null;
+
+        } catch (\Exception $e) {
+            $this->imageStudioError = __('Upload failed: ') . $e->getMessage();
+            $this->uploadedStudioImage = null;
+        }
     }
 
     // =========================================================================

@@ -69,7 +69,7 @@
                 @endif
 
                 {{-- Loading overlay (wire:loading.flex so Livewire hides by default, shows as flex when loading) --}}
-                <div wire:loading.flex wire:target="applyImageStudioEdit"
+                <div wire:loading.flex wire:target="applyImageStudioEdit, uploadedStudioImage"
                      style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border: 3px solid rgba(139,92,246,0.3); border-top-color: #a78bfa; border-radius: 50%; animation: imgStudioSpin 1s linear infinite;"></div>
                     <span style="color: #c4b5fd; font-size: 0.85rem;">{{ __('Applying changes...') }}</span>
@@ -138,6 +138,17 @@
                                 @endif
                             </button>
                         @endforeach
+
+                        {{-- Upload Image button --}}
+                        <label style="padding: 0.4rem 0.7rem; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 2rem; color: #7dd3fc; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s; position: relative;"
+                               onmouseover="this.style.background='rgba(56,189,248,0.2)'; this.style.borderColor='rgba(56,189,248,0.5)';"
+                               onmouseout="this.style.background='rgba(56,189,248,0.1)'; this.style.borderColor='rgba(56,189,248,0.25)';">
+                            <input type="file" accept="image/*" wire:model="uploadedStudioImage"
+                                   style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;" />
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 0.7rem;"></i>
+                            <span wire:loading.remove wire:target="uploadedStudioImage">{{ __('Upload Image') }}</span>
+                            <span wire:loading wire:target="uploadedStudioImage"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                        </label>
                     </div>
                 </div>
 

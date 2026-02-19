@@ -1077,6 +1077,7 @@
                                 'generated', 'regenerated' => 'fa-wand-magic-sparkles',
                                 'edited' => 'fa-pen-to-square',
                                 'reimagined' => 'fa-palette',
+                                'uploaded' => 'fa-cloud-arrow-up',
                                 'animated' => 'fa-film',
                                 'stock' => 'fa-image',
                                 'restored' => 'fa-rotate-left',
@@ -1088,6 +1089,7 @@
                                 $hAction === 'regenerated' => __('Regen'),
                                 $hAction === 'edited' => __('Edit'),
                                 $hAction === 'reimagined' => __('Style'),
+                                $hAction === 'uploaded' => __('Upload'),
                                 $hAction === 'animated' => __('Video'),
                                 $hAction === 'stock' => __('Stock'),
                                 $hAction === 'restored' => __('Restored'),
@@ -1484,6 +1486,20 @@
                             <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Edit') }}
                         </button>
 
+                        {{-- Upload Image button --}}
+                        <label class="vw-social-action-btn"
+                               title="{{ __('Upload your own image') }}"
+                               style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); cursor: pointer; position: relative;">
+                            <input type="file" accept="image/*" wire:model="uploadedSceneImage"
+                                   style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;" />
+                            <span wire:loading.remove wire:target="uploadedSceneImage">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </span>
+                            <span wire:loading wire:target="uploadedSceneImage">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                            </span>
+                        </label>
+
                         {{-- Asset History button --}}
                         <button class="vw-social-action-btn"
                                 wire:click="openAssetHistory('scene', 0)"
@@ -1493,17 +1509,35 @@
                         </button>
                     </div>
                 @else
-                    <button class="vw-social-action-btn orange"
-                            wire:click="generateShotImage(0, 0)"
-                            wire:loading.attr="disabled"
-                            wire:target="generateShotImage">
-                        <span wire:loading.remove wire:target="generateShotImage">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Generate Image') }}
-                        </span>
-                        <span wire:loading wire:target="generateShotImage">
-                            <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Generating...') }}
-                        </span>
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="vw-social-action-btn orange"
+                                wire:click="generateShotImage(0, 0)"
+                                wire:loading.attr="disabled"
+                                wire:target="generateShotImage">
+                            <span wire:loading.remove wire:target="generateShotImage">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Generate Image') }}
+                            </span>
+                            <span wire:loading wire:target="generateShotImage">
+                                <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Generating...') }}
+                            </span>
+                        </button>
+
+                        <span style="color: rgba(255,255,255,0.3); font-size: 0.75rem;">{{ __('or') }}</span>
+
+                        {{-- Upload instead of generating --}}
+                        <label class="vw-social-action-btn"
+                               title="{{ __('Upload your own image') }}"
+                               style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); cursor: pointer; position: relative;">
+                            <input type="file" accept="image/*" wire:model="uploadedSceneImage"
+                                   style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;" />
+                            <span wire:loading.remove wire:target="uploadedSceneImage">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> {{ __('Upload') }}
+                            </span>
+                            <span wire:loading wire:target="uploadedSceneImage">
+                                <i class="fa-solid fa-spinner fa-spin"></i> {{ __('Uploading...') }}
+                            </span>
+                        </label>
+                    </div>
                 @endif
             </div>
 
