@@ -86,7 +86,7 @@ class CreativeService
                 'width' => $dimensions['width'],
                 'height' => $dimensions['height'],
                 'maxResult' => 1,
-            ]);
+            ], $campaign->team_id);
 
             $imageUrl = $result['data'][0]['url'] ?? ($result['data'][0] ?? null);
 
@@ -124,7 +124,7 @@ Only return the JSON, no other text. Each variation should be different.
 PROMPT;
 
         try {
-            $result = AI::process($prompt, 'text', ['maxResult' => 1]);
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $campaign->team_id);
             $text = $result['data'][0] ?? '';
 
             if (preg_match('/\{[\s\S]*\}/', $text, $match)) {
@@ -190,7 +190,7 @@ PROMPT;
             . "Return only the text, nothing else.";
 
         try {
-            $result = AI::process($prompt, 'text', ['maxResult' => 1]);
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $creative->team_id);
             return trim($result['data'][0] ?? '', " \t\n\r\"'");
         } catch (\Throwable $e) {
             Log::warning('helpMeWrite failed', ['error' => $e->getMessage()]);
@@ -241,7 +241,7 @@ PROMPT;
             $result = AI::process($prompt, 'video', [
                 'image_url' => $creative->image_url,
                 'maxResult' => 1,
-            ]);
+            ], $creative->team_id);
 
             $videoUrl = $result['data'][0]['url'] ?? ($result['data'][0] ?? null);
 

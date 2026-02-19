@@ -34,7 +34,7 @@ class BusinessDnaService
             $dna->save();
 
             // Use AI to analyze the scraped content
-            $analysis = $this->aiAnalyze($scraped);
+            $analysis = $this->aiAnalyze($scraped, $teamId);
 
             // Update DNA with analysis results
             $dna->update([
@@ -61,7 +61,7 @@ class BusinessDnaService
         }
     }
 
-    protected function aiAnalyze(array $scraped): array
+    protected function aiAnalyze(array $scraped, int $teamId = 0): array
     {
         $textContent = mb_substr($scraped['text_content'] ?? '', 0, 3000);
         $title = $scraped['title'] ?? '';
@@ -91,7 +91,7 @@ Only return the JSON, no other text.
 PROMPT;
 
         try {
-            $result = AI::process($prompt, 'text', ['maxResult' => 1]);
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $teamId);
             $text = $result['data'][0] ?? '';
 
             // Extract JSON from response
@@ -126,7 +126,7 @@ Only return the JSON array, no other text.
 PROMPT;
 
         try {
-            $result = AI::process($prompt, 'text', ['maxResult' => 1]);
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $dna->team_id);
             $text = $result['data'][0] ?? '';
 
             if (preg_match('/\[[\s\S]*\]/', $text, $match)) {

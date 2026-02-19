@@ -34,7 +34,7 @@ Only return the JSON array, no other text.
 PROMPT;
 
         try {
-            $result = AI::process($aiPrompt, 'text', ['maxResult' => 1]);
+            $result = AI::process($aiPrompt, 'text', ['maxResult' => 1], $teamId);
             $text = $result['data'][0] ?? '';
 
             if (preg_match('/\[[\s\S]*\]/', $text, $match)) {

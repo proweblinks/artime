@@ -38,7 +38,7 @@ class PhotoshootService
             $result = AI::process($prompt, 'image', [
                 'image_url' => $productImageUrl,
                 'maxResult' => 4,
-            ]);
+            ], $teamId);
 
             $results = [];
             foreach (($result['data'] ?? []) as $item) {
@@ -84,7 +84,7 @@ class PhotoshootService
                 $options['image_url'] = Storage::disk('public')->url($referenceImages[0]);
             }
 
-            $result = AI::process($prompt, 'image', $options);
+            $result = AI::process($prompt, 'image', $options, $teamId);
 
             $results = [];
             foreach (($result['data'] ?? []) as $item) {
