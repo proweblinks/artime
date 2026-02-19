@@ -7,38 +7,56 @@
     <div class="cs-page-header">
         <div class="cs-page-icon"><i class="fa-light fa-camera-retro"></i></div>
         <h1>{{ __('Photoshoot') }}</h1>
-        <p>{{ __('Create professional product photography and images with AI.') }}</p>
+        <p>{{ __('Choose a guided template for professional product shots or use our flexible editor to create anything you can imagine.') }}</p>
     </div>
 
     @if($mode === 'menu')
-        {{-- ━━━ Two Entry Points ━━━ --}}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 700px; margin: 0 auto;">
+        {{-- ━━━ Two Entry Points with Visual Preview ━━━ --}}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto;">
             {{-- Product Photoshoot --}}
-            <div class="cs-card cs-card-clickable" wire:click="selectMode('template')"
-                 style="padding: 40px 24px; text-align: center;">
-                <div style="font-size: 40px; color: var(--cs-primary-text); margin-bottom: 12px;">
-                    <i class="fa-light fa-bag-shopping"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">
+            <div class="cs-card cs-card-clickable" wire:click="selectMode('template')" style="padding: 24px; overflow: hidden;">
+                <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">
                     {{ __('Create a product photoshoot') }}
                 </h3>
-                <p style="font-size: 13px; color: var(--cs-text-muted); margin: 0;">
-                    {{ __('Upload your product and choose from professional templates.') }}
+                <p style="font-size: 12px; color: var(--cs-text-muted); margin: 0 0 16px 0;">
+                    {{ __('Choose a product image and templates to get professional shots') }}
                 </p>
+                {{-- 6 Sample Preview Thumbnails (3x2 grid) --}}
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                    @php
+                        $previewGradients = [
+                            'linear-gradient(135deg, #fce4ec, #f8bbd0)',
+                            'linear-gradient(135deg, #e8f5e9, #c8e6c9)',
+                            'linear-gradient(135deg, #fff3e0, #ffe0b2)',
+                            'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+                            'linear-gradient(135deg, #fce4ec, #f48fb1)',
+                            'linear-gradient(135deg, #e0f7fa, #80deea)',
+                        ];
+                    @endphp
+                    @foreach($previewGradients as $gradient)
+                        <div style="aspect-ratio: 1; border-radius: 8px; background: {{ $gradient }}; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-light fa-bag-shopping" style="font-size: 16px; color: rgba(0,0,0,0.2);"></i>
+                        </div>
+                    @endforeach
+                </div>
             </div>
 
             {{-- Free-form --}}
-            <div class="cs-card cs-card-clickable" wire:click="selectMode('freeform')"
-                 style="padding: 40px 24px; text-align: center;">
-                <div style="font-size: 40px; color: var(--cs-primary-text); margin-bottom: 12px;">
-                    <i class="fa-light fa-wand-magic-sparkles"></i>
-                </div>
-                <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">
+            <div class="cs-card cs-card-clickable" wire:click="selectMode('freeform')" style="padding: 24px; overflow: hidden;">
+                <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">
                     {{ __('Generate or edit an image') }}
                 </h3>
-                <p style="font-size: 13px; color: var(--cs-text-muted); margin: 0;">
-                    {{ __('Describe what you want or edit existing images with AI.') }}
+                <p style="font-size: 12px; color: var(--cs-text-muted); margin: 0 0 16px 0;">
+                    {{ __('Describe the image you want with a prompt or edit an existing one') }}
                 </p>
+                {{-- Single Large Preview --}}
+                <div style="aspect-ratio: 16/10; border-radius: 10px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; inset: 0; background: radial-gradient(circle at 30% 50%, rgba(3,252,244,0.15), transparent 60%);"></div>
+                    <div style="text-align: center; position: relative; z-index: 1;">
+                        <i class="fa-light fa-wand-magic-sparkles" style="font-size: 32px; color: rgba(3,252,244,0.6); margin-bottom: 8px; display: block;"></i>
+                        <span style="font-size: 11px; color: rgba(255,255,255,0.4);">{{ __('AI-powered generation') }}</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -88,14 +106,30 @@
 
             {{-- Right: Template Grid --}}
             <div>
-                <div class="cs-section-label">{{ __('Choose a Template') }}</div>
+                <div class="cs-section-label">{{ __('Photoshoot Templates') }}</div>
+                @php
+                    $templateVisuals = [
+                        'studio-white' => ['gradient' => 'linear-gradient(135deg, #f5f5f5, #e0e0e0)', 'color' => 'rgba(0,0,0,0.15)'],
+                        'lifestyle' => ['gradient' => 'linear-gradient(135deg, #fff8e1, #ffcc80)', 'color' => 'rgba(139,69,19,0.2)'],
+                        'outdoor' => ['gradient' => 'linear-gradient(135deg, #e8f5e9, #81c784)', 'color' => 'rgba(27,94,32,0.2)'],
+                        'flat-lay' => ['gradient' => 'linear-gradient(135deg, #fce4ec, #f8bbd0)', 'color' => 'rgba(136,14,79,0.15)'],
+                        'dramatic' => ['gradient' => 'linear-gradient(135deg, #1a1a2e, #2d2d44)', 'color' => 'rgba(255,255,255,0.15)'],
+                        'seasonal' => ['gradient' => 'linear-gradient(135deg, #e8eaf6, #9fa8da)', 'color' => 'rgba(26,35,126,0.15)'],
+                        'minimalist' => ['gradient' => 'linear-gradient(135deg, #eceff1, #cfd8dc)', 'color' => 'rgba(0,0,0,0.1)'],
+                        'luxury' => ['gradient' => 'linear-gradient(135deg, #3e2723, #5d4037)', 'color' => 'rgba(255,215,0,0.2)'],
+                        'tech' => ['gradient' => 'linear-gradient(135deg, #0d0d1a, #1a237e)', 'color' => 'rgba(3,252,244,0.2)'],
+                    ];
+                @endphp
                 <div class="cs-template-grid">
                     @foreach($templates as $template)
+                        @php $visual = $templateVisuals[$template['id']] ?? ['gradient' => 'linear-gradient(135deg, #eee, #ddd)', 'color' => 'rgba(0,0,0,0.1)']; @endphp
                         <div class="cs-card cs-card-clickable {{ $selectedTemplate === $template['id'] ? 'cs-template-thumb selected' : '' }}"
                              wire:click="selectTemplate('{{ $template['id'] }}')"
-                             style="padding: 16px; text-align: center; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <i class="{{ $template['icon'] }}" style="font-size: 24px; color: var(--cs-primary-text); margin-bottom: 8px;"></i>
-                            <span style="font-size: 12px; font-weight: 500;">{{ $template['name'] }}</span>
+                             style="padding: 0; overflow: hidden; aspect-ratio: 3/4; position: relative; border: {{ $selectedTemplate === $template['id'] ? '2px solid var(--cs-primary)' : '2px solid transparent' }};">
+                            <div style="width: 100%; height: 100%; background: {{ $visual['gradient'] }}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;">
+                                <i class="{{ $template['icon'] }}" style="font-size: 20px; color: {{ $visual['color'] }};"></i>
+                                <span style="font-size: 10px; font-weight: 500; color: {{ $visual['color'] }}; text-transform: uppercase; letter-spacing: 0.5px;">{{ $template['name'] }}</span>
+                            </div>
                         </div>
                     @endforeach
                 </div>

@@ -29,13 +29,13 @@
         {{-- ━━━ Creatives Grid ━━━ --}}
         @if($isGenerating && $campaign->creatives->isEmpty())
             {{-- Skeleton loading --}}
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
                 @for($i = 0; $i < 4; $i++)
                     <div class="cs-skeleton" style="aspect-ratio: 9/16; border-radius: var(--cs-radius-lg);"></div>
                 @endfor
             </div>
         @else
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
                 @foreach($campaign->creatives as $creative)
                     <div class="cs-creative-card" x-data="{ menuOpen: false }">
                         {{-- Image / Video --}}

@@ -107,12 +107,14 @@
                 </div>
                 @if($expandedSection === 'image')
                 <div class="cs-accordion-body">
-                    <div style="width: 80px; height: 100px; border: 2px dashed var(--cs-border-strong); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <div style="font-size: 11px; color: var(--cs-text-muted); margin-bottom: 6px;">{{ __('Image preview') }}</div>
+                    <div style="width: 80px; height: 100px; border: 2px dashed var(--cs-border-strong); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
                         @if($creative->image_url)
                             <img src="{{ $creative->image_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
                             <i class="fa-light fa-image" style="color: var(--cs-text-muted);"></i>
                         @endif
+                        <i class="fa-light fa-pen" style="position: absolute; top: 4px; right: 4px; font-size: 10px; color: var(--cs-primary-text); background: var(--cs-bg-surface); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"></i>
                     </div>
                     <div style="font-size: 12px; color: var(--cs-text-muted); margin-top: 4px;">{{ __('Generated Image') }}</div>
                 </div>
@@ -125,7 +127,7 @@
                      wire:click="toggleSection('header')">
                     <i class="fa-light fa-heading" style="margin-right: 8px; color: var(--cs-primary-text);"></i>
                     <span style="font-weight: 600; font-size: 14px; flex: 1;">{{ __('Header') }}</span>
-                    <div class="cs-toggle {{ $headerVisible ? 'active' : '' }}" wire:click.stop="toggleVisibility('header')"></div>
+                    <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--cs-primary-text);" wire:click.stop="toggleVisibility('header')" title="{{ $headerVisible ? __('Hide') : __('Show') }}"><i class="fa-light {{ $headerVisible ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size: 14px;"></i></button>
                     <i class="fa-light fa-chevron-{{ $expandedSection === 'header' ? 'up' : 'down' }}" style="font-size: 12px; color: var(--cs-text-muted); margin-left: 8px;"></i>
                 </div>
                 @if($expandedSection === 'header')
@@ -151,7 +153,14 @@
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Color') }}</label>
-                            <input type="color" class="cs-input" style="padding: 4px; height: 36px;" wire:model="headerColor" wire:change="updateStyle('header', 'color', $event.target.value)">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: {{ $headerColor ?? '#ffffff' }}; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="headerColor" wire:change="updateStyle('header', 'color', $event.target.value)">
+                                </div>
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: #000; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" value="#000000" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="headerColor" wire:change="updateStyle('header', 'color', $event.target.value)">
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Size') }}</label>
@@ -172,7 +181,7 @@
                      wire:click="toggleSection('description')">
                     <i class="fa-light fa-align-left" style="margin-right: 8px; color: var(--cs-primary-text);"></i>
                     <span style="font-weight: 600; font-size: 14px; flex: 1;">{{ __('Description') }}</span>
-                    <div class="cs-toggle {{ $descVisible ? 'active' : '' }}" wire:click.stop="toggleVisibility('description')"></div>
+                    <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--cs-primary-text);" wire:click.stop="toggleVisibility('description')" title="{{ $descVisible ? __('Hide') : __('Show') }}"><i class="fa-light {{ $descVisible ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size: 14px;"></i></button>
                     <i class="fa-light fa-chevron-{{ $expandedSection === 'description' ? 'up' : 'down' }}" style="font-size: 12px; color: var(--cs-text-muted); margin-left: 8px;"></i>
                 </div>
                 @if($expandedSection === 'description')
@@ -198,7 +207,14 @@
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Color') }}</label>
-                            <input type="color" class="cs-input" style="padding: 4px; height: 36px;" wire:model="descColor" wire:change="updateStyle('description', 'color', $event.target.value)">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: {{ $descColor ?? '#ffffff' }}; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="descColor" wire:change="updateStyle('description', 'color', $event.target.value)">
+                                </div>
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: #000; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" value="#000000" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="descColor" wire:change="updateStyle('description', 'color', $event.target.value)">
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Size') }}</label>
@@ -219,7 +235,7 @@
                      wire:click="toggleSection('cta')">
                     <i class="fa-light fa-hand-pointer" style="margin-right: 8px; color: var(--cs-primary-text);"></i>
                     <span style="font-weight: 600; font-size: 14px; flex: 1;">{{ __('Call To Action') }}</span>
-                    <div class="cs-toggle {{ $ctaVisible ? 'active' : '' }}" wire:click.stop="toggleVisibility('cta')"></div>
+                    <button style="background: none; border: none; cursor: pointer; padding: 4px; color: var(--cs-primary-text);" wire:click.stop="toggleVisibility('cta')" title="{{ $ctaVisible ? __('Hide') : __('Show') }}"><i class="fa-light {{ $ctaVisible ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size: 14px;"></i></button>
                     <i class="fa-light fa-chevron-{{ $expandedSection === 'cta' ? 'up' : 'down' }}" style="font-size: 12px; color: var(--cs-text-muted); margin-left: 8px;"></i>
                 </div>
                 @if($expandedSection === 'cta')
@@ -242,7 +258,14 @@
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Color') }}</label>
-                            <input type="color" class="cs-input" style="padding: 4px; height: 36px;" wire:model="ctaColor" wire:change="updateStyle('cta', 'color', $event.target.value)">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: {{ $ctaColor ?? '#ffffff' }}; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="ctaColor" wire:change="updateStyle('cta', 'color', $event.target.value)">
+                                </div>
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: #000; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="color" value="#000000" style="position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); cursor: pointer; opacity: 0;" wire:model="ctaColor" wire:change="updateStyle('cta', 'color', $event.target.value)">
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label style="font-size: 12px; color: var(--cs-text-muted); display: block; margin-bottom: 4px;">{{ __('Size') }}</label>
