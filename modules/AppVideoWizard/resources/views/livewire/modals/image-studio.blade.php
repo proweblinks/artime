@@ -2,7 +2,7 @@
 @if($showImageStudioModal)
 <div class="vw-modal-overlay"
      x-data="{ activeTab: @entangle('imageStudioTab') }"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 10000000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000000; padding: 1rem;">
     <div class="vw-modal"
          style="background: var(--vw-bg-surface); border: 1px solid var(--vw-border-accent); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
 
@@ -10,7 +10,7 @@
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <h3 style="margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600;">
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color: #a49eff; margin-right: 0.4rem;"></i>
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--vw-text-secondary); margin-right: 0.4rem;"></i>
                     {{ __('AI Image Studio') }}
                 </h3>
                 <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-muted); font-size: 0.8rem;">
@@ -27,7 +27,7 @@
                 @if(($imageStudioTarget['type'] ?? '') !== 'clone')
                     <button type="button"
                             wire:click="openAssetHistory('{{ $imageStudioTarget['type'] ?? 'scene' }}', {{ $imageStudioTarget['sceneIndex'] ?? 0 }}{{ ($imageStudioTarget['type'] ?? '') === 'shot' ? ', ' . ($imageStudioTarget['shotIndex'] ?? 0) : '' }})"
-                            style="background: rgba(255,255,255,0.08); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.8rem; cursor: pointer; padding: 0.35rem 0.65rem; display: flex; align-items: center; gap: 0.3rem;"
+                            style="background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.8rem; cursor: pointer; padding: 0.35rem 0.65rem; display: flex; align-items: center; gap: 0.3rem;"
                             title="{{ __('View history') }}">
                         <i class="fa-solid fa-clock-rotate-left" style="font-size: 0.75rem;"></i> {{ __('History') }}
                     </button>
@@ -41,14 +41,14 @@
             <button type="button"
                     @click="activeTab = 'edit'"
                     :style="activeTab === 'edit'
-                        ? 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid rgba(var(--vw-primary-rgb),0.4); border-bottom: none; background: rgba(var(--vw-primary-rgb),0.15); color: #a49eff; font-size: 0.85rem; font-weight: 500; cursor: pointer;'
+                        ? 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid var(--vw-border-accent); border-bottom: none; background: var(--vw-bg-surface); color: var(--vw-text); font-size: 0.85rem; font-weight: 600; cursor: pointer;'
                         : 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; border-bottom: none; background: none; color: var(--vw-text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;'">
                 <i class="fa-solid fa-pen-to-square" style="margin-right: 0.3rem;"></i> {{ __('Edit') }}
             </button>
             <button type="button"
                     @click="activeTab = 'reimagine'"
                     :style="activeTab === 'reimagine'
-                        ? 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid rgba(236,72,153,0.4); border-bottom: none; background: rgba(236,72,153,0.15); color: #f9a8d4; font-size: 0.85rem; font-weight: 500; cursor: pointer;'
+                        ? 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid var(--vw-border-accent); border-bottom: none; background: var(--vw-bg-surface); color: var(--vw-text); font-size: 0.85rem; font-weight: 600; cursor: pointer;'
                         : 'padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; border: 1px solid transparent; border-bottom: none; background: none; color: var(--vw-text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;'">
                 <i class="fa-solid fa-palette" style="margin-right: 0.3rem;"></i> {{ __('Reimagine') }}
             </button>
@@ -58,7 +58,7 @@
         <div style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--vw-border);">
 
             {{-- Image Preview --}}
-            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.5); border: 1px solid var(--vw-border);">
+            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border);">
                 @if(!empty($imageStudioTarget['imageUrl']))
                     <img src="{{ $imageStudioTarget['imageUrl'] }}" alt="{{ __('Image preview') }}"
                          style="width: 100%; max-height: 320px; object-fit: contain; display: block; background: #000;">
@@ -72,7 +72,7 @@
                 <div wire:loading.flex wire:target="applyImageStudioEdit, uploadedStudioImage"
                      style="position: absolute; inset: 0; background: rgba(0,0,0,0.7); flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
                     <div style="width: 36px; height: 36px; border: 3px solid var(--vw-border); border-top-color: var(--vw-primary); border-radius: 50%; animation: imgStudioSpin 1s linear infinite;"></div>
-                    <span style="color: #a49eff; font-size: 0.85rem;">{{ __('Applying changes...') }}</span>
+                    <span style="color: var(--vw-text-secondary); font-size: 0.85rem;">{{ __('Applying changes...') }}</span>
                 </div>
             </div>
 
@@ -82,7 +82,7 @@
                     @if(!empty($imageStudioTarget['editStack']))
                         <button type="button"
                                 wire:click="undoImageStudioEdit"
-                                style="padding: 0.35rem 0.75rem; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.35rem; color: #fbbf24; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+                                style="padding: 0.35rem 0.75rem; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.35rem; color: #d97706; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
                             <i class="fa-solid fa-rotate-left" style="font-size: 0.7rem;"></i> {{ __('Undo Last') }}
                         </button>
                     @endif
@@ -98,7 +98,7 @@
 
             {{-- Error message --}}
             @if($imageStudioError)
-                <div style="padding: 0.6rem 0.85rem; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem; color: #fca5a5; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="padding: 0.6rem 0.85rem; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem; color: #dc2626; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fa-solid fa-circle-exclamation"></i> {{ $imageStudioError }}
                 </div>
             @endif
@@ -128,19 +128,19 @@
                                         wire:click="$set('imageStudioPrompt', '{{ addslashes($preset['prompt']) }}')"
                                         x-on:click="$nextTick(() => document.getElementById('studio-edit-prompt').focus())"
                                     @endif
-                                    style="padding: 0.4rem 0.7rem; background: rgba(var(--vw-primary-rgb),0.1); border: 1px solid rgba(var(--vw-primary-rgb),0.25); border-radius: 2rem; color: #a49eff; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s;"
-                                    onmouseover="this.style.background='rgba(103,93,255,0.2)'; this.style.borderColor='rgba(103,93,255,0.5)';"
-                                    onmouseout="this.style.background='rgba(103,93,255,0.1)'; this.style.borderColor='rgba(103,93,255,0.25)';">
+                                    style="padding: 0.4rem 0.7rem; background: rgba(var(--vw-primary-rgb),0.1); border: 1px solid rgba(var(--vw-primary-rgb),0.25); border-radius: 2rem; color: var(--vw-text-secondary); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s;"
+                                    onmouseover="this.style.background='rgba(24,24,27,0.08)'; this.style.borderColor='rgba(24,24,27,0.2)';"
+                                    onmouseout="this.style.background='rgba(24,24,27,0.05)'; this.style.borderColor='rgba(24,24,27,0.1)';">
                                 <i class="{{ $preset['icon'] }}" style="font-size: 0.7rem;"></i>
                                 {{ $preset['label'] }}
                                 @if($preset['auto'])
-                                    <i class="fa-solid fa-bolt" style="font-size: 0.55rem; color: #fbbf24; margin-left: 0.15rem;" title="{{ __('Auto-applies') }}"></i>
+                                    <i class="fa-solid fa-bolt" style="font-size: 0.55rem; color: #d97706; margin-left: 0.15rem;" title="{{ __('Auto-applies') }}"></i>
                                 @endif
                             </button>
                         @endforeach
 
                         {{-- Upload Image button --}}
-                        <label style="padding: 0.4rem 0.7rem; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 2rem; color: #7dd3fc; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s; position: relative;"
+                        <label style="padding: 0.4rem 0.7rem; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 2rem; color: #0284c7; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: background 0.2s, border-color 0.2s; position: relative;"
                                onmouseover="this.style.background='rgba(56,189,248,0.2)'; this.style.borderColor='rgba(56,189,248,0.5)';"
                                onmouseout="this.style.background='rgba(56,189,248,0.1)'; this.style.borderColor='rgba(56,189,248,0.25)';">
                             <input type="file" accept="image/*" wire:model="uploadedStudioImage"
@@ -160,7 +160,7 @@
                               rows="3"
                               placeholder="{{ __('Describe what you want to change...') }}"
                               style="width: 100%; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
-                              onfocus="this.style.borderColor='rgba(103,93,255,0.5)'"
+                              onfocus="this.style.borderColor='rgba(24,24,27,0.2)'"
                               onblur="this.style.borderColor='var(--vw-border)'"></textarea>
                 </div>
             </div>
@@ -203,7 +203,7 @@
                                     style="padding: 0.5rem 0.35rem; border-radius: 0.5rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; transition: all 0.2s;"
                                     :style="selectedStyle === '{{ $key }}'
                                         ? 'background: {{ $style['color'] }}18; border: 2px solid {{ $style['color'] }}; transform: translateY(-1px);'
-                                        : 'background: rgba(255,255,255,0.04); border: 2px solid var(--vw-border);'">
+                                        : 'background: rgba(0,0,0,0.02); border: 2px solid var(--vw-border);'">
                                 <i class="{{ $style['icon'] }}" style="font-size: 1rem; color: {{ $style['color'] }};"></i>
                                 <span style="color: var(--vw-text); font-size: 0.65rem; font-weight: 500; text-align: center; line-height: 1.15;">{{ $style['name'] }}</span>
                             </button>
@@ -231,7 +231,7 @@
                         wire:click="applyImageStudioEdit"
                         wire:loading.attr="disabled"
                         wire:target="applyImageStudioEdit"
-                        style="width: 100%; padding: 0.65rem 1rem; background: linear-gradient(135deg, var(--vw-primary), #ec4899); border: none; border-radius: 0.5rem; color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: opacity 0.2s;"
+                        style="width: 100%; padding: 0.65rem 1rem; background: var(--vw-primary); border: none; border-radius: 0.5rem; color: white; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: opacity 0.2s;"
                         onmouseover="this.style.opacity='0.9'"
                         onmouseout="this.style.opacity='1'">
                     <span wire:loading.remove wire:target="applyImageStudioEdit">
@@ -248,7 +248,7 @@
         <div style="padding: 0.85rem 1.25rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: flex-end; gap: 0.5rem;">
             <button type="button"
                     wire:click="closeImageStudio"
-                    style="padding: 0.45rem 1rem; background: rgba(255,255,255,0.08); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.85rem; cursor: pointer;">
+                    style="padding: 0.45rem 1rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.85rem; cursor: pointer;">
                 {{ __('Close') }}
             </button>
             {{-- Apply Edit button (Edit tab only) --}}
@@ -257,7 +257,7 @@
                     wire:click="applyImageStudioEdit"
                     wire:loading.attr="disabled"
                     wire:target="applyImageStudioEdit"
-                    style="padding: 0.45rem 1rem; background: linear-gradient(135deg, var(--vw-primary), #7c3aed); border: none; border-radius: 0.5rem; color: white; font-size: 0.85rem; font-weight: 500; cursor: pointer;"
+                    style="padding: 0.45rem 1rem; background: var(--vw-primary); border: none; border-radius: 0.5rem; color: white; font-size: 0.85rem; font-weight: 500; cursor: pointer;"
                     onmouseover="this.style.opacity='0.9'"
                     onmouseout="this.style.opacity='1'">
                 <span wire:loading.remove wire:target="applyImageStudioEdit">

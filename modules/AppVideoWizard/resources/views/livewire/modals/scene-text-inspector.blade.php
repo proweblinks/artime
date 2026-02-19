@@ -16,7 +16,7 @@
             position: sticky;
             bottom: 0;
             background: rgba(20,20,35,0.98);
-            border-top: 1px solid rgba(255,255,255,0.15);
+            border-top: 1px solid var(--vw-border);
             padding: 0.75rem 1rem;
         }
         /* Full-width close button on mobile */
@@ -84,19 +84,19 @@
              window.scrollTo(0, $data.scrollY);
              $wire.closeSceneTextInspector();
          "
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
 
         {{-- Header --}}
-        <div style="padding: 0.5rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             @php
                 $scene = $this->inspectorScene['script'] ?? null;
                 $sceneNum = ($inspectorSceneIndex ?? 0) + 1;
             @endphp
             <div>
-                <h3 style="margin: 0; color: white; font-size: 1rem; font-weight: 600;">
+                <h3 style="margin: 0; color: var(--vw-text); font-size: 1rem; font-weight: 600;">
                     Scene {{ $sceneNum }}{{ !empty($scene['title']) ? ': ' . $scene['title'] : '' }}
                 </h3>
-                <p style="margin: 0.15rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.7rem;">
+                <p style="margin: 0.15rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.7rem;">
                     {{ __('Complete scene text, prompts, and metadata') }}
                 </p>
             </div>
@@ -117,7 +117,7 @@
             @if($scene)
                 {{-- Metadata Section --}}
                 <div style="margin-bottom: 1.5rem;">
-                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: var(--vw-text); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         Scene Metadata
                     </h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
@@ -134,8 +134,8 @@
                         <div style="padding: 0.5rem 0.75rem; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.875rem;">⏱️</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Duration</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.95); font-weight: 500;">{{ $durationFormatted }}</div>
+                                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Duration</div>
+                                <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500;">{{ $durationFormatted }}</div>
                             </div>
                         </div>
 
@@ -151,11 +151,11 @@
                             ];
                             $transitionIcon = $transitionIcons[strtoupper($transition)] ?? '🎬';
                         @endphp
-                        <div style="padding: 0.5rem 0.75rem; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.15); border: 1px solid rgba(var(--vw-primary-rgb), 0.3); border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.875rem;">{{ $transitionIcon }}</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Transition</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.95); font-weight: 500;">{{ strtoupper($transition) }}</div>
+                                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Transition</div>
+                                <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500;">{{ strtoupper($transition) }}</div>
                             </div>
                         </div>
 
@@ -170,8 +170,8 @@
                         <div style="padding: 0.5rem 0.75rem; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.875rem;">📍</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Location</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.95); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $location }}">{{ $locationDisplay }}</div>
+                                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Location</div>
+                                <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $location }}">{{ $locationDisplay }}</div>
                             </div>
                         </div>
 
@@ -197,8 +197,8 @@
                         <div style="padding: 0.5rem 0.75rem; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3); border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.875rem;">👥</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Characters</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.95); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $charDisplay }}">{{ $charDisplay }}</div>
+                                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Characters</div>
+                                <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $charDisplay }}">{{ $charDisplay }}</div>
                             </div>
                         </div>
 
@@ -226,20 +226,20 @@
                         <div style="padding: 0.5rem 0.75rem; background: {{ $intensityColor }}; border: 1px solid {{ $intensityBorder }}; border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 0.875rem;">🔥</span>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Intensity</div>
-                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.95); font-weight: 500;">{{ $intensityLabel }}</div>
+                                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Intensity</div>
+                                <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500;">{{ $intensityLabel }}</div>
                             </div>
                         </div>
 
                         {{-- META-06: Climax Badge (full-width, only for climax scenes) --}}
                         @if(($scene['isClimax'] ?? false) || ($scene['metadata']['isClimax'] ?? false))
-                            <div style="grid-column: 1 / -1; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(139,92,246,0.2)); border: 2px solid transparent; background-clip: padding-box; border-radius: 0.5rem; position: relative; overflow: hidden;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(236,72,153,0.4), rgba(139,92,246,0.4)); border-radius: 0.5rem; z-index: 0; opacity: 0.3;"></div>
+                            <div style="grid-column: 1 / -1; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(var(--vw-primary-rgb), 0.08)); border: 2px solid transparent; background-clip: padding-box; border-radius: 0.5rem; position: relative; overflow: hidden;">
+                                <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(236,72,153,0.4), var(--vw-border-accent)); border-radius: 0.5rem; z-index: 0; opacity: 0.3;"></div>
                                 <div style="position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
                                     <span style="font-size: 1.25rem;">⭐</span>
                                     <div>
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Climactic Scene</div>
-                                        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.95); font-weight: 500; margin-top: 0.15rem;">This is a pivotal moment in the story</div>
+                                        <div style="font-size: 0.7rem; color: var(--vw-text); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Climactic Scene</div>
+                                        <div style="font-size: 0.85rem; color: var(--vw-text); font-weight: 500; margin-top: 0.15rem;">This is a pivotal moment in the story</div>
                                     </div>
                                     <span style="font-size: 1.25rem;">⭐</span>
                                 </div>
@@ -250,7 +250,7 @@
 
                 {{-- Speech Segments Section --}}
                 <div style="margin-bottom: 1.5rem;">
-                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: var(--vw-text); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         Speech Segments
                         @if(!empty($scene['speechSegments']))
                             <span style="opacity: 0.6; font-weight: normal; font-size: 0.7rem; text-transform: none; margin-left: 0.5rem;">({{ count($scene['speechSegments']) }} segments)</span>
@@ -265,7 +265,7 @@
                         $typeConfig = [
                             'narrator' => ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'label' => 'NARRATOR', 'lipSync' => false],
                             'dialogue' => ['icon' => '💬', 'color' => 'rgba(16, 185, 129, 0.4)', 'label' => 'DIALOGUE', 'lipSync' => true],
-                            'internal' => ['icon' => '💭', 'color' => 'rgba(168, 85, 247, 0.4)', 'label' => 'INTERNAL', 'lipSync' => false],
+                            'internal' => ['icon' => '💭', 'color' => 'rgba(var(--vw-primary-rgb), 0.4)', 'label' => 'INTERNAL', 'lipSync' => false],
                             'monologue' => ['icon' => '🗣️', 'color' => 'rgba(251, 191, 36, 0.4)', 'label' => 'MONOLOGUE', 'lipSync' => true],
                         ];
 
@@ -328,7 +328,7 @@
                                     }
                                 @endphp
 
-                                <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $typeData['color'] }}; border-radius: 0 0.375rem 0.375rem 0;">
+                                <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border-left: 3px solid {{ $typeData['color'] }}; border-radius: 0 0.375rem 0.375rem 0;">
                                     {{-- Header: Type badge, Speaker, Lip-sync, Duration --}}
                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                                         {{-- Type icon (SPCH-03) --}}
@@ -341,7 +341,7 @@
 
                                         {{-- Speaker name in purple (SPCH-04) with character indicator (SPCH-07) --}}
                                         @if($speaker)
-                                            <span style="color: #c4b5fd; font-size: 0.75rem; font-weight: 600;">{{ $speaker }}</span>
+                                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 600;">{{ $speaker }}</span>
                                             @if($matchedChar)
                                                 <span title="{{ __('Character exists in Bible') }}" style="font-size: 0.65rem; color: #10b981;">👤</span>
                                             @endif
@@ -353,20 +353,20 @@
                                         {{-- Lip-sync indicator (SPCH-05) --}}
                                         <span style="font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-weight: 500;
                                             {{ $needsLipSync
-                                                ? 'background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3);'
-                                                : 'background: rgba(100,116,139,0.15); color: rgba(255,255,255,0.5); border: 1px solid rgba(100,116,139,0.2);'
+                                                ? 'background: rgba(16,185,129,0.2); color: #16a34a; border: 1px solid rgba(16,185,129,0.3);'
+                                                : 'background: rgba(100,116,139,0.15); color: var(--vw-text-secondary); border: 1px solid rgba(100,116,139,0.2);'
                                             }}">
                                             LIP-SYNC: {{ $needsLipSync ? 'YES' : 'NO' }}
                                         </span>
 
                                         {{-- Duration (SPCH-06) --}}
-                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5);" title="{{ __('Estimated duration at 150 WPM') }}">
+                                        <span style="font-size: 0.6rem; color: var(--vw-text-secondary);" title="{{ __('Estimated duration at 150 WPM') }}">
                                             ⏱️ {{ $durationDisplay }}
                                         </span>
                                     </div>
 
                                     {{-- Full text content - no truncation (SPCH-01) --}}
-                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+                                    <div style="font-size: 0.8rem; color: var(--vw-text); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
                                         {{ $segment['text'] ?? '' }}
                                     </div>
                                 </div>
@@ -374,21 +374,21 @@
                         </div>
                     @elseif(!empty($scene['narration']))
                         {{-- Legacy narration fallback --}}
-                        <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.4); border-radius: 0 0.375rem 0.375rem 0;">
+                        <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border-left: 3px solid rgba(14, 165, 233, 0.4); border-radius: 0 0.375rem 0.375rem 0;">
                             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                                 <span style="font-size: 1rem;">🎙️</span>
                                 <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.25rem;">NARRATOR</span>
                                 <span style="flex: 1;"></span>
-                                <span style="font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-weight: 500; background: rgba(100,116,139,0.15); color: rgba(255,255,255,0.5); border: 1px solid rgba(100,116,139,0.2);">
+                                <span style="font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-weight: 500; background: rgba(100,116,139,0.15); color: var(--vw-text-secondary); border: 1px solid rgba(100,116,139,0.2);">
                                     LIP-SYNC: NO
                                 </span>
                             </div>
-                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+                            <div style="font-size: 0.8rem; color: var(--vw-text); line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
                                 {{ $scene['narration'] }}
                             </div>
                         </div>
                     @else
-                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+                        <div style="padding: 1rem; background: rgba(0,0,0,0.03); border-radius: 0.5rem; text-align: center; color: var(--vw-text-secondary); font-size: 0.75rem;">
                             {{ __('No speech segments for this scene') }}
                         </div>
                     @endif
@@ -399,7 +399,7 @@
                     @php
                         $shots = $this->inspectorScene['shots'] ?? [];
                     @endphp
-                    <h4 style="margin: 0 0 0.75rem 0; color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <h4 style="margin: 0 0 0.75rem 0; color: var(--vw-text); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
                         Prompts
                         @if(!empty($shots))
                             <span style="opacity: 0.6; font-weight: normal; font-size: 0.7rem; text-transform: none; margin-left: 0.5rem;">({{ count($shots) }} shots)</span>
@@ -421,9 +421,9 @@
                                     $videoPromptJson = json_encode($videoPrompt);
                                 @endphp
 
-                                <div style="padding: 0.75rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); border-radius: 0.5rem;">
+                                <div style="padding: 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.08); border-radius: 0.5rem;">
                                     {{-- Shot Header with badges (PRMT-05, PRMT-06) --}}
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--vw-border);">
                                         <span style="font-size: 0.75rem; font-weight: 600; color: white;">Shot {{ $shotIndex + 1 }}</span>
 
                                         {{-- Shot Type Badge (PRMT-05) --}}
@@ -434,7 +434,7 @@
                                         {{-- Camera Movement Indicator (PRMT-06) --}}
                                         @if($cameraIcon && $cameraMove !== 'static')
                                             <span style="font-size: 0.75rem;" title="{{ ucwords(str_replace('-', ' ', $cameraMove)) }}">{{ $cameraIcon }}</span>
-                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">{{ ucwords(str_replace('-', ' ', $cameraMove)) }}</span>
+                                            <span style="font-size: 0.6rem; color: var(--vw-text-secondary);">{{ ucwords(str_replace('-', ' ', $cameraMove)) }}</span>
                                         @endif
                                     </div>
 
@@ -442,7 +442,7 @@
                                     @if($imagePrompt)
                                         <div style="margin-bottom: 0.75rem;" data-prompt="{{ $imagePromptJson }}">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Image Prompt</span>
+                                                <span style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Image Prompt</span>
                                                 <button type="button"
                                                         x-data="{ copied: false, touching: false }"
                                                         @click="
@@ -468,13 +468,13 @@
                                                         "
                                                         @touchstart="touching = true"
                                                         @touchend="touching = false"
-                                                        :style="touching ? 'background: rgba(139,92,246,0.4)' : 'background: rgba(139,92,246,0.2)'"
-                                                        style="padding: 0.5rem 0.75rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #c4b5fd; font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
+                                                        :style="touching ? 'background: var(--vw-border-accent)' : 'background: rgba(var(--vw-primary-rgb), 0.08)'"
+                                                        style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
                                                     <span x-show="!copied">Copy</span>
                                                     <span x-show="copied" style="color: #10b981;">Copied!</span>
                                                 </button>
                                             </div>
-                                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                                 {{ $imagePrompt }}
                                             </div>
                                         </div>
@@ -484,7 +484,7 @@
                                     @if($videoPrompt)
                                         <div data-prompt="{{ $videoPromptJson }}">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;">Video Prompt</span>
+                                                <span style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Video Prompt</span>
                                                 <button type="button"
                                                         x-data="{ copied: false, touching: false }"
                                                         @click="
@@ -510,13 +510,13 @@
                                                         "
                                                         @touchstart="touching = true"
                                                         @touchend="touching = false"
-                                                        :style="touching ? 'background: rgba(139,92,246,0.4)' : 'background: rgba(139,92,246,0.2)'"
-                                                        style="padding: 0.5rem 0.75rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #c4b5fd; font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
+                                                        :style="touching ? 'background: var(--vw-border-accent)' : 'background: rgba(var(--vw-primary-rgb), 0.08)'"
+                                                        style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.7rem; cursor: pointer; min-width: 48px; min-height: 44px; touch-action: manipulation; display: flex; align-items: center; justify-content: center;">
                                                     <span x-show="!copied">Copy</span>
                                                     <span x-show="copied" style="color: #10b981;">Copied!</span>
                                                 </button>
                                             </div>
-                                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                                 {{ $videoPrompt }}
                                             </div>
                                         </div>
@@ -524,7 +524,7 @@
 
                                     {{-- No prompts for this shot --}}
                                     @if(!$imagePrompt && !$videoPrompt)
-                                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.4); font-style: italic;">
+                                        <div style="font-size: 0.7rem; color: var(--vw-text-secondary); font-style: italic;">
                                             Prompts not generated for this shot
                                         </div>
                                     @endif
@@ -532,20 +532,20 @@
                             @endforeach
                         </div>
                     @else
-                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 0.5rem; text-align: center; color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+                        <div style="padding: 1rem; background: rgba(0,0,0,0.03); border-radius: 0.5rem; text-align: center; color: var(--vw-text-secondary); font-size: 0.75rem;">
                             {{ __('No shots decomposed for this scene') }}
                         </div>
                     @endif
                 </div>
             @else
-                <div style="padding: 2rem; text-align: center; color: rgba(255,255,255,0.4);">
+                <div style="padding: 2rem; text-align: center; color: var(--vw-text-secondary);">
                     {{ __('Scene not found') }}
                 </div>
             @endif
         </div>
 
         {{-- Footer --}}
-        <div style="padding: 0.5rem 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0;">
+        <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0;">
             <button type="button"
                     @click="
                         document.body.style.position = '';
@@ -555,7 +555,7 @@
                         window.scrollTo(0, $data.scrollY);
                         $wire.closeSceneTextInspector();
                     "
-                    style="padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; min-width: 48px; min-height: 48px; touch-action: manipulation;">
+                    style="padding: 0.75rem 1.5rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; min-width: 48px; min-height: 48px; touch-action: manipulation;">
                 {{ __('Close') }}
             </button>
         </div>

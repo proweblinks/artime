@@ -33,7 +33,7 @@
             align-items: center !important;
             gap: 0.5rem !important;
             padding: 0.5rem 1rem !important;
-            background: rgba(255, 255, 255, 0.04) !important;
+            background: rgba(0, 0, 0, 0.02) !important;
             border: 1px solid var(--vw-border) !important;
             border-radius: 2rem !important;
             transition: all 0.2s ease !important;
@@ -41,7 +41,7 @@
             white-space: nowrap !important;
             flex-shrink: 0 !important;
         }
-        .vw-step:hover { background: rgba(255, 255, 255, 0.07) !important; }
+        .vw-step:hover { background: rgba(0, 0, 0, 0.04) !important; }
         .vw-step.active {
             background: var(--vw-primary-soft) !important;
             border-color: var(--vw-primary) !important;
@@ -61,7 +61,7 @@
             height: 26px !important;
             min-width: 26px !important;
             border-radius: 50% !important;
-            background: rgba(255, 255, 255, 0.06) !important;
+            background: rgba(0, 0, 0, 0.03) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -85,7 +85,7 @@
             color: var(--vw-text-muted) !important;
         }
         .vw-step.active .vw-step-label { color: var(--vw-text) !important; }
-        .vw-step.completed .vw-step-label { color: #6ee7b7 !important; }
+        .vw-step.completed .vw-step-label { color: #16a34a !important; }
 
         .vw-connector {
             width: 20px !important;
@@ -135,12 +135,12 @@
         }
 
         .vw-nav-btn--ghost {
-            background: rgba(255, 255, 255, 0.04) !important;
+            background: rgba(0, 0, 0, 0.02) !important;
             color: var(--vw-text-secondary) !important;
             border: 1px solid var(--vw-border) !important;
         }
         .vw-nav-btn--ghost:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.08) !important;
+            background: rgba(0, 0, 0, 0.04) !important;
             color: var(--vw-text) !important;
         }
 
@@ -206,7 +206,7 @@
         .vw-transition-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(7, 20, 55, 0.8);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             display: flex;
@@ -256,7 +256,7 @@
 
         .vw-transition-spinner::before {
             border-top-color: var(--vw-primary);
-            border-right-color: #22d3ee;
+            border-right-color: #71717a;
             animation: vw-spin 1s linear infinite;
         }
 
@@ -623,7 +623,7 @@
         });
 
         // Help text
-        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #8b5cf6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #18181b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         console.log('%cUse window.VWDebug to control logging. Set VWDebug.enabled = false to disable.', 'color: #666;');
     })();
     </script>

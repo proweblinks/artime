@@ -27,7 +27,7 @@
         gap: 1rem;
         padding: 0.6rem 1.25rem;
         background: rgba(15, 15, 28, 0.98);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         backdrop-filter: blur(10px);
     }
 
@@ -50,14 +50,14 @@
 
     .vw-storyboard-title {
         font-weight: 700;
-        color: white;
+        color: var(--vw-text);
         font-size: 1rem;
         letter-spacing: -0.02em;
     }
 
     .vw-storyboard-subtitle {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* Progress Pills in Header */
@@ -74,13 +74,13 @@
         padding: 0.35rem 0.7rem;
         border-radius: 2rem;
         font-size: 0.7rem;
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-storyboard-pill .pill-value {
         font-weight: 600;
-        color: #a78bfa;
+        color: var(--vw-primary);
     }
 
     .vw-storyboard-pill.complete {
@@ -106,24 +106,24 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.45rem 0.85rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.75rem;
         transition: all 0.2s;
     }
 
     .vw-settings-toggle:hover {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.25);
+        background: var(--vw-border);
+        border-color: var(--vw-border);
     }
 
     .vw-settings-toggle.active {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
-        color: #a78bfa;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border-color: var(--vw-border-accent);
+        color: var(--vw-primary);
     }
 
     /* Main Content Area - NEW SIDEBAR LAYOUT */
@@ -143,7 +143,7 @@
         width: 48px;
         min-width: 48px;
         background: rgba(10, 10, 20, 0.98);
-        border-right: 1px solid rgba(139, 92, 246, 0.15);
+        border-right: 1px solid rgba(var(--vw-primary-rgb), 0.06);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -158,7 +158,7 @@
         border-radius: 0.5rem;
         border: none;
         background: transparent;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -169,13 +169,13 @@
     }
 
     .vw-icon-rail-btn:hover {
-        background: rgba(139, 92, 246, 0.15);
-        color: rgba(255, 255, 255, 0.8);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        color: var(--vw-text);
     }
 
     .vw-icon-rail-btn.active {
-        background: rgba(139, 92, 246, 0.25);
-        color: #a78bfa;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-primary);
     }
 
     .vw-icon-rail-btn.active::before {
@@ -186,14 +186,14 @@
         transform: translateY(-50%);
         width: 3px;
         height: 20px;
-        background: #8b5cf6;
+        background: var(--vw-primary);
         border-radius: 0 2px 2px 0;
     }
 
     .vw-icon-rail-divider {
         width: 24px;
         height: 1px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         margin: 0.5rem 0;
     }
 
@@ -207,7 +207,7 @@
         min-width: 240px;
         max-width: 500px;
         background: rgba(15, 15, 28, 0.98);
-        border-right: 1px solid rgba(139, 92, 246, 0.1);
+        border-right: 1px solid rgba(var(--vw-primary-rgb), 0.04);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -244,7 +244,7 @@
         content: '';
         width: 3px;
         height: 40px;
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 2px;
         opacity: 0;
         transition: opacity 0.2s ease, background 0.2s ease;
@@ -253,16 +253,16 @@
     .vw-sidebar-resize-handle:hover::before,
     .vw-settings-sidebar.resizing .vw-sidebar-resize-handle::before {
         opacity: 1;
-        background: rgba(139, 92, 246, 0.6);
+        background: var(--vw-border-focus);
     }
 
     .vw-settings-sidebar.resizing .vw-sidebar-resize-handle::before {
-        background: #8b5cf6;
+        background: var(--vw-primary);
     }
 
     .vw-sidebar-header {
         padding: 0.75rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(0,0,0,0.03);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -272,7 +272,7 @@
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         font-weight: 600;
     }
 
@@ -285,8 +285,8 @@
     /* Sidebar Section */
     .vw-sidebar-section {
         margin-bottom: 0.75rem;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.03);
         border-radius: 0.5rem;
         overflow: hidden;
     }
@@ -301,7 +301,7 @@
     }
 
     .vw-sidebar-section-header:hover {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0,0,0,0.02);
     }
 
     .vw-sidebar-section-title {
@@ -310,7 +310,7 @@
         gap: 0.5rem;
         font-size: 0.75rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--vw-text);
     }
 
     .vw-sidebar-section-title .icon {
@@ -319,7 +319,7 @@
 
     .vw-sidebar-section-chevron {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         transition: transform 0.2s ease;
     }
 
@@ -345,8 +345,8 @@
     }
 
     .vw-sidebar-stat {
-        background: rgba(139, 92, 246, 0.08);
-        border: 1px solid rgba(139, 92, 246, 0.15);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.06);
         border-radius: 0.5rem;
         padding: 0.6rem;
         text-align: center;
@@ -355,13 +355,13 @@
     .vw-sidebar-stat-value {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #a78bfa;
+        color: var(--vw-primary);
         line-height: 1;
     }
 
     .vw-sidebar-stat-label {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         margin-top: 0.25rem;
     }
@@ -378,38 +378,38 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.5rem 0.75rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.4rem;
         cursor: pointer;
         transition: all 0.15s ease;
     }
 
     .vw-sidebar-model-btn:hover {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-sidebar-model-btn.selected {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-sidebar-model-btn.selected::before {
         content: '✓';
         margin-right: 0.5rem;
-        color: #8b5cf6;
+        color: var(--vw-primary);
     }
 
     .vw-sidebar-model-name {
         font-size: 0.75rem;
-        color: white;
+        color: var(--vw-text);
         font-weight: 500;
     }
 
     .vw-sidebar-model-cost {
         font-size: 0.65rem;
-        color: #fbbf24;
+        color: #d97706;
         background: rgba(251, 191, 36, 0.15);
         padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
@@ -425,7 +425,7 @@
 
     .vw-sidebar-toggle-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -441,13 +441,13 @@
     .vw-sidebar-toggle-track {
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.15);
+        background: var(--vw-border);
         border-radius: 10px;
         transition: background 0.2s ease;
     }
 
     .vw-sidebar-toggle-switch.active .vw-sidebar-toggle-track {
-        background: rgba(139, 92, 246, 0.5);
+        background: var(--vw-border-focus);
     }
 
     .vw-sidebar-toggle-thumb {
@@ -463,14 +463,14 @@
 
     .vw-sidebar-toggle-switch.active .vw-sidebar-toggle-thumb {
         left: 18px;
-        background: #8b5cf6;
+        background: var(--vw-primary);
     }
 
     /* Visual Style in Sidebar */
     .vw-sidebar-style-preview {
         padding: 0.6rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(236, 72, 153, 0.1));
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.4rem;
         margin-bottom: 0.75rem;
     }
@@ -480,13 +480,13 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.7rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         margin-bottom: 0.35rem;
     }
 
     .vw-sidebar-style-desc {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         line-height: 1.4;
     }
 
@@ -504,16 +504,16 @@
 
     .vw-sidebar-style-select label {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
     }
 
     .vw-sidebar-style-select select {
         padding: 0.4rem 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.3rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.7rem;
         cursor: pointer;
     }
@@ -529,8 +529,8 @@
     .vw-sidebar-bible-card {
         position: relative;
         aspect-ratio: 1;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.5rem;
         cursor: pointer;
         overflow: hidden;
@@ -538,9 +538,9 @@
     }
 
     .vw-sidebar-bible-card:hover {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-sidebar-bible-card-image {
@@ -555,7 +555,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6, 182, 212, 0.1));
         font-size: 2rem;
     }
 
@@ -571,7 +571,7 @@
     .vw-sidebar-bible-card-name {
         font-size: 0.7rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -579,7 +579,7 @@
 
     .vw-sidebar-bible-card-tag {
         font-size: 0.55rem;
-        color: rgba(167, 139, 250, 0.9);
+        color: rgba(var(--vw-primary-rgb), 0.9);
     }
 
     .vw-sidebar-bible-card-add {
@@ -588,24 +588,24 @@
         align-items: center;
         justify-content: center;
         border-style: dashed;
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(139, 92, 246, 0.05);
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
+        background: rgba(var(--vw-primary-rgb), 0.02);
     }
 
     .vw-sidebar-bible-card-add:hover {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-sidebar-bible-card-add-icon {
         font-size: 1.5rem;
-        color: rgba(139, 92, 246, 0.6);
+        color: var(--vw-border-focus);
         margin-bottom: 0.25rem;
     }
 
     .vw-sidebar-bible-card-add-text {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-sidebar-bible-icon {
@@ -615,12 +615,12 @@
 
     .vw-sidebar-bible-label {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-sidebar-bible-count {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     /* Collapse Button */
@@ -631,18 +631,18 @@
         gap: 0.35rem;
         padding: 0.5rem;
         margin: 0.5rem 0.75rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.4rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.15s ease;
     }
 
     .vw-sidebar-collapse-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.8);
+        background: rgba(0,0,0,0.04);
+        color: var(--vw-text);
     }
 
     /* Main Workspace */
@@ -656,7 +656,7 @@
 
     .vw-workspace-header {
         padding: 0.75rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(0,0,0,0.03);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -683,7 +683,7 @@
     /* Legacy support - keep old card styles for nested elements */
     .vw-storyboard-fullscreen .vw-storyboard-card {
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -700,7 +700,7 @@
     /* Section dividers */
     .vw-section {
         padding: 1rem 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(0,0,0,0.04);
     }
 
     .vw-section:first-of-type {
@@ -716,7 +716,7 @@
     }
 
     .vw-section-label {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         font-size: 0.85rem;
         font-weight: 600;
         display: flex;
@@ -735,12 +735,12 @@
 
     .vw-badge-pro {
         background: linear-gradient(135deg, #f59e0b, #ef4444);
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-badge-new {
         background: linear-gradient(135deg, #10b981, #06b6d4);
-        color: white;
+        color: var(--vw-text);
     }
 
     /* AI Model Selector */
@@ -753,9 +753,9 @@
     .vw-model-btn {
         padding: 0.6rem 1rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.03);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.8rem;
         display: flex;
@@ -767,14 +767,14 @@
     }
 
     .vw-model-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-model-btn.selected {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.25);
-        color: white;
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text);
     }
 
     .vw-model-btn-name {
@@ -783,15 +783,15 @@
 
     .vw-model-btn-cost {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-model-btn.selected .vw-model-btn-cost {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-model-description {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.75rem;
         margin-top: 0.5rem;
         font-style: italic;
@@ -818,27 +818,27 @@
 
     .vw-style-select-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-style-select {
         width: 100%;
         padding: 0.6rem 0.75rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.8rem;
         cursor: pointer;
     }
 
     .vw-style-select:focus {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         outline: none;
     }
 
     .vw-style-hint {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         margin-top: 0.75rem;
     }
@@ -857,8 +857,8 @@
     }
 
     .vw-memory-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.75rem;
         padding: 1rem;
         display: flex;
@@ -879,12 +879,12 @@
 
     .vw-memory-title {
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.85rem;
     }
 
     .vw-memory-desc {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         margin-top: 0.15rem;
     }
@@ -897,24 +897,24 @@
 
     .vw-edit-btn {
         padding: 0.35rem 0.75rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-edit-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.25);
+        background: var(--vw-border);
+        border-color: var(--vw-border);
     }
 
     .vw-memory-checkbox {
         width: 18px;
         height: 18px;
-        accent-color: #8b5cf6;
+        accent-color: var(--vw-primary);
         cursor: pointer;
     }
 
@@ -938,7 +938,7 @@
         background: transparent;
         border: none;
         border-radius: 0.5rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.75rem;
         font-weight: 500;
         cursor: pointer;
@@ -948,11 +948,11 @@
     }
 
     .vw-memory-tab:hover {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-memory-tab.active {
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-memory-tab-icon {
@@ -964,28 +964,28 @@
     }
 
     .vw-memory-tab-count {
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         padding: 0.1rem 0.4rem;
         border-radius: 0.75rem;
         font-size: 0.65rem;
         font-weight: 700;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         min-width: 1.25rem;
         text-align: center;
     }
 
     .vw-memory-tab.active .vw-memory-tab-count {
-        background: rgba(139, 92, 246, 0.6);
-        color: white;
+        background: var(--vw-border-focus);
+        color: var(--vw-text);
     }
 
     .vw-memory-tab-indicator {
         position: absolute;
         bottom: 0.25rem;
         height: calc(100% - 0.5rem);
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.2));
         border-radius: 0.5rem;
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 0;
     }
@@ -1005,10 +1005,10 @@
         align-items: center;
         gap: 0.3rem;
         padding: 0.35rem 0.75rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.15));
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.5rem;
-        color: #a78bfa;
+        color: var(--vw-primary);
         font-size: 0.7rem;
         font-weight: 600;
         cursor: pointer;
@@ -1016,9 +1016,9 @@
     }
 
     .vw-memory-add-btn:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.25));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6, 182, 212, 0.25));
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+        box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-memory-add-btn span {
@@ -1049,7 +1049,7 @@
         inset: 0;
         border-radius: 0.75rem;
         padding: 1px;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6, 182, 212, 0.2));
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
         mask-composite: exclude;
@@ -1059,7 +1059,7 @@
 
     .vw-memory-card:hover {
         transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 12px 40px rgba(139, 92, 246, 0.25), 0 4px 20px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 12px 40px rgba(var(--vw-primary-rgb), 0.08), 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
     .vw-memory-card:hover::before {
@@ -1093,7 +1093,7 @@
         justify-content: center;
         font-size: 3rem;
         opacity: 0.3;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6, 182, 212, 0.05));
     }
 
     /* Floating name overlay */
@@ -1109,14 +1109,14 @@
     }
 
     .vw-memory-card:hover .vw-memory-card-overlay {
-        background: linear-gradient(to top, rgba(139, 92, 246, 0.9) 0%, rgba(139, 92, 246, 0.5) 30%, transparent 100%);
+        background: linear-gradient(to top, rgba(var(--vw-primary-rgb), 0.4) 0%, var(--vw-border-focus) 30%, transparent 100%);
     }
 
     .vw-memory-card-name {
         font-size: 0.85rem;
         font-weight: 700;
-        color: white;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        color: var(--vw-text);
+        text-shadow: 0 2px 8px rgba(0,0,0,0.3);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1125,7 +1125,7 @@
 
     .vw-memory-card-role {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin-top: 0.15rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
@@ -1134,7 +1134,7 @@
     /* Add card with dashed border */
     .vw-memory-card-add {
         background: transparent;
-        border: 2px dashed rgba(139, 92, 246, 0.3);
+        border: 2px dashed rgba(var(--vw-primary-rgb), 0.12);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -1148,33 +1148,33 @@
     }
 
     .vw-memory-card-add:hover {
-        border-color: rgba(139, 92, 246, 0.6);
-        background: rgba(139, 92, 246, 0.08);
+        border-color: var(--vw-border-focus);
+        background: rgba(var(--vw-primary-rgb), 0.04);
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+        box-shadow: 0 4px 20px rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-memory-card-add-icon {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6, 182, 212, 0.2));
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        color: #a78bfa;
+        color: var(--vw-primary);
         transition: all 0.3s ease;
     }
 
     .vw-memory-card-add:hover .vw-memory-card-add-icon {
         transform: scale(1.1) rotate(90deg);
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.4));
+        background: linear-gradient(135deg, var(--vw-border-focus), rgba(6, 182, 212, 0.4));
     }
 
     .vw-memory-card-add-text {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-weight: 500;
     }
 
@@ -1185,11 +1185,11 @@
         align-items: center;
         justify-content: center;
         padding: 3rem 1rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         gap: 0.75rem;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(6, 182, 212, 0.03));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.02), rgba(6, 182, 212, 0.03));
         border-radius: 0.75rem;
-        border: 1px dashed rgba(255, 255, 255, 0.1);
+        border: 1px dashed var(--vw-border);
     }
 
     .vw-memory-empty-icon {
@@ -1208,7 +1208,7 @@
         justify-content: space-between;
         margin-top: 0.75rem;
         padding: 0.6rem 0.75rem;
-        background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(139, 92, 246, 0.08));
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(var(--vw-primary-rgb), 0.04));
         border: 1px solid rgba(6, 182, 212, 0.2);
         border-radius: 0.5rem;
     }
@@ -1226,12 +1226,12 @@
     .vw-memory-dna-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-memory-dna-count {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         background: rgba(6, 182, 212, 0.15);
         padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
@@ -1242,7 +1242,7 @@
         background: rgba(6, 182, 212, 0.2);
         border: 1px solid rgba(6, 182, 212, 0.4);
         border-radius: 0.35rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.65rem;
         font-weight: 500;
         cursor: pointer;
@@ -1263,7 +1263,7 @@
     }
 
     .vw-specs-label {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-size: 0.8rem;
     }
 
@@ -1271,7 +1271,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.8rem;
     }
 
@@ -1299,12 +1299,12 @@
 
     .vw-chain-title {
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.9rem;
     }
 
     .vw-chain-desc {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.75rem;
     }
 
@@ -1326,7 +1326,7 @@
 
     .vw-chain-badge-ready {
         background: rgba(16, 185, 129, 0.2);
-        color: #6ee7b7;
+        color: #16a34a;
         border: 1px solid rgba(16, 185, 129, 0.4);
     }
 
@@ -1338,9 +1338,9 @@
     }
 
     .vw-chain-badge-idle {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--vw-border);
+        color: var(--vw-text-secondary);
+        border: 1px solid var(--vw-border);
     }
 
     .vw-chain-stats {
@@ -1349,16 +1349,16 @@
         flex-wrap: wrap;
         margin-top: 0.5rem;
         padding-top: 0.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(0,0,0,0.04);
     }
 
     .vw-chain-stat {
         font-size: 0.6rem;
         padding: 0.15rem 0.4rem;
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.25rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     @keyframes vw-pulse {
@@ -1380,7 +1380,7 @@
         background: linear-gradient(135deg, #f59e0b, #f97316);
         border: none;
         border-radius: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-weight: 600;
         font-size: 0.8rem;
         cursor: pointer;
@@ -1428,7 +1428,7 @@
 
     .vw-progress-stat-label {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-bulk-actions {
@@ -1442,10 +1442,10 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.6rem 1.25rem;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, var(--vw-primary), #06b6d4);
         border: none;
         border-radius: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-weight: 600;
         font-size: 0.85rem;
         cursor: pointer;
@@ -1454,7 +1454,7 @@
 
     .vw-generate-all-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px var(--vw-border-accent);
     }
 
     .vw-generate-all-btn:disabled {
@@ -1485,8 +1485,8 @@
 
     /* Scene Card - Larger dark theme card */
     .vw-scene-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         overflow: hidden;
         transition: border-color 0.2s, background-color 0.2s;
@@ -1496,8 +1496,8 @@
     }
 
     .vw-scene-card:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.05);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.02);
     }
 
     /* Scene Image Container - Larger */
@@ -1531,7 +1531,7 @@
         justify-content: center;
         padding: 1rem;
         background: linear-gradient(135deg, rgba(15, 15, 30, 0.95), rgba(25, 25, 45, 0.9));
-        border: 1px solid rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.06);
         border-radius: 0;
         margin: 0;
         position: relative;
@@ -1544,7 +1544,7 @@
         position: absolute;
         inset: 0;
         background: linear-gradient(135deg,
-            rgba(139, 92, 246, 0.06) 0%,
+            rgba(var(--vw-primary-rgb), 0.03) 0%,
             rgba(6, 182, 212, 0.04) 50%,
             rgba(236, 72, 153, 0.06) 100%);
         opacity: 0;
@@ -1585,15 +1585,15 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.2));
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.35rem;
         margin-bottom: 0.75rem;
         animation: vw-float 3s ease-in-out infinite;
-        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);
+        box-shadow: 0 4px 16px rgba(var(--vw-primary-rgb), 0.06);
     }
 
     @keyframes vw-float {
@@ -1602,15 +1602,15 @@
     }
 
     .vw-scene-empty-text {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
         margin-bottom: 0.85rem;
         letter-spacing: 0.02em;
     }
 
     .vw-scene-empty.has-bg-image .vw-scene-empty-text {
-        color: rgba(255, 255, 255, 0.95);
-        text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        color: var(--vw-text);
+        text-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
     /* ========================================
@@ -1646,8 +1646,8 @@
 
     .vw-preview-label {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.7);
-        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        color: var(--vw-text);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
     .vw-preview-actions {
@@ -1659,10 +1659,10 @@
     .vw-preview-btn {
         padding: 0.35rem 0.6rem;
         border-radius: 0.35rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.3);
         backdrop-filter: blur(8px);
-        color: white;
+        color: var(--vw-text);
         font-size: 0.65rem;
         font-weight: 500;
         cursor: pointer;
@@ -1672,17 +1672,17 @@
 
     .vw-preview-btn:hover {
         background: rgba(0, 0, 0, 0.7);
-        border-color: rgba(255, 255, 255, 0.4);
+        border-color: var(--vw-text-secondary);
         transform: translateY(-1px);
     }
 
     .vw-preview-btn.ai {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.6));
-        border-color: rgba(139, 92, 246, 0.5);
+        background: linear-gradient(135deg, var(--vw-border-focus), rgba(6, 182, 212, 0.6));
+        border-color: var(--vw-border-focus);
     }
 
     .vw-preview-btn.ai:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.3), rgba(6, 182, 212, 0.8));
     }
 
     .vw-preview-btn.stock {
@@ -1695,12 +1695,12 @@
     }
 
     .vw-preview-btn.collage {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.5), rgba(139, 92, 246, 0.5));
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.5), var(--vw-border-focus));
         border-color: rgba(236, 72, 153, 0.4);
     }
 
     .vw-preview-btn.collage:hover {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.7), rgba(139, 92, 246, 0.7));
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.7), rgba(var(--vw-primary-rgb), 0.25));
     }
 
     .vw-preview-btn.use-shot {
@@ -1720,15 +1720,15 @@
 
     .vw-edit-shots-btn {
         padding: 0.4rem 0.75rem;
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: var(--vw-primary);
         border: none;
         border-radius: 0.4rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.7rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(var(--vw-primary-rgb), 0.12);
         display: flex;
         align-items: center;
         gap: 0.25rem;
@@ -1736,9 +1736,9 @@
     }
 
     .vw-edit-shots-btn:hover {
-        background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+        background: linear-gradient(135deg, var(--vw-primary), var(--vw-primary));
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 12px var(--vw-border-accent);
     }
 
     .vw-edit-shots-btn:active {
@@ -1764,10 +1764,10 @@
         flex: 1;
         padding: 0.65rem 0.5rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.02);
         backdrop-filter: blur(8px);
-        color: white;
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.75rem;
         display: flex;
@@ -1786,14 +1786,14 @@
 
     /* AI Generate - Primary gradient card */
     .vw-scene-empty-btn.ai {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.15));
-        border-color: rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.06), rgba(6, 182, 212, 0.15));
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-scene-empty-btn.ai:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.25));
+        border-color: var(--vw-border-focus);
+        box-shadow: 0 4px 16px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     /* Stock Media - Green accent card */
@@ -1810,12 +1810,12 @@
 
     /* Collage First - Pink gradient card */
     .vw-scene-empty-btn.collage {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(139, 92, 246, 0.1));
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(var(--vw-primary-rgb), 0.04));
         border-color: rgba(236, 72, 153, 0.25);
     }
 
     .vw-scene-empty-btn.collage:hover {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(var(--vw-primary-rgb), 0.08));
         border-color: rgba(236, 72, 153, 0.5);
         box-shadow: 0 4px 16px rgba(236, 72, 153, 0.15);
     }
@@ -1824,11 +1824,11 @@
     .vw-scene-empty.has-bg-image .vw-scene-empty-btn {
         backdrop-filter: blur(12px);
         background: rgba(0, 0, 0, 0.4) !important;
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: var(--vw-border);
     }
 
     .vw-scene-empty.has-bg-image .vw-scene-empty-btn.ai {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.4)) !important;
+        background: linear-gradient(135deg, var(--vw-border-accent), rgba(6, 182, 212, 0.4)) !important;
     }
 
     .vw-scene-empty.has-bg-image .vw-scene-empty-btn.stock {
@@ -1836,7 +1836,7 @@
     }
 
     .vw-scene-empty.has-bg-image .vw-scene-empty-btn.collage {
-        background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(139, 92, 246, 0.35)) !important;
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(var(--vw-primary-rgb), 0.12)) !important;
     }
 
     /* Icon with glow effect */
@@ -1860,7 +1860,7 @@
     /* Cost badge - pill style */
     .vw-scene-empty-btn-cost {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         background: rgba(0, 0, 0, 0.2);
         padding: 0.15rem 0.5rem;
         border-radius: 1rem;
@@ -1873,8 +1873,8 @@
     }
 
     .vw-scene-empty-btn.ai .vw-scene-empty-btn-cost {
-        color: rgba(167, 139, 250, 0.9);
-        background: rgba(139, 92, 246, 0.15);
+        color: rgba(var(--vw-primary-rgb), 0.9);
+        background: rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-scene-empty-btn.collage .vw-scene-empty-btn-cost {
@@ -1895,7 +1895,7 @@
         padding: 0.75rem;
         background: rgba(0, 0, 0, 0.3);
         backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
     }
 
@@ -1908,7 +1908,7 @@
 
     .vw-shot-timeline-label {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-weight: 600;
@@ -1916,8 +1916,8 @@
 
     .vw-shot-timeline-count {
         font-size: 0.6rem;
-        color: rgba(139, 92, 246, 0.9);
-        background: rgba(139, 92, 246, 0.15);
+        color: rgba(var(--vw-primary-rgb), 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.06);
         padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
     }
@@ -1949,13 +1949,13 @@
     }
 
     .vw-shot-timeline-thumb:hover {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         transform: scale(1.08);
     }
 
     .vw-shot-timeline-thumb.active {
-        border-color: #8b5cf6;
-        box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+        border-color: var(--vw-primary);
+        box-shadow: 0 0 12px var(--vw-border-accent);
     }
 
     .vw-shot-timeline-thumb img {
@@ -1967,12 +1967,12 @@
     .vw-shot-timeline-thumb-placeholder {
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.2));
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-shot-timeline-thumb-number {
@@ -1982,7 +1982,7 @@
         right: 0;
         background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
         font-size: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         padding: 0.1rem 0.2rem;
         text-align: center;
         font-weight: 600;
@@ -1991,7 +1991,7 @@
     /* Progress bar under timeline */
     .vw-shot-timeline-progress {
         height: 3px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 2px;
         margin-top: 0.5rem;
         overflow: hidden;
@@ -1999,7 +1999,7 @@
 
     .vw-shot-timeline-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, var(--vw-primary), #06b6d4);
         border-radius: 2px;
         transition: width 0.3s ease;
     }
@@ -2015,9 +2015,9 @@
     .vw-quick-action-btn {
         padding: 0.4rem 0.75rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.03);
+        color: var(--vw-text);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -2027,17 +2027,17 @@
     }
 
     .vw-quick-action-btn:hover {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-quick-action-btn.primary {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));
-        border-color: rgba(139, 92, 246, 0.4);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6, 182, 212, 0.3));
+        border-color: var(--vw-border-accent);
     }
 
     .vw-quick-action-btn.primary:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.4));
+        background: linear-gradient(135deg, var(--vw-border-accent), rgba(6, 182, 212, 0.4));
     }
 
     /* Generating State */
@@ -2048,7 +2048,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: rgba(139, 92, 246, 0.08);
+        background: rgba(var(--vw-primary-rgb), 0.04);
         gap: 1rem;
     }
 
@@ -2059,8 +2059,8 @@
     .vw-spinner {
         width: 2.5rem;
         height: 2.5rem;
-        border: 3px solid rgba(139, 92, 246, 0.3);
-        border-top-color: #8b5cf6;
+        border: 3px solid rgba(var(--vw-primary-rgb), 0.12);
+        border-top-color: var(--vw-primary);
         border-radius: 50%;
         animation: vw-spin 0.8s linear infinite;
     }
@@ -2069,7 +2069,7 @@
         display: inline-block;
         width: 14px;
         height: 14px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid var(--vw-text-secondary);
         border-top-color: white;
         border-radius: 50%;
         animation: vw-spin 0.6s linear infinite;
@@ -2078,13 +2078,13 @@
 
     /* Voice Types Button */
     .vw-voice-types-btn:hover {
-        background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(6,182,212,0.25)) !important;
-        border-color: rgba(139,92,246,0.6) !important;
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.25)) !important;
+        border-color: var(--vw-border-focus) !important;
         transform: translateY(-1px);
     }
 
     .vw-generating-text {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.95rem;
     }
 
@@ -2101,7 +2101,7 @@
     .vw-alert.warning {
         background: rgba(251, 191, 36, 0.12);
         border: 1px solid rgba(251, 191, 36, 0.25);
-        color: #fbbf24;
+        color: #d97706;
     }
 
     .vw-alert.error {
@@ -2157,7 +2157,7 @@
     .vw-shot-badge-est { background: rgba(99, 102, 241, 0.25); color: rgba(99, 102, 241, 0.95); }
 
     /* Purpose Badges */
-    .vw-shot-badge-ots { background: rgba(139, 92, 246, 0.25); color: rgba(139, 92, 246, 0.95); }
+    .vw-shot-badge-ots { background: rgba(var(--vw-primary-rgb), 0.08); color: rgba(var(--vw-primary-rgb), 0.4); }
     .vw-shot-badge-reaction { background: rgba(236, 72, 153, 0.25); color: rgba(236, 72, 153, 0.95); }
     .vw-shot-badge-two-shot { background: rgba(20, 184, 166, 0.25); color: rgba(20, 184, 166, 0.95); }
 
@@ -2166,9 +2166,9 @@
 
     /* Climax indicator - special gradient */
     .vw-shot-badge-climax {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3));
-        color: rgba(255, 255, 255, 0.95);
-        border: 1px solid rgba(139, 92, 246, 0.5);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(236, 72, 153, 0.3));
+        color: var(--vw-text);
+        border: 1px solid var(--vw-border-focus);
     }
 
     .vw-shot-badges {
@@ -2211,18 +2211,18 @@
     }
 
     .vw-dialogue-speaker {
-        color: rgba(139, 92, 246, 0.9);
+        color: rgba(var(--vw-primary-rgb), 0.4);
         font-weight: 600;
         font-size: 0.7rem;
     }
 
     .vw-dialogue-text {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--vw-text);
         line-height: 1.4;
     }
 
     .vw-dialogue-more {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.65rem;
         font-style: italic;
     }
@@ -2266,7 +2266,7 @@
     /* Intensity Bar */
     .vw-intensity-bar {
         height: 3px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 1.5px;
         overflow: hidden;
         margin: 0.25rem 0;
@@ -2282,7 +2282,7 @@
     .vw-intensity-medium { background: rgba(245, 158, 11, 0.8); }
     .vw-intensity-high { background: rgba(239, 68, 68, 0.8); }
     .vw-intensity-climax {
-        background: linear-gradient(90deg, rgba(139, 92, 246, 0.9), rgba(236, 72, 153, 0.9));
+        background: linear-gradient(90deg, rgba(var(--vw-primary-rgb), 0.4), rgba(236, 72, 153, 0.9));
     }
 
     /* Mini Progress Ring */
@@ -2298,7 +2298,7 @@
 
     .vw-mini-progress-bg {
         fill: none;
-        stroke: rgba(255, 255, 255, 0.1);
+        stroke: var(--vw-border);
         stroke-width: 2;
     }
 
@@ -2340,14 +2340,14 @@
     /* Focus states for accessibility */
     .vw-storyboard-fullscreen select:focus,
     .vw-storyboard-fullscreen button:focus {
-        outline: 2px solid rgba(139, 92, 246, 0.5);
+        outline: 2px solid var(--vw-border-focus);
         outline-offset: 2px;
     }
 
     /* Consistent section spacing */
     .vw-card-section {
         padding: 0.5rem 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
         margin-top: 0.5rem;
     }
 
@@ -2361,14 +2361,14 @@
     .vw-scene-dialogue::-webkit-scrollbar-thumb,
     .vw-modal-content::-webkit-scrollbar-thumb,
     .vw-storyboard-content::-webkit-scrollbar-thumb {
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 2px;
     }
 
     .vw-scene-dialogue::-webkit-scrollbar-thumb:hover,
     .vw-modal-content::-webkit-scrollbar-thumb:hover,
     .vw-storyboard-content::-webkit-scrollbar-thumb:hover {
-        background: rgba(139, 92, 246, 0.5);
+        background: var(--vw-border-focus);
     }
 
     /* Empty state styling */
@@ -2378,7 +2378,7 @@
         align-items: center;
         justify-content: center;
         padding: 2rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-align: center;
     }
 
@@ -2399,7 +2399,7 @@
     }
 
     .vw-arc-selector select:hover {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         background: rgba(0, 0, 0, 0.4);
     }
 
@@ -2415,9 +2415,9 @@
     .vw-skeleton {
         background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.03) 0%,
-            rgba(255, 255, 255, 0.08) 50%,
-            rgba(255, 255, 255, 0.03) 100%
+            rgba(0,0,0,0.02) 0%,
+            rgba(0,0,0,0.04) 50%,
+            rgba(0,0,0,0.02) 100%
         );
         background-size: 200% 100%;
         animation: vw-shimmer 1.5s ease-in-out infinite;
@@ -2425,8 +2425,8 @@
     }
 
     .vw-skeleton-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 1rem;
         overflow: hidden;
     }
@@ -2435,9 +2435,9 @@
         aspect-ratio: 16/9;
         background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.03) 0%,
-            rgba(255, 255, 255, 0.08) 50%,
-            rgba(255, 255, 255, 0.03) 100%
+            rgba(0,0,0,0.02) 0%,
+            rgba(0,0,0,0.04) 50%,
+            rgba(0,0,0,0.02) 100%
         );
         background-size: 200% 100%;
         animation: vw-shimmer 1.5s ease-in-out infinite;
@@ -2455,9 +2455,9 @@
         border-radius: 0.25rem;
         background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.05) 0%,
-            rgba(255, 255, 255, 0.1) 50%,
-            rgba(255, 255, 255, 0.05) 100%
+            rgba(0,0,0,0.03) 0%,
+            var(--vw-border) 50%,
+            rgba(0,0,0,0.03) 100%
         );
         background-size: 200% 100%;
         animation: vw-shimmer 1.5s ease-in-out infinite;
@@ -2490,9 +2490,9 @@
         padding: 0.5rem 0.75rem;
         background: rgba(20, 20, 35, 0.95);
         backdrop-filter: blur(12px);
-        border: 1px solid rgba(139, 92, 246, 0.4);
+        border: 1px solid var(--vw-border-accent);
         border-radius: 0.75rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0,0,0,0.03);
         opacity: 0;
         visibility: hidden;
         transition: all 0.2s ease;
@@ -2514,8 +2514,8 @@
         padding: 0.4rem 0.65rem;
         border-radius: 0.5rem;
         border: 1px solid transparent;
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0,0,0,0.04);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.75rem;
         font-weight: 500;
@@ -2523,17 +2523,17 @@
     }
 
     .vw-floating-toolbar-btn:hover {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-floating-toolbar-btn.primary {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.3));
-        border-color: rgba(139, 92, 246, 0.5);
+        background: linear-gradient(135deg, var(--vw-border-accent), rgba(6, 182, 212, 0.3));
+        border-color: var(--vw-border-focus);
     }
 
     .vw-floating-toolbar-btn.primary:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.5));
+        background: linear-gradient(135deg, var(--vw-border-focus), rgba(6, 182, 212, 0.5));
     }
 
     .vw-floating-toolbar-btn.danger:hover {
@@ -2545,7 +2545,7 @@
     .vw-floating-toolbar-divider {
         width: 1px;
         height: 1.25rem;
-        background: rgba(255, 255, 255, 0.15);
+        background: var(--vw-border);
         margin: 0 0.25rem;
     }
 
@@ -2558,8 +2558,8 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.25rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
     }
 
@@ -2571,20 +2571,20 @@
         border-radius: 0.35rem;
         border: none;
         background: transparent;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         font-size: 0.75rem;
         transition: all 0.15s ease;
     }
 
     .vw-view-mode-btn:hover {
-        color: rgba(255, 255, 255, 0.9);
-        background: rgba(255, 255, 255, 0.08);
+        color: var(--vw-text);
+        background: rgba(0,0,0,0.04);
     }
 
     .vw-view-mode-btn.active {
-        background: rgba(139, 92, 246, 0.25);
-        color: white;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text);
         font-weight: 500;
     }
 
@@ -2601,7 +2601,7 @@
         align-items: center;
         padding: 0 1rem;
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.5rem;
     }
 
@@ -2614,7 +2614,7 @@
     .vw-timeline-ruler span {
         flex: 1;
         text-align: center;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 1px solid var(--vw-border);
         padding-left: 0.5rem;
     }
 
@@ -2622,14 +2622,14 @@
         display: flex;
         align-items: stretch;
         min-height: 80px;
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(0,0,0,0.02);
         border-radius: 0.5rem;
         overflow: hidden;
         transition: background 0.2s;
     }
 
     .vw-timeline-row:hover {
-        background: rgba(139, 92, 246, 0.05);
+        background: rgba(var(--vw-primary-rgb), 0.02);
     }
 
     .vw-timeline-scene-info {
@@ -2640,19 +2640,19 @@
         flex-direction: column;
         justify-content: center;
         gap: 0.25rem;
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-right: 1px solid rgba(0,0,0,0.04);
         background: rgba(0, 0, 0, 0.2);
     }
 
     .vw-timeline-scene-label {
         font-size: 0.8rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-timeline-scene-duration {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-timeline-shots {
@@ -2676,7 +2676,7 @@
     }
 
     .vw-timeline-shot:hover {
-        border-color: rgba(139, 92, 246, 0.6);
+        border-color: var(--vw-border-focus);
         transform: scale(1.05);
         z-index: 10;
     }
@@ -2697,12 +2697,12 @@
         background: rgba(0, 0, 0, 0.8);
         border-radius: 0.25rem;
         font-size: 0.6rem;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-timeline-shot.pending {
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px dashed rgba(255, 255, 255, 0.2);
+        background: rgba(0,0,0,0.03);
+        border: 2px dashed var(--vw-border);
         min-width: 80px;
         display: flex;
         align-items: center;
@@ -2710,8 +2710,8 @@
     }
 
     .vw-timeline-shot.generating {
-        background: rgba(139, 92, 246, 0.1);
-        border: 2px solid rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border: 2px solid var(--vw-border-accent);
         min-width: 80px;
         display: flex;
         align-items: center;
@@ -2727,8 +2727,8 @@
         flex-direction: column;
         gap: 0.75rem;
         padding: 1rem 1.25rem;
-        background: rgba(139, 92, 246, 0.08);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-progress-header {
@@ -2743,13 +2743,13 @@
         gap: 0.5rem;
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-progress-title .generating-dot {
         width: 8px;
         height: 8px;
-        background: #8b5cf6;
+        background: var(--vw-primary);
         border-radius: 50%;
         animation: pulse 1.5s infinite;
     }
@@ -2759,20 +2759,20 @@
         align-items: center;
         gap: 1rem;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-progress-bar-container {
         position: relative;
         height: 8px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 4px;
         overflow: hidden;
     }
 
     .vw-progress-bar-fill {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, var(--vw-primary), #06b6d4);
         border-radius: 4px;
         transition: width 0.3s ease;
         position: relative;
@@ -2788,7 +2788,7 @@
         background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(255, 255, 255, 0.3) 50%,
+            var(--vw-text-secondary) 50%,
             transparent 100%
         );
         animation: vw-shimmer 1.5s ease-in-out infinite;
@@ -2800,7 +2800,7 @@
         align-items: center;
         justify-content: space-between;
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-progress-step {
@@ -2812,8 +2812,8 @@
     .vw-progress-step .step-icon {
         width: 16px;
         height: 16px;
-        border: 2px solid rgba(139, 92, 246, 0.5);
-        border-top-color: #8b5cf6;
+        border: 2px solid var(--vw-border-focus);
+        border-top-color: var(--vw-primary);
         border-radius: 50%;
         animation: vw-spin 0.8s linear infinite;
     }
@@ -2826,17 +2826,17 @@
     .vw-progress-action-btn {
         padding: 0.3rem 0.6rem;
         border-radius: 0.35rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.03);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.7rem;
         transition: all 0.15s;
     }
 
     .vw-progress-action-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.3);
+        background: var(--vw-border);
+        border-color: var(--vw-text-secondary);
     }
 
     .vw-progress-action-btn.cancel:hover {
@@ -2857,16 +2857,16 @@
     }
 
     .vw-bento-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 1rem;
         padding: 1rem;
         transition: all 0.2s ease;
     }
 
     .vw-bento-card:hover {
-        border-color: rgba(139, 92, 246, 0.3);
-        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
+        background: rgba(0,0,0,0.02);
     }
 
     .vw-bento-card.span-3 { grid-column: span 3; }
@@ -2905,26 +2905,26 @@
 
     .vw-bento-stat-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
 
-    .vw-bento-stat.purple .vw-bento-stat-value { color: #a78bfa; }
+    .vw-bento-stat.purple .vw-bento-stat-value { color: var(--vw-primary); }
     .vw-bento-stat.cyan .vw-bento-stat-value { color: #22d3ee; }
     .vw-bento-stat.green .vw-bento-stat-value { color: #34d399; }
-    .vw-bento-stat.amber .vw-bento-stat-value { color: #fbbf24; }
+    .vw-bento-stat.amber .vw-bento-stat-value { color: #d97706; }
 
     /* ========================================
        PHASE 2: UI UPGRADE - Collapsible Panels
        ======================================== */
 
     .vw-collapsible-section {
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.75rem;
         margin-bottom: 0.75rem;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(0,0,0,0.02);
     }
 
     .vw-collapsible-header {
@@ -2938,7 +2938,7 @@
     }
 
     .vw-collapsible-header:hover {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0,0,0,0.02);
     }
 
     .vw-collapsible-title {
@@ -2947,7 +2947,7 @@
         gap: 0.5rem;
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-collapsible-title-icon {
@@ -2966,7 +2966,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         transition: transform 0.2s ease;
     }
 
@@ -2998,8 +2998,8 @@
     }
 
     .vw-bible-preview-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         overflow: hidden;
         cursor: pointer;
@@ -3007,7 +3007,7 @@
     }
 
     .vw-bible-preview-card:hover {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
@@ -3025,7 +3025,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(139, 92, 246, 0.1);
+        background: rgba(var(--vw-primary-rgb), 0.04);
         font-size: 2rem;
     }
 
@@ -3036,7 +3036,7 @@
     .vw-bible-preview-name {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -3044,13 +3044,13 @@
 
     .vw-bible-preview-tag {
         font-size: 0.6rem;
-        color: rgba(139, 92, 246, 0.8);
+        color: rgba(var(--vw-primary-rgb), 0.3);
         margin-top: 0.15rem;
     }
 
     .vw-bible-add-card {
-        background: rgba(139, 92, 246, 0.05);
-        border: 2px dashed rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.02);
+        border: 2px dashed rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.5rem;
         display: flex;
         flex-direction: column;
@@ -3062,19 +3062,19 @@
     }
 
     .vw-bible-add-card:hover {
-        border-color: rgba(139, 92, 246, 0.5);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-focus);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-bible-add-icon {
         font-size: 1.5rem;
-        color: rgba(139, 92, 246, 0.6);
+        color: var(--vw-border-focus);
         margin-bottom: 0.25rem;
     }
 
     .vw-bible-add-text {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* ========================================
@@ -3104,7 +3104,7 @@
         bottom: 0;
         width: 320px;
         background: rgba(15, 15, 28, 0.98);
-        border-left: 1px solid rgba(139, 92, 246, 0.2);
+        border-left: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         backdrop-filter: blur(12px);
         transform: translateX(100%);
         transition: transform 0.3s ease;
@@ -3122,13 +3122,13 @@
         align-items: center;
         justify-content: space-between;
         padding: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
     }
 
     .vw-side-panel-title {
         font-size: 0.9rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-side-panel-close {
@@ -3139,8 +3139,8 @@
         justify-content: center;
         border-radius: 0.35rem;
         border: none;
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.7);
+        background: rgba(0,0,0,0.04);
+        color: var(--vw-text);
         cursor: pointer;
         transition: all 0.15s;
     }
@@ -3162,7 +3162,7 @@
 
     .vw-side-panel-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 0.5rem;
@@ -3192,16 +3192,16 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.2rem 0.5rem;
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.35rem;
         font-size: 0.65rem;
         font-family: monospace;
-        color: #a78bfa;
+        color: var(--vw-primary);
     }
 
     .vw-mention-hint-label {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-right: 0.25rem;
     }
 
@@ -3218,9 +3218,9 @@
         max-height: 200px;
         overflow-y: auto;
         background: rgba(20, 20, 35, 0.98);
-        border: 1px solid rgba(139, 92, 246, 0.4);
+        border: 1px solid var(--vw-border-accent);
         border-radius: 0.5rem;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         z-index: 100;
         backdrop-filter: blur(12px);
         margin-top: 0.25rem;
@@ -3231,9 +3231,9 @@
         font-size: 0.65rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: rgba(255, 255, 255, 0.4);
-        background: rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--vw-text-secondary);
+        background: rgba(0,0,0,0.02);
+        border-bottom: 1px solid rgba(0,0,0,0.03);
     }
 
     .vw-mention-item {
@@ -3243,12 +3243,12 @@
         padding: 0.6rem 0.75rem;
         cursor: pointer;
         transition: background 0.15s ease;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(0,0,0,0.02);
     }
 
     .vw-mention-item:hover,
     .vw-mention-item.active {
-        background: rgba(139, 92, 246, 0.15);
+        background: rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-mention-item-image {
@@ -3256,14 +3256,14 @@
         height: 32px;
         border-radius: 0.35rem;
         object-fit: cover;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0,0,0,0.03);
     }
 
     .vw-mention-item-icon {
         width: 32px;
         height: 32px;
         border-radius: 0.35rem;
-        background: rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.08);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3276,13 +3276,13 @@
 
     .vw-mention-item-name {
         font-size: 0.8rem;
-        color: white;
+        color: var(--vw-text);
         font-weight: 500;
     }
 
     .vw-mention-item-tag {
         font-size: 0.65rem;
-        color: #a78bfa;
+        color: var(--vw-primary);
         font-family: monospace;
     }
 
@@ -3290,14 +3290,14 @@
         font-size: 0.6rem;
         padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
-        background: rgba(139, 92, 246, 0.2);
-        color: #c4b5fd;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text-secondary);
     }
 
     /* Brainstorm Suggestions Panel */
     .vw-brainstorm-panel {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(236, 72, 153, 0.08));
-        border: 1px solid rgba(139, 92, 246, 0.25);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(236, 72, 153, 0.08));
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.75rem;
         overflow: hidden;
         margin-bottom: 1rem;
@@ -3308,8 +3308,8 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem 1rem;
-        background: rgba(139, 92, 246, 0.1);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-brainstorm-title {
@@ -3318,13 +3318,13 @@
         gap: 0.5rem;
         font-size: 0.85rem;
         font-weight: 600;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
     }
 
     .vw-brainstorm-badge {
         font-size: 0.6rem;
         padding: 0.15rem 0.4rem;
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.25rem;
         color: #e9d5ff;
     }
@@ -3344,16 +3344,16 @@
         align-items: flex-start;
         gap: 0.75rem;
         padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
     .vw-brainstorm-suggestion:hover {
-        background: rgba(139, 92, 246, 0.1);
-        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
         transform: translateX(4px);
     }
 
@@ -3361,7 +3361,7 @@
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(236, 72, 153, 0.3));
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3383,16 +3383,16 @@
 
     .vw-brainstorm-suggestion-text {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--vw-text);
         line-height: 1.4;
     }
 
     .vw-brainstorm-suggestion-apply {
         padding: 0.35rem 0.6rem;
-        background: rgba(139, 92, 246, 0.2);
-        border: 1px solid rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border: 1px solid var(--vw-border-accent);
         border-radius: 0.35rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -3404,7 +3404,7 @@
     }
 
     .vw-brainstorm-suggestion-apply:hover {
-        background: rgba(139, 92, 246, 0.4);
+        background: var(--vw-border-accent);
     }
 
     .vw-brainstorm-loading {
@@ -3413,15 +3413,15 @@
         justify-content: center;
         gap: 0.5rem;
         padding: 1.5rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
     }
 
     .vw-brainstorm-loading-spinner {
         width: 18px;
         height: 18px;
-        border: 2px solid rgba(139, 92, 246, 0.3);
-        border-top-color: #8b5cf6;
+        border: 2px solid rgba(var(--vw-primary-rgb), 0.12);
+        border-top-color: var(--vw-primary);
         border-radius: 50%;
         animation: vw-spin 0.8s linear infinite;
     }
@@ -3429,16 +3429,16 @@
     .vw-brainstorm-empty {
         text-align: center;
         padding: 1.5rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
     }
 
     .vw-brainstorm-refresh {
         padding: 0.35rem 0.7rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-size: 0.7rem;
         cursor: pointer;
         display: flex;
@@ -3448,8 +3448,8 @@
     }
 
     .vw-brainstorm-refresh:hover {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-color: var(--vw-border-accent);
     }
 
     /* Progressive Generation Preview */
@@ -3462,7 +3462,7 @@
     .vw-generation-preview-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6, 182, 212, 0.2));
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -3474,7 +3474,7 @@
         width: 60%;
         max-width: 200px;
         height: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 2px;
         overflow: hidden;
         margin-bottom: 0.75rem;
@@ -3482,7 +3482,7 @@
 
     .vw-generation-preview-bar {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, var(--vw-primary), #06b6d4);
         border-radius: 2px;
         transition: width 0.3s ease;
         animation: vw-generation-pulse 1.5s ease-in-out infinite;
@@ -3495,14 +3495,14 @@
 
     .vw-generation-preview-status {
         font-size: 0.75rem;
-        color: white;
+        color: var(--vw-text);
         font-weight: 500;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
 
     .vw-generation-preview-substatus {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         margin-top: 0.25rem;
     }
 
@@ -3539,7 +3539,7 @@
     .vw-ai-confidence-bar {
         width: 60px;
         height: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 2px;
         overflow: hidden;
     }
@@ -3555,7 +3555,7 @@
     }
 
     .vw-ai-confidence-fill.medium {
-        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        background: linear-gradient(90deg, #f59e0b, #d97706);
     }
 
     .vw-ai-confidence-fill.low {
@@ -3570,10 +3570,10 @@
     .vw-prompt-textarea {
         width: 100%;
         padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.85rem;
         min-height: 100px;
         resize: vertical;
@@ -3582,17 +3582,17 @@
 
     .vw-prompt-textarea:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-prompt-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.35);
+        color: var(--vw-text-secondary);
     }
 
     /* @ Mention in textarea highlight */
     .vw-prompt-mention {
-        color: #a78bfa;
-        background: rgba(139, 92, 246, 0.15);
+        color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.06);
         padding: 0.1rem 0.25rem;
         border-radius: 0.2rem;
     }
@@ -3603,7 +3603,7 @@
         align-items: center;
         gap: 0.35rem;
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-top: 0.35rem;
     }
 
@@ -3613,12 +3613,12 @@
         justify-content: center;
         min-width: 1.25rem;
         padding: 0.1rem 0.3rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.2rem;
         font-size: 0.6rem;
         font-family: monospace;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Phase 3: Progressive Generation Animations */
@@ -3636,11 +3636,11 @@
     @keyframes vw-pulse {
         0%, 100% {
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 0 0 var(--vw-border-accent);
         }
         50% {
             transform: scale(1.05);
-            box-shadow: 0 0 20px 10px rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 20px 10px rgba(var(--vw-primary-rgb), 0.04);
         }
     }
 
@@ -3653,25 +3653,25 @@
 
     /* Enhanced Glassmorphism Effects */
     .vw-glass {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(0,0,0,0.02);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0,0,0,0.04);
     }
 
     .vw-glass-strong {
         background: rgba(15, 15, 28, 0.85);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.06);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     .vw-glass-accent {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6, 182, 212, 0.1));
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
     }
 
     /* Micro-animations: Button hover effects (Performance optimized) */
@@ -3683,12 +3683,12 @@
 
     .vw-btn-hover:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+        box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-btn-hover:active {
         transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(139, 92, 246, 0.15);
+        box-shadow: 0 2px 4px rgba(var(--vw-primary-rgb), 0.06);
     }
 
     /* Micro-animations: Card hover effects (Performance optimized) */
@@ -3730,7 +3730,7 @@
     }
 
     .vw-glow-hover:hover {
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.1);
+        box-shadow: 0 0 20px var(--vw-border-accent), 0 0 40px rgba(var(--vw-primary-rgb), 0.04);
     }
 
     /* Micro-animations: Scale on focus for inputs */
@@ -3740,8 +3740,8 @@
 
     .vw-input-focus:focus {
         transform: scale(1.01);
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-focus);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.04);
     }
 
     /* Staggered animation for lists */
@@ -3762,9 +3762,9 @@
     .vw-shimmer {
         background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.03) 0%,
-            rgba(255, 255, 255, 0.08) 50%,
-            rgba(255, 255, 255, 0.03) 100%
+            rgba(0,0,0,0.02) 0%,
+            rgba(0,0,0,0.04) 50%,
+            rgba(0,0,0,0.02) 100%
         );
         background-size: 200% 100%;
         animation: vw-shimmer 1.5s infinite;
@@ -3789,7 +3789,7 @@
         width: 0;
         height: 0;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--vw-text-secondary);
         transform: translate(-50%, -50%);
         transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
         opacity: 0;
@@ -3808,12 +3808,12 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.15rem 0.4rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.25rem;
         font-size: 0.6rem;
         font-family: monospace;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-left: 0.5rem;
     }
 
@@ -3823,8 +3823,8 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.35rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 2rem;
     }
 
@@ -3833,15 +3833,15 @@
         border: none;
         border-radius: 1.5rem;
         background: transparent;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         font-size: 0.75rem;
         transition: all 0.2s ease;
     }
 
     .vw-theme-toggle-btn.active {
-        background: rgba(139, 92, 246, 0.3);
-        color: white;
+        background: rgba(var(--vw-primary-rgb), 0.12);
+        color: var(--vw-text);
     }
 
     /* Light theme variables (applied via class) */
@@ -3853,7 +3853,7 @@
         --vw-text-secondary: #64748b;
         --vw-text-muted: #94a3b8;
         --vw-border-color: rgba(0, 0, 0, 0.08);
-        --vw-accent-primary: #8b5cf6;
+        --vw-accent-primary: var(--vw-primary);
         --vw-accent-secondary: #06b6d4;
         --vw-shadow-color: rgba(0, 0, 0, 0.1);
     }
@@ -3865,12 +3865,12 @@
         --vw-bg-secondary: #1a1a2e;
         --vw-bg-tertiary: #252542;
         --vw-text-primary: #ffffff;
-        --vw-text-secondary: rgba(255, 255, 255, 0.7);
-        --vw-text-muted: rgba(255, 255, 255, 0.4);
-        --vw-border-color: rgba(255, 255, 255, 0.08);
-        --vw-accent-primary: #8b5cf6;
+        --vw-text-secondary: var(--vw-text);
+        --vw-text-muted: var(--vw-text-secondary);
+        --vw-border-color: rgba(0,0,0,0.04);
+        --vw-accent-primary: var(--vw-primary);
         --vw-accent-secondary: #06b6d4;
-        --vw-shadow-color: rgba(0, 0, 0, 0.5);
+        --vw-shadow-color: rgba(0,0,0,0.3);
     }
 
     /* Apply theme variables */
@@ -3911,7 +3911,7 @@
 
     .vw-shortcuts-modal {
         background: rgba(30, 30, 50, 0.95);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 1rem;
         padding: 1.5rem;
         max-width: 500px;
@@ -3923,7 +3923,7 @@
     .vw-shortcuts-title {
         font-size: 1.1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin-bottom: 1rem;
         display: flex;
         align-items: center;
@@ -3938,10 +3938,10 @@
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.5rem;
         padding-bottom: 0.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
     }
 
     .vw-shortcut-row {
@@ -3952,7 +3952,7 @@
     }
 
     .vw-shortcut-label {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         font-size: 0.8rem;
     }
 
@@ -3967,17 +3967,17 @@
         justify-content: center;
         min-width: 1.5rem;
         padding: 0.25rem 0.5rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0,0,0,0.04);
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
         font-size: 0.7rem;
         font-family: monospace;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     /* Focus indicator for accessibility */
     .vw-focus-ring:focus-visible {
-        outline: 2px solid rgba(139, 92, 246, 0.6);
+        outline: 2px solid var(--vw-border-focus);
         outline-offset: 2px;
     }
 
@@ -3988,17 +3988,17 @@
     }
 
     .vw-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(0,0,0,0.02);
         border-radius: 3px;
     }
 
     .vw-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 3px;
     }
 
     .vw-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(139, 92, 246, 0.5);
+        background: var(--vw-border-focus);
     }
 
     /* Toast notification styles */
@@ -4008,7 +4008,7 @@
         right: 1.5rem;
         padding: 0.75rem 1rem;
         background: rgba(30, 30, 50, 0.95);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.5rem;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         display: flex;
@@ -4534,14 +4534,14 @@ function getCameraMovementIcon($movement) {
             <div class="vw-storyboard-pill {{ $allImagesReady ? 'complete' : '' }}">
                 <span>🖼️</span>
                 <span class="pill-value">{{ $imagesReady }}/{{ $totalScenes }}</span>
-                <span style="color: rgba(255,255,255,0.5);">{{ __('images') }}</span>
+                <span style="color: var(--vw-text-secondary);">{{ __('images') }}</span>
             </div>
             @if($multiShotMode['enabled'])
                 @php $shotStats = $this->getShotStatistics(); @endphp
                 <div class="vw-storyboard-pill">
                     <span>🎬</span>
                     <span class="pill-value">{{ $shotStats['totalShots'] }}</span>
-                    <span style="color: rgba(255,255,255,0.5);">{{ __('shots') }}</span>
+                    <span style="color: var(--vw-text-secondary);">{{ __('shots') }}</span>
                 </div>
             @endif
         </div>
@@ -4598,7 +4598,7 @@ function getCameraMovementIcon($movement) {
             {{-- Phase 4: Keyboard Shortcuts Help --}}
             <button type="button"
                     @click="shortcuts.showHelp = true"
-                    style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.35rem; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;"
+                    style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text-secondary); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;"
                     title="{{ __('Keyboard Shortcuts') }} (?)">
                 ⌨️
                 <span class="vw-shortcut-badge">?</span>
@@ -4629,14 +4629,14 @@ function getCameraMovementIcon($movement) {
             {{-- Navigation Buttons --}}
             <button type="button"
                     wire:click="goToStep(3)"
-                    style="padding: 0.45rem 0.85rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                    style="padding: 0.45rem 0.85rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
                 <span>←</span>
                 <span>{{ __('Script') }}</span>
             </button>
 
             <button type="button"
                     wire:click="goToStep(5)"
-                    style="padding: 0.45rem 0.85rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;">
+                    style="padding: 0.45rem 0.85rem; background: linear-gradient(135deg, var(--vw-primary), #06b6d4); border: none; border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;">
                 <span>{{ __('Animation') }}</span>
                 <span>→</span>
             </button>
@@ -4821,7 +4821,7 @@ function getCameraMovementIcon($movement) {
                                         <div class="vw-sidebar-toggle-thumb"></div>
                                     </div>
                                 </div>
-                                <p style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-bottom: 0.75rem; line-height: 1.4;">
+                                <p style="font-size: 0.65rem; color: var(--vw-text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
                                     {{ $hollywoodExpansionEnabled
                                         ? __('Complex shots get AI-enhanced Hollywood-quality prompts')
                                         : __('All shots use fast template-only prompts')
@@ -4874,16 +4874,16 @@ function getCameraMovementIcon($movement) {
                                     </div>
                                 </div>
                                 <div style="margin-top: 0.5rem;">
-                                    <label style="display: block; font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem;">{{ __('Positive Prompts') }}</label>
+                                    <label style="display: block; font-size: 0.6rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem;">{{ __('Positive Prompts') }}</label>
                                     <textarea wire:model.blur="storyboard.technicalSpecs.positive"
                                               placeholder="{{ __('high quality, cinematic...') }}"
-                                              style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.25rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
                                 <div style="margin-top: 0.5rem;">
-                                    <label style="display: block; font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-bottom: 0.25rem;">{{ __('Negative Prompts') }}</label>
+                                    <label style="display: block; font-size: 0.6rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem;">{{ __('Negative Prompts') }}</label>
                                     <textarea wire:model.blur="storyboard.technicalSpecs.negative"
                                               placeholder="{{ __('blurry, low quality...') }}"
-                                              style="width: 100%; padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 0.25rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid rgba(239,68,68,0.2); border-radius: 0.25rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -4962,7 +4962,7 @@ function getCameraMovementIcon($movement) {
                             </div>
                         </div>
 
-                        <p style="font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 0.75rem; line-height: 1.4;">
+                        <p style="font-size: 0.65rem; color: var(--vw-text-secondary); margin-top: 0.75rem; line-height: 1.4;">
                             💡 {{ __('"Auto" uses genre-appropriate defaults') }}
                         </p>
                     </div>
@@ -5213,23 +5213,23 @@ function getCameraMovementIcon($movement) {
                     {{-- Progress Cards (Multi-shot mode) --}}
                     <div class="vw-bento-card span-6">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.35rem;">
+                            <span style="font-size: 0.75rem; color: var(--vw-text); display: flex; align-items: center; gap: 0.35rem;">
                                 🖼️ {{ __('Images Generated') }}
                             </span>
                             <span style="font-size: 0.8rem; font-weight: 600; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
                         </div>
-                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 8px; background: var(--vw-border); border-radius: 4px; overflow: hidden;">
                             <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e); border-radius: 4px; transition: width 0.3s;"></div>
                         </div>
                     </div>
                     <div class="vw-bento-card span-6">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.35rem;">
+                            <span style="font-size: 0.75rem; color: var(--vw-text); display: flex; align-items: center; gap: 0.35rem;">
                                 🎬 {{ __('Videos Generated') }}
                             </span>
                             <span style="font-size: 0.8rem; font-weight: 600; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
                         </div>
-                        <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 8px; background: var(--vw-border); border-radius: 4px; overflow: hidden;">
                             <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee); border-radius: 4px; transition: width 0.3s;"></div>
                         </div>
                     </div>
@@ -5243,16 +5243,16 @@ function getCameraMovementIcon($movement) {
                     align-items: center;
                     gap: 0.5rem;
                     padding: 0.5rem 0.75rem;
-                    background: rgba(139, 92, 246, 0.1);
+                    background: rgba(var(--vw-primary-rgb), 0.04);
                     border-radius: 0.5rem;
                     margin-bottom: 0.75rem;
-                    border: 1px solid rgba(139, 92, 246, 0.2);
+                    border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
                 ">
                     <div style="
                         display: flex;
                         align-items: center;
                         gap: 0.25rem;
-                        color: rgba(139, 92, 246, 0.9);
+                        color: rgba(var(--vw-primary-rgb), 0.4);
                         font-size: 0.7rem;
                     ">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5266,8 +5266,8 @@ function getCameraMovementIcon($movement) {
                         wire:change="setArcTemplate($event.target.value)"
                         style="
                             background: rgba(0, 0, 0, 0.3);
-                            border: 1px solid rgba(139, 92, 246, 0.3);
-                            color: #fff;
+                            border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
+        color: var(--vw-text);
                             padding: 0.25rem 0.5rem;
                             border-radius: 0.25rem;
                             font-size: 0.7rem;
@@ -5291,7 +5291,7 @@ function getCameraMovementIcon($movement) {
                             gap: 0.75rem;
                             margin-left: auto;
                             font-size: 0.65rem;
-                            color: rgba(255,255,255,0.6);
+                            color: var(--vw-text-secondary);
                         ">
                             <span>{{ __('Shots') }}: {{ $arcSummary['shotCount'] ?? 0 }}</span>
                             <span>{{ __('Peak') }}: {{ $arcSummary['peakIntensity'] ?? '0%' }}</span>
@@ -5306,19 +5306,19 @@ function getCameraMovementIcon($movement) {
                 $paginatedData = $this->paginatedScenes;
                 $showPagination = $paginatedData['totalPages'] > 1;
             @endphp
-            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.15); border-radius: 0.5rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.06); border-radius: 0.5rem; margin-bottom: 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                     <span>🖼️</span>
                     <span style="font-weight: 600; color: #10b981;">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
-                    <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">{{ __('images') }}</span>
+                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('images') }}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                     <span>🎬</span>
-                    <span style="font-weight: 600; color: #8b5cf6;">{{ $paginatedData['totalScenes'] }}</span>
-                    <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">{{ __('scenes') }}</span>
+                    <span style="font-weight: 600; color: var(--vw-primary);">{{ $paginatedData['totalScenes'] }}</span>
+                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('scenes') }}</span>
                 </div>
                 @if($showPagination)
-                    <span style="color: rgba(255,255,255,0.4); font-size: 0.75rem;">
+                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">
                         {{ __('Showing') }} {{ $paginatedData['showingFrom'] }}-{{ $paginatedData['showingTo'] }}
                     </span>
                 @endif
@@ -5326,11 +5326,11 @@ function getCameraMovementIcon($movement) {
 
             {{-- Pagination Controls (Top) --}}
             @if($showPagination)
-                <div class="vw-pagination-controls" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem;">
+                <div class="vw-pagination-controls" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.02); border-radius: 0.5rem;">
                     <button type="button"
                             wire:click="previousStoryboardPage"
                             @disabled(!$paginatedData['hasPrevious'])
-                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasPrevious'] ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)' }}; background: {{ $paginatedData['hasPrevious'] ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)' }}; color: {{ $paginatedData['hasPrevious'] ? 'white' : 'rgba(255,255,255,0.3)' }}; cursor: {{ $paginatedData['hasPrevious'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
+                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasPrevious'] ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; background: {{ $paginatedData['hasPrevious'] ? 'rgba(var(--vw-primary-rgb), 0.06)' : 'rgba(0,0,0,0.02)' }}; color: {{ $paginatedData['hasPrevious'] ? 'white' : 'var(--vw-text-secondary)' }}; cursor: {{ $paginatedData['hasPrevious'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
                         ← {{ __('Previous') }}
                     </button>
 
@@ -5349,11 +5349,11 @@ function getCameraMovementIcon($movement) {
                             @if($showPage)
                                 <button type="button"
                                         wire:click="goToStoryboardPage({{ $p }})"
-                                        style="width: 32px; height: 32px; border-radius: 0.35rem; border: 1px solid {{ $p === $paginatedData['currentPage'] ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $p === $paginatedData['currentPage'] ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.75rem; font-weight: {{ $p === $paginatedData['currentPage'] ? '700' : '500' }};">
+                                        style="width: 32px; height: 32px; border-radius: 0.35rem; border: 1px solid {{ $p === $paginatedData['currentPage'] ? 'var(--vw-primary)' : 'var(--vw-border)' }}; background: {{ $p === $paginatedData['currentPage'] ? 'rgba(var(--vw-primary-rgb), 0.12)' : 'rgba(0,0,0,0.03)' }}; color: white; cursor: pointer; font-size: 0.75rem; font-weight: {{ $p === $paginatedData['currentPage'] ? '700' : '500' }};">
                                     {{ $p }}
                                 </button>
                             @elseif($showEllipsis)
-                                <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.4);">…</span>
+                                <span style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--vw-text-secondary);">…</span>
                             @endif
                         @endfor
                     </div>
@@ -5361,13 +5361,13 @@ function getCameraMovementIcon($movement) {
                     <button type="button"
                             wire:click="nextStoryboardPage"
                             @disabled(!$paginatedData['hasNext'])
-                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasNext'] ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)' }}; background: {{ $paginatedData['hasNext'] ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)' }}; color: {{ $paginatedData['hasNext'] ? 'white' : 'rgba(255,255,255,0.3)' }}; cursor: {{ $paginatedData['hasNext'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
+                            style="padding: 0.4rem 0.75rem; border-radius: 0.35rem; border: 1px solid {{ $paginatedData['hasNext'] ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; background: {{ $paginatedData['hasNext'] ? 'rgba(var(--vw-primary-rgb), 0.06)' : 'rgba(0,0,0,0.02)' }}; color: {{ $paginatedData['hasNext'] ? 'white' : 'var(--vw-text-secondary)' }}; cursor: {{ $paginatedData['hasNext'] ? 'pointer' : 'not-allowed' }}; font-size: 0.75rem; font-weight: 600;">
                         {{ __('Next') }} →
                     </button>
 
                     {{-- Jump to page dropdown --}}
                     <select wire:model.live="storyboardPage"
-                            style="padding: 0.4rem 0.5rem; border-radius: 0.35rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: white; font-size: 0.7rem; cursor: pointer;">
+                            style="padding: 0.4rem 0.5rem; border-radius: 0.35rem; border: 1px solid var(--vw-border); background: rgba(0,0,0,0.03); color: white; font-size: 0.7rem; cursor: pointer;">
                         @for($p = 1; $p <= $paginatedData['totalPages']; $p++)
                             <option value="{{ $p }}">{{ __('Page') }} {{ $p }}</option>
                         @endfor
@@ -5540,7 +5540,7 @@ function getCameraMovementIcon($movement) {
                                 </button>
                                 <button type="button"
                                         @click="closeBrainstorm()"
-                                        style="padding: 0.25rem 0.5rem; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem;">
+                                        style="padding: 0.25rem 0.5rem; background: none; border: none; color: var(--vw-text-secondary); cursor: pointer; font-size: 1rem;">
                                     ×
                                 </button>
                             </div>
@@ -5590,7 +5590,7 @@ function getCameraMovementIcon($movement) {
                                 $shotChainStatusBadge = $this->getShotChainStatus($index);
                             @endphp
                             <div style="position: absolute; top: 0.75rem; right: 0.75rem; z-index: 10; display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+                                <span style="background: linear-gradient(135deg, var(--vw-primary), #06b6d4); color: white; padding: 0.25rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
                                     📽️ {{ count($decomposed['shots']) }}
                                 </span>
                                 @if($shotChainStatusBadge['imagesReady'] > 0)
@@ -5638,40 +5638,40 @@ function getCameraMovementIcon($movement) {
                                              }
                                          }
                                      }"
-                                     style="height: 220px; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                                     style="height: 220px; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6,182,212,0.1)); border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
 
                                     {{-- Animated background gradient --}}
-                                    <div style="position: absolute; inset: 0; background: linear-gradient(45deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1), rgba(236,72,153,0.1)); background-size: 400% 400%; animation: vw-gradient-shift 4s ease infinite;"></div>
+                                    <div style="position: absolute; inset: 0; background: linear-gradient(45deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6,182,212,0.1), rgba(236,72,153,0.1)); background-size: 400% 400%; animation: vw-gradient-shift 4s ease infinite;"></div>
 
                                     {{-- Scan line effect --}}
                                     <div style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;">
-                                        <div style="position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent); animation: vw-scan-line 2s linear infinite;"></div>
+                                        <div style="position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--vw-border-focus), transparent); animation: vw-scan-line 2s linear infinite;"></div>
                                     </div>
 
                                     {{-- Progress content --}}
                                     <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
                                         {{-- AI Icon with pulse --}}
-                                        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); display: flex; align-items: center; justify-content: center; animation: vw-pulse 1.5s ease-in-out infinite;">
+                                        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.3)); display: flex; align-items: center; justify-content: center; animation: vw-pulse 1.5s ease-in-out infinite;">
                                             <span style="font-size: 1.5rem;">🎨</span>
                                         </div>
 
                                         {{-- Progress bar --}}
-                                        <div class="vw-generation-preview-progress" style="width: 180px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                        <div class="vw-generation-preview-progress" style="width: 180px; height: 6px; background: var(--vw-border); border-radius: 3px; overflow: hidden;">
                                             <div class="vw-generation-preview-bar"
                                                  :style="'width: ' + progress + '%'"
-                                                 style="height: 100%; background: linear-gradient(90deg, #8b5cf6, #06b6d4); border-radius: 3px; transition: width 0.5s ease;"></div>
+                                                 style="height: 100%; background: linear-gradient(90deg, var(--vw-primary), #06b6d4); border-radius: 3px; transition: width 0.5s ease;"></div>
                                         </div>
 
                                         {{-- Status text --}}
                                         <div style="text-align: center;">
                                             <div class="vw-generation-preview-status" x-text="status" style="font-size: 0.85rem; color: white; font-weight: 500;"></div>
-                                            <div class="vw-generation-preview-substatus" x-text="substatus" style="font-size: 0.7rem; color: rgba(255,255,255,0.6); margin-top: 0.25rem;"></div>
+                                            <div class="vw-generation-preview-substatus" x-text="substatus" style="font-size: 0.7rem; color: var(--vw-text-secondary); margin-top: 0.25rem;"></div>
                                         </div>
 
                                         {{-- AI Confidence indicator --}}
-                                        <div class="vw-ai-confidence" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                        <div class="vw-ai-confidence" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.65rem; color: var(--vw-text-secondary);">
                                             <span>{{ __('AI Confidence:') }}</span>
-                                            <div class="vw-ai-confidence-bar" style="width: 50px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                            <div class="vw-ai-confidence-bar" style="width: 50px; height: 3px; background: var(--vw-border); border-radius: 2px; overflow: hidden;">
                                                 <div class="vw-ai-confidence-fill high" style="width: 85%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
                                             </div>
                                             <span>{{ __('High') }}</span>
@@ -5719,17 +5719,17 @@ function getCameraMovementIcon($movement) {
                                 {{-- Placeholder with retry option if image fails after retries --}}
                                 <div class="vw-image-placeholder" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); gap: 0.5rem;">
                                     <span style="font-size: 1.5rem;">🖼️</span>
-                                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">{{ __('Image not available') }}</span>
+                                    <span style="font-size: 0.7rem; color: var(--vw-text);">{{ __('Image not available') }}</span>
                                     <button type="button"
                                             wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
-                                            style="padding: 0.3rem 0.6rem; border-radius: 0.3rem; border: 1px solid rgba(139,92,246,0.5); background: rgba(139,92,246,0.3); color: white; cursor: pointer; font-size: 0.65rem;">
+                                            style="padding: 0.3rem 0.6rem; border-radius: 0.3rem; border: 1px solid var(--vw-border-focus); background: rgba(var(--vw-primary-rgb), 0.12); color: white; cursor: pointer; font-size: 0.65rem;">
                                         🔄 {{ __('Regenerate') }}
                                     </button>
                                 </div>
 
                                 @php
                                     $isVideo = $source === 'stock-video';
-                                    $sourceBgColor = $source === 'stock' ? 'rgba(16,185,129,0.9)' : ($isVideo ? 'rgba(6,182,212,0.9)' : 'rgba(139,92,246,0.9)');
+                                    $sourceBgColor = $source === 'stock' ? 'rgba(16,185,129,0.9)' : ($isVideo ? 'rgba(6,182,212,0.9)' : 'rgba(var(--vw-primary-rgb), 0.4)');
                                     $sourceLabel = $source === 'stock' ? '📷 ' . __('Stock') : ($isVideo ? '🎬 ' . __('Video') : '🎨 ' . __('AI'));
                                     $clipDuration = $storyboardScene['stockInfo']['clipDuration'] ?? $storyboardScene['stockInfo']['duration'] ?? null;
                                 @endphp
@@ -5752,22 +5752,22 @@ function getCameraMovementIcon($movement) {
                                 </div>
 
                                 {{-- Action Buttons Overlay - Bottom of image --}}
-                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
+                                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.4)); padding: 1rem; display: flex; gap: 0.6rem; z-index: 10;">
                                     <button type="button"
                                             wire:click="openImageStudio('scene', {{ $index }})"
-                                            style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(139,92,246,0.3)); color: white; cursor: pointer; font-size: 0.85rem;"
+                                            style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(236,72,153,0.5); background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(var(--vw-primary-rgb), 0.12)); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('AI Image Studio') }}">
                                         ✨ {{ __('Edit') }}
                                     </button>
                                     <button type="button"
                                             wire:click="openAssetHistory('scene', {{ $index }})"
-                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.5); background: rgba(139,92,246,0.2); color: white; cursor: pointer; font-size: 0.85rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--vw-border-focus); background: rgba(var(--vw-primary-rgb), 0.08); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Asset History') }}">
                                         🕐
                                     </button>
                                     <button type="button"
                                             wire:click="openEditPromptModal({{ $index }})"
-                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.85rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--vw-text-secondary); background: rgba(0,0,0,0.3); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Modify prompt') }}">
                                         ✏️
                                     </button>
@@ -5780,7 +5780,7 @@ function getCameraMovementIcon($movement) {
                                     <button type="button"
                                             wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                             wire:loading.attr="disabled"
-                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); color: white; cursor: pointer; font-size: 0.85rem;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--vw-text-secondary); background: rgba(0,0,0,0.3); color: white; cursor: pointer; font-size: 0.85rem;"
                                             title="{{ __('Regenerate with AI') }}">
                                         🔄
                                     </button>
@@ -5794,7 +5794,7 @@ function getCameraMovementIcon($movement) {
                                             wire:click="openMultiShotModal({{ $index }})"
                                             wire:loading.attr="disabled"
                                             wire:target="openMultiShotModal"
-                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(139,92,246,0.6); background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
+                                            style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--vw-border-focus); background: linear-gradient(135deg, var(--vw-border-accent), rgba(6,182,212,0.3)); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;"
                                             title="{{ __('Multi-shot decomposition') }}">
                                         <span wire:loading.remove wire:target="openMultiShotModal({{ $index }})">✂️</span>
                                         <span wire:loading wire:target="openMultiShotModal({{ $index }})" class="vw-btn-spinner"></span>
@@ -5807,12 +5807,12 @@ function getCameraMovementIcon($movement) {
                                         <span style="font-size: 1.25rem;">⚠️</span>
                                         <span style="color: #ef4444; font-size: 0.9rem;">{{ Str::limit($storyboardScene['error'] ?? __('Generation failed'), 50) }}</span>
                                     </div>
-                                    <div style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 0.75rem;">{{ __('Choose to retry:') }}</div>
+                                    <div style="color: var(--vw-text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">{{ __('Choose to retry:') }}</div>
                                     <div style="display: flex; gap: 0.75rem; width: 100%; max-width: 320px;">
                                         <button type="button"
                                                 wire:click="generateImage({{ $index }}, '{{ $scene['id'] }}')"
                                                 wire:loading.attr="disabled"
-                                                style="flex: 1; padding: 0.75rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.3)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                                                style="flex: 1; padding: 0.75rem 0.5rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.3)); border: 1px solid var(--vw-border-accent); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
                                             <span style="font-size: 1.25rem;">🎨</span>
                                             <span>{{ __('Retry AI') }}</span>
                                         </button>
@@ -5957,14 +5957,14 @@ function getCameraMovementIcon($movement) {
                         @endphp
                         <div wire:key="multi-shot-timeline-{{ $index }}"
                              x-data="{ expanded: false }"
-                             style="padding: 0.4rem 0.5rem; border-top: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.04); contain: layout;">
+                             style="padding: 0.4rem 0.5rem; border-top: 1px solid rgba(var(--vw-primary-rgb), 0.06); background: rgba(var(--vw-primary-rgb), 0.02); contain: layout;">
                             {{-- Compact Header row --}}
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
                                 <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                    <button type="button" @click="expanded = !expanded" style="background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.6); font-size: 0.6rem; padding: 0;">
+                                    <button type="button" @click="expanded = !expanded" style="background: none; border: none; cursor: pointer; color: var(--vw-text-secondary); font-size: 0.6rem; padding: 0;">
                                         <span x-text="expanded ? '▼' : '▶'"></span>
                                     </button>
-                                    <span style="font-size: 0.55rem; color: rgba(255,255,255,0.5); font-weight: 600;">
+                                    <span style="font-size: 0.55rem; color: var(--vw-text-secondary); font-weight: 600;">
                                         📽️ {{ count($decomposed['shots']) }} {{ __('shots') }} • {{ $totalShotDuration }}s
                                     </span>
                                     <span style="font-size: 0.45rem; padding: 0.08rem 0.2rem; background: rgba(16,185,129,0.2); border-radius: 0.15rem; color: #10b981;">
@@ -6007,10 +6007,10 @@ function getCameraMovementIcon($movement) {
                                             'wide' => '🌄',
                                         ];
                                         $shotIcon = $shotTypeIcons[strtolower($shot['type'] ?? '')] ?? '🎬';
-                                        $borderColor = $hasVideo ? 'rgba(6,182,212,0.6)' : ($hasImage ? 'rgba(16,185,129,0.5)' : ($isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.1)'));
+                                        $borderColor = $hasVideo ? 'rgba(6,182,212,0.6)' : ($hasImage ? 'rgba(16,185,129,0.5)' : ($isSelected ? 'var(--vw-primary)' : 'var(--vw-border)'));
                                     @endphp
                                     <div wire:key="shot-thumb-{{ $index }}-{{ $shotIdx }}"
-                                         style="cursor: pointer; position: relative; border-radius: 0.35rem; overflow: hidden; border: 2px solid {{ $borderColor }}; background: {{ $isSelected ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)' }}; flex-shrink: 0; width: 90px;"
+                                         style="cursor: pointer; position: relative; border-radius: 0.35rem; overflow: hidden; border: 2px solid {{ $borderColor }}; background: {{ $isSelected ? 'rgba(var(--vw-primary-rgb), 0.06)' : 'rgba(0,0,0,0.2)' }}; flex-shrink: 0; width: 90px;"
                                          wire:click="openMultiShotModal({{ $index }})"
                                          title="{{ $shot['description'] ?? 'Shot ' . ($shotIdx + 1) }} ({{ $shotDuration }}s)">
                                         {{-- Larger Thumbnail --}}
@@ -6026,14 +6026,14 @@ function getCameraMovementIcon($movement) {
                                                     </div>
                                                 @endif
                                             @elseif($shotStatus === 'generating')
-                                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(139,92,246,0.1);">
-                                                    <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite; color: #8b5cf6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(var(--vw-primary-rgb), 0.04);">
+                                                    <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite; color: var(--vw-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <circle cx="12" cy="12" r="10" stroke-opacity="0.3"></circle>
                                                         <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
                                                     </svg>
                                                 </div>
                                             @else
-                                                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.03);">
+                                                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.02);">
                                                     <span style="font-size: 1rem;">{{ $shotIcon }}</span>
                                                 </div>
                                             @endif
@@ -6049,7 +6049,7 @@ function getCameraMovementIcon($movement) {
                                                     🔗
                                                 </div>
                                             @elseif($isFromScene && $shotIdx === 0)
-                                                <div style="position: absolute; top: 2px; right: 2px; background: rgba(139,92,246,0.9); color: white; padding: 0.05rem 0.15rem; border-radius: 0.1rem; font-size: 0.4rem;">
+                                                <div style="position: absolute; top: 2px; right: 2px; background: rgba(var(--vw-primary-rgb), 0.4); color: white; padding: 0.05rem 0.15rem; border-radius: 0.1rem; font-size: 0.4rem;">
                                                     📸
                                                 </div>
                                             @endif
@@ -6072,7 +6072,7 @@ function getCameraMovementIcon($movement) {
                                         </div>
 
                                         {{-- Shot Status Bar --}}
-                                        <div style="height: 3px; background: rgba(255,255,255,0.1);">
+                                        <div style="height: 3px; background: var(--vw-border);">
                                             @if($hasVideo)
                                                 <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #06b6d4, #22d3ee);"></div>
                                             @elseif($hasImage)
@@ -6161,7 +6161,7 @@ function getCameraMovementIcon($movement) {
                         $typeIcons = [
                             'narrator' => ['icon' => '🎙️', 'color' => 'rgba(14, 165, 233, 0.4)', 'border' => 'rgba(14, 165, 233, 0.6)', 'label' => 'NARRATOR', 'lipSync' => false],
                             'dialogue' => ['icon' => '💬', 'color' => 'rgba(34, 197, 94, 0.4)', 'border' => 'rgba(34, 197, 94, 0.6)', 'label' => 'DIALOGUE', 'lipSync' => true],
-                            'internal' => ['icon' => '💭', 'color' => 'rgba(168, 85, 247, 0.4)', 'border' => 'rgba(168, 85, 247, 0.6)', 'label' => 'INTERNAL', 'lipSync' => false],
+                            'internal' => ['icon' => '💭', 'color' => 'rgba(var(--vw-primary-rgb), 0.4)', 'border' => 'rgba(var(--vw-primary-rgb), 0.6)', 'label' => 'INTERNAL', 'lipSync' => false],
                             'monologue' => ['icon' => '🗣️', 'color' => 'rgba(251, 191, 36, 0.4)', 'border' => 'rgba(251, 191, 36, 0.6)', 'label' => 'MONOLOGUE', 'lipSync' => true],
                         ];
                     @endphp
@@ -6174,11 +6174,11 @@ function getCameraMovementIcon($movement) {
                                     type="button"
                                     @click.stop.prevent="voiceModalOpen = true"
                                     class="vw-voice-types-btn"
-                                    style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
+                                    style="display: flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6,182,212,0.15)); border: 1px solid var(--vw-border-accent); border-radius: 0.3rem; cursor: pointer; transition: all 0.2s;"
                                 >
                                     <span style="font-size: 0.75rem;">🎙️</span>
                                     <span style="font-weight: 600; font-size: 0.7rem; color: white;">{{ __('Voice Types') }}</span>
-                                    <span style="opacity: 0.6; font-size: 0.6rem; color: rgba(255,255,255,0.7);">({{ $totalSegments }})</span>
+                                    <span style="opacity: 0.6; font-size: 0.6rem; color: var(--vw-text);">({{ $totalSegments }})</span>
                                 </button>
 
                                 {{-- Inspect button --}}
@@ -6187,7 +6187,7 @@ function getCameraMovementIcon($movement) {
                                     wire:click.stop="openSceneTextInspector({{ $index }})"
                                     class="vw-inspect-btn"
                                     title="{{ __('Full scene details') }}"
-                                    style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #a78bfa; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer; transition: all 0.2s;"
+                                    style="background: rgba(var(--vw-primary-rgb), 0.06); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); color: var(--vw-primary); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem; cursor: pointer; transition: all 0.2s;"
                                 >
                                     🔍 {{ __('Inspect') }}
                                 </button>
@@ -6217,22 +6217,22 @@ function getCameraMovementIcon($movement) {
                                         x-transition:leave-start="opacity-100 transform scale-100"
                                         x-transition:leave-end="opacity-0 transform scale-95"
                                         @click.outside="voiceModalOpen = false"
-                                        style="background: linear-gradient(135deg, rgba(30,30,50,0.99), rgba(20,20,40,1)); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.75rem; box-shadow: 0 25px 50px rgba(0,0,0,0.5); width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;"
+                                        style="background: linear-gradient(135deg, rgba(30,30,50,0.99), rgba(20,20,40,1)); border: 1px solid var(--vw-border-focus); border-radius: 0.75rem; box-shadow: 0 25px 50px rgba(0,0,0,0.3); width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;"
                                     >
                                         {{-- Modal Header --}}
-                                        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                                        <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
                                             <div>
-                                                <h3 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: white; display: flex; align-items: center; gap: 0.5rem;">
+                                                <h3 style="margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--vw-text); display: flex; align-items: center; gap: 0.5rem;">
                                                     <span>🎙️</span> {{ __('Voice Types') }}
                                                 </h3>
-                                                <p style="margin: 0.2rem 0 0 0; font-size: 0.65rem; color: rgba(255,255,255,0.5);">
+                                                <p style="margin: 0.2rem 0 0 0; font-size: 0.65rem; color: var(--vw-text-secondary);">
                                                     {{ __('Scene') }} {{ $index + 1 }} · {{ $totalSegments }} {{ __('segments') }}
                                                 </p>
                                             </div>
                                             <button
                                                 type="button"
                                                 @click="voiceModalOpen = false"
-                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border: none; border-radius: 0.3rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 1rem;"
+                                                style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--vw-border); border: none; border-radius: 0.3rem; color: var(--vw-text); cursor: pointer; font-size: 1rem;"
                                             >×</button>
                                         </div>
 
@@ -6245,13 +6245,13 @@ function getCameraMovementIcon($movement) {
                                             @if($lipSyncCount > 0)
                                                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                                                     <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
-                                                    <span style="font-size: 0.7rem; color: #6ee7b7;">{{ $lipSyncCount }} {{ __('Multitalk (Lip-sync)') }}</span>
+                                                    <span style="font-size: 0.7rem; color: #16a34a;">{{ $lipSyncCount }} {{ __('Multitalk (Lip-sync)') }}</span>
                                                 </div>
                                             @endif
                                             @if($voiceoverCount > 0)
                                                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                                                     <span style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%;"></span>
-                                                    <span style="font-size: 0.7rem; color: #67e8f9;">{{ $voiceoverCount }} {{ __('TTS (Voiceover)') }}</span>
+                                                    <span style="font-size: 0.7rem; color: #0891b2;">{{ $voiceoverCount }} {{ __('TTS (Voiceover)') }}</span>
                                                 </div>
                                             @endif
                                         </div>
@@ -6269,7 +6269,7 @@ function getCameraMovementIcon($movement) {
                                                     $wordCount = str_word_count($segText);
                                                     $estDuration = round(($wordCount / 150) * 60, 1);
                                                 @endphp
-                                                <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.03); border-left: 3px solid {{ $segConfig['border'] }}; border-radius: 0 0.5rem 0.5rem 0;">
+                                                <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(0,0,0,0.02); border-left: 3px solid {{ $segConfig['border'] }}; border-radius: 0 0.5rem 0.5rem 0;">
                                                     {{-- Segment Header --}}
                                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                                                         <span style="font-size: 1.1rem;">{{ $segConfig['icon'] }}</span>
@@ -6277,19 +6277,19 @@ function getCameraMovementIcon($movement) {
                                                             {{ $segConfig['label'] }}
                                                         </span>
                                                         @if($segSpeaker)
-                                                            <span style="color: #c4b5fd; font-size: 0.75rem; font-weight: 600;">{{ $segSpeaker }}</span>
+                                                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 600;">{{ $segSpeaker }}</span>
                                                         @endif
                                                         <span style="flex: 1;"></span>
                                                         @if($needsLipSync)
-                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(16,185,129,0.2); color: #6ee7b7; border-radius: 0.2rem; border: 1px solid rgba(16,185,129,0.3);">MULTITALK</span>
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(16,185,129,0.2); color: #16a34a; border-radius: 0.2rem; border: 1px solid rgba(16,185,129,0.3);">MULTITALK</span>
                                                         @else
-                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.2rem; border: 1px solid rgba(14,165,233,0.3);">TTS</span>
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #0891b2; border-radius: 0.2rem; border: 1px solid rgba(14,165,233,0.3);">TTS</span>
                                                         @endif
-                                                        <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5);">~{{ $estDuration }}s</span>
+                                                        <span style="font-size: 0.6rem; color: var(--vw-text-secondary);">~{{ $estDuration }}s</span>
                                                     </div>
 
                                                     {{-- Segment Text --}}
-                                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.5; margin-bottom: 0.5rem;">
+                                                    <div style="font-size: 0.8rem; color: var(--vw-text); line-height: 1.5; margin-bottom: 0.5rem;">
                                                         {{ $segText }}
                                                     </div>
 
@@ -6312,7 +6312,7 @@ function getCameraMovementIcon($movement) {
                                                                         playing = true;
                                                                     }
                                                                 "
-                                                                style="display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.3rem; color: #a78bfa; font-size: 0.7rem; cursor: pointer; transition: all 0.15s;"
+                                                                style="display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.3rem; color: var(--vw-primary); font-size: 0.7rem; cursor: pointer; transition: all 0.15s;"
                                                             >
                                                                 <span x-text="playing ? '⏹️' : '▶️'"></span>
                                                                 <span x-text="playing ? '{{ __('Stop') }}' : '{{ __('Play Audio') }}'"></span>
@@ -6323,14 +6323,14 @@ function getCameraMovementIcon($movement) {
                                             @empty
                                                 @if(!empty($narration))
                                                     {{-- Legacy narration fallback --}}
-                                                    <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid rgba(14, 165, 233, 0.6); border-radius: 0 0.5rem 0.5rem 0;">
+                                                    <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border-left: 3px solid rgba(14, 165, 233, 0.6); border-radius: 0 0.5rem 0.5rem 0;">
                                                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                                                             <span style="font-size: 1.1rem;">🎙️</span>
                                                             <span style="font-size: 0.65rem; font-weight: 600; color: white; padding: 0.15rem 0.4rem; background: rgba(14, 165, 233, 0.4); border-radius: 0.25rem;">NARRATOR</span>
                                                             <span style="flex: 1;"></span>
-                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #67e8f9; border-radius: 0.2rem;">TTS</span>
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #0891b2; border-radius: 0.2rem;">TTS</span>
                                                         </div>
-                                                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.5;">
+                                                        <div style="font-size: 0.8rem; color: var(--vw-text); line-height: 1.5;">
                                                             {{ $narration }}
                                                         </div>
                                                     </div>
@@ -6339,12 +6339,12 @@ function getCameraMovementIcon($movement) {
                                         </div>
 
                                         {{-- Modal Footer --}}
-                                        <div style="padding: 0.75rem 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 0.5rem; flex-shrink: 0;">
+                                        <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--vw-border); display: flex; gap: 0.5rem; flex-shrink: 0;">
                                             <button
                                                 type="button"
                                                 wire:click="openSceneTextInspector({{ $index }})"
                                                 @click="voiceModalOpen = false"
-                                                style="flex: 1; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(6,182,212,0.25)); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.4rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
+                                                style="flex: 1; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.25)); border: 1px solid var(--vw-border-focus); border-radius: 0.4rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
                                             >
                                                 <span>🔍</span>
                                                 <span>{{ __('Full Inspector') }}</span>
@@ -6352,7 +6352,7 @@ function getCameraMovementIcon($movement) {
                                             <button
                                                 type="button"
                                                 @click="voiceModalOpen = false"
-                                                style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.8); font-size: 0.75rem; cursor: pointer;"
+                                                style="padding: 0.5rem 1rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.4rem; color: var(--vw-text); font-size: 0.75rem; cursor: pointer;"
                                             >{{ __('Close') }}</button>
                                         </div>
                                     </div>
@@ -6434,7 +6434,7 @@ function getCameraMovementIcon($movement) {
                                         </div>
                                     @else
                                         <div class="vw-timeline-shot pending" style="width: {{ max(80, $shotDuration * 20) }}px;" title="{{ __('Pending') }}">
-                                            <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">{{ $shotIndex + 1 }}</span>
+                                            <span style="font-size: 0.7rem; color: var(--vw-text-secondary);">{{ $shotIndex + 1 }}</span>
                                         </div>
                                     @endif
                                 @endforeach
@@ -6508,7 +6508,7 @@ function getCameraMovementIcon($movement) {
                                 <img :src="$wire.storyboard?.scenes?.[sidePanel.sceneIndex]?.imageUrl" alt="Scene preview">
                             </template>
                             <template x-if="!$wire.storyboard?.scenes?.[sidePanel.sceneIndex]?.imageUrl">
-                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(255,255,255,0.4);">
+                                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--vw-text-secondary);">
                                     {{ __('No image yet') }}
                                 </div>
                             </template>
@@ -6518,8 +6518,8 @@ function getCameraMovementIcon($movement) {
                     <div class="vw-side-panel-section">
                         <div class="vw-side-panel-label">{{ __('Scene Info') }}</div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                            <span style="font-size: 1.25rem; font-weight: 700; color: #a78bfa;" x-text="'#' + (sidePanel.sceneIndex + 1)"></span>
-                            <span style="font-size: 0.8rem; color: rgba(255,255,255,0.7);" x-text="$wire.script?.scenes?.[sidePanel.sceneIndex]?.title || '{{ __('Scene') }}'"></span>
+                            <span style="font-size: 1.25rem; font-weight: 700; color: var(--vw-primary);" x-text="'#' + (sidePanel.sceneIndex + 1)"></span>
+                            <span style="font-size: 0.8rem; color: var(--vw-text);" x-text="$wire.script?.scenes?.[sidePanel.sceneIndex]?.title || '{{ __('Scene') }}'"></span>
                         </div>
                     </div>
 
@@ -6529,10 +6529,10 @@ function getCameraMovementIcon($movement) {
                             <input type="number"
                                    min="1"
                                    max="60"
-                                   style="width: 80px; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: white; font-size: 0.85rem;"
+                                   style="width: 80px; padding: 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.85rem;"
                                    :value="$wire.script?.scenes?.[sidePanel.sceneIndex]?.duration || 8"
                                    @change="$wire.set(`script.scenes.${sidePanel.sceneIndex}.duration`, $event.target.value)">
-                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">{{ __('seconds') }}</span>
+                            <span style="font-size: 0.75rem; color: var(--vw-text-secondary);">{{ __('seconds') }}</span>
                         </div>
                     </div>
 
@@ -6541,17 +6541,17 @@ function getCameraMovementIcon($movement) {
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <button type="button"
                                     @click="$wire.openImageStudio('scene', sidePanel.sceneIndex)"
-                                    style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(139,92,246,0.2)); border: 1px solid rgba(236,72,153,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                    style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(var(--vw-primary-rgb), 0.08)); border: 1px solid rgba(236,72,153,0.4); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
                                 ✨ {{ __('AI Image Studio') }}
                             </button>
                             <button type="button"
                                     @click="$wire.generateImage(sidePanel.sceneIndex, $wire.script?.scenes?.[sidePanel.sceneIndex]?.id)"
-                                    style="width: 100%; padding: 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                    style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
                                 🔄 {{ __('Regenerate') }}
                             </button>
                             <button type="button"
                                     @click="$wire.openMultiShotModal(sidePanel.sceneIndex)"
-                                    style="width: 100%; padding: 0.6rem; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                                    style="width: 100%; padding: 0.6rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.5rem; color: white; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
                                 ✂️ {{ __('Multi-shot Decompose') }}
                             </button>
                         </div>
@@ -6579,7 +6579,7 @@ function getCameraMovementIcon($movement) {
                 <span>{{ __('Keyboard Shortcuts') }}</span>
                 <button type="button"
                         @click="shortcuts.showHelp = false"
-                        style="margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1.25rem; line-height: 1;">
+                        style="margin-left: auto; background: none; border: none; color: var(--vw-text-secondary); cursor: pointer; font-size: 1.25rem; line-height: 1;">
                     ×
                 </button>
             </div>
@@ -6602,7 +6602,7 @@ function getCameraMovementIcon($movement) {
                     <span class="vw-shortcut-label">{{ __('Go to Scene 1-9') }}</span>
                     <div class="vw-shortcut-keys">
                         <span class="vw-shortcut-key">1</span>
-                        <span style="color: rgba(255,255,255,0.3);">-</span>
+                        <span style="color: var(--vw-text-secondary);">-</span>
                         <span class="vw-shortcut-key">9</span>
                     </div>
                 </div>
@@ -6634,8 +6634,8 @@ function getCameraMovementIcon($movement) {
                 </div>
             </div>
 
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
-                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.04); text-align: center;">
+                <span style="font-size: 0.7rem; color: var(--vw-text-secondary);">
                     {{ __('Press') }} <span class="vw-shortcut-key">?</span> {{ __('anytime to show this help') }}
                 </span>
             </div>
@@ -6659,7 +6659,7 @@ function getCameraMovementIcon($movement) {
         <span x-text="toast.message" style="color: white; font-size: 0.85rem;"></span>
         <button type="button"
                 @click="toast.show = false"
-                style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem; padding: 0 0.25rem;">
+                style="background: none; border: none; color: var(--vw-text-secondary); cursor: pointer; font-size: 1rem; padding: 0 0.25rem;">
             ×
         </button>
     </div>

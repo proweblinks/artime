@@ -307,13 +307,13 @@
         width: 340px;
         max-height: 380px;
         overflow-y: auto;
-        background: rgba(15, 29, 61, 0.95);
+        background: rgba(255, 255, 255, 0.97);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--vw-border-accent);
         border-radius: var(--vw-radius-lg);
         padding: 1rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(var(--vw-primary-rgb), 0.08);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 30px rgba(0, 0, 0, 0.05);
         z-index: 200;
         opacity: 0;
         pointer-events: none;
@@ -333,7 +333,7 @@
         transform: translateX(-50%) rotate(45deg);
         width: 14px;
         height: 14px;
-        background: rgba(15, 29, 61, 0.95);
+        background: rgba(255, 255, 255, 0.97);
         border-right: 1px solid var(--vw-border-accent);
         border-bottom: 1px solid var(--vw-border-accent);
     }
@@ -529,7 +529,7 @@
         border-radius: var(--vw-radius-lg);
         cursor: pointer;
         transition: all var(--vw-transition);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--vw-bg-surface);
         position: relative;
     }
 
@@ -587,33 +587,33 @@
     }
 
     .vw-platform-step .vw-engine-badge.gray {
-        background: rgba(75, 86, 117, 0.25);
+        background: rgba(0, 0, 0, 0.12);
         color: var(--vw-text-secondary);
     }
 
     .vw-platform-step .vw-engine-badge.cyan {
         background: var(--vw-info-soft);
-        color: #67e8f9;
+        color: #0284c7;
     }
 
     .vw-platform-step .vw-engine-badge.green {
         background: var(--vw-success-soft);
-        color: #6ee7b7;
+        color: #16a34a;
     }
 
     .vw-platform-step .vw-engine-badge.orange {
         background: var(--vw-warning-soft);
-        color: #fde68a;
+        color: #d97706;
     }
 
     .vw-platform-step .vw-engine-badge.yellow {
         background: var(--vw-warning-soft);
-        color: #fde68a;
+        color: #d97706;
     }
 
     .vw-platform-step .vw-engine-badge.blue {
-        background: rgba(59, 130, 246, 0.15);
-        color: #93c5fd;
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
     }
 
     /* Language Selector - Dark Dropdown */
@@ -629,7 +629,7 @@
         padding: 0.75rem 1rem;
         border: 2px solid var(--vw-border);
         border-radius: var(--vw-radius-lg);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--vw-bg-surface);
         cursor: pointer;
         transition: all var(--vw-transition);
     }
@@ -679,7 +679,7 @@
         background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border-accent);
         border-radius: var(--vw-radius-lg);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         max-height: 280px;
         overflow-y: auto;
         z-index: 100;
@@ -815,7 +815,7 @@
         width: 100%;
         height: 8px;
         border-radius: 4px;
-        background: rgba(75, 86, 117, 0.3);
+        background: rgba(0, 0, 0, 0.1);
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
@@ -861,7 +861,7 @@
         border-radius: var(--vw-radius);
         margin-bottom: 1rem;
         font-size: var(--vw-text-sm);
-        color: #fde68a;
+        color: #92400e;
     }
 
     .vw-platform-step .vw-format-guidance-icon {

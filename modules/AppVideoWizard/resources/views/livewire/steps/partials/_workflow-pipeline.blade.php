@@ -52,10 +52,10 @@
     }
     .vw-node-status-icon.pending { background: #334155; color: #94a3b8; }
     .vw-node-status-icon.running { background: #1d4ed8; color: #fff; animation: pulse-blue 1.5s infinite; }
-    .vw-node-status-icon.waiting { background: #854d0e; color: #fbbf24; animation: pulse-yellow 2s infinite; }
-    .vw-node-status-icon.paused { background: #92400e; color: #fbbf24; }
+    .vw-node-status-icon.waiting { background: #854d0e; color: #d97706; animation: pulse-yellow 2s infinite; }
+    .vw-node-status-icon.paused { background: #92400e; color: #d97706; }
     .vw-node-status-icon.completed { background: #166534; color: #4ade80; }
-    .vw-node-status-icon.failed { background: #991b1b; color: #fca5a5; }
+    .vw-node-status-icon.failed { background: #991b1b; color: #dc2626; }
 
     @keyframes pulse-blue {
         0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
@@ -94,12 +94,12 @@
     }
     .vw-node-type-badge.ai_text { background: #1e3a5f; color: #60a5fa; }
     .vw-node-type-badge.ai_image { background: #3b1f5e; color: #c084fc; }
-    .vw-node-type-badge.ai_video { background: #5c1e1e; color: #fca5a5; }
-    .vw-node-type-badge.transform { background: #1a3a2a; color: #6ee7b7; }
-    .vw-node-type-badge.user_input { background: #3b3a1e; color: #fde68a; }
-    .vw-node-type-badge.poll_wait { background: #2d2415; color: #fbbf24; }
+    .vw-node-type-badge.ai_video { background: #5c1e1e; color: #dc2626; }
+    .vw-node-type-badge.transform { background: #1a3a2a; color: #16a34a; }
+    .vw-node-type-badge.user_input { background: #3b3a1e; color: #92400e; }
+    .vw-node-type-badge.poll_wait { background: #2d2415; color: #d97706; }
     .vw-node-type-badge.conditional { background: #1e293b; color: #94a3b8; }
-    .vw-node-type-badge.compose { background: #1a2e3b; color: #67e8f9; }
+    .vw-node-type-badge.compose { background: #1a2e3b; color: #0891b2; }
 
     .vw-node-timing {
         font-size: 0.65rem;
@@ -219,7 +219,7 @@
     .vw-node-btn:hover { background: #334155; color: #e2e8f0; }
     .vw-node-btn.primary { background: #1d4ed8; border-color: #2563eb; color: #fff; }
     .vw-node-btn.primary:hover { background: #2563eb; }
-    .vw-node-btn.danger { color: #fca5a5; }
+    .vw-node-btn.danger { color: #dc2626; }
     .vw-node-btn.danger:hover { background: #7f1d1d; border-color: #991b1b; }
 
     /* Error display */
@@ -229,7 +229,7 @@
         border-radius: 0.3rem;
         padding: 0.4rem 0.6rem;
         font-size: 0.7rem;
-        color: #fca5a5;
+        color: #dc2626;
         margin-top: 0.35rem;
     }
 
@@ -264,9 +264,9 @@
         font-weight: 600;
     }
     .vw-pipeline-status.running { background: #1e3a5f; color: #60a5fa; }
-    .vw-pipeline-status.paused { background: #3b3a1e; color: #fde68a; }
+    .vw-pipeline-status.paused { background: #3b3a1e; color: #92400e; }
     .vw-pipeline-status.completed { background: #14532d; color: #4ade80; }
-    .vw-pipeline-status.failed { background: #450a0a; color: #fca5a5; }
+    .vw-pipeline-status.failed { background: #450a0a; color: #dc2626; }
     .vw-pipeline-status.pending { background: #1e293b; color: #94a3b8; }
 </style>
 

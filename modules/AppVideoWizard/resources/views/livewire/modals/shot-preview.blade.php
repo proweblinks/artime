@@ -80,12 +80,12 @@
      }"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 2147483648; padding: 0.5rem; overflow-y: auto;"
      wire:click.self="closeShotPreviewModal">
-    <div style="max-width: 900px; width: 100%; background: linear-gradient(135deg, #1a1a2e, #0f172a); border-radius: 0.75rem; border: 1px solid rgba(139, 92, 246, 0.3); overflow: hidden; max-height: 98vh; display: flex; flex-direction: column; margin: auto;">
+    <div style="max-width: 900px; width: 100%; background: linear-gradient(135deg, #1a1a2e, #0f172a); border-radius: 0.75rem; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); overflow: hidden; max-height: 98vh; display: flex; flex-direction: column; margin: auto;">
         {{-- Header (compact) --}}
-        <div style="padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
                 <div style="font-size: 1rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                    <span style="background: rgba(139, 92, 246, 0.3); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.85rem;">{{ $shotPreviewShotIndex + 1 }}</span>
+                    <span style="background: rgba(var(--vw-primary-rgb), 0.12); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.85rem;">{{ $shotPreviewShotIndex + 1 }}</span>
                     <span>{{ __('Shot Preview') }} - {{ ucfirst($shot['type'] ?? 'Shot') }}</span>
 
                     {{-- Auto-play Badge --}}
@@ -93,8 +93,8 @@
                         <button type="button"
                                 x-on:click="toggleAutoPlay()"
                                 :style="autoPlayEnabled
-                                    ? 'background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white;'
-                                    : 'background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5);'"
+                                    ? 'background: linear-gradient(135deg, var(--vw-primary), #06b6d4); color: white;'
+                                    : 'background: var(--vw-border); color: var(--vw-text-secondary);'"
                                 style="padding: 0.2rem 0.5rem; border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
                             <span x-show="autoPlayEnabled">▶</span>
                             <span x-show="!autoPlayEnabled">⏸</span>
@@ -103,7 +103,7 @@
                         </button>
                     @endif
                 </div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 0.15rem;">
+                <div style="font-size: 0.75rem; color: var(--vw-text-secondary); margin-top: 0.15rem;">
                     @php $camMove = $shot['cameraMovement'] ?? 'static'; if (is_array($camMove)) $camMove = $camMove['type'] ?? 'static'; @endphp
                     {{ $camMove }} • {{ $shot['selectedDuration'] ?? $shot['duration'] ?? 6 }}s
                     @if($wasTransferred)
@@ -114,7 +114,7 @@
                     @endif
                 </div>
             </div>
-            <button type="button" wire:click="closeShotPreviewModal" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">&times;</button>
+            <button type="button" wire:click="closeShotPreviewModal" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">&times;</button>
         </div>
 
         {{-- Content Area (scrollable) --}}
@@ -125,15 +125,15 @@
                     <button type="button"
                             @click="previewTab = 'image'"
                             :style="previewTab === 'image'
-                                ? 'padding: 0.35rem 0.75rem; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
-                                : 'padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
+                                ? 'padding: 0.35rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.12); border: 1px solid var(--vw-border-focus); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
+                                : 'padding: 0.35rem 0.75rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.4rem; color: var(--vw-text); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
                         🖼️ {{ __('Image') }}
                     </button>
                     <button type="button"
                             @click="previewTab = 'video'"
                             :style="previewTab === 'video'
-                                ? 'padding: 0.35rem 0.75rem; background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
-                                : 'padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.4rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
+                                ? 'padding: 0.35rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.12); border: 1px solid var(--vw-border-focus); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.8rem; font-weight: 500;'
+                                : 'padding: 0.35rem 0.75rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.4rem; color: var(--vw-text); cursor: pointer; font-size: 0.8rem; font-weight: 500;'">
                         🎬 {{ __('Video') }}
                     </button>
                 </div>
@@ -149,7 +149,7 @@
                          style="max-width: calc(100% - 2rem); max-height: calc(100% - 2rem); object-fit: contain; border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
                 @else
                     <div x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
-                         style="text-align: center; color: rgba(255,255,255,0.4);">
+                         style="text-align: center; color: var(--vw-text-secondary);">
                         <span style="font-size: 3rem;">🖼️</span>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem;">{{ __('No image generated yet') }}</div>
                     </div>
@@ -171,25 +171,25 @@
                     <button type="button"
                             x-on:click="prevShot()"
                             x-show="currentIndex > 0"
-                            style="position: absolute; left: 0.25rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 32px; height: 32px; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">
+                            style="position: absolute; left: 0.25rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid var(--vw-border); border-radius: 50%; width: 32px; height: 32px; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">
                         ‹
                     </button>
                     <button type="button"
                             x-on:click="nextShot()"
                             x-show="currentIndex < totalShots - 1"
-                            style="position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 32px; height: 32px; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">
+                            style="position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid var(--vw-border); border-radius: 50%; width: 32px; height: 32px; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;">
                         ›
                     </button>
                 @endif
             </div>
 
             {{-- Action Info Box (compact) --}}
-            <div style="padding: 0.5rem 0.75rem; background: rgba(139, 92, 246, 0.1); border-top: 1px solid rgba(139, 92, 246, 0.2); flex-shrink: 0;">
+            <div style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border-top: 1px solid rgba(var(--vw-primary-rgb), 0.08); flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                     <span style="font-size: 0.65rem; color: #f472b6; font-weight: 600;">🎬 {{ __('ACTION (for video)') }}</span>
                     <span style="font-size: 0.8rem; color: white;">{{ __('Shot') }} {{ $shotPreviewShotIndex + 1 }}: {{ $shot['narrativeBeat']['action'] ?? $shot['action'] ?? __('establish phase') }}</span>
                     @if(!$isLastShot)
-                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4); font-style: italic;">→ {{ __('Frame chains to next shot') }}</span>
+                        <span style="font-size: 0.65rem; color: var(--vw-text-secondary); font-style: italic;">→ {{ __('Frame chains to next shot') }}</span>
                     @endif
                 </div>
             </div>
@@ -211,23 +211,23 @@
             @endphp
 
             @if($showSpeechSection)
-            <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(139, 92, 246, 0.08)); border-top: 1px solid rgba(236, 72, 153, 0.2); flex-shrink: 0;">
+            <div style="padding: 0.75rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(var(--vw-primary-rgb), 0.04)); border-top: 1px solid rgba(236, 72, 153, 0.2); flex-shrink: 0;">
                 {{-- Section Header with Speech Type Badge --}}
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                     @if($speechType === 'dialogue')
                         {{-- Dialogue: Character talking to others - needs Multitalk lip-sync --}}
-                        <span style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                        <span style="background: linear-gradient(135deg, #ec4899, var(--vw-primary)); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
                             💬 {{ __('DIALOGUE') }}
                         </span>
-                        <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #f9a8d4;">
+                        <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #be185d;">
                             🎬 {{ __('Multitalk Lip-Sync') }}
                         </span>
                     @elseif($speechType === 'monologue')
                         {{-- Character Monologue: On-screen character speaking alone - needs Multitalk lip-sync --}}
-                        <span style="background: linear-gradient(135deg, #8b5cf6, #6366f1); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                        <span style="background: linear-gradient(135deg, var(--vw-primary), #6366f1); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
                             🗣️ {{ __('CHARACTER MONOLOGUE') }}
                         </span>
-                        <span style="background: rgba(139, 92, 246, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd;">
+                        <span style="background: rgba(var(--vw-primary-rgb), 0.08); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-text-secondary);">
                             🎬 {{ __('Multitalk Lip-Sync') }}
                         </span>
                     @elseif($speechType === 'narrator' || $hasNarration)
@@ -240,38 +240,38 @@
                         </span>
                     @elseif($speechType === 'internal')
                         {{-- Internal thoughts: Character's inner voice - TTS only, no lip-sync --}}
-                        <span style="background: rgba(168, 85, 247, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #d8b4fe;">
+                        <span style="background: rgba(var(--vw-primary-rgb), 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #d8b4fe;">
                             💭 {{ __('INTERNAL THOUGHTS') }}
                         </span>
-                        <span style="background: rgba(168, 85, 247, 0.15); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd;">
+                        <span style="background: rgba(var(--vw-primary-rgb), 0.15); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-text-secondary);">
                             🔊 {{ __('Voiceover Only') }}
                         </span>
                     @elseif($hasDialogue || $hasMonologue)
                         {{-- Fallback for legacy data without proper speechType --}}
                         @if($needsLipSync)
-                            <span style="background: linear-gradient(135deg, #ec4899, #8b5cf6); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                            <span style="background: linear-gradient(135deg, #ec4899, var(--vw-primary)); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
                                 💬 {{ __('SPEECH') }}
                             </span>
-                            <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #f9a8d4;">
+                            <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #be185d;">
                                 🎬 {{ __('Lip-Sync') }}
                             </span>
                         @else
-                            <span style="background: rgba(139, 92, 246, 0.3); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #c4b5fd;">
+                            <span style="background: rgba(var(--vw-primary-rgb), 0.12); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: var(--vw-text-secondary);">
                                 🗣️ {{ __('SPEECH') }}
                             </span>
-                            <span style="background: rgba(139, 92, 246, 0.15); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #a78bfa;">
+                            <span style="background: rgba(var(--vw-primary-rgb), 0.06); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-primary);">
                                 🔊 {{ __('Voiceover') }}
                             </span>
                         @endif
                     @elseif($hasVisualContext)
-                        <span style="background: rgba(59, 130, 246, 0.2); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #93c5fd;">
+                        <span style="background: rgba(59, 130, 246, 0.2); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #2563eb;">
                             👁️ {{ __('VISUAL') }}
                         </span>
                     @endif
 
                     {{-- Speaker name (for character speech types) --}}
                     @if($speakingCharacter && in_array($speechType, ['dialogue', 'monologue', 'internal']))
-                        <span style="color: rgba(255,255,255,0.8); font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.4rem; background: rgba(255,255,255,0.1); border-radius: 0.25rem;">
+                        <span style="color: var(--vw-text); font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.4rem; background: var(--vw-border); border-radius: 0.25rem;">
                             {{ $speakingCharacter }}
                         </span>
                     @endif
@@ -324,28 +324,28 @@
                                     $faceIdx = array_search($segSpeaker, $charactersInShot);
                                     $faceLabel = $faceIdx !== false ? 'Face ' . ($faceIdx + 1) : '';
                                 @endphp
-                                <div style="display: flex; flex-direction: column; gap: 0.2rem; padding: 0.4rem 0.5rem; background: rgba(255,255,255,0.04); border-radius: 0.3rem; border-left: 2px solid {{ $speakerColor }};">
+                                <div style="display: flex; flex-direction: column; gap: 0.2rem; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.02); border-radius: 0.3rem; border-left: 2px solid {{ $speakerColor }};">
                                     {{-- Speaker header with gender & timing --}}
                                     <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                                         <span style="font-weight: 700; font-size: 0.8rem; color: {{ $speakerColor }};">{{ $segSpeaker }}</span>
                                         @if($genderIcon)
-                                            <span style="font-size: 0.7rem; color: {{ $genderColor }}; padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.08); border-radius: 0.15rem;">{{ $genderIcon }}</span>
+                                            <span style="font-size: 0.7rem; color: {{ $genderColor }}; padding: 0.1rem 0.25rem; background: rgba(0,0,0,0.04); border-radius: 0.15rem;">{{ $genderIcon }}</span>
                                         @endif
                                         @if($segVoiceId)
-                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.05); border-radius: 0.15rem;">🎤 {{ $segVoiceId }}</span>
+                                            <span style="font-size: 0.6rem; color: var(--vw-text-secondary); padding: 0.1rem 0.25rem; background: rgba(0,0,0,0.03); border-radius: 0.15rem;">🎤 {{ $segVoiceId }}</span>
                                         @endif
                                         @if($faceLabel)
-                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); padding: 0.1rem 0.25rem; background: rgba(255,255,255,0.05); border-radius: 0.15rem;">👤 {{ $faceLabel }}</span>
+                                            <span style="font-size: 0.6rem; color: var(--vw-text-secondary); padding: 0.1rem 0.25rem; background: rgba(0,0,0,0.03); border-radius: 0.15rem;">👤 {{ $faceLabel }}</span>
                                         @endif
                                         @if($segDuration)
-                                            <span style="font-size: 0.6rem; color: #fbbf24; padding: 0.1rem 0.25rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.15rem;">⏱ {{ number_format($segDuration, 1) }}s</span>
+                                            <span style="font-size: 0.6rem; color: #d97706; padding: 0.1rem 0.25rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.15rem;">⏱ {{ number_format($segDuration, 1) }}s</span>
                                         @endif
                                         @if($segStartTime !== null)
-                                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.35);">@ {{ number_format($segStartTime, 1) }}s</span>
+                                            <span style="font-size: 0.6rem; color: var(--vw-text-secondary);">@ {{ number_format($segStartTime, 1) }}s</span>
                                         @endif
                                     </div>
                                     {{-- Dialogue text --}}
-                                    <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; line-height: 1.4; margin: 0; font-style: italic;">
+                                    <p style="color: var(--vw-text); font-size: 0.85rem; line-height: 1.4; margin: 0; font-style: italic;">
                                         "{{ $segText }}"
                                     </p>
                                 </div>
@@ -358,49 +358,49 @@
                             $hasAudio2 = !empty($shot['audioUrl2']);
                         @endphp
                         @if($totalAudioDuration > 0)
-                            <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                                <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4);">
+                            <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid rgba(0,0,0,0.04); display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <span style="font-size: 0.65rem; color: var(--vw-text-secondary);">
                                     ⏱ {{ __('Total audio') }}: {{ number_format($totalAudioDuration, 1) }}s
                                 </span>
                                 @if($hasAudio2)
                                     <span style="font-size: 0.65rem; color: #34d399;">✓ {{ __('Both audio tracks ready') }}</span>
                                 @endif
                                 @if(count($charactersInShot) >= 2)
-                                    <span style="font-size: 0.65rem; color: #a78bfa;">👥 {{ implode(' & ', $charactersInShot) }}</span>
+                                    <span style="font-size: 0.65rem; color: var(--vw-primary);">👥 {{ implode(' & ', $charactersInShot) }}</span>
                                 @endif
                             </div>
                         @endif
                     @elseif($hasDialogue || $hasMonologue)
-                        <p style="color: rgba(255,255,255,0.95); font-size: 0.95rem; line-height: 1.5; margin: 0; font-style: italic;">
+                        <p style="color: var(--vw-text); font-size: 0.95rem; line-height: 1.5; margin: 0; font-style: italic;">
                             "{{ $shot['dialogue'] ?? $shot['monologue'] }}"
                         </p>
                     @elseif($hasNarration)
-                        <p style="color: rgba(255,255,255,0.85); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                        <p style="color: var(--vw-text); font-size: 0.9rem; line-height: 1.5; margin: 0;">
                             {{ $shot['narration'] }}
                         </p>
                     @elseif($hasVisualContext)
-                        <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; line-height: 1.4; margin: 0;">
+                        <p style="color: var(--vw-text); font-size: 0.85rem; line-height: 1.4; margin: 0;">
                             {{ $shot['visualContext'] }}
                         </p>
                     @endif
                 </div>
 
                 {{-- Generation Method Info --}}
-                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--vw-border); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                     {{-- Generation method indicator --}}
                     @if($needsLipSync || in_array($speechType, ['dialogue', 'monologue']))
                         <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem;">
                             <span style="color: rgba(236, 72, 153, 0.9);">⚡</span>
-                            <span style="color: rgba(255,255,255,0.6);">{{ __('Generation') }}:</span>
+                            <span style="color: var(--vw-text-secondary);">{{ __('Generation') }}:</span>
                             <span style="color: #f472b6; font-weight: 600;">{{ __('Multitalk') }}</span>
-                            <span style="color: rgba(255,255,255,0.4);">({{ __('lip-sync video with audio') }})</span>
+                            <span style="color: var(--vw-text-secondary);">({{ __('lip-sync video with audio') }})</span>
                         </div>
                     @else
                         <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem;">
                             <span style="color: rgba(100, 116, 139, 0.9);">⚡</span>
-                            <span style="color: rgba(255,255,255,0.6);">{{ __('Generation') }}:</span>
+                            <span style="color: var(--vw-text-secondary);">{{ __('Generation') }}:</span>
                             <span style="color: #94a3b8; font-weight: 600;">{{ __('TTS') }}</span>
-                            <span style="color: rgba(255,255,255,0.4);">({{ __('audio track only') }})</span>
+                            <span style="color: var(--vw-text-secondary);">({{ __('audio track only') }})</span>
                         </div>
                     @endif
 
@@ -418,7 +418,7 @@
                     <span style="background: rgba(100, 116, 139, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.7rem; color: #94a3b8;">
                         🔇 {{ __('SILENT SHOT') }}
                     </span>
-                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                    <span style="font-size: 0.75rem; color: var(--vw-text-secondary);">
                         {{ $shot['type'] === 'establishing' ? __('Establishing shot - sets the scene') : ($shot['type'] === 'reaction' ? __('Reaction shot - visual response') : __('No dialogue or narration')) }}
                     </span>
                 </div>
@@ -426,7 +426,7 @@
             @endif
 
             {{-- Prompts Section (compact) --}}
-            <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+            <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--vw-border); flex-shrink: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
                     {{-- Image Prompt --}}
                     <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
@@ -455,8 +455,8 @@
 
                     @if($hasCharacterSpeech)
                         {{-- Character Voice Prompt (dialogue/monologue) --}}
-                        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
-                            <div style="font-size: 0.6rem; color: rgba(139, 92, 246, 0.9); margin-bottom: 0.2rem; font-weight: 600;">🎤 {{ __('VOICE PROMPT') }}</div>
+                        <div style="background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.4rem; padding: 0.4rem;">
+                            <div style="font-size: 0.6rem; color: rgba(var(--vw-primary-rgb), 0.4); margin-bottom: 0.2rem; font-weight: 600;">🎤 {{ __('VOICE PROMPT') }}</div>
                             <div style="font-size: 0.7rem; color: rgba(196, 181, 253, 0.95); line-height: 1.3; max-height: 60px; overflow-y: auto;">
                                 @php
                                     $emotion = $shot['emotion'] ?? $shot['emotionalTone'] ?? null;
@@ -520,14 +520,14 @@
         </div>
 
         {{-- Actions Footer (compact) --}}
-        <div style="padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
+        <div style="padding: 0.5rem 0.75rem; border-top: 1px solid var(--vw-border); display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0;">
             {{-- Image Source Status --}}
             @if($shotPreviewShotIndex === 0)
                 <button type="button" style="flex: 1; min-width: 100px; padding: 0.5rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; color: #10b981; cursor: default; font-size: 0.75rem; font-weight: 500;">
                     🔗 {{ __('Uses Scene Image') }}
                 </button>
             @else
-                <button type="button" style="flex: 1; min-width: 100px; padding: 0.5rem; background: {{ $hasImage ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)' }}; border: 1px solid {{ $hasImage ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139, 92, 246, 0.3)' }}; border-radius: 0.4rem; color: {{ $hasImage ? '#10b981' : '#a78bfa' }}; cursor: default; font-size: 0.75rem; font-weight: 500;">
+                <button type="button" style="flex: 1; min-width: 100px; padding: 0.5rem; background: {{ $hasImage ? 'rgba(16, 185, 129, 0.15)' : 'rgba(var(--vw-primary-rgb), 0.06)' }}; border: 1px solid {{ $hasImage ? 'rgba(16, 185, 129, 0.3)' : 'rgba(var(--vw-primary-rgb), 0.12)' }}; border-radius: 0.4rem; color: {{ $hasImage ? '#10b981' : 'var(--vw-primary)' }}; cursor: default; font-size: 0.75rem; font-weight: 500;">
                     {{ $hasImage ? '🔗 ' . __('Frame Chain Image') : '⏳ ' . __('Awaiting Frame') }}
                 </button>
             @endif
@@ -547,7 +547,7 @@
                 <button type="button"
                         wire:click="closeShotPreviewModal"
                         x-on:click="setTimeout(() => $wire.openFrameCaptureModal({{ $shotPreviewSceneIndex }}, {{ $shotPreviewShotIndex }}), 100)"
-                        style="flex: 1; min-width: 120px; padding: 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(139, 92, 246, 0.3)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
+                        style="flex: 1; min-width: 120px; padding: 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(var(--vw-primary-rgb), 0.12)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
                     🎯 {{ __('Capture Frame') }} → {{ __('Shot') }} {{ $shotPreviewShotIndex + 2 }}
                 </button>
             @endif

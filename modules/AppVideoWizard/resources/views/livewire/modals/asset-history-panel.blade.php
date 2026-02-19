@@ -2,7 +2,7 @@
 @if($showAssetHistoryPanel)
 {{-- Backdrop --}}
 <div wire:click="closeAssetHistory"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000000; cursor: pointer;"></div>
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 10000000; cursor: pointer;"></div>
 
 {{-- Panel --}}
 <div x-data="{ filterType: 'all' }"
@@ -12,7 +12,7 @@
     <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h3 style="margin: 0; color: var(--vw-text); font-size: 1rem; font-weight: 600;">
-                <i class="fa-solid fa-clock-rotate-left" style="color: #a49eff; margin-right: 0.4rem;"></i>
+                <i class="fa-solid fa-clock-rotate-left" style="color: var(--vw-text-secondary); margin-right: 0.4rem;"></i>
                 {{ __('Asset History') }}
             </h3>
             <p style="margin: 0.2rem 0 0 0; color: var(--vw-text-muted); font-size: 0.75rem;">
@@ -32,7 +32,7 @@
             <button type="button"
                     @click="filterType = '{{ $filterKey }}'"
                     :style="filterType === '{{ $filterKey }}'
-                        ? 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid rgba(var(--vw-primary-rgb),0.4); background: rgba(var(--vw-primary-rgb),0.15); color: #a49eff; font-size: 0.75rem; cursor: pointer;'
+                        ? 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid rgba(var(--vw-primary-rgb),0.4); background: rgba(var(--vw-primary-rgb),0.15); color: var(--vw-text-secondary); font-size: 0.75rem; cursor: pointer;'
                         : 'padding: 0.3rem 0.65rem; border-radius: 2rem; border: 1px solid var(--vw-border); background: none; color: var(--vw-text-muted); font-size: 0.75rem; cursor: pointer;'">
                 {{ $filterLabel }}
             </button>
@@ -71,14 +71,14 @@
                             default => ucfirst($entry['action'] ?? 'Unknown'),
                         };
                         $actionColor = match($entry['action'] ?? 'generated') {
-                            'generated', 'regenerated' => '#34d399',
-                            'edited' => '#a49eff',
-                            'reimagined' => '#f472b6',
-                            'uploaded' => '#38bdf8',
-                            'stock' => '#60a5fa',
-                            'animated' => '#06b6d4',
-                            'restored' => '#fbbf24',
-                            default => '#9ca3af',
+                            'generated', 'regenerated' => '#16a34a',
+                            'edited' => '#71717a',
+                            'reimagined' => '#db2777',
+                            'uploaded' => '#0284c7',
+                            'stock' => '#2563eb',
+                            'animated' => '#0891b2',
+                            'restored' => '#d97706',
+                            default => '#71717a',
                         };
                         $timestamp = $entry['timestamp'] ?? null;
                         $timeAgo = $timestamp ? \Carbon\Carbon::parse($timestamp)->diffForHumans() : '';
@@ -90,7 +90,7 @@
                         {{-- Thumbnail --}}
                         <div style="position: relative;">
                             @if($entryType === 'video')
-                                <div style="height: 120px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                                <div style="height: 120px; background: var(--vw-bg-elevated); display: flex; align-items: center; justify-content: center;">
                                     <i class="fa-solid fa-film" style="font-size: 2rem; color: rgba(6,182,212,0.5);"></i>
                                 </div>
                             @else
@@ -130,9 +130,9 @@
                                 @if(!$isActive)
                                     <button type="button"
                                             wire:click="restoreAssetFromHistory('{{ $entry['id'] ?? '' }}')"
-                                            style="padding: 0.25rem 0.5rem; background: rgba(var(--vw-primary-rgb),0.15); border: 1px solid rgba(var(--vw-primary-rgb),0.3); border-radius: 0.3rem; color: #a49eff; font-size: 0.65rem; cursor: pointer; font-weight: 500;"
-                                            onmouseover="this.style.background='rgba(103,93,255,0.3)'"
-                                            onmouseout="this.style.background='rgba(103,93,255,0.15)'">
+                                            style="padding: 0.25rem 0.5rem; background: rgba(var(--vw-primary-rgb),0.15); border: 1px solid rgba(var(--vw-primary-rgb),0.3); border-radius: 0.3rem; color: var(--vw-text-secondary); font-size: 0.65rem; cursor: pointer; font-weight: 500;"
+                                            onmouseover="this.style.background='rgba(24,24,27,0.12)'"
+                                            onmouseout="this.style.background='rgba(24,24,27,0.06)'">
                                         <i class="fa-solid fa-rotate-left" style="font-size: 0.55rem; margin-right: 0.2rem;"></i>
                                         {{ __('Restore') }}
                                     </button>

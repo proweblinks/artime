@@ -6,7 +6,7 @@
 
     .vw-export-card {
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
-        border: 1px solid rgba(139, 92, 246, 0.2) !important;
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08) !important;
         border-radius: 1rem !important;
         padding: 1.5rem !important;
         margin-bottom: 1.5rem !important;
@@ -41,7 +41,7 @@
 
     .vw-export-subtitle {
         font-size: 0.85rem !important;
-        color: rgba(255, 255, 255, 0.5) !important;
+        color: var(--vw-text-secondary) !important;
         margin-top: 0.15rem !important;
     }
 
@@ -60,8 +60,8 @@
     }
 
     .vw-summary-stat {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 1rem;
         text-align: center;
@@ -75,12 +75,12 @@
     .vw-summary-stat-value {
         font-size: 1.25rem;
         font-weight: 700;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-summary-stat-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-top: 0.25rem;
@@ -108,7 +108,7 @@
 
     .vw-setting-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-quality-grid {
@@ -120,9 +120,9 @@
     .vw-quality-btn {
         padding: 0.75rem 0.5rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.03);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.02);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.75rem;
         text-align: center;
@@ -130,14 +130,14 @@
     }
 
     .vw-quality-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-quality-btn.selected {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.2);
-        color: white;
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text);
     }
 
     .vw-quality-btn.selected.recommended {
@@ -152,12 +152,12 @@
 
     .vw-quality-desc {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-top: 0.15rem;
     }
 
     .vw-quality-btn.selected .vw-quality-desc {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-recommended-badge {
@@ -179,9 +179,9 @@
     .vw-format-btn {
         padding: 0.75rem;
         border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.03);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--vw-border);
+        background: rgba(0,0,0,0.02);
+        color: var(--vw-text);
         cursor: pointer;
         font-size: 0.8rem;
         text-align: center;
@@ -190,20 +190,20 @@
     }
 
     .vw-format-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-format-btn.selected {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.2);
-        color: white;
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text);
     }
 
     /* Export Progress */
     .vw-export-progress {
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.75rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -223,8 +223,8 @@
     .vw-progress-spinner {
         width: 24px;
         height: 24px;
-        border: 3px solid rgba(139, 92, 246, 0.3);
-        border-top-color: #8b5cf6;
+        border: 3px solid rgba(var(--vw-primary-rgb), 0.12);
+        border-top-color: var(--vw-primary);
         border-radius: 50%;
         animation: vw-spin 0.8s linear infinite;
     }
@@ -232,12 +232,12 @@
     .vw-progress-title {
         font-size: 1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-progress-bar-container {
         height: 8px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border-radius: 4px;
         overflow: hidden;
         margin-bottom: 0.75rem;
@@ -245,7 +245,7 @@
 
     .vw-progress-bar {
         height: 100%;
-        background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(90deg, var(--vw-primary), #06b6d4);
         border-radius: 4px;
         transition: width 0.3s ease;
     }
@@ -254,7 +254,7 @@
         display: flex;
         justify-content: space-between;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Export Button */
@@ -274,7 +274,7 @@
         border-radius: 0.75rem;
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         border: none;
-        color: white;
+        color: var(--vw-text);
         font-size: 1.1rem;
         font-weight: 700;
         cursor: pointer;
@@ -314,12 +314,12 @@
 
     .vw-credits-text {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-credits-value {
         font-weight: 600;
-        color: #fbbf24;
+        color: #d97706;
     }
 
     /* Success State */
@@ -342,7 +342,7 @@
 
     .vw-success-subtitle {
         font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin-bottom: 1.5rem;
     }
 
@@ -352,9 +352,9 @@
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
         border-radius: 0.5rem;
-        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        background: linear-gradient(135deg, var(--vw-primary), #06b6d4);
         border: none;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
@@ -363,7 +363,7 @@
 
     .vw-download-btn:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 15px var(--vw-border-accent);
     }
 </style>
 
@@ -389,7 +389,7 @@
             @if($socialVideoUrl && $socialVideoStatus === 'ready')
                 <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: flex-start;">
                     {{-- Video Preview --}}
-                    <div style="width: 240px; min-width: 240px; aspect-ratio: 9/16; border-radius: 0.75rem; overflow: hidden; border: 2px solid rgba(139, 92, 246, 0.3); background: #000;">
+                    <div style="width: 240px; min-width: 240px; aspect-ratio: 9/16; border-radius: 0.75rem; overflow: hidden; border: 2px solid rgba(var(--vw-primary-rgb), 0.12); background: #000;">
                         <video src="{{ $socialVideoUrl }}" controls loop playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
                     </div>
                     {{-- Info & Download --}}
@@ -402,16 +402,16 @@
                             {{ $concept['socialContent']['situation'] ?? '' }}
                         </div>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
-                            <div style="padding: 0.5rem 0.75rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; font-size: 0.75rem; color: #a78bfa;">
+                            <div style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.5rem; font-size: 0.75rem; color: var(--vw-primary);">
                                 📐 {{ $aspectRatio }}
                             </div>
-                            <div style="padding: 0.5rem 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.5rem; font-size: 0.75rem; color: #6ee7b7;">
+                            <div style="padding: 0.5rem 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.5rem; font-size: 0.75rem; color: #16a34a;">
                                 ✓ {{ __('Ready to download') }}
                             </div>
                         </div>
                         <a href="{{ $socialVideoUrl }}" download="{{ Str::slug($script['title'] ?? 'viral-video') }}.mp4"
-                           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border-radius: 0.75rem; font-weight: 600; font-size: 1rem; text-decoration: none; transition: all 0.2s; cursor: pointer;"
-                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px rgba(139, 92, 246, 0.4)'"
+                           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, var(--vw-primary) 0%, #6d28d9 100%); color: white; border-radius: 0.75rem; font-weight: 600; font-size: 1rem; text-decoration: none; transition: all 0.2s; cursor: pointer;"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 15px var(--vw-border-accent)'"
                            onmouseout="this.style.transform=''; this.style.boxShadow=''">
                             📥 {{ __('Download Video') }}
                         </a>
@@ -421,7 +421,7 @@
                 <div style="text-align: center; padding: 2rem; color: #94a3b8; margin-bottom: 1.5rem;">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
                     <div>{{ __('No video available. Go back to the Create step and animate your content first.') }}</div>
-                    <button type="button" wire:click="previousStep" style="margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.5rem; color: #a78bfa; cursor: pointer;">
+                    <button type="button" wire:click="previousStep" style="margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.5rem; color: var(--vw-primary); cursor: pointer;">
                         ← {{ __('Back to Create') }}
                     </button>
                 </div>
@@ -459,9 +459,9 @@
                 <div class="vw-summary-stat-label">{{ __('Scenes') }}</div>
             </div>
             @if($isMultiShotExport)
-                <div class="vw-summary-stat" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3);">
+                <div class="vw-summary-stat" style="background: rgba(var(--vw-primary-rgb), 0.04); border-color: rgba(var(--vw-primary-rgb), 0.12);">
                     <div class="vw-summary-stat-icon">🎥</div>
-                    <div class="vw-summary-stat-value" style="color: #a78bfa;">{{ $exportStats['videoCount'] }}</div>
+                    <div class="vw-summary-stat-value" style="color: var(--vw-primary);">{{ $exportStats['videoCount'] }}</div>
                     <div class="vw-summary-stat-label">{{ __('Clips') }}</div>
                 </div>
             @else
@@ -476,11 +476,11 @@
 
         {{-- Hollywood Multi-Shot Mode Badge (not for social content) --}}
         @if(!($isSocialContent ?? false) && ($isMultiShotExport ?? false))
-            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                 <span style="font-size: 1.25rem;">🎬</span>
                 <div style="flex: 1;">
                     <div style="font-size: 0.85rem; color: white; font-weight: 600;">{{ __('Hollywood Multi-Shot Mode') }}</div>
-                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">
+                    <div style="font-size: 0.7rem; color: var(--vw-text-secondary);">
                         {{ $exportStats['sceneCount'] }} {{ __('scenes') }} •
                         {{ $exportStats['videoCount'] }} {{ __('shot clips') }} •
                         {{ $aspectRatio }}

@@ -7,7 +7,7 @@
 
     .vw-script-step .vw-script-card {
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -42,14 +42,14 @@
 
     .vw-script-step .vw-script-subtitle {
         font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin-top: 0.25rem;
     }
 
     /* Direct Concept Card */
     .vw-script-step .vw-direct-concept-card {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.06) 0%, rgba(88, 28, 135, 0.2) 100%);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -93,13 +93,13 @@
     }
 
     .vw-script-step .vw-type-badge.production {
-        background: rgba(139, 92, 246, 0.2);
-        color: #c4b5fd;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-type-badge.subtype {
         background: rgba(236, 72, 153, 0.2);
-        color: #f9a8d4;
+        color: #be185d;
     }
 
     .vw-script-step .vw-direct-concept-title {
@@ -110,7 +110,7 @@
     }
 
     .vw-script-step .vw-direct-concept-text {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         line-height: 1.7;
         font-size: 0.95rem;
         margin-bottom: 1rem;
@@ -139,7 +139,7 @@
     }
 
     .vw-script-step .vw-concept-meta-item span:first-child {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-concept-meta-item span:last-child {
@@ -170,9 +170,9 @@
     }
 
     .vw-script-step .vw-scene-source-badge.ai {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(236, 72, 153, 0.2));
-        color: #c4b5fd;
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(236, 72, 153, 0.2));
+        color: var(--vw-text-secondary);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-script-step .vw-scene-source-badge.manual {
@@ -195,7 +195,7 @@
 
     .vw-script-step .vw-selector-sublabel {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-weight: 400;
         margin-left: 0.5rem;
     }
@@ -219,22 +219,22 @@
         justify-content: center;
         padding: 1rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         cursor: pointer;
         transition: all 0.2s;
         text-align: center;
     }
 
     .vw-script-step .vw-selector-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-script-step .vw-selector-btn.selected {
-        border-color: rgba(139, 92, 246, 0.6);
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+        border-color: var(--vw-border-focus);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08) 0%, rgba(var(--vw-primary-rgb), 0.04) 100%);
         color: #ffffff;
     }
 
@@ -245,12 +245,12 @@
 
     .vw-script-step .vw-selector-btn-subtitle {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-top: 0.25rem;
     }
 
     .vw-script-step .vw-selector-btn.selected .vw-selector-btn-subtitle {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Additional Instructions */
@@ -258,7 +258,7 @@
         width: 100%;
         min-height: 100px;
         background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 1rem;
         color: #ffffff;
@@ -270,12 +270,12 @@
 
     .vw-script-step .vw-instructions-textarea:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-focus);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-script-step .vw-instructions-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     /* Generate Button */
@@ -285,8 +285,8 @@
         justify-content: center;
         gap: 0.5rem;
         width: 100%;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
-        color: white;
+        background: linear-gradient(135deg, #ec4899 0%, var(--vw-primary) 50%, #06b6d4 100%);
+        color: var(--vw-text);
         padding: 1rem 1.5rem;
         border-radius: 0.75rem;
         font-weight: 700;
@@ -310,7 +310,7 @@
     .vw-script-step .vw-cost-estimate {
         text-align: center;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-top: 0.75rem;
     }
 
@@ -339,7 +339,7 @@
 
     .vw-script-step .vw-scene-card {
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1rem;
@@ -358,11 +358,11 @@
         justify-content: center;
         width: 28px;
         height: 28px;
-        background: rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 50%;
         font-size: 0.85rem;
         font-weight: 600;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         margin-right: 0.75rem;
     }
 
@@ -373,14 +373,14 @@
 
     .vw-script-step .vw-scene-duration {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         background: rgba(0, 0, 0, 0.3);
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
     }
 
     .vw-script-step .vw-scene-narration {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         font-size: 0.9rem;
         line-height: 1.6;
     }
@@ -391,7 +391,7 @@
         align-items: center;
         justify-content: space-between;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 0.875rem 1.25rem;
         margin-bottom: 1.25rem;
@@ -415,7 +415,7 @@
     .vw-script-step .vw-script-stat-label {
         font-size: 0.7rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -435,17 +435,17 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 0.875rem;
-        background: rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.375rem;
         font-size: 0.85rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         font-weight: 500;
     }
 
     /* Voice & Dialogue Status Panel */
     .vw-script-step .vw-voice-status-panel {
         background: rgba(0, 0, 0, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -472,7 +472,7 @@
         align-items: center;
         gap: 0.375rem;
         background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
+        color: #d97706;
         padding: 0.375rem 0.75rem;
         border-radius: 0.375rem;
         font-size: 0.8rem;
@@ -493,7 +493,7 @@
 
     .vw-script-step .vw-voice-stat-card {
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.5rem;
         padding: 1rem;
         text-align: center;
@@ -508,7 +508,7 @@
 
     .vw-script-step .vw-voice-stat-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* Full Script View Button */
@@ -517,8 +517,8 @@
         align-items: center;
         gap: 0.375rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--vw-border);
+        color: var(--vw-text);
         padding: 0.5rem 0.875rem;
         border-radius: 0.375rem;
         font-size: 0.85rem;
@@ -527,9 +527,9 @@
     }
 
     .vw-script-step .vw-full-script-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        color: #c4b5fd;
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        color: var(--vw-text-secondary);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     /* Full Script Modal - hidden by default */
@@ -558,7 +558,7 @@
     .vw-script-step .vw-full-script-content {
         position: relative;
         background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 1rem;
         padding: 1.5rem;
         max-width: 800px;
@@ -573,7 +573,7 @@
         justify-content: space-between;
         margin-bottom: 1.25rem;
         padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--vw-border);
     }
 
     .vw-script-step .vw-full-script-close {
@@ -582,21 +582,21 @@
         justify-content: center;
         width: 32px;
         height: 32px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         border: none;
         border-radius: 50%;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-script-step .vw-full-script-close:hover {
         background: rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
+        color: #dc2626;
     }
 
     .vw-script-step .vw-full-script-text {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--vw-text);
         line-height: 1.8;
         font-size: 0.95rem;
         white-space: pre-wrap;
@@ -605,14 +605,14 @@
     .vw-script-step .vw-full-script-scene-divider {
         margin: 1.5rem 0;
         text-align: center;
-        color: rgba(255, 255, 255, 0.3);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
     }
 
     /* Advanced Scene Cards */
     .vw-script-step .vw-advanced-scene-card {
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         margin-bottom: 1rem;
         overflow: hidden;
@@ -620,11 +620,11 @@
     }
 
     .vw-script-step .vw-advanced-scene-card:hover {
-        border-color: rgba(139, 92, 246, 0.3);
+        border-color: rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-script-step .vw-advanced-scene-card.expanded {
-        border-color: rgba(139, 92, 246, 0.4);
+        border-color: var(--vw-border-accent);
     }
 
     .vw-script-step .vw-scene-card-header {
@@ -644,7 +644,7 @@
     }
 
     .vw-script-step .vw-scene-expand-icon {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         transition: transform 0.2s;
         font-size: 0.9rem;
     }
@@ -659,7 +659,7 @@
         gap: 0.25rem;
         padding: 0.25rem 0.5rem;
         background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
+        color: #d97706;
         border-radius: 0.25rem;
         font-size: 0.7rem;
         font-weight: 500;
@@ -680,12 +680,12 @@
         background: rgba(0, 0, 0, 0.3);
         border-radius: 0.25rem;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-scene-card-body {
         padding: 0 1.25rem 1.25rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-top: 1px solid rgba(0,0,0,0.03);
     }
 
     .vw-script-step .vw-scene-section {
@@ -705,7 +705,7 @@
         gap: 0.375rem;
         font-size: 0.8rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-scene-write-btn {
@@ -713,10 +713,10 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.375rem 0.625rem;
-        background: rgba(139, 92, 246, 0.2);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.375rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         font-size: 0.75rem;
         font-weight: 500;
         cursor: pointer;
@@ -724,8 +724,8 @@
     }
 
     .vw-script-step .vw-scene-write-btn:hover:not(:disabled) {
-        background: rgba(139, 92, 246, 0.3);
-        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(var(--vw-primary-rgb), 0.12);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-scene-write-btn:disabled {
@@ -737,7 +737,7 @@
         width: 100%;
         min-height: 80px;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 0.75rem;
         color: #ffffff;
@@ -749,11 +749,11 @@
 
     .vw-script-step .vw-scene-textarea:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-scene-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.3);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-music-only-notice {
@@ -764,7 +764,7 @@
         background: rgba(251, 191, 36, 0.1);
         border: 1px solid rgba(251, 191, 36, 0.2);
         border-radius: 0.5rem;
-        color: #fbbf24;
+        color: #d97706;
         font-size: 0.85rem;
     }
 
@@ -784,14 +784,14 @@
 
     .vw-script-step .vw-scene-control-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-scene-duration-input {
         width: 80px;
         padding: 0.5rem 0.75rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         color: #ffffff;
         font-size: 0.9rem;
@@ -800,13 +800,13 @@
 
     .vw-script-step .vw-scene-duration-input:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-scene-transition-select {
         padding: 0.5rem 0.75rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         color: #ffffff;
         font-size: 0.9rem;
@@ -816,7 +816,7 @@
 
     .vw-script-step .vw-scene-transition-select:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-scene-transition-select option {
@@ -838,23 +838,23 @@
         width: 32px;
         height: 32px;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.9rem;
     }
 
     .vw-script-step .vw-scene-action-btn:hover:not(:disabled) {
-        border-color: rgba(139, 92, 246, 0.4);
-        color: #c4b5fd;
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        color: var(--vw-text-secondary);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-script-step .vw-scene-action-btn.danger:hover:not(:disabled) {
         border-color: rgba(239, 68, 68, 0.4);
-        color: #fca5a5;
+        color: #dc2626;
         background: rgba(239, 68, 68, 0.1);
     }
 
@@ -868,10 +868,10 @@
         align-items: center;
         gap: 0.375rem;
         padding: 0.5rem 0.875rem;
-        background: rgba(139, 92, 246, 0.2);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.375rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;
@@ -879,8 +879,8 @@
     }
 
     .vw-script-step .vw-scene-regenerate-btn:hover:not(:disabled) {
-        background: rgba(139, 92, 246, 0.3);
-        border-color: rgba(139, 92, 246, 0.5);
+        background: rgba(var(--vw-primary-rgb), 0.12);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-scene-regenerate-btn:disabled {
@@ -897,9 +897,9 @@
         width: 100%;
         padding: 1rem;
         background: transparent;
-        border: 2px dashed rgba(139, 92, 246, 0.3);
+        border: 2px dashed rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.75rem;
-        color: rgba(139, 92, 246, 0.7);
+        color: rgba(var(--vw-primary-rgb), 0.25);
         font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
@@ -908,9 +908,9 @@
     }
 
     .vw-script-step .vw-add-scene-btn:hover {
-        border-color: rgba(139, 92, 246, 0.5);
-        background: rgba(139, 92, 246, 0.05);
-        color: #c4b5fd;
+        border-color: var(--vw-border-focus);
+        background: rgba(var(--vw-primary-rgb), 0.02);
+        color: var(--vw-text-secondary);
     }
 
     /* Music Only Toggle */
@@ -925,13 +925,13 @@
     .vw-script-step .vw-music-only-checkbox {
         width: 18px;
         height: 18px;
-        accent-color: #8b5cf6;
+        accent-color: var(--vw-primary);
         cursor: pointer;
     }
 
     .vw-script-step .vw-music-only-label {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Speech Type Selector - determines if character lips move on screen */
@@ -941,43 +941,43 @@
         gap: 0.75rem;
         margin-bottom: 0.75rem;
         padding: 0.5rem 0.75rem;
-        background: rgba(139, 92, 246, 0.08);
+        background: rgba(var(--vw-primary-rgb), 0.04);
         border-radius: 0.5rem;
-        border: 1px solid rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-script-step .vw-speech-type-label {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-weight: 500;
     }
 
     .vw-script-step .vw-speech-type-select {
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         padding: 0.375rem 0.75rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.8rem;
         cursor: pointer;
         min-width: 140px;
     }
 
     .vw-script-step .vw-speech-type-select:focus {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         outline: none;
     }
 
     .vw-script-step .vw-speech-type-hint {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-left: auto;
     }
 
     /* Speech Segment Editor - Dynamic Multi-Voice System */
     .vw-script-step .vw-segments-container {
         margin-top: 0.75rem;
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.5rem;
         overflow: hidden;
     }
@@ -987,32 +987,32 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.5rem 0.75rem;
-        background: rgba(139, 92, 246, 0.1);
-        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-script-step .vw-segments-title {
         font-size: 0.8rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-segments-stats {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-segment-item {
         display: flex;
         gap: 0.5rem;
         padding: 0.75rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(0,0,0,0.03);
         background: rgba(0, 0, 0, 0.2);
         transition: background 0.2s;
     }
 
     .vw-script-step .vw-segment-item:hover {
-        background: rgba(139, 92, 246, 0.05);
+        background: rgba(var(--vw-primary-rgb), 0.02);
     }
 
     .vw-script-step .vw-segment-item:last-child {
@@ -1036,8 +1036,8 @@
     }
 
     .vw-script-step .vw-segment-type-badge.dialogue {
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-script-step .vw-segment-type-badge.internal {
@@ -1065,7 +1065,7 @@
     .vw-script-step .vw-segment-speaker {
         font-size: 0.75rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--vw-text);
         text-transform: uppercase;
     }
 
@@ -1073,8 +1073,8 @@
         font-size: 0.65rem;
         padding: 0.125rem 0.375rem;
         border-radius: 0.25rem;
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.6);
+        background: var(--vw-border);
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-segment-lipsync-badge {
@@ -1095,24 +1095,24 @@
 
     .vw-script-step .vw-segment-text {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
         line-height: 1.4;
     }
 
     .vw-script-step .vw-segment-text-input {
         width: 100%;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         padding: 0.5rem;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--vw-text);
         resize: vertical;
         min-height: 60px;
     }
 
     .vw-script-step .vw-segment-text-input:focus {
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
         outline: none;
     }
 
@@ -1128,24 +1128,24 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0,0,0,0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.25rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         font-size: 0.7rem;
         transition: all 0.2s;
     }
 
     .vw-script-step .vw-segment-action-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: var(--vw-border);
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-segment-action-btn.danger:hover {
         background: rgba(239, 68, 68, 0.2);
         border-color: rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
+        color: #dc2626;
     }
 
     .vw-script-step .vw-segments-add-row {
@@ -1159,19 +1159,19 @@
     .vw-script-step .vw-segment-add-btn {
         flex: 1;
         padding: 0.5rem;
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px dashed rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border: 1px dashed rgba(var(--vw-primary-rgb), 0.12);
         border-radius: 0.375rem;
-        color: rgba(139, 92, 246, 0.8);
+        color: rgba(var(--vw-primary-rgb), 0.3);
         font-size: 0.75rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-script-step .vw-segment-add-btn:hover {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.5);
-        color: #a78bfa;
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-color: var(--vw-border-focus);
+        color: var(--vw-primary);
     }
 
     .vw-script-step .vw-segments-parse-btn {
@@ -1195,8 +1195,8 @@
         flex-direction: column;
         gap: 0.5rem;
         padding: 0.75rem;
-        background: rgba(139, 92, 246, 0.05);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.02);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.5rem;
         margin-bottom: 0.5rem;
     }
@@ -1211,9 +1211,9 @@
     .vw-script-step .vw-segment-speaker-select {
         padding: 0.375rem 0.5rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.75rem;
     }
 
@@ -1239,8 +1239,8 @@
 
     /* Narrative Structure Intelligence Styles */
     .vw-script-step .vw-narrative-section {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.05) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04) 0%, rgba(236, 72, 153, 0.05) 100%);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -1249,7 +1249,7 @@
     .vw-script-step .vw-narrative-clear-btn {
         background: rgba(239, 68, 68, 0.2);
         border: 1px solid rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
+        color: #dc2626;
         padding: 0.375rem 0.75rem;
         border-radius: 0.375rem;
         font-size: 0.75rem;
@@ -1268,7 +1268,7 @@
 
     .vw-script-step .vw-narrative-preset-label {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.5rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -1299,7 +1299,7 @@
         justify-content: center;
         padding: 0.625rem 0.5rem;
         background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
@@ -1308,14 +1308,14 @@
     }
 
     .vw-script-step .vw-narrative-preset-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-script-step .vw-narrative-preset-btn.selected {
-        border-color: rgba(139, 92, 246, 0.6);
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.15) 100%);
-        box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+        border-color: var(--vw-border-focus);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08) 0%, rgba(236, 72, 153, 0.15) 100%);
+        box-shadow: 0 0 10px rgba(var(--vw-primary-rgb), 0.12);
     }
 
     .vw-script-step .vw-preset-icon {
@@ -1325,7 +1325,7 @@
 
     .vw-script-step .vw-preset-name {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-weight: 500;
         line-height: 1.2;
     }
@@ -1341,7 +1341,7 @@
         background: rgba(0, 0, 0, 0.3);
         border-radius: 0.375rem;
         padding: 0.125rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--vw-border);
     }
 
     .vw-script-step .vw-format-btn {
@@ -1352,20 +1352,20 @@
         letter-spacing: 0.03em;
         border: none;
         background: transparent;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         border-radius: 0.25rem;
         transition: all 0.2s;
     }
 
     .vw-script-step .vw-format-btn:hover {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-format-btn.active {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(168, 85, 247, 0.3) 100%);
+        background: linear-gradient(135deg, var(--vw-border-accent) 0%, rgba(var(--vw-primary-rgb), 0.3) 100%);
         color: #ffffff;
-        box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 0 8px rgba(var(--vw-primary-rgb), 0.12);
     }
 
     /* Legacy badge styles - kept for compatibility */
@@ -1387,9 +1387,9 @@
     }
 
     .vw-script-step .vw-format-badge.feature {
-        background: rgba(168, 85, 247, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.2);
         color: rgba(192, 132, 252, 0.9);
-        border: 1px solid rgba(168, 85, 247, 0.3);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.3);
     }
 
     .vw-script-step .vw-preset-context-hint {
@@ -1413,7 +1413,7 @@
 
     .vw-script-step .vw-narrative-preset-btn.recommended.selected {
         border-color: rgba(16, 185, 129, 0.7);
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(var(--vw-primary-rgb), 0.06) 100%);
         box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
     }
 
@@ -1436,14 +1436,14 @@
 
     .vw-script-step .vw-presets-other-toggle {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         padding: 0.25rem 0;
         user-select: none;
     }
 
     .vw-script-step .vw-presets-other-toggle:hover {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-presets-other .vw-narrative-preset-btn {
@@ -1460,11 +1460,11 @@
         gap: 0.5rem;
         margin-top: 0.75rem;
         padding: 0.75rem;
-        background: rgba(139, 92, 246, 0.1);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: rgba(var(--vw-primary-rgb), 0.04);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.5rem;
         font-size: 0.8rem;
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
         line-height: 1.5;
     }
 
@@ -1482,7 +1482,7 @@
         gap: 0.5rem;
         background: transparent;
         border: none;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.85rem;
         cursor: pointer;
         padding: 0.5rem 0;
@@ -1490,7 +1490,7 @@
     }
 
     .vw-script-step .vw-advanced-toggle-btn:hover {
-        color: #c4b5fd;
+        color: var(--vw-text-secondary);
     }
 
     .vw-script-step .vw-advanced-active-badge {
@@ -1510,7 +1510,7 @@
         gap: 1rem;
         margin-top: 1rem;
         padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     @media (max-width: 1024px) {
@@ -1533,7 +1533,7 @@
 
     .vw-script-step .vw-option-sublabel {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-weight: 400;
         margin-left: 0.25rem;
     }
@@ -1542,7 +1542,7 @@
         width: 100%;
         padding: 0.625rem 0.75rem;
         background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         color: #ffffff;
         font-size: 0.85rem;
@@ -1552,7 +1552,7 @@
 
     .vw-script-step .vw-narrative-select:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
+        border-color: var(--vw-border-focus);
     }
 
     .vw-script-step .vw-narrative-select option {
@@ -1562,7 +1562,7 @@
 
     .vw-script-step .vw-option-description {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         line-height: 1.4;
         padding: 0.375rem;
         background: rgba(0, 0, 0, 0.2);
@@ -1574,7 +1574,7 @@
     <div class="vw-script-card">
         {{-- Error Message --}}
         @if($error)
-            <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; color: #fca5a5;">
+            <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; color: #dc2626;">
                 <span style="margin-right: 0.5rem;">⚠️</span>
                 {{ $error }}
             </div>
@@ -1680,7 +1680,7 @@
                     @if($storyBible['status'] === 'ready')
                         <span style="background: rgba(16,185,129,0.2); color: #10b981; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600;">{{ __('READY') }}</span>
                     @elseif($storyBible['status'] === 'generating')
-                        <span style="background: rgba(251,191,36,0.2); color: #fbbf24; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600;">{{ __('GENERATING...') }}</span>
+                        <span style="background: rgba(251,191,36,0.2); color: #d97706; padding: 0.15rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600;">{{ __('GENERATING...') }}</span>
                     @endif
                     <span class="vw-selector-sublabel">— {{ __('The DNA that constrains all generation') }}</span>
                 </div>
@@ -1692,10 +1692,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
                         <div>
                             @if(!empty($storyBible['title']))
-                                <h4 style="margin: 0 0 0.25rem 0; color: white; font-size: 0.95rem; font-weight: 600;">{{ $storyBible['title'] }}</h4>
+                                <h4 style="margin: 0 0 0.25rem 0; color: var(--vw-text); font-size: 0.95rem; font-weight: 600;">{{ $storyBible['title'] }}</h4>
                             @endif
                             @if(!empty($storyBible['logline']))
-                                <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 0.8rem; line-height: 1.5;">{{ Str::limit($storyBible['logline'], 150) }}</p>
+                                <p style="margin: 0; color: var(--vw-text); font-size: 0.8rem; line-height: 1.5;">{{ Str::limit($storyBible['logline'], 150) }}</p>
                             @endif
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
@@ -1703,7 +1703,7 @@
                                     wire:click="openStoryBibleModal"
                                     wire:loading.attr="disabled"
                                     wire:target="openStoryBibleModal"
-                                    style="padding: 0.35rem 0.75rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.375rem; color: #6ee7b7; font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
+                                    style="padding: 0.35rem 0.75rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.375rem; color: #16a34a; font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
                                 <span wire:loading.remove wire:target="openStoryBibleModal">✏️ {{ __('Edit Bible') }}</span>
                                 <span wire:loading wire:target="openStoryBibleModal">...</span>
                             </button>
@@ -1712,7 +1712,7 @@
                                     wire:click="openWritersRoom"
                                     wire:loading.attr="disabled"
                                     wire:target="openWritersRoom"
-                                    style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.2)); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.375rem; color: #c4b5fd; font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
+                                    style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08), rgba(6,182,212,0.2)); border: 1px solid var(--vw-border-accent); border-radius: 0.375rem; color: var(--vw-text-secondary); font-size: 0.75rem; cursor: pointer; white-space: nowrap;">
                                 <span wire:loading.remove wire:target="openWritersRoom">✍️ {{ __("Writer's Room") }}</span>
                                 <span wire:loading wire:target="openWritersRoom">...</span>
                             </button>
@@ -1723,33 +1723,33 @@
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 0.35rem;">
                             <span style="font-size: 0.8rem;">👥</span>
-                            <span style="color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ count($storyBible['characters'] ?? []) }} {{ __('Characters') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ count($storyBible['characters'] ?? []) }} {{ __('Characters') }}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.35rem;">
                             <span style="font-size: 0.8rem;">🏛️</span>
-                            <span style="color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ count($storyBible['locations'] ?? []) }} {{ __('Locations') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ count($storyBible['locations'] ?? []) }} {{ __('Locations') }}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.35rem;">
                             <span style="font-size: 0.8rem;">🎭</span>
-                            <span style="color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ count($storyBible['acts'] ?? []) }} {{ __('Acts') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ count($storyBible['acts'] ?? []) }} {{ __('Acts') }}</span>
                         </div>
                         @if(!empty($storyBible['tone']))
                             <div style="display: flex; align-items: center; gap: 0.35rem;">
                                 <span style="font-size: 0.8rem;">🎨</span>
-                                <span style="color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ ucfirst($storyBible['tone']) }}</span>
+                                <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ ucfirst($storyBible['tone']) }}</span>
                             </div>
                         @endif
                     </div>
 
                     {{-- Character Names --}}
                     @if(!empty($storyBible['characters']))
-                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                            <span style="color: rgba(255,255,255,0.5); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">{{ __('Characters') }}:</span>
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--vw-border);">
+                            <span style="color: var(--vw-text-secondary); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">{{ __('Characters') }}:</span>
                             <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
                                 @foreach($storyBible['characters'] as $char)
-                                    <span style="padding: 0.2rem 0.5rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.375rem; color: #c4b5fd; font-size: 0.7rem;">
+                                    <span style="padding: 0.2rem 0.5rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.375rem; color: var(--vw-text-secondary); font-size: 0.7rem;">
                                         {{ $char['name'] ?? __('Unnamed') }}
-                                        <span style="color: rgba(255,255,255,0.4);">({{ ucfirst($char['role'] ?? 'supporting') }})</span>
+                                        <span style="color: var(--vw-text-secondary);">({{ ucfirst($char['role'] ?? 'supporting') }})</span>
                                     </span>
                                 @endforeach
                             </div>
@@ -1761,7 +1761,7 @@
                 <div style="background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(245,158,11,0.05)); border: 1px solid rgba(251,191,36,0.25); border-radius: 0.75rem; padding: 1rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 200px;">
-                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 0.8rem; line-height: 1.5;">
+                            <p style="margin: 0; color: var(--vw-text); font-size: 0.8rem; line-height: 1.5;">
                                 {{ __('Generate a Story Bible first to establish characters, locations, and visual style. This ensures consistency across all generated content.') }}
                             </p>
                         </div>
@@ -1774,13 +1774,13 @@
                                     style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #f59e0b, #ec4899); border: none; border-radius: 0.5rem; color: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                                 <span wire:loading.remove wire:target="generateStoryBible">✨ {{ __('Generate Story Bible') }}</span>
                                 <span wire:loading wire:target="generateStoryBible" style="display: flex; align-items: center; gap: 0.35rem;">
-                                    <div style="width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
+                                    <div style="width: 14px; height: 14px; border: 2px solid var(--vw-text-secondary); border-top-color: white; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                                     {{ __('Generating...') }}
                                 </span>
                             </button>
                             <button type="button"
                                     wire:click="openStoryBibleModal"
-                                    style="padding: 0.5rem 0.75rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: rgba(255,255,255,0.6); font-size: 0.8rem; cursor: pointer;">
+                                    style="padding: 0.5rem 0.75rem; background: transparent; border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.8rem; cursor: pointer;">
                                 {{ __('Manual') }}
                             </button>
                         </div>
@@ -1788,7 +1788,7 @@
                 </div>
 
                 {{-- Optional Skip Notice --}}
-                <p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.4); font-size: 0.7rem; text-align: center;">
+                <p style="margin: 0.5rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.7rem; text-align: center;">
                     {{ __('You can skip this step, but script generation will use basic extraction instead.') }}
                 </p>
             @endif
@@ -2072,22 +2072,22 @@
 
         {{-- Progressive Generation Panel --}}
         @if($scriptGeneration['status'] !== 'idle')
-            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
+            <div style="background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem;">
                 {{-- Header --}}
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <div>
-                        <h3 style="color: white; font-size: 1.1rem; font-weight: 600; margin: 0;">
+                        <h3 style="color: var(--vw-text); font-size: 1.1rem; font-weight: 600; margin: 0;">
                             🎬 {{ __('Script Generation') }}
                         </h3>
-                        <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+                        <p style="color: var(--vw-text-secondary); font-size: 0.85rem; margin: 0.25rem 0 0 0;">
                             {{ $targetDuration }}s {{ __('video') }} → {{ $scriptGeneration['targetSceneCount'] }} {{ __('scenes') }}
                         </p>
                     </div>
                     <div style="text-align: right;">
-                        <span style="color: #8b5cf6; font-size: 1.5rem; font-weight: 700;">
+                        <span style="color: var(--vw-primary); font-size: 1.5rem; font-weight: 700;">
                             {{ $scriptGeneration['generatedSceneCount'] }} / {{ $scriptGeneration['targetSceneCount'] }}
                         </span>
-                        <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">{{ __('scenes generated') }}</p>
+                        <p style="color: var(--vw-text-secondary); font-size: 0.75rem; margin: 0;">{{ __('scenes generated') }}</p>
                     </div>
                 </div>
 
@@ -2097,8 +2097,8 @@
                         ? ($scriptGeneration['generatedSceneCount'] / $scriptGeneration['targetSceneCount']) * 100
                         : 0;
                 @endphp
-                <div style="background: rgba(255,255,255,0.1); border-radius: 0.5rem; height: 12px; overflow: hidden; margin-bottom: 1rem;">
-                    <div style="background: linear-gradient(90deg, #8b5cf6, #06b6d4); height: 100%; width: {{ $progress }}%; transition: width 0.5s ease;"></div>
+                <div style="background: var(--vw-border); border-radius: 0.5rem; height: 12px; overflow: hidden; margin-bottom: 1rem;">
+                    <div style="background: linear-gradient(90deg, var(--vw-primary), #06b6d4); height: 100%; width: {{ $progress }}%; transition: width 0.5s ease;"></div>
                 </div>
 
                 {{-- Batch List --}}
@@ -2107,9 +2107,9 @@
                         @php
                             $statusConfig = [
                                 'complete' => ['bg' => 'rgba(16, 185, 129, 0.2)', 'border' => 'rgba(16, 185, 129, 0.4)', 'icon' => '✅', 'color' => '#10b981', 'pulse' => false],
-                                'generating' => ['bg' => 'rgba(251, 191, 36, 0.2)', 'border' => 'rgba(251, 191, 36, 0.4)', 'icon' => '⏳', 'color' => '#fbbf24', 'pulse' => true],
-                                'retrying' => ['bg' => 'rgba(251, 146, 60, 0.2)', 'border' => 'rgba(251, 146, 60, 0.4)', 'icon' => '🔄', 'color' => '#fb923c', 'pulse' => true],
-                                'pending' => ['bg' => 'rgba(255, 255, 255, 0.05)', 'border' => 'rgba(255, 255, 255, 0.1)', 'icon' => '⏸️', 'color' => 'rgba(255,255,255,0.5)', 'pulse' => false],
+                                'generating' => ['bg' => 'rgba(251, 191, 36, 0.2)', 'border' => 'rgba(251, 191, 36, 0.4)', 'icon' => '⏳', 'color' => '#d97706', 'pulse' => true],
+                                'retrying' => ['bg' => 'rgba(251, 146, 60, 0.2)', 'border' => 'rgba(251, 146, 60, 0.4)', 'icon' => '🔄', 'color' => '#c2410c', 'pulse' => true],
+                                'pending' => ['bg' => 'rgba(0,0,0,0.03)', 'border' => 'var(--vw-border)', 'icon' => '⏸️', 'color' => 'var(--vw-text-secondary)', 'pulse' => false],
                                 'error' => ['bg' => 'rgba(239, 68, 68, 0.2)', 'border' => 'rgba(239, 68, 68, 0.4)', 'icon' => '❌', 'color' => '#ef4444', 'pulse' => false],
                             ];
                             $style = $statusConfig[$batch['status']] ?? $statusConfig['pending'];
@@ -2125,7 +2125,7 @@
                             @endif
                             <div style="flex: 1;">
                                 <span style="color: white; font-weight: 500; font-size: 0.9rem;">{{ __('Batch') }} {{ $batch['batchNumber'] }}</span>
-                                <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem; margin-left: 0.5rem;">
+                                <span style="color: var(--vw-text-secondary); font-size: 0.8rem; margin-left: 0.5rem;">
                                     {{ __('Scenes') }} {{ $batch['startScene'] }}-{{ $batch['endScene'] }}
                                 </span>
                             </div>
@@ -2157,7 +2157,7 @@
                                 wire:loading.attr="disabled"
                                 wire:target="generateNextBatch"
                                 @if($scriptGeneration['status'] === 'generating') disabled @endif
-                                style="flex: 1; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: {{ $scriptGeneration['status'] === 'generating' ? '0.6' : '1' }};">
+                                style="flex: 1; padding: 0.75rem 1.5rem; background: var(--vw-primary); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; opacity: {{ $scriptGeneration['status'] === 'generating' ? '0.6' : '1' }};">
                             <span wire:loading.remove wire:target="generateNextBatch">🚀 {{ __('Generate Next Batch') }}</span>
                             <span wire:loading wire:target="generateNextBatch">
                                 <svg style="width: 16px; height: 16px; animation: vw-spin 0.8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2187,14 +2187,14 @@
                 $clipDuration = $this->getClipDuration();
                 $sceneDuration = $script['timing']['sceneDuration'] ?? 35;
             @endphp
-            <div style="margin-bottom: 1.25rem; padding: 1rem; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 0.75rem;">
+            <div style="margin-bottom: 1.25rem; padding: 1rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.08); border-radius: 0.75rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
                     <div>
                         <div style="font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 0.25rem;">🎬 {{ __('Pacing & Scene Structure') }}</div>
-                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ __('Hollywood-style: scenes contain multiple shots') }}</div>
+                        <div style="font-size: 0.7rem; color: var(--vw-text-secondary);">{{ __('Hollywood-style: scenes contain multiple shots') }}</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">{{ __('Clip duration') }}</div>
+                        <div style="font-size: 0.7rem; color: var(--vw-text-secondary);">{{ __('Clip duration') }}</div>
                         <div style="font-size: 0.85rem; font-weight: 600; color: #06b6d4;">{{ $clipDuration }}s</div>
                     </div>
                 </div>
@@ -2202,47 +2202,47 @@
                 {{-- Pacing Options --}}
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
                     <button wire:click="setPacing('fast')"
-                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'fast' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'fast' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'fast' ? 'var(--vw-primary)' : 'var(--vw-border)' }}; background: {{ $currentPacing === 'fast' ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; cursor: pointer; text-align: center;">
                         <div style="font-size: 1rem; margin-bottom: 0.2rem;">⚡</div>
-                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'fast' ? '#a78bfa' : 'white' }};">{{ __('Fast') }}</div>
-                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~25s {{ __('scenes') }}</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'fast' ? 'var(--vw-primary)' : 'white' }};">{{ __('Fast') }}</div>
+                        <div style="font-size: 0.55rem; color: var(--vw-text-secondary);">~25s {{ __('scenes') }}</div>
                     </button>
                     <button wire:click="setPacing('balanced')"
-                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'balanced' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'balanced' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'balanced' ? 'var(--vw-primary)' : 'var(--vw-border)' }}; background: {{ $currentPacing === 'balanced' ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; cursor: pointer; text-align: center;">
                         <div style="font-size: 1rem; margin-bottom: 0.2rem;">🎭</div>
-                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'balanced' ? '#a78bfa' : 'white' }};">{{ __('Balanced') }}</div>
-                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~35s {{ __('scenes') }}</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'balanced' ? 'var(--vw-primary)' : 'white' }};">{{ __('Balanced') }}</div>
+                        <div style="font-size: 0.55rem; color: var(--vw-text-secondary);">~35s {{ __('scenes') }}</div>
                     </button>
                     <button wire:click="setPacing('contemplative')"
-                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'contemplative' ? '#8b5cf6' : 'rgba(255,255,255,0.15)' }}; background: {{ $currentPacing === 'contemplative' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255,255,255,0.05)' }}; cursor: pointer; text-align: center;">
+                            style="padding: 0.6rem 0.5rem; border-radius: 0.5rem; border: 2px solid {{ $currentPacing === 'contemplative' ? 'var(--vw-primary)' : 'var(--vw-border)' }}; background: {{ $currentPacing === 'contemplative' ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; cursor: pointer; text-align: center;">
                         <div style="font-size: 1rem; margin-bottom: 0.2rem;">🌊</div>
-                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'contemplative' ? '#a78bfa' : 'white' }};">{{ __('Contemplative') }}</div>
-                        <div style="font-size: 0.55rem; color: rgba(255,255,255,0.4);">~45s {{ __('scenes') }}</div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ $currentPacing === 'contemplative' ? 'var(--vw-primary)' : 'white' }};">{{ __('Contemplative') }}</div>
+                        <div style="font-size: 0.55rem; color: var(--vw-text-secondary);">~45s {{ __('scenes') }}</div>
                     </button>
                 </div>
 
                 {{-- Scene/Shot Preview --}}
                 <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 0.6rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
                     <div style="text-align: center;">
-                        <div style="font-size: 1.25rem; font-weight: 700; color: #8b5cf6;">{{ $sceneCount }}</div>
-                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('scenes') }}</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--vw-primary);">{{ $sceneCount }}</div>
+                        <div style="font-size: 0.65rem; color: var(--vw-text-secondary);">{{ __('scenes') }}</div>
                     </div>
-                    <div style="color: rgba(255,255,255,0.3);">→</div>
+                    <div style="color: var(--vw-text-secondary);">→</div>
                     <div style="text-align: center;">
                         <div style="font-size: 1.25rem; font-weight: 700; color: #06b6d4;">{{ $estimatedShots }}</div>
-                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('shots') }}</div>
+                        <div style="font-size: 0.65rem; color: var(--vw-text-secondary);">{{ __('shots') }}</div>
                     </div>
-                    <div style="color: rgba(255,255,255,0.3);">→</div>
+                    <div style="color: var(--vw-text-secondary);">→</div>
                     <div style="text-align: center;">
                         <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">{{ floor($targetDuration / 60) }}:{{ str_pad($targetDuration % 60, 2, '0', STR_PAD_LEFT) }}</div>
-                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">{{ __('video') }}</div>
+                        <div style="font-size: 0.65rem; color: var(--vw-text-secondary);">{{ __('video') }}</div>
                     </div>
                 </div>
             </div>
 
             {{-- Start Progressive Generation Button --}}
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                <button style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.75rem; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                <button style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, var(--vw-primary), #06b6d4); border: none; border-radius: 0.75rem; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                         wire:click="startProgressiveGeneration"
                         wire:loading.attr="disabled"
                         wire:target="startProgressiveGeneration">
@@ -2257,7 +2257,7 @@
                 </button>
             </div>
 
-            <p style="text-align: center; color: rgba(255,255,255,0.5); font-size: 0.8rem; margin: 0;">
+            <p style="text-align: center; color: var(--vw-text-secondary); font-size: 0.8rem; margin: 0;">
                 {{ __('Each scene (~:sceneDur s) will be decomposed into :shots shots', ['sceneDur' => $sceneDuration, 'shots' => ceil($sceneDuration / $clipDuration)]) }} • {{ __('Powered by') }} {{ get_option('ai_platform', 'GPT-4o') }}
             </p>
         @endif
@@ -2273,14 +2273,14 @@
                 <span style="font-size: 1.5rem;">⚠️</span>
                 <div style="flex: 1;">
                     <h4 style="color: #f87171; font-weight: 600; margin: 0 0 0.5rem 0; font-size: 1rem;">{{ __('Scene Data Recovery Issue') }}</h4>
-                    <p style="color: rgba(255,255,255,0.8); margin: 0 0 1rem 0; font-size: 0.9rem;">
+                    <p style="color: var(--vw-text); margin: 0 0 1rem 0; font-size: 0.9rem;">
                         {{ __('The script generation was marked as complete, but the scene data appears to be missing. This can happen due to a synchronization issue.') }}
                     </p>
-                    <p style="color: rgba(255,255,255,0.6); margin: 0 0 1rem 0; font-size: 0.85rem;">
+                    <p style="color: var(--vw-text-secondary); margin: 0 0 1rem 0; font-size: 0.85rem;">
                         {{ __('Please try regenerating your script. Your concept and settings are preserved.') }}
                     </p>
                     <button wire:click="resetProgressiveGeneration"
-                            style="padding: 0.6rem 1.25rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; color: #fca5a5; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
+                            style="padding: 0.6rem 1.25rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.5rem; color: #dc2626; cursor: pointer; font-size: 0.85rem; font-weight: 500;">
                         🔄 {{ __('Reset & Regenerate Script') }}
                     </button>
                 </div>
@@ -2347,7 +2347,7 @@
                             @click="$dispatch('open-full-script')">
                         📄 {{ __('Full Script') }}
                     </button>
-                    <button style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.3); color: #c4b5fd; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem;"
+                    <button style="background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); color: var(--vw-text-secondary); padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem;"
                             wire:click="$dispatch('generate-script')"
                             wire:loading.attr="disabled">
                         🔄 {{ __('Regenerate') }}
@@ -2412,7 +2412,7 @@
             @if($safeHook)
                 <div style="background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
                     <span style="color: #f472b6; font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">{{ __('Hook') }}</span>
-                    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">{{ $safeHook }}</p>
+                    <p style="color: var(--vw-text); margin-top: 0.5rem;">{{ $safeHook }}</p>
                 </div>
             @endif
 
@@ -2730,7 +2730,7 @@
                                                 </div>
                                             </div>
                                         @empty
-                                            <div class="vw-segment-item" style="justify-content: center; color: rgba(255,255,255,0.5);">
+                                            <div class="vw-segment-item" style="justify-content: center; color: var(--vw-text-secondary);">
                                                 {{ __('No segments yet. Add one below or parse from text.') }}
                                             </div>
                                         @endforelse
@@ -2819,7 +2819,7 @@
             @if($safeCta)
                 <div style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.5rem; padding: 1rem; margin-top: 1rem;">
                     <span style="color: #22d3ee; font-weight: 600; font-size: 0.8rem; text-transform: uppercase;">{{ __('Call to Action') }}</span>
-                    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem;">{{ $safeCta }}</p>
+                    <p style="color: var(--vw-text); margin-top: 0.5rem;">{{ $safeCta }}</p>
                 </div>
             @endif
         </div>
@@ -2875,7 +2875,7 @@
                                     if (is_array($rawModalNarr)) $rawModalNarr = reset($rawModalNarr) ?: null;
                                     $modalSceneNarration = is_string($rawModalNarr) ? $rawModalNarr : '';
                                 @endphp
-                                <strong style="color: #c4b5fd;">{{ __('SCENE') }} {{ $index + 1 }}: {{ $modalSceneTitle }}</strong>
+                                <strong style="color: var(--vw-text-secondary);">{{ __('SCENE') }} {{ $index + 1 }}: {{ $modalSceneTitle }}</strong>
                                 <br>{{ $modalSceneNarration }}
 
                                 @if(!$loop->last)
@@ -2898,24 +2898,24 @@
     {{-- Scene Overwrite Confirmation Modal --}}
     @if($showSceneOverwriteModal)
         <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);">
-            <div style="background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 1rem; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <div style="background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);">
                 {{-- Header --}}
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
                     <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #ef4444); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
                         ⚠️
                     </div>
                     <div>
-                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin: 0;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--vw-text)fff; margin: 0;">
                             {{ __('Existing Scenes Found') }}
                         </h3>
-                        <p style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); margin: 0.25rem 0 0;">
+                        <p style="font-size: 0.875rem; color: var(--vw-text-secondary); margin: 0.25rem 0 0;">
                             {{ __('You already have') }} {{ count($script['scenes'] ?? []) }} {{ __('scenes generated') }}
                         </p>
                     </div>
                 </div>
 
                 {{-- Message --}}
-                <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                <p style="color: var(--vw-text); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
                     {{ __('What would you like to do with your existing scenes?') }}
                 </p>
 
@@ -2928,8 +2928,8 @@
                             onmouseout="this.style.background='linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3))'">
                         <span style="font-size: 1.25rem;">🔄</span>
                         <div>
-                            <div style="color: #fca5a5;">{{ __('Replace All') }}</div>
-                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 400;">{{ __('Delete existing scenes and start fresh') }}</div>
+                            <div style="color: #dc2626;">{{ __('Replace All') }}</div>
+                            <div style="font-size: 0.8rem; color: var(--vw-text-secondary); font-weight: 400;">{{ __('Delete existing scenes and start fresh') }}</div>
                         </div>
                     </button>
 
@@ -2941,16 +2941,16 @@
                         <span style="font-size: 1.25rem;">➕</span>
                         <div>
                             <div style="color: #86efac;">{{ __('Add More') }}</div>
-                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 400;">{{ __('Keep existing scenes and generate additional ones') }}</div>
+                            <div style="font-size: 0.8rem; color: var(--vw-text-secondary); font-weight: 400;">{{ __('Keep existing scenes and generate additional ones') }}</div>
                         </div>
                     </button>
                 </div>
 
                 {{-- Cancel Button --}}
                 <button wire:click="$set('showSceneOverwriteModal', false)"
-                        style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.5rem; color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;"
-                        onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'"
-                        onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">
+                        style="width: 100%; padding: 0.75rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.9rem; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='var(--vw-border)'"
+                        onmouseout="this.style.background='var(--vw-border)'">
                     {{ __('Cancel') }}
                 </button>
             </div>

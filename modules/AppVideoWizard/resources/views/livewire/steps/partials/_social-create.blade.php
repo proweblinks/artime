@@ -34,7 +34,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem 1.5rem;
-        background: rgba(7, 20, 55, 0.95);
+        background: var(--vw-bg-surface);
         border-bottom: 1px solid var(--vw-border);
         flex-shrink: 0;
     }
@@ -51,7 +51,7 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.4rem 0.8rem;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.03);
         border: 1px solid var(--vw-border);
         border-radius: var(--vw-radius);
         color: var(--vw-text-secondary);
@@ -60,7 +60,7 @@
         transition: all 0.2s;
     }
     .vw-social-create-header .vw-back-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.04);
         color: var(--vw-text);
     }
     .vw-social-create-body {
@@ -76,7 +76,7 @@
         align-items: center;
         justify-content: center;
         padding: 1.5rem;
-        background: rgba(7, 20, 55, 0.5);
+        background: var(--vw-bg-elevated);
         overflow-y: auto;
     }
     .vw-social-preview-inner {
@@ -150,12 +150,12 @@
         font-size: 0.8rem;
         font-weight: 700;
         background: var(--vw-primary-soft);
-        color: #a49eff;
+        color: var(--vw-text-secondary);
         border: 1px solid var(--vw-border-accent);
     }
     .vw-social-section.completed .vw-social-section-num {
         background: var(--vw-success-soft);
-        color: #6ee7b7;
+        color: #16a34a;
         border-color: var(--vw-border-success);
     }
     .vw-social-section-title {
@@ -172,7 +172,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.6rem 1.25rem;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         color: white;
         border: none;
         border-radius: 0.6rem;
@@ -235,24 +235,24 @@
         font-weight: 600;
     }
     .vw-social-status-badge.pending { background: var(--vw-border); color: var(--vw-text-secondary); }
-    .vw-social-status-badge.generating { background: var(--vw-primary-soft); color: #a49eff; animation: vw-pulse-badge 1.5s infinite; }
-    .vw-social-status-badge.ready { background: var(--vw-success-soft); color: #6ee7b7; }
+    .vw-social-status-badge.generating { background: var(--vw-primary-soft); color: var(--vw-text-secondary); animation: vw-pulse-badge 1.5s infinite; }
+    .vw-social-status-badge.ready { background: var(--vw-success-soft); color: #16a34a; }
     .vw-social-status-badge.processing { background: rgba(249,115,22,0.2); color: #fb923c; animation: vw-pulse-badge 1.5s infinite; }
-    .vw-social-status-badge.error { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .vw-social-status-badge.error { background: rgba(239,68,68,0.2); color: #dc2626; }
     @keyframes vw-pulse-badge { 0%,100%{opacity:0.6} 50%{opacity:1} }
     .vw-social-swap-btn {
         display: inline-flex; align-items: center; gap: 0.3rem;
         padding: 0.2rem 0.5rem; border-radius: 0.3rem;
-        background: var(--vw-primary-soft); color: #a49eff;
+        background: var(--vw-primary-soft); color: var(--vw-text-secondary);
         border: 1px solid var(--vw-border-accent);
         font-size: 0.7rem; font-weight: 600; cursor: pointer;
         transition: all 0.2s;
     }
-    .vw-social-swap-btn:hover { background: var(--vw-border-accent); color: #c4b5fd; }
+    .vw-social-swap-btn:hover { background: var(--vw-border-accent); color: var(--vw-text); }
 
-    .vw-mode-btn { padding: 0.35rem 0.75rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--vw-text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.75rem; }
-    .vw-mode-btn.active { background: var(--vw-primary-soft); border-color: rgba(var(--vw-primary-rgb), 0.4); color: #a49eff; }
-    .vw-mode-btn:hover { border-color: var(--vw-border-accent); color: #a49eff; }
+    .vw-mode-btn { padding: 0.35rem 0.75rem; border-radius: 0.375rem; border: 1px solid var(--vw-border); background: transparent; color: var(--vw-text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.75rem; }
+    .vw-mode-btn.active { background: var(--vw-primary-soft); border-color: rgba(var(--vw-primary-rgb), 0.4); color: var(--vw-text-secondary); }
+    .vw-mode-btn:hover { border-color: var(--vw-border-accent); color: var(--vw-text-secondary); }
     .vw-mode-hint { font-size: 0.65rem; color: var(--vw-text-muted); margin-top: 0.25rem; }
 
     .vw-social-progress-bar {
@@ -325,7 +325,7 @@
         color: #06b6d4;
         font-weight: 700;
         font-size: 1rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border-radius: 0.5rem;
     }
 
@@ -351,7 +351,7 @@
     }
     .vw-social-audio-tab.active {
         background: var(--vw-primary-soft);
-        color: #a49eff;
+        color: var(--vw-text-secondary);
     }
     .vw-social-model-select {
         width: 100%;
@@ -367,7 +367,7 @@
         width: 100%;
         padding: 0.5rem;
         background: var(--vw-bg-surface);
-        border: 1px dashed rgba(100,100,140,0.3);
+        border: 1px dashed var(--vw-border);
         border-radius: 0.5rem;
         color: var(--vw-text-secondary);
         font-size: 0.8rem;
@@ -386,7 +386,7 @@
         gap: 0.5rem;
         width: 100%;
         padding: 0.75rem;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         color: white;
         border: none;
         border-radius: 0.6rem;
@@ -408,37 +408,37 @@
         font-size: 0.8rem;
         color: var(--vw-text-secondary);
     }
-    .vw-social-idea-summary strong { color: #a49eff; }
+    .vw-social-idea-summary strong { color: var(--vw-text-secondary); }
 
     /* Creation Details Debug Panel */
-    .vw-social-debug-panel { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem; }
-    .vw-social-debug-toggle { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-primary-soft); border-radius: 0.5rem; color: #a49eff; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .vw-social-debug-panel { margin-top: 1rem; border-top: 1px solid var(--vw-border); padding-top: 0.75rem; }
+    .vw-social-debug-toggle { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-primary-soft); border-radius: 0.5rem; color: var(--vw-text-secondary); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .vw-social-debug-toggle:hover { background: var(--vw-primary-soft); }
     .vw-social-debug-toggle span { flex: 1; text-align: left; }
-    .vw-debug-section { margin-top: 0.5rem; background: var(--vw-bg-elevated); border: 1px solid rgba(255,255,255,0.06); border-radius: 0.5rem; overflow: hidden; }
+    .vw-debug-section { margin-top: 0.5rem; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border); border-radius: 0.5rem; overflow: hidden; }
     .vw-debug-section summary { padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--vw-text-secondary); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
     .vw-debug-section summary:hover { color: var(--vw-text); }
     .vw-debug-section summary::-webkit-details-marker { display: none; }
     .vw-debug-section summary::after { content: '+'; margin-left: auto; font-size: 0.9rem; color: var(--vw-text-muted); }
     .vw-debug-section[open] summary::after { content: '\2212'; }
-    .vw-debug-content { padding: 0.5rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); }
+    .vw-debug-content { padding: 0.5rem 0.75rem; border-top: 1px solid var(--vw-border); }
     .vw-debug-field { display: flex; gap: 0.5rem; margin-bottom: 0.35rem; font-size: 0.7rem; }
     .vw-debug-label { color: var(--vw-text-muted); min-width: 80px; flex-shrink: 0; }
     .vw-debug-value { color: var(--vw-text); font-family: 'JetBrains Mono', monospace; }
-    .vw-debug-prompt { color: #a49eff; font-size: 0.65rem; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 0.375rem; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; word-break: break-word; max-height: 120px; overflow-y: auto; }
-    .vw-debug-speaker { padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 0.375rem; margin-bottom: 0.35rem; }
+    .vw-debug-prompt { color: var(--vw-text-secondary); font-size: 0.65rem; line-height: 1.5; background: var(--vw-bg-elevated); padding: 0.5rem; border-radius: 0.375rem; margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace; word-break: break-word; max-height: 120px; overflow-y: auto; }
+    .vw-debug-speaker { padding: 0.35rem 0.5rem; background: var(--vw-bg-elevated); border-radius: 0.375rem; margin-bottom: 0.35rem; }
     .vw-debug-speaker-name { font-size: 0.7rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.25rem; }
     .vw-debug-badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; display: inline-block; margin: 0.25rem 0; }
     .vw-debug-badge.swap { background: rgba(249,115,22,0.15); color: #fb923c; }
 
     .vw-social-prompt-editor { margin-bottom: 0.75rem; }
-    .vw-social-prompt-editor label { display: block; font-size: 0.8rem; font-weight: 600; color: #a49eff; margin-bottom: 0.35rem; }
+    .vw-social-prompt-editor label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.35rem; }
     .vw-social-prompt-editor textarea {
         width: 100%; min-height: 100px; padding: 0.6rem 0.75rem; background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text);
         font-size: 0.8rem; line-height: 1.5; resize: vertical; outline: none; transition: border-color 0.2s;
     }
-    .vw-social-prompt-editor textarea:focus { border-color: rgba(139,92,246,0.5); }
+    .vw-social-prompt-editor textarea:focus { border-color: var(--vw-border-focus); }
     .vw-social-prompt-editor small { display: block; font-size: 0.7rem; color: var(--vw-text-muted); margin-top: 0.25rem; }
     .vw-social-duration-select, .vw-social-resolution-select, .vw-social-quality-select {
         width: 100%; padding: 0.5rem 0.75rem; background: var(--vw-bg-elevated);
@@ -467,20 +467,20 @@
     }
     .vw-music-toggle-switch {
         position: relative; width: 34px; height: 18px;
-        background: rgba(100, 100, 140, 0.3);
+        background: var(--vw-border);
         border-radius: 9px; transition: background 0.2s;
         flex-shrink: 0;
     }
     .vw-music-toggle-switch::after {
         content: ''; position: absolute; top: 2px; left: 2px;
         width: 14px; height: 14px; border-radius: 50%;
-        background: #94a3b8; transition: all 0.2s;
+        background: #d4d4d8; transition: all 0.2s;
     }
     .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch {
         background: rgba(var(--vw-primary-rgb), 0.5);
     }
     .vw-music-toggle-checkbox:checked + .vw-music-toggle-switch::after {
-        left: 18px; background: #c4b5fd;
+        left: 18px; background: var(--vw-text);
     }
     .vw-music-toggle-text {
         font-size: 0.8rem; font-weight: 600; color: var(--vw-text);
@@ -498,20 +498,20 @@
     .vw-chaos-toggle {
         display: flex; align-items: center; gap: 0.4rem;
         padding: 0.45rem 0.9rem;
-        background: rgba(40, 20, 10, 0.8);
-        border: 1px solid rgba(200, 80, 30, 0.3);
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(239, 68, 68, 0.2);
         border-radius: 2rem;
         color: var(--vw-text-secondary); font-size: 0.8rem; font-weight: 700;
         cursor: pointer; transition: all 0.2s;
         letter-spacing: 0.05em;
     }
     .vw-chaos-toggle:hover {
-        border-color: rgba(239, 68, 68, 0.5); color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.5); color: #dc2626;
     }
     .vw-chaos-toggle.active {
         border-color: rgba(239, 68, 68, 0.7);
         background: rgba(239, 68, 68, 0.15);
-        color: #fef2f2;
+        color: var(--vw-text);
         box-shadow: 0 0 16px rgba(239, 68, 68, 0.25), 0 0 4px rgba(239, 68, 68, 0.1);
     }
     .vw-chaos-toggle.active i { color: #ef4444; }
@@ -537,7 +537,7 @@
         color: var(--vw-text-secondary); font-size: 0.75rem;
         cursor: pointer; transition: all 0.15s;
     }
-    .vw-camera-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: #c4b5fd; }
+    .vw-camera-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: var(--vw-text); }
     .vw-camera-pill.active {
         border-color: rgba(var(--vw-primary-rgb), 0.6);
         background: var(--vw-primary-soft);
@@ -557,7 +557,7 @@
         color: var(--vw-text-secondary); font-size: 0.7rem;
         cursor: pointer; transition: all 0.15s;
     }
-    .vw-intensity-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: #c4b5fd; }
+    .vw-intensity-pill:hover { border-color: rgba(var(--vw-primary-rgb), 0.4); color: var(--vw-text); }
     .vw-intensity-pill.active {
         border-color: rgba(var(--vw-primary-rgb), 0.6);
         background: var(--vw-primary-soft);
@@ -566,7 +566,7 @@
     .vw-social-engine-badge {
         display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
         border-radius: 0.3rem; font-size: 0.7rem; font-weight: 600;
-        background: rgba(var(--vw-primary-rgb), 0.12); color: #a49eff; border: 1px solid var(--vw-primary-soft);
+        background: rgba(var(--vw-primary-rgb), 0.12); color: var(--vw-text-secondary); border: 1px solid var(--vw-primary-soft);
     }
 
     /* Video Extend — player overlay */
@@ -574,7 +574,7 @@
     .vw-extend-player-wrap video { width: 100%; height: 100%; object-fit: contain; }
     .vw-extract-frame-btn {
         position: absolute; bottom: 4.5rem; left: 50%; transform: translateX(-50%);
-        background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(0,0,0,0.6); color: #fff; border: 1px solid var(--vw-border-accent);
         padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.82rem;
         cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s;
         white-space: nowrap; z-index: 5;
@@ -585,17 +585,17 @@
     .vw-timeline { margin-top: 0.5rem; width: 100%; }
     .vw-timeline-bar {
         display: flex; height: 2rem; border-radius: 0.5rem; overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+        border: 1px solid var(--vw-border); background: var(--vw-bg-elevated);
     }
     .vw-timeline-segment {
         display: flex; align-items: center; justify-content: space-between;
         padding: 0 0.5rem; cursor: pointer; transition: filter 0.15s;
-        font-size: 0.7rem; color: rgba(255,255,255,0.85); min-width: 0;
+        font-size: 0.7rem; color: var(--vw-text); min-width: 0;
     }
     .vw-timeline-segment:hover { filter: brightness(1.3); }
     .vw-timeline-segment.original { background: rgba(var(--vw-primary-rgb), 0.4); }
     .vw-timeline-segment.extension { background: rgba(249,115,22,0.4); }
-    .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid rgba(255,255,255,0.15); }
+    .vw-timeline-segment + .vw-timeline-segment { border-left: 1px solid var(--vw-border); }
     .vw-timeline-segment.selected { outline: 2px solid #f97316; outline-offset: -2px; filter: brightness(1.4); }
     .vw-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.2rem; }
     .vw-seg-fire { font-size: 0.6rem; opacity: 0.7; }
@@ -604,7 +604,7 @@
     .vw-timeline-segment[data-tooltip]:not([data-tooltip=""]):hover::after {
         content: attr(data-tooltip);
         position: absolute; top: 100%; left: 0; z-index: 10;
-        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.15);
+        background: var(--vw-bg-surface); border: 1px solid var(--vw-border);
         border-radius: 0.4rem; padding: 0.4rem 0.6rem; margin-top: 0.3rem;
         font-size: 0.7rem; color: var(--vw-text-secondary); pointer-events: none;
         white-space: normal; width: max-content; max-width: 300px;
@@ -616,7 +616,7 @@
 
     /* Video Extend — Extend Panel */
     .vw-extend-panel {
-        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.1);
+        background: var(--vw-bg-surface); border: 1px solid var(--vw-border);
         border-radius: 0.75rem; padding: 1rem; margin-top: 0.75rem; width: 100%;
     }
     .vw-extend-header {
@@ -643,7 +643,7 @@
 
     /* Segment Edit Panel — compact layout */
     .vw-seg-edit {
-        background: var(--vw-bg-surface); border: 1px solid rgba(255,255,255,0.08);
+        background: var(--vw-bg-surface); border: 1px solid rgba(0, 0, 0, 0.04);
         border-radius: 0.6rem; padding: 0.6rem; margin-top: 0.5rem; width: 100%;
     }
     .vw-seg-edit-top {
@@ -662,7 +662,7 @@
     }
     .vw-seg-edit-thumb img {
         width: 100%; border-radius: 0.4rem; object-fit: cover;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid var(--vw-border);
     }
     .vw-seg-edit-prompt-col {
         flex: 1; min-width: 0; display: flex; flex-direction: column;
@@ -683,30 +683,30 @@
         display: inline-flex; align-items: center; gap: 0.3rem;
     }
     .vw-seg-edit-btn.auto {
-        background: rgba(139,92,246,0.25); color: #c4b5fd;
+        background: rgba(var(--vw-primary-rgb), 0.08); color: var(--vw-text);
         border: 1px solid var(--vw-border-accent);
     }
     .vw-seg-edit-btn.auto:hover { background: rgba(var(--vw-primary-rgb), 0.4); }
     .vw-seg-edit-btn.regen {
-        background: rgba(249,115,22,0.3); color: #fdba74;
+        background: rgba(249,115,22,0.3); color: #c2410c;
         border: 1px solid rgba(249,115,22,0.4);
     }
     .vw-seg-edit-btn.regen:hover { background: rgba(249,115,22,0.5); color: #fff; }
     .vw-extend-duration-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; font-size: 0.8rem; color: var(--vw-text-secondary); }
     .vw-dur-btn {
-        padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.2);
-        background: transparent; color: #ccc; cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
+        padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid var(--vw-border);
+        background: transparent; color: var(--vw-text-secondary); cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
     }
     .vw-dur-btn.active { background: rgba(249,115,22,0.5); border-color: #f97316; color: #fff; }
     .vw-dur-btn:hover { border-color: rgba(249,115,22,0.5); }
     .vw-extend-prompt {
-        width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15);
+        width: 100%; background: var(--vw-bg-elevated); border: 1px solid var(--vw-border);
         color: var(--vw-text); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 0.75rem;
         resize: vertical; font-size: 0.8rem; font-family: inherit;
     }
     .vw-extend-direction {
         width: 100%; background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.3);
-        color: #fed7aa; border-radius: 0.5rem; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem;
+        color: var(--vw-text); border-radius: 0.5rem; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem;
         font-size: 0.78rem; font-family: inherit; outline: none; transition: border-color 0.15s;
     }
     .vw-extend-direction:focus { border-color: #f97316; background: rgba(249,115,22,0.12); }
@@ -714,8 +714,8 @@
     /* Intensity/Chaos slider */
     .vw-extend-intensity-row {
         margin-bottom: 0.75rem; padding: 0.6rem 0.7rem;
-        background: rgba(0,0,0,0.2); border-radius: 0.5rem;
-        border: 1px solid rgba(255,255,255,0.06);
+        background: var(--vw-bg-elevated); border-radius: 0.5rem;
+        border: 1px solid var(--vw-border);
     }
     .vw-intensity-header {
         display: flex; justify-content: space-between; align-items: center;
@@ -753,7 +753,7 @@
     }
     .vw-intensity-regen-btn {
         margin-top: 0.5rem; font-size: 0.72rem; color: var(--vw-text-secondary);
-        background: none; border: 1px solid rgba(255,255,255,0.1);
+        background: none; border: 1px solid var(--vw-border);
         border-radius: 1rem; padding: 0.25rem 0.7rem; cursor: pointer;
         transition: all 0.15s;
     }
@@ -763,7 +763,7 @@
         font-size: 0.72rem; color: var(--vw-text-secondary); background: none; border: none; cursor: pointer;
         padding: 0; margin-left: 0.5rem; transition: color 0.15s;
     }
-    .vw-extend-undo-btn:hover { color: #fca5a5; }
+    .vw-extend-undo-btn:hover { color: #dc2626; }
     .vw-extend-redo-btn:hover { color: #86efac; }
     .vw-extend-cancel-btn {
         background: none; border: none; color: var(--vw-text-secondary); font-size: 1.2rem; cursor: pointer;
@@ -795,14 +795,14 @@
         gap: 0.35rem;
         font-size: 0.7rem;
         font-weight: 600;
-        color: rgba(255,255,255,0.5);
+        color: var(--vw-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
     .vw-asset-gallery-label i { font-size: 0.6rem; color: rgba(var(--vw-primary-rgb), 0.6); }
     .vw-asset-gallery-count {
         background: var(--vw-primary-soft);
-        color: #c4b5fd;
+        color: var(--vw-text);
         font-size: 0.6rem;
         padding: 0.05rem 0.35rem;
         border-radius: 1rem;
@@ -810,9 +810,9 @@
     }
     .vw-asset-gallery-nav { display: flex; gap: 0.2rem; }
     .vw-gallery-arrow {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: rgba(255,255,255,0.4);
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        color: var(--vw-text-muted);
         width: 22px; height: 22px;
         border-radius: 0.3rem;
         cursor: pointer;
@@ -824,7 +824,7 @@
     }
     .vw-gallery-arrow:hover {
         background: var(--vw-primary-soft);
-        color: #c4b5fd;
+        color: var(--vw-text);
         border-color: var(--vw-border-accent);
     }
     .vw-asset-gallery-strip {
@@ -840,8 +840,8 @@
         flex-shrink: 0;
         width: 68px;
         cursor: pointer;
-        background: rgba(255,255,255,0.03);
-        border: 2px solid rgba(255,255,255,0.06);
+        background: var(--vw-bg-elevated);
+        border: 2px solid var(--vw-border);
         border-radius: 0.5rem;
         overflow: hidden;
         transition: all 0.2s;
@@ -864,7 +864,7 @@
         height: 80px;
         overflow: hidden;
         position: relative;
-        background: rgba(0,0,0,0.3);
+        background: var(--vw-bg-elevated);
     }
     .vw-asset-thumb-img img {
         width: 100%;
@@ -895,8 +895,8 @@
         padding: 0.2rem 0;
         font-size: 0.55rem;
         font-weight: 600;
-        color: rgba(255,255,255,0.5);
-        background: rgba(0,0,0,0.3);
+        color: var(--vw-text-muted);
+        background: var(--vw-bg-elevated);
     }
     .vw-asset-thumb-badge i { font-size: 0.5rem; }
     .vw-asset-thumb-badge.image i { color: #34d399; }
@@ -914,7 +914,7 @@
     @media (max-width: 768px) {
         .vw-social-create-body { flex-direction: column; }
         .vw-social-preview-panel { width: 100%; height: auto; max-height: 50vh; }
-        .vw-social-workflow-panel { width: 100%; border-left: none; border-top: 1px solid rgba(100,100,140,0.15); }
+        .vw-social-workflow-panel { width: 100%; border-left: none; border-top: 1px solid var(--vw-border); }
         .vw-asset-gallery { max-width: 100%; }
     }
 </style>
@@ -1105,7 +1105,7 @@
                             <div class="vw-asset-thumb-img">
                                 @if($hType === 'video')
                                     <div class="vw-asset-thumb-video-icon"><i class="fa-solid fa-play"></i></div>
-                                    <div style="width:100%;height:100%;background:linear-gradient(135deg,#0f172a,#1e1b4b);"></div>
+                                    <div style="width:100%;height:100%;background:var(--vw-bg-elevated);"></div>
                                 @else
                                     <img src="{{ $hUrl }}" alt="{{ $actionLabel }}" loading="lazy" />
                                 @endif
@@ -1286,10 +1286,10 @@
                                 <img src="{{ $extendMode['frameUrl'] }}" class="vw-extend-frame-preview" alt="Frame" />
                                 @if(!empty($extendMode['frameAnalysis']))
                                 <details style="margin-top: 0.4rem; max-width: 180px;">
-                                    <summary style="font-size: 0.65rem; color: rgba(255,255,255,0.35); cursor: pointer; user-select: none;">
+                                    <summary style="font-size: 0.65rem; color: var(--vw-text-muted); cursor: pointer; user-select: none;">
                                         <i class="fa-solid fa-eye" style="margin-right: 0.2rem;"></i> What AI sees
                                     </summary>
-                                    <p style="font-size: 0.65rem; color: rgba(255,255,255,0.45); margin: 0.25rem 0 0 0; line-height: 1.35; padding: 0.3rem; background: rgba(255,255,255,0.03); border-radius: 0.25rem;">
+                                    <p style="font-size: 0.65rem; color: var(--vw-text-secondary); margin: 0.25rem 0 0 0; line-height: 1.35; padding: 0.3rem; background: var(--vw-bg-elevated); border-radius: 0.25rem;">
                                         {{ $extendMode['frameAnalysis'] }}
                                     </p>
                                 </details>
@@ -1381,22 +1381,22 @@
         {{-- Right: Workflow Steps --}}
         <div class="vw-social-workflow-panel">
             {{-- Tab Switcher: Create vs Workflow Pipeline --}}
-            <div class="vw-social-tab-bar" style="display: flex; gap: 0; border-bottom: 1px solid #334155; margin-bottom: 0.5rem; padding: 0 0.5rem;">
+            <div class="vw-social-tab-bar" style="display: flex; gap: 0; border-bottom: 1px solid var(--vw-border); margin-bottom: 0.5rem; padding: 0 0.5rem;">
                 <button class="vw-social-tab-btn {{ $socialCreateTab === 'create' ? 'active' : '' }}"
                         wire:click="setSocialCreateTab('create')"
-                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'create' ? '#e2e8f0' : '#64748b' }}; border-bottom: 2px solid {{ $socialCreateTab === 'create' ? '#3b82f6' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
+                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'create' ? 'var(--vw-text)' : 'var(--vw-text-muted)' }}; border-bottom: 2px solid {{ $socialCreateTab === 'create' ? 'var(--vw-primary)' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
                     <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 0.3rem;"></i> {{ __('Create') }}
                 </button>
                 <button class="vw-social-tab-btn {{ $socialCreateTab === 'workflow' ? 'active' : '' }}"
                         wire:click="setSocialCreateTab('workflow')"
-                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'workflow' ? '#e2e8f0' : '#64748b' }}; border-bottom: 2px solid {{ $socialCreateTab === 'workflow' ? '#3b82f6' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
+                        style="flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 600; border: none; background: none; color: {{ $socialCreateTab === 'workflow' ? 'var(--vw-text)' : 'var(--vw-text-muted)' }}; border-bottom: 2px solid {{ $socialCreateTab === 'workflow' ? 'var(--vw-primary)' : 'transparent' }}; cursor: pointer; transition: all 0.15s;">
                     <i class="fa-solid fa-diagram-project" style="margin-right: 0.3rem;"></i> {{ __('Workflow') }}
                     @if($workflowExecutionSummary)
                         @php
                             $completedCount = collect($workflowExecutionSummary['nodes'] ?? [])->where('status', 'completed')->count();
                             $totalCount = count($workflowExecutionSummary['nodes'] ?? []);
                         @endphp
-                        <span style="font-size: 0.6rem; background: #1e3a5f; color: #60a5fa; padding: 0.1rem 0.35rem; border-radius: 0.5rem; margin-left: 0.3rem;">{{ $completedCount }}/{{ $totalCount }}</span>
+                        <span style="font-size: 0.6rem; background: var(--vw-bg-elevated); color: var(--vw-text-secondary); padding: 0.1rem 0.35rem; border-radius: 0.5rem; margin-left: 0.3rem;">{{ $completedCount }}/{{ $totalCount }}</span>
                     @endif
                 </button>
             </div>
@@ -1492,7 +1492,7 @@
                         <button class="vw-social-action-btn"
                                 wire:click="openImageStudio('shot', 0, 0)"
                                 title="{{ __('Edit image with AI') }}"
-                                style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                                style="background: var(--vw-primary);">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> {{ __('Edit') }}
                         </button>
 
@@ -1514,7 +1514,7 @@
                         <button class="vw-social-action-btn"
                                 wire:click="openAssetHistory('scene', 0)"
                                 title="{{ __('View image history') }}"
-                                style="background: rgba(255,255,255,0.08); min-width: auto; padding: 0.5rem 0.75rem;">
+                                style="background: rgba(0, 0, 0, 0.04); min-width: auto; padding: 0.5rem 0.75rem;">
                             <i class="fa-solid fa-clock-rotate-left"></i>
                         </button>
                     </div>
@@ -1532,7 +1532,7 @@
                             </span>
                         </button>
 
-                        <span style="color: rgba(255,255,255,0.3); font-size: 0.75rem;">{{ __('or') }}</span>
+                        <span style="color: var(--vw-border-accent); font-size: 0.75rem;">{{ __('or') }}</span>
 
                         {{-- Upload instead of generating --}}
                         <label class="vw-social-action-btn"
@@ -1714,11 +1714,11 @@
                 <div x-show="audioTab === 'voice'" x-cloak>
                     @if($isDialogueShot)
                         <div style="font-size: 0.78rem; color: var(--vw-text-secondary); margin-bottom: 0.5rem;">
-                            <i class="fa-solid fa-comments" style="color: #a49eff;"></i>
+                            <i class="fa-solid fa-comments" style="color: var(--vw-text-secondary);"></i>
                             {{ __('Generates separate voices for') }}
-                            <strong style="color: #a49eff;">{{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}</strong>
+                            <strong style="color: var(--vw-text-secondary);">{{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}</strong>
                             {{ __('and') }}
-                            <strong style="color: #67e8f9;">{{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}</strong>
+                            <strong style="color: #0891b2;">{{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}</strong>
                         </div>
                     @endif
                     <button class="vw-social-action-btn"
@@ -1760,13 +1760,13 @@
                 {{-- Audio Player --}}
                 @if($audioUrl && $audioStatus === 'ready')
                     @if($isDialogueShot && $audioUrl2)
-                        <div style="font-size: 0.75rem; color: #a49eff; margin-bottom: 0.25rem; font-weight: 600;">
+                        <div style="font-size: 0.75rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem; font-weight: 600;">
                             <i class="fa-solid fa-comments"></i> {{ __('Dialogue Mode') }} &mdash; {{ $shot['charactersInShot'][0] ?? 'Speaker 1' }}
                         </div>
                     @endif
                     <audio src="{{ $audioUrl }}" controls class="vw-social-audio-player"></audio>
                     @if($isDialogueShot && $audioUrl2)
-                        <div style="font-size: 0.75rem; color: #67e8f9; margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600;">
+                        <div style="font-size: 0.75rem; color: #0891b2; margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600;">
                             <i class="fa-solid fa-comments"></i> {{ $shot['charactersInShot'][1] ?? 'Speaker 2' }}
                         </div>
                         <audio src="{{ $audioUrl2 }}" controls class="vw-social-audio-player"></audio>
@@ -1909,7 +1909,7 @@
                 {{-- View Diagnostic button (dual take mode) --}}
                 @if(($shot['dualTakeMode'] ?? false) && !empty($shot['diagnosticUrl']))
                     <a href="{{ $shot['diagnosticUrl'] }}" target="_blank" rel="noopener"
-                       style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;padding:0.4rem 0.75rem;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:0.5rem;color:#60a5fa;font-size:0.75rem;font-weight:600;text-decoration:none;transition:all 0.2s;width:fit-content;"
+                       style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;padding:0.4rem 0.75rem;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:0.5rem;color:var(--vw-text-secondary);font-size:0.75rem;font-weight:600;text-decoration:none;transition:all 0.2s;width:fit-content;"
                        onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.12)'">
                         <i class="fa-solid fa-microscope"></i>
                         {{ __('View Pipeline Diagnostic') }}

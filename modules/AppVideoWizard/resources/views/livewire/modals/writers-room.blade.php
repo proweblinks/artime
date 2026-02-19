@@ -32,7 +32,7 @@
         .wr-header {
             height: 56px;
             background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
-            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -52,17 +52,17 @@
             gap: 0.5rem;
             font-size: 1.1rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            background: linear-gradient(135deg, var(--vw-primary) 0%, #06b6d4 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .wr-project-name {
             padding: 0.375rem 0.75rem;
-            background: rgba(139, 92, 246, 0.15);
-            border: 1px solid rgba(139, 92, 246, 0.3);
+            background: rgba(var(--vw-primary-rgb), 0.06);
+            border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
             border-radius: 0.375rem;
-            color: #c4b5fd;
+            color: var(--vw-text-secondary);
             font-size: 0.875rem;
             max-width: 300px;
             overflow: hidden;
@@ -78,24 +78,24 @@
 
         .wr-view-btn {
             padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--vw-border);
             border-radius: 0.375rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--vw-text-secondary);
             font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .wr-view-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
+            background: var(--vw-border);
+            color: var(--vw-text);
         }
 
         .wr-view-btn.active {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
-            border-color: rgba(139, 92, 246, 0.5);
-            color: #fff;
+            background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12) 0%, rgba(6, 182, 212, 0.3) 100%);
+            border-color: var(--vw-border-focus);
+        color: var(--vw-text);
         }
 
         .wr-header-right {
@@ -112,7 +112,7 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: none;
             border-radius: 0.375rem;
-            color: white;
+        color: var(--vw-text);
             font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
@@ -154,7 +154,7 @@
         .wr-panel {
             display: flex;
             flex-direction: column;
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(0,0,0,0.04);
             overflow: hidden;
         }
 
@@ -164,8 +164,8 @@
 
         .wr-panel-header {
             height: 44px;
-            background: rgba(255, 255, 255, 0.03);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0,0,0,0.02);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -179,7 +179,7 @@
             gap: 0.5rem;
             font-size: 0.85rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--vw-text);
         }
 
         .wr-panel-title-icon {
@@ -206,14 +206,14 @@
             background: transparent;
             border: none;
             border-radius: 0.25rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .wr-panel-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
+            background: var(--vw-border);
+            color: var(--vw-text);
         }
 
         .wr-panel-content {
@@ -240,7 +240,7 @@
             padding: 0.5rem 0;
             font-size: 0.75rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             cursor: pointer;
@@ -248,7 +248,7 @@
         }
 
         .wr-bible-section-title:hover {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--vw-text);
         }
 
         .wr-bible-item {
@@ -256,8 +256,8 @@
             align-items: flex-start;
             gap: 0.625rem;
             padding: 0.625rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
             border-radius: 0.5rem;
             margin-bottom: 0.5rem;
             cursor: pointer;
@@ -265,8 +265,8 @@
         }
 
         .wr-bible-item:hover {
-            background: rgba(139, 92, 246, 0.1);
-            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(var(--vw-primary-rgb), 0.04);
+            border-color: rgba(var(--vw-primary-rgb), 0.12);
         }
 
         .wr-bible-item-avatar {
@@ -283,12 +283,12 @@
 
         .wr-bible-item-avatar.character {
             background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
-            color: white;
+        color: var(--vw-text);
         }
 
         .wr-bible-item-avatar.location {
             background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
+        color: var(--vw-text);
         }
 
         .wr-bible-item-info {
@@ -299,7 +299,7 @@
         .wr-bible-item-name {
             font-size: 0.85rem;
             font-weight: 600;
-            color: #fff;
+        color: var(--vw-text);
             margin-bottom: 0.125rem;
             white-space: nowrap;
             overflow: hidden;
@@ -308,7 +308,7 @@
 
         .wr-bible-item-role {
             font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -329,19 +329,19 @@
 
         .wr-scene-card {
             background: rgba(30, 30, 40, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0,0,0,0.04);
             border-radius: 0.75rem;
             overflow: hidden;
             transition: all 0.2s;
         }
 
         .wr-scene-card:hover {
-            border-color: rgba(139, 92, 246, 0.3);
+            border-color: rgba(var(--vw-primary-rgb), 0.12);
         }
 
         .wr-scene-card.active {
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+            border-color: var(--vw-border-focus);
+            box-shadow: 0 0 20px rgba(var(--vw-primary-rgb), 0.06);
         }
 
         .wr-scene-header {
@@ -350,7 +350,7 @@
             justify-content: space-between;
             padding: 0.75rem 1rem;
             background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(0,0,0,0.03);
         }
 
         .wr-scene-number {
@@ -365,11 +365,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            background: linear-gradient(135deg, var(--vw-primary) 0%, #06b6d4 100%);
             border-radius: 0.375rem;
             font-size: 0.75rem;
             font-weight: 700;
-            color: white;
+        color: var(--vw-text);
         }
 
         .wr-scene-title-input {
@@ -377,13 +377,13 @@
             border: none;
             font-size: 0.9rem;
             font-weight: 600;
-            color: #fff;
+        color: var(--vw-text);
             width: 200px;
         }
 
         .wr-scene-title-input:focus {
             outline: none;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0,0,0,0.03);
             border-radius: 0.25rem;
             padding: 0.25rem 0.5rem;
             margin: -0.25rem -0.5rem;
@@ -394,7 +394,7 @@
             align-items: center;
             gap: 0.375rem;
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
         }
 
         .wr-scene-body {
@@ -415,7 +415,7 @@
             gap: 0.375rem;
             font-size: 0.7rem;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--vw-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.5rem;
@@ -426,9 +426,9 @@
             min-height: 80px;
             padding: 0.75rem;
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--vw-border);
             border-radius: 0.5rem;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--vw-text);
             font-size: 0.9rem;
             line-height: 1.6;
             resize: vertical;
@@ -437,8 +437,8 @@
 
         .wr-scene-textarea:focus {
             outline: none;
-            border-color: rgba(139, 92, 246, 0.5);
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            border-color: var(--vw-border-focus);
+            box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.04);
         }
 
         .wr-scene-textarea.narration {
@@ -456,7 +456,7 @@
             justify-content: space-between;
             padding: 0.75rem 1rem;
             background: rgba(0, 0, 0, 0.15);
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-top: 1px solid rgba(0,0,0,0.03);
         }
 
         .wr-scene-references {
@@ -498,17 +498,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--vw-border);
             border-radius: 0.25rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .wr-scene-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
+            background: var(--vw-border);
+            color: var(--vw-text);
         }
 
         .wr-scene-btn.danger:hover {
@@ -527,7 +527,7 @@
         .wr-storyboard-preview {
             aspect-ratio: 16/9;
             background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--vw-border);
             border-radius: 0.5rem;
             overflow: hidden;
             margin-bottom: 1rem;
@@ -547,7 +547,7 @@
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
-            color: rgba(255, 255, 255, 0.3);
+            color: var(--vw-text-secondary);
         }
 
         .wr-storyboard-placeholder svg {
@@ -574,11 +574,11 @@
         }
 
         .wr-thumb:hover {
-            border-color: rgba(139, 92, 246, 0.5);
+            border-color: var(--vw-border-focus);
         }
 
         .wr-thumb.active {
-            border-color: #8b5cf6;
+            border-color: var(--vw-primary);
         }
 
         .wr-thumb img {
@@ -600,14 +600,14 @@
             border-radius: 4px;
             font-size: 0.65rem;
             font-weight: 600;
-            color: white;
+        color: var(--vw-text);
         }
 
         .wr-thumb-empty {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 255, 255, 0.2);
+            color: var(--vw-border);
             font-size: 0.7rem;
         }
 
@@ -615,7 +615,7 @@
         .wr-stats-bar {
             height: 36px;
             background: rgba(0, 0, 0, 0.3);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(0,0,0,0.04);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -629,11 +629,11 @@
             align-items: center;
             gap: 0.375rem;
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
         }
 
         .wr-stat-value {
-            color: #8b5cf6;
+            color: var(--vw-primary);
             font-weight: 600;
         }
 
@@ -655,11 +655,11 @@
             position: fixed;
             z-index: 10000;
             background: rgba(30, 30, 45, 0.98);
-            border: 1px solid rgba(139, 92, 246, 0.4);
+            border: 1px solid var(--vw-border-accent);
             border-radius: 0.75rem;
             padding: 1rem;
             width: 280px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             animation: wr-popIn 0.2s ease;
         }
 
@@ -674,7 +674,7 @@
             gap: 0.75rem;
             margin-bottom: 0.75rem;
             padding-bottom: 0.75rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid var(--vw-border);
         }
 
         .wr-popover-avatar {
@@ -686,7 +686,7 @@
             justify-content: center;
             font-size: 1rem;
             font-weight: 600;
-            color: white;
+        color: var(--vw-text);
         }
 
         .wr-popover-avatar.character {
@@ -700,17 +700,17 @@
         .wr-popover-name {
             font-size: 1rem;
             font-weight: 600;
-            color: #fff;
+        color: var(--vw-text);
         }
 
         .wr-popover-role {
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--vw-text-secondary);
         }
 
         .wr-popover-desc {
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--vw-text);
             line-height: 1.5;
         }
 
@@ -723,10 +723,10 @@
 
         .wr-trait-tag {
             padding: 0.25rem 0.5rem;
-            background: rgba(139, 92, 246, 0.15);
+            background: rgba(var(--vw-primary-rgb), 0.06);
             border-radius: 0.25rem;
             font-size: 0.7rem;
-            color: #c4b5fd;
+            color: var(--vw-text-secondary);
         }
     </style>
 
@@ -795,7 +795,7 @@
                             {{ $storyBible['title'] }}
                         </div>
                         @if(!empty($storyBible['logline']))
-                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6); line-height: 1.5;">
+                            <div style="font-size: 0.8rem; color: var(--vw-text-secondary); line-height: 1.5;">
                                 {{ $storyBible['logline'] }}
                             </div>
                         @endif
@@ -824,9 +824,9 @@
                                 </div>
                             </div>
                         @empty
-                            <div style="padding: 1rem; text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem;">
+                            <div style="padding: 1rem; text-align: center; color: var(--vw-text-secondary); font-size: 0.8rem;">
                                 No characters defined.<br>
-                                <button wire:click="openStoryBibleModal" style="color: #8b5cf6; cursor: pointer; background: none; border: none; margin-top: 0.5rem;">
+                                <button wire:click="openStoryBibleModal" style="color: var(--vw-primary); cursor: pointer; background: none; border: none; margin-top: 0.5rem;">
                                     + Add from Story Bible
                                 </button>
                             </div>
@@ -856,9 +856,9 @@
                                 </div>
                             </div>
                         @empty
-                            <div style="padding: 1rem; text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem;">
+                            <div style="padding: 1rem; text-align: center; color: var(--vw-text-secondary); font-size: 0.8rem;">
                                 No locations defined.<br>
-                                <button wire:click="openStoryBibleModal" style="color: #8b5cf6; cursor: pointer; background: none; border: none; margin-top: 0.5rem;">
+                                <button wire:click="openStoryBibleModal" style="color: var(--vw-primary); cursor: pointer; background: none; border: none; margin-top: 0.5rem;">
                                     + Add from Story Bible
                                 </button>
                             </div>
@@ -876,24 +876,24 @@
                             </svg>
                         </div>
                         <div x-show="open" x-collapse>
-                            <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.7); line-height: 1.5;">
+                            <div style="padding: 0.75rem; background: rgba(0,0,0,0.02); border-radius: 0.5rem; font-size: 0.8rem; color: var(--vw-text); line-height: 1.5;">
                                 @if(!empty($storyBible['visualStyle']['mode']))
                                     <div style="margin-bottom: 0.5rem;">
-                                        <span style="color: rgba(255,255,255,0.4);">Mode:</span>
+                                        <span style="color: var(--vw-text-secondary);">Mode:</span>
                                         {{ ucfirst($storyBible['visualStyle']['mode']) }}
                                     </div>
                                 @endif
                                 @if(!empty($storyBible['visualStyle']['lighting']))
                                     <div style="margin-bottom: 0.5rem;">
-                                        <span style="color: rgba(255,255,255,0.4);">Lighting:</span>
+                                        <span style="color: var(--vw-text-secondary);">Lighting:</span>
                                         {{ $storyBible['visualStyle']['lighting'] }}
                                     </div>
                                 @endif
                                 @if(!empty($storyBible['visualStyle']['colorPalette']))
                                     <div style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
-                                        <span style="color: rgba(255,255,255,0.4);">Colors:</span>
+                                        <span style="color: var(--vw-text-secondary);">Colors:</span>
                                         @foreach($storyBible['visualStyle']['colorPalette'] as $color)
-                                            <span style="width: 20px; height: 20px; border-radius: 4px; background: {{ $color }}; border: 1px solid rgba(255,255,255,0.2);"></span>
+                                            <span style="width: 20px; height: 20px; border-radius: 4px; background: {{ $color }}; border: 1px solid var(--vw-border);"></span>
                                         @endforeach
                                     </div>
                                 @endif
@@ -910,7 +910,7 @@
                 <div class="wr-panel-title">
                     <span class="wr-panel-title-icon">📝</span>
                     <span>Script</span>
-                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-left: 0.5rem;">
+                    <span style="font-size: 0.7rem; color: var(--vw-text-secondary); margin-left: 0.5rem;">
                         {{ count($scenes) }} scenes
                     </span>
                 </div>
@@ -1027,7 +1027,7 @@
                             </div>
                         </div>
                     @empty
-                        <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.4);">
+                        <div style="text-align: center; padding: 3rem; color: var(--vw-text-secondary);">
                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 1rem; opacity: 0.5;">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
@@ -1038,7 +1038,7 @@
                             <div style="font-size: 1rem; margin-bottom: 0.5rem;">No scenes yet</div>
                             <div style="font-size: 0.85rem; margin-bottom: 1rem;">Generate a script to start writing</div>
                             <button wire:click="closeWritersRoom"
-                                    style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.375rem; color: white; cursor: pointer;">
+                                    style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--vw-primary), #06b6d4); border: none; border-radius: 0.375rem; color: white; cursor: pointer;">
                                 Generate Script First
                             </button>
                         </div>
@@ -1125,7 +1125,7 @@
             <span class="wr-stat-value">{{ count($storyBible['locations'] ?? []) }}</span>
         </div>
         @if(!empty($storyBible['status']) && $storyBible['status'] === 'ready')
-        <div class="wr-stat" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1rem; margin-left: 0.5rem;">
+        <div class="wr-stat" style="border-left: 1px solid var(--vw-border); padding-left: 1rem; margin-left: 0.5rem;">
             <span style="color: #10b981;">Context-Aware</span>
             <span class="wr-stat-value" style="color: #10b981;" title="Scene regeneration uses full Story Bible + surrounding scenes for better continuity">✓</span>
         </div>

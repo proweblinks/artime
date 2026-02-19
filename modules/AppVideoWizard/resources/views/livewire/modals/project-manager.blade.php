@@ -501,7 +501,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -804,7 +804,7 @@
 }
 
 .vw-pm-card-checkbox.checked {
-    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
     border-color: transparent;
 }
 
@@ -857,7 +857,7 @@
 
 .vw-pm-empty-btn {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -929,7 +929,7 @@
 
 .vw-pm-status-draft {
     background: var(--vw-primary-soft);
-    color: #a49eff;
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-status-in_progress {
@@ -978,7 +978,7 @@
 }
 
 .vw-pm-card-title-editable:hover {
-    color: #a49eff;
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-card-title-edit-icon {
@@ -1117,7 +1117,7 @@
 }
 
 .vw-pm-card-progress-step.completed {
-    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
 }
 
 /* Pagination */
@@ -1163,7 +1163,7 @@
 }
 
 .vw-pm-pagination-btn.active {
-    background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
     border-color: transparent;
     color: #fff;
 }
@@ -1197,7 +1197,7 @@
 
 .vw-pm-card-btn-load {
     background: var(--vw-primary-soft);
-    color: #a49eff;
+    color: var(--vw-text-secondary);
 }
 
 .vw-pm-card-btn-load:hover {

@@ -2,12 +2,12 @@
 <style>
     /* Scoped CSS for Concept Step - uses parent selector for specificity instead of !important */
     .vw-concept-step .vw-concept-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .vw-concept-step .vw-concept-header {
@@ -32,13 +32,13 @@
     .vw-concept-step .vw-concept-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
         margin: 0;
     }
 
     .vw-concept-step .vw-concept-subtitle {
         font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin-top: 0.25rem;
     }
 
@@ -46,7 +46,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border-radius: 0.5rem;
         padding: 0.75rem 1rem;
         margin-bottom: 1.5rem;
@@ -56,7 +56,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text-secondary);
         font-size: 0.875rem;
     }
 
@@ -64,8 +64,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.375rem;
-        background: rgba(139, 92, 246, 0.3);
-        color: #c4b5fd;
+        background: rgba(var(--vw-primary-rgb), 0.08);
+        color: var(--vw-text-secondary);
         padding: 0.375rem 0.75rem;
         border-radius: 0.375rem;
         font-size: 0.8rem;
@@ -73,24 +73,24 @@
     }
 
     .vw-concept-step .vw-context-badge.accent {
-        background: rgba(236, 72, 153, 0.3);
-        color: #f9a8d4;
+        background: rgba(236, 72, 153, 0.1);
+        color: #be185d;
     }
 
     .vw-concept-step .vw-context-arrow {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-muted);
     }
 
     .vw-concept-step .vw-context-duration {
-        color: #34d399;
+        color: #16a34a;
         font-weight: 600;
         font-size: 0.875rem;
     }
 
     /* Visual Mode Selector - Master Style Authority - PROMINENT POSITIONING */
     .vw-concept-step .vw-visual-mode-section {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
-        border: 2px solid rgba(139, 92, 246, 0.4);
+        background: rgba(var(--vw-primary-rgb), 0.03);
+        border: 2px solid var(--vw-border-accent);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -106,12 +106,12 @@
     .vw-concept-step .vw-visual-mode-title {
         font-size: 1rem;
         font-weight: 700;
-        color: #c4b5fd;
+        color: var(--vw-primary);
     }
 
     .vw-concept-step .vw-visual-mode-badge {
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-        color: white;
+        background: var(--vw-primary);
+        color: var(--vw-text-bright);
         padding: 0.25rem 0.6rem;
         border-radius: 0.25rem;
         font-size: 0.65rem;
@@ -128,8 +128,8 @@
     .vw-concept-step .vw-visual-mode-option {
         flex: 1;
         min-width: 140px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 2px solid rgba(255, 255, 255, 0.1);
+        background: var(--vw-bg-elevated);
+        border: 2px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 0.875rem;
         cursor: pointer;
@@ -138,18 +138,18 @@
     }
 
     .vw-concept-step .vw-visual-mode-option:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: var(--vw-bg-hover);
     }
 
     .vw-concept-step .vw-visual-mode-option.active {
-        border-color: #8b5cf6;
-        background: rgba(139, 92, 246, 0.25);
-        box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-concept-step .vw-visual-mode-option.active .vw-mode-label {
-        color: #c4b5fd;
+        color: var(--vw-primary);
     }
 
     .vw-concept-step .vw-mode-icon {
@@ -160,30 +160,30 @@
     .vw-concept-step .vw-mode-label {
         font-size: 0.85rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--vw-text);
     }
 
     .vw-concept-step .vw-mode-desc {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-muted);
         margin-top: 0.25rem;
     }
 
     .vw-concept-step .vw-field-label {
         font-size: 0.95rem;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.75rem;
     }
 
     .vw-concept-step .vw-textarea {
         width: 100%;
         min-height: 140px;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 1rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.95rem;
         line-height: 1.6;
         resize: vertical;
@@ -192,12 +192,12 @@
 
     .vw-concept-step .vw-textarea:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-focus);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-concept-step .vw-textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-muted);
     }
 
     .vw-concept-step .vw-textarea.enhanced {
@@ -207,23 +207,23 @@
 
     .vw-concept-step .vw-input {
         width: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 0.875rem 1rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.95rem;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .vw-concept-step .vw-input:focus {
         outline: none;
-        border-color: rgba(139, 92, 246, 0.5);
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-focus);
+        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.08);
     }
 
     .vw-concept-step .vw-input::placeholder {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-muted);
     }
 
     .vw-concept-step .vw-enhance-row {
@@ -238,8 +238,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
-        color: white;
+        background: var(--vw-primary);
+        color: var(--vw-text-bright);
         padding: 0.75rem 1.25rem;
         border-radius: 0.5rem;
         font-weight: 600;
@@ -251,7 +251,7 @@
 
     .vw-concept-step .vw-enhance-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.15);
     }
 
     .vw-concept-step .vw-enhance-btn:disabled {
@@ -261,7 +261,7 @@
 
     .vw-concept-step .vw-enhance-hint {
         display: inline-block;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-muted);
         font-size: 0.8rem;
     }
 
@@ -280,8 +280,8 @@
 
     .vw-concept-step .vw-undo-btn {
         background: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--vw-border);
+        color: var(--vw-text-secondary);
         padding: 0.5rem 0.75rem;
         border-radius: 0.35rem;
         font-size: 0.75rem;
@@ -290,8 +290,8 @@
     }
 
     .vw-concept-step .vw-undo-btn:hover {
-        border-color: rgba(255, 255, 255, 0.4);
-        color: rgba(255, 255, 255, 0.8);
+        border-color: var(--vw-border-accent);
+        color: var(--vw-text);
     }
 
     .vw-concept-step .vw-field-group {
@@ -303,7 +303,7 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-muted);
         margin-bottom: 0.5rem;
     }
 
@@ -313,7 +313,7 @@
 
     .vw-concept-step .vw-field-helper {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-muted);
         margin-top: 0.5rem;
     }
 
@@ -323,8 +323,8 @@
         justify-content: center;
         gap: 0.5rem;
         width: 100%;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #06b6d4 100%);
-        color: white;
+        background: var(--vw-primary);
+        color: var(--vw-text-bright);
         padding: 1rem 1.5rem;
         border-radius: 0.75rem;
         font-weight: 700;
@@ -337,7 +337,7 @@
 
     .vw-concept-step .vw-generate-btn:hover:not(:disabled) {
         transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(236, 72, 153, 0.4);
+        box-shadow: 0 6px 20px rgba(var(--vw-primary-rgb), 0.18);
     }
 
     .vw-concept-step .vw-generate-btn:disabled {
@@ -347,7 +347,7 @@
 
     .vw-concept-step .vw-divider {
         height: 1px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--vw-border);
         margin: 1.5rem 0;
     }
 
@@ -378,34 +378,34 @@
         gap: 0.5rem;
         margin-top: 0.75rem;
         padding-top: 0.75rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-concept-step .vw-enhancement-tag {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
         padding: 0.25rem 0.6rem;
         border-radius: 0.35rem;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text-secondary);
     }
 
     .vw-concept-step .vw-enhancement-tag.mood {
-        background: rgba(139, 92, 246, 0.15);
-        border-color: rgba(139, 92, 246, 0.3);
-        color: #c4b5fd;
+        background: rgba(var(--vw-primary-rgb), 0.06);
+        border-color: rgba(var(--vw-primary-rgb), 0.15);
+        color: var(--vw-primary);
     }
 
     .vw-concept-step .vw-enhancement-tag.tone {
-        background: rgba(236, 72, 153, 0.15);
-        border-color: rgba(236, 72, 153, 0.3);
-        color: #f9a8d4;
+        background: rgba(236, 72, 153, 0.08);
+        border-color: rgba(236, 72, 153, 0.2);
+        color: #be185d;
     }
 
     /* Your Concept Results Card */
     .vw-concept-step .vw-your-concept-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.2);
+        background: var(--vw-bg-surface);
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -422,7 +422,7 @@
         width: 40px;
         height: 40px;
         min-width: 40px;
-        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        background: var(--vw-primary);
         border-radius: 0.5rem;
         display: flex;
         align-items: center;
@@ -431,8 +431,8 @@
     }
 
     .vw-concept-step .vw-main-concept-card {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(88, 28, 135, 0.2) 100%);
-        border: 1px solid rgba(139, 92, 246, 0.3);
+        background: rgba(var(--vw-primary-rgb), 0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -441,12 +441,12 @@
     .vw-concept-step .vw-main-concept-title {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.75rem;
     }
 
     .vw-concept-step .vw-main-concept-text {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text-secondary);
         line-height: 1.7;
         font-size: 0.95rem;
     }
@@ -469,19 +469,19 @@
     }
 
     .vw-concept-step .vw-concept-badge.engaging {
-        background: rgba(6, 182, 212, 0.2);
-        color: #22d3ee;
+        background: rgba(6, 182, 212, 0.1);
+        color: #0891b2;
     }
 
     .vw-concept-step .vw-concept-badge.professional {
-        background: rgba(16, 185, 129, 0.2);
-        color: #34d399;
+        background: rgba(16, 185, 129, 0.1);
+        color: #16a34a;
     }
 
     /* Alternative Directions */
     .vw-concept-step .vw-alt-directions-label {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-muted);
         margin-bottom: 0.75rem;
     }
 
@@ -499,8 +499,8 @@
     }
 
     .vw-concept-step .vw-alt-card {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--vw-bg-elevated);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 1rem;
         cursor: pointer;
@@ -508,25 +508,25 @@
     }
 
     .vw-concept-step .vw-alt-card:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        background: rgba(139, 92, 246, 0.1);
+        border-color: var(--vw-border-accent);
+        background: var(--vw-bg-hover);
     }
 
     .vw-concept-step .vw-alt-card.selected {
-        border-color: rgba(139, 92, 246, 0.6);
-        background: rgba(139, 92, 246, 0.15);
+        border-color: var(--vw-primary);
+        background: rgba(var(--vw-primary-rgb), 0.06);
     }
 
     .vw-concept-step .vw-alt-card-title {
         font-size: 0.9rem;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.25rem;
     }
 
     .vw-concept-step .vw-alt-card-subtitle {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-muted);
     }
 
     .vw-concept-step .vw-generate-different-btn {
@@ -536,8 +536,8 @@
         gap: 0.5rem;
         width: 100%;
         background: transparent;
-        border: 1px dashed rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.6);
+        border: 1px dashed var(--vw-border);
+        color: var(--vw-text-secondary);
         padding: 1rem;
         border-radius: 0.5rem;
         font-size: 0.9rem;
@@ -546,9 +546,9 @@
     }
 
     .vw-concept-step .vw-generate-different-btn:hover {
-        border-color: rgba(139, 92, 246, 0.4);
-        color: #c4b5fd;
-        background: rgba(139, 92, 246, 0.05);
+        border-color: var(--vw-border-accent);
+        color: var(--vw-primary);
+        background: var(--vw-primary-soft);
     }
 
     /* Detection Summary Panel (Phase 1.5) */
@@ -562,12 +562,12 @@
     }
 
     .vw-concept-step .vw-error-alert {
-        background: rgba(239, 68, 68, 0.2);
-        border: 1px solid rgba(239, 68, 68, 0.4);
+        background: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.25);
         border-radius: 0.5rem;
         padding: 1rem;
         margin-bottom: 1rem;
-        color: #fca5a5;
+        color: var(--vw-danger);
     }
 </style>
 
@@ -797,7 +797,7 @@
 
             {{-- Alternative Directions --}}
             <div class="vw-alt-directions-label">
-                {{ __('Alternative Directions') }} <span style="color: rgba(255,255,255,0.3);">({{ __('click to switch') }})</span>
+                {{ __('Alternative Directions') }} <span style="color: var(--vw-text-muted);">({{ __('click to switch') }})</span>
             </div>
             <div class="vw-alt-directions-grid" wire:loading.class="vw-loading-opacity" wire:target="selectConceptVariation">
                 @foreach($conceptVariations as $index => $variation)

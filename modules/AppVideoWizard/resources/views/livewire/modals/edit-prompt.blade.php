@@ -86,37 +86,37 @@
      x-show="isOpen"
      x-cloak
      class="vw-modal-overlay"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
     <div class="vw-modal"
          @click.away="isOpen = false"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(139,92,246,0.3); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
-        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h3 style="margin: 0; color: white; font-size: 1.1rem; font-weight: 600;">✏️ {{ __('Edit Scene') }} {{ $editPromptSceneIndex + 1 }}</h3>
-                <p style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Modify scene properties and visual description') }}</p>
+                <h3 style="margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600;">✏️ {{ __('Edit Scene') }} {{ $editPromptSceneIndex + 1 }}</h3>
+                <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.8rem;">{{ __('Modify scene properties and visual description') }}</p>
             </div>
             <button type="button" @click="isOpen = false" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Tab Navigation --}}
-        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; gap: 0.5rem;">
+        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; gap: 0.5rem;">
             <button type="button"
                     @click="activeTab = 'visual'"
-                    :style="activeTab === 'visual' ? 'background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd;' : ''"
-                    style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                    :style="activeTab === 'visual' ? 'background: rgba(var(--vw-primary-rgb), 0.08); border-color: var(--vw-border-focus); color: var(--vw-text-secondary);' : ''"
+                    style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
                 🎨 {{ __('Visual') }}
             </button>
             <button type="button"
                     @click="activeTab = 'content'"
-                    :style="activeTab === 'content' ? 'background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd;' : ''"
-                    style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                    :style="activeTab === 'content' ? 'background: rgba(var(--vw-primary-rgb), 0.08); border-color: var(--vw-border-focus); color: var(--vw-text-secondary);' : ''"
+                    style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
                 📝 {{ __('Content') }}
             </button>
             <button type="button"
                     @click="activeTab = 'timing'"
-                    :style="activeTab === 'timing' ? 'background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd;' : ''"
-                    style="padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
+                    :style="activeTab === 'timing' ? 'background: rgba(var(--vw-primary-rgb), 0.08); border-color: var(--vw-border-focus); color: var(--vw-text-secondary);' : ''"
+                    style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer; font-size: 0.8rem; font-weight: 500;">
                 ⏱️ {{ __('Timing') }}
             </button>
         </div>
@@ -135,13 +135,13 @@
                         <div style="font-weight: 600; color: white; font-size: 0.9rem; margin-bottom: 0.25rem;">
                             {{ $script['scenes'][$editPromptSceneIndex]['title'] ?? __('Scene') . ' ' . ($editPromptSceneIndex + 1) }}
                         </div>
-                        <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-bottom: 0.5rem;">
+                        <div style="color: var(--vw-text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
                             ⏱️ {{ $editSceneDuration }}s • ↔️ {{ ucfirst($editSceneTransition) }}
                         </div>
                         @if($storyboard['scenes'][$editPromptSceneIndex]['source'] ?? 'ai' === 'stock')
-                            <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.25rem; color: #6ee7b7;">📷 {{ __('Stock Media') }}</span>
+                            <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 0.25rem; color: #16a34a;">📷 {{ __('Stock Media') }}</span>
                         @else
-                            <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4); border-radius: 0.25rem; color: #c4b5fd;">🎨 {{ __('AI Generated') }}</span>
+                            <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary);">🎨 {{ __('AI Generated') }}</span>
                         @endif
                     </div>
                 </div>
@@ -151,70 +151,70 @@
             <div x-show="activeTab === 'visual'">
                 {{-- Edit Prompt Textarea with @ Mention Support --}}
                 <div style="margin-bottom: 1rem; position: relative;">
-                    <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">
+                    <label style="display: block; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.35rem;">
                         {{ __('Visual Description / Image Prompt') }}
-                        <span style="color: rgba(139,92,246,0.7); font-size: 0.65rem; margin-left: 0.5rem;">{{ __('Type @ to mention characters/locations') }}</span>
+                        <span style="color: rgba(var(--vw-primary-rgb), 0.25); font-size: 0.65rem; margin-left: 0.5rem;">{{ __('Type @ to mention characters/locations') }}</span>
                     </label>
                     <div class="vw-prompt-input-container">
                         <textarea wire:model.blur="editPromptText"
                                   @input="handleMentionInput($event)"
                                   @keydown="handleMentionKeydown($event)"
                                   placeholder="{{ __('Describe what you want to see in this scene... Use @character or @location to reference your bible items.') }}"
-                                  style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
+                                  style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
 
                         {{-- @ Mention Autocomplete Dropdown --}}
                         <div class="vw-mention-autocomplete"
                              x-show="mention.active && filteredMentions.length > 0"
                              x-transition
                              x-cloak
-                             style="position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: rgba(20, 20, 35, 0.98); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); z-index: 100; margin-top: 0.25rem;">
+                             style="position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: rgba(20, 20, 35, 0.98); border: 1px solid var(--vw-border-accent); border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 100; margin-top: 0.25rem;">
                             <template x-for="(item, idx) in filteredMentions" :key="item.tag">
                                 <div class="vw-mention-item"
                                      :class="{ 'active': mention.selectedIndex === idx }"
                                      @click="insertMention(item)"
                                      @mouseenter="mention.selectedIndex = idx"
-                                     style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
+                                     style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.02);">
                                     <template x-if="item.image">
                                         <img :src="item.image" :alt="item.name" style="width: 32px; height: 32px; border-radius: 0.35rem; object-fit: cover;">
                                     </template>
                                     <template x-if="!item.image">
-                                        <div style="width: 32px; height: 32px; border-radius: 0.35rem; background: rgba(139, 92, 246, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem;" x-text="item.icon"></div>
+                                        <div style="width: 32px; height: 32px; border-radius: 0.35rem; background: rgba(var(--vw-primary-rgb), 0.08); display: flex; align-items: center; justify-content: center; font-size: 1rem;" x-text="item.icon"></div>
                                     </template>
                                     <div style="flex: 1;">
                                         <div style="font-size: 0.8rem; color: white; font-weight: 500;" x-text="item.name"></div>
-                                        <div style="font-size: 0.65rem; color: #a78bfa; font-family: monospace;" x-text="item.tag"></div>
+                                        <div style="font-size: 0.65rem; color: var(--vw-primary); font-family: monospace;" x-text="item.tag"></div>
                                     </div>
-                                    <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: rgba(139, 92, 246, 0.2); color: #c4b5fd;" x-text="item.type"></span>
+                                    <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: rgba(var(--vw-primary-rgb), 0.08); color: var(--vw-text-secondary);" x-text="item.type"></span>
                                 </div>
                             </template>
                         </div>
                     </div>
-                    <div class="vw-keyboard-hint" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.65rem; color: rgba(255, 255, 255, 0.4); margin-top: 0.35rem;">
-                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">↑↓</span>
+                    <div class="vw-keyboard-hint" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.65rem; color: var(--vw-text-secondary); margin-top: 0.35rem;">
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: var(--vw-text-secondary);">↑↓</span>
                         <span>{{ __('navigate') }}</span>
-                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">↵</span>
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: var(--vw-text-secondary);">↵</span>
                         <span>{{ __('select') }}</span>
-                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: rgba(255, 255, 255, 0.6);">esc</span>
+                        <span class="vw-keyboard-key" style="display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; padding: 0.1rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; font-size: 0.6rem; font-family: monospace; color: var(--vw-text-secondary);">esc</span>
                         <span>{{ __('dismiss') }}</span>
                     </div>
                 </div>
 
                 {{-- AI Prompt Expander (Hollywood-Quality Enhancement) --}}
-                <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1)); border: 1px solid rgba(139,92,246,0.3); border-radius: 0.5rem;">
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6,182,212,0.1)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.5rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span style="font-size: 1rem;">✨</span>
-                            <span style="color: #c4b5fd; font-size: 0.8rem; font-weight: 600;">{{ __('Hollywood Prompt Expander') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.8rem; font-weight: 600;">{{ __('Hollywood Prompt Expander') }}</span>
                         </div>
-                        <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); padding: 0.15rem 0.4rem; background: rgba(139,92,246,0.2); border-radius: 0.25rem;">AI-Powered</span>
+                        <span style="font-size: 0.65rem; color: var(--vw-text-secondary); padding: 0.15rem 0.4rem; background: rgba(var(--vw-primary-rgb), 0.08); border-radius: 0.25rem;">AI-Powered</span>
                     </div>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.75rem;">
+                    <p style="color: var(--vw-text-secondary); font-size: 0.7rem; margin-bottom: 0.75rem;">
                         {{ __('Transform your basic prompt into Hollywood-quality with professional cinematography, lighting, and emotional depth.') }}
                     </p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
                         {{-- Enhancement Style Selector --}}
                         <select wire:model.change="expanderStyle"
-                                style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
                             <option value="cinematic">🎬 {{ __('Cinematic') }}</option>
                             <option value="action">⚡ {{ __('Action') }}</option>
                             <option value="emotional">💔 {{ __('Emotional') }}</option>
@@ -226,7 +226,7 @@
                                 wire:click="expandPrompt"
                                 wire:loading.attr="disabled"
                                 wire:target="expandPrompt"
-                                style="padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.35rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                                style="padding: 0.4rem 0.8rem; background: linear-gradient(135deg, var(--vw-primary), #06b6d4); border: none; border-radius: 0.35rem; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
                             <span wire:loading.remove wire:target="expandPrompt">✨ {{ __('Enhance Prompt') }}</span>
                             <span wire:loading wire:target="expandPrompt">
                                 <svg style="width: 14px; height: 14px; animation: spin 1s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -244,9 +244,9 @@
                 <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                         <span style="font-size: 1rem;">🎨</span>
-                        <span style="color: #6ee7b7; font-size: 0.8rem; font-weight: 600;">{{ __('Visual Consistency') }}</span>
+                        <span style="color: #16a34a; font-size: 0.8rem; font-weight: 600;">{{ __('Visual Consistency') }}</span>
                     </div>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.75rem;">
+                    <p style="color: var(--vw-text-secondary); font-size: 0.7rem; margin-bottom: 0.75rem;">
                         {{ __('Match the style, lighting, and color grading from a previous scene to maintain visual continuity.') }}
                     </p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
@@ -255,12 +255,12 @@
                             <input type="checkbox"
                                    wire:model.live="useReferenceScene"
                                    style="width: 1rem; height: 1rem; accent-color: #10b981;">
-                            <span style="color: rgba(255,255,255,0.7); font-size: 0.75rem;">{{ __('Use reference scene') }}</span>
+                            <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Use reference scene') }}</span>
                         </label>
                         {{-- Scene Selector --}}
                         @if($useReferenceScene)
                         <select wire:model.change="referenceSceneIndex"
-                                style="padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
                             <option value="">{{ __('Select reference scene...') }}</option>
                             @for($i = 0; $i < $editPromptSceneIndex; $i++)
                                 @if(isset($storyboard['scenes'][$i]['imageUrl']))
@@ -281,8 +281,8 @@
                                  style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                         <div style="flex: 1;">
-                            <div style="color: #6ee7b7; font-size: 0.7rem; font-weight: 500;">{{ __('Reference:') }} {{ __('Scene') }} {{ $referenceSceneIndex + 1 }}</div>
-                            <div style="color: rgba(255,255,255,0.5); font-size: 0.65rem;">{{ __('Style, lighting, and color grading will be matched') }}</div>
+                            <div style="color: #16a34a; font-size: 0.7rem; font-weight: 500;">{{ __('Reference:') }} {{ __('Scene') }} {{ $referenceSceneIndex + 1 }}</div>
+                            <div style="color: var(--vw-text-secondary); font-size: 0.65rem;">{{ __('Style, lighting, and color grading will be matched') }}</div>
                         </div>
                     </div>
                     @endif
@@ -291,27 +291,27 @@
 
                 {{-- Quick Add Tags --}}
                 <div style="margin-bottom: 1rem;">
-                    <label style="display: block; color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-bottom: 0.5rem; text-transform: uppercase;">{{ __('Quick Add') }}</label>
+                    <label style="display: block; color: var(--vw-text-secondary); font-size: 0.7rem; margin-bottom: 0.5rem; text-transform: uppercase;">{{ __('Quick Add') }}</label>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                        <button type="button" wire:click="appendToPrompt('cinematic lighting, dramatic shadows')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('cinematic lighting, dramatic shadows')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Cinematic lighting') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('shallow depth of field, bokeh background')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('shallow depth of field, bokeh background')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Shallow DOF') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('golden hour lighting, warm tones')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('golden hour lighting, warm tones')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Golden hour') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('wide angle shot, establishing view')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('wide angle shot, establishing view')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Wide shot') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('close-up shot, detailed')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('close-up shot, detailed')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Close-up') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('moody atmosphere, volumetric lighting')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('moody atmosphere, volumetric lighting')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('Moody') }}
                         </button>
-                        <button type="button" wire:click="appendToPrompt('high contrast, dramatic shadows')" style="padding: 0.35rem 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.35rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                        <button type="button" wire:click="appendToPrompt('high contrast, dramatic shadows')" style="padding: 0.35rem 0.6rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; cursor: pointer;">
                             + {{ __('High contrast') }}
                         </button>
                     </div>
@@ -322,11 +322,11 @@
             <div x-show="activeTab === 'content'">
                 {{-- Narration --}}
                 <div style="margin-bottom: 1rem;">
-                    <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Narration / Voiceover Text') }}</label>
+                    <label style="display: block; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Narration / Voiceover Text') }}</label>
                     <textarea wire:model.blur="editSceneNarration"
                               placeholder="{{ __('Enter the narration or dialogue for this scene...') }}"
-                              style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 150px; resize: vertical;"></textarea>
-                    <p style="color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: 0.35rem;">
+                              style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 150px; resize: vertical;"></textarea>
+                    <p style="color: var(--vw-text-secondary); font-size: 0.7rem; margin-top: 0.35rem;">
                         💡 {{ __('This text will be used for voiceover generation and scene context.') }}
                     </p>
                 </div>
@@ -337,12 +337,12 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                     {{-- Duration --}}
                     <div>
-                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Duration (seconds)') }}</label>
+                        <label style="display: block; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Duration (seconds)') }}</label>
                         <div style="display: flex; gap: 0.5rem;">
                             @foreach([3, 5, 8, 10, 15] as $duration)
                                 <button type="button"
                                         wire:click="$set('editSceneDuration', {{ $duration }})"
-                                        style="flex: 1; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.2)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                                        style="flex: 1; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.6)' : 'var(--vw-border)' }}; background: {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.2)' : 'rgba(0,0,0,0.03)' }}; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
                                     {{ $duration }}s
                                 </button>
                             @endforeach
@@ -350,7 +350,7 @@
                         <div style="margin-top: 0.75rem;">
                             <input type="range" min="1" max="30" wire:model.change="editSceneDuration"
                                    style="width: 100%; accent-color: #06b6d4;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: rgba(255,255,255,0.4);">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--vw-text-secondary);">
                                 <span>1s</span>
                                 <span>{{ $editSceneDuration }}s</span>
                                 <span>30s</span>
@@ -360,7 +360,7 @@
 
                     {{-- Transition --}}
                     <div>
-                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Transition to Next Scene') }}</label>
+                        <label style="display: block; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Transition to Next Scene') }}</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             @php
                                 $transitions = [
@@ -375,7 +375,7 @@
                             @foreach($transitions as $value => $trans)
                                 <button type="button"
                                         wire:click="$set('editSceneTransition', '{{ $value }}')"
-                                        style="padding: 0.5rem; border-radius: 0.35rem; border: 1px solid {{ $editSceneTransition === $value ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.15)' }}; background: {{ $editSceneTransition === $value ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)' }}; color: white; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                                        style="padding: 0.5rem; border-radius: 0.35rem; border: 1px solid {{ $editSceneTransition === $value ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; background: {{ $editSceneTransition === $value ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; color: white; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
                                     <span>{{ $trans['icon'] }}</span>
                                     <span>{{ __($trans['label']) }}</span>
                                 </button>
@@ -387,22 +387,22 @@
         </div>
 
         {{-- Footer --}}
-        <div style="padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <button type="button"
                     wire:click="saveSceneProperties"
-                    style="padding: 0.6rem 1.25rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer;">
+                    style="padding: 0.6rem 1.25rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer;">
                 💾 {{ __('Save Only') }}
             </button>
             <div style="display: flex; gap: 0.75rem;">
                 <button type="button"
                         @click="isOpen = false; $wire.closeEditPrompt()"
-                        style="padding: 0.6rem 1.25rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer;">
+                        style="padding: 0.6rem 1.25rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); cursor: pointer;">
                     {{ __('Cancel') }}
                 </button>
                 <button type="button"
                         wire:click="saveAndRegeneratePrompt"
                         wire:loading.attr="disabled"
-                        style="padding: 0.6rem 1.25rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer;">
+                        style="padding: 0.6rem 1.25rem; background: linear-gradient(135deg, var(--vw-primary), #06b6d4); border: none; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer;">
                     <span wire:loading.remove wire:target="saveAndRegeneratePrompt">🎨 {{ __('Save & Regenerate') }}</span>
                     <span wire:loading wire:target="saveAndRegeneratePrompt">{{ __('Generating...') }}</span>
                 </button>

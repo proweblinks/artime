@@ -144,13 +144,13 @@
     width: 95%;
     max-height: 90vh;
     overflow: hidden;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3), 0 0 40px rgba(var(--vw-primary-rgb), 0.06);
 }
 
 .sfc-header {
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--vw-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -163,13 +163,13 @@
     gap: 0.75rem;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #fbbf24;
+    color: #d97706;
 }
 
 .sfc-icon {
     width: 1.5rem;
     height: 1.5rem;
-    color: #fbbf24;
+    color: #d97706;
 }
 
 .sfc-close {
@@ -183,8 +183,8 @@
 }
 
 .sfc-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--vw-border);
+        color: var(--vw-text);
 }
 
 .sfc-close svg {
@@ -233,7 +233,7 @@
     background: #0d0d14;
     border-radius: 0.75rem;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--vw-border);
 }
 
 .sfc-image-frame img {
@@ -272,27 +272,27 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.04);
     border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .sfc-char-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0,0,0,0.03);
+    border-color: var(--vw-border);
 }
 
 .sfc-char-item.selected {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(var(--vw-primary-rgb), 0.06);
+    border-color: var(--vw-border-focus);
 }
 
 .sfc-checkbox {
     width: 1.25rem;
     height: 1.25rem;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--vw-text-secondary);
     border-radius: 0.375rem;
     display: flex;
     align-items: center;
@@ -302,14 +302,14 @@
 }
 
 .sfc-checkbox.checked {
-    background: #8b5cf6;
-    border-color: #8b5cf6;
+    background: var(--vw-primary);
+    border-color: var(--vw-primary);
 }
 
 .sfc-checkbox svg {
     width: 0.875rem;
     height: 0.875rem;
-    color: #fff;
+        color: var(--vw-text);
 }
 
 .sfc-char-thumb {
@@ -317,20 +317,20 @@
     height: 2.5rem;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--vw-border);
 }
 
 .sfc-char-placeholder {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    background: var(--vw-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 1rem;
-    color: #fff;
+        color: var(--vw-text);
 }
 
 .sfc-char-info {
@@ -341,7 +341,7 @@
 
 .sfc-char-name {
     font-weight: 600;
-    color: #fff;
+        color: var(--vw-text);
     font-size: 0.875rem;
 }
 
@@ -355,9 +355,9 @@
     text-align: center;
     color: #6b7280;
     font-size: 0.875rem;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(0,0,0,0.02);
     border-radius: 0.75rem;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border: 1px dashed var(--vw-border);
 }
 
 .sfc-no-chars p:first-child {
@@ -371,7 +371,7 @@
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 0.5rem;
-    color: #fca5a5;
+    color: #dc2626;
     font-size: 0.875rem;
 }
 
@@ -381,18 +381,18 @@
     gap: 0.75rem;
     margin-top: 1rem;
     padding: 0.75rem 1rem;
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: rgba(var(--vw-primary-rgb), 0.06);
+    border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
     border-radius: 0.5rem;
-    color: #c4b5fd;
+    color: var(--vw-text-secondary);
     font-size: 0.875rem;
 }
 
 .sfc-spinner {
     width: 1.25rem;
     height: 1.25rem;
-    border: 2px solid rgba(139, 92, 246, 0.3);
-    border-top-color: #8b5cf6;
+    border: 2px solid rgba(var(--vw-primary-rgb), 0.12);
+    border-top-color: var(--vw-primary);
     border-radius: 50%;
     animation: sfc-spin 0.8s linear infinite;
 }
@@ -403,7 +403,7 @@
 
 .sfc-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--vw-border);
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
@@ -426,27 +426,27 @@
 }
 
 .sfc-btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--vw-border);
     color: #d1d5db;
 }
 
 .sfc-btn-secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--vw-border);
 }
 
 .sfc-btn-primary {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
-    color: #fff;
+    background: var(--vw-primary);
+        color: var(--vw-text);
 }
 
 .sfc-btn-primary:hover:not(:disabled) {
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 4px 15px var(--vw-border-accent);
     transform: translateY(-1px);
 }
 
 .sfc-btn-success {
     background: linear-gradient(135deg, #10b981, #059669);
-    color: #fff;
+        color: var(--vw-text);
 }
 
 .sfc-btn-success:hover:not(:disabled) {

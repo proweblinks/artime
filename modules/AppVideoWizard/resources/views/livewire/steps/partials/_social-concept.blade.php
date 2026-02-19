@@ -10,7 +10,7 @@
         width: 48px;
         height: 48px;
         min-width: 48px;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -57,7 +57,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius-lg);
@@ -136,7 +136,7 @@
     }
     .vw-social-concept .vw-idea-character {
         font-size: var(--vw-text-sm);
-        color: #a49eff;
+        color: var(--vw-text-secondary);
         margin-bottom: 0.5rem;
     }
     .vw-social-concept .vw-idea-badges {
@@ -157,24 +157,24 @@
         letter-spacing: 0.025em;
     }
     .vw-social-concept .vw-idea-badge.audio-music {
-        background: rgba(168, 85, 247, 0.2);
-        color: #c084fc;
-        border: 1px solid rgba(168, 85, 247, 0.3);
+        background: rgba(168, 85, 247, 0.1);
+        color: #7c3aed;
+        border: 1px solid rgba(168, 85, 247, 0.2);
     }
     .vw-social-concept .vw-idea-badge.audio-voice {
         background: var(--vw-info-soft);
-        color: #67e8f9;
-        border: 1px solid rgba(34, 211, 238, 0.3);
+        color: #0284c7;
+        border: 1px solid rgba(14, 165, 233, 0.2);
     }
-    .vw-social-concept .vw-idea-badge.mood-funny { background: rgba(250, 204, 21, 0.12); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.25); }
-    .vw-social-concept .vw-idea-badge.mood-absurd { background: rgba(249, 115, 22, 0.12); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.25); }
-    .vw-social-concept .vw-idea-badge.mood-wholesome { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.25); }
-    .vw-social-concept .vw-idea-badge.mood-chaotic { background: rgba(239, 68, 68, 0.12); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.25); }
-    .vw-social-concept .vw-idea-badge.mood-cute { background: rgba(236, 72, 153, 0.12); color: #f9a8d4; border: 1px solid rgba(236, 72, 153, 0.25); }
+    .vw-social-concept .vw-idea-badge.mood-funny { background: rgba(250, 204, 21, 0.1); color: #a16207; border: 1px solid rgba(250, 204, 21, 0.2); }
+    .vw-social-concept .vw-idea-badge.mood-absurd { background: rgba(249, 115, 22, 0.1); color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.2); }
+    .vw-social-concept .vw-idea-badge.mood-wholesome { background: rgba(52, 211, 153, 0.1); color: #059669; border: 1px solid rgba(52, 211, 153, 0.2); }
+    .vw-social-concept .vw-idea-badge.mood-chaotic { background: rgba(239, 68, 68, 0.08); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .vw-social-concept .vw-idea-badge.mood-cute { background: rgba(236, 72, 153, 0.08); color: #be185d; border: 1px solid rgba(236, 72, 153, 0.2); }
     .vw-social-concept .vw-idea-badge.source-cloned {
-        background: rgba(20, 184, 166, 0.15);
-        color: #5eead4;
-        border: 1px solid rgba(20, 184, 166, 0.3);
+        background: rgba(20, 184, 166, 0.1);
+        color: #0d9488;
+        border: 1px solid rgba(20, 184, 166, 0.2);
     }
     .vw-social-concept .vw-idea-hook {
         font-size: var(--vw-text-xs);
@@ -188,7 +188,7 @@
         gap: 0.5rem;
         padding: 0.6rem 1.25rem;
         background: transparent;
-        color: #a49eff;
+        color: var(--vw-text-secondary);
         border: 1px solid var(--vw-border-accent);
         border-radius: var(--vw-radius-lg);
         font-weight: 600;
@@ -223,7 +223,7 @@
     }
     .vw-social-concept .vw-skeleton-line {
         height: 0.75rem;
-        background: rgba(75, 86, 117, 0.25);
+        background: rgba(0, 0, 0, 0.08);
         border-radius: 0.25rem;
         margin-bottom: 0.5rem;
     }
@@ -255,7 +255,7 @@
     .vw-social-concept .vw-engine-card .vw-engine-badge {
         display: inline-block; padding: 0.15rem 0.5rem; border-radius: var(--vw-radius-full); font-size: 0.65rem;
         font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
-        background: var(--vw-primary-soft); color: #a49eff; border: 1px solid var(--vw-border-accent);
+        background: var(--vw-primary-soft); color: var(--vw-text-secondary); border: 1px solid var(--vw-border-accent);
     }
 
     /* Source Tabs */
@@ -337,7 +337,7 @@
     .vw-social-concept .vw-template-pill {
         display: flex; align-items: center; gap: 0.35rem;
         padding: 0.45rem 0.85rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--vw-bg-surface);
         border: 1px solid var(--vw-border);
         border-radius: var(--vw-radius-full); color: var(--vw-text-secondary);
         font-size: var(--vw-text-sm); cursor: pointer;
@@ -395,7 +395,7 @@
     .vw-social-concept .vw-url-input::placeholder { color: var(--vw-text-muted); }
     .vw-social-concept .vw-url-analyze-btn {
         padding: 0.65rem 1.2rem;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius);
@@ -455,7 +455,7 @@
         margin-top: 0.75rem;
         padding: 0.4rem 0.8rem;
         background: var(--vw-danger-soft);
-        color: #fca5a5;
+        color: #dc2626;
         border: 1px solid rgba(239, 68, 68, 0.3);
         border-radius: var(--vw-radius);
         font-size: var(--vw-text-sm);
@@ -468,7 +468,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, var(--vw-primary) 0%, #7c3aed 100%);
+        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius-lg);
@@ -508,7 +508,7 @@
         background: var(--vw-danger-soft);
         border: 1px solid rgba(239, 68, 68, 0.3);
         border-radius: var(--vw-radius-lg);
-        color: #fca5a5;
+        color: #dc2626;
         font-size: var(--vw-text-sm);
         margin-bottom: 1rem;
     }
@@ -531,7 +531,7 @@
         text-transform: uppercase;
         letter-spacing: 0.025em;
         background: rgba(20, 184, 166, 0.15);
-        color: #5eead4;
+        color: #0d9488;
         border: 1px solid rgba(20, 184, 166, 0.3);
         margin-bottom: 0.75rem;
     }
@@ -1086,15 +1086,15 @@
                                 <button type="button"
                                         wire:click="openImageStudio('clone')"
                                         title="{{ __('AI Image Studio — Edit or Reimagine') }}"
-                                        style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--vw-primary), #ec4899); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(var(--vw-primary-rgb), 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
-                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(103, 93, 255, 0.6)';"
-                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(103, 93, 255, 0.4)';">
+                                        style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--vw-primary); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(var(--vw-primary-rgb), 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
+                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(24, 24, 27, 0.3)';"
+                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(24, 24, 27, 0.2)';">
                                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 </button>
                                 <div style="padding: 0.4rem 0.6rem; background: var(--vw-primary-soft); font-size: var(--vw-text-xs); color: var(--vw-text-secondary); display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="fa-solid fa-image"></i> {{ __('First frame — will be used as base image') }}
                                     @if($originalFirstFrameUrl && $originalFirstFrameUrl !== ($videoAnalysisResult['firstFrameUrl'] ?? ''))
-                                        <span style="margin-left: auto; padding: 0.15rem 0.4rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb),0.3), rgba(236,72,153,0.3)); border-radius: 0.25rem; font-size: 0.65rem; color: #c4b5fd; font-weight: 500;">
+                                        <span style="margin-left: auto; padding: 0.15rem 0.4rem; background: rgba(var(--vw-primary-rgb),0.1); border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-text-secondary); font-weight: 500;">
                                             <i class="fa-solid fa-pen-fancy" style="font-size: 0.55rem;"></i> {{ __('Edited') }}
                                         </span>
                                     @endif
@@ -1135,7 +1135,7 @@
                                     <i class="fa-solid fa-microscope"></i>
                                     <span x-text="showAnalysis ? 'Hide Visual Analysis' : 'Show Visual Analysis (Gemini)'"></span>
                                 </a>
-                                <div x-show="showAnalysis" x-cloak style="margin-top: 0.5rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: var(--vw-text-xs); line-height: 1.5; color: var(--vw-text-secondary); padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: var(--vw-radius);">{{ $videoAnalysisResult['_visualAnalysis'] }}</div>
+                                <div x-show="showAnalysis" x-cloak style="margin-top: 0.5rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: var(--vw-text-xs); line-height: 1.5; color: var(--vw-text-secondary); padding: 0.5rem; background: var(--vw-bg-elevated); border-radius: var(--vw-radius);">{{ $videoAnalysisResult['_visualAnalysis'] }}</div>
                             </div>
                         @endif
 
