@@ -33,23 +33,26 @@
             align-items: center !important;
             gap: 0.5rem !important;
             padding: 0.5rem 1rem !important;
-            background: rgba(0, 0, 0, 0.02) !important;
-            border: 1px solid var(--vw-border) !important;
-            border-radius: 2rem !important;
+            background: var(--vw-bg-surface) !important;
+            border: none !important;
+            border-radius: var(--vw-radius-full) !important;
+            box-shadow: var(--vw-clay-sm) !important;
             transition: all 0.2s ease !important;
             cursor: pointer !important;
             white-space: nowrap !important;
             flex-shrink: 0 !important;
         }
-        .vw-step:hover { background: rgba(0, 0, 0, 0.04) !important; }
+        .vw-step:hover {
+            box-shadow: var(--vw-clay-btn) !important;
+            transform: translateY(-1px) !important;
+        }
         .vw-step.active {
             background: var(--vw-primary-soft) !important;
-            border-color: var(--vw-primary) !important;
-            box-shadow: var(--vw-shadow-glow) !important;
+            box-shadow: var(--vw-clay-active) !important;
         }
         .vw-step.completed {
             background: var(--vw-success-soft) !important;
-            border-color: var(--vw-border-success) !important;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.07), inset -1px -1px 3px rgba(0,0,0,0.05), inset 1px 1px 3px rgba(255,255,255,0.6) !important;
         }
         .vw-step.disabled {
             opacity: 0.35 !important;
@@ -62,6 +65,8 @@
             min-width: 26px !important;
             border-radius: 50% !important;
             background: rgba(0, 0, 0, 0.03) !important;
+            border: none !important;
+            box-shadow: var(--vw-clay-sm) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -206,7 +211,7 @@
         .vw-transition-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(255, 255, 255, 0.85);
+            background: var(--vw-bg-overlay);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             display: flex;
@@ -623,7 +628,7 @@
         });
 
         // Help text
-        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #18181b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #6366f1; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         console.log('%cUse window.VWDebug to control logging. Set VWDebug.enabled = false to disable.', 'color: #666;');
     })();
     </script>

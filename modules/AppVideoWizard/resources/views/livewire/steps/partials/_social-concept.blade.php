@@ -10,7 +10,7 @@
         width: 48px;
         height: 48px;
         min-width: 48px;
-        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -57,7 +57,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius-lg);
@@ -67,10 +67,11 @@
         cursor: pointer;
         transition: all var(--vw-transition);
         white-space: nowrap;
+        box-shadow: var(--vw-clay-btn);
     }
     .vw-social-concept .vw-generate-viral-btn:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.4);
+        box-shadow: var(--vw-clay-btn-hover);
     }
     .vw-social-concept .vw-generate-viral-btn:disabled {
         opacity: 0.6;
@@ -89,21 +90,20 @@
     }
     .vw-social-concept .vw-idea-card {
         background: var(--vw-bg-surface);
-        border: 2px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         cursor: pointer;
         transition: all var(--vw-transition);
         position: relative;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-idea-card:hover {
-        border-color: var(--vw-border-accent);
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(var(--vw-primary-rgb), 0.15);
+        box-shadow: var(--vw-clay-hover);
     }
     .vw-social-concept .vw-idea-card.selected {
-        border-color: var(--vw-primary);
-        box-shadow: var(--vw-primary-glow);
+        box-shadow: var(--vw-clay-active);
     }
     .vw-social-concept .vw-idea-card.selected::after {
         content: '\2713';
@@ -216,10 +216,11 @@
     }
     .vw-social-concept .vw-skeleton-card {
         background: var(--vw-bg-surface);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         animation: vw-skeleton-pulse 1.5s ease-in-out infinite;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-skeleton-line {
         height: 0.75rem;
@@ -243,11 +244,12 @@
     }
     @media (max-width: 640px) { .vw-social-concept .vw-engine-cards { grid-template-columns: 1fr; } }
     .vw-social-concept .vw-engine-card {
-        background: var(--vw-bg-elevated); border: 2px solid var(--vw-border); border-radius: var(--vw-radius-lg);
+        background: var(--vw-bg-elevated); border: none; border-radius: var(--vw-radius-lg);
         padding: 1rem; cursor: pointer; transition: all var(--vw-transition); position: relative;
+        box-shadow: var(--vw-clay);
     }
-    .vw-social-concept .vw-engine-card:hover { border-color: var(--vw-border-accent); transform: translateY(-1px); }
-    .vw-social-concept .vw-engine-card.active { border-color: var(--vw-primary); box-shadow: var(--vw-primary-glow); }
+    .vw-social-concept .vw-engine-card:hover { box-shadow: var(--vw-clay-hover); transform: translateY(-2px); }
+    .vw-social-concept .vw-engine-card.active { box-shadow: var(--vw-clay-active); }
     .vw-social-concept .vw-engine-card .vw-engine-icon { font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--vw-text-secondary); }
     .vw-social-concept .vw-engine-card.active .vw-engine-icon { color: var(--vw-primary); }
     .vw-social-concept .vw-engine-card h4 { font-size: var(--vw-text-md); font-weight: 700; color: var(--vw-text); margin-bottom: 0.35rem; }
@@ -267,7 +269,8 @@
         background: var(--vw-bg-elevated);
         border-radius: var(--vw-radius-lg);
         padding: 0.25rem;
-        border: 1px solid var(--vw-border);
+        border: none;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-tab-btn {
         flex: 1;
@@ -300,8 +303,9 @@
         margin-bottom: 1rem;
         background: var(--vw-bg-elevated);
         border-radius: var(--vw-radius-md);
-        border: 1px solid var(--vw-border);
+        border: none;
         overflow: hidden;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-clone-toggle-btn {
         flex: 1;
@@ -338,18 +342,21 @@
         display: flex; align-items: center; gap: 0.35rem;
         padding: 0.45rem 0.85rem;
         background: var(--vw-bg-surface);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-full); color: var(--vw-text-secondary);
         font-size: var(--vw-text-sm); cursor: pointer;
         transition: all var(--vw-transition);
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-template-pill:hover {
-        border-color: var(--vw-border-accent); color: var(--vw-text);
+        color: var(--vw-text);
+        box-shadow: var(--vw-clay-hover);
+        transform: translateY(-2px);
     }
     .vw-social-concept .vw-template-pill.active {
         background: var(--vw-primary-soft);
-        border-color: rgba(var(--vw-primary-rgb), 0.5);
         color: var(--vw-text);
+        box-shadow: var(--vw-clay-active);
     }
     .vw-social-concept .vw-template-desc {
         font-size: var(--vw-text-xs); color: var(--vw-text-muted); margin-top: 0.4rem;
@@ -357,10 +364,11 @@
     }
     .vw-social-concept .vw-url-import-box {
         background: var(--vw-bg-surface);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         margin-bottom: 1rem;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-url-input-row {
         display: flex;
@@ -383,19 +391,20 @@
         width: 100%;
         padding: 0.65rem 0.85rem 0.65rem 2.3rem;
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius);
         color: var(--vw-text);
         font-size: var(--vw-text-base);
         font-family: var(--vw-font);
         outline: none;
-        transition: border-color var(--vw-transition);
+        transition: box-shadow var(--vw-transition);
+        box-shadow: var(--vw-clay);
     }
-    .vw-social-concept .vw-url-input:focus { border-color: var(--vw-border-focus); }
+    .vw-social-concept .vw-url-input:focus { box-shadow: var(--vw-clay-active); }
     .vw-social-concept .vw-url-input::placeholder { color: var(--vw-text-muted); }
     .vw-social-concept .vw-url-analyze-btn {
         padding: 0.65rem 1.2rem;
-        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius);
@@ -408,8 +417,9 @@
         display: flex;
         align-items: center;
         gap: 0.4rem;
+        box-shadow: var(--vw-clay-btn);
     }
-    .vw-social-concept .vw-url-analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(var(--vw-primary-rgb), 0.35); }
+    .vw-social-concept .vw-url-analyze-btn:hover { transform: translateY(-1px); box-shadow: var(--vw-clay-btn-hover); }
     .vw-social-concept .vw-url-analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .vw-social-concept .vw-url-platforms {
         display: flex;
@@ -468,7 +478,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, #27272a 0%, #18181b 100%);
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
         color: var(--vw-text-bright);
         border: none;
         border-radius: var(--vw-radius-lg);
@@ -480,8 +490,9 @@
         width: 100%;
         justify-content: center;
         margin-bottom: 1rem;
+        box-shadow: var(--vw-clay-btn);
     }
-    .vw-social-concept .vw-analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.4); }
+    .vw-social-concept .vw-analyze-btn:hover { transform: translateY(-1px); box-shadow: var(--vw-clay-btn-hover); }
     .vw-social-concept .vw-analysis-progress {
         display: flex;
         align-items: center;
@@ -489,11 +500,12 @@
         gap: 0.75rem;
         padding: 1.25rem;
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         margin-bottom: 1rem;
         color: var(--vw-text-secondary);
         font-size: var(--vw-text-base);
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-progress-spinner {
         width: 20px;
@@ -514,11 +526,12 @@
     }
     .vw-social-concept .vw-cloned-idea-card {
         background: var(--vw-bg-surface);
-        border: 2px solid rgba(20, 184, 166, 0.3);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         position: relative;
         margin-bottom: 1rem;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-cloned-badge {
         display: inline-flex;
@@ -537,13 +550,14 @@
     }
     .vw-social-concept .vw-cloned-prompt-preview {
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius);
         padding: 0.75rem;
         margin: 0.75rem 0;
         font-size: var(--vw-text-sm);
         color: var(--vw-text-secondary);
         line-height: 1.4;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-cloned-prompt-preview strong { color: var(--vw-text); font-size: var(--vw-text-xs); text-transform: uppercase; letter-spacing: 0.03em; }
     .vw-social-concept .vw-cloned-prompt-preview p { margin-top: 0.35rem; }
@@ -570,10 +584,11 @@
     /* Chaos Controls */
     .vw-social-concept .vw-chaos-controls {
         background: var(--vw-bg-surface);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1rem;
         margin-bottom: 1rem;
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-chaos-row {
         display: flex;
@@ -634,7 +649,7 @@
     .vw-social-concept .vw-chaos-desc-input {
         width: 100%;
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius);
         padding: 0.5rem 0.75rem;
         color: var(--vw-text);
@@ -642,10 +657,11 @@
         font-family: var(--vw-font);
         outline: none;
         margin-top: 0.6rem;
-        transition: border-color var(--vw-transition);
+        transition: box-shadow var(--vw-transition);
+        box-shadow: var(--vw-clay);
     }
     .vw-social-concept .vw-chaos-desc-input:focus {
-        border-color: var(--vw-border-focus);
+        box-shadow: var(--vw-clay-active);
     }
     .vw-social-concept .vw-chaos-desc-input::placeholder {
         color: var(--vw-text-muted);
@@ -684,14 +700,16 @@
     .vw-save-template-form {
         margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;
         padding: 0.75rem; background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border); border-radius: var(--vw-radius);
+        border: none; border-radius: var(--vw-radius);
+        box-shadow: var(--vw-clay);
     }
     .vw-save-template-input {
-        background: var(--vw-bg-deep); border: 1px solid var(--vw-border);
+        background: var(--vw-bg-deep); border: none;
         border-radius: var(--vw-radius-sm); padding: 0.4rem 0.6rem; color: var(--vw-text);
         font-size: var(--vw-text-sm); outline: none; font-family: var(--vw-font);
+        box-shadow: var(--vw-clay);
     }
-    .vw-save-template-input:focus { border-color: var(--vw-border-focus); }
+    .vw-save-template-input:focus { box-shadow: var(--vw-clay-active); }
     .vw-save-template-toggle {
         display: flex; align-items: center; gap: 0.4rem;
         font-size: var(--vw-text-xs); color: var(--vw-text-secondary); cursor: pointer;
@@ -751,7 +769,7 @@
         @php
             $availableWorkflows = $this->getAvailableWorkflows();
         @endphp
-        <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: var(--vw-bg-surface); border: 1px solid var(--vw-border); border-radius: var(--vw-radius-lg);">
+        <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: var(--vw-bg-surface); border: none; border-radius: var(--vw-radius-lg); box-shadow: var(--vw-clay);">
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                 <i class="fa-solid fa-diagram-project" style="color: var(--vw-primary); font-size: 0.85rem;"></i>
                 <span style="font-size: var(--vw-text-sm); font-weight: 600; color: var(--vw-text);">{{ __('Workflow') }}</span>
@@ -1087,8 +1105,8 @@
                                         wire:click="openImageStudio('clone')"
                                         title="{{ __('AI Image Studio — Edit or Reimagine') }}"
                                         style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--vw-primary); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(var(--vw-primary-rgb), 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
-                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(24, 24, 27, 0.3)';"
-                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(24, 24, 27, 0.2)';">
+                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(99, 102, 241, 0.3)';"
+                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(99, 102, 241, 0.2)';">
                                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 </button>
                                 <div style="padding: 0.4rem 0.6rem; background: var(--vw-primary-soft); font-size: var(--vw-text-xs); color: var(--vw-text-secondary); display: flex; align-items: center; gap: 0.5rem;">

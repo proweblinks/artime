@@ -5,10 +5,11 @@
     /* Content Card Container */
     .vw-platform-step .vw-content-card {
         background: var(--vw-bg-surface);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-card-header {
@@ -29,6 +30,7 @@
         justify-content: center;
         font-size: 1.1rem;
         color: var(--vw-primary);
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-platform-step .vw-card-title {
@@ -60,24 +62,25 @@
     /* Format Cards */
     .vw-platform-step .vw-format-card {
         background: var(--vw-bg-elevated);
-        border: 2px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem 1rem;
         text-align: center;
         cursor: pointer;
         transition: all var(--vw-transition);
         position: relative;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-format-card:hover {
         background: var(--vw-bg-hover);
-        border-color: var(--vw-border-accent);
+        box-shadow: var(--vw-clay-hover);
+        transform: translateY(-2px);
     }
 
     .vw-platform-step .vw-format-card.selected {
-        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
-        border-color: var(--vw-primary);
-        box-shadow: var(--vw-primary-glow);
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.06) 100%);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-platform-step .vw-format-card.recommended::after {
@@ -147,23 +150,24 @@
 
     .vw-platform-step .vw-production-card {
         background: var(--vw-bg-elevated);
-        border: 2px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
         text-align: center;
         cursor: pointer;
         transition: all var(--vw-transition);
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-production-card:hover {
         background: var(--vw-bg-hover);
-        border-color: var(--vw-border-accent);
+        box-shadow: var(--vw-clay-hover);
+        transform: translateY(-2px);
     }
 
     .vw-platform-step .vw-production-card.selected {
-        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
-        border-color: var(--vw-primary);
-        box-shadow: var(--vw-primary-glow);
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.06) 100%);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-platform-step .vw-production-icon {
@@ -217,24 +221,25 @@
 
     .vw-platform-step .vw-subtype-card {
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1rem;
         cursor: pointer;
         transition: all var(--vw-transition);
         text-align: center;
         position: relative;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-subtype-card:hover {
         background: var(--vw-bg-hover);
-        border-color: var(--vw-border-accent);
-        transform: translateY(-1px);
+        box-shadow: var(--vw-clay-hover);
+        transform: translateY(-2px);
     }
 
     .vw-platform-step .vw-subtype-card.selected {
-        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.08) 100%);
-        border-color: var(--vw-primary);
+        background: linear-gradient(135deg, var(--vw-bg-elevated) 0%, rgba(var(--vw-primary-rgb), 0.06) 100%);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-platform-step .vw-subtype-header {
@@ -310,10 +315,10 @@
         background: rgba(255, 255, 255, 0.97);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--vw-border-accent);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 30px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--vw-clay-lg);
         z-index: 200;
         opacity: 0;
         pointer-events: none;
@@ -334,8 +339,7 @@
         width: 14px;
         height: 14px;
         background: rgba(255, 255, 255, 0.97);
-        border-right: 1px solid var(--vw-border-accent);
-        border-bottom: 1px solid var(--vw-border-accent);
+        border: none;
     }
 
     .vw-platform-step .vw-popover-header {
@@ -398,13 +402,14 @@
     }
     .vw-platform-step .vw-popover-example {
         background: rgba(var(--vw-primary-rgb), 0.08);
-        border: 1px solid rgba(var(--vw-primary-rgb), 0.15);
+        border: none;
         border-radius: var(--vw-radius);
         padding: 0.5rem 0.65rem;
         font-size: var(--vw-text-xs);
         line-height: 1.4;
         color: var(--vw-text-secondary);
         font-style: italic;
+        box-shadow: var(--vw-clay-sm);
     }
 
     /* Thin scrollbar for popover */
@@ -432,10 +437,7 @@
         .vw-platform-step .vw-style-popover::after {
             bottom: auto;
             top: -7px;
-            border-right: none;
-            border-bottom: none;
-            border-left: 1px solid var(--vw-border-accent);
-            border-top: 1px solid var(--vw-border-accent);
+            border: none;
         }
     }
 
@@ -476,9 +478,10 @@
 
     .vw-platform-step .vw-setting-section {
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         padding: 1.25rem;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-setting-header {
@@ -499,6 +502,7 @@
         justify-content: center;
         font-size: 0.85rem;
         color: var(--vw-primary);
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-platform-step .vw-setting-title {
@@ -525,22 +529,24 @@
         align-items: center;
         gap: 0.75rem;
         padding: 0.75rem;
-        border: 2px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         cursor: pointer;
         transition: all var(--vw-transition);
         background: var(--vw-bg-surface);
         position: relative;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-engine-card:hover {
-        border-color: var(--vw-border-accent);
         background: rgba(var(--vw-primary-rgb), 0.04);
+        box-shadow: var(--vw-clay-hover);
+        transform: translateY(-2px);
     }
 
     .vw-platform-step .vw-engine-card.selected {
-        border-color: var(--vw-primary);
         background: rgba(var(--vw-primary-rgb), 0.08);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-platform-step .vw-engine-icon {
@@ -627,21 +633,21 @@
         gap: 0.75rem;
         width: 100%;
         padding: 0.75rem 1rem;
-        border: 2px solid var(--vw-border);
+        border: none;
         border-radius: var(--vw-radius-lg);
         background: var(--vw-bg-surface);
         cursor: pointer;
         transition: all var(--vw-transition);
+        box-shadow: var(--vw-clay);
     }
 
     .vw-platform-step .vw-lang-trigger:hover {
-        border-color: var(--vw-border-accent);
         background: rgba(var(--vw-primary-rgb), 0.04);
+        box-shadow: var(--vw-clay-hover);
     }
 
     .vw-platform-step .vw-lang-trigger.open {
-        border-color: var(--vw-primary);
-        box-shadow: 0 0 0 3px rgba(var(--vw-primary-rgb), 0.15);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-platform-step .vw-lang-trigger-flag {
@@ -677,9 +683,9 @@
         left: 0;
         right: 0;
         background: var(--vw-bg-elevated);
-        border: 1px solid var(--vw-border-accent);
+        border: none;
         border-radius: var(--vw-radius-lg);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--vw-clay-lg);
         max-height: 280px;
         overflow-y: auto;
         z-index: 100;
@@ -753,7 +759,8 @@
         background: rgba(var(--vw-primary-rgb), 0.06);
         border-radius: var(--vw-radius-lg);
         margin-top: 0.75rem;
-        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
+        border: none;
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-platform-step .vw-language-flag {
@@ -857,11 +864,12 @@
         gap: 0.5rem;
         padding: 0.75rem 1rem;
         background: var(--vw-warning-soft);
-        border: 1px solid rgba(245, 158, 11, 0.2);
+        border: none;
         border-radius: var(--vw-radius);
         margin-bottom: 1rem;
         font-size: var(--vw-text-sm);
         color: #92400e;
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-platform-step .vw-format-guidance-icon {
