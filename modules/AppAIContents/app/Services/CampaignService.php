@@ -13,21 +13,29 @@ class CampaignService
     public function generateIdeas(string $prompt, ContentBusinessDna $dna, int $teamId): array
     {
         $aiPrompt = <<<PROMPT
-Generate 3 creative marketing campaign ideas based on this prompt and brand identity.
+You are a creative marketing strategist. Generate 3 compelling campaign ideas that match the user's request while staying true to the brand identity.
 
-User prompt: {$prompt}
-Brand: {$dna->brand_name}
-Tagline: {$dna->tagline}
-Values: {$this->arrayToString($dna->brand_values)}
-Aesthetic: {$this->arrayToString($dna->brand_aesthetic)}
-Tone: {$this->arrayToString($dna->brand_tone)}
-Overview: {$dna->business_overview}
+User's request: {$prompt}
+
+Brand context:
+- Name: {$dna->brand_name}
+- Tagline: {$dna->tagline}
+- Values: {$this->arrayToString($dna->brand_values)}
+- Aesthetic: {$this->arrayToString($dna->brand_aesthetic)}
+- Tone: {$this->arrayToString($dna->brand_tone)}
+- Overview: {$dna->business_overview}
+
+Requirements:
+- Each title should be catchy, action-oriented, and under 6 words
+- Each description should be 2-3 sentences covering the concept, target audience, and expected outcome
+- Ideas should directly address the user's request while reflecting the brand's aesthetic and tone
+- Make each idea a distinct creative angle on the user's request
 
 Return a JSON array of exactly 3 objects:
 [
-    {"title": "Campaign Title", "description": "Brief campaign description (1-2 sentences)"},
-    {"title": "Campaign Title", "description": "Brief campaign description (1-2 sentences)"},
-    {"title": "Campaign Title", "description": "Brief campaign description (1-2 sentences)"}
+    {"title": "Campaign Title", "description": "2-3 sentence campaign description"},
+    {"title": "Campaign Title", "description": "2-3 sentence campaign description"},
+    {"title": "Campaign Title", "description": "2-3 sentence campaign description"}
 ]
 
 Only return the JSON array, no other text.

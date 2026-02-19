@@ -63,15 +63,27 @@ class CreativeService
     protected function generateImage(ContentCampaign $campaign, ContentBusinessDna $dna, int $variationIndex): array
     {
         $brandColors = implode(', ', $dna->colors ?? ['#03fcf4', '#1a1a2e']);
-        $aesthetic = implode(', ', $dna->brand_aesthetic ?? ['modern', 'clean']);
-        $variations = ['dramatic lighting', 'soft natural light', 'bold contrasting', 'subtle gradient'];
+        $aesthetic = implode(', ', $dna->brand_aesthetic ?? ['modern-clean']);
+        $tone = implode(', ', $dna->brand_tone ?? ['professional']);
+        $variations = [
+            'dramatic cinematic lighting with depth',
+            'soft natural ambient light, airy feel',
+            'bold high-contrast with vivid colors',
+            'subtle gradient tones, elegant and refined',
+        ];
         $variation = $variations[$variationIndex % count($variations)];
 
-        $prompt = "Professional marketing creative for '{$campaign->title}'. "
-            . "Brand: {$dna->brand_name}. Style: {$aesthetic}, {$variation}. "
-            . "Brand colors: {$brandColors}. "
-            . "High quality, social media ready, portrait orientation (9:16). "
-            . "No text in the image.";
+        $aspectLabel = match($campaign->aspect_ratio) {
+            '1:1' => 'square composition',
+            '4:5' => 'portrait feed composition (4:5)',
+            default => 'vertical story composition (9:16)',
+        };
+
+        $prompt = "Create a premium social media marketing visual for the campaign '{$campaign->title}'. "
+            . "Brand: {$dna->brand_name}. Visual style: {$aesthetic}. Mood: {$variation}. "
+            . "Use brand colors ({$brandColors}) as inspiration for the color palette. "
+            . "The image should feel {$tone}. {$aspectLabel}. "
+            . "Professional quality, editorial grade. Do NOT include any text or words in the image.";
 
         $aspectMap = [
             '9:16' => ['width' => 720, 'height' => 1280],
@@ -118,22 +130,28 @@ class CreativeService
     protected function generateTextContent(ContentCampaign $campaign, ContentBusinessDna $dna, int $index): array
     {
         $prompt = <<<PROMPT
-Generate marketing text for a social media creative.
+You are a copywriter creating text overlays for a social media marketing creative (variation #{$index}).
 
 Campaign: {$campaign->title}
-Description: {$campaign->description}
+Campaign brief: {$campaign->description}
 Brand: {$dna->brand_name}
-Tone: {$this->arrayToString($dna->brand_tone)}
-Variation number: {$index}
+Brand tone: {$this->arrayToString($dna->brand_tone)}
+Brand values: {$this->arrayToString($dna->brand_values)}
+
+Requirements:
+- header: A bold, attention-grabbing headline (max 8 words). Should stop the scroll.
+- description: Supporting copy that expands on the headline (max 20 words). Concise and compelling.
+- cta: A strong call-to-action (2-4 words). Action-oriented.
+- Each variation (#{$index}) must use a DIFFERENT angle/approach from others
 
 Return a JSON object:
 {
-    "header": "Short bold headline (max 8 words)",
-    "description": "Supporting text (max 20 words)",
-    "cta": "Call to action text (2-4 words)"
+    "header": "Bold headline here",
+    "description": "Supporting text here",
+    "cta": "Action words"
 }
 
-Only return the JSON, no other text. Each variation should be different.
+Only return the JSON, no other text.
 PROMPT;
 
         try {
