@@ -2297,7 +2297,7 @@ window.multiShotVideoPolling = function() {
 /* Enhanced Render Status */
 .msm-render-status-enhanced { padding: 0.75rem; }
 .msm-render-status-enhanced .msm-render-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
-.msm-render-status-enhanced .msm-render-provider { font-size: 0.8rem; font-weight: 600; color: #a5b4fc; background: rgba(99,102,241,0.25); padding: 4px 10px; border-radius: 6px; }
+.msm-render-status-enhanced .msm-render-provider { font-size: 0.8rem; font-weight: 600; color: #67e8f9; background: rgba(3,252,244,0.25); padding: 4px 10px; border-radius: 6px; }
 .msm-render-status-enhanced .msm-reset-btn { position: static; transform: none; padding: 4px 8px; font-size: 0.75rem; }
 .msm-render-status-enhanced .msm-render-times { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
 .msm-render-status-enhanced .msm-elapsed { font-size: 0.95rem; font-weight: 700; color: #fcd34d; font-family: monospace; }
@@ -2573,7 +2573,7 @@ window.multiShotVideoPolling = function() {
 .vw-shot-badge-mcu { background: rgba(245, 158, 11, 0.3); color: #d97706; }
 .vw-shot-badge-med { background: rgba(34, 197, 94, 0.3); color: #4ade80; }
 .vw-shot-badge-wide { background: rgba(59, 130, 246, 0.3); color: #60a5fa; }
-.vw-shot-badge-est { background: rgba(99, 102, 241, 0.3); color: #818cf8; }
+.vw-shot-badge-est { background: rgba(3, 252, 244, 0.3); color: #0891b2; }
 .vw-shot-badge-ots { background: rgba(var(--vw-primary-rgb), 0.12); color: var(--vw-primary); }
 .vw-shot-badge-reaction { background: rgba(236, 72, 153, 0.3); color: #f472b6; }
 .vw-shot-badge-two-shot { background: rgba(20, 184, 166, 0.3); color: #2dd4bf; }

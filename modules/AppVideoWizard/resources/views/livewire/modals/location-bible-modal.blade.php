@@ -209,7 +209,7 @@
                                         <button type="button" wire:click="applyLocationTemplate('tech-lab')" style="padding: 0.15rem 0.3rem; background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Tech Lab') }}</button>
                                         <button type="button" wire:click="applyLocationTemplate('desert')" style="padding: 0.15rem 0.3rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Desert') }}</button>
                                         <button type="button" wire:click="applyLocationTemplate('industrial')" style="padding: 0.15rem 0.3rem; background: rgba(107, 114, 128, 0.3); border: 1px solid rgba(107, 114, 128, 0.5); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Industrial') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.15rem 0.3rem; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Space') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.15rem 0.3rem; background: rgba(3, 252, 244, 0.2); border: 1px solid rgba(3, 252, 244, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Space') }}</button>
                                     </div>
                                 </div>
 

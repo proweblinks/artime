@@ -224,7 +224,7 @@
                         </span>
                     @elseif($speechType === 'monologue')
                         {{-- Character Monologue: On-screen character speaking alone - needs Multitalk lip-sync --}}
-                        <span style="background: linear-gradient(135deg, var(--vw-primary), #6366f1); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
+                        <span style="background: linear-gradient(135deg, var(--vw-primary), #03fcf4); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: #0a2e2e;">
                             🗣️ {{ __('CHARACTER MONOLOGUE') }}
                         </span>
                         <span style="background: rgba(var(--vw-primary-rgb), 0.08); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-text-secondary);">

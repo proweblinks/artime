@@ -149,7 +149,7 @@
                                 'ghibli' => ['name' => __('Studio Ghibli'), 'icon' => 'fa-solid fa-cloud', 'color' => '#34d399'],
                                 'pixar' => ['name' => __('Pixar 3D'), 'icon' => 'fa-solid fa-cube', 'color' => '#60a5fa'],
                                 'oil_painting' => ['name' => __('Oil Painting'), 'icon' => 'fa-solid fa-palette', 'color' => '#f59e0b'],
-                                'watercolor' => ['name' => __('Watercolor'), 'icon' => 'fa-solid fa-droplet', 'color' => '#818cf8'],
+                                'watercolor' => ['name' => __('Watercolor'), 'icon' => 'fa-solid fa-droplet', 'color' => '#0891b2'],
                                 'comic_book' => ['name' => __('Comic Book'), 'icon' => 'fa-solid fa-bolt', 'color' => '#ef4444'],
                                 'cyberpunk' => ['name' => __('Cyberpunk'), 'icon' => 'fa-solid fa-microchip', 'color' => '#06b6d4'],
                                 'vintage_film' => ['name' => __('Vintage Film'), 'icon' => 'fa-solid fa-film', 'color' => '#d97706'],

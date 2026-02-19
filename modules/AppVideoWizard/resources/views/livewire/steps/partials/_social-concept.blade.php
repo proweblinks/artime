@@ -10,13 +10,13 @@
         width: 48px;
         height: 48px;
         min-width: 48px;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
-        color: var(--vw-text-bright);
+        color: #0a2e2e;
     }
     .vw-social-concept .vw-viral-title {
         font-size: var(--vw-text-2xl);
@@ -57,8 +57,8 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        color: var(--vw-text-bright);
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+        color: #0a2e2e;
         border: none;
         border-radius: var(--vw-radius-lg);
         font-weight: 600;
@@ -404,8 +404,8 @@
     .vw-social-concept .vw-url-input::placeholder { color: var(--vw-text-muted); }
     .vw-social-concept .vw-url-analyze-btn {
         padding: 0.65rem 1.2rem;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        color: var(--vw-text-bright);
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+        color: #0a2e2e;
         border: none;
         border-radius: var(--vw-radius);
         font-weight: 600;
@@ -478,8 +478,8 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        color: var(--vw-text-bright);
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+        color: #0a2e2e;
         border: none;
         border-radius: var(--vw-radius-lg);
         font-weight: 600;
@@ -641,7 +641,7 @@
         transition: all var(--vw-transition);
         white-space: nowrap;
     }
-    .vw-social-concept .vw-chaos-badge.calm { color: #818cf8; background: rgba(99,102,241,0.15); }
+    .vw-social-concept .vw-chaos-badge.calm { color: #0891b2; background: rgba(3,252,244,0.15); }
     .vw-social-concept .vw-chaos-badge.rising { color: #fbbf24; background: rgba(251,191,36,0.15); }
     .vw-social-concept .vw-chaos-badge.intense { color: #fb923c; background: rgba(249,115,22,0.15); }
     .vw-social-concept .vw-chaos-badge.wild { color: #f87171; background: rgba(248,113,113,0.15); }
@@ -1105,8 +1105,8 @@
                                         wire:click="openImageStudio('clone')"
                                         title="{{ __('AI Image Studio — Edit or Reimagine') }}"
                                         style="position: absolute; bottom: 2.5rem; right: 0.5rem; width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--vw-primary); color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(var(--vw-primary-rgb), 0.4); transition: transform 0.2s, box-shadow 0.2s; z-index: 5;"
-                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(99, 102, 241, 0.3)';"
-                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(99, 102, 241, 0.2)';">
+                                        onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 4px 16px rgba(3, 252, 244, 0.3)';"
+                                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(3, 252, 244, 0.2)';">
                                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 </button>
                                 <div style="padding: 0.4rem 0.6rem; background: var(--vw-primary-soft); font-size: var(--vw-text-xs); color: var(--vw-text-secondary); display: flex; align-items: center; gap: 0.5rem;">

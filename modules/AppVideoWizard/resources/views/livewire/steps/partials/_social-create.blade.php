@@ -177,8 +177,8 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.6rem 1.25rem;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        color: white;
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+        color: #0a2e2e;
         border: none;
         border-radius: 0.6rem;
         font-weight: 600;
@@ -396,8 +396,8 @@
         gap: 0.5rem;
         width: 100%;
         padding: 0.75rem;
-        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-        color: white;
+        background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+        color: #0a2e2e;
         border: none;
         border-radius: 0.6rem;
         font-weight: 700;
@@ -738,7 +738,7 @@
         font-weight: 600; font-size: 0.75rem; padding: 0.1rem 0.5rem;
         border-radius: 1rem; transition: all 0.2s;
     }
-    .vw-intensity-label.calm { color: #818cf8; background: rgba(99,102,241,0.15); }
+    .vw-intensity-label.calm { color: #0891b2; background: rgba(3,252,244,0.15); }
     .vw-intensity-label.rising { color: #fbbf24; background: rgba(251,191,36,0.15); }
     .vw-intensity-label.intense { color: #fb923c; background: rgba(249,115,22,0.15); }
     .vw-intensity-label.wild { color: #f87171; background: rgba(248,113,113,0.15); }
@@ -1246,7 +1246,7 @@
                                x-model="intensity"
                                @change="$wire.set('segmentEditMode.intensity', parseInt(intensity))"
                                class="vw-intensity-slider"
-                               :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                               :style="'background: linear-gradient(90deg, rgba(3,252,244,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
                         <div class="vw-intensity-ticks">
                             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
                         </div>
@@ -1345,7 +1345,7 @@
                                                x-model="intensity"
                                                @change="$wire.set('extendMode.intensity', parseInt(intensity))"
                                                class="vw-intensity-slider"
-                                               :style="'background: linear-gradient(90deg, rgba(99,102,241,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
+                                               :style="'background: linear-gradient(90deg, rgba(3,252,244,0.6) 0%, rgba(249,115,22,0.6) 50%, rgba(239,68,68,0.7) 100%)'">
                                         <div class="vw-intensity-ticks">
                                             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
                                         </div>

@@ -2154,7 +2154,7 @@
     .vw-shot-badge-mcu { background: rgba(245, 158, 11, 0.25); color: rgba(245, 158, 11, 0.95); }
     .vw-shot-badge-med { background: rgba(34, 197, 94, 0.25); color: rgba(34, 197, 94, 0.95); }
     .vw-shot-badge-wide { background: rgba(59, 130, 246, 0.25); color: rgba(59, 130, 246, 0.95); }
-    .vw-shot-badge-est { background: rgba(99, 102, 241, 0.25); color: rgba(99, 102, 241, 0.95); }
+    .vw-shot-badge-est { background: rgba(3, 252, 244, 0.25); color: rgba(3, 252, 244, 0.95); }
 
     /* Purpose Badges */
     .vw-shot-badge-ots { background: rgba(var(--vw-primary-rgb), 0.08); color: rgba(var(--vw-primary-rgb), 0.4); }

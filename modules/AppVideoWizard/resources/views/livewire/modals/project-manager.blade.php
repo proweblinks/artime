@@ -501,8 +501,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+    color: #0a2e2e;
     border: none;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -804,7 +804,7 @@
 }
 
 .vw-pm-card-checkbox.checked {
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
     border-color: transparent;
 }
 
@@ -857,8 +857,8 @@
 
 .vw-pm-empty-btn {
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+    color: #0a2e2e;
     border: none;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -1117,7 +1117,7 @@
 }
 
 .vw-pm-card-progress-step.completed {
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
 }
 
 /* Pagination */
@@ -1163,9 +1163,9 @@
 }
 
 .vw-pm-pagination-btn.active {
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
     border-color: transparent;
-    color: #fff;
+    color: #0a2e2e;
 }
 
 .vw-pm-pagination-btn:disabled {
