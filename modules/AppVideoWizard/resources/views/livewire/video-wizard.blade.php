@@ -25,7 +25,7 @@
         .vw-mesh-bg {
             position: fixed;
             inset: 0;
-            z-index: 0;
+            z-index: -1;
             overflow: hidden;
             pointer-events: none;
         }
@@ -66,11 +66,7 @@
             animation: vw-mesh-float-2 20s ease-in-out infinite;
             animation-delay: -5s;
         }
-        /* Ensure wizard content sits above the mesh */
-        .video-wizard > *:not(.vw-mesh-bg) {
-            position: relative;
-            z-index: 1;
-        }
+        /* Mesh uses z-index: -1, so all content is naturally above it */
 
         .vw-stepper {
             display: flex !important;
