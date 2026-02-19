@@ -11,8 +11,67 @@
     {{-- Design System (tokens, components, animations) --}}
     @include('appvideowizard::livewire.partials._vw-design-system')
 
+    {{-- Gradient Mesh Background --}}
+    <div class="vw-mesh-bg" aria-hidden="true">
+        <div class="vw-mesh-blob vw-mesh-blob--cyan"></div>
+        <div class="vw-mesh-blob vw-mesh-blob--teal"></div>
+        <div class="vw-mesh-blob vw-mesh-blob--purple"></div>
+        <div class="vw-mesh-blob vw-mesh-blob--blue"></div>
+    </div>
+
     {{-- Stepper & Navigation CSS --}}
     <style>
+        /* Gradient Mesh Background */
+        .vw-mesh-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .vw-mesh-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            will-change: transform;
+        }
+        .vw-mesh-blob--cyan {
+            width: 450px; height: 450px;
+            background: #03fcf4;
+            top: 5%; left: 15%;
+            opacity: 0.15;
+            animation: vw-mesh-float-1 25s ease-in-out infinite;
+        }
+        .vw-mesh-blob--teal {
+            width: 380px; height: 380px;
+            background: #14b8a6;
+            bottom: 15%; right: 10%;
+            opacity: 0.15;
+            animation: vw-mesh-float-2 22s ease-in-out infinite;
+            animation-delay: -8s;
+        }
+        .vw-mesh-blob--purple {
+            width: 320px; height: 320px;
+            background: #c084fc;
+            top: 45%; left: 55%;
+            opacity: 0.1;
+            animation: vw-mesh-float-3 28s ease-in-out infinite;
+            animation-delay: -14s;
+        }
+        .vw-mesh-blob--blue {
+            width: 350px; height: 350px;
+            background: #38bdf8;
+            top: 70%; left: 5%;
+            opacity: 0.12;
+            animation: vw-mesh-float-2 20s ease-in-out infinite;
+            animation-delay: -5s;
+        }
+        /* Ensure wizard content sits above the mesh */
+        .video-wizard > *:not(.vw-mesh-bg) {
+            position: relative;
+            z-index: 1;
+        }
+
         .vw-stepper {
             display: flex !important;
             flex-direction: row !important;
@@ -33,26 +92,31 @@
             align-items: center !important;
             gap: 0.5rem !important;
             padding: 0.5rem 1rem !important;
-            background: var(--vw-bg-surface) !important;
-            border: none !important;
+            background: rgba(255, 255, 255, 0.5) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.35) !important;
             border-radius: var(--vw-radius-full) !important;
-            box-shadow: var(--vw-clay-sm) !important;
+            box-shadow: var(--vw-glass-sm) !important;
             transition: all 0.2s ease !important;
             cursor: pointer !important;
             white-space: nowrap !important;
             flex-shrink: 0 !important;
         }
         .vw-step:hover {
-            box-shadow: var(--vw-clay-btn) !important;
+            box-shadow: var(--vw-glass-btn) !important;
             transform: translateY(-1px) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
         }
         .vw-step.active {
-            background: var(--vw-primary-soft) !important;
-            box-shadow: var(--vw-clay-active) !important;
+            background: rgba(3, 252, 244, 0.08) !important;
+            border-color: rgba(3, 252, 244, 0.3) !important;
+            box-shadow: var(--vw-glass-active) !important;
         }
         .vw-step.completed {
-            background: var(--vw-success-soft) !important;
-            box-shadow: 3px 3px 6px rgba(0,0,0,0.07), inset -1px -1px 3px rgba(0,0,0,0.05), inset 1px 1px 3px rgba(255,255,255,0.6) !important;
+            background: rgba(34, 197, 94, 0.08) !important;
+            border-color: rgba(34, 197, 94, 0.2) !important;
+            box-shadow: var(--vw-glass-sm) !important;
         }
         .vw-step.disabled {
             opacity: 0.35 !important;
@@ -64,9 +128,9 @@
             height: 26px !important;
             min-width: 26px !important;
             border-radius: 50% !important;
-            background: rgba(0, 0, 0, 0.03) !important;
-            border: none !important;
-            box-shadow: var(--vw-clay-sm) !important;
+            background: rgba(255, 255, 255, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            box-shadow: var(--vw-glass-sm) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -77,7 +141,7 @@
         }
         .vw-step.active .vw-step-number {
             background: var(--vw-primary) !important;
-            color: white !important;
+            color: var(--vw-text-on-primary) !important;
         }
         .vw-step.completed .vw-step-number {
             background: var(--vw-success) !important;
@@ -140,18 +204,20 @@
         }
 
         .vw-nav-btn--ghost {
-            background: rgba(0, 0, 0, 0.02) !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
             color: var(--vw-text-secondary) !important;
-            border: 1px solid var(--vw-border) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
         }
         .vw-nav-btn--ghost:hover:not(:disabled) {
-            background: rgba(0, 0, 0, 0.04) !important;
+            background: rgba(255, 255, 255, 0.6) !important;
             color: var(--vw-text) !important;
         }
 
         .vw-nav-btn--primary {
             background: var(--vw-primary) !important;
-            color: white !important;
+            color: var(--vw-text-on-primary) !important;
             box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.3) !important;
         }
         .vw-nav-btn--primary:hover:not(:disabled) {
@@ -228,8 +294,10 @@
         }
 
         .vw-transition-content {
-            background: var(--vw-bg-surface);
-            border: 1px solid var(--vw-border);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: var(--vw-radius-xl);
             padding: 2.5rem 3rem;
             box-shadow: var(--vw-shadow-lg);
@@ -628,7 +696,7 @@
         });
 
         // Help text
-        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #6366f1; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c🎬 Video Wizard Debug Mode Active', 'background: #03fcf4; color: #0a2e2e; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
         console.log('%cUse window.VWDebug to control logging. Set VWDebug.enabled = false to disable.', 'color: #666;');
     })();
     </script>

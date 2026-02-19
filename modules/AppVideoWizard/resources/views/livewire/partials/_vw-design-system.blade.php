@@ -5,27 +5,31 @@
 <style>
 /* ============================================
    VIDEO WIZARD DESIGN SYSTEM
-   Claymorphism — Warm Neutrals + Warm Indigo
+   Frosted Glass — Cyan Accent (#03fcf4)
    ============================================ */
 
 /* --- Design Tokens --- */
 .video-wizard {
-    --vw-bg-deep: #f2f0ed;
-    --vw-bg-surface: #ffffff;
-    --vw-bg-elevated: #f7f5f2;
-    --vw-bg-hover: #edeae6;
-    --vw-bg-overlay: rgba(255, 255, 255, 0.92);
+    --vw-bg-deep: #f0f4f8;
+    --vw-bg-surface: rgba(255, 255, 255, 0.55);
+    --vw-bg-surface-solid: #ffffff;
+    --vw-bg-elevated: rgba(255, 255, 255, 0.35);
+    --vw-bg-hover: rgba(255, 255, 255, 0.65);
+    --vw-bg-overlay: rgba(240, 244, 248, 0.85);
 
-    --vw-border: #e5e1db;
-    --vw-border-accent: rgba(99, 102, 241, 0.2);
-    --vw-border-focus: #6366f1;
+    --vw-border: rgba(255, 255, 255, 0.35);
+    --vw-border-accent: rgba(3, 252, 244, 0.2);
+    --vw-border-focus: #03fcf4;
     --vw-border-success: rgba(34, 197, 94, 0.4);
 
-    --vw-primary: #6366f1;
-    --vw-primary-rgb: 99, 102, 241;
-    --vw-primary-hover: #5558e3;
-    --vw-primary-soft: rgba(99, 102, 241, 0.08);
-    --vw-primary-glow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    --vw-primary: #03fcf4;
+    --vw-primary-rgb: 3, 252, 244;
+    --vw-primary-hover: #00d4cc;
+    --vw-primary-soft: rgba(3, 252, 244, 0.08);
+    --vw-primary-glow: 0 0 0 3px rgba(3, 252, 244, 0.15);
+    --vw-primary-text: #0891b2;
+    --vw-primary-text-rgb: 8, 145, 178;
+    --vw-text-on-primary: #0a2e2e;
 
     --vw-success: #22c55e;
     --vw-success-soft: rgba(34, 197, 94, 0.1);
@@ -36,9 +40,9 @@
     --vw-info: #0ea5e9;
     --vw-info-soft: rgba(14, 165, 233, 0.08);
 
-    --vw-text: #2d2a33;
-    --vw-text-secondary: #6b6580;
-    --vw-text-muted: #a09aad;
+    --vw-text: #1a1a2e;
+    --vw-text-secondary: #5a6178;
+    --vw-text-muted: #94a0b8;
     --vw-text-bright: #ffffff;
 
     --vw-font: 'Inter', system-ui, -apple-system, sans-serif;
@@ -57,45 +61,46 @@
     --vw-radius-xl: 1.5rem;
     --vw-radius-full: 9999px;
 
-    /* --- Clay Shadows (core of claymorphism) --- */
-    --vw-clay:
-        6px 6px 14px rgba(0, 0, 0, 0.07),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.04),
-        inset 2px 2px 5px rgba(255, 255, 255, 0.7);
-    --vw-clay-hover:
-        8px 8px 20px rgba(0, 0, 0, 0.1),
-        inset -3px -3px 6px rgba(0, 0, 0, 0.05),
-        inset 3px 3px 6px rgba(255, 255, 255, 0.8);
-    --vw-clay-active:
-        6px 6px 14px rgba(99, 102, 241, 0.12),
-        inset -2px -2px 5px rgba(99, 102, 241, 0.06),
-        inset 2px 2px 5px rgba(255, 255, 255, 0.7),
-        0 0 0 2px rgba(99, 102, 241, 0.3);
-    --vw-clay-btn:
-        4px 4px 10px rgba(0, 0, 0, 0.1),
-        inset -2px -2px 4px rgba(0, 0, 0, 0.08),
-        inset 2px 2px 4px rgba(255, 255, 255, 0.5);
-    --vw-clay-btn-hover:
-        6px 6px 14px rgba(0, 0, 0, 0.14),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.1),
-        inset 3px 3px 5px rgba(255, 255, 255, 0.6);
-    --vw-clay-inset:
-        inset 2px 2px 6px rgba(0, 0, 0, 0.06),
-        inset -1px -1px 4px rgba(255, 255, 255, 0.5);
-    --vw-clay-sm:
-        3px 3px 6px rgba(0, 0, 0, 0.07),
-        inset -1px -1px 3px rgba(0, 0, 0, 0.05),
-        inset 1px 1px 3px rgba(255, 255, 255, 0.6);
-    --vw-clay-lg:
-        10px 10px 24px rgba(0, 0, 0, 0.09),
-        inset -3px -3px 8px rgba(0, 0, 0, 0.04),
-        inset 4px 4px 8px rgba(255, 255, 255, 0.7);
+    /* --- Glass Shadows --- */
+    --vw-glass:
+        0 8px 32px rgba(0, 0, 0, 0.06),
+        0 2px 8px rgba(0, 0, 0, 0.04);
+    --vw-glass-hover:
+        0 12px 40px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.05);
+    --vw-glass-active:
+        0 8px 32px rgba(3, 252, 244, 0.1),
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        0 0 0 2px rgba(3, 252, 244, 0.3);
+    --vw-glass-btn:
+        0 4px 16px rgba(0, 0, 0, 0.08),
+        0 1px 4px rgba(0, 0, 0, 0.04);
+    --vw-glass-btn-hover:
+        0 8px 24px rgba(0, 0, 0, 0.12),
+        0 2px 6px rgba(0, 0, 0, 0.06);
+    --vw-glass-inset:
+        inset 0 1px 3px rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    --vw-glass-sm:
+        0 4px 12px rgba(0, 0, 0, 0.05),
+        0 1px 3px rgba(0, 0, 0, 0.03);
+    --vw-glass-lg:
+        0 16px 48px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.05);
 
-    /* Legacy shadow tokens (kept for compatibility) */
-    --vw-shadow-sm: var(--vw-clay-sm);
-    --vw-shadow: var(--vw-clay);
-    --vw-shadow-lg: var(--vw-clay-lg);
-    --vw-shadow-glow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    /* Backward-compat aliases (clay → glass) */
+    --vw-clay: var(--vw-glass);
+    --vw-clay-hover: var(--vw-glass-hover);
+    --vw-clay-active: var(--vw-glass-active);
+    --vw-clay-btn: var(--vw-glass-btn);
+    --vw-clay-btn-hover: var(--vw-glass-btn-hover);
+    --vw-clay-inset: var(--vw-glass-inset);
+    --vw-clay-sm: var(--vw-glass-sm);
+    --vw-clay-lg: var(--vw-glass-lg);
+    --vw-shadow-sm: var(--vw-glass-sm);
+    --vw-shadow: var(--vw-glass);
+    --vw-shadow-lg: var(--vw-glass-lg);
+    --vw-shadow-glow: 0 0 0 3px rgba(3, 252, 244, 0.1);
 
     --vw-transition: 200ms ease;
     --vw-transition-slow: 300ms ease;
@@ -116,19 +121,22 @@
 
 
 /* ============================================
-   COMPONENT: Cards — Clay 3D
+   COMPONENT: Cards — Frosted Glass
    ============================================ */
 .vw-card {
     background: var(--vw-bg-surface);
-    border: none;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: var(--vw-radius-lg);
     padding: 1.25rem;
-    box-shadow: var(--vw-clay);
-    transition: box-shadow var(--vw-transition), transform var(--vw-transition);
+    box-shadow: var(--vw-glass);
+    transition: box-shadow var(--vw-transition), transform var(--vw-transition), border-color var(--vw-transition);
 }
 
 .vw-card:hover {
-    box-shadow: var(--vw-clay-hover);
+    box-shadow: var(--vw-glass-hover);
+    border-color: rgba(255, 255, 255, 0.45);
 }
 
 .vw-card--selectable {
@@ -136,19 +144,21 @@
 }
 
 .vw-card--selectable:hover {
-    box-shadow: var(--vw-clay-hover);
+    box-shadow: var(--vw-glass-hover);
     transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .vw-card--selectable.selected,
 .vw-card--selectable.active {
-    box-shadow: var(--vw-clay-active);
-    background: var(--vw-bg-surface);
+    box-shadow: var(--vw-glass-active);
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(3, 252, 244, 0.35);
 }
 
 
 /* ============================================
-   COMPONENT: Buttons — Clay 3D
+   COMPONENT: Buttons — Glass
    ============================================ */
 .vw-btn {
     display: inline-flex;
@@ -175,52 +185,57 @@
     box-shadow: none !important;
 }
 
-/* Primary — Warm Indigo Clay */
+/* Primary — Cyan Glass */
 .vw-btn--primary {
     background: var(--vw-primary);
-    color: var(--vw-text-bright);
-    box-shadow: var(--vw-clay-btn);
+    color: var(--vw-text-on-primary);
+    box-shadow: var(--vw-glass-btn);
 }
 .vw-btn--primary:hover:not(:disabled) {
     background: var(--vw-primary-hover);
     transform: translateY(-1px);
-    box-shadow: var(--vw-clay-btn-hover);
+    box-shadow: var(--vw-glass-btn-hover);
 }
 
-/* Primary Gradient — Indigo Clay */
+/* Primary Gradient — Cyan Glass */
 .vw-btn--gradient {
-    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
-    color: var(--vw-text-bright);
-    box-shadow: var(--vw-clay-btn);
+    background: linear-gradient(135deg, #06e3f7 0%, #03fcf4 100%);
+    color: var(--vw-text-on-primary);
+    box-shadow: var(--vw-glass-btn);
 }
 .vw-btn--gradient:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: var(--vw-clay-btn-hover);
+    box-shadow: var(--vw-glass-btn-hover);
 }
 
-/* Secondary / Outline — Clay surface */
+/* Outline — Glass surface */
 .vw-btn--outline {
-    background: var(--vw-bg-surface);
-    color: var(--vw-primary);
-    box-shadow: var(--vw-clay-sm);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--vw-primary-text);
+    border: 1px solid rgba(3, 252, 244, 0.2);
+    box-shadow: var(--vw-glass-sm);
 }
 .vw-btn--outline:hover:not(:disabled) {
-    background: var(--vw-primary-soft);
-    box-shadow: var(--vw-clay-btn);
+    background: rgba(3, 252, 244, 0.08);
+    box-shadow: var(--vw-glass-btn);
     transform: translateY(-1px);
 }
 
-/* Ghost — Subtle clay */
+/* Ghost — Glass */
 .vw-btn--ghost {
-    background: var(--vw-bg-elevated);
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--vw-text-secondary);
-    border: none;
-    box-shadow: var(--vw-clay-sm);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--vw-glass-sm);
 }
 .vw-btn--ghost:hover:not(:disabled) {
-    background: var(--vw-bg-surface);
+    background: rgba(255, 255, 255, 0.55);
     color: var(--vw-text);
-    box-shadow: var(--vw-clay-btn);
+    box-shadow: var(--vw-glass-btn);
     transform: translateY(-1px);
 }
 
@@ -228,35 +243,35 @@
 .vw-btn--success {
     background: var(--vw-success);
     color: var(--vw-text-bright);
-    box-shadow: var(--vw-clay-btn);
+    box-shadow: var(--vw-glass-btn);
 }
 .vw-btn--success:hover:not(:disabled) {
     filter: brightness(1.05);
     transform: translateY(-1px);
-    box-shadow: var(--vw-clay-btn-hover);
+    box-shadow: var(--vw-glass-btn-hover);
 }
 
 /* Warning */
 .vw-btn--warning {
     background: var(--vw-warning);
     color: var(--vw-text-bright);
-    box-shadow: var(--vw-clay-btn);
+    box-shadow: var(--vw-glass-btn);
 }
 .vw-btn--warning:hover:not(:disabled) {
     filter: brightness(1.05);
     transform: translateY(-1px);
-    box-shadow: var(--vw-clay-btn-hover);
+    box-shadow: var(--vw-glass-btn-hover);
 }
 
 /* Danger */
 .vw-btn--danger {
     background: var(--vw-danger-soft);
     color: var(--vw-danger);
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
 }
 .vw-btn--danger:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.12);
-    box-shadow: var(--vw-clay-btn);
+    box-shadow: var(--vw-glass-btn);
 }
 
 /* Size Modifiers */
@@ -283,7 +298,7 @@
 
 
 /* ============================================
-   COMPONENT: Badges — Tiny Clay
+   COMPONENT: Badges — Glass
    ============================================ */
 .vw-badge {
     display: inline-flex;
@@ -296,16 +311,18 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     line-height: 1.5;
-    border: none;
-    box-shadow: var(--vw-clay-sm);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--vw-glass-sm);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
-.vw-badge--primary { background: var(--vw-primary-soft); color: var(--vw-primary); }
+.vw-badge--primary { background: rgba(3, 252, 244, 0.1); color: var(--vw-primary-text); border-color: rgba(3, 252, 244, 0.2); }
 .vw-badge--success { background: var(--vw-success-soft); color: #16a34a; }
 .vw-badge--warning { background: var(--vw-warning-soft); color: #d97706; }
 .vw-badge--danger { background: var(--vw-danger-soft); color: #dc2626; }
 .vw-badge--info { background: var(--vw-info-soft); color: #0284c7; }
-.vw-badge--muted { background: var(--vw-bg-elevated); color: var(--vw-text-secondary); }
+.vw-badge--muted { background: rgba(255, 255, 255, 0.35); color: var(--vw-text-secondary); }
 
 /* Mood badges for idea cards */
 .vw-badge--funny { background: rgba(250, 204, 21, 0.1); color: #a16207; }
@@ -316,25 +333,27 @@
 
 
 /* ============================================
-   COMPONENT: Form Inputs — Recessed Clay
+   COMPONENT: Form Inputs — Glass Inset
    ============================================ */
 .vw-input {
     width: 100%;
     padding: 0.6rem 0.85rem;
-    background: var(--vw-bg-elevated);
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--vw-radius);
     color: var(--vw-text);
     font-family: var(--vw-font);
     font-size: var(--vw-text-base);
     outline: none;
-    box-shadow: var(--vw-clay-inset);
-    transition: box-shadow var(--vw-transition);
+    box-shadow: var(--vw-glass-inset);
+    transition: box-shadow var(--vw-transition), border-color var(--vw-transition);
 }
 
 .vw-input:focus {
-    border-color: transparent;
-    box-shadow: var(--vw-clay-inset), 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: rgba(3, 252, 244, 0.4);
+    box-shadow: var(--vw-glass-inset), 0 0 0 3px rgba(3, 252, 244, 0.12);
 }
 
 .vw-input::placeholder {
@@ -344,21 +363,25 @@
 .vw-select {
     width: 100%;
     padding: 0.5rem 0.75rem;
-    background: var(--vw-bg-elevated);
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--vw-radius);
     color: var(--vw-text);
     font-family: var(--vw-font);
     font-size: var(--vw-text-sm);
-    box-shadow: var(--vw-clay-inset);
+    box-shadow: var(--vw-glass-inset);
 }
 
 .vw-textarea {
     width: 100%;
     min-height: 100px;
     padding: 0.6rem 0.85rem;
-    background: var(--vw-bg-elevated);
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--vw-radius);
     color: var(--vw-text);
     font-family: var(--vw-font);
@@ -366,13 +389,13 @@
     line-height: 1.5;
     resize: vertical;
     outline: none;
-    box-shadow: var(--vw-clay-inset);
-    transition: box-shadow var(--vw-transition);
+    box-shadow: var(--vw-glass-inset);
+    transition: box-shadow var(--vw-transition), border-color var(--vw-transition);
 }
 
 .vw-textarea:focus {
-    border-color: transparent;
-    box-shadow: var(--vw-clay-inset), 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: rgba(3, 252, 244, 0.4);
+    box-shadow: var(--vw-glass-inset), 0 0 0 3px rgba(3, 252, 244, 0.12);
 }
 
 
@@ -391,14 +414,16 @@
     height: 40px;
     min-width: 40px;
     border-radius: var(--vw-radius-lg);
-    background: var(--vw-primary-soft);
+    background: rgba(3, 252, 244, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1rem;
-    color: var(--vw-primary);
-    border: none;
-    box-shadow: var(--vw-clay-sm);
+    color: var(--vw-primary-text);
+    border: 1px solid rgba(3, 252, 244, 0.15);
+    box-shadow: var(--vw-glass-sm);
 }
 
 .vw-section-title {
@@ -417,7 +442,7 @@
 
 
 /* ============================================
-   COMPONENT: Step Number Circles — Clay
+   COMPONENT: Step Number Circles — Glass
    ============================================ */
 .vw-step-circle {
     width: 28px;
@@ -429,64 +454,73 @@
     justify-content: center;
     font-size: var(--vw-text-sm);
     font-weight: 700;
-    background: var(--vw-bg-surface);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--vw-text-secondary);
-    border: none;
-    box-shadow: var(--vw-clay-sm);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: var(--vw-glass-sm);
     transition: all var(--vw-transition);
 }
 
 .vw-step-circle.completed {
     background: #dcfce7;
     color: #16a34a;
-    box-shadow: var(--vw-clay-sm);
+    border-color: rgba(34, 197, 94, 0.2);
+    box-shadow: var(--vw-glass-sm);
 }
 
 
 /* ============================================
-   COMPONENT: Pills / Chips — Clay
+   COMPONENT: Pills / Chips — Glass
    ============================================ */
 .vw-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem 0.85rem;
-    background: var(--vw-bg-surface);
-    border: none;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--vw-radius-full);
     color: var(--vw-text-secondary);
     font-size: var(--vw-text-sm);
     font-weight: 500;
     cursor: pointer;
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
     transition: all var(--vw-transition);
 }
 
 .vw-pill:hover {
     color: var(--vw-text);
-    background: var(--vw-bg-surface);
-    box-shadow: var(--vw-clay-btn);
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: var(--vw-glass-btn);
     transform: translateY(-1px);
 }
 
 .vw-pill.active {
     background: var(--vw-primary);
-    color: var(--vw-text-bright);
-    box-shadow: var(--vw-clay-btn);
+    color: var(--vw-text-on-primary);
+    border-color: rgba(3, 252, 244, 0.5);
+    box-shadow: 0 0 16px rgba(3, 252, 244, 0.2), var(--vw-glass-btn);
 }
 
 
 /* ============================================
-   COMPONENT: Segmented Control / Tabs — Clay
+   COMPONENT: Segmented Control / Tabs — Glass
    ============================================ */
 .vw-tabs {
     display: flex;
     gap: 0;
-    background: var(--vw-bg-elevated);
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: var(--vw-radius-lg);
     padding: 0.25rem;
-    border: none;
-    box-shadow: var(--vw-clay-inset);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--vw-glass-inset);
 }
 
 .vw-tab {
@@ -509,13 +543,15 @@
 
 .vw-tab:hover {
     color: var(--vw-text);
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .vw-tab.active {
-    background: var(--vw-bg-surface);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--vw-text);
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
 }
 
 
@@ -530,28 +566,32 @@
     border-radius: var(--vw-radius-full);
     font-size: var(--vw-text-xs);
     font-weight: 600;
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
-.vw-status--pending { background: var(--vw-bg-elevated); color: var(--vw-text-secondary); }
-.vw-status--generating { background: var(--vw-primary-soft); color: var(--vw-primary); animation: vw-pulse 1.5s infinite; }
+.vw-status--pending { background: rgba(255, 255, 255, 0.35); color: var(--vw-text-secondary); }
+.vw-status--generating { background: rgba(3, 252, 244, 0.1); color: var(--vw-primary-text); animation: vw-pulse 1.5s infinite; }
 .vw-status--ready { background: var(--vw-success-soft); color: #16a34a; }
 .vw-status--processing { background: var(--vw-warning-soft); color: #d97706; animation: vw-pulse 1.5s infinite; }
 .vw-status--error { background: var(--vw-danger-soft); color: #dc2626; }
 
 
 /* ============================================
-   COMPONENT: Toggle Switch — Clay
+   COMPONENT: Toggle Switch — Glass
    ============================================ */
 .vw-toggle-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
-    background: var(--vw-bg-surface);
-    border: none;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--vw-radius);
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
 }
 
 .vw-toggle-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
@@ -561,7 +601,7 @@
     position: relative;
     width: 34px;
     height: 18px;
-    background: #d4d0cc;
+    background: #c1c8d4;
     border-radius: 9px;
     transition: background var(--vw-transition);
     flex-shrink: 0;
@@ -601,14 +641,14 @@
 
 
 /* ============================================
-   COMPONENT: Progress Bar — Clay
+   COMPONENT: Progress Bar — Glass
    ============================================ */
 .vw-progress {
     padding: 0.75rem;
     background: var(--vw-warning-soft);
     border: none;
     border-radius: var(--vw-radius);
-    box-shadow: var(--vw-clay-sm);
+    box-shadow: var(--vw-glass-sm);
 }
 
 .vw-progress-text {
@@ -662,10 +702,27 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Gradient Mesh Float Animations */
+@keyframes vw-mesh-float-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-15px, 15px) scale(0.97); }
+}
+@keyframes vw-mesh-float-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-25px, 20px) scale(0.95); }
+    66% { transform: translate(20px, -10px) scale(1.03); }
+}
+@keyframes vw-mesh-float-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(15px, 25px) scale(1.02); }
+    66% { transform: translate(-20px, -15px) scale(0.98); }
+}
+
 .vw-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid var(--vw-border);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: var(--vw-primary);
     border-radius: 50%;
     animation: vw-spin 0.8s linear infinite;
@@ -713,15 +770,17 @@
 
 
 /* ============================================
-   FOOTER NAV BUTTONS — Clay
+   FOOTER NAV BUTTONS — Glass
    ============================================ */
 .vw-footer-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
-    border-top: 1px solid var(--vw-border);
-    background: var(--vw-bg-surface);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     margin-top: 2rem;
 }
 
