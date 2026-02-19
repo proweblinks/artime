@@ -38,13 +38,13 @@
         <div class="card border-0 shadow-sm rounded-4 hp-100 min-h-350">
             <div class="card-body d-flex flex-column justify-content-center align-items-start p-4 h-100">
                 <div class="d-flex flex-column mb-3 gap-12">
-                    <span class="d-inline-flex align-items-center justify-content-center b-r-12 size-50 bg-primary-100 border border-primary-200">
-                        <i class="fa-light fa-gauge text-primary fs-22"></i>
+                    <span class="db-icon-container db-icon--cyan">
+                        <i class="fa-light fa-gauge fs-22"></i>
                     </span>
                     <span class="fw-6 fs-20">{{ __('Post Quota') }}</span>
                 </div>
                 @if($quota['limit'] == -1)
-                    <div class="fw-bold fs-2 mb-1 text-primary">{{ __('Unlimited') }}</div>
+                    <div class="fw-bold fs-2 mb-1 db-text-accent">{{ __('Unlimited') }}</div>
                     <div class="fs-15 text-muted">{{ $quota['message'] }}</div>
                 @else
                     <div class="fw-bold fs-2 mb-1 text-dark">
@@ -113,11 +113,11 @@
 
     {{-- Success --}}
     <div class="col">
-        <div class="card shadow-sm rounded-4 hp-100 min-h-140 bg-success-100 border border-success-200">
+        <div class="card shadow-sm rounded-4 hp-100 min-h-140">
             <div class="card-body d-flex flex-column justify-content-center align-items-start p-4">
                 <div class="d-flex align-items-center mb-2 gap-12">
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle size-44 bg-success-500">
-                        <i class="fa-light fa-circle-check text-white fs-22"></i>
+                    <span class="db-icon-container db-icon--success">
+                        <i class="fa-light fa-circle-check fs-22"></i>
                     </span>
                     <span class="fw-6 fs-14 text-muted">{{ $statusMap[4]['label'] ?? __('Success') }}</span>
                 </div>
@@ -130,11 +130,11 @@
     </div>
     {{-- Failed --}}
     <div class="col">
-        <div class="card shadow-sm rounded-4 hp-100 min-h-140 bg-danger-100 border border-danger-200">
+        <div class="card shadow-sm rounded-4 hp-100 min-h-140">
             <div class="card-body d-flex flex-column justify-content-center align-items-start p-4">
                 <div class="d-flex align-items-center mb-2 gap-12">
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle size-44 bg-danger-500">
-                        <i class="fa-light fa-circle-xmark text-white fs-22"></i>
+                    <span class="db-icon-container db-icon--danger">
+                        <i class="fa-light fa-circle-xmark fs-22"></i>
                     </span>
                     <span class="fw-6 fs-14 text-muted">{{ $statusMap[5]['label'] ?? __('Failed') }}</span>
                 </div>
@@ -147,15 +147,15 @@
     </div>
     {{-- Success Rate --}}
     <div class="col">
-        <div class="card shadow-sm rounded-4 hp-100 min-h-140 bg-primary-100 border border-primary-200">
+        <div class="card shadow-sm rounded-4 hp-100 min-h-140">
             <div class="card-body d-flex flex-column justify-content-center align-items-start p-4">
                 <div class="d-flex align-items-center mb-2 gap-12">
-                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle size-44 bg-primary-500">
-                        <i class="fa-light fa-badge-check text-white fs-22"></i>
+                    <span class="db-icon-container db-icon--info">
+                        <i class="fa-light fa-badge-check fs-22"></i>
                     </span>
                     <span class="fw-6 fs-14 text-muted">{{ __('Success Rate') }}</span>
                 </div>
-                <div class="fw-bold fs-2 mb-1 text-primary">{{ $successRate }}%</div>
+                <div class="fw-bold fs-2 mb-1 db-text-accent">{{ $successRate }}%</div>
                 <div class="fs-14 text-muted">{{ __('of processed posts') }}</div>
             </div>
         </div>
@@ -163,11 +163,11 @@
 
     {{-- Processing --}}
 	<div class="col">
-	    <div class="card shadow-sm rounded-4 hp-100 min-h-140 bg-teal-100 border border-teal-200">
+	    <div class="card shadow-sm rounded-4 hp-100 min-h-140">
 	        <div class="card-body d-flex flex-column justify-content-center align-items-start p-4">
 	            <div class="d-flex align-items-center mb-2 gap-12">
-	                <span class="d-inline-flex align-items-center justify-content-center rounded-circle size-44 bg-teal-500">
-	                    <i class="fa-light fa-arrows-rotate text-white fs-22"></i>
+	                <span class="db-icon-container db-icon--teal">
+	                    <i class="fa-light fa-arrows-rotate fs-22"></i>
 	                </span>
 	                <span class="fw-6 fs-14 text-muted">{{ $processingLabel }}</span>
 	            </div>
@@ -303,9 +303,10 @@
 
 <script>
     var errorSuccessChart = {!! json_encode($errorSuccessChart) !!};
-    errorSuccessChart.series[0].color = '#675dff';
-    errorSuccessChart.series[1].color = '#f5222d';
+    errorSuccessChart.series[0].color = '#0891b2';
+    errorSuccessChart.series[1].color = '#ef4444';
     Main.Chart('areaspline', errorSuccessChart.series, 'posts-error-success-chart', {
+        chart: { backgroundColor: 'transparent' },
         xAxis: {
             categories: errorSuccessChart.categories,
             title: { text: '' },
@@ -332,7 +333,7 @@
         },
         yAxis: {
             title: { text: '' },
-            gridLineColor: '#f3f4f6',
+            gridLineColor: 'rgba(0, 0, 0, 0.06)',
             gridLineDashStyle: 'Dash',
             gridLineWidth: 1
         },
@@ -345,11 +346,11 @@
                 marker: { enabled: false }
             },
             series: {
-                color: '#675dff',
+                color: '#0891b2',
                 fillColor: {
                     linearGradient: [0, 0, 0, 200],
                     stops: [
-                        [0, 'rgba(103, 93, 255, 0.4)'],
+                        [0, 'rgba(3, 252, 244, 0.3)'],
                         [1, 'rgba(255, 255, 255, 0)']
                     ]
                 }

@@ -36,14 +36,14 @@
                 <div class="d-flex flex-wrap align-items-center gap-4 justify-content-between hp-100">
                     <div class="d-flex flex-column flex-grow-1 hp-100 justify-content-between">
                         <div>
-                            <div class="d-flex align-items-center mb-2 text-primary-700 fs-13">
+                            <div class="d-flex align-items-center mb-2 db-text-accent fs-13">
                                 <i class="fa-light fa-clock me-2"></i>
                                 <span>{{ now()->format('j M Y') }}</span>
                             </div>
-                            <div class="fw-bold fs-3 mb-1 text-primary-700">
+                            <div class="fw-bold fs-3 mb-1 db-text-accent">
                                 {{ __('Welcome, :name', ['name' => $user->fullname ?? __('No User')]) }}
                             </div>
-                            <div class="fw-5 text-gray-700 fs-15 mb-3">
+                            <div class="fw-5 db-text-secondary fs-15 mb-3">
                                 {{ __("Here's an overview of your recent activity and content.") }}
                             </div>
                         </div>
@@ -97,11 +97,11 @@
 	<div class="col-md-4 mb-4">
 	    <div class="card shadow-sm p-4 hp-100 d-flex flex-column">
 	        <div class="d-flex align-items-center mb-3 gap-12">
-	            <span class="d-inline-flex align-items-center justify-content-center fs-28 b-r-12 size-50 bg-warning-100 border border-warning-200 text-warning">
+	            <span class="db-icon-container db-icon--cyan fs-28">
 	                <i class="fa-light fa-gem"></i>
 	            </span>
 	            <div>
-	                <div class="text-muted fs-14">{{ __('Your Credits') }}</div>
+	                <div class="db-text-secondary fs-14">{{ __('Your Credits') }}</div>
 	                <div class="fs-24 fw-bold text-black">
 	                    {{ $isUnlimitedCredit ? __('Unlimited') : number_format($limit) }}
 	                </div>
