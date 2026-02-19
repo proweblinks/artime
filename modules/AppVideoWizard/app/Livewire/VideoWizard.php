@@ -9814,13 +9814,10 @@ PROMPT;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
 
-                            // Track in asset history
-                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] ?? null, $jobType === 'dual_take' ? 'infinitetalk' : ($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] ?? 'minimax'));
-
                             // Initialize segments array for Video Extend support
                             $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
                             $videoDuration = $this->getVideoDuration($finalVideoUrl) ?? (float) ($shotData['selectedDuration'] ?? 10);
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = [[
+                            $initialSegments = [[
                                 'videoUrl' => $finalVideoUrl,
                                 'duration' => $videoDuration,
                                 'thumbnailUrl' => $shotData['imageUrl'] ?? '',
@@ -9828,6 +9825,11 @@ PROMPT;
                                 'type' => 'original',
                                 'intensity' => 0,
                             ]];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $initialSegments;
+
+                            // Track in asset history (with segments for full restore)
+                            $videoModel = $jobType === 'dual_take' ? 'infinitetalk' : ($shotData['selectedVideoModel'] ?? 'minimax');
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shotData['videoPrompt'] ?? null, $videoModel, $initialSegments);
 
                             $hasUpdates = true;
 
@@ -11901,7 +11903,21 @@ PROMPT;
 
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoPrompt'] ?? null, $provider);
+                // Initialize segments and track in history
+                $pollShotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+                $pollVidDuration = $this->getVideoDuration($finalVideoUrl) ?? 10.0;
+                $pollSegments = [[
+                    'videoUrl' => $finalVideoUrl,
+                    'duration' => $pollVidDuration,
+                    'thumbnailUrl' => $pollShotData['imageUrl'] ?? '',
+                    'prompt' => $pollShotData['videoPrompt'] ?? '',
+                    'type' => 'original',
+                    'intensity' => 0,
+                ]];
+                if (empty($pollShotData['segments'])) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $pollSegments;
+                }
+                $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $pollShotData['videoPrompt'] ?? null, $provider, $pollSegments);
 
                 // Workflow tracking: video completed
                 if ($sceneIndex === 0 && $shotIndex === 0) {
@@ -32692,7 +32708,18 @@ PROMPT;
                         } elseif ($result['success'] && isset($result['videoUrl'])) {
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $result['videoUrl'], $shot['videoPrompt'] ?? null, 'seedance');
+                            // Initialize segments and track in history with segments
+                            $seedVidDuration = $this->getVideoDuration($result['videoUrl']) ?? (float) ($seedanceDuration ?? 10);
+                            $seedSegments = [[
+                                'videoUrl' => $result['videoUrl'],
+                                'duration' => $seedVidDuration,
+                                'thumbnailUrl' => $shot['imageUrl'] ?? '',
+                                'prompt' => $shot['videoPrompt'] ?? '',
+                                'type' => 'original',
+                                'intensity' => 0,
+                            ]];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $seedSegments;
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $result['videoUrl'], $shot['videoPrompt'] ?? null, 'seedance', $seedSegments);
                             $this->saveProject();
                         } else {
                             throw new \Exception($result['error'] ?? __('Seedance video generation failed'));
@@ -32998,7 +33025,18 @@ PROMPT;
 
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? null, $selectedModel);
+                            // Initialize segments and track in history with segments
+                            $immVidDuration = $this->getVideoDuration($finalVideoUrl) ?? 10.0;
+                            $immSegments = [[
+                                'videoUrl' => $finalVideoUrl,
+                                'duration' => $immVidDuration,
+                                'thumbnailUrl' => $shot['imageUrl'] ?? '',
+                                'prompt' => $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '',
+                                'type' => 'original',
+                                'intensity' => 0,
+                            ]];
+                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $immSegments;
+                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? null, $selectedModel, $immSegments);
                             \Log::info('🎬 Video immediately ready', ['videoUrl' => substr($finalVideoUrl, 0, 80)]);
                         } elseif (isset($result['taskId'])) {
                             // Async job - store for polling
@@ -34126,6 +34164,10 @@ PROMPT;
             $shot['videoStatus'] = 'ready';
             // Clear job metadata
             unset($shot['videoTaskId'], $shot['videoJobType'], $shot['videoJobStartedAt'], $shot['videoEstimatedSeconds']);
+
+            // Track extended video in asset history (with segments for full restore)
+            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalUrl, $extensionPrompt, 'seedance-extend', $segments);
+
             \Log::info('Video Extend: assembly complete', [
                 'segmentCount' => count($segments),
                 'finalUrl' => substr($finalUrl, 0, 100),
@@ -37588,7 +37630,7 @@ PROMPT;
     /**
      * Add an asset history entry for a scene or shot.
      */
-    public function addAssetHistoryEntry(string $targetType, int $sceneIndex, ?int $shotIndex, string $assetType, string $action, string $url, ?string $prompt, ?string $model = null): void
+    public function addAssetHistoryEntry(string $targetType, int $sceneIndex, ?int $shotIndex, string $assetType, string $action, string $url, ?string $prompt, ?string $model = null, ?array $segments = null): void
     {
         $entry = [
             'id' => 'hist_' . substr(md5(uniqid('', true)), 0, 8),
@@ -37601,19 +37643,21 @@ PROMPT;
             'isActive' => true,
         ];
 
+        // Store segments for video entries so they can be fully restored when switching back
+        if ($assetType === 'video' && !empty($segments)) {
+            $entry['segments'] = $segments;
+        }
+
         if ($targetType === 'scene' && isset($this->storyboard['scenes'][$sceneIndex])) {
-            // Deactivate previous active entries of same type
+            // Deactivate ALL previous entries (not just same type) — only one version can be "current"
             foreach (($this->storyboard['scenes'][$sceneIndex]['assetHistory'] ?? []) as $i => $h) {
-                if (($h['type'] ?? '') === $assetType) {
-                    $this->storyboard['scenes'][$sceneIndex]['assetHistory'][$i]['isActive'] = false;
-                }
+                $this->storyboard['scenes'][$sceneIndex]['assetHistory'][$i]['isActive'] = false;
             }
             $this->storyboard['scenes'][$sceneIndex]['assetHistory'][] = $entry;
         } elseif ($targetType === 'shot' && $shotIndex !== null && isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            // Deactivate ALL previous entries
             foreach (($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] ?? []) as $i => $h) {
-                if (($h['type'] ?? '') === $assetType) {
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][$i]['isActive'] = false;
-                }
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][$i]['isActive'] = false;
             }
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][] = $entry;
         }
@@ -37653,49 +37697,66 @@ PROMPT;
         $sceneIndex = $this->assetHistoryTarget['sceneIndex'] ?? null;
         $shotIndex = $this->assetHistoryTarget['shotIndex'] ?? null;
 
-        // Get the history array based on target type
-        $history = [];
-        if ($type === 'scene' && $sceneIndex !== null) {
-            $history = $this->storyboard['scenes'][$sceneIndex]['assetHistory'] ?? [];
-        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
-            $history = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] ?? [];
-        } else {
-            return;
-        }
-
         // Find the entry to restore
         $restoredEntry = null;
-        foreach ($history as $entry) {
-            if (($entry['id'] ?? '') === $historyId) {
-                $restoredEntry = $entry;
-                break;
+
+        if ($type === 'scene' && $sceneIndex !== null && isset($this->storyboard['scenes'][$sceneIndex])) {
+            $scene = &$this->storyboard['scenes'][$sceneIndex];
+
+            foreach (($scene['assetHistory'] ?? []) as $entry) {
+                if (($entry['id'] ?? '') === $historyId) {
+                    $restoredEntry = $entry;
+                    break;
+                }
             }
-        }
+            if (!$restoredEntry) return;
 
-        if (!$restoredEntry) {
-            return;
-        }
-
-        $assetType = $restoredEntry['type'];
-        $restoredUrl = $restoredEntry['url'];
-
-        // Update active flags and write back to the correct property
-        if ($type === 'scene' && $sceneIndex !== null) {
-            foreach ($this->storyboard['scenes'][$sceneIndex]['assetHistory'] as $i => $entry) {
-                $this->storyboard['scenes'][$sceneIndex]['assetHistory'][$i]['isActive'] = (($entry['type'] ?? '') === $assetType && ($entry['id'] ?? '') === $historyId);
+            // Deactivate ALL entries, mark only the restored one
+            foreach (($scene['assetHistory'] ?? []) as $i => $entry) {
+                $scene['assetHistory'][$i]['isActive'] = (($entry['id'] ?? '') === $historyId);
             }
+
+            if (($restoredEntry['type'] ?? '') === 'image') {
+                $scene['imageUrl'] = $restoredEntry['url'];
+            }
+        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null && isset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex])) {
+            $shot = &$this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex];
+
+            foreach (($shot['assetHistory'] ?? []) as $entry) {
+                if (($entry['id'] ?? '') === $historyId) {
+                    $restoredEntry = $entry;
+                    break;
+                }
+            }
+            if (!$restoredEntry) return;
+
+            $assetType = $restoredEntry['type'] ?? 'image';
+
+            // Deactivate ALL entries, mark only the restored one
+            foreach (($shot['assetHistory'] ?? []) as $i => $entry) {
+                $shot['assetHistory'][$i]['isActive'] = (($entry['id'] ?? '') === $historyId);
+            }
+
+            // Full state restoration — handle cross-type switching
             if ($assetType === 'image') {
-                $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $restoredUrl;
-            }
-        } elseif ($type === 'shot' && $sceneIndex !== null && $shotIndex !== null) {
-            foreach ($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'] as $i => $entry) {
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['assetHistory'][$i]['isActive'] = (($entry['type'] ?? '') === $assetType && ($entry['id'] ?? '') === $historyId);
-            }
-            if ($assetType === 'image') {
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageUrl'] = $restoredUrl;
+                $shot['imageUrl'] = $restoredEntry['url'];
+                $shot['videoUrl'] = null;
+                $shot['videoStatus'] = 'pending';
+                $shot['segments'] = [];
+                // Sync to storyboard scene
+                if ($shotIndex === 0 && isset($this->storyboard['scenes'][$sceneIndex])) {
+                    $this->storyboard['scenes'][$sceneIndex]['imageUrl'] = $restoredEntry['url'];
+                }
             } elseif ($assetType === 'video') {
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $restoredUrl;
+                $shot['videoUrl'] = $restoredEntry['url'];
+                $shot['videoStatus'] = 'ready';
+                // Restore segments for timeline bar + extend support
+                if (!empty($restoredEntry['segments'])) {
+                    $shot['segments'] = $restoredEntry['segments'];
+                }
             }
+        } else {
+            return;
         }
 
         $this->saveProject();
@@ -37707,7 +37768,8 @@ PROMPT;
      */
     public function activateAssetFromGallery(string $historyId): void
     {
-        $history = $this->multiShotMode['decomposedScenes'][0]['shots'][0]['assetHistory'] ?? [];
+        $shot = &$this->multiShotMode['decomposedScenes'][0]['shots'][0];
+        $history = $shot['assetHistory'] ?? [];
 
         $entry = null;
         foreach ($history as $h) {
@@ -37726,23 +37788,27 @@ PROMPT;
 
         // Deactivate ALL entries, then mark only the clicked one as active
         foreach ($history as $i => $h) {
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['assetHistory'][$i]['isActive'] =
-                (($h['id'] ?? '') === $historyId);
+            $shot['assetHistory'][$i]['isActive'] = (($h['id'] ?? '') === $historyId);
         }
 
-        // Write URL to the appropriate property
+        // Full state restoration based on asset type
         if ($assetType === 'image') {
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['imageUrl'] = $url;
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = null;
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'pending';
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['segments'] = [];
-            // Sync to storyboard
+            // Switching to image — show image, clear video state
+            $shot['imageUrl'] = $url;
+            $shot['videoUrl'] = null;
+            $shot['videoStatus'] = 'pending';
+            $shot['segments'] = [];
             if (isset($this->storyboard['scenes'][0])) {
                 $this->storyboard['scenes'][0]['imageUrl'] = $url;
             }
         } elseif ($assetType === 'video') {
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoUrl'] = $url;
-            $this->multiShotMode['decomposedScenes'][0]['shots'][0]['videoStatus'] = 'ready';
+            // Switching to video — restore video + segments from history entry
+            $shot['videoUrl'] = $url;
+            $shot['videoStatus'] = 'ready';
+            // Restore segments if stored in history entry (for timeline bar + extend support)
+            if (!empty($entry['segments'])) {
+                $shot['segments'] = $entry['segments'];
+            }
         }
 
         $this->saveProject();

@@ -1070,6 +1070,9 @@
                             $hId = $histEntry['id'] ?? '';
                             $hTimestamp = $histEntry['timestamp'] ?? null;
                             $hTimeAgo = $hTimestamp ? \Carbon\Carbon::parse($hTimestamp)->diffForHumans(null, true, true) : '';
+                            $hModel = $histEntry['model'] ?? '';
+                            $hSegments = $histEntry['segments'] ?? [];
+                            $isExtendedVideo = ($hType === 'video' && count($hSegments) > 1);
                             $actionIcon = match($hAction) {
                                 'generated', 'regenerated' => 'fa-wand-magic-sparkles',
                                 'edited' => 'fa-pen-to-square',
@@ -1079,14 +1082,15 @@
                                 'restored' => 'fa-rotate-left',
                                 default => 'fa-circle',
                             };
-                            $actionLabel = match($hAction) {
-                                'generated' => __('Gen'),
-                                'regenerated' => __('Regen'),
-                                'edited' => __('Edit'),
-                                'reimagined' => __('Style'),
-                                'animated' => __('Video'),
-                                'stock' => __('Stock'),
-                                'restored' => __('Restored'),
+                            $actionLabel = match(true) {
+                                $isExtendedVideo => count($hSegments) . 'x',
+                                $hAction === 'generated' => __('Gen'),
+                                $hAction === 'regenerated' => __('Regen'),
+                                $hAction === 'edited' => __('Edit'),
+                                $hAction === 'reimagined' => __('Style'),
+                                $hAction === 'animated' => __('Video'),
+                                $hAction === 'stock' => __('Stock'),
+                                $hAction === 'restored' => __('Restored'),
                                 default => ucfirst($hAction),
                             };
                         @endphp
