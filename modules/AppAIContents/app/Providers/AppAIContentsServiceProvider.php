@@ -4,6 +4,7 @@ namespace Modules\AppAIContents\Providers;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -25,7 +26,7 @@ class AppAIContentsServiceProvider extends ServiceProvider
             [
                 "sort"      => 120,
                 "key"       => "appaicontents",
-                "label"     => __("AI Contents"),
+                "label"     => __("Content Studio"),
                 "check"     => true,
                 "type"      => "group",
                 "raw"       => null
@@ -36,6 +37,7 @@ class AppAIContentsServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerConfig();
         $this->registerViews();
+        $this->registerLivewireComponents();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
     }
 
@@ -46,6 +48,19 @@ class AppAIContentsServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+    }
+
+    /**
+     * Register Livewire components.
+     */
+    protected function registerLivewireComponents(): void
+    {
+        Livewire::component('app-ai-contents::content-hub', \Modules\AppAIContents\Livewire\ContentHub::class);
+        Livewire::component('app-ai-contents::business-dna', \Modules\AppAIContents\Livewire\BusinessDna::class);
+        Livewire::component('app-ai-contents::campaigns-hub', \Modules\AppAIContents\Livewire\CampaignsHub::class);
+        Livewire::component('app-ai-contents::campaign-creatives', \Modules\AppAIContents\Livewire\CampaignCreatives::class);
+        Livewire::component('app-ai-contents::creative-editor', \Modules\AppAIContents\Livewire\CreativeEditor::class);
+        Livewire::component('app-ai-contents::photoshoot-hub', \Modules\AppAIContents\Livewire\PhotoshootHub::class);
     }
 
     /**

@@ -12,10 +12,15 @@ class AppAIContentsController extends Controller
     protected string $templateTable = "ai_templates";
     protected string $categoryTable = "ai_categories";
 
+    /**
+     * Content Studio main page (Livewire SPA).
+     */
     public function index()
     {
         return view('appaicontents::index');
     }
+
+    // ─── Legacy routes (used by other modules) ─────────────────────
 
     public function categories(Request $request)
     {
@@ -80,9 +85,8 @@ class AppAIContentsController extends Controller
         $hashtags     = (int) ($aiOptions['hashtags'] ?? 0);
         $maxResult    = (int) ($aiOptions['number_result'] ?? 3);
 
-        $maxResult = max(1, min($maxResult, 10)); // đảm bảo 1–10
+        $maxResult = max(1, min($maxResult, 10));
 
-        // Build prompt content
         $content = $this->buildPrompt($prompt, $language, $maxLength, $toneOfVoice, $creativity, $hashtags);
 
         try {
@@ -140,7 +144,6 @@ class AppAIContentsController extends Controller
         }
     }
 
-    /** ---------------- Helper ---------------- */
     protected function buildPrompt(
         string $prompt,
         string $language,
