@@ -82,7 +82,7 @@
                         <div>
                             <div class="cs-section-label">{{ __('Logo') }}</div>
                             @if($dna->logo_path)
-                                <img src="{{ Storage::disk('public')->url($dna->logo_path) }}" alt="Logo" style="max-height: 48px; border-radius: 8px;">
+                                <img src="{{ url('/public/storage/' . $dna->logo_path) }}" alt="Logo" style="max-height: 48px; border-radius: 8px;">
                             @else
                                 <div style="color: var(--cs-text-muted); font-size: 14px;">
                                     <i class="fa-light fa-plus"></i> {{ __('Add a logo') }}

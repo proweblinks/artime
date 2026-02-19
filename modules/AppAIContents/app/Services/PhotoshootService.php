@@ -30,7 +30,7 @@ class PhotoshootService
             $templatePrompts = $this->getTemplatePrompts();
             $templatePrompt = $templatePrompts[$templateId] ?? 'Professional product photography, studio lighting';
 
-            $productImageUrl = Storage::disk('public')->url($productImagePath);
+            $productImageUrl = url('/public/storage/' . $productImagePath);
 
             $prompt = "{$templatePrompt}. Product photography, high quality, commercial grade. "
                 . "Aspect ratio: {$aspectRatio}. Clean, professional composition.";
@@ -47,7 +47,7 @@ class PhotoshootService
                     $contents = base64_decode($item['b64_json']);
                     $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
                     Storage::disk('public')->put($filename, $contents);
-                    $url = url('/storage/' . $filename);
+                    $url = url('/public/storage/' . $filename);
                     $results[] = ['path' => $filename, 'url' => $url];
                 } else {
                     $url = is_array($item) ? ($item['url'] ?? '') : $item;
@@ -90,7 +90,7 @@ class PhotoshootService
             $options = ['maxResult' => 4];
 
             if (!empty($referenceImages)) {
-                $options['image_url'] = Storage::disk('public')->url($referenceImages[0]);
+                $options['image_url'] = url('/public/storage/' . $referenceImages[0]);
             }
 
             $result = AI::process($prompt, 'image', $options, $teamId);
@@ -102,7 +102,7 @@ class PhotoshootService
                     $contents = base64_decode($item['b64_json']);
                     $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
                     Storage::disk('public')->put($filename, $contents);
-                    $url = url('/storage/' . $filename);
+                    $url = url('/public/storage/' . $filename);
                     $results[] = ['path' => $filename, 'url' => $url];
                 } else {
                     $url = is_array($item) ? ($item['url'] ?? '') : $item;

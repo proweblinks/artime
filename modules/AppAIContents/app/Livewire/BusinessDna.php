@@ -214,7 +214,7 @@ class BusinessDna extends Component
         $images = $this->dna->images ?? [];
         foreach ($this->imageUploads as $upload) {
             $path = $upload->store("content-studio/{$this->dna->team_id}/images", 'public');
-            $images[] = ['url' => Storage::disk('public')->url($path), 'caption' => '', 'path' => $path];
+            $images[] = ['url' => url('/public/storage/' . $path), 'caption' => '', 'path' => $path];
         }
 
         $this->dna->update(['images' => $images]);

@@ -71,7 +71,7 @@
                 <div class="cs-section-label">{{ __('Product Image') }}</div>
                 @if($productImagePath)
                     <div style="border-radius: var(--cs-radius-lg); overflow: hidden; position: relative;">
-                        <img src="{{ Storage::disk('public')->url($productImagePath) }}" alt="" style="width: 100%; border-radius: var(--cs-radius-lg);">
+                        <img src="{{ url('/public/storage/' . $productImagePath) }}" alt="" style="width: 100%; border-radius: var(--cs-radius-lg);">
                     </div>
                 @else
                     <label class="cs-upload-area" style="display: block; cursor: pointer;">
@@ -143,7 +143,7 @@
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
                 @foreach($referenceImagePaths as $index => $path)
                     <div style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden; position: relative;">
-                        <img src="{{ Storage::disk('public')->url($path) }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="{{ url('/public/storage/' . $path) }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
                         <button wire:click="removeReferenceImage({{ $index }})"
                                 style="position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--cs-danger); color: white; border: none; cursor: pointer; font-size: 8px; display: flex; align-items: center; justify-content: center;">
                             <i class="fa-light fa-xmark"></i>
