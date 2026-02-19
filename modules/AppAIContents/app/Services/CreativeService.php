@@ -88,12 +88,25 @@ class CreativeService
                 'maxResult' => 1,
             ], $campaign->team_id);
 
-            $imageUrl = $result['data'][0]['url'] ?? ($result['data'][0] ?? null);
+            $item = $result['data'][0] ?? null;
 
-            if ($imageUrl && is_string($imageUrl)) {
-                // Download and store image
-                $path = $this->downloadAndStore($imageUrl, $campaign->team_id);
-                return ['path' => $path, 'url' => $imageUrl, 'prompt' => $prompt];
+            if ($item) {
+                // Handle base64 response (OpenAI/Gemini)
+                if (is_array($item) && isset($item['b64_json'])) {
+                    $ext = str_contains($item['mimeType'] ?? '', 'png') ? 'png' : 'jpg';
+                    $contents = base64_decode($item['b64_json']);
+                    $filename = "content-studio/{$campaign->team_id}/" . uniqid() . ".{$ext}";
+                    Storage::disk('public')->put($filename, $contents);
+                    $url = Storage::disk('public')->url($filename);
+                    return ['path' => $filename, 'url' => $url, 'prompt' => $prompt];
+                }
+
+                // Handle URL response (FAL.AI)
+                $imageUrl = is_array($item) ? ($item['url'] ?? null) : $item;
+                if ($imageUrl && is_string($imageUrl)) {
+                    $path = $this->downloadAndStore($imageUrl, $campaign->team_id);
+                    return ['path' => $path, 'url' => $imageUrl, 'prompt' => $prompt];
+                }
             }
         } catch (\Throwable $e) {
             Log::error('CreativeService::generateImage failed', ['error' => $e->getMessage()]);

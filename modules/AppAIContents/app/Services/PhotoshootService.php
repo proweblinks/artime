@@ -42,10 +42,19 @@ class PhotoshootService
 
             $results = [];
             foreach (($result['data'] ?? []) as $item) {
-                $url = is_array($item) ? ($item['url'] ?? '') : $item;
-                if ($url) {
-                    $path = $this->downloadAndStore($url, $teamId);
-                    $results[] = ['path' => $path, 'url' => $url];
+                if (is_array($item) && isset($item['b64_json'])) {
+                    $ext = str_contains($item['mimeType'] ?? '', 'png') ? 'png' : 'jpg';
+                    $contents = base64_decode($item['b64_json']);
+                    $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
+                    Storage::disk('public')->put($filename, $contents);
+                    $url = Storage::disk('public')->url($filename);
+                    $results[] = ['path' => $filename, 'url' => $url];
+                } else {
+                    $url = is_array($item) ? ($item['url'] ?? '') : $item;
+                    if ($url) {
+                        $path = $this->downloadAndStore($url, $teamId);
+                        $results[] = ['path' => $path, 'url' => $url];
+                    }
                 }
             }
 
@@ -88,10 +97,19 @@ class PhotoshootService
 
             $results = [];
             foreach (($result['data'] ?? []) as $item) {
-                $url = is_array($item) ? ($item['url'] ?? '') : $item;
-                if ($url) {
-                    $path = $this->downloadAndStore($url, $teamId);
-                    $results[] = ['path' => $path, 'url' => $url];
+                if (is_array($item) && isset($item['b64_json'])) {
+                    $ext = str_contains($item['mimeType'] ?? '', 'png') ? 'png' : 'jpg';
+                    $contents = base64_decode($item['b64_json']);
+                    $filename = "content-studio/{$teamId}/" . uniqid() . ".{$ext}";
+                    Storage::disk('public')->put($filename, $contents);
+                    $url = Storage::disk('public')->url($filename);
+                    $results[] = ['path' => $filename, 'url' => $url];
+                } else {
+                    $url = is_array($item) ? ($item['url'] ?? '') : $item;
+                    if ($url) {
+                        $path = $this->downloadAndStore($url, $teamId);
+                        $results[] = ['path' => $path, 'url' => $url];
+                    }
                 }
             }
 
