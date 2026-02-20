@@ -6,6 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class WizardProject extends Model
 {
@@ -392,5 +395,53 @@ class WizardProject extends Model
         $constraint .= "CRITICAL: All scene descriptions, character references, and locations MUST match the Story Bible exactly.\n";
 
         return $constraint;
+    }
+
+    // =========================================================================
+    // COMPLETE PROJECT DELETION (DB + Files)
+    // =========================================================================
+
+    /**
+     * Delete project with all associated files on disk.
+     * Cleans up: wizard-videos, wizard-audio, reference images, and asset files.
+     */
+    public function deleteWithFiles(): void
+    {
+        $projectId = $this->id;
+        $userId = $this->user_id;
+
+        // 1. Delete WizardAsset files (iterate models so deleting event fires)
+        foreach ($this->assets as $asset) {
+            $asset->delete();
+        }
+
+        // 2. Delete wizard-videos directory (scene/shot videos, pipeline logs, diagnostics)
+        //    Pattern: public/wizard-videos/{userId}/{projectId}/
+        $videoDir = public_path("wizard-videos/{$userId}/{$projectId}");
+        if (File::isDirectory($videoDir)) {
+            File::deleteDirectory($videoDir);
+        }
+
+        // 3. Delete wizard-audio directory (TTS audio, timeline-synced audio)
+        //    Pattern: public/wizard-audio/{projectId}/
+        $audioDir = public_path("wizard-audio/{$projectId}");
+        if (File::isDirectory($audioDir)) {
+            File::deleteDirectory($audioDir);
+        }
+
+        // 4. Delete reference images (character/location/style reference images)
+        //    Pattern: storage/app/video-wizard/reference-images/{projectId}/
+        $refPath = "video-wizard/reference-images/{$projectId}";
+        if (Storage::disk('local')->exists($refPath)) {
+            Storage::disk('local')->deleteDirectory($refPath);
+        }
+
+        // 5. Delete processing jobs
+        $this->processingJobs()->delete();
+
+        // 6. Delete the project (cascade handles scenes, shots, speech_segments)
+        $this->delete();
+
+        Log::info("WizardProject::deleteWithFiles - Cleaned up project {$projectId}");
     }
 }

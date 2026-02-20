@@ -282,16 +282,8 @@ class AppVideoWizardController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        // Delete associated assets
-        foreach ($project->assets as $asset) {
-            $asset->delete();
-        }
-
-        // Delete associated jobs
-        $project->processingJobs()->delete();
-
-        // Delete the project
-        $project->delete();
+        // Complete deletion: DB records + all files on disk
+        $project->deleteWithFiles();
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true]);

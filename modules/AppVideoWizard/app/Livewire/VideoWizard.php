@@ -12786,10 +12786,8 @@ PROMPT;
         // Check if we're deleting the current project
         $isDeletingCurrent = $this->projectId === $projectId;
 
-        // Delete associated assets and jobs
-        $project->assets()->delete();
-        $project->processingJobs()->delete();
-        $project->delete();
+        // Complete deletion: DB records + all files on disk
+        $project->deleteWithFiles();
 
         // If we deleted the current project, reset to new project
         if ($isDeletingCurrent) {
@@ -13074,7 +13072,11 @@ PROMPT;
             // Don't delete the currently loaded project
             $toDelete = array_filter($this->projectManagerSelected, fn($id) => $id !== $this->projectId);
 
-            WizardProject::whereIn('id', $toDelete)->delete();
+            // Complete deletion: DB records + all files on disk (must iterate for file cleanup)
+            $projects = WizardProject::whereIn('id', $toDelete)->get();
+            foreach ($projects as $project) {
+                $project->deleteWithFiles();
+            }
 
             // Reset selection
             $this->projectManagerSelected = [];
