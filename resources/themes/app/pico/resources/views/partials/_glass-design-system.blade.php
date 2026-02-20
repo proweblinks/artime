@@ -96,6 +96,38 @@
     border-right: 1px solid #eef1f5 !important;
 }
 
+/* Sidebar logo */
+.sidebar .sidebar-header {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.sidebar .sidebar-logo-wrap {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.sidebar .sidebar-logo-link {
+    display: flex;
+    align-items: center;
+}
+
+.sidebar .sidebar-logo-img {
+    max-width: 160px;
+    max-height: 44px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* Collapsed sidebar — smaller logo */
+.sidebar-small .sidebar:not(:hover) .sidebar-logo-img {
+    max-width: 40px;
+    max-height: 40px;
+}
+
 /* Sidebar toggle button */
 .sidebar .sidebar-toggle .bg-light,
 .sidebar .sidebar-toggle a {
