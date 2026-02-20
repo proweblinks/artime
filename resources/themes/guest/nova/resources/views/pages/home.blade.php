@@ -5,17 +5,6 @@
     {{-- Hyperspeed Three.js canvas container (desktop) --}}
     <div id="hyperspeed-container" style="position:absolute;inset:0;z-index:0;overflow:hidden;"></div>
 
-    {{-- Mobile CSS-only animated light streaks fallback --}}
-    <div class="hero-mobile-bg">
-        <div class="hero-road"></div>
-        <div class="hero-streak-1"></div>
-        <div class="hero-streak-2"></div>
-        <div class="hero-streak-3"></div>
-        <div class="hero-streak-4"></div>
-        <div class="hero-streak-5"></div>
-        <div class="hero-glow"></div>
-    </div>
-
     {{-- Dark-to-light gradient fade at bottom --}}
     <div style="position:absolute;bottom:0;left:0;right:0;height:180px;z-index:1;background:linear-gradient(to bottom, transparent 0%, #f0f4f8 100%);pointer-events:none;"></div>
 
@@ -700,13 +689,17 @@
 
 {{-- ============================================================
      HYPERSPEED THREE.JS BACKGROUND — vanilla JS (converted from React)
-     Only loads on desktop (>768px) for performance
+     Desktop: full quality + postprocessing bloom/SMAA
+     Mobile: reduced lights, no postprocessing, capped pixel ratio
      ============================================================ --}}
 <script type="module">
-if (window.innerWidth > 768) {
 (async function() {
     const THREE = await import('three');
-    const { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPreset } = await import('postprocessing');
+    const isMobile = window.innerWidth <= 768;
+    let BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPreset;
+    if (!isMobile) {
+        ({ BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPreset } = await import('postprocessing'));
+    }
 
     const container = document.getElementById('hyperspeed-container');
     if (!container) return;
@@ -718,13 +711,13 @@ if (window.innerWidth > 768) {
     const nsin = v => Math.sin(v)*0.5+0.5;
     function resizeToDisplay(renderer,setSize){const c=renderer.domElement;const w=c.clientWidth,h=c.clientHeight;if(c.width!==w||c.height!==h){setSize(w,h,false);return true;}return false;}
 
-    /* ── Effect Options (ARTime branded) ── */
+    /* ── Effect Options (ARTime branded, reduced on mobile) ── */
     const opts = {
         distortion: 'turbulentDistortion',
         length: 400, roadWidth: 10, islandWidth: 2,
-        lanesPerRoad: 4, fov: 90, fovSpeedUp: 150, speedUp: 2,
-        carLightsFade: 0.4, totalSideLightSticks: 20,
-        lightPairsPerRoadWay: 40,
+        lanesPerRoad: isMobile ? 3 : 4, fov: 90, fovSpeedUp: 150, speedUp: 2,
+        carLightsFade: 0.4, totalSideLightSticks: isMobile ? 10 : 20,
+        lightPairsPerRoadWay: isMobile ? 20 : 40,
         shoulderLinesWidthPercentage: 0.05,
         brokenLinesWidthPercentage: 0.1,
         brokenLinesLengthPercentage: 0.5,
@@ -957,7 +950,7 @@ void main(){
     /* ── Main App Class ── */
     const renderer = new THREE.WebGLRenderer({ antialias:false, alpha:true });
     renderer.setSize(container.offsetWidth, container.offsetHeight, false);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
     const camera = new THREE.PerspectiveCamera(opts.fov, container.offsetWidth/container.offsetHeight, 0.1, 10000);
@@ -980,14 +973,17 @@ void main(){
     const sticks = new LightsSticks(webgl, opts);
     sticks.init(); sticks.mesh.position.setX(-(opts.roadWidth + opts.islandWidth/2));
 
-    /* ── Post-processing ── */
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloomPass = new EffectPass(camera, new BloomEffect({ luminanceThreshold:0.2, luminanceSmoothing:0, resolutionScale:1 }));
-    composer.addPass(bloomPass);
-    const smaaPass = new EffectPass(camera, new SMAAEffect({ preset:SMAAPreset.MEDIUM, searchImage:SMAAEffect.searchImageDataURL, areaImage:SMAAEffect.areaImageDataURL }));
-    smaaPass.renderToScreen = true;
-    composer.addPass(smaaPass);
+    /* ── Post-processing (desktop only) ── */
+    let composer = null;
+    if (!isMobile) {
+        composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        const bloomPass = new EffectPass(camera, new BloomEffect({ luminanceThreshold:0.2, luminanceSmoothing:0, resolutionScale:1 }));
+        composer.addPass(bloomPass);
+        const smaaPass = new EffectPass(camera, new SMAAEffect({ preset:SMAAPreset.MEDIUM, searchImage:SMAAEffect.searchImageDataURL, areaImage:SMAAEffect.areaImageDataURL }));
+        smaaPass.renderToScreen = true;
+        composer.addPass(smaaPass);
+    }
 
     /* ── Speed-up interaction ── */
     let fovTarget = opts.fov, speedUpTarget = 0, speedUp = 0, timeOffset = 0;
@@ -1000,7 +996,7 @@ void main(){
     /* ── Resize ── */
     function onResize(){
         const w=container.offsetWidth, h=container.offsetHeight;
-        renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); composer.setSize(w,h);
+        renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); if(composer) composer.setSize(w,h);
     }
     window.addEventListener('resize', onResize);
 
@@ -1020,9 +1016,8 @@ void main(){
             camera.lookAt(new THREE.Vector3(camera.position.x+d.x, camera.position.y+d.y, camera.position.z+d.z));
             camera.updateProjectionMatrix();
         }
-        composer.render(delta);
+        if(composer) composer.render(delta); else renderer.render(scene, camera);
     }
     tick();
 })();
-}
 </script>
