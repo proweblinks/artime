@@ -21,9 +21,19 @@
         <p>{{ __('Here is a snapshot of your business that we\'ll use to create social media campaigns.') }}<br>{{ __('Feel free to edit this at anytime.') }}</p>
     </div>
 
+    @php
+        $stateKey = 'onboarding';
+        if ($isAnalyzing) {
+            $stateKey = 'analyzing';
+        } elseif ($dna && $dna->brand_name) {
+            $stateKey = 'complete-' . $dna->id;
+        }
+    @endphp
+
+    <div wire:key="dna-{{ $stateKey }}">
     @if(!$dna || $dna->status === 'pending' || (!$isAnalyzing && !$dna->brand_name))
         {{-- ━━━ Onboarding: Enter Website URL ━━━ --}}
-        <div wire:key="dna-state-onboarding">
+        <div>
             <div class="cs-card" style="max-width: 600px; margin: 40px auto; padding: 48px 40px; text-align: center;">
                 <div style="font-size: 48px; color: var(--cs-primary-text); margin-bottom: 16px;">
                     <i class="fa-light fa-globe"></i>
@@ -52,7 +62,7 @@
 
     @elseif($isAnalyzing)
         {{-- ━━━ Analyzing State with Step Progress ━━━ --}}
-        <div wire:key="dna-state-analyzing">
+        <div>
             <div class="cs-card" style="max-width: 540px; margin: 40px auto; padding: 48px 40px; text-align: center;">
                 <div style="font-size: 40px; color: var(--cs-primary-text); margin-bottom: 16px;">
                     <i class="fa-light fa-dna fa-spin-pulse"></i>
@@ -121,7 +131,7 @@
 
     @else
         {{-- ━━━ DNA Display — Pomelli-style 2-column layout ━━━ --}}
-        <div wire:key="dna-state-complete-{{ $dna->id }}">
+        <div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
 
                 {{-- ═══════ LEFT COLUMN: Brand attributes ═══════ --}}
@@ -387,4 +397,5 @@
             @include('appaicontents::livewire.partials._dna-edit-modal')
         </div>
     @endif
+    </div>
 </div>
