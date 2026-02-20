@@ -17,6 +17,7 @@ class ContentHub extends Component
         'open-editor' => 'openEditor',
         'go-back' => 'goBack',
         'switch-section' => 'switchSection',
+        'business-deleted' => 'onBusinessDeleted',
     ];
 
     public function mount()
@@ -87,6 +88,23 @@ class ContentHub extends Component
     public function onDnaReady(int $dnaId)
     {
         $this->dnaId = $dnaId;
+    }
+
+    public function onBusinessDeleted()
+    {
+        $teamId = auth()->user()->current_team_id ?? auth()->id();
+        $nextDna = ContentBusinessDna::where('team_id', $teamId)
+            ->where('status', 'ready')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        $this->dnaId = $nextDna?->id;
+        $this->section = 'dna';
+        $this->activeCampaignId = null;
+        $this->activeCreativeId = null;
+
+        // Switch BusinessDna component to the next business (or new business screen)
+        $this->dispatch('switch-dna', newDnaId: $this->dnaId)->to('app-ai-contents::business-dna');
     }
 
     public function render()

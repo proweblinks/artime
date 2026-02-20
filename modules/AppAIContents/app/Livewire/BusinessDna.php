@@ -242,11 +242,51 @@ class BusinessDna extends Component
     {
         if (!$this->dna) return;
 
-        $this->dna->delete();
+        $disk = Storage::disk('public');
+        $dna = $this->dna;
+
+        // 1. Delete DNA-level files (logo + scraped/uploaded images)
+        if ($dna->logo_path) {
+            $disk->delete($dna->logo_path);
+        }
+        foreach ($dna->images ?? [] as $img) {
+            if (!empty($img['path'])) {
+                $disk->delete($img['path']);
+            }
+        }
+
+        // 2. Delete all creative files (images + videos + versions)
+        foreach ($dna->campaigns as $campaign) {
+            foreach ($campaign->creatives as $creative) {
+                if ($creative->image_path) $disk->delete($creative->image_path);
+                if ($creative->video_path) $disk->delete($creative->video_path);
+                foreach ($creative->versions as $version) {
+                    if ($version->image_path) $disk->delete($version->image_path);
+                }
+            }
+        }
+
+        // 3. Delete photoshoot files (product images + results)
+        foreach ($dna->photoshoots as $photoshoot) {
+            if ($photoshoot->product_image_path) $disk->delete($photoshoot->product_image_path);
+            foreach ($photoshoot->results ?? [] as $result) {
+                if (!empty($result['path'])) {
+                    $disk->delete($result['path']);
+                }
+            }
+            $photoshoot->delete();
+        }
+
+        // 4. Delete DB records (campaigns, ideas, creatives, versions cascade automatically)
+        $dna->delete();
+
+        // 5. Reset component state and notify ContentHub
         $this->dna = null;
         $this->dnaId = null;
         $this->websiteUrl = '';
         $this->isAnalyzing = false;
+        $this->justCompleted = false;
+        $this->dispatch('business-deleted')->to('app-ai-contents::content-hub');
     }
 
     public function render()
