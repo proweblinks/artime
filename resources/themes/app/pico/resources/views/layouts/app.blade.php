@@ -24,6 +24,7 @@
     {!! Script::renderCss() !!}
     {!! Script::globals() !!}
     <link rel="stylesheet" href="{{ theme_public_asset('css/main.css') }}?version=9.0.3">
+    @include('partials._glass-design-system')
 
     @yield('head_embed_code')
 </head>

@@ -8,44 +8,44 @@
    Frosted Glass — Cyan Accent (#03fcf4)
    ============================================ */
 
-/* --- Design Tokens --- */
+/* --- Design Tokens (aliased to shared at-* system) --- */
 .video-wizard {
-    --vw-bg-deep: #f0f4f8;
-    --vw-bg-surface: rgba(255, 255, 255, 0.55);
-    --vw-bg-surface-solid: #ffffff;
-    --vw-bg-elevated: rgba(255, 255, 255, 0.35);
-    --vw-bg-hover: rgba(255, 255, 255, 0.65);
-    --vw-bg-overlay: rgba(240, 244, 248, 0.85);
+    --vw-bg-deep: var(--at-bg-deep);
+    --vw-bg-surface: var(--at-bg-surface);
+    --vw-bg-surface-solid: var(--at-bg-surface-solid);
+    --vw-bg-elevated: var(--at-bg-elevated);
+    --vw-bg-hover: var(--at-bg-hover);
+    --vw-bg-overlay: var(--at-bg-overlay);
 
-    --vw-border: rgba(255, 255, 255, 0.35);
-    --vw-border-accent: rgba(3, 252, 244, 0.2);
-    --vw-border-focus: #03fcf4;
+    --vw-border: var(--at-border);
+    --vw-border-accent: var(--at-border-accent);
+    --vw-border-focus: var(--at-border-focus);
     --vw-border-success: rgba(34, 197, 94, 0.4);
 
-    --vw-primary: #03fcf4;
-    --vw-primary-rgb: 3, 252, 244;
-    --vw-primary-hover: #00d4cc;
-    --vw-primary-soft: rgba(3, 252, 244, 0.08);
-    --vw-primary-glow: 0 0 0 3px rgba(3, 252, 244, 0.15);
-    --vw-primary-text: #0891b2;
-    --vw-primary-text-rgb: 8, 145, 178;
-    --vw-text-on-primary: #0a2e2e;
+    --vw-primary: var(--at-primary);
+    --vw-primary-rgb: var(--at-primary-rgb);
+    --vw-primary-hover: var(--at-primary-hover);
+    --vw-primary-soft: var(--at-primary-soft);
+    --vw-primary-glow: var(--at-primary-glow);
+    --vw-primary-text: var(--at-primary-text);
+    --vw-primary-text-rgb: var(--at-primary-text-rgb);
+    --vw-text-on-primary: var(--at-text-on-primary);
 
-    --vw-success: #22c55e;
-    --vw-success-soft: rgba(34, 197, 94, 0.1);
-    --vw-warning: #f59e0b;
-    --vw-warning-soft: rgba(245, 158, 11, 0.1);
-    --vw-danger: #ef4444;
-    --vw-danger-soft: rgba(239, 68, 68, 0.08);
-    --vw-info: #0ea5e9;
-    --vw-info-soft: rgba(14, 165, 233, 0.08);
+    --vw-success: var(--at-success);
+    --vw-success-soft: var(--at-success-soft);
+    --vw-warning: var(--at-warning);
+    --vw-warning-soft: var(--at-warning-soft);
+    --vw-danger: var(--at-danger);
+    --vw-danger-soft: var(--at-danger-soft);
+    --vw-info: var(--at-info);
+    --vw-info-soft: var(--at-info-soft);
 
-    --vw-text: #1a1a2e;
-    --vw-text-secondary: #5a6178;
-    --vw-text-muted: #94a0b8;
-    --vw-text-bright: #ffffff;
+    --vw-text: var(--at-text);
+    --vw-text-secondary: var(--at-text-secondary);
+    --vw-text-muted: var(--at-text-muted);
+    --vw-text-bright: var(--at-text-bright);
 
-    --vw-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --vw-font: var(--at-font);
     --vw-text-xs: 0.7rem;
     --vw-text-sm: 0.8rem;
     --vw-text-base: 0.875rem;
@@ -54,39 +54,25 @@
     --vw-text-xl: 1.35rem;
     --vw-text-2xl: 1.5rem;
 
-    --vw-radius-sm: 0.625rem;
-    --vw-radius: 0.875rem;
+    --vw-radius-sm: var(--at-radius-sm);
+    --vw-radius: var(--at-radius);
     --vw-radius-md: 1rem;
-    --vw-radius-lg: 1.25rem;
-    --vw-radius-xl: 1.5rem;
-    --vw-radius-full: 9999px;
+    --vw-radius-lg: var(--at-radius-lg);
+    --vw-radius-xl: var(--at-radius-xl);
+    --vw-radius-full: var(--at-radius-full);
 
     /* --- Glass Shadows --- */
-    --vw-glass:
-        0 8px 32px rgba(0, 0, 0, 0.06),
-        0 2px 8px rgba(0, 0, 0, 0.04);
-    --vw-glass-hover:
-        0 12px 40px rgba(0, 0, 0, 0.08),
-        0 4px 12px rgba(0, 0, 0, 0.05);
+    --vw-glass: var(--at-glass);
+    --vw-glass-hover: var(--at-glass-hover);
     --vw-glass-active:
         0 8px 32px rgba(3, 252, 244, 0.1),
         0 2px 8px rgba(0, 0, 0, 0.04),
         0 0 0 2px rgba(3, 252, 244, 0.3);
-    --vw-glass-btn:
-        0 4px 16px rgba(0, 0, 0, 0.08),
-        0 1px 4px rgba(0, 0, 0, 0.04);
-    --vw-glass-btn-hover:
-        0 8px 24px rgba(0, 0, 0, 0.12),
-        0 2px 6px rgba(0, 0, 0, 0.06);
-    --vw-glass-inset:
-        inset 0 1px 3px rgba(0, 0, 0, 0.06),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    --vw-glass-sm:
-        0 4px 12px rgba(0, 0, 0, 0.05),
-        0 1px 3px rgba(0, 0, 0, 0.03);
-    --vw-glass-lg:
-        0 16px 48px rgba(0, 0, 0, 0.08),
-        0 4px 16px rgba(0, 0, 0, 0.05);
+    --vw-glass-btn: var(--at-glass-btn);
+    --vw-glass-btn-hover: var(--at-glass-btn-hover);
+    --vw-glass-inset: var(--at-glass-inset);
+    --vw-glass-sm: var(--at-glass-sm);
+    --vw-glass-lg: var(--at-glass-lg);
 
     /* Backward-compat aliases (clay → glass) */
     --vw-clay: var(--vw-glass);
@@ -102,7 +88,7 @@
     --vw-shadow-lg: var(--vw-glass-lg);
     --vw-shadow-glow: 0 0 0 3px rgba(3, 252, 244, 0.1);
 
-    --vw-transition: 200ms ease;
+    --vw-transition: var(--at-transition);
     --vw-transition-slow: 300ms ease;
 
     font-family: var(--vw-font);

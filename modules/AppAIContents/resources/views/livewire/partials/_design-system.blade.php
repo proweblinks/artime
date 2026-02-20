@@ -7,56 +7,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
 
 .cs-app {
-    /* ── Backgrounds ── */
-    --cs-bg-deep: #f0f4f8;
-    --cs-bg-surface: rgba(255, 255, 255, 0.55);
-    --cs-bg-surface-solid: #ffffff;
-    --cs-bg-elevated: rgba(255, 255, 255, 0.35);
-    --cs-bg-hover: rgba(255, 255, 255, 0.65);
-    --cs-bg-input: rgba(255, 255, 255, 0.7);
-
-    /* ── Borders ── */
-    --cs-border: rgba(255, 255, 255, 0.35);
-    --cs-border-strong: rgba(0, 0, 0, 0.08);
-    --cs-border-accent: rgba(3, 252, 244, 0.2);
-
-    /* ── Primary accent (cyan) ── */
-    --cs-primary: #03fcf4;
-    --cs-primary-hover: #00d4cc;
-    --cs-primary-soft: rgba(3, 252, 244, 0.08);
-    --cs-primary-text: #0891b2;
-    --cs-text-on-primary: #0a2e2e;
-
-    /* ── Semantic ── */
-    --cs-success: #22c55e;
-    --cs-success-soft: rgba(34, 197, 94, 0.1);
-    --cs-warning: #f59e0b;
-    --cs-warning-soft: rgba(245, 158, 11, 0.1);
-    --cs-danger: #ef4444;
-    --cs-danger-soft: rgba(239, 68, 68, 0.08);
-
-    /* ── Text ── */
-    --cs-text: #1a1a2e;
-    --cs-text-secondary: #5a6178;
-    --cs-text-muted: #94a0b8;
-
-    /* ── Typography ── */
-    --cs-font: 'Inter', system-ui, -apple-system, sans-serif;
+    /* ── Alias cs-* to shared at-* tokens ── */
+    --cs-bg-deep: var(--at-bg-deep);
+    --cs-bg-surface: var(--at-bg-surface);
+    --cs-bg-surface-solid: var(--at-bg-surface-solid);
+    --cs-bg-elevated: var(--at-bg-elevated);
+    --cs-bg-hover: var(--at-bg-hover);
+    --cs-bg-input: var(--at-bg-input);
+    --cs-border: var(--at-border);
+    --cs-border-strong: var(--at-border-strong);
+    --cs-border-accent: var(--at-border-accent);
+    --cs-primary: var(--at-primary);
+    --cs-primary-hover: var(--at-primary-hover);
+    --cs-primary-soft: var(--at-primary-soft);
+    --cs-primary-text: var(--at-primary-text);
+    --cs-text-on-primary: var(--at-text-on-primary);
+    --cs-success: var(--at-success);
+    --cs-success-soft: var(--at-success-soft);
+    --cs-warning: var(--at-warning);
+    --cs-warning-soft: var(--at-warning-soft);
+    --cs-danger: var(--at-danger);
+    --cs-danger-soft: var(--at-danger-soft);
+    --cs-text: var(--at-text);
+    --cs-text-secondary: var(--at-text-secondary);
+    --cs-text-muted: var(--at-text-muted);
+    --cs-font: var(--at-font);
     --cs-font-serif: 'Playfair Display', Georgia, serif;
-
-    /* ── Radius ── */
-    --cs-radius: 0.875rem;
-    --cs-radius-lg: 1.25rem;
-    --cs-radius-sm: 0.625rem;
+    --cs-radius: var(--at-radius);
+    --cs-radius-lg: var(--at-radius-lg);
+    --cs-radius-sm: var(--at-radius-sm);
     --cs-radius-pill: 50rem;
-
-    /* ── Glass shadows ── */
-    --cs-glass: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
-    --cs-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
-    --cs-glass-sm: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-
-    /* ── Transition ── */
-    --cs-transition: 200ms ease;
+    --cs-glass: var(--at-glass);
+    --cs-glass-hover: var(--at-glass-hover);
+    --cs-glass-sm: var(--at-glass-sm);
+    --cs-transition: var(--at-transition);
 
     font-family: var(--cs-font);
     color: var(--cs-text);

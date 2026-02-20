@@ -3,62 +3,43 @@
 @section('css')
 <style>
 /* ============================================
-   DASHBOARD GLASS DESIGN SYSTEM
-   Frosted glass aesthetic matching Video Wizard
-   Scoped under .dashboard-glass wrapper
+   DASHBOARD — Aliases to shared design system
    ============================================ */
 
 .dashboard-glass {
-    /* Backgrounds */
-    --db-bg-deep: #f0f4f8;
-    --db-bg-surface: rgba(255, 255, 255, 0.55);
-    --db-bg-surface-solid: #ffffff;
-    --db-bg-elevated: rgba(255, 255, 255, 0.35);
-    --db-bg-hover: rgba(255, 255, 255, 0.65);
+    /* Alias db-* to shared at-* tokens */
+    --db-bg-deep: var(--at-bg-deep);
+    --db-bg-surface: var(--at-bg-surface);
+    --db-bg-surface-solid: var(--at-bg-surface-solid);
+    --db-bg-elevated: var(--at-bg-elevated);
+    --db-bg-hover: var(--at-bg-hover);
+    --db-border: var(--at-border);
+    --db-border-accent: var(--at-border-accent);
+    --db-primary: var(--at-primary);
+    --db-primary-hover: var(--at-primary-hover);
+    --db-primary-soft: var(--at-primary-soft);
+    --db-primary-text: var(--at-primary-text);
+    --db-text-on-primary: var(--at-text-on-primary);
+    --db-success: var(--at-success);
+    --db-success-soft: var(--at-success-soft);
+    --db-warning: var(--at-warning);
+    --db-warning-soft: var(--at-warning-soft);
+    --db-danger: var(--at-danger);
+    --db-danger-soft: var(--at-danger-soft);
+    --db-info: var(--at-info);
+    --db-info-soft: var(--at-info-soft);
+    --db-text: var(--at-text);
+    --db-text-secondary: var(--at-text-secondary);
+    --db-text-muted: var(--at-text-muted);
+    --db-font: var(--at-font);
+    --db-radius: var(--at-radius);
+    --db-radius-lg: var(--at-radius-lg);
+    --db-radius-sm: var(--at-radius-sm);
+    --db-glass: var(--at-glass);
+    --db-glass-hover: var(--at-glass-hover);
+    --db-glass-sm: var(--at-glass-sm);
+    --db-transition: var(--at-transition);
 
-    /* Borders */
-    --db-border: rgba(255, 255, 255, 0.35);
-    --db-border-accent: rgba(3, 252, 244, 0.2);
-
-    /* Primary accent (cyan) */
-    --db-primary: #03fcf4;
-    --db-primary-hover: #00d4cc;
-    --db-primary-soft: rgba(3, 252, 244, 0.08);
-    --db-primary-text: #0891b2;
-    --db-text-on-primary: #0a2e2e;
-
-    /* Semantic colors */
-    --db-success: #22c55e;
-    --db-success-soft: rgba(34, 197, 94, 0.1);
-    --db-warning: #f59e0b;
-    --db-warning-soft: rgba(245, 158, 11, 0.1);
-    --db-danger: #ef4444;
-    --db-danger-soft: rgba(239, 68, 68, 0.08);
-    --db-info: #0ea5e9;
-    --db-info-soft: rgba(14, 165, 233, 0.08);
-
-    /* Text */
-    --db-text: #1a1a2e;
-    --db-text-secondary: #5a6178;
-    --db-text-muted: #94a0b8;
-
-    /* Typography */
-    --db-font: 'Inter', system-ui, -apple-system, sans-serif;
-
-    /* Radius */
-    --db-radius: 0.875rem;
-    --db-radius-lg: 1.25rem;
-    --db-radius-sm: 0.625rem;
-
-    /* Glass shadows */
-    --db-glass: 0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
-    --db-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
-    --db-glass-sm: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-
-    /* Transition */
-    --db-transition: 200ms ease;
-
-    /* Apply base styles */
     font-family: var(--db-font);
     color: var(--db-text);
     background: var(--db-bg-deep);
@@ -132,63 +113,19 @@
     66% { transform: translate(-20px, -15px) scale(0.98); }
 }
 
-/* ── Glass Card Base ── */
+/* ── Dashboard-specific card z-index ── */
 .dashboard-glass .card {
-    background: var(--db-bg-surface) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--db-border) !important;
-    border-radius: var(--db-radius-lg) !important;
-    box-shadow: var(--db-glass);
-    transition: box-shadow var(--db-transition), border-color var(--db-transition);
     position: relative;
     z-index: 1;
 }
 
-.dashboard-glass .card:hover {
-    box-shadow: var(--db-glass-hover);
-    border-color: rgba(255, 255, 255, 0.45) !important;
-}
-
-.dashboard-glass .card-header {
-    background: transparent !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-    color: var(--db-text);
-    font-weight: 600;
-}
-
-.dashboard-glass .card-body {
-    color: var(--db-text);
-}
-
-/* ── Text Utility Classes ── */
+/* ── Dashboard text accents ── */
 .dashboard-glass .db-text-accent {
     color: var(--db-primary-text) !important;
 }
 
 .dashboard-glass .db-text-secondary {
     color: var(--db-text-secondary) !important;
-}
-
-/* Override Bootstrap text utilities inside glass scope */
-.dashboard-glass .text-gray-500 {
-    color: var(--db-text-muted) !important;
-}
-
-.dashboard-glass .text-gray-700 {
-    color: var(--db-text-secondary) !important;
-}
-
-.dashboard-glass .text-gray-800 {
-    color: var(--db-text) !important;
-}
-
-.dashboard-glass .text-muted {
-    color: var(--db-text-muted) !important;
-}
-
-.dashboard-glass .text-dark {
-    color: var(--db-text) !important;
 }
 
 /* ── Icon Containers ── */
@@ -242,125 +179,13 @@
     color: #d97706;
 }
 
-/* ── Glass Badges ── */
-.dashboard-glass .badge.rounded-pill {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    box-shadow: var(--db-glass-sm);
-    color: var(--db-primary-text) !important;
-    font-weight: 600;
-}
-
-.dashboard-glass .badge-success,
-.dashboard-glass .badge.badge-success {
-    background: var(--db-success-soft) !important;
-    color: #16a34a !important;
-    border: 1px solid rgba(34, 197, 94, 0.2) !important;
-}
-
-.dashboard-glass .badge-danger,
-.dashboard-glass .badge.badge-danger {
-    background: var(--db-danger-soft) !important;
-    color: #dc2626 !important;
-    border: 1px solid rgba(239, 68, 68, 0.15) !important;
-}
-
-/* ── Glass Progress Bar ── */
-.dashboard-glass .progress {
-    background: rgba(255, 255, 255, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    overflow: hidden;
-}
-
-/* ── Glass Table ── */
-.dashboard-glass .table {
-    color: var(--db-text);
-    --bs-table-bg: transparent;
-}
-
-.dashboard-glass .table thead,
-.dashboard-glass .table-light {
-    background: rgba(255, 255, 255, 0.35) !important;
-    --bs-table-bg: rgba(255, 255, 255, 0.35) !important;
-}
-
-.dashboard-glass .table thead th {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: var(--db-text-secondary);
-    font-weight: 600;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.dashboard-glass .table tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.dashboard-glass .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.3);
-    --bs-table-bg-state: rgba(255, 255, 255, 0.3);
-}
-
-.dashboard-glass .table-bordered,
-.dashboard-glass .table-bordered td,
-.dashboard-glass .table-bordered th {
-    border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-/* ── Glass Buttons ── */
-.dashboard-glass .btn-light {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    color: var(--db-text-secondary);
-}
-
-.dashboard-glass .btn-light:hover {
-    background: rgba(3, 252, 244, 0.08) !important;
-    color: var(--db-primary-text);
-    border-color: var(--db-border-accent) !important;
-}
-
-/* ── Card Borders / Dividers ── */
-.dashboard-glass .card-body.border-bottom,
-.dashboard-glass .card .border-bottom {
-    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
-}
-
+/* ── Dashboard-specific border overrides ── */
 .dashboard-glass .card .border-end {
     border-right-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .dashboard-glass .border-gray-300 {
     border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-/* ── Highcharts Transparent Background ── */
-.dashboard-glass .highcharts-background {
-    fill: transparent !important;
-}
-
-/* ── Channel Card Nested Glass ── */
-.dashboard-glass .card .card {
-    background: rgba(255, 255, 255, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: var(--db-radius) !important;
-    box-shadow: var(--db-glass-sm);
-}
-
-/* ── Alert Glass ── */
-.dashboard-glass .alert-danger {
-    background: var(--db-danger-soft) !important;
-    border: 1px solid rgba(239, 68, 68, 0.15) !important;
-    color: #dc2626;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Content z-index ── */
