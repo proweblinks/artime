@@ -207,6 +207,9 @@
         }
 
         /* Floating hero cards */
+        .hero-float, .hero-float-delay, .hero-float-delay-2 {
+            box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04);
+        }
         .hero-float {
             animation: heroFloat 6s ease-in-out infinite;
         }
@@ -244,6 +247,26 @@
             height: 2px;
             background: linear-gradient(90deg, var(--accent), transparent);
             opacity: 0.3;
+        }
+
+        /* Responsive grid utilities (missing from compiled Tailwind) */
+        @media (min-width: 640px) {
+            .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 768px) {
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\:pt-44 { padding-top: 11rem; }
+            .md\:pb-28 { padding-bottom: 7rem; }
+            .md\:p-8 { padding: 2rem; }
+            .md\:p-16 { padding: 4rem; }
+            .md\:gap-14 { gap: 3.5rem; }
+        }
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .lg\:order-1 { order: 1; }
+            .lg\:order-2 { order: 2; }
+            .lg\:ml-auto { margin-left: auto; }
         }
     </style>
 </head>
