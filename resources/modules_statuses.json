@@ -66,6 +66,7 @@
     "AppChannelLinkedinPages": true,
     "AppChannelLinkedinProfiles": true,
     "AppChannelTiktokProfiles": true,
+    "AppChannelYoutubeChannels": true,
     "AppChannelXProfiles": true,
     "AppChannelXUnofficial": true,
     "AppChannels": true,
