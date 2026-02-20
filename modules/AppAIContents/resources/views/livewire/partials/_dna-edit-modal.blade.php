@@ -14,6 +14,7 @@
                     @case('brand_values') {{ __('Edit Brand Values') }} @break
                     @case('brand_aesthetic') {{ __('Edit Brand Aesthetic') }} @break
                     @case('brand_tone') {{ __('Edit Tone of Voice') }} @break
+                    @case('language') {{ __('Edit Language') }} @break
                 @endswitch
             </h2>
             <button class="cs-modal-close" wire:click="closeEdit">
@@ -57,6 +58,44 @@
                         {{ __('Add color') }}
                     </button>
                 </div>
+            </div>
+
+        @elseif($editingField === 'language')
+            <div style="margin-bottom: 20px;">
+                <select class="cs-input" wire:model="editLanguage" style="cursor: pointer;">
+                    @foreach([
+                        'Afrikaans', 'Albanian', 'Amharic', 'Arabic', 'Armenian', 'Azerbaijani',
+                        'Basque', 'Belarusian', 'Bengali', 'Bosnian', 'Bulgarian', 'Burmese',
+                        'Catalan', 'Chinese', 'Croatian', 'Czech',
+                        'Danish', 'Dutch',
+                        'English', 'Estonian', 'Ethiopian',
+                        'Filipino', 'Finnish', 'French',
+                        'Galician', 'Georgian', 'German', 'Greek', 'Gujarati',
+                        'Haitian Creole', 'Hausa', 'Hebrew', 'Hindi', 'Hungarian',
+                        'Icelandic', 'Igbo', 'Indonesian', 'Irish', 'Italian',
+                        'Japanese', 'Javanese',
+                        'Kannada', 'Kazakh', 'Khmer', 'Korean', 'Kurdish', 'Kyrgyz',
+                        'Lao', 'Latvian', 'Lithuanian', 'Luxembourgish',
+                        'Macedonian', 'Malagasy', 'Malay', 'Malayalam', 'Maltese', 'Maori', 'Marathi', 'Mongolian',
+                        'Nepali', 'Norwegian',
+                        'Odia',
+                        'Pashto', 'Persian', 'Polish', 'Portuguese', 'Punjabi',
+                        'Romanian', 'Russian',
+                        'Samoan', 'Serbian', 'Sesotho', 'Shona', 'Sindhi', 'Sinhala', 'Slovak', 'Slovenian', 'Somali', 'Spanish', 'Sundanese', 'Swahili', 'Swedish',
+                        'Tajik', 'Tamil', 'Tatar', 'Telugu', 'Thai', 'Turkish', 'Turkmen',
+                        'Ukrainian', 'Urdu', 'Uzbek',
+                        'Vietnamese',
+                        'Welsh',
+                        'Xhosa',
+                        'Yiddish', 'Yoruba',
+                        'Zulu',
+                    ] as $lang)
+                        <option value="{{ $lang }}" @if($editLanguage === $lang) selected @endif>{{ $lang }}</option>
+                    @endforeach
+                </select>
+                <p style="font-size: 12px; color: var(--cs-text-muted); margin-top: 8px;">
+                    {{ __('All AI-generated content (campaigns, creatives, suggestions) will be written in this language.') }}
+                </p>
             </div>
 
         @elseif(in_array($editingField, ['brand_values', 'brand_aesthetic', 'brand_tone']))

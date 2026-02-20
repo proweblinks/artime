@@ -34,6 +34,7 @@ class WebScraperService
                 'colors' => $this->extractColors($html),
                 'fonts' => $this->extractFonts($html),
                 'text_content' => $this->extractTextContent($html),
+                'language_code' => $this->extractLanguage($html),
             ];
         } catch (\Throwable $e) {
             Log::error('WebScraperService::scrape failed', ['url' => $url, 'error' => $e->getMessage()]);
@@ -120,6 +121,21 @@ class WebScraperService
         $text = strip_tags(preg_replace('/<(script|style|nav|footer|header)[^>]*>.*?<\/\1>/si', '', $html));
         $text = preg_replace('/\s+/', ' ', $text);
         return mb_substr(trim($text), 0, 5000);
+    }
+
+    protected function extractLanguage(string $html): string
+    {
+        // Try <html lang="...">
+        if (preg_match('/<html[^>]+lang=["\']([^"\']+)["\'][^>]*>/i', $html, $match)) {
+            return strtolower(explode('-', trim($match[1]))[0]); // "en-US" → "en"
+        }
+
+        // Try <meta http-equiv="content-language">
+        if (preg_match('/<meta\s+http-equiv=["\']content-language["\']\s+content=["\']([^"\']+)["\'][^>]*>/i', $html, $match)) {
+            return strtolower(explode('-', trim($match[1]))[0]);
+        }
+
+        return ''; // Unknown — AI will detect from content
     }
 
     protected function resolveUrl(string $src, string $baseUrl): string

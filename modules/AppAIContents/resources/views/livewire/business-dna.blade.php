@@ -96,7 +96,21 @@
                     </div>
                 </div>
 
-                {{-- Row 2: Logo + Fonts (side-by-side) --}}
+                {{-- Row 2: Language (compact) --}}
+                @if($dna->language)
+                <div class="cs-card cs-card-clickable" wire:click="openEdit('language')" style="padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="cs-section-label" style="margin: 0;">{{ __('Language') }}</div>
+                        <span style="font-size: 14px; color: var(--cs-text);">{{ $dna->language }}</span>
+                        @if($dna->language_code)
+                            <span style="font-size: 11px; color: var(--cs-text-muted); background: var(--cs-glass-bg); padding: 2px 8px; border-radius: 10px; text-transform: uppercase; font-weight: 500;">{{ $dna->language_code }}</span>
+                        @endif
+                    </div>
+                    <i class="fa-light fa-pen" style="color: var(--cs-text-muted);"></i>
+                </div>
+                @endif
+
+                {{-- Row 3: Logo + Fonts (side-by-side) --}}
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     {{-- Logo --}}
                     <div class="cs-card" style="padding: 20px; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">

@@ -129,6 +129,8 @@ class CreativeService
 
     protected function generateTextContent(ContentCampaign $campaign, ContentBusinessDna $dna, int $index): array
     {
+        $language = $dna->language ?? 'English';
+
         $prompt = <<<PROMPT
 You are a copywriter creating text overlays for a social media marketing creative (variation #{$index}).
 
@@ -137,18 +139,20 @@ Campaign brief: {$campaign->description}
 Brand: {$dna->brand_name}
 Brand tone: {$this->arrayToString($dna->brand_tone)}
 Brand values: {$this->arrayToString($dna->brand_values)}
+Language: {$language}
 
 Requirements:
 - header: A bold, attention-grabbing headline (max 8 words). Should stop the scroll.
 - description: Supporting copy that expands on the headline (max 20 words). Concise and compelling.
 - cta: A strong call-to-action (2-4 words). Action-oriented.
 - Each variation (#{$index}) must use a DIFFERENT angle/approach from others
+- IMPORTANT: Write ALL text (header, description, cta) in {$language}
 
 Return a JSON object:
 {
-    "header": "Bold headline here",
-    "description": "Supporting text here",
-    "cta": "Action words"
+    "header": "Bold headline in {$language}",
+    "description": "Supporting text in {$language}",
+    "cta": "Action words in {$language}"
 }
 
 Only return the JSON, no other text.
@@ -215,9 +219,12 @@ PROMPT;
 
         $fieldLabel = $fieldLabels[$field] ?? 'marketing text';
 
+        $language = $dna->language ?? 'English';
+
         $prompt = "Generate {$fieldLabel} for a marketing creative. "
             . "Campaign: {$campaign->title}. Brand: {$dna->brand_name}. "
             . "Tone: " . implode(', ', $dna->brand_tone ?? ['professional']) . ". "
+            . "IMPORTANT: Write the text in {$language}. "
             . "Return only the text, nothing else.";
 
         try {

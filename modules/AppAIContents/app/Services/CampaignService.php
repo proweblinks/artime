@@ -12,6 +12,8 @@ class CampaignService
 {
     public function generateIdeas(string $prompt, ContentBusinessDna $dna, int $teamId): array
     {
+        $language = $dna->language ?? 'English';
+
         $aiPrompt = <<<PROMPT
 You are a creative marketing strategist. Generate 3 compelling campaign ideas that match the user's request while staying true to the brand identity.
 
@@ -24,18 +26,20 @@ Brand context:
 - Aesthetic: {$this->arrayToString($dna->brand_aesthetic)}
 - Tone: {$this->arrayToString($dna->brand_tone)}
 - Overview: {$dna->business_overview}
+- Language: {$language}
 
 Requirements:
 - Each title should be catchy, action-oriented, and under 6 words
 - Each description should be 2-3 sentences covering the concept, target audience, and expected outcome
 - Ideas should directly address the user's request while reflecting the brand's aesthetic and tone
 - Make each idea a distinct creative angle on the user's request
+- IMPORTANT: Write ALL titles and descriptions in {$language}
 
 Return a JSON array of exactly 3 objects:
 [
-    {"title": "Campaign Title", "description": "2-3 sentence campaign description"},
-    {"title": "Campaign Title", "description": "2-3 sentence campaign description"},
-    {"title": "Campaign Title", "description": "2-3 sentence campaign description"}
+    {"title": "Campaign Title in {$language}", "description": "2-3 sentence campaign description in {$language}"},
+    {"title": "Campaign Title in {$language}", "description": "2-3 sentence campaign description in {$language}"},
+    {"title": "Campaign Title in {$language}", "description": "2-3 sentence campaign description in {$language}"}
 ]
 
 Only return the JSON array, no other text.

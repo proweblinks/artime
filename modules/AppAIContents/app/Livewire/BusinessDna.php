@@ -26,6 +26,7 @@ class BusinessDna extends Component
     public string $editBrandName = '';
     public string $editTagline = '';
     public string $editOverview = '';
+    public string $editLanguage = '';
     public array $editColors = [];
     public array $editFonts = [];
     public array $editBrandValues = [];
@@ -121,6 +122,7 @@ class BusinessDna extends Component
             'brand_name' => $this->editBrandName = $this->dna->brand_name ?? '',
             'tagline' => $this->editTagline = $this->dna->tagline ?? '',
             'business_overview' => $this->editOverview = $this->dna->business_overview ?? '',
+            'language' => $this->editLanguage = $this->dna->language ?? 'English',
             'colors' => $this->editColors = $this->dna->colors ?? [],
             'fonts' => $this->editFonts = $this->dna->fonts ?? [],
             'brand_values' => $this->editBrandValues = $this->dna->brand_values ?? [],
@@ -146,6 +148,7 @@ class BusinessDna extends Component
             'brand_name' => ['brand_name' => $this->editBrandName],
             'tagline' => ['tagline' => $this->editTagline],
             'business_overview' => ['business_overview' => $this->editOverview],
+            'language' => ['language' => $this->editLanguage],
             'colors' => ['colors' => $this->editColors],
             'fonts' => ['fonts' => $this->editFonts],
             'brand_values' => ['brand_values' => $this->editBrandValues],

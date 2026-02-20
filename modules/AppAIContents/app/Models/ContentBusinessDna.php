@@ -21,6 +21,8 @@ class ContentBusinessDna extends Model
         'brand_aesthetic',
         'brand_tone',
         'business_overview',
+        'language',
+        'language_code',
         'images',
         'raw_scrape_data',
         'status',
