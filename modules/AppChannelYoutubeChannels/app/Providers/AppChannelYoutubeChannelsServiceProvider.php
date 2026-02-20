@@ -15,7 +15,7 @@ class AppChannelYoutubeChannelsServiceProvider extends ServiceProvider
 
     protected string $name = 'AppChannelYoutubeChannels';
 
-    protected string $nameLower = 'appchanneyoutubechannels';
+    protected string $nameLower = 'appchannelyoutubechannels';
 
     /**
      * Boot the application events.

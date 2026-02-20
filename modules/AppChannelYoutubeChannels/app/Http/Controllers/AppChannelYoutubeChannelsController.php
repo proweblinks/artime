@@ -147,6 +147,6 @@ class AppChannelYoutubeChannelsController extends Controller
     }
 
     public function settings(){
-        return view('appchanneyoutubechannels::settings');
+        return view('appchannelyoutubechannels::settings');
     }
 }

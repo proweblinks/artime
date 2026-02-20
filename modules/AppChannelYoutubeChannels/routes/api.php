@@ -15,5 +15,5 @@ use Modules\AppChannelYoutubeChannels\Http\Controllers\AppChannelYoutubeChannels
 */
 
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::apiResource('appchanneyoutubechannels', AppChannelYoutubeChannelsController::class)->names('appchanneyoutubechannels');
+    Route::apiResource('appchannelyoutubechannels', AppChannelYoutubeChannelsController::class)->names('appchannelyoutubechannels');
 });
