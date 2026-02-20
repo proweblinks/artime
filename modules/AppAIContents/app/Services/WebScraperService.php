@@ -10,48 +10,171 @@ class WebScraperService
     public function scrape(string $url): array
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                    'Accept-Language' => 'en-US,en;q=0.9',
-                    'Accept-Encoding' => 'gzip, deflate, br',
-                    'Cache-Control' => 'no-cache',
-                    'Sec-Fetch-Dest' => 'document',
-                    'Sec-Fetch-Mode' => 'navigate',
-                    'Sec-Fetch-Site' => 'none',
-                    'Sec-Fetch-User' => '?1',
-                    'Upgrade-Insecure-Requests' => '1',
-                ])
-                ->withOptions([
-                    'allow_redirects' => ['max' => 5, 'track_redirects' => true],
-                    'verify' => false,
-                ])
-                ->get($url);
+            // Primary: direct HTTP scrape
+            $result = $this->directScrape($url);
 
-            if (!$response->successful()) {
-                throw new \Exception("Failed to fetch URL: HTTP {$response->status()}");
+            // If direct scrape returned too little text, fall back to Jina Reader
+            if (mb_strlen($result['text_content']) < 100) {
+                Log::info('WebScraperService: direct scrape returned minimal content, trying Jina Reader', ['url' => $url]);
+                $jinaResult = $this->jinaScrape($url);
+                if ($jinaResult && mb_strlen($jinaResult['text_content']) > mb_strlen($result['text_content'])) {
+                    return $jinaResult;
+                }
             }
 
-            $html = $response->body();
+            return $result;
+        } catch (\Throwable $e) {
+            // If direct scrape failed entirely, try Jina as last resort
+            Log::warning('WebScraperService: direct scrape failed, trying Jina Reader', ['url' => $url, 'error' => $e->getMessage()]);
+            $jinaResult = $this->jinaScrape($url);
+            if ($jinaResult) {
+                return $jinaResult;
+            }
+
+            Log::error('WebScraperService::scrape failed completely', ['url' => $url, 'error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    protected function directScrape(string $url): array
+    {
+        $response = Http::timeout(30)
+            ->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language' => 'en-US,en;q=0.9',
+                'Accept-Encoding' => 'gzip, deflate, br',
+                'Cache-Control' => 'no-cache',
+                'Sec-Fetch-Dest' => 'document',
+                'Sec-Fetch-Mode' => 'navigate',
+                'Sec-Fetch-Site' => 'none',
+                'Sec-Fetch-User' => '?1',
+                'Upgrade-Insecure-Requests' => '1',
+            ])
+            ->withOptions([
+                'allow_redirects' => ['max' => 5, 'track_redirects' => true],
+                'verify' => false,
+            ])
+            ->get($url);
+
+        if (!$response->successful()) {
+            throw new \Exception("Failed to fetch URL: HTTP {$response->status()}");
+        }
+
+        $html = $response->body();
+        $baseUrl = parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST);
+
+        return [
+            'html' => $html,
+            'url' => $url,
+            'base_url' => $baseUrl,
+            'title' => $this->extractTitle($html),
+            'meta' => $this->extractMeta($html),
+            'images' => $this->extractImages($html, $baseUrl),
+            'logo' => $this->extractLogo($html, $baseUrl),
+            'colors' => $this->extractColors($html),
+            'fonts' => $this->extractFonts($html),
+            'text_content' => $this->extractTextContent($html),
+            'language_code' => $this->extractLanguage($html),
+        ];
+    }
+
+    /**
+     * Fallback scraper using Jina Reader API for JS-rendered/bot-protected sites.
+     */
+    protected function jinaScrape(string $url): ?array
+    {
+        try {
+            $response = Http::timeout(60)
+                ->withHeaders(['Accept' => 'text/plain'])
+                ->get('https://r.jina.ai/' . $url);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $markdown = $response->body();
+            if (mb_strlen($markdown) < 50) {
+                return null;
+            }
+
             $baseUrl = parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST);
 
+            // Extract title from Jina's "Title: ..." header line
+            $title = '';
+            if (preg_match('/^Title:\s*(.+)$/m', $markdown, $m)) {
+                $title = trim($m[1]);
+            }
+
+            // Extract images from markdown ![alt](url) patterns
+            $images = [];
+            preg_match_all('/!\[(?:Image \d+:\s*)?([^\]]*)\]\(([^)]+)\)/i', $markdown, $imgMatches, PREG_SET_ORDER);
+            foreach ($imgMatches as $img) {
+                $imgUrl = trim($img[2]);
+                if ($imgUrl && $this->isValidImageUrl($imgUrl)) {
+                    $images[] = [
+                        'url' => $this->resolveUrl($imgUrl, $baseUrl),
+                        'source' => 'jina',
+                        'width' => 0,
+                        'height' => 0,
+                    ];
+                }
+            }
+
+            // Extract text content (strip markdown syntax)
+            $text = $markdown;
+            // Remove the Jina header lines
+            $text = preg_replace('/^(Title|URL Source|Markdown Content):.*$/m', '', $text);
+            // Remove markdown links but keep text
+            $text = preg_replace('/\[([^\]]*)\]\([^)]+\)/', '$1', $text);
+            // Remove image references
+            $text = preg_replace('/!\[[^\]]*\]\([^)]+\)/', '', $text);
+            // Remove markdown heading markers
+            $text = preg_replace('/^#{1,6}\s+/m', '', $text);
+            // Remove emphasis markers
+            $text = preg_replace('/[*_]{1,3}/', '', $text);
+            // Collapse whitespace
+            $text = preg_replace('/\s+/', ' ', $text);
+            $text = mb_substr(trim($text), 0, 5000);
+
+            // Try to detect language from title/text
+            $language = '';
+            // Check for Hebrew characters
+            if (preg_match('/[\x{0590}-\x{05FF}]/u', $title . $text)) {
+                $language = 'he';
+            } elseif (preg_match('/[\x{0600}-\x{06FF}]/u', $title . $text)) {
+                $language = 'ar';
+            } elseif (preg_match('/[\x{4E00}-\x{9FFF}]/u', $title . $text)) {
+                $language = 'zh';
+            } elseif (preg_match('/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}]/u', $title . $text)) {
+                $language = 'ja';
+            }
+
+            // Extract logo: first image with "logo" in its alt text, or first image overall
+            $logo = null;
+            foreach ($imgMatches as $img) {
+                if (stripos($img[1], 'logo') !== false) {
+                    $logo = $this->resolveUrl(trim($img[2]), $baseUrl);
+                    break;
+                }
+            }
+
             return [
-                'html' => $html,
+                'html' => $markdown,
                 'url' => $url,
                 'base_url' => $baseUrl,
-                'title' => $this->extractTitle($html),
-                'meta' => $this->extractMeta($html),
-                'images' => $this->extractImages($html, $baseUrl),
-                'logo' => $this->extractLogo($html, $baseUrl),
-                'colors' => $this->extractColors($html),
-                'fonts' => $this->extractFonts($html),
-                'text_content' => $this->extractTextContent($html),
-                'language_code' => $this->extractLanguage($html),
+                'title' => $title,
+                'meta' => ['description' => mb_substr($text, 0, 300)],
+                'images' => array_slice($images, 0, 30),
+                'logo' => $logo,
+                'colors' => [],
+                'fonts' => [],
+                'text_content' => $text,
+                'language_code' => $language,
             ];
         } catch (\Throwable $e) {
-            Log::error('WebScraperService::scrape failed', ['url' => $url, 'error' => $e->getMessage()]);
-            throw $e;
+            Log::warning('WebScraperService: Jina Reader fallback failed', ['url' => $url, 'error' => $e->getMessage()]);
+            return null;
         }
     }
 
