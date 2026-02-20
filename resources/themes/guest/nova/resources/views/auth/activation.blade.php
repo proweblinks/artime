@@ -32,7 +32,7 @@
                 <!-- Action Button -->
                 <div class="mt-8">
                     <a href="{{ url('auth/login') }}"
-                       class="mb-8 py-4 px-9 w-full inline-block text-white font-semibold rounded-xl shadow-4xl focus:ring focus:ring-blue-200 transition ease-in-out duration-200 text-center" style="background-color: #111827; border: 1px solid #111827;" onmouseover="this.style.backgroundColor='#000'" onmouseout="this.style.backgroundColor='#111827'">
+                       class="btn-accent mb-8 py-4 w-full justify-center text-base">
                         <i class="fa fa-arrow-left mr-2"></i>
                         {{ __("Back to Login") }}
                     </a>

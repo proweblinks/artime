@@ -22,7 +22,7 @@
 	                <div class="mb-4">
 	                    <input class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-blue-200" type="text" name="keyword" placeholder="{{ __("Enter your keyword") }}"/>
 	                </div>
-	                <button type="submit" class="w-full py-3 text-white font-semibold rounded-lg transition-colors" style="background-color: #111827;" onmouseover="this.style.backgroundColor='#000'" onmouseout="this.style.backgroundColor='#111827'">{{ __("Search") }}</button>
+	                <button type="submit" class="btn-accent w-full py-3 justify-center text-base">{{ __("Search") }}</button>
                 </form>
             </div>
         </div>
@@ -122,7 +122,7 @@
 							</svg>
 			                <h3 class="text-2xl font-bold text-gray-500 mb-2">{{ __("No blog posts found") }}</h3>
 			                <p class="text-gray-400 mb-6">{{ __("We couldn't find any blog posts matching your criteria.") }}</p>
-			                <a href="{{ route('blogs') }}" class="inline-block px-5 py-3 text-white rounded-lg font-semibold shadow transition" style="background-color: #111827;" onmouseover="this.style.backgroundColor='#000'" onmouseout="this.style.backgroundColor='#111827'">{{ __("Back to All Blogs") }}</a>
+			                <a href="{{ route('blogs') }}" class="btn-accent px-5 py-3 text-base">{{ __("Back to All Blogs") }}</a>
 			            </div>
 			        @endforelse
 			    </div>

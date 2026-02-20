@@ -26,13 +26,12 @@
 			<div class="msg-error mb-4"></div>
 
 			<button type="submit"
-			    class="mb-8 py-4 px-9 w-full text-white font-semibold rounded-xl shadow-4xl
-			        focus:ring focus:ring-blue-200 transition ease-in-out duration-200" style="background-color: #111827; border: 1px solid #111827;" onmouseover="this.style.backgroundColor='#000'" onmouseout="this.style.backgroundColor='#111827'">
+			    class="btn-accent mb-8 py-4 w-full justify-center text-base">
 			    {{ __("Send Reset Link") }}
 			</button>
 
 			<p class="text-center text-base-content/80 pt-4">
-			    <a href="{{ url('auth/login') }}" class="text-blue-600 hover:text-blue-500 font-medium">
+			    <a href="{{ url('auth/login') }}" class="font-medium" style="color: #0891B2;">
 			        <i class="fa fa-arrow-left mr-1"></i>{{ __("Back to login") }}
 			    </a>
 			</p>

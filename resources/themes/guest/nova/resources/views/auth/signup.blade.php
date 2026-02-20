@@ -77,7 +77,7 @@
                         <input class="w-4 h-4" id="accep_terms" name="accep_terms" type="checkbox" value="1" required>
                         <label class="ml-2 text-gray-700 font-medium" for="accep_terms" >
                             <span>{{ __("I agree to the") }}</span>
-                            <a class="text-blue-600 hover:text-blue-500" href="{{ url('terms-of-service') }}">{{ __("Terms & Conditions") }}</a>
+                            <a class="font-medium" style="color: #0891B2;" href="{{ url('terms-of-service') }}">{{ __("Terms & Conditions") }}</a>
                         </label>
                     </div>
                 </div>
@@ -88,14 +88,14 @@
 
 		    <!-- Submit -->
 		    <button type="submit"
-		            class="mb-8 py-4 px-9 w-full text-white font-semibold rounded-xl shadow-4xl focus:ring focus:ring-blue-200 transition ease-in-out duration-200" style="background-color: #111827; border: 1px solid #111827;" onmouseover="this.style.backgroundColor='#000'" onmouseout="this.style.backgroundColor='#111827'">
+		            class="btn-accent mb-8 py-4 w-full justify-center text-base">
 		        {{ __("Sign Up") }}
 		    </button>
 
 		    <!-- Switch to Sign In -->
 		    <p class="text-center text-base-content/80 pt-4">
 		        {{ __("Already have an account?") }}
-		        <a href="{{ url('auth/login') }}" class="text-blue-600 hover:text-blue-500 font-medium">{{ __("Sign in") }}</a>
+		        <a href="{{ url('auth/login') }}" class="font-medium" style="color: #0891B2;">{{ __("Sign in") }}</a>
 		    </p>
 		</form>
 
