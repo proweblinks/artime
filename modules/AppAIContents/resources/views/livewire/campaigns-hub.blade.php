@@ -24,6 +24,7 @@
         <div class="cs-card" style="padding: 24px; margin-bottom: 24px;">
             <textarea class="cs-input cs-input-lg"
                       wire:model.live="prompt"
+                      dir="auto"
                       placeholder="{{ __('Describe the campaign you want to create') }}"
                       rows="3"></textarea>
 
@@ -86,8 +87,8 @@
                 @foreach($currentIdeas as $idea)
                     <div class="cs-idea-card" style="display: flex; justify-content: space-between; align-items: start;">
                         <div wire:click="useCampaignIdea({{ $idea['id'] }})" style="flex: 1; cursor: pointer;">
-                            <h3>{{ $idea['title'] }}</h3>
-                            <p>{{ $idea['description'] }}</p>
+                            <h3 dir="auto">{{ $idea['title'] }}</h3>
+                            <p dir="auto">{{ $idea['description'] }}</p>
                         </div>
                         <button class="cs-btn cs-btn-icon cs-btn-ghost" wire:click="deleteIdea({{ $idea['id'] }})" title="{{ __('Delete') }}">
                             <i class="fa-light fa-trash"></i>
@@ -118,10 +119,10 @@
                         @endif
 
                         <div style="flex: 1; min-width: 0;">
-                            <div style="font-size: 15px; font-weight: 600; color: var(--cs-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <div dir="auto" style="font-size: 15px; font-weight: 600; color: var(--cs-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 {{ $campaign->title }}
                             </div>
-                            <div style="font-size: 13px; color: var(--cs-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <div dir="auto" style="font-size: 13px; color: var(--cs-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 {{ $campaign->description }}
                             </div>
                         </div>
@@ -170,7 +171,7 @@
                          x-data="{ dnaMenu: false }">
                         {{-- Title --}}
                         <div wire:click="useCampaignIdea({{ $suggestion->id }})" style="padding: 14px 14px 8px 14px;">
-                            <h3 style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ $suggestion->title }}</h3>
+                            <h3 dir="auto" style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ $suggestion->title }}</h3>
                         </div>
 
                         {{-- Thumbnail placeholder --}}
@@ -180,7 +181,7 @@
 
                         {{-- Description --}}
                         <div wire:click="useCampaignIdea({{ $suggestion->id }})" style="padding: 8px 14px 6px 14px; flex: 1;">
-                            <p style="margin: 0; font-size: 12px; color: var(--cs-text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">{{ $suggestion->description }}</p>
+                            <p dir="auto" style="margin: 0; font-size: 12px; color: var(--cs-text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">{{ $suggestion->description }}</p>
                         </div>
 
                         {{-- More menu --}}

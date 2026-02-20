@@ -170,6 +170,7 @@
         <div class="cs-card" style="padding: 24px;">
             <textarea class="cs-input cs-input-lg"
                       wire:model.live="prompt"
+                      dir="auto"
                       placeholder="{{ __('Edit this image (Press + to add image)...') }}"
                       rows="4"></textarea>
 

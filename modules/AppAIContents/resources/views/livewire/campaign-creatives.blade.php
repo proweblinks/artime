@@ -16,10 +16,10 @@
                 <i class="fa-light fa-bullhorn"></i>
             </div>
             <div>
-                <h2 style="font-family: var(--cs-font-serif); font-style: italic; font-size: 22px; margin: 0 0 4px 0;">
+                <h2 dir="auto" style="font-family: var(--cs-font-serif); font-style: italic; font-size: 22px; margin: 0 0 4px 0;">
                     {{ $campaign->title }}
                 </h2>
-                <p style="color: var(--cs-text-muted); font-size: 14px; margin: 0;">
+                <p dir="auto" style="color: var(--cs-text-muted); font-size: 14px; margin: 0;">
                     {{ $campaign->description }}
                 </p>
             </div>
@@ -135,7 +135,7 @@
             </button>
         </div>
 
-        <textarea class="cs-input" wire:model.live="addCreativePrompt" placeholder="{{ __('Describe the creative you want to make') }}" rows="3"></textarea>
+        <textarea class="cs-input" wire:model.live="addCreativePrompt" dir="auto" placeholder="{{ __('Describe the creative you want to make') }}" rows="3"></textarea>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
             <button class="cs-btn cs-btn-primary" wire:click="addCreative" @click="showAddSheet = false" @if(empty(trim($addCreativePrompt ?? ''))) disabled @endif>

@@ -56,17 +56,17 @@
                         {{-- Text Overlays Preview --}}
                         <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 24px;">
                             @if($headerVisible && $headerText)
-                                <div style="font-family: '{{ $headerFont }}', sans-serif; color: {{ $headerColor }}; font-size: {{ min($headerSize * 0.6, 28) }}px; line-height: {{ $headerHeight * 0.6 }}px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.5); margin-bottom: 8px;">
+                                <div dir="auto" style="font-family: '{{ $headerFont }}', sans-serif; color: {{ $headerColor }}; font-size: {{ min($headerSize * 0.6, 28) }}px; line-height: {{ $headerHeight * 0.6 }}px; font-weight: 700; text-shadow: 0 2px 8px rgba(0,0,0,0.5); margin-bottom: 8px;">
                                     {{ $headerText }}
                                 </div>
                             @endif
                             @if($descVisible && $descriptionText)
-                                <div style="font-family: '{{ $descFont }}', sans-serif; color: {{ $descColor }}; font-size: {{ min($descSize * 0.6, 14) }}px; line-height: {{ $descHeight * 0.6 }}px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-bottom: 12px;">
+                                <div dir="auto" style="font-family: '{{ $descFont }}', sans-serif; color: {{ $descColor }}; font-size: {{ min($descSize * 0.6, 14) }}px; line-height: {{ $descHeight * 0.6 }}px; text-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-bottom: 12px;">
                                     {{ $descriptionText }}
                                 </div>
                             @endif
                             @if($ctaVisible && $ctaText)
-                                <div>
+                                <div dir="auto">
                                     <span style="display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.9); color: #111; border-radius: 20px; font-size: {{ min($ctaSize * 0.6, 12) }}px; font-weight: 600;">
                                         {{ $ctaText }}
                                     </span>
@@ -133,7 +133,7 @@
                 @if($expandedSection === 'header')
                 <div class="cs-accordion-body">
                     <div style="margin-bottom: 12px;">
-                        <textarea class="cs-input" wire:model.blur="headerText" wire:change="updateText('header')" rows="2" placeholder="{{ __('Header text') }}"></textarea>
+                        <textarea class="cs-input" wire:model.blur="headerText" wire:change="updateText('header')" dir="auto" rows="2" placeholder="{{ __('Header text') }}"></textarea>
                         <button class="cs-btn cs-btn-ai cs-btn-sm" style="margin-top: 8px;" wire:click="helpMeWrite('header')">
                             <i class="fa-light fa-wand-magic-sparkles"></i> {{ __('Help me write') }}
                         </button>
@@ -187,7 +187,7 @@
                 @if($expandedSection === 'description')
                 <div class="cs-accordion-body">
                     <div style="margin-bottom: 12px;">
-                        <textarea class="cs-input" wire:model.blur="descriptionText" wire:change="updateText('description')" rows="2" placeholder="{{ __('Description text') }}"></textarea>
+                        <textarea class="cs-input" wire:model.blur="descriptionText" wire:change="updateText('description')" dir="auto" rows="2" placeholder="{{ __('Description text') }}"></textarea>
                         <button class="cs-btn cs-btn-ai cs-btn-sm" style="margin-top: 8px;" wire:click="helpMeWrite('description')">
                             <i class="fa-light fa-wand-magic-sparkles"></i> {{ __('Help me write') }}
                         </button>
@@ -241,7 +241,7 @@
                 @if($expandedSection === 'cta')
                 <div class="cs-accordion-body">
                     <div style="margin-bottom: 12px;">
-                        <input type="text" class="cs-input" wire:model.blur="ctaText" wire:change="updateText('cta')" placeholder="{{ __('Call to action text') }}">
+                        <input type="text" class="cs-input" wire:model.blur="ctaText" wire:change="updateText('cta')" dir="auto" placeholder="{{ __('Call to action text') }}">
                         <button class="cs-btn cs-btn-ai cs-btn-sm" style="margin-top: 8px;" wire:click="helpMeWrite('cta')">
                             <i class="fa-light fa-sparkles"></i> {{ __('Generate') }}
                         </button>

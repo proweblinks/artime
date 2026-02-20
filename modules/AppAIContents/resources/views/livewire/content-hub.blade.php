@@ -23,7 +23,7 @@
                                     {{ strtoupper(substr($activeBusiness->brand_name ?? 'B', 0, 1)) }}
                                 </div>
                             @endif
-                            <span class="cs-business-name">{{ $activeBusiness->brand_name ?? 'My Business' }}</span>
+                            <span class="cs-business-name" dir="auto">{{ $activeBusiness->brand_name ?? 'My Business' }}</span>
                             <i class="fa-light fa-chevron-down" style="font-size: 10px; color: var(--cs-text-muted);"></i>
                         </button>
                     @else
@@ -48,7 +48,7 @@
                                     </div>
                                 @endif
                                 <div style="flex: 1; min-width: 0;">
-                                    <div style="font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $biz->brand_name ?? 'Untitled' }}</div>
+                                    <div dir="auto" style="font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $biz->brand_name ?? 'Untitled' }}</div>
                                     <div style="font-size: 11px; color: var(--cs-text-muted);">{{ $biz->website_url }}</div>
                                 </div>
                                 @if($biz->id === $dnaId)

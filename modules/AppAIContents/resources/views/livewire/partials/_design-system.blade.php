@@ -1042,6 +1042,19 @@ textarea.cs-input {
     cursor: pointer;
 }
 
+/* ── RTL Support (auto-detected via dir="auto") ── */
+[dir="rtl"] .cs-idea-card,
+.cs-idea-card:dir(rtl) {
+    border-left: 1px solid var(--cs-border);
+    border-right: 3px solid var(--cs-primary);
+}
+
+[dir="rtl"] .cs-editor-panel,
+.cs-editor-panel:dir(rtl) {
+    border-left: none;
+    border-right: 1px solid var(--cs-border);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .cs-topbar-inner {

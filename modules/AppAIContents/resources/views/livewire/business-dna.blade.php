@@ -142,7 +142,7 @@
                     <div class="cs-card cs-card-clickable" wire:click="openEdit('brand_name')" style="padding: 24px;">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div>
-                                <div style="font-size: 24px; font-weight: 600; color: var(--cs-text); margin-bottom: 4px;">
+                                <div dir="auto" style="font-size: 24px; font-weight: 600; color: var(--cs-text); margin-bottom: 4px;">
                                     {{ $dna->brand_name ?: __('Not set') }}
                                 </div>
                                 @if($dna->website_url)
@@ -164,7 +164,7 @@
                     <div class="cs-card cs-card-clickable" wire:click="openEdit('language')" style="padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div class="cs-section-label" style="margin: 0;">{{ __('Language') }}</div>
-                            <span style="font-size: 14px; color: var(--cs-text);">{{ $dna->language }}</span>
+                            <span dir="auto" style="font-size: 14px; color: var(--cs-text);">{{ $dna->language }}</span>
                             @if($dna->language_code)
                                 <span style="font-size: 11px; color: var(--cs-text-muted); background: var(--cs-glass-bg); padding: 2px 8px; border-radius: 10px; text-transform: uppercase; font-weight: 500;">{{ $dna->language_code }}</span>
                             @endif
@@ -250,7 +250,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
                                     <div class="cs-section-label" style="margin-bottom: 8px;">{{ __('Tagline') }}</div>
-                                    <div style="font-family: var(--cs-font-serif); font-style: italic; font-size: 16px; color: var(--cs-text); line-height: 1.4;">
+                                    <div dir="auto" style="font-family: var(--cs-font-serif); font-style: italic; font-size: 16px; color: var(--cs-text); line-height: 1.4;">
                                         {{ $dna->tagline ?: __('No tagline set') }}
                                     </div>
                                 </div>
@@ -263,7 +263,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
                                     <div class="cs-section-label" style="margin-bottom: 8px;">{{ __('Brand Values') }}</div>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <div dir="auto" style="display: flex; gap: 6px; flex-wrap: wrap;">
                                         @foreach(($dna->brand_values ?? []) as $value)
                                             <span class="cs-chip">{{ $value }}</span>
                                         @endforeach
@@ -284,7 +284,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
                                     <div class="cs-section-label" style="margin-bottom: 8px;">{{ __('Brand Aesthetic') }}</div>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <div dir="auto" style="display: flex; gap: 6px; flex-wrap: wrap;">
                                         @foreach(($dna->brand_aesthetic ?? []) as $value)
                                             <span class="cs-chip">{{ $value }}</span>
                                         @endforeach
@@ -302,7 +302,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: start;">
                                 <div>
                                     <div class="cs-section-label" style="margin-bottom: 8px;">{{ __('Brand Tone of Voice') }}</div>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <div dir="auto" style="display: flex; gap: 6px; flex-wrap: wrap;">
                                         @foreach(($dna->brand_tone ?? []) as $value)
                                             <span class="cs-chip">{{ $value }}</span>
                                         @endforeach
@@ -321,7 +321,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1;">
                                 <div class="cs-section-label" style="margin-bottom: 8px;">{{ __('Business Overview') }}</div>
-                                <div style="font-size: 14px; color: var(--cs-text-secondary); line-height: 1.6;">
+                                <div dir="auto" style="font-size: 14px; color: var(--cs-text-secondary); line-height: 1.6;">
                                     {{ $dna->business_overview ?: __('No overview set') }}
                                 </div>
                             </div>

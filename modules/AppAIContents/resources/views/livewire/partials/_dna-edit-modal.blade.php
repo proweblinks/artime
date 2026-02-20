@@ -24,17 +24,17 @@
 
         @if($editingField === 'brand_name')
             <div style="margin-bottom: 20px;">
-                <input type="text" class="cs-input" wire:model="editBrandName" placeholder="{{ __('Brand name') }}">
+                <input type="text" class="cs-input" wire:model="editBrandName" dir="auto" placeholder="{{ __('Brand name') }}">
             </div>
 
         @elseif($editingField === 'tagline')
             <div style="margin-bottom: 20px;">
-                <input type="text" class="cs-input" wire:model="editTagline" placeholder="{{ __('Your brand tagline') }}" style="font-family: var(--cs-font-serif); font-style: italic;">
+                <input type="text" class="cs-input" wire:model="editTagline" dir="auto" placeholder="{{ __('Your brand tagline') }}" style="font-family: var(--cs-font-serif); font-style: italic;">
             </div>
 
         @elseif($editingField === 'business_overview')
             <div style="margin-bottom: 20px;">
-                <textarea class="cs-input" wire:model="editOverview" rows="5" placeholder="{{ __('Describe your business...') }}"></textarea>
+                <textarea class="cs-input" wire:model="editOverview" dir="auto" rows="5" placeholder="{{ __('Describe your business...') }}"></textarea>
             </div>
 
         @elseif($editingField === 'colors')
@@ -111,7 +111,7 @@
                 {{-- Current chips --}}
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
                     @foreach($chips as $index => $chip)
-                        <span class="cs-chip">
+                        <span class="cs-chip" dir="auto">
                             {{ $chip }}
                             <span class="cs-chip-remove" wire:click="removeChip('{{ $editingField }}', {{ $index }})">
                                 <i class="fa-light fa-xmark"></i>
@@ -124,6 +124,7 @@
                 <div style="display: flex; gap: 8px;">
                     <input type="text" class="cs-input" wire:model="newChipValue"
                            wire:keydown.enter="addChip('{{ $editingField }}')"
+                           dir="auto"
                            placeholder="{{ __('Type and press Enter') }}"
                            style="flex: 1;">
                     <button class="cs-btn cs-btn-secondary cs-btn-sm" wire:click="addChip('{{ $editingField }}')">
