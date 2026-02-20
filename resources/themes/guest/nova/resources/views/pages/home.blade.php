@@ -2,8 +2,16 @@
      SECTION 1: HERO — "Create Anything with AI" + Hyperspeed BG
      ============================================================ --}}
 <section class="relative overflow-hidden" style="background: #000;">
-    {{-- Hyperspeed Three.js canvas container --}}
+    {{-- Hyperspeed Three.js canvas container (desktop) --}}
     <div id="hyperspeed-container" style="position:absolute;inset:0;z-index:0;overflow:hidden;"></div>
+
+    {{-- Mobile CSS-only animated light streaks fallback --}}
+    <div class="hero-mobile-bg">
+        <div class="hero-streak-1"></div>
+        <div class="hero-streak-2"></div>
+        <div class="hero-streak-3"></div>
+        <div class="hero-glow"></div>
+    </div>
 
     {{-- Dark-to-light gradient fade at bottom --}}
     <div style="position:absolute;bottom:0;left:0;right:0;height:180px;z-index:1;background:linear-gradient(to bottom, transparent 0%, #f0f4f8 100%);pointer-events:none;"></div>

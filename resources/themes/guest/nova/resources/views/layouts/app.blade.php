@@ -241,6 +241,67 @@
         #hyperspeed-container { position: absolute; inset: 0; overflow: hidden; }
         #hyperspeed-container canvas { width: 100%; height: 100%; display: block; }
 
+        /* Mobile Hyperspeed CSS fallback — animated light streaks */
+        .hero-mobile-bg {
+            position: absolute; inset: 0; overflow: hidden; z-index: 0;
+        }
+        @media (min-width: 769px) { .hero-mobile-bg { display: none; } }
+        .hero-mobile-bg::before,
+        .hero-mobile-bg::after {
+            content: ''; position: absolute; width: 200%; height: 1px;
+            transform-origin: center center;
+        }
+        .hero-mobile-bg::before {
+            top: 55%; left: -50%;
+            background: linear-gradient(90deg, transparent 0%, #03fcf4 20%, #0891b2 50%, #03fcf4 80%, transparent 100%);
+            opacity: 0.35;
+            transform: rotate(-8deg);
+            animation: streak1 4s ease-in-out infinite;
+        }
+        .hero-mobile-bg::after {
+            top: 62%; left: -50%;
+            background: linear-gradient(90deg, transparent 0%, #0891b2 30%, #03fcf4 60%, transparent 100%);
+            opacity: 0.2;
+            transform: rotate(-5deg);
+            animation: streak2 5s ease-in-out 0.8s infinite;
+        }
+        .hero-streak-1, .hero-streak-2, .hero-streak-3 {
+            position: absolute; height: 1px; width: 200%; left: -50%;
+            opacity: 0; pointer-events: none;
+        }
+        .hero-streak-1 {
+            top: 48%;
+            background: linear-gradient(90deg, transparent 0%, #06b6d4 40%, transparent 100%);
+            transform: rotate(-12deg);
+            animation: streak3 6s ease-in-out 0.3s infinite;
+        }
+        .hero-streak-2 {
+            top: 70%;
+            background: linear-gradient(90deg, transparent 0%, #03fcf4 50%, #0e5ea5 80%, transparent 100%);
+            transform: rotate(-3deg);
+            animation: streak4 4.5s ease-in-out 1.5s infinite;
+        }
+        .hero-streak-3 {
+            top: 58%;
+            background: linear-gradient(90deg, transparent 10%, #0891b2 50%, transparent 90%);
+            transform: rotate(-6deg);
+            animation: streak5 7s ease-in-out 2s infinite;
+        }
+        /* Radial glow pulse */
+        .hero-glow {
+            position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%);
+            width: 120%; height: 40%; border-radius: 50%;
+            background: radial-gradient(ellipse at center, rgba(3,252,244,0.1) 0%, transparent 70%);
+            animation: glowPulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes streak1 { 0%,100% { opacity:0.15; transform:rotate(-8deg) translateX(-5%); } 50% { opacity:0.4; transform:rotate(-8deg) translateX(5%); } }
+        @keyframes streak2 { 0%,100% { opacity:0.1; transform:rotate(-5deg) translateX(3%); } 50% { opacity:0.25; transform:rotate(-5deg) translateX(-3%); } }
+        @keyframes streak3 { 0%,100% { opacity:0; } 20% { opacity:0.2; } 50% { opacity:0.3; } 80% { opacity:0.15; } }
+        @keyframes streak4 { 0%,100% { opacity:0; } 30% { opacity:0.15; } 60% { opacity:0.25; } 90% { opacity:0; } }
+        @keyframes streak5 { 0%,100% { opacity:0; } 40% { opacity:0.1; } 70% { opacity:0.2; } }
+        @keyframes glowPulse { 0%,100% { opacity:0.6; transform:translateX(-50%) scale(1); } 50% { opacity:1; transform:translateX(-50%) scale(1.1); } }
+
         /* Hero app mockup glow */
         .hero-mockup-glow {
             box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 80px rgba(3,252,244,0.08);
