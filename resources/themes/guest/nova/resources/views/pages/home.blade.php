@@ -788,7 +788,7 @@ if (window.innerWidth > 768) {
         attribute vec3 aOffset; attribute vec3 aMetrics; attribute vec3 aColor;
         uniform float uTravelLength; uniform float uTime;
         varying vec2 vUv; varying vec3 vColor;
-        #include <getDistortion_vertex>
+        ${opts.distortion.getDistortion}
         void main(){
             vec3 transformed=position.xyz; float radius=aMetrics.r; float myLength=aMetrics.g; float speed=aMetrics.b;
             transformed.xy*=radius; transformed.z*=myLength;
@@ -805,7 +805,7 @@ if (window.innerWidth > 768) {
         attribute float aOffset; attribute vec3 aColor; attribute vec2 aMetrics;
         uniform float uTravelLength; uniform float uTime; varying vec3 vColor;
         mat4 rotationY(in float angle){return mat4(cos(angle),0,sin(angle),0, 0,1.0,0,0, -sin(angle),0,cos(angle),0, 0,0,0,1);}
-        #include <getDistortion_vertex>
+        ${opts.distortion.getDistortion}
         void main(){
             vec3 transformed=position.xyz; float width=aMetrics.x; float height=aMetrics.y;
             transformed.xy*=vec2(width,height); float time=mod(uTime*60.*2.+aOffset,uTravelLength);
@@ -835,19 +835,22 @@ if (window.innerWidth > 768) {
         float sideLines=step(1.0-brokenLineWidth,fract((uv.x-laneWidth*(uLanes-1.0))*2.0))+step(brokenLineWidth,uv.x);
         brokenLines=mix(brokenLines,sideLines,uv.x);
     `;
-    const roadBaseFragment = `
+    const islandFragment = `
         #define USE_FOG; varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
-        #include <roadMarkings_vars>
         ${THREE.ShaderChunk['fog_pars_fragment']}
-        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); #include <roadMarkings_fragment> gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
+        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
     `;
-    const islandFragment = roadBaseFragment.replace('#include <roadMarkings_fragment>','').replace('#include <roadMarkings_vars>','');
-    const roadFragment = roadBaseFragment.replace('#include <roadMarkings_fragment>',roadMarkings_fragment).replace('#include <roadMarkings_vars>',roadMarkings_vars);
+    const roadFragment = `
+        #define USE_FOG; varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
+        ${roadMarkings_vars}
+        ${THREE.ShaderChunk['fog_pars_fragment']}
+        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); ${roadMarkings_fragment} gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
+    `;
     const roadVertex = `
         #define USE_FOG; uniform float uTime;
         ${THREE.ShaderChunk['fog_pars_vertex']}
         uniform float uTravelLength; varying vec2 vUv;
-        #include <getDistortion_vertex>
+        ${opts.distortion.getDistortion}
         void main(){
             vec3 transformed=position.xyz;
             vec3 distortion=getDistortion((transformed.y+uTravelLength/2.)/uTravelLength);
@@ -866,8 +869,7 @@ if (window.innerWidth > 768) {
             const geometry=new THREE.PlaneGeometry(isRoad?o.roadWidth:o.islandWidth, o.length, 20, segments);
             let uniforms={uTravelLength:{value:o.length}, uColor:{value:new THREE.Color(isRoad?o.colors.roadColor:o.colors.islandColor)}, uTime:this.uTime};
             if(isRoad) Object.assign(uniforms,{uLanes:{value:o.lanesPerRoad},uBrokenLinesColor:{value:new THREE.Color(o.colors.brokenLines)},uShoulderLinesColor:{value:new THREE.Color(o.colors.shoulderLines)},uShoulderLinesWidthPercentage:{value:o.shoulderLinesWidthPercentage},uBrokenLinesLengthPercentage:{value:o.brokenLinesLengthPercentage},uBrokenLinesWidthPercentage:{value:o.brokenLinesWidthPercentage}});
-            const vShader=roadVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
-            const material=new THREE.ShaderMaterial({fragmentShader:isRoad?roadFragment:islandFragment, vertexShader:vShader, side:THREE.DoubleSide, uniforms:Object.assign(uniforms,this.webgl.fogUniforms,o.distortion.uniforms)});
+            const material=new THREE.ShaderMaterial({fragmentShader:isRoad?roadFragment:islandFragment, vertexShader:roadVertex, side:THREE.DoubleSide, uniforms:Object.assign(uniforms,this.webgl.fogUniforms,o.distortion.uniforms)});
             const mesh=new THREE.Mesh(geometry,material); mesh.rotation.x=-Math.PI/2; mesh.position.z=-o.length/2;
             mesh.position.x+=(o.islandWidth/2+o.roadWidth/2)*side; this.webgl.scene.add(mesh); return mesh;
         }
@@ -896,8 +898,7 @@ if (window.innerWidth > 768) {
             instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),3,false));
             instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),3,false));
             instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
-            const vShader=carLightsVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
-            let material=new THREE.ShaderMaterial({fragmentShader:carLightsFragment,vertexShader:vShader,transparent:true,
+            let material=new THREE.ShaderMaterial({fragmentShader:carLightsFragment,vertexShader:carLightsVertex,transparent:true,
                 uniforms:Object.assign({uTime:{value:0},uTravelLength:{value:o.length},uFade:{value:this.fade}},this.webgl.fogUniforms,o.distortion.uniforms)});
             let mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
         }
@@ -920,8 +921,7 @@ if (window.innerWidth > 768) {
             instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),1,false));
             instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
             instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),2,false));
-            const vShader=sideSticksVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
-            const material=new THREE.ShaderMaterial({fragmentShader:sideSticksFragment,vertexShader:vShader,side:THREE.DoubleSide,
+            const material=new THREE.ShaderMaterial({fragmentShader:sideSticksFragment,vertexShader:sideSticksVertex,side:THREE.DoubleSide,
                 uniforms:Object.assign({uTravelLength:{value:o.length},uTime:{value:0}},this.webgl.fogUniforms,o.distortion.uniforms)});
             const mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
         }
