@@ -1,625 +1,253 @@
-<section class="bg-blueGray-50 relative z-50">
-    <div class="overflow-hidden pt-32">
-        <div class="container px-4 mx-auto">
-            <div class="flex flex-wrap -m-8">
-                <div class="w-full md:w-1/2 p-8">
-                    <div class="inline-block mb-6 px-2 py-1 font-semibold bg-green-100 rounded-full">
-                        <div class="flex flex-wrap items-center -m-1">
-                            <div class="w-auto p-1">
-                                <a class="text-sm" href="{{ url('auth/login') }}">👋 {{ __("Plan smarter. Post stronger.") }}</a>
-                            </div>
-                            <div class="w-auto p-1">
-                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M8.66667 3.41675L12.75 7.50008M12.75 7.50008L8.66667 11.5834M12.75 7.50008L2.25 7.50008" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <h1 class="mb-6 text-6xl md:text-8xl lg:text-10xl font-bold font-heading md:max-w-xl leading-none">
-                        {{ __("Manage Social Smarter Schedule. Track. Succeed.") }}
-                    </h1>
-                    <p class="mb-11 text-lg text-gray-900 font-medium md:max-w-md">
-                        {{ __("Plan and publish content effortlessly across all your social channels. Manage everything in one smart dashboard. Work less. Grow more.") }}
-                    </p>
-                    <div class="flex flex-wrap -m-2.5 mb-20">
-                        <div class="w-full md:w-auto p-2.5">
-                            <div class="block">
-                                <a href="{{ url('auth/login') }}" class="block py-4 px-6 w-full text-white font-semibold border border-indigo-700 rounded-xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200" type="button">
-                                    {{ __("Get Start Now") }}
-                                </a>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-auto p-2.5">
-                            <div class="block">
-                                <a href="{{ url('') }}#features" class="block py-4 px-9 w-full font-semibold border border-gray-300 hover:border-gray-400 rounded-xl focus:ring focus:ring-gray-50 bg-transparent hover:bg-gray-100 transition ease-in-out duration-200" type="button">
-                                    <div class="flex flex-wrap justify-center items-center -m-1">
-                                        <div class="w-auto p-1">
-                                            <span>{{ __("Learn more") }} <i class="fa-light fa-chevron-right"></i></span>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="mb-6 text-sm text-gray-500 font-semibold uppercase">
-                        {{ __("Trusted and loved by 100+ tech first teams") }}
-                    </p>
-                    <div class="flex flex-wrap -m-4 md:pb-20">
+{{-- ============================================================
+     SECTION 1: HERO — "Create Anything with AI"
+     ============================================================ --}}
+<section class="relative overflow-hidden pt-36 pb-20 md:pt-44 md:pb-28">
+    <div class="container px-4 mx-auto relative z-10">
+        <div class="max-w-4xl mx-auto text-center">
+            {{-- Badge --}}
+            <div class="inline-flex items-center gap-2 glass-pill mb-8">
+                <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span>
+                <span>{{ __("AI-First Creative Platform") }}</span>
+            </div>
 
-                        <div class="w-auto p-4">
-                            <img class="h-10" src="{{ theme_public_asset('logos/brands/brand_9.png') }}" alt="">
-                        </div>
-                        <div class="w-auto p-4">
-                            <img class="h-10" src="{{ theme_public_asset('logos/brands/brand_2.png') }}" alt="">
-                        </div>
-                        <div class="w-auto p-4">
-                            <img class="h-10" src="{{ theme_public_asset('logos/brands/brand_3.png') }}" alt="">
-                        </div>
-                    </div>
-                </div>
-                <div class="w-full md:w-1/2 p-8">
-                    <div class="relative mx-auto md:mr-0 max-w-max">
-                      <img class="absolute z-10 -left-14 -top-12 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/circle3-yellow.svg') }}" alt="">
-                      <img class="absolute z-10 -right-7 -bottom-8 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/dots3-blue.svg') }}" alt="">
-                      <img class="relative rounded-7xl rounded-[50]" src="{{ theme_public_asset('images/headers/header.png') }}" alt="">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-24 md:pb-32 bg-white overflow-hidden" id="features" style="background-image: url({{ theme_public_asset('images/features/pattern-white.svg') }}); background-position: center;">
-    <div class="container px-4 mx-auto">
-        <h2 class="mb-10 text-6xl md:text-7xl xl:text-8xl font-bold font-heading text-center tracking-px-n leading-none">
-            {{ __("Supercharge Your Social Media Workflow with AI") }}
-        </h2>
-        <p class="mb-20 text-xl text-center text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
-            {{ __("Automate, analyze, and collaborate across all your channels. Unlock your team’s full creative potential with our Platform.") }}
-        </p>
-        <div class="flex flex-wrap -m-16 md:-m-3">
-            <!-- 1. Team Member Collaboration -->
-            <div class="w-full md:w-1/3 p-16 md:p-3">
-                <div class="px-10 pt-11 text-center bg-gray-100 h-96 rounded-4xl">
-                    <h3 class="mb-3 text-xl font-bold font-heading leading-normal">
-                        {{ __("Team Member Collaboration") }}
-                    </h3>
-                    <p class="mb-10 text-gray-600 font-medium leading-relaxed">
-                        {{ __("Add unlimited team members, assign roles, and co-create content together in real time. Keep everyone in sync, on every campaign.") }}
-                    </p>
-                    <img class="mx-auto w-72 h-72 object-cover rounded-3xl shadow-3xl transform hover:translate-y-3 transition ease-in-out duration-1000"
-                             src="{{ theme_public_asset('images/features/peoples.png') }}" alt="">
-                </div>
-            </div>
-            <!-- 2. Smart Analytics & Reports -->
-            <div class="w-full md:w-1/3 p-16 md:p-3">
-                <div class="px-10 pt-11 text-center bg-gray-100 h-96 rounded-4xl">
-                    <h3 class="mb-3 text-xl font-bold font-heading leading-normal">
-                        {{ __("Smart Analytics & Reports") }}
-                    </h3>
-                    <p class="mb-10 text-gray-600 font-medium leading-relaxed">
-                        {{ __("Track performance, discover trends, and get instant, AI-driven insights with beautiful visual charts. Make smarter, faster decisions.") }}
-                    </p>
-                    <img class="mx-auto w-72 h-72 object-cover rounded-3xl shadow-3xl transform hover:translate-y-3 transition ease-in-out duration-1000"
-                             src="{{ theme_public_asset('images/features/reports.png') }}" alt="">
-                </div>
-            </div>
-            <!-- 3. AI-powered suggestions -->
-            <div class="w-full md:w-1/3 p-16 md:p-3">
-                <div class="px-10 pt-11 text-center bg-gray-100 h-96 rounded-4xl">
-                    <h3 class="mb-3 text-xl font-bold font-heading leading-normal">
-                        {{ __("AI-powered Suggestions") }}
-                    </h3>
-                    <p class="mb-10 text-gray-600 font-medium leading-relaxed">
-                        {{ __("Increasingly, composer features include AI writing assistants to help generate captions, suggest improvements to your text.") }}
-                    </p>
-                    <img class="mx-auto w-72 h-72 object-cover rounded-3xl shadow-3xl transform hover:translate-y-3 transition ease-in-out duration-1000"
-                             src="{{ theme_public_asset('images/features/users.png') }}" alt="">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-40 md:pb-32 bg-white overflow-hidden" style="background-image: url({{ theme_public_asset('images/features/pattern-white.svg') }}); background-position: center;">
-    <div class="container px-4 mx-auto">
-        <div class="flex flex-wrap items-center -m-8">
-            <div class="w-full md:w-1/2 p-8">
-                <h2 class="mb-9 text-6xl md:text-8xl xl:text-10xl font-bold font-heading tracking-px-n leading-none">
-                    {{ __("Automate Social Posting with AI") }}
-                </h2>
-                <p class="mb-10 text-lg text-gray-900 font-medium leading-relaxed md:max-w-md">
-                    {{ __("Let AI create, schedule, and publish your content to all social channels automatically. Focus on your business, while our Platform keeps your online presence active 24/7 – even while you sleep.") }}
-                </p>
-                <div class="mb-11 md:inline-block rounded-xl md:shadow-4xl">
-                    <a href="{{ route("login") }}" class="py-4 px-6 w-full text-white font-semibold border border-indigo-700 rounded-xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200" type="button">
-                        {{ __("Start AI Publishing Now") }}
-                    </a>
-                </div>
-                <div class="flex flex-wrap -m-2">
-                    <div class="w-auto p-2">
-                        <img class="h-10" src="{{ theme_public_asset('images/features/ai-bot.png') }}" alt="AI Bot">
-                    </div>
-                    <div class="flex-1 p-2">
-                        <p class="text-gray-600 font-medium md:max-w-sm">
-                            {{ __("No more manual posting! Instantly generate, schedule, and publish engaging posts across Facebook, Instagram, X, TikTok, and more with a single click — all powered by smart AI.") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 p-8">
-                <div class="relative mx-auto md:mr-0 max-w-max">
-                  <img class="absolute z-10 -left-14 -top-12 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/circle3-yellow.svg') }}" alt="">
-                  <img class="absolute z-10 -right-7 -bottom-8 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/dots3-blue.svg') }}" alt="">
-                  <img class="relative rounded-7xl rounded-[50]" src="{{ theme_public_asset('images/features/feature-demo-1.png') }}" alt="">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-24 md:pb-32 bg-white overflow-hidden" style="background-image: url({{ theme_public_asset('images/features/pattern-white.svg') }}); background-position: center;">
-    <div class="container px-4 mx-auto">
-        <div class="flex flex-wrap xl:items-center -m-8">
-            <div class="w-full md:w-1/2 py-8 pl-8 pr-16">
-                <div class="relative mx-auto md:mr-0 max-w-max">
-                  <img class="absolute z-10 -left-14 -top-12 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/circle3-yellow.svg') }}" alt="">
-                  <img class="absolute z-10 -right-7 -bottom-8 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/dots3-blue.svg') }}" alt="">
-                  <img class="relative rounded-7xl rounded-[50]" src="{{ theme_public_asset('images/features/feature-demo-2.png') }}" alt="">
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 p-8">
-                <div class="md:max-w-xl">
-                    <p class="mb-2 text-sm text-gray-600 font-semibold uppercase tracking-px">
-                        🚀 {{ __("Bulk Post Feature") }}
-                    </p>
-                    <h2 class="mb-10 text-6xl md:text-7xl font-bold font-heading tracking-px-n leading-tight">
-                        {{ __("Publish Everywhere, All at Once.") }}
-                    </h2>
-                    <p class="mb-10 text-lg text-gray-900 font-medium leading-relaxed md:max-w-md">
-                        {{ __("Create and schedule dozens of posts to multiple social networks in a single workflow. Plan campaigns, automate your posting calendar, and reach your audience on every channel—faster than ever before.") }}
-                    </p>
-                    <div class="flex flex-wrap mb-5 -m-8">
-                        <div class="w-full md:w-1/2 p-8">
-                            <div class="md:max-w-xs">
-                                <div class="flex flex-wrap -m-2">
-                                    <div class="w-auto p-2">
-                                        <!-- Bulk Post Icon -->
-                                        <svg class="mt-1" width="26" height="26" viewBox="0 0 24 24" fill="none">
-                                            <rect x="3" y="4" width="18" height="4" rx="2" stroke="#4F46E5" stroke-width="2"/>
-                                            <rect x="3" y="10" width="18" height="4" rx="2" stroke="#4F46E5" stroke-width="2"/>
-                                            <rect x="3" y="16" width="18" height="4" rx="2" stroke="#4F46E5" stroke-width="2"/>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 p-2">
-                                        <h3 class="mb-2 text-xl font-semibold leading-normal">
-                                            {{ __("Bulk Scheduling") }}
-                                        </h3>
-                                        <p class="text-gray-600 font-medium leading-relaxed">
-                                            {{ __("Upload or create multiple posts at once and schedule them across all your social channels in just a few clicks.") }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-1/2 p-8">
-                            <div class="md:max-w-xs">
-                                <div class="flex flex-wrap -m-2">
-                                    <div class="w-auto p-2">
-                                        <!-- Calendar/Automation Icon -->
-                                        <svg class="mt-1" width="26" height="26" viewBox="0 0 24 24" fill="none">
-                                            <rect x="4" y="5" width="16" height="15" rx="4" stroke="#4F46E5" stroke-width="2"/>
-                                            <path d="M8 2v4M16 2v4M4 10h16" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 p-2">
-                                        <h3 class="mb-2 text-xl font-semibold leading-normal">
-                                            {{ __("Smart Automation") }}
-                                        </h3>
-                                        <p class="text-gray-600 font-medium leading-relaxed">
-                                            {{ __("Plan campaigns in advance and let it handles publishing on preferred dates and times automatically.") }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:inline-block">
-                        <a href="{{ route("login") }}" class="py-4 px-6 w-full text-white font-semibold border border-indigo-700 rounded-xl shadow-4xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200" type="button">
-                            {{ __("Start Bulk Posting") }}
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-24 md:pb-32 bg-white overflow-hidden" style="background-image: url({{ theme_public_asset('images/features/pattern-white.svg') }}); background-position: center;">
-    <div class="container px-4 mx-auto">
-        <div class="flex flex-wrap items-center -m-8">
-            <div class="w-full md:w-1/2 p-8">
-                <h2 class="mb-9 text-6xl md:text-8xl xl:text-10xl font-bold font-heading tracking-px-n leading-none">
-                    {{ __("Auto-Post from RSS Feeds to Socials") }}
-                </h2>
-                <p class="mb-10 text-lg text-gray-900 font-medium leading-relaxed md:max-w-md">
-                    {{ __("Connect any RSS feed to automatically fetch, schedule, and publish fresh content across all your social channels. Effortlessly keep your profiles active with news, blog posts, or updates from any website – always up-to-date, even when you're offline.") }}
-                </p>
-                <div class="mb-11 md:inline-block rounded-xl md:shadow-4xl">
-                    <a href="{{ route("login") }}" class="py-4 px-6 w-full text-white font-semibold border border-indigo-700 rounded-xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200" type="button">
-                        {{ __("Try RSS Auto-Posting Now") }}
-                    </a>
-                </div>
-                <div class="flex flex-wrap -m-2">
-                    <div class="w-auto p-2">
-                        <img class="h-10" src="{{ theme_public_asset('images/features/rss-feed.png') }}" alt="RSS Feed">
-                    </div>
-                    <div class="flex-1 p-2">
-                        <p class="text-gray-600 font-medium md:max-w-sm">
-                            {{ __("Save time and never miss an update: Instantly share the latest articles, podcasts, or videos from any RSS source to Facebook, Instagram, X, TikTok, and more — hands-free and always on schedule.") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 p-8">
-                <div class="relative mx-auto md:mr-0 max-w-max">
-                  <img class="absolute z-10 -left-14 -top-12 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/circle3-yellow.svg') }}" alt="">
-                  <img class="absolute z-10 -right-7 -bottom-8 w-28 md:w-auto" src="{{ theme_public_asset('images/headers/dots3-blue.svg') }}" alt="">
-                  <img class="relative rounded-7xl rounded-[50]" src="{{ theme_public_asset('images/features/feature-demo-3.png') }}" alt="">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="py-24 md:pb-32 bg-white" style="background-image: url({{ theme_public_asset('images/features/pattern-white.svg') }}); background-position: center;">
-    <div class="container px-4 mx-auto">
-        <div class="md:max-w-4xl mb-28 mx-auto text-center">
-            <span class="inline-block py-px px-2 mb-4 text-xs leading-5 text-indigo-500 bg-indigo-100 font-medium uppercase rounded-full shadow-sm">
-                {{ __("Power Features") }}
-            </span>
-            <h1 class="mb-9 text-6xl md:text-8xl xl:text-10xl font-bold font-heading tracking-px-n leading-none">
-                {{ __("Automate. Analyze. Achieve.") }}
+            {{-- Headline --}}
+            <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight mb-6" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                {{ __("Create Anything") }}
+                <span class="gradient-text">{{ __("with AI") }}</span>
             </h1>
-            <p class="text-lg md:text-xl text-coolGray-500 font-medium">
-                {{ __("Automate your routine, track what matters, and focus on what drives real growth — all in one intuitive platform.") }}
+
+            {{-- Subheadline --}}
+            <p class="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style="color: var(--text-secondary);">
+                {{ __("Generate videos, images, marketing campaigns, and social content — all from a single prompt. The complete AI creative platform for creators and businesses.") }}
+            </p>
+
+            {{-- CTA Buttons --}}
+            <div class="flex flex-wrap justify-center gap-4 mb-14">
+                <a href="{{ url('auth/signup') }}" class="btn-accent text-base py-3.5 px-8">
+                    <i class="fa-light fa-sparkles"></i>
+                    {{ __("Start Creating Free") }}
+                </a>
+                <a href="{{ url('') }}#how-it-works" class="btn-ghost text-base py-3.5 px-8">
+                    <i class="fa-light fa-circle-play"></i>
+                    {{ __("See How It Works") }}
+                </a>
+            </div>
+
+            {{-- Capability Pills --}}
+            <div class="flex flex-wrap justify-center gap-3 mb-16">
+                <span class="glass-pill"><i class="fa-light fa-video"></i> {{ __("AI Video") }}</span>
+                <span class="glass-pill"><i class="fa-light fa-image"></i> {{ __("AI Images") }}</span>
+                <span class="glass-pill"><i class="fa-light fa-palette"></i> {{ __("Content Studio") }}</span>
+                <span class="glass-pill"><i class="fa-light fa-share-nodes"></i> {{ __("Social Publishing") }}</span>
+                <span class="glass-pill"><i class="fa-light fa-microphone"></i> {{ __("Voice & Music") }}</span>
+            </div>
+        </div>
+
+        {{-- Floating Glass Cards --}}
+        <div class="relative max-w-5xl mx-auto h-64 md:h-80 hidden md:block">
+            {{-- Card 1: Video preview mockup --}}
+            <div class="absolute left-0 top-4 w-56 glass-card p-4 hero-float" style="transform: rotate(-6deg);">
+                <div class="rounded-xl overflow-hidden mb-3" style="background: linear-gradient(135deg, #1a1a2e 0%, #0891b2 100%); height: 120px;">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
+                            <i class="fa-solid fa-play text-white text-sm ml-0.5"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-2 rounded-full w-3/4 mb-2" style="background: rgba(0,0,0,0.06);"></div>
+                <div class="h-2 rounded-full w-1/2" style="background: rgba(0,0,0,0.04);"></div>
+            </div>
+
+            {{-- Card 2: AI generation mockup (center, larger) --}}
+            <div class="absolute left-1/2 -translate-x-1/2 top-0 w-72 glass-card p-5 hero-float-delay" style="z-index: 2;">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent-gradient);">
+                        <i class="fa-light fa-sparkles text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <div class="h-2.5 rounded-full w-24 mb-1.5" style="background: rgba(0,0,0,0.08);"></div>
+                        <div class="h-2 rounded-full w-16" style="background: rgba(0,0,0,0.04);"></div>
+                    </div>
+                </div>
+                <div class="rounded-xl overflow-hidden mb-3" style="background: linear-gradient(135deg, #f0f4f8 0%, #e0e7ff 50%, #ccfbf1 100%); height: 140px;">
+                    <div class="flex items-end justify-center h-full pb-4">
+                        <div class="flex gap-1">
+                            <div class="w-2 h-8 rounded-sm" style="background: var(--accent); opacity: 0.6;"></div>
+                            <div class="w-2 h-12 rounded-sm" style="background: var(--accent); opacity: 0.8;"></div>
+                            <div class="w-2 h-6 rounded-sm" style="background: var(--accent); opacity: 0.5;"></div>
+                            <div class="w-2 h-16 rounded-sm" style="background: var(--accent-dark); opacity: 0.9;"></div>
+                            <div class="w-2 h-10 rounded-sm" style="background: var(--accent); opacity: 0.7;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <div class="h-7 rounded-lg flex-1" style="background: var(--accent-gradient); opacity: 0.15;"></div>
+                    <div class="h-7 rounded-lg w-16" style="background: rgba(0,0,0,0.04);"></div>
+                </div>
+            </div>
+
+            {{-- Card 3: Social post mockup --}}
+            <div class="absolute right-0 top-8 w-52 glass-card p-4 hero-float-delay-2" style="transform: rotate(4deg);">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-7 h-7 rounded-full" style="background: linear-gradient(135deg, #e0e7ff, #ccfbf1);"></div>
+                    <div class="h-2 rounded-full w-20" style="background: rgba(0,0,0,0.06);"></div>
+                </div>
+                <div class="rounded-lg mb-3" style="background: linear-gradient(135deg, #ccfbf1, #e0f2fe); height: 80px;"></div>
+                <div class="flex gap-3">
+                    <i class="fa-light fa-heart text-sm" style="color: var(--text-muted);"></i>
+                    <i class="fa-light fa-comment text-sm" style="color: var(--text-muted);"></i>
+                    <i class="fa-light fa-share text-sm" style="color: var(--text-muted);"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 2: POWERED BY — Trust Strip
+     ============================================================ --}}
+<section class="py-10">
+    <div class="container px-4 mx-auto">
+        <div class="glass-card-sm py-6 px-8 text-center">
+            <p class="text-sm font-medium mb-5" style="color: var(--text-muted); letter-spacing: 0.05em;">
+                {{ __("POWERED BY WORLD-CLASS AI") }}
+            </p>
+            <div class="flex flex-wrap justify-center items-center gap-8 md:gap-14 opacity-50">
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">OpenAI</span>
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">Google</span>
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">Anthropic</span>
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">FAL.AI</span>
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">MiniMax</span>
+                <span class="text-lg font-semibold" style="color: var(--text-secondary);">DeepSeek</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 3: PRODUCT SHOWCASE — "One Platform, Infinite Creativity"
+     ============================================================ --}}
+<section class="section-padding" id="features">
+    <div class="container px-4 mx-auto">
+        <div class="max-w-2xl mx-auto text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-5" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                {{ __("One Platform, Infinite Creativity") }}
+            </h2>
+            <p class="text-lg leading-relaxed" style="color: var(--text-secondary);">
+                {{ __("Everything you need to create, publish, and grow — powered by the most advanced AI models available.") }}
             </p>
         </div>
-        <div class="flex flex-wrap -mx-4">
-            <!-- 1. Unified Calendar -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-blue-500 bg-blue-100 rounded-4xl text-3xl">
-                        <i class="fal fa-calendar-alt"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Unified Calendar") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("See all your scheduled and published content across every channel in a single, intuitive calendar.") }}</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {{-- Video Wizard --}}
+            <div class="glass-card p-8 text-center transition-all duration-300">
+                <div class="feature-icon mx-auto mb-6">
+                    <i class="fa-light fa-clapperboard-play"></i>
                 </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Video Wizard") }}</h3>
+                <p class="leading-relaxed mb-5" style="color: var(--text-secondary);">
+                    {{ __("Turn any idea into a cinematic video with AI-generated scripts, storyboards, voiceover, and animation.") }}
+                </p>
+                <a href="{{ url('auth/signup') }}" class="text-sm font-semibold inline-flex items-center gap-1" style="color: var(--accent-dark);">
+                    {{ __("Try it free") }} <i class="fa-light fa-arrow-right text-xs"></i>
+                </a>
             </div>
-            <!-- 2. Multi-Account Management -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-lime-500 bg-lime-100 rounded-4xl text-3xl">
-                        <i class="fal fa-layer-group"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Accounts Management") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Easily manage and switch between multiple brands, clients, or social profiles from one dashboard.") }}</p>
+
+            {{-- Content Studio --}}
+            <div class="glass-card p-8 text-center transition-all duration-300">
+                <div class="feature-icon mx-auto mb-6">
+                    <i class="fa-light fa-palette"></i>
                 </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Content Studio") }}</h3>
+                <p class="leading-relaxed mb-5" style="color: var(--text-secondary);">
+                    {{ __("Extract your brand DNA from your website, then generate campaigns, creatives, and ads — all on-brand.") }}
+                </p>
+                <a href="{{ url('auth/signup') }}" class="text-sm font-semibold inline-flex items-center gap-1" style="color: var(--accent-dark);">
+                    {{ __("Try it free") }} <i class="fa-light fa-arrow-right text-xs"></i>
+                </a>
             </div>
-            <!-- 3. AI Templates -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-violet-500 bg-violet-100 rounded-4xl text-3xl">
-                        <i class="fal fa-magic"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("AI Templates") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Ready-made AI templates to instantly generate creative content ideas tailored to your goals.") }}</p>
+
+            {{-- Social Publishing --}}
+            <div class="glass-card p-8 text-center transition-all duration-300">
+                <div class="feature-icon mx-auto mb-6">
+                    <i class="fa-light fa-share-nodes"></i>
                 </div>
-            </div>
-            <!-- 3. Drag-and-Drop Scheduling -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-teal-500 bg-teal-100 rounded-4xl text-3xl">
-                        <i class="fal fa-arrows-alt"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Drag-and-Drop Scheduling") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Quickly plan, move, or reschedule your posts with simple drag-and-drop gestures.") }}</p>
-                </div>
-            </div>
-            <!-- 4. AI Content Generator -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-violet-500 bg-violet-100 rounded-4xl text-3xl">
-                        <i class="fal fa-robot"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("AI Content Generator") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Instantly create captions, posts, and creative ideas using advanced AI models, tailored to your brand.") }}</p>
-                </div>
-            </div>
-            <!-- 5. Smart Analytics Dashboard -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-orange-500 bg-orange-100 rounded-4xl text-3xl">
-                        <i class="fal fa-chart-line"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Smart Analytics ") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Get real-time insights and actionable reports to measure your social performance and growth.") }}</p>
-                </div>
-            </div>
-            <!-- 6. Automated Publishing -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-green-500 bg-green-100 rounded-4xl text-3xl">
-                        <i class="fal fa-clock"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Automated Publishing") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Set your content to auto-publish at the best times, so you never miss peak engagement hours.") }}</p>
-                </div>
-            </div>
-            <!-- 7. Team Collaboration Tools -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-pink-500 bg-pink-100 rounded-4xl text-3xl">
-                        <i class="fal fa-users"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Team Collaboration Tools") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Invite your team, assign roles, comment, review, and approve content seamlessly within the platform.") }}</p>
-                </div>
-            </div>
-            <!-- 8. Integrated Media Library -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-indigo-500 bg-indigo-100 rounded-4xl text-3xl">
-                        <i class="fal fa-photo-video"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Integrated Media Library") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Upload, organize, edit, and reuse all your images and videos in one secure place.") }}</p>
-                </div>
-            </div>
-            <!-- 9. Watermark & Branding -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-purple-500 bg-purple-100 rounded-4xl text-3xl">
-                        <i class="fal fa-badge-check"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Watermark & Branding") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Automatically add your logo or watermark to every post for consistent, professional branding.") }}</p>
-                </div>
-            </div>
-            <!-- 10. Approval Workflow -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-cyan-500 bg-cyan-100 rounded-4xl text-3xl">
-                        <i class="fal fa-tasks"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Approval Workflow") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Draft, review, and approve posts before they go live, ensuring quality and compliance every time.") }}</p>
-                </div>
-            </div>
-            <!-- 11. Link Shortener & Tracking -->
-            <div class="w-full md:w-1/2 lg:w-1/3 px-10 mb-12">
-                <div class="h-full p-8 text-center bg-gray-50 rounded-4xl border-f5 border hover:shadow-xl hover:border-xl transition duration-200">
-                    <div class="inline-flex h-16 w-16 mb-6 mx-auto items-center justify-center text-red-500 bg-red-100 rounded-4xl text-3xl">
-                        <i class="fal fa-link"></i>
-                    </div>
-                    <h3 class="mb-4 text-xl md:text-2xl leading-tight font-bold">{{ __("Link Shortener & Tracking") }}</h3>
-                    <p class="text-coolGray-500 font-medium">{{ __("Shorten URLs and track clicks to optimize your campaigns and boost engagement.") }}</p>
-                </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Social Publishing") }}</h3>
+                <p class="leading-relaxed mb-5" style="color: var(--text-secondary);">
+                    {{ __("Schedule and publish to every platform. AI writes your captions, picks the best times, and tracks performance.") }}
+                </p>
+                <a href="{{ url('auth/signup') }}" class="text-sm font-semibold inline-flex items-center gap-1" style="color: var(--accent-dark);">
+                    {{ __("Try it free") }} <i class="fa-light fa-arrow-right text-xs"></i>
+                </a>
             </div>
         </div>
     </div>
 </section>
 
-<section class="pt-24 pb-36 bg-white overflow-hidden">
+{{-- ============================================================
+     SECTION 4: VIDEO WIZARD DEEP-DIVE
+     ============================================================ --}}
+<section class="section-padding">
     <div class="container px-4 mx-auto">
-        <h2 class="mb-7 text-6xl md:text-8xl xl:text-10xl text-center font-bold font-heading tracking-px-n leading-none">
-            {{ __("Let’s see how it works") }}
-        </h2>
-        <p class="mb-20 font-sans text-lg text-gray-900 text-center md:max-w-lg mx-auto">
-            {{ __("Get started in minutes. Manage all your social media, automate posting, and grow your brand with ease.") }}
-        </p>
-        <div class="relative bg-no-repeat bg-center bg-cover bg-fixed overflow-hidden rounded-4xl"
-             style="height: 688px; background-image: url('{{ theme_public_asset('images/how-it-works/bg.jpg') }}');">
-             <div class="absolute inset-0 pointer-events-none"
-                 style="background: linear-gradient(to right, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.08) 55%, rgba(0,0,0,0.00) 100%);">
-            </div>
-            <div class="absolute top-0 left-0 p-14 md:p-20 md:pb-0 overflow-y-auto h-full">
-                <div class="flex flex-wrap">
-
-                    <!-- Step 1 -->
-                    <div class="w-full">
-                        <div class="flex flex-wrap -m-3">
-                            <div class="w-auto p-3">
-                                <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="17.5" cy="17.5" r="17.5" fill="#4F46E5"></circle>
-                                    <path d="M11.667 18.3333L15.0003 21.6666L23.3337 13.3333" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                                <img class="mx-auto" src="{{ theme_public_asset('images/how-it-works/line3.svg') }}" alt="">
-                            </div>
-                            <div class="flex-1 p-3">
-                                <div class="md:max-w-xs pb-8">
-                                    <p class="mb-5 text-sm text-gray-400 font-semibold uppercase tracking-px">
-                                        {{ __("Step 1") }}
-                                    </p>
-                                    <h3 class="mb-2 text-xl text-white font-bold leading-normal">
-                                        {{ __("Choose Your Plan") }}
-                                    </h3>
-                                    <p class="text-gray-300 font-medium leading-relaxed">
-                                        {{ __("Pick a package that fits your needs—start with Free or unlock Pro for advanced features.") }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+        <div class="flex flex-wrap items-center -mx-4">
+            <div class="w-full lg:w-1/2 px-4 mb-12 lg:mb-0">
+                <div class="max-w-lg">
+                    <span class="text-sm font-semibold uppercase tracking-wider mb-4 inline-block" style="color: var(--accent-dark);">
+                        {{ __("Video Wizard") }}
+                    </span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 leading-tight" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                        {{ __("From Script to Screen, Powered by AI") }}
+                    </h2>
+                    <p class="text-lg leading-relaxed mb-8" style="color: var(--text-secondary);">
+                        {{ __("Describe your vision. ARTime writes the script, generates every image, animates scenes with lip-synced characters, adds voiceover and music, and exports a ready-to-publish video. No editing skills needed.") }}
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-8">
+                        <span class="glass-pill text-xs"><i class="fa-light fa-pen-nib"></i> {{ __("AI Script Writing") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-image"></i> {{ __("Image Generation") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-lips"></i> {{ __("Lip-Sync Animation") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-microphone"></i> {{ __("AI Voiceover") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-download"></i> {{ __("One-Click Export") }}</span>
                     </div>
-                    <!-- Step 2 -->
-                    <div class="w-full">
-                        <div class="flex flex-wrap -m-3">
-                            <div class="w-auto p-3">
-                                <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="17.5" cy="17.5" r="17.5" fill="#4F46E5"></circle>
-                                    <path d="M11.667 18.3333L15.0003 21.6666L23.3337 13.3333" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                                <img class="mx-auto" src="{{ theme_public_asset('images/how-it-works/line3.svg') }}" alt="">
-                            </div>
-                            <div class="flex-1 p-3">
-                                <div class="md:max-w-xs pb-8">
-                                    <p class="mb-5 text-sm text-gray-400 font-semibold uppercase tracking-px">
-                                        {{ __("Step 2") }}
-                                    </p>
-                                    <h3 class="mb-2 text-xl text-white font-bold leading-normal">
-                                        {{ __("Connect Your Channels") }}
-                                    </h3>
-                                    <p class="text-gray-300 font-medium leading-relaxed">
-                                        {{ __("Link all your social accounts—Facebook, Instagram, X (Twitter), TikTok, YouTube, and more—in just a few clicks.") }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Step 3 -->
-                    <div class="w-full">
-                        <div class="flex flex-wrap -m-3">
-                            <div class="w-auto p-3">
-                                <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="17.5" cy="17.5" r="17" stroke="#CBD5E1"></circle>
-                                    <path d="M11.667 18.3333L15.0003 21.6666L23.3337 13.3333" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                            </div>
-                            <div class="flex-1 p-3">
-                                <div class="md:max-w-xs pb-8">
-                                    <p class="mb-5 text-sm text-gray-400 font-semibold uppercase tracking-px">
-                                        {{ __("Step 3") }}
-                                    </p>
-                                    <h3 class="mb-2 text-xl text-white font-bold leading-normal">
-                                        {{ __("Start Automating & Growing") }}
-                                    </h3>
-                                    <p class="text-gray-300 font-medium leading-relaxed">
-                                        {{ __("Schedule, publish, and analyze content—all in one dashboard, powered by AI automation and actionable analytics.") }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- End Steps -->
+                    <a href="{{ url('auth/signup') }}" class="btn-accent">
+                        {{ __("Try Video Wizard") }}
+                        <i class="fa-light fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
-
-<section class="relative pt-24 pb-32 bg-white overflow-hidden">
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <img class="max-w-full max-h-full" src="{{ theme_public_asset('images/testimonials/gradient3.svg') }}" alt="">
-    </div>
-    <div class="relative z-10 container px-4 mx-auto">
-        <div class="flex flex-wrap justify-between items-end -m-2 mb-12">
-            <div class="w-auto p-2">
-                <h2 class="text-6xl md:text-7xl font-bold font-heading tracking-px-n leading-tight">
-                    {{ __("What our clients are saying") }}
-                </h2>
-            </div>
-        </div>
-        <div class="flex flex-wrap -m-2">
-            <div class="w-full md:w-1/2 lg:w-1/4 p-2">
-                <div class="px-8 py-6 h-full bg-white bg-opacity-80 rounded-3xl">
-                    <div class="flex flex-col justify-between h-full">
-                        <div class="mb-7 block">
-                            <div class="flex flex-wrap -m-0.5 mb-6">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <div class="w-auto p-0.5">
-                                        <svg width="19" height="18" viewbox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path>
-                                        </svg>
-                                    </div>
-                                @endfor
-                            </div>
-                            <h3 class="mb-6 text-lg font-bold font-heading">
-                                {{ __("“Scheduling is incredibly easy!”") }}
-                            </h3>
-                            <p class="text-lg font-medium">
-                                {{ __("I can drag and drop posts on the calendar and instantly see my entire week at a glance. Planning campaigns has never been this smooth.") }}
-                            </p>
-                        </div>
-                        <div class="block">
-                            <p class="font-bold">{{ __("Sarah Johnson - Social Media Manager") }}</p>
-                        </div>
+            <div class="w-full lg:w-1/2 px-4">
+                {{-- Glass mockup of video wizard pipeline --}}
+                <div class="glass-card p-6 md:p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-3 h-3 rounded-full" style="background: #ff6b6b;"></div>
+                        <div class="w-3 h-3 rounded-full" style="background: #ffd93d;"></div>
+                        <div class="w-3 h-3 rounded-full" style="background: #6bcb77;"></div>
                     </div>
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 lg:w-1/4 p-2">
-                <div class="px-8 py-6 h-full bg-white bg-opacity-80 rounded-3xl">
-                    <div class="flex flex-col justify-between h-full">
-                        <div class="mb-7 block">
-                            <div class="flex flex-wrap -m-0.5 mb-6">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <div class="w-auto p-0.5">
-                                        <svg width="19" height="18" viewbox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path>
-                                        </svg>
-                                    </div>
-                                @endfor
-                            </div>
-                            <h3 class="mb-6 text-lg font-bold font-heading">
-                                {{ __("“Perfect for managing multiple accounts”") }}
-                            </h3>
-                            <p class="text-lg font-medium">
-                                {{ __("It’s so convenient to handle all my brands and channels from a single dashboard. No more endless tab-switching!") }}
-                            </p>
+                    {{-- Pipeline steps mockup --}}
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent-gradient);">1</div>
+                            <div class="flex-1 h-3 rounded-full" style="background: var(--accent); opacity: 0.2;"><div class="h-3 rounded-full w-full" style="background: var(--accent-gradient);"></div></div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __("Concept") }}</span>
                         </div>
-                        <div class="block">
-                            <p class="font-bold">{{ __("Michael Lee - Digital Marketer") }}</p>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent-gradient);">2</div>
+                            <div class="flex-1 h-3 rounded-full" style="background: var(--accent); opacity: 0.2;"><div class="h-3 rounded-full w-4/5" style="background: var(--accent-gradient);"></div></div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __("Script") }}</span>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 lg:w-1/4 p-2">
-                <div class="px-8 py-6 h-full bg-white bg-opacity-80 rounded-3xl">
-                    <div class="flex flex-col justify-between h-full">
-                        <div class="mb-7 block">
-                            <div class="flex flex-wrap -m-0.5 mb-6">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <div class="w-auto p-0.5">
-                                        <svg width="19" height="18" viewbox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path>
-                                        </svg>
-                                    </div>
-                                @endfor
-                            </div>
-                            <h3 class="mb-6 text-lg font-bold font-heading">
-                                {{ __("“Insightful analytics, clean reports”") }}
-                            </h3>
-                            <p class="text-lg font-medium">
-                                {{ __("The analytics dashboard makes it simple to track what’s working and what needs improvement. I love exporting reports for my team.") }}
-                            </p>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold" style="background: var(--accent-gradient);">3</div>
+                            <div class="flex-1 h-3 rounded-full" style="background: var(--accent); opacity: 0.2;"><div class="h-3 rounded-full w-3/5" style="background: var(--accent-gradient);"></div></div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __("Storyboard") }}</span>
                         </div>
-                        <div class="block">
-                            <p class="font-bold">{{ __("Emily Carter - Content Creator") }}</p>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold opacity-40" style="background: var(--accent-gradient);">4</div>
+                            <div class="flex-1 h-3 rounded-full" style="background: var(--accent); opacity: 0.1;"></div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __("Animation") }}</span>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="w-full md:w-1/2 lg:w-1/4 p-2">
-                <div class="px-8 py-6 h-full bg-white bg-opacity-80 rounded-3xl">
-                    <div class="flex flex-col justify-between h-full">
-                        <div class="mb-7 block">
-                            <div class="flex flex-wrap -m-0.5 mb-6">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <div class="w-auto p-0.5">
-                                        <svg width="19" height="18" viewbox="0 0 19 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path>
-                                        </svg>
-                                    </div>
-                                @endfor
-                            </div>
-                            <h3 class="mb-6 text-lg font-bold font-heading">
-                                {{ __("“Excellent collaboration features”") }}
-                            </h3>
-                            <p class="text-lg font-medium">
-                                {{ __("Feedback and approvals are built right in, so my team stays on the same page and campaigns launch faster.") }}
-                            </p>
-                        </div>
-                        <div class="block">
-                            <p class="font-bold">{{ __("James Smith - Marketing Lead") }}</p>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold opacity-30" style="background: var(--accent-gradient);">5</div>
+                            <div class="flex-1 h-3 rounded-full" style="background: var(--accent); opacity: 0.1;"></div>
+                            <span class="text-xs font-medium" style="color: var(--text-muted);">{{ __("Export") }}</span>
                         </div>
                     </div>
                 </div>
@@ -628,9 +256,395 @@
     </div>
 </section>
 
+{{-- ============================================================
+     SECTION 5: CONTENT STUDIO DEEP-DIVE
+     ============================================================ --}}
+<section class="section-padding">
+    <div class="container px-4 mx-auto">
+        <div class="flex flex-wrap items-center -mx-4">
+            <div class="w-full lg:w-1/2 px-4 mb-12 lg:mb-0 order-2 lg:order-1">
+                {{-- Glass mockup of content studio --}}
+                <div class="glass-card p-6 md:p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-3 h-3 rounded-full" style="background: #ff6b6b;"></div>
+                        <div class="w-3 h-3 rounded-full" style="background: #ffd93d;"></div>
+                        <div class="w-3 h-3 rounded-full" style="background: #6bcb77;"></div>
+                    </div>
+                    {{-- Brand DNA mockup --}}
+                    <div class="mb-6">
+                        <div class="text-xs font-semibold mb-3" style="color: var(--text-muted);">{{ __("BRAND DNA") }}</div>
+                        <div class="flex gap-2 mb-4">
+                            <div class="w-8 h-8 rounded-lg" style="background: #1a1a2e;"></div>
+                            <div class="w-8 h-8 rounded-lg" style="background: #0891b2;"></div>
+                            <div class="w-8 h-8 rounded-lg" style="background: #03fcf4;"></div>
+                            <div class="w-8 h-8 rounded-lg" style="background: #f0f4f8;"></div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="text-xs px-2.5 py-1 rounded-full font-medium" style="background: rgba(3,252,244,0.1); color: var(--accent-dark);">{{ __("Professional") }}</span>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-medium" style="background: rgba(3,252,244,0.1); color: var(--accent-dark);">{{ __("Innovative") }}</span>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-medium" style="background: rgba(3,252,244,0.1); color: var(--accent-dark);">{{ __("Modern") }}</span>
+                        </div>
+                    </div>
+                    {{-- Creatives grid mockup --}}
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="rounded-lg h-20" style="background: linear-gradient(135deg, #1a1a2e, #0891b2);"></div>
+                        <div class="rounded-lg h-20" style="background: linear-gradient(135deg, #0891b2, #03fcf4);"></div>
+                        <div class="rounded-lg h-20" style="background: linear-gradient(135deg, #e0f2fe, #ccfbf1);"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="w-full lg:w-1/2 px-4 order-1 lg:order-2 mb-12 lg:mb-0">
+                <div class="max-w-lg lg:ml-auto">
+                    <span class="text-sm font-semibold uppercase tracking-wider mb-4 inline-block" style="color: var(--accent-dark);">
+                        {{ __("Content Studio") }}
+                    </span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 leading-tight" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                        {{ __("Your Brand, Amplified by AI") }}
+                    </h2>
+                    <p class="text-lg leading-relaxed mb-8" style="color: var(--text-secondary);">
+                        {{ __("Paste your website URL. ARTime extracts your colors, fonts, tone, and aesthetic — your Brand DNA. Then generates campaign ideas, ad creatives, and product photoshoots that look like your brand, every time.") }}
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-8">
+                        <span class="glass-pill text-xs"><i class="fa-light fa-dna"></i> {{ __("Brand DNA Extraction") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-lightbulb"></i> {{ __("Campaign Generator") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-wand-magic-sparkles"></i> {{ __("AI Creatives") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-font"></i> {{ __("Text Overlays") }}</span>
+                        <span class="glass-pill text-xs"><i class="fa-light fa-camera"></i> {{ __("Product Photoshoot") }}</span>
+                    </div>
+                    <a href="{{ url('auth/signup') }}" class="btn-accent">
+                        {{ __("Try Content Studio") }}
+                        <i class="fa-light fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 6: AI CAPABILITIES GRID — "Built on the Best AI"
+     ============================================================ --}}
+<section class="section-padding">
+    <div class="container px-4 mx-auto">
+        <div class="max-w-2xl mx-auto text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-5" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                {{ __("Built on the Best AI") }}
+            </h2>
+            <p class="text-lg leading-relaxed" style="color: var(--text-secondary);">
+                {{ __("Access the most powerful AI models through one platform. We integrate the best so you can focus on creating.") }}
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {{-- Card 1 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-message-bot"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("AI Text Generation") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("GPT-4o, Claude, Gemini, Grok, DeepSeek — choose the best model for every task.") }}</p>
+            </div>
+            {{-- Card 2 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-image-landscape"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("AI Image Generation") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Flux Pro, HiDream, Gemini Vision — photorealistic images and art from text prompts.") }}</p>
+            </div>
+            {{-- Card 3 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-film"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("AI Video Generation") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("MiniMax, InfiniteTalk with lip-sync, Seedance — bring still images to life.") }}</p>
+            </div>
+            {{-- Card 4 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-waveform-lines"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("AI Voice & Music") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Kokoro TTS, Qwen TTS, OpenAI TTS — natural voices and custom soundtracks.") }}</p>
+            </div>
+            {{-- Card 5 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-calendar-clock"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("Smart Publishing") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Schedule, bulk post, RSS auto-publish — your content goes live on every platform automatically.") }}</p>
+            </div>
+            {{-- Card 6 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-users"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("Team Collaboration") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Multi-user workspaces, roles, and approval workflows for seamless teamwork.") }}</p>
+            </div>
+            {{-- Card 7 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-chart-mixed"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("Analytics & Insights") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Track performance across all channels with real-time dashboards and reports.") }}</p>
+            </div>
+            {{-- Card 8 --}}
+            <div class="glass-card p-6 transition-all duration-300">
+                <div class="feature-icon mb-4">
+                    <i class="fa-light fa-globe"></i>
+                </div>
+                <h3 class="font-bold mb-2" style="color: var(--text-primary);">{{ __("Multi-Language") }}</h3>
+                <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ __("Create content in 50+ languages. AI detects and generates in your audience's language.") }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 7: HOW IT WORKS — "Three Steps to Your First Creation"
+     ============================================================ --}}
+<section class="section-padding" id="how-it-works">
+    <div class="container px-4 mx-auto">
+        <div class="max-w-2xl mx-auto text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-5" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                {{ __("Three Steps to Your First Creation") }}
+            </h2>
+            <p class="text-lg leading-relaxed" style="color: var(--text-secondary);">
+                {{ __("No learning curve. No editing skills. Just describe what you want and let AI do the rest.") }}
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {{-- Step 1 --}}
+            <div class="glass-card p-8 text-center relative">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white" style="background: var(--accent-gradient);">
+                    1
+                </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Describe") }}</h3>
+                <p class="leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("Tell ARTime what you want. A video ad, a social campaign, a product photoshoot — just describe it in your own words.") }}
+                </p>
+                <div class="step-connector hidden md:block"></div>
+            </div>
+            {{-- Step 2 --}}
+            <div class="glass-card p-8 text-center relative">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white" style="background: var(--accent-gradient);">
+                    2
+                </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Generate") }}</h3>
+                <p class="leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("AI creates everything: script, images, video, voiceover, music, text overlays. Review and refine in real-time.") }}
+                </p>
+                <div class="step-connector hidden md:block"></div>
+            </div>
+            {{-- Step 3 --}}
+            <div class="glass-card p-8 text-center">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white" style="background: var(--accent-gradient);">
+                    3
+                </div>
+                <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">{{ __("Publish") }}</h3>
+                <p class="leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("Export your creation or publish directly to your social channels. One click, every platform.") }}
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 8: SOCIAL PUBLISHING — "Automate Your Social Presence"
+     ============================================================ --}}
+<section class="section-padding">
+    <div class="container px-4 mx-auto">
+        <div class="flex flex-wrap items-center -mx-4">
+            <div class="w-full lg:w-1/2 px-4 mb-12 lg:mb-0">
+                {{-- Platform icons mockup --}}
+                <div class="glass-card p-8">
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-facebook text-2xl" style="color: #1877F2;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-instagram text-2xl" style="color: #E4405F;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-x-twitter text-2xl" style="color: #1a1a2e;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-tiktok text-2xl" style="color: #1a1a2e;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-youtube text-2xl" style="color: #FF0000;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-linkedin text-2xl" style="color: #0A66C2;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-pinterest text-2xl" style="color: #E60023;"></i>
+                        </div>
+                        <div class="glass-card-sm p-4 text-center">
+                            <i class="fab fa-telegram text-2xl" style="color: #0088CC;"></i>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <p class="text-sm font-medium" style="color: var(--text-muted);">{{ __("8+ platforms supported") }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="w-full lg:w-1/2 px-4">
+                <div class="max-w-lg lg:ml-auto">
+                    <span class="text-sm font-semibold uppercase tracking-wider mb-4 inline-block" style="color: var(--accent-dark);">
+                        {{ __("Social Publishing") }}
+                    </span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 leading-tight" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                        {{ __("Automate Your Social Presence") }}
+                    </h2>
+                    <p class="text-lg leading-relaxed mb-8" style="color: var(--text-secondary);">
+                        {{ __("Connect all your social accounts in seconds. Schedule posts, auto-publish from RSS feeds, and let AI generate your content calendar — so your brand is always active, even when you're not.") }}
+                    </p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-3">
+                            <i class="fa-light fa-check-circle" style="color: var(--accent-dark);"></i>
+                            <span style="color: var(--text-secondary);">{{ __("Unified Calendar — see all channels at a glance") }}</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-light fa-check-circle" style="color: var(--accent-dark);"></i>
+                            <span style="color: var(--text-secondary);">{{ __("Bulk Scheduling — publish dozens of posts at once") }}</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-light fa-check-circle" style="color: var(--accent-dark);"></i>
+                            <span style="color: var(--text-secondary);">{{ __("RSS Auto-Post — fresh content from any feed, hands-free") }}</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-light fa-check-circle" style="color: var(--accent-dark);"></i>
+                            <span style="color: var(--text-secondary);">{{ __("AI Captions — generated text tailored to each platform") }}</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fa-light fa-check-circle" style="color: var(--accent-dark);"></i>
+                            <span style="color: var(--text-secondary);">{{ __("Best-Time Publishing — post when your audience is most active") }}</span>
+                        </li>
+                    </ul>
+                    <a href="{{ url('auth/signup') }}" class="btn-accent">
+                        {{ __("Start Publishing") }}
+                        <i class="fa-light fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 9: PRICING (existing partial)
+     ============================================================ --}}
 @include("partials.pricing")
+
+{{-- ============================================================
+     SECTION 10: TESTIMONIALS — "Loved by Creators"
+     ============================================================ --}}
+<section class="section-padding">
+    <div class="container px-4 mx-auto">
+        <div class="max-w-2xl mx-auto text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-bold mb-5" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                {{ __("Loved by Creators") }}
+            </h2>
+            <p class="text-lg leading-relaxed" style="color: var(--text-secondary);">
+                {{ __("See what creators and businesses are saying about ARTime.") }}
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {{-- Testimonial 1 --}}
+            <div class="glass-card p-8">
+                <div class="flex gap-1 mb-5">
+                    @for ($i = 0; $i < 5; $i++)
+                        <svg width="18" height="18" viewBox="0 0 19 18" fill="none"><path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path></svg>
+                    @endfor
+                </div>
+                <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
+                    {{ __(""The Video Wizard is mind-blowing!"") }}
+                </h3>
+                <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("I described a product launch video and ARTime created the script, generated all the visuals, added voiceover, and exported a professional video in under 10 minutes. This would have taken my team days.") }}
+                </p>
+                <p class="font-bold text-sm" style="color: var(--text-primary);">{{ __("Sarah Chen — Creative Director") }}</p>
+            </div>
+
+            {{-- Testimonial 2 --}}
+            <div class="glass-card p-8">
+                <div class="flex gap-1 mb-5">
+                    @for ($i = 0; $i < 5; $i++)
+                        <svg width="18" height="18" viewBox="0 0 19 18" fill="none"><path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path></svg>
+                    @endfor
+                </div>
+                <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
+                    {{ __(""Content Studio saved our brand"") }}
+                </h3>
+                <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("We pasted our website URL and it extracted our entire brand identity. Now every campaign, every creative, every ad looks perfectly on-brand — without hiring a designer.") }}
+                </p>
+                <p class="font-bold text-sm" style="color: var(--text-primary);">{{ __("Michael Torres — Startup Founder") }}</p>
+            </div>
+
+            {{-- Testimonial 3 --}}
+            <div class="glass-card p-8">
+                <div class="flex gap-1 mb-5">
+                    @for ($i = 0; $i < 5; $i++)
+                        <svg width="18" height="18" viewBox="0 0 19 18" fill="none"><path d="M9.30769 0L12.1838 5.82662L18.6154 6.76111L13.9615 11.2977L15.0598 17.7032L9.30769 14.6801L3.55554 17.7032L4.65385 11.2977L0 6.76111L6.43162 5.82662L9.30769 0Z" fill="#F59E0B"></path></svg>
+                    @endfor
+                </div>
+                <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
+                    {{ __(""Finally, one tool for everything"") }}
+                </h3>
+                <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
+                    {{ __("I used to juggle five different apps for social media, video, and design. ARTime replaced them all. The AI publishing automation alone saves me 15 hours a week.") }}
+                </p>
+                <p class="font-bold text-sm" style="color: var(--text-primary);">{{ __("Emily Park — Social Media Manager") }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================================================
+     SECTION 11: FAQ (existing partial)
+     ============================================================ --}}
 @include("partials.faqs")
+
+{{-- ============================================================
+     SECTION 12: BLOG (existing partial)
+     ============================================================ --}}
 @include("partials.home-blog")
 
+{{-- ============================================================
+     CTA SECTION — "Ready to Create?"
+     ============================================================ --}}
+<section class="section-padding">
+    <div class="container px-4 mx-auto">
+        <div class="glass-card p-12 md:p-16 text-center relative overflow-hidden">
+            {{-- Accent glow --}}
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-10" style="background: var(--accent); filter: blur(80px);"></div>
 
-
+            <div class="relative z-10">
+                <h2 class="text-3xl md:text-5xl font-bold mb-5" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+                    {{ __("Ready to Create?") }}
+                </h2>
+                <p class="text-lg mb-10 max-w-lg mx-auto" style="color: var(--text-secondary);">
+                    {{ __("Start free. No credit card required. Create your first AI video, campaign, or social post in minutes.") }}
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="{{ url('auth/signup') }}" class="btn-accent text-base py-3.5 px-8">
+                        <i class="fa-light fa-sparkles"></i>
+                        {{ __("Start Creating Free") }}
+                    </a>
+                    <a href="{{ url('contact') }}" class="btn-ghost text-base py-3.5 px-8">
+                        {{ __("Talk to Us") }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
