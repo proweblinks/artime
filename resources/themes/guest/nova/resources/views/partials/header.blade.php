@@ -3,55 +3,55 @@
         class="fixed top-0 left-0 right-0 z-60">
     <div :class="scrolled ? 'glass-header scrolled' : 'glass-header'">
         <div class="container mx-auto">
-            <div class="flex items-center justify-between px-4 py-4">
+            <div class="flex items-center justify-between px-4 py-5">
                 <div class="w-auto">
-                    <a href="{{ url("") }}">
-                        <img class="h-9" src="{{ url( get_option("website_logo_brand_dark", asset('public/img/logo-brand-dark.png')) ) }}" alt="">
+                    <a href="{{ url("") }}" class="flex items-center gap-3">
+                        <img class="h-10" src="{{ url( get_option("website_logo_brand_dark", asset('public/img/logo-brand-dark.png')) ) }}" alt="">
                     </a>
                 </div>
                 <div class="w-auto">
                     <div class="flex items-center justify-between">
                         <div class="w-auto hidden lg:block">
-                            <ul class="flex items-center mr-10">
-                                <li class="mr-8">
+                            <ul class="flex items-center mr-10" style="font-size: 15px;">
+                                <li class="mr-9">
                                     <a href="{{ url('') }}"
-                                       class="font-medium transition duration-200 {{ request()->is('/') ? 'text-accent font-semibold' : 'hover:text-[#0891b2]' }}"
-                                       style="{{ request()->is('/') ? 'color: var(--accent-dark);' : 'color: var(--text-secondary);' }}">
+                                       class="font-semibold transition duration-200 {{ request()->is('/') ? 'text-accent' : 'hover:text-[#0891b2]' }}"
+                                       style="{{ request()->is('/') ? 'color: var(--accent-dark);' : 'color: var(--text-primary);' }}">
                                         {{ __("Home") }}
                                     </a>
                                 </li>
-                                <li class="mr-8">
+                                <li class="mr-9">
                                     <a href="{{ url('') }}#features"
-                                       class="font-medium transition duration-200 hover:text-[#0891b2]"
-                                       style="color: var(--text-secondary);">
+                                       class="font-semibold transition duration-200 hover:text-[#0891b2]"
+                                       style="color: var(--text-primary);">
                                         {{ __("Features") }}
                                     </a>
                                 </li>
-                                <li class="mr-8">
+                                <li class="mr-9">
                                     <a href="{{ url('pricing') }}"
-                                       class="font-medium transition duration-200 {{ request()->is('pricing*') ? 'font-semibold' : 'hover:text-[#0891b2]' }}"
-                                       style="{{ request()->is('pricing*') ? 'color: var(--accent-dark);' : 'color: var(--text-secondary);' }}">
+                                       class="font-semibold transition duration-200 {{ request()->is('pricing*') ? '' : 'hover:text-[#0891b2]' }}"
+                                       style="{{ request()->is('pricing*') ? 'color: var(--accent-dark);' : 'color: var(--text-primary);' }}">
                                         {{ __("Pricing") }}
                                     </a>
                                 </li>
-                                <li class="mr-8">
+                                <li class="mr-9">
                                     <a href="{{ url('faqs') }}"
-                                       class="font-medium transition duration-200 {{ request()->is('faqs*') ? 'font-semibold' : 'hover:text-[#0891b2]' }}"
-                                       style="{{ request()->is('faqs*') ? 'color: var(--accent-dark);' : 'color: var(--text-secondary);' }}">
+                                       class="font-semibold transition duration-200 {{ request()->is('faqs*') ? '' : 'hover:text-[#0891b2]' }}"
+                                       style="{{ request()->is('faqs*') ? 'color: var(--accent-dark);' : 'color: var(--text-primary);' }}">
                                         {{ __("FAQs") }}
                                     </a>
                                 </li>
-                                <li class="mr-8">
+                                <li class="mr-9">
                                     <a href="{{ url('blogs') }}"
-                                       class="font-medium transition duration-200 {{ request()->is('blogs*') ? 'font-semibold' : 'hover:text-[#0891b2]' }}"
-                                       style="{{ request()->is('blogs*') ? 'color: var(--accent-dark);' : 'color: var(--text-secondary);' }}">
+                                       class="font-semibold transition duration-200 {{ request()->is('blogs*') ? '' : 'hover:text-[#0891b2]' }}"
+                                       style="{{ request()->is('blogs*') ? 'color: var(--accent-dark);' : 'color: var(--text-primary);' }}">
                                         {{ __("Blog") }}
                                     </a>
                                 </li>
                                 <li>
                                     <a href="{{ url('contact') }}"
-                                       class="font-medium transition duration-200 {{ request()->is('contact*') ? 'font-semibold' : 'hover:text-[#0891b2]' }}"
-                                       style="{{ request()->is('contact*') ? 'color: var(--accent-dark);' : 'color: var(--text-secondary);' }}">
+                                       class="font-semibold transition duration-200 {{ request()->is('contact*') ? '' : 'hover:text-[#0891b2]' }}"
+                                       style="{{ request()->is('contact*') ? 'color: var(--accent-dark);' : 'color: var(--text-primary);' }}">
                                         {{ __("Contact") }}
                                     </a>
                                 </li>

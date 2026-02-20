@@ -43,60 +43,118 @@
             </div>
         </div>
 
-        {{-- Floating Glass Cards --}}
-        <div class="relative max-w-5xl mx-auto h-64 md:h-80 hidden md:block">
-            {{-- Card 1: Video preview mockup --}}
-            <div class="absolute left-0 top-4 w-56 glass-card p-4 hero-float" style="transform: rotate(-6deg);">
-                <div class="rounded-xl overflow-hidden mb-3" style="background: linear-gradient(135deg, #1a1a2e 0%, #0891b2 100%); height: 120px;">
-                    <div class="flex items-center justify-center h-full">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
-                            <i class="fa-solid fa-play text-white text-sm ml-0.5"></i>
+        {{-- App Mockup — Dark browser window showing the ARTime dashboard --}}
+        <div class="relative max-w-5xl mx-auto mt-4">
+            <div class="rounded-2xl overflow-hidden" style="background: #1a1a2e; box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05);">
+                {{-- Browser chrome --}}
+                <div class="flex items-center gap-2 px-5 py-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <div class="w-3 h-3 rounded-full" style="background: #ff5f57;"></div>
+                    <div class="w-3 h-3 rounded-full" style="background: #febc2e;"></div>
+                    <div class="w-3 h-3 rounded-full" style="background: #28c840;"></div>
+                    <div class="flex-1 mx-4">
+                        <div class="max-w-sm mx-auto h-6 rounded-lg flex items-center justify-center px-3" style="background: rgba(255,255,255,0.06);">
+                            <span class="text-xs" style="color: rgba(255,255,255,0.3);">artime.ai/app/video-wizard/studio</span>
                         </div>
                     </div>
                 </div>
-                <div class="h-2 rounded-full w-3/4 mb-2" style="background: rgba(0,0,0,0.06);"></div>
-                <div class="h-2 rounded-full w-1/2" style="background: rgba(0,0,0,0.04);"></div>
-            </div>
-
-            {{-- Card 2: AI generation mockup (center, larger) --}}
-            <div class="absolute left-1/2 -translate-x-1/2 top-0 w-72 glass-card p-5 hero-float-delay" style="z-index: 2;">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent-gradient);">
-                        <i class="fa-light fa-sparkles text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <div class="h-2.5 rounded-full w-24 mb-1.5" style="background: rgba(0,0,0,0.08);"></div>
-                        <div class="h-2 rounded-full w-16" style="background: rgba(0,0,0,0.04);"></div>
-                    </div>
-                </div>
-                <div class="rounded-xl overflow-hidden mb-3" style="background: linear-gradient(135deg, #f0f4f8 0%, #e0e7ff 50%, #ccfbf1 100%); height: 140px;">
-                    <div class="flex items-end justify-center h-full pb-4">
-                        <div class="flex gap-1">
-                            <div class="w-2 h-8 rounded-sm" style="background: var(--accent); opacity: 0.6;"></div>
-                            <div class="w-2 h-12 rounded-sm" style="background: var(--accent); opacity: 0.8;"></div>
-                            <div class="w-2 h-6 rounded-sm" style="background: var(--accent); opacity: 0.5;"></div>
-                            <div class="w-2 h-16 rounded-sm" style="background: var(--accent-dark); opacity: 0.9;"></div>
-                            <div class="w-2 h-10 rounded-sm" style="background: var(--accent); opacity: 0.7;"></div>
+                {{-- App body --}}
+                <div class="flex" style="min-height: 320px;">
+                    {{-- Sidebar --}}
+                    <div class="hidden md:block w-14 flex-shrink-0 py-4 px-2 space-y-4" style="background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.06);">
+                        <div class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center" style="background: var(--accent-gradient);">
+                            <i class="fa-light fa-sparkles text-white text-sm"></i>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center" style="background: rgba(255,255,255,0.06);">
+                            <i class="fa-light fa-clapperboard-play text-sm" style="color: rgba(255,255,255,0.4);"></i>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center" style="background: rgba(255,255,255,0.06);">
+                            <i class="fa-light fa-palette text-sm" style="color: rgba(255,255,255,0.4);"></i>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center" style="background: rgba(255,255,255,0.06);">
+                            <i class="fa-light fa-share-nodes text-sm" style="color: rgba(255,255,255,0.4);"></i>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center" style="background: rgba(255,255,255,0.06);">
+                            <i class="fa-light fa-chart-mixed text-sm" style="color: rgba(255,255,255,0.4);"></i>
                         </div>
                     </div>
-                </div>
-                <div class="flex gap-2">
-                    <div class="h-7 rounded-lg flex-1" style="background: var(--accent-gradient); opacity: 0.15;"></div>
-                    <div class="h-7 rounded-lg w-16" style="background: rgba(0,0,0,0.04);"></div>
-                </div>
-            </div>
-
-            {{-- Card 3: Social post mockup --}}
-            <div class="absolute right-0 top-8 w-52 glass-card p-4 hero-float-delay-2" style="transform: rotate(4deg);">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-7 h-7 rounded-full" style="background: linear-gradient(135deg, #e0e7ff, #ccfbf1);"></div>
-                    <div class="h-2 rounded-full w-20" style="background: rgba(0,0,0,0.06);"></div>
-                </div>
-                <div class="rounded-lg mb-3" style="background: linear-gradient(135deg, #ccfbf1, #e0f2fe); height: 80px;"></div>
-                <div class="flex gap-3">
-                    <i class="fa-light fa-heart text-sm" style="color: var(--text-muted);"></i>
-                    <i class="fa-light fa-comment text-sm" style="color: var(--text-muted);"></i>
-                    <i class="fa-light fa-share text-sm" style="color: var(--text-muted);"></i>
+                    {{-- Main content --}}
+                    <div class="flex-1 p-5 md:p-6">
+                        {{-- Title bar --}}
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-semibold" style="color: rgba(255,255,255,0.9);">{{ __("Video Wizard") }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(3,252,244,0.15); color: #03fcf4;">{{ __("Premium") }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="h-7 px-3 rounded-lg flex items-center text-xs font-medium" style="background: var(--accent-gradient); color: white;">
+                                    <i class="fa-light fa-sparkles mr-1"></i> {{ __("Generate") }}
+                                </div>
+                            </div>
+                        </div>
+                        {{-- Content area --}}
+                        <div class="flex flex-wrap gap-4">
+                            {{-- Phone preview mockup --}}
+                            <div class="w-32 md:w-40 flex-shrink-0">
+                                <div class="rounded-xl overflow-hidden" style="background: linear-gradient(180deg, #0891b2 0%, #1a1a2e 50%, #03fcf4 100%); aspect-ratio: 9/16;">
+                                    <div class="flex items-center justify-center h-full">
+                                        <div class="text-center">
+                                            <div class="w-10 h-10 rounded-full mx-auto flex items-center justify-center mb-2" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);">
+                                                <i class="fa-solid fa-play text-white text-xs ml-0.5"></i>
+                                            </div>
+                                            <span class="text-xs" style="color: rgba(255,255,255,0.5);">0:24</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{-- Storyboard panels --}}
+                            <div class="flex-1 min-w-0">
+                                {{-- Scene tabs --}}
+                                <div class="flex gap-2 mb-3">
+                                    <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(3,252,244,0.15); color: #03fcf4;">{{ __("Scene 1") }}</span>
+                                    <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);">{{ __("Scene 2") }}</span>
+                                    <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);">{{ __("Scene 3") }}</span>
+                                </div>
+                                {{-- Shot grid --}}
+                                <div class="grid grid-cols-3 gap-2 mb-4">
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0d9488, #0891b2);">
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <i class="fa-light fa-user text-sm" style="color: rgba(255,255,255,0.5);"></i>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #1a1a2e, #0891b2);">
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <i class="fa-light fa-city text-sm" style="color: rgba(255,255,255,0.5);"></i>
+                                        </div>
+                                    </div>
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0284c7, #03fcf4);">
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <i class="fa-light fa-sparkles text-sm" style="color: rgba(255,255,255,0.5);"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                {{-- Timeline bar --}}
+                                <div class="mb-3">
+                                    <div class="h-2 rounded-full w-full" style="background: rgba(255,255,255,0.06);">
+                                        <div class="h-2 rounded-full" style="width: 65%; background: var(--accent-gradient);"></div>
+                                    </div>
+                                </div>
+                                {{-- Pipeline steps --}}
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;">
+                                        <i class="fa-light fa-check mr-1"></i>{{ __("Concept") }}
+                                    </span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;">
+                                        <i class="fa-light fa-check mr-1"></i>{{ __("Script") }}
+                                    </span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.3); color: #03fcf4; border: 1px solid rgba(3,252,244,0.3);">
+                                        <i class="fa-light fa-spinner-third fa-spin mr-1"></i>{{ __("Storyboard") }}
+                                    </span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.3);">{{ __("Animation") }}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.3);">{{ __("Export") }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

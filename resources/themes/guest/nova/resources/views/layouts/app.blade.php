@@ -206,22 +206,9 @@
             background-clip: text;
         }
 
-        /* Floating hero cards */
-        .hero-float, .hero-float-delay, .hero-float-delay-2 {
-            box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04);
-        }
-        .hero-float {
-            animation: heroFloat 6s ease-in-out infinite;
-        }
-        .hero-float-delay {
-            animation: heroFloat 6s ease-in-out infinite 2s;
-        }
-        .hero-float-delay-2 {
-            animation: heroFloat 6s ease-in-out infinite 4s;
-        }
-        @keyframes heroFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-12px); }
+        /* Hero app mockup glow */
+        .hero-mockup-glow {
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 80px rgba(3,252,244,0.08);
         }
 
         /* Section backgrounds */
@@ -249,24 +236,69 @@
             opacity: 0.3;
         }
 
-        /* Responsive grid utilities (missing from compiled Tailwind) */
+        /* ── Responsive utilities (supplement compiled Tailwind) ── */
         @media (min-width: 640px) {
             .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .sm\:text-5xl { font-size: 3rem; line-height: 1; }
+            .sm\:max-w-xs { max-width: 20rem; }
+            .sm\:w-full { width: 100%; }
         }
         @media (min-width: 768px) {
+            /* Grid */
             .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            /* Display */
+            .md\:block { display: block; }
+            .md\:hidden { display: none; }
+            .md\:inline-block { display: inline-block; }
+            /* Width */
+            .md\:w-1\/2 { width: 50%; }
+            .md\:w-5\/12 { width: 41.666667%; }
+            .md\:w-full { width: 100%; }
+            .md\:w-auto { width: auto; }
+            .md\:flex-1 { flex: 1 1 0%; }
+            .md\:max-w-4xl { max-width: 56rem; }
+            .md\:max-w-md { max-width: 28rem; }
+            /* Spacing */
             .md\:pt-44 { padding-top: 11rem; }
             .md\:pb-28 { padding-bottom: 7rem; }
+            .md\:p-6 { padding: 1.5rem; }
             .md\:p-8 { padding: 2rem; }
             .md\:p-16 { padding: 4rem; }
+            .md\:px-20 { padding-left: 5rem; padding-right: 5rem; }
+            .md\:py-0 { padding-top: 0; padding-bottom: 0; }
             .md\:gap-14 { gap: 3.5rem; }
+            .md\:mb-0 { margin-bottom: 0; }
+            .md\:mr-4 { margin-right: 1rem; }
+            .md\:-m-3 { margin: -0.75rem; }
+            .md\:-m-6 { margin: -1.5rem; }
+            .md\:-m-8 { margin: -2rem; }
+            /* Typography */
+            .md\:text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+            .md\:text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+            .md\:text-5xl { font-size: 3rem; line-height: 1; }
+            .md\:text-7xl { font-size: 4.5rem; line-height: 1; }
+            /* Size */
+            .md\:h-80 { height: 20rem; }
+            /* Border */
+            .md\:divide-x > :not(:first-child) { border-left-width: 1px; border-left-style: solid; }
         }
         @media (min-width: 1024px) {
+            /* Grid */
             .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            /* Width */
+            .lg\:w-1\/2 { width: 50%; }
+            .lg\:w-1\/3 { width: 33.333333%; }
+            /* Display */
+            .lg\:block { display: block; }
+            .lg\:hidden { display: none; }
+            /* Spacing */
+            .lg\:mb-0 { margin-bottom: 0; }
+            .lg\:ml-auto { margin-left: auto; }
+            .lg\:px-36 { padding-left: 9rem; padding-right: 9rem; }
+            /* Order */
             .lg\:order-1 { order: 1; }
             .lg\:order-2 { order: 2; }
-            .lg\:ml-auto { margin-left: auto; }
         }
     </style>
 </head>
