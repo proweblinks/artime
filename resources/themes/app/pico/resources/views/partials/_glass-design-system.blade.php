@@ -1,11 +1,11 @@
-{{-- Platform Glass Design System --}}
-{{-- Shared tokens + Bootstrap overrides for frosted glass aesthetic --}}
+{{-- Platform Design System --}}
+{{-- Shared tokens + Bootstrap overrides for modern cyan accent --}}
 {{-- Loaded AFTER main.css in app.blade.php — wins by cascade order --}}
 
 <style>
 /* ============================================
-   ARTIME GLASS DESIGN SYSTEM
-   Frosted Glass — Cyan Accent (#03fcf4)
+   ARTIME DESIGN SYSTEM
+   Clean White + Cyan Accent (#03fcf4)
    Global Bootstrap Override Layer
    ============================================ */
 
@@ -62,25 +62,25 @@
     --at-radius-xl: 1.5rem;
     --at-radius-full: 9999px;
 
-    /* Glass shadows */
+    /* Shadows — clean, layered */
     --at-glass:
-        0 8px 32px rgba(0, 0, 0, 0.06),
-        0 2px 8px rgba(0, 0, 0, 0.04);
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03);
     --at-glass-hover:
-        0 12px 40px rgba(0, 0, 0, 0.08),
-        0 4px 12px rgba(0, 0, 0, 0.05);
+        0 2px 6px rgba(0, 0, 0, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.05);
     --at-glass-sm:
-        0 4px 12px rgba(0, 0, 0, 0.05),
-        0 1px 3px rgba(0, 0, 0, 0.03);
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 2px 6px rgba(0, 0, 0, 0.02);
     --at-glass-lg:
-        0 16px 48px rgba(0, 0, 0, 0.08),
-        0 4px 16px rgba(0, 0, 0, 0.05);
+        0 4px 12px rgba(0, 0, 0, 0.06),
+        0 16px 48px rgba(0, 0, 0, 0.05);
     --at-glass-btn:
-        0 4px 16px rgba(0, 0, 0, 0.08),
-        0 1px 4px rgba(0, 0, 0, 0.04);
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        0 2px 8px rgba(0, 0, 0, 0.04);
     --at-glass-btn-hover:
-        0 8px 24px rgba(0, 0, 0, 0.12),
-        0 2px 6px rgba(0, 0, 0, 0.06);
+        0 2px 6px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.06);
     --at-glass-inset:
         inset 0 1px 3px rgba(0, 0, 0, 0.06),
         inset 0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -90,31 +90,17 @@
 }
 
 
-/* --- B. Body + Main Background --- */
-body {
-    background-color: var(--at-bg-deep) !important;
-    font-family: var(--at-font);
-}
-
-.main {
-    background: var(--at-bg-deep);
-}
-
-
-/* --- C. Sidebar Glass Override --- */
+/* --- B. Sidebar Override --- */
 .sidebar {
-    background-color: var(--at-bg-surface) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-right-color: var(--at-border) !important;
-    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04);
+    background-color: #ffffff !important;
+    border-right: 1px solid #eef1f5 !important;
 }
 
 /* Sidebar toggle button */
 .sidebar .sidebar-toggle .bg-light,
 .sidebar .sidebar-toggle a {
-    background: var(--at-bg-elevated) !important;
-    border-color: var(--at-border) !important;
+    background: #f5f7fa !important;
+    border-color: #eef1f5 !important;
 }
 
 /* Menu heading */
@@ -125,13 +111,13 @@ body {
 /* Menu links — hover */
 .sidebar .menu .menu-item .menu-link:hover {
     color: var(--at-primary-text) !important;
-    background-color: rgba(3, 252, 244, 0.08) !important;
+    background-color: rgba(3, 252, 244, 0.06) !important;
 }
 
 /* Menu links — active state */
 .sidebar .menu .menu-item .menu-link.text-primary,
 .sidebar .menu .menu-item .menu-link.active {
-    background-color: rgba(3, 252, 244, 0.12) !important;
+    background-color: rgba(3, 252, 244, 0.10) !important;
     color: var(--at-primary-text) !important;
 }
 
@@ -155,46 +141,41 @@ body {
 
 /* Submenu active link */
 .sidebar .menu .menu-accordion .menu-item .menu-link.active.text-primary {
-    background-color: rgba(3, 252, 244, 0.12) !important;
+    background-color: rgba(3, 252, 244, 0.10) !important;
     color: var(--at-primary-text) !important;
 }
 
 /* Sidebar dividers */
 .sidebar .menu .menu-item.h-1.bg-gray-200 {
-    background-color: var(--at-border) !important;
+    background-color: #eef1f5 !important;
 }
 
 /* Sidebar accordion tree lines */
 .sidebar .menu .menu-accordion:before {
-    border-left-color: rgba(3, 252, 244, 0.15);
+    border-left-color: #e2e8f0;
 }
 
 .sidebar .menu .menu-item .menu-item .menu-link:before {
-    border-left-color: rgba(3, 252, 244, 0.15);
-    border-bottom-color: rgba(3, 252, 244, 0.15);
+    border-left-color: #e2e8f0;
+    border-bottom-color: #e2e8f0;
 }
 
 
-/* --- D. Header Glass Override --- */
+/* --- C. Header Override --- */
 .header {
-    background-color: var(--at-bg-surface) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom-color: var(--at-border) !important;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #eef1f5 !important;
 }
 
 /* Sub-header bar */
 .bg-polygon {
-    background-color: var(--at-bg-elevated) !important;
+    background-color: #f8fafb !important;
     background-image: none !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom-color: var(--at-border) !important;
+    border-bottom-color: #eef1f5 !important;
 }
 
 
-/* --- E. Bootstrap Component Overrides --- */
+/* --- D. Bootstrap Component Overrides --- */
 
 /* --- Text Primary --- */
 .text-primary {
@@ -203,10 +184,8 @@ body {
 
 /* --- Cards --- */
 .card {
-    background: var(--at-bg-surface) !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--at-border) !important;
+    background: #ffffff !important;
+    border: 1px solid #eef1f5 !important;
     border-radius: var(--at-radius-lg) !important;
     box-shadow: var(--at-glass);
     transition: box-shadow 200ms ease, border-color 200ms ease;
@@ -214,22 +193,18 @@ body {
 
 .card:hover {
     box-shadow: var(--at-glass-hover);
-    border-color: rgba(255, 255, 255, 0.45) !important;
+    border-color: #e2e8f0 !important;
 }
 
 .card-header {
     background: transparent !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-bottom: 1px solid #eef1f5 !important;
     border-radius: var(--at-radius-lg) var(--at-radius-lg) 0 0 !important;
 }
 
-.card-body {
-    color: var(--at-text);
-}
-
 .card .card {
-    background: rgba(255, 255, 255, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    background: #f8fafb !important;
+    border: 1px solid #eef1f5 !important;
     border-radius: var(--at-radius) !important;
     box-shadow: var(--at-glass-sm);
 }
@@ -243,12 +218,12 @@ body {
 
 .table thead,
 .table-light {
-    background: rgba(255, 255, 255, 0.35) !important;
-    --bs-table-bg: rgba(255, 255, 255, 0.35) !important;
+    background: #f8fafb !important;
+    --bs-table-bg: #f8fafb !important;
 }
 
 .table thead th {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-bottom: 1px solid #eef1f5 !important;
     color: var(--at-text-secondary);
     font-weight: 600;
     font-size: 0.8rem;
@@ -257,18 +232,18 @@ body {
 }
 
 .table tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid #f1f4f8;
 }
 
 .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.3);
-    --bs-table-bg-state: rgba(255, 255, 255, 0.3);
+    background: #f8fafb;
+    --bs-table-bg-state: #f8fafb;
 }
 
 .table-bordered,
 .table-bordered td,
 .table-bordered th {
-    border-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: #eef1f5 !important;
 }
 
 
@@ -308,16 +283,13 @@ body {
 }
 
 .btn-light {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--at-border) !important;
+    background: #f5f7fa !important;
+    border: 1px solid #eef1f5 !important;
     color: var(--at-text-secondary) !important;
-    box-shadow: var(--at-glass-sm);
 }
 
 .btn-light:hover {
-    background: rgba(3, 252, 244, 0.08) !important;
+    background: rgba(3, 252, 244, 0.06) !important;
     color: var(--at-primary-text) !important;
     border-color: var(--at-border-accent) !important;
 }
@@ -389,40 +361,30 @@ body {
     background: var(--at-primary-soft) !important;
     border: 1px solid var(--at-border-accent) !important;
     color: var(--at-primary-text) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 .alert-success {
     background: var(--at-success-soft) !important;
     border: 1px solid rgba(34, 197, 94, 0.2) !important;
     color: #16a34a !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 .alert-danger {
     background: var(--at-danger-soft) !important;
     border: 1px solid rgba(239, 68, 68, 0.15) !important;
     color: #dc2626 !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 .alert-warning {
     background: var(--at-warning-soft) !important;
     border: 1px solid rgba(245, 158, 11, 0.2) !important;
     color: #92400e !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 .alert-info {
     background: var(--at-info-soft) !important;
     border: 1px solid rgba(14, 165, 233, 0.2) !important;
     color: #0369a1 !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 
@@ -459,11 +421,8 @@ body {
 }
 
 .badge.rounded-pill {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    box-shadow: var(--at-glass-sm);
+    background: #f5f7fa !important;
+    border: 1px solid #eef1f5 !important;
     color: var(--at-primary-text) !important;
     font-weight: 600;
 }
@@ -471,12 +430,10 @@ body {
 
 /* --- Dropdown Menu --- */
 .dropdown-menu {
-    background: var(--at-bg-surface-solid);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--at-border-strong);
+    background: #ffffff;
+    border: 1px solid #eef1f5;
     border-radius: var(--at-radius) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.10);
 }
 
 .dropdown-item:hover,
@@ -494,29 +451,25 @@ body {
 
 /* --- Modal --- */
 .modal-content {
-    background: var(--at-bg-surface-solid);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--at-border);
+    background: #ffffff;
+    border: 1px solid #eef1f5;
     border-radius: var(--at-radius-lg) !important;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12);
 }
 
 .modal-header {
-    border-bottom-color: var(--at-border) !important;
+    border-bottom-color: #eef1f5 !important;
 }
 
 .modal-footer {
-    border-top-color: var(--at-border) !important;
+    border-top-color: #eef1f5 !important;
 }
 
 
 /* --- Progress Bars --- */
 .progress {
-    background: rgba(255, 255, 255, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: #f1f4f8 !important;
+    border: none;
     border-radius: var(--at-radius-full);
     overflow: hidden;
 }
@@ -529,8 +482,7 @@ body {
 /* --- Pagination --- */
 .page-link {
     color: var(--at-text-secondary);
-    background: var(--at-bg-surface);
-    border-color: var(--at-border);
+    border-color: #eef1f5;
 }
 
 .page-link:hover {
@@ -567,61 +519,14 @@ body {
     border-color: var(--at-border-accent) !important;
 }
 
-.border-bottom {
-    border-bottom-color: var(--at-border) !important;
-}
-
-
-/* --- Text Utilities Override --- */
-.text-muted {
-    color: var(--at-text-muted) !important;
-}
-
-.text-gray-500 {
-    color: var(--at-text-muted) !important;
-}
-
-.text-gray-700 {
-    color: var(--at-text-secondary) !important;
-}
-
-.text-gray-800 {
-    color: var(--at-text) !important;
-}
-
-.text-gray-900 {
-    color: var(--at-text) !important;
-}
-
-.text-dark {
-    color: var(--at-text) !important;
-}
-
-
-/* --- Background Utilities --- */
-.bg-light {
-    background-color: var(--at-bg-elevated) !important;
-}
-
-.bg-white {
-    background-color: var(--at-bg-surface) !important;
-}
-
-
-/* --- Highcharts transparent background --- */
-.highcharts-background {
-    fill: transparent !important;
-}
-
 
 /* --- List Group --- */
 .list-group-item {
-    background: var(--at-bg-surface);
-    border-color: var(--at-border);
+    border-color: #eef1f5;
 }
 
 .list-group-item:hover {
-    background: var(--at-bg-hover);
+    background: #f8fafb;
 }
 
 .list-group-item.active {
@@ -683,28 +588,28 @@ body {
 }
 
 
-/* --- F. Scrollbar Styling --- */
+/* --- E. Scrollbar Styling --- */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.2);
+    background: #f5f7fa;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(3, 252, 244, 0.25);
+    background: #d0d5dd;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(3, 252, 244, 0.4);
+    background: #b0b8c4;
 }
 
 /* Firefox scrollbar */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(3, 252, 244, 0.25) rgba(255, 255, 255, 0.2);
+    scrollbar-color: #d0d5dd #f5f7fa;
 }
 </style>
