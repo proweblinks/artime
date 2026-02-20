@@ -7,9 +7,12 @@
 
     {{-- Mobile CSS-only animated light streaks fallback --}}
     <div class="hero-mobile-bg">
+        <div class="hero-road"></div>
         <div class="hero-streak-1"></div>
         <div class="hero-streak-2"></div>
         <div class="hero-streak-3"></div>
+        <div class="hero-streak-4"></div>
+        <div class="hero-streak-5"></div>
         <div class="hero-glow"></div>
     </div>
 
