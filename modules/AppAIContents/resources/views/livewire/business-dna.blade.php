@@ -1,20 +1,5 @@
 <div>
-    {{-- Polling element (nested, not on root — reliable across Livewire morphs) --}}
-    @if($isAnalyzing)
-        <div wire:poll.3s="pollAnalysis" style="display:none;"></div>
-    @endif
-
-    {{-- Notify parent when DNA analysis just completed --}}
-    @if($justCompleted && $dna)
-        <div x-data x-init="
-            $nextTick(() => {
-                $dispatch('dna-ready', { dnaId: {{ $dna->id }} });
-                $wire.set('justCompleted', false);
-            });
-        " style="display:none;"></div>
-    @endif
-
-    {{-- Page Header --}}
+    {{-- Page Header (static — never changes, safe for morphdom) --}}
     <div class="cs-page-header">
         <div class="cs-page-icon"><i class="fa-light fa-dna"></i></div>
         <h1>{{ __('Your Business DNA') }}</h1>
@@ -30,7 +15,23 @@
         }
     @endphp
 
+    {{-- Single wire:key wraps ALL dynamic content — prevents morph crashes on state transitions --}}
     <div wire:key="dna-{{ $stateKey }}">
+
+    {{-- Polling element --}}
+    @if($isAnalyzing)
+        <div wire:poll.3s="pollAnalysis" style="display:none;"></div>
+    @endif
+
+    {{-- Notify parent when DNA analysis just completed --}}
+    @if($justCompleted && $dna)
+        <div x-data x-init="
+            $nextTick(() => {
+                $dispatch('dna-ready', { dnaId: {{ $dna->id }} });
+                $wire.set('justCompleted', false);
+            });
+        " style="display:none;"></div>
+    @endif
     @if(!$dna || $dna->status === 'pending' || (!$isAnalyzing && !$dna->brand_name))
         {{-- ━━━ Onboarding: Enter Website URL ━━━ --}}
         <div>
