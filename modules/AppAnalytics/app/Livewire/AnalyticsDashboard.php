@@ -345,8 +345,8 @@ class AnalyticsDashboard extends Component
             ],
             'youtube' => [
                 'followers' => $data['channel_stats']['subscriber_count'] ?? 0,
-                'reach' => $data['analytics']['views'] ?? 0,
-                'engagement' => $data['analytics']['likes'] ?? 0,
+                'reach' => $data['analytics']['views'] ?? ($data['channel_stats']['view_count'] ?? 0),
+                'engagement' => ($data['analytics']['likes'] ?? 0) + ($data['analytics']['comments'] ?? 0),
                 'name' => $data['channel_name'] ?? '',
             ],
             'linkedin' => [

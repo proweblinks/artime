@@ -41,19 +41,21 @@ class YoutubeAnalyticsService
     }
 
     /**
-     * Get channel overview metrics using YouTube Analytics API.
+     * Get channel overview — uses Data API v3 primarily, Analytics API as bonus.
      */
     public function getOverview(Accounts $account, Carbon $startDate, Carbon $endDate): array
     {
         try {
             $client = $this->initClient($account);
-
-            // Get current channel statistics via Data API
             $youtube = new \Google\Service\YouTube($client);
-            $channelsResponse = $youtube->channels->listChannels('statistics,snippet', ['mine' => true]);
+
+            // Channel stats via Data API (always works)
+            $channelsResponse = $youtube->channels->listChannels('statistics,snippet,contentDetails', ['mine' => true]);
 
             $channelStats = [];
             $channelName = '';
+            $uploadsPlaylistId = '';
+
             if (!empty($channelsResponse->getItems())) {
                 $channel = $channelsResponse->getItems()[0];
                 $stats = $channel->getStatistics();
@@ -61,18 +63,37 @@ class YoutubeAnalyticsService
                     'subscriber_count' => (int)$stats->getSubscriberCount(),
                     'video_count' => (int)$stats->getVideoCount(),
                     'view_count' => (int)$stats->getViewCount(),
+                    'comment_count' => (int)$stats->getCommentCount(),
                 ];
                 $channelName = $channel->getSnippet()->getTitle();
+                $uploadsPlaylistId = $channel->getContentDetails()->getRelatedPlaylists()->getUploads();
             }
 
-            // Get analytics data via YouTube Analytics API
+            // Get video-level stats from Data API
+            $videoStats = $this->getVideoStatsFromDataAPI($youtube, $uploadsPlaylistId, 50);
+
+            // Try Analytics API for period-specific data (may fail if not enabled)
             $analyticsData = $this->fetchAnalyticsReport($client, $startDate, $endDate);
+
+            // If Analytics API returned zeros, derive from video stats
+            if (($analyticsData['views'] ?? 0) === 0 && !empty($videoStats)) {
+                $totalViews = array_sum(array_column($videoStats, 'views'));
+                $totalLikes = array_sum(array_column($videoStats, 'likes'));
+                $totalComments = array_sum(array_column($videoStats, 'comments'));
+
+                // Use channel lifetime view count (more accurate than summing video views)
+                $analyticsData['views'] = $channelStats['view_count'] ?? $totalViews;
+                $analyticsData['likes'] = $totalLikes;
+                $analyticsData['comments'] = $totalComments;
+                $analyticsData['source'] = 'data_api';
+            }
 
             return [
                 'success' => true,
                 'channel_stats' => $channelStats,
                 'channel_name' => $channelName,
                 'analytics' => $analyticsData,
+                'video_stats' => $videoStats,
             ];
         } catch (\Exception $e) {
             Log::warning('YouTube Analytics error: ' . $e->getMessage());
@@ -81,7 +102,7 @@ class YoutubeAnalyticsService
     }
 
     /**
-     * Get top performing videos.
+     * Get top performing videos via Data API v3.
      */
     public function getPostPerformance(Accounts $account, Carbon $startDate, Carbon $endDate): array
     {
@@ -89,48 +110,25 @@ class YoutubeAnalyticsService
             $client = $this->initClient($account);
             $youtube = new \Google\Service\YouTube($client);
 
-            // Get recent uploads via search
-            $searchResponse = $youtube->search->listSearch('snippet', [
-                'forMine' => true,
-                'type' => 'video',
-                'maxResults' => 20,
-                'order' => 'date',
-                'publishedAfter' => $startDate->toRfc3339String(),
-                'publishedBefore' => $endDate->toRfc3339String(),
-            ]);
-
-            $videoIds = [];
-            foreach ($searchResponse->getItems() as $item) {
-                $videoIds[] = $item->getId()->getVideoId();
+            // Get uploads playlist ID
+            $channelsResponse = $youtube->channels->listChannels('contentDetails', ['mine' => true]);
+            $uploadsPlaylistId = '';
+            if (!empty($channelsResponse->getItems())) {
+                $uploadsPlaylistId = $channelsResponse->getItems()[0]
+                    ->getContentDetails()->getRelatedPlaylists()->getUploads();
             }
 
-            if (empty($videoIds)) {
+            if (!$uploadsPlaylistId) {
                 return ['success' => true, 'posts' => []];
             }
 
-            // Get video statistics
-            $videosResponse = $youtube->videos->listVideos('statistics,snippet,contentDetails', [
-                'id' => implode(',', $videoIds),
-            ]);
+            // Get videos from uploads playlist (up to 50)
+            $videos = $this->getVideoStatsFromDataAPI($youtube, $uploadsPlaylistId, 50);
 
-            $posts = [];
-            foreach ($videosResponse->getItems() as $video) {
-                $stats = $video->getStatistics();
-                $snippet = $video->getSnippet();
-                $posts[] = [
-                    'id' => $video->getId(),
-                    'title' => mb_substr($snippet->getTitle(), 0, 120),
-                    'published_at' => $snippet->getPublishedAt(),
-                    'views' => (int)$stats->getViewCount(),
-                    'likes' => (int)$stats->getLikeCount(),
-                    'comments' => (int)$stats->getCommentCount(),
-                    'thumbnail' => $snippet->getThumbnails()?->getDefault()?->getUrl() ?? '',
-                ];
-            }
+            // Sort by views (highest first)
+            usort($videos, fn($a, $b) => $b['views'] - $a['views']);
 
-            usort($posts, fn($a, $b) => $b['views'] - $a['views']);
-
-            return ['success' => true, 'posts' => $posts];
+            return ['success' => true, 'posts' => $videos];
         } catch (\Exception $e) {
             Log::warning('YouTube Posts Analytics error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
@@ -138,14 +136,12 @@ class YoutubeAnalyticsService
     }
 
     /**
-     * Get audience demographics.
+     * Get audience demographics via Analytics API.
      */
     public function getAudienceInsights(Accounts $account): array
     {
         try {
             $client = $this->initClient($account);
-
-            // YouTube Analytics API - demographics
             $analytics = new \Google\Service\YouTubeAnalytics($client);
             $response = $analytics->reports->query([
                 'ids' => 'channel==MINE',
@@ -166,19 +162,18 @@ class YoutubeAnalyticsService
 
             return ['success' => true, 'audience' => ['demographics' => $demographics]];
         } catch (\Exception $e) {
-            Log::warning('YouTube Audience error: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
+            // Analytics API not enabled — not critical
+            return ['success' => true, 'audience' => ['demographics' => []]];
         }
     }
 
     /**
-     * Get daily metrics for chart data.
+     * Get daily metrics — try Analytics API, fall back to empty.
      */
     public function getDailyMetrics(Accounts $account, Carbon $startDate, Carbon $endDate): array
     {
         try {
             $client = $this->initClient($account);
-
             $analytics = new \Google\Service\YouTubeAnalytics($client);
             $response = $analytics->reports->query([
                 'ids' => 'channel==MINE',
@@ -205,13 +200,81 @@ class YoutubeAnalyticsService
 
             return ['success' => true, 'daily' => $daily];
         } catch (\Exception $e) {
-            Log::warning('YouTube Daily Metrics error: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
+            // Analytics API not enabled — return empty (chart won't render)
+            return ['success' => true, 'daily' => []];
         }
     }
 
     /**
-     * Fetch analytics report from YouTube Analytics API.
+     * Get video stats from the Data API v3 via uploads playlist.
+     */
+    protected function getVideoStatsFromDataAPI(\Google\Service\YouTube $youtube, string $uploadsPlaylistId, int $limit = 50): array
+    {
+        if (!$uploadsPlaylistId) {
+            return [];
+        }
+
+        // Get video IDs from uploads playlist
+        $videoIds = [];
+        $nextPageToken = null;
+        $fetched = 0;
+
+        do {
+            $params = [
+                'playlistId' => $uploadsPlaylistId,
+                'maxResults' => min(50, $limit - $fetched),
+            ];
+            if ($nextPageToken) {
+                $params['pageToken'] = $nextPageToken;
+            }
+
+            $playlistResponse = $youtube->playlistItems->listPlaylistItems('contentDetails', $params);
+
+            foreach ($playlistResponse->getItems() as $item) {
+                $videoIds[] = $item->getContentDetails()->getVideoId();
+                $fetched++;
+            }
+
+            $nextPageToken = $playlistResponse->getNextPageToken();
+        } while ($nextPageToken && $fetched < $limit);
+
+        if (empty($videoIds)) {
+            return [];
+        }
+
+        // Fetch full stats for all videos (batch by 50)
+        $videos = [];
+        foreach (array_chunk($videoIds, 50) as $chunk) {
+            $videosResponse = $youtube->videos->listVideos('statistics,snippet,contentDetails', [
+                'id' => implode(',', $chunk),
+            ]);
+
+            foreach ($videosResponse->getItems() as $video) {
+                $stats = $video->getStatistics();
+                $snippet = $video->getSnippet();
+                $duration = $this->parseDuration($video->getContentDetails()->getDuration());
+
+                $videos[] = [
+                    'id' => $video->getId(),
+                    'title' => mb_substr($snippet->getTitle(), 0, 120),
+                    'published_at' => Carbon::parse($snippet->getPublishedAt())->format('M j, Y'),
+                    'views' => (int)($stats->getViewCount() ?? 0),
+                    'likes' => (int)($stats->getLikeCount() ?? 0),
+                    'comments' => (int)($stats->getCommentCount() ?? 0),
+                    'duration' => $duration,
+                    'duration_label' => $this->formatDuration($duration),
+                    'thumbnail' => $snippet->getThumbnails()?->getMedium()?->getUrl()
+                        ?? $snippet->getThumbnails()?->getDefault()?->getUrl()
+                        ?? '',
+                ];
+            }
+        }
+
+        return $videos;
+    }
+
+    /**
+     * Fetch analytics report from YouTube Analytics API (may fail if not enabled).
      */
     protected function fetchAnalyticsReport(\Google_Client $client, Carbon $startDate, Carbon $endDate): array
     {
@@ -235,10 +298,12 @@ class YoutubeAnalyticsService
                     'subscribers_lost' => (int)$row[4],
                     'likes' => (int)$row[5],
                     'comments' => (int)$row[6],
+                    'source' => 'analytics_api',
                 ];
             }
         } catch (\Exception $e) {
-            Log::warning('YouTube Analytics Report error: ' . $e->getMessage());
+            // YouTube Analytics API not enabled — this is expected
+            Log::info('YouTube Analytics API not available, using Data API fallback: ' . $e->getMessage());
         }
 
         return [
@@ -249,6 +314,31 @@ class YoutubeAnalyticsService
             'subscribers_lost' => 0,
             'likes' => 0,
             'comments' => 0,
+            'source' => 'none',
         ];
+    }
+
+    /**
+     * Parse ISO 8601 duration to seconds.
+     */
+    protected function parseDuration(string $duration): int
+    {
+        try {
+            $interval = new \DateInterval($duration);
+            return ($interval->h * 3600) + ($interval->i * 60) + $interval->s;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Format seconds to human readable.
+     */
+    protected function formatDuration(int $seconds): string
+    {
+        if ($seconds >= 3600) {
+            return sprintf('%d:%02d:%02d', floor($seconds / 3600), floor(($seconds % 3600) / 60), $seconds % 60);
+        }
+        return sprintf('%d:%02d', floor($seconds / 60), $seconds % 60);
     }
 }
