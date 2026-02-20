@@ -866,8 +866,8 @@ if (window.innerWidth > 768) {
             const geometry=new THREE.PlaneGeometry(isRoad?o.roadWidth:o.islandWidth, o.length, 20, segments);
             let uniforms={uTravelLength:{value:o.length}, uColor:{value:new THREE.Color(isRoad?o.colors.roadColor:o.colors.islandColor)}, uTime:this.uTime};
             if(isRoad) Object.assign(uniforms,{uLanes:{value:o.lanesPerRoad},uBrokenLinesColor:{value:new THREE.Color(o.colors.brokenLines)},uShoulderLinesColor:{value:new THREE.Color(o.colors.shoulderLines)},uShoulderLinesWidthPercentage:{value:o.shoulderLinesWidthPercentage},uBrokenLinesLengthPercentage:{value:o.brokenLinesLengthPercentage},uBrokenLinesWidthPercentage:{value:o.brokenLinesWidthPercentage}});
-            const material=new THREE.ShaderMaterial({fragmentShader:isRoad?roadFragment:islandFragment, vertexShader:roadVertex, side:THREE.DoubleSide, uniforms:Object.assign(uniforms,this.webgl.fogUniforms,o.distortion.uniforms)});
-            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
+            const vShader=roadVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
+            const material=new THREE.ShaderMaterial({fragmentShader:isRoad?roadFragment:islandFragment, vertexShader:vShader, side:THREE.DoubleSide, uniforms:Object.assign(uniforms,this.webgl.fogUniforms,o.distortion.uniforms)});
             const mesh=new THREE.Mesh(geometry,material); mesh.rotation.x=-Math.PI/2; mesh.position.z=-o.length/2;
             mesh.position.x+=(o.islandWidth/2+o.roadWidth/2)*side; this.webgl.scene.add(mesh); return mesh;
         }
@@ -896,9 +896,9 @@ if (window.innerWidth > 768) {
             instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),3,false));
             instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),3,false));
             instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
-            let material=new THREE.ShaderMaterial({fragmentShader:carLightsFragment,vertexShader:carLightsVertex,transparent:true,
+            const vShader=carLightsVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
+            let material=new THREE.ShaderMaterial({fragmentShader:carLightsFragment,vertexShader:vShader,transparent:true,
                 uniforms:Object.assign({uTime:{value:0},uTravelLength:{value:o.length},uFade:{value:this.fade}},this.webgl.fogUniforms,o.distortion.uniforms)});
-            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
             let mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
         }
         update(time){ this.mesh.material.uniforms.uTime.value=time; }
@@ -920,9 +920,9 @@ if (window.innerWidth > 768) {
             instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),1,false));
             instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
             instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),2,false));
-            const material=new THREE.ShaderMaterial({fragmentShader:sideSticksFragment,vertexShader:sideSticksVertex,side:THREE.DoubleSide,
+            const vShader=sideSticksVertex.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);
+            const material=new THREE.ShaderMaterial({fragmentShader:sideSticksFragment,vertexShader:vShader,side:THREE.DoubleSide,
                 uniforms:Object.assign({uTravelLength:{value:o.length},uTime:{value:0}},this.webgl.fogUniforms,o.distortion.uniforms)});
-            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
             const mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
         }
         update(time){ this.mesh.material.uniforms.uTime.value=time; }
