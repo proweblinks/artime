@@ -1,23 +1,29 @@
 {{-- ============================================================
-     SECTION 1: HERO — "Create Anything with AI"
+     SECTION 1: HERO — "Create Anything with AI" + Hyperspeed BG
      ============================================================ --}}
-<section class="relative overflow-hidden pt-36 pb-20 md:pt-44 md:pb-28">
-    <div class="container px-4 mx-auto relative z-10">
+<section class="relative overflow-hidden" style="background: #000;">
+    {{-- Hyperspeed Three.js canvas container --}}
+    <div id="hyperspeed-container" style="position:absolute;inset:0;z-index:0;overflow:hidden;"></div>
+
+    {{-- Dark-to-light gradient fade at bottom --}}
+    <div style="position:absolute;bottom:0;left:0;right:0;height:180px;z-index:1;background:linear-gradient(to bottom, transparent 0%, #f0f4f8 100%);pointer-events:none;"></div>
+
+    <div class="container px-4 mx-auto relative z-10 pt-36 pb-24 md:pt-44 md:pb-32">
         <div class="max-w-4xl mx-auto text-center">
             {{-- Badge --}}
-            <div class="inline-flex items-center gap-2 glass-pill mb-8">
+            <div class="inline-flex items-center gap-2 mb-8" style="padding:0.375rem 0.875rem;background:rgba(255,255,255,0.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:999px;font-size:0.8125rem;font-weight:500;color:rgba(255,255,255,0.7);">
                 <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span>
                 <span>{{ __("AI-First Creative Platform") }}</span>
             </div>
 
             {{-- Headline --}}
-            <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight mb-6" style="color: var(--text-primary); font-family: 'General Sans', sans-serif;">
+            <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight mb-6" style="color: #fff; font-family: 'General Sans', sans-serif;">
                 {{ __("Create Anything") }}
                 <span class="gradient-text">{{ __("with AI") }}</span>
             </h1>
 
             {{-- Subheadline --}}
-            <p class="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style="color: var(--text-secondary);">
+            <p class="text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style="color: rgba(255,255,255,0.65);">
                 {{ __("Generate videos, images, marketing campaigns, and social content — all from a single prompt. The complete AI creative platform for creators and businesses.") }}
             </p>
 
@@ -27,7 +33,7 @@
                     <i class="fa-light fa-sparkles"></i>
                     {{ __("Start Creating Free") }}
                 </a>
-                <a href="{{ url('') }}#how-it-works" class="btn-ghost text-base py-3.5 px-8">
+                <a href="{{ url('') }}#how-it-works" class="text-base py-3.5 px-8 inline-flex items-center gap-2 font-semibold rounded-xl transition-all duration-300" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);backdrop-filter:blur(8px);">
                     <i class="fa-light fa-circle-play"></i>
                     {{ __("See How It Works") }}
                 </a>
@@ -35,17 +41,17 @@
 
             {{-- Capability Pills --}}
             <div class="flex flex-wrap justify-center gap-3 mb-16">
-                <span class="glass-pill"><i class="fa-light fa-video"></i> {{ __("AI Video") }}</span>
-                <span class="glass-pill"><i class="fa-light fa-image"></i> {{ __("AI Images") }}</span>
-                <span class="glass-pill"><i class="fa-light fa-palette"></i> {{ __("Content Studio") }}</span>
-                <span class="glass-pill"><i class="fa-light fa-share-nodes"></i> {{ __("Social Publishing") }}</span>
-                <span class="glass-pill"><i class="fa-light fa-microphone"></i> {{ __("Voice & Music") }}</span>
+                @foreach(['fa-video' => 'AI Video', 'fa-image' => 'AI Images', 'fa-palette' => 'Content Studio', 'fa-share-nodes' => 'Social Publishing', 'fa-microphone' => 'Voice & Music'] as $icon => $label)
+                <span style="display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 0.875rem;background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:999px;font-size:0.8125rem;font-weight:500;color:rgba(255,255,255,0.6);">
+                    <i class="fa-light {{ $icon }}" style="color:#03fcf4;"></i> {{ __($label) }}
+                </span>
+                @endforeach
             </div>
         </div>
 
         {{-- App Mockup — Dark browser window showing the ARTime dashboard --}}
         <div class="relative max-w-5xl mx-auto mt-4">
-            <div class="rounded-2xl overflow-hidden" style="background: #1a1a2e; box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05);">
+            <div class="rounded-2xl overflow-hidden" style="background: rgba(26,26,46,0.85); backdrop-filter:blur(16px); box-shadow: 0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);">
                 {{-- Browser chrome --}}
                 <div class="flex items-center gap-2 px-5 py-3" style="background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.06);">
                     <div class="w-3 h-3 rounded-full" style="background: #ff5f57;"></div>
@@ -108,47 +114,21 @@
                             </div>
                             {{-- Storyboard panels --}}
                             <div class="flex-1 min-w-0">
-                                {{-- Scene tabs --}}
                                 <div class="flex gap-2 mb-3">
                                     <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(3,252,244,0.15); color: #03fcf4;">{{ __("Scene 1") }}</span>
                                     <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);">{{ __("Scene 2") }}</span>
                                     <span class="text-xs px-2.5 py-1 rounded-lg font-medium" style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);">{{ __("Scene 3") }}</span>
                                 </div>
-                                {{-- Shot grid --}}
                                 <div class="grid grid-cols-3 gap-2 mb-4">
-                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0d9488, #0891b2);">
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <i class="fa-light fa-user text-sm" style="color: rgba(255,255,255,0.5);"></i>
-                                        </div>
-                                    </div>
-                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #1a1a2e, #0891b2);">
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <i class="fa-light fa-city text-sm" style="color: rgba(255,255,255,0.5);"></i>
-                                        </div>
-                                    </div>
-                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0284c7, #03fcf4);">
-                                        <div class="w-full h-full flex items-center justify-center">
-                                            <i class="fa-light fa-sparkles text-sm" style="color: rgba(255,255,255,0.5);"></i>
-                                        </div>
-                                    </div>
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0d9488, #0891b2);"><div class="w-full h-full flex items-center justify-center"><i class="fa-light fa-user text-sm" style="color: rgba(255,255,255,0.5);"></i></div></div>
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #1a1a2e, #0891b2);"><div class="w-full h-full flex items-center justify-center"><i class="fa-light fa-city text-sm" style="color: rgba(255,255,255,0.5);"></i></div></div>
+                                    <div class="rounded-lg overflow-hidden" style="aspect-ratio: 16/9; background: linear-gradient(135deg, #0284c7, #03fcf4);"><div class="w-full h-full flex items-center justify-center"><i class="fa-light fa-sparkles text-sm" style="color: rgba(255,255,255,0.5);"></i></div></div>
                                 </div>
-                                {{-- Timeline bar --}}
-                                <div class="mb-3">
-                                    <div class="h-2 rounded-full w-full" style="background: rgba(255,255,255,0.06);">
-                                        <div class="h-2 rounded-full" style="width: 65%; background: var(--accent-gradient);"></div>
-                                    </div>
-                                </div>
-                                {{-- Pipeline steps --}}
+                                <div class="mb-3"><div class="h-2 rounded-full w-full" style="background: rgba(255,255,255,0.06);"><div class="h-2 rounded-full" style="width: 65%; background: var(--accent-gradient);"></div></div></div>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;">
-                                        <i class="fa-light fa-check mr-1"></i>{{ __("Concept") }}
-                                    </span>
-                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;">
-                                        <i class="fa-light fa-check mr-1"></i>{{ __("Script") }}
-                                    </span>
-                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.3); color: #03fcf4; border: 1px solid rgba(3,252,244,0.3);">
-                                        <i class="fa-light fa-spinner-third fa-spin mr-1"></i>{{ __("Storyboard") }}
-                                    </span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;"><i class="fa-light fa-check mr-1"></i>{{ __("Concept") }}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.15); color: #03fcf4;"><i class="fa-light fa-check mr-1"></i>{{ __("Script") }}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(3,252,244,0.3); color: #03fcf4; border: 1px solid rgba(3,252,244,0.3);"><i class="fa-light fa-spinner-third fa-spin mr-1"></i>{{ __("Storyboard") }}</span>
                                     <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.3);">{{ __("Animation") }}</span>
                                     <span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.3);">{{ __("Export") }}</span>
                                 </div>
@@ -706,3 +686,317 @@
         </div>
     </div>
 </section>
+
+{{-- ============================================================
+     HYPERSPEED THREE.JS BACKGROUND — vanilla JS (converted from React)
+     Only loads on desktop (>768px) for performance
+     ============================================================ --}}
+<script type="module">
+if (window.innerWidth > 768) {
+(async function() {
+    const THREE = await import('three');
+    const { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPreset } = await import('postprocessing');
+
+    const container = document.getElementById('hyperspeed-container');
+    if (!container) return;
+
+    /* ── Helpers ── */
+    const random = base => Array.isArray(base) ? Math.random()*(base[1]-base[0])+base[0] : Math.random()*base;
+    const pickRandom = arr => Array.isArray(arr) ? arr[Math.floor(Math.random()*arr.length)] : arr;
+    function lerp(cur,tgt,spd=0.1,lim=0.001){let c=(tgt-cur)*spd;if(Math.abs(c)<lim)c=tgt-cur;return c;}
+    const nsin = v => Math.sin(v)*0.5+0.5;
+    function resizeToDisplay(renderer,setSize){const c=renderer.domElement;const w=c.clientWidth,h=c.clientHeight;if(c.width!==w||c.height!==h){setSize(w,h,false);return true;}return false;}
+
+    /* ── Effect Options (ARTime branded) ── */
+    const opts = {
+        distortion: 'turbulentDistortion',
+        length: 400, roadWidth: 10, islandWidth: 2,
+        lanesPerRoad: 4, fov: 90, fovSpeedUp: 150, speedUp: 2,
+        carLightsFade: 0.4, totalSideLightSticks: 20,
+        lightPairsPerRoadWay: 40,
+        shoulderLinesWidthPercentage: 0.05,
+        brokenLinesWidthPercentage: 0.1,
+        brokenLinesLengthPercentage: 0.5,
+        lightStickWidth: [0.12, 0.5],
+        lightStickHeight: [1.3, 1.7],
+        movingAwaySpeed: [60, 80],
+        movingCloserSpeed: [-120, -160],
+        carLightsLength: [400*0.03, 400*0.2],
+        carLightsRadius: [0.05, 0.14],
+        carWidthPercentage: [0.3, 0.5],
+        carShiftX: [-0.8, 0.8],
+        carFloorSeparation: [0, 5],
+        colors: {
+            roadColor: 0x080808, islandColor: 0x0a0a0a, background: 0x000000,
+            shoulderLines: 0x131313, brokenLines: 0x131313,
+            leftCars:  [0x03fcf4, 0x0891b2, 0x06b6d4],
+            rightCars: [0x03b3c3, 0x0e5ea5, 0x324555],
+            sticks: 0x03fcf4
+        }
+    };
+
+    /* ── Distortion Definitions ── */
+    const turbulentUniforms = {
+        uFreq: { value: new THREE.Vector4(4,8,8,1) },
+        uAmp:  { value: new THREE.Vector4(25,5,10,10) }
+    };
+
+    const distortions = {
+        turbulentDistortion: {
+            uniforms: turbulentUniforms,
+            getDistortion: `
+                uniform vec4 uFreq;
+                uniform vec4 uAmp;
+                float nsin(float val){ return sin(val)*0.5+0.5; }
+                #define PI 3.14159265358979
+                float getDistortionX(float progress){
+                    return ( cos(PI*progress*uFreq.r+uTime)*uAmp.r + pow(cos(PI*progress*uFreq.g+uTime*(uFreq.g/uFreq.r)),2.)*uAmp.g );
+                }
+                float getDistortionY(float progress){
+                    return ( -nsin(PI*progress*uFreq.b+uTime)*uAmp.b + -pow(nsin(PI*progress*uFreq.a+uTime/(uFreq.b/uFreq.a)),5.)*uAmp.a );
+                }
+                vec3 getDistortion(float progress){
+                    return vec3( getDistortionX(progress)-getDistortionX(0.0125), getDistortionY(progress)-getDistortionY(0.0125), 0. );
+                }
+            `,
+            getJS: (progress, time) => {
+                const uF = turbulentUniforms.uFreq.value, uA = turbulentUniforms.uAmp.value;
+                const getX = p => Math.cos(Math.PI*p*uF.x+time)*uA.x + Math.pow(Math.cos(Math.PI*p*uF.y+time*(uF.y/uF.x)),2)*uA.y;
+                const getY = p => -nsin(Math.PI*p*uF.z+time)*uA.z - Math.pow(nsin(Math.PI*p*uF.w+time/(uF.z/uF.w)),5)*uA.w;
+                let d = new THREE.Vector3(getX(progress)-getX(progress+0.007), getY(progress)-getY(progress+0.007), 0);
+                return d.multiply(new THREE.Vector3(-2,-5,0)).add(new THREE.Vector3(0,0,-10));
+            }
+        }
+    };
+
+    opts.distortion = distortions[opts.distortion];
+
+    /* ── GLSL Shader Chunks ── */
+    const carLightsFragment = `
+        #define USE_FOG;
+        ${THREE.ShaderChunk['fog_pars_fragment']}
+        varying vec3 vColor; varying vec2 vUv; uniform vec2 uFade;
+        void main(){
+            vec3 color=vec3(vColor); float alpha=smoothstep(uFade.x,uFade.y,vUv.x);
+            gl_FragColor=vec4(color,alpha); if(gl_FragColor.a<0.0001)discard;
+            ${THREE.ShaderChunk['fog_fragment']}
+        }
+    `;
+    const carLightsVertex = `
+        #define USE_FOG;
+        ${THREE.ShaderChunk['fog_pars_vertex']}
+        attribute vec3 aOffset; attribute vec3 aMetrics; attribute vec3 aColor;
+        uniform float uTravelLength; uniform float uTime;
+        varying vec2 vUv; varying vec3 vColor;
+        #include <getDistortion_vertex>
+        void main(){
+            vec3 transformed=position.xyz; float radius=aMetrics.r; float myLength=aMetrics.g; float speed=aMetrics.b;
+            transformed.xy*=radius; transformed.z*=myLength;
+            transformed.z+=myLength-mod(uTime*speed+aOffset.z,uTravelLength); transformed.xy+=aOffset.xy;
+            float progress=abs(transformed.z/uTravelLength); transformed.xyz+=getDistortion(progress);
+            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+            vUv=uv; vColor=aColor;
+            ${THREE.ShaderChunk['fog_vertex']}
+        }
+    `;
+    const sideSticksVertex = `
+        #define USE_FOG;
+        ${THREE.ShaderChunk['fog_pars_vertex']}
+        attribute float aOffset; attribute vec3 aColor; attribute vec2 aMetrics;
+        uniform float uTravelLength; uniform float uTime; varying vec3 vColor;
+        mat4 rotationY(in float angle){return mat4(cos(angle),0,sin(angle),0, 0,1.0,0,0, -sin(angle),0,cos(angle),0, 0,0,0,1);}
+        #include <getDistortion_vertex>
+        void main(){
+            vec3 transformed=position.xyz; float width=aMetrics.x; float height=aMetrics.y;
+            transformed.xy*=vec2(width,height); float time=mod(uTime*60.*2.+aOffset,uTravelLength);
+            transformed=(rotationY(3.14/2.)*vec4(transformed,1.)).xyz;
+            transformed.z+=-uTravelLength+time; float progress=abs(transformed.z/uTravelLength);
+            transformed.xyz+=getDistortion(progress); transformed.y+=height/2.; transformed.x+=-width/2.;
+            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+            vColor=aColor;
+            ${THREE.ShaderChunk['fog_vertex']}
+        }
+    `;
+    const sideSticksFragment = `
+        #define USE_FOG;
+        ${THREE.ShaderChunk['fog_pars_fragment']}
+        varying vec3 vColor;
+        void main(){ gl_FragColor=vec4(vColor,1.); ${THREE.ShaderChunk['fog_fragment']} }
+    `;
+    const roadMarkings_vars = `
+        uniform float uLanes; uniform vec3 uBrokenLinesColor; uniform vec3 uShoulderLinesColor;
+        uniform float uShoulderLinesWidthPercentage; uniform float uBrokenLinesWidthPercentage; uniform float uBrokenLinesLengthPercentage;
+        highp float random(vec2 co){highp float a=12.9898;highp float b=78.233;highp float c=43758.5453;highp float dt=dot(co.xy,vec2(a,b));highp float sn=mod(dt,3.14);return fract(sin(sn)*c);}
+    `;
+    const roadMarkings_fragment = `
+        uv.y=mod(uv.y+uTime*0.05,1.); float laneWidth=1.0/uLanes;
+        float brokenLineWidth=laneWidth*uBrokenLinesWidthPercentage; float laneEmptySpace=1.-uBrokenLinesLengthPercentage;
+        float brokenLines=step(1.0-brokenLineWidth,fract(uv.x*2.0))*step(laneEmptySpace,fract(uv.y*10.0));
+        float sideLines=step(1.0-brokenLineWidth,fract((uv.x-laneWidth*(uLanes-1.0))*2.0))+step(brokenLineWidth,uv.x);
+        brokenLines=mix(brokenLines,sideLines,uv.x);
+    `;
+    const roadBaseFragment = `
+        #define USE_FOG; varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
+        #include <roadMarkings_vars>
+        ${THREE.ShaderChunk['fog_pars_fragment']}
+        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); #include <roadMarkings_fragment> gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
+    `;
+    const islandFragment = roadBaseFragment.replace('#include <roadMarkings_fragment>','').replace('#include <roadMarkings_vars>','');
+    const roadFragment = roadBaseFragment.replace('#include <roadMarkings_fragment>',roadMarkings_fragment).replace('#include <roadMarkings_vars>',roadMarkings_vars);
+    const roadVertex = `
+        #define USE_FOG; uniform float uTime;
+        ${THREE.ShaderChunk['fog_pars_vertex']}
+        uniform float uTravelLength; varying vec2 vUv;
+        #include <getDistortion_vertex>
+        void main(){
+            vec3 transformed=position.xyz;
+            vec3 distortion=getDistortion((transformed.y+uTravelLength/2.)/uTravelLength);
+            transformed.x+=distortion.x; transformed.z+=distortion.y; transformed.y+=-1.*distortion.z;
+            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+            vUv=uv;
+            ${THREE.ShaderChunk['fog_vertex']}
+        }
+    `;
+
+    /* ── Road Class ── */
+    class Road {
+        constructor(webgl, options){ this.webgl=webgl; this.options=options; this.uTime={value:0}; }
+        createPlane(side, width, isRoad){
+            const o=this.options; let segments=100;
+            const geometry=new THREE.PlaneGeometry(isRoad?o.roadWidth:o.islandWidth, o.length, 20, segments);
+            let uniforms={uTravelLength:{value:o.length}, uColor:{value:new THREE.Color(isRoad?o.colors.roadColor:o.colors.islandColor)}, uTime:this.uTime};
+            if(isRoad) Object.assign(uniforms,{uLanes:{value:o.lanesPerRoad},uBrokenLinesColor:{value:new THREE.Color(o.colors.brokenLines)},uShoulderLinesColor:{value:new THREE.Color(o.colors.shoulderLines)},uShoulderLinesWidthPercentage:{value:o.shoulderLinesWidthPercentage},uBrokenLinesLengthPercentage:{value:o.brokenLinesLengthPercentage},uBrokenLinesWidthPercentage:{value:o.brokenLinesWidthPercentage}});
+            const material=new THREE.ShaderMaterial({fragmentShader:isRoad?roadFragment:islandFragment, vertexShader:roadVertex, side:THREE.DoubleSide, uniforms:Object.assign(uniforms,this.webgl.fogUniforms,o.distortion.uniforms)});
+            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
+            const mesh=new THREE.Mesh(geometry,material); mesh.rotation.x=-Math.PI/2; mesh.position.z=-o.length/2;
+            mesh.position.x+=(o.islandWidth/2+o.roadWidth/2)*side; this.webgl.scene.add(mesh); return mesh;
+        }
+        init(){ this.leftRoadWay=this.createPlane(-1,this.options.roadWidth,true); this.rightRoadWay=this.createPlane(1,this.options.roadWidth,true); this.island=this.createPlane(0,this.options.islandWidth,false); }
+        update(time){ this.uTime.value=time; }
+    }
+
+    /* ── CarLights Class ── */
+    class CarLights {
+        constructor(webgl,options,colors,speed,fade){ this.webgl=webgl; this.options=options; this.colors=colors; this.speed=speed; this.fade=fade; }
+        init(){
+            const o=this.options; let curve=new THREE.LineCurve3(new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1));
+            let geometry=new THREE.TubeGeometry(curve,40,1,8,false);
+            let instanced=new THREE.InstancedBufferGeometry().copy(geometry); instanced.instanceCount=o.lightPairsPerRoadWay*2;
+            let laneWidth=o.roadWidth/o.lanesPerRoad; let aOffset=[],aMetrics=[],aColor=[];
+            let colors=this.colors; if(Array.isArray(colors)) colors=colors.map(c=>new THREE.Color(c)); else colors=new THREE.Color(colors);
+            for(let i=0;i<o.lightPairsPerRoadWay;i++){
+                let radius=random(o.carLightsRadius),length=random(o.carLightsLength),speed=random(this.speed);
+                let carLane=i%o.lanesPerRoad, laneX=carLane*laneWidth-o.roadWidth/2+laneWidth/2;
+                let carWidth=random(o.carWidthPercentage)*laneWidth, carShiftX=random(o.carShiftX)*laneWidth;
+                laneX+=carShiftX; let offsetY=random(o.carFloorSeparation)+radius*1.3, offsetZ=-random(o.length);
+                aOffset.push(laneX-carWidth/2,offsetY,offsetZ,laneX+carWidth/2,offsetY,offsetZ);
+                aMetrics.push(radius,length,speed,radius,length,speed);
+                let color=pickRandom(colors); aColor.push(color.r,color.g,color.b,color.r,color.g,color.b);
+            }
+            instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),3,false));
+            instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),3,false));
+            instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
+            let material=new THREE.ShaderMaterial({fragmentShader:carLightsFragment,vertexShader:carLightsVertex,transparent:true,
+                uniforms:Object.assign({uTime:{value:0},uTravelLength:{value:o.length},uFade:{value:this.fade}},this.webgl.fogUniforms,o.distortion.uniforms)});
+            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
+            let mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
+        }
+        update(time){ this.mesh.material.uniforms.uTime.value=time; }
+    }
+
+    /* ── LightsSticks Class ── */
+    class LightsSticks {
+        constructor(webgl,options){ this.webgl=webgl; this.options=options; }
+        init(){
+            const o=this.options; const geometry=new THREE.PlaneGeometry(1,1);
+            let instanced=new THREE.InstancedBufferGeometry().copy(geometry); let total=o.totalSideLightSticks; instanced.instanceCount=total;
+            let stickoffset=o.length/(total-1); const aOffset=[],aColor=[],aMetrics=[];
+            let colors=o.colors.sticks; if(Array.isArray(colors)) colors=colors.map(c=>new THREE.Color(c)); else colors=new THREE.Color(colors);
+            for(let i=0;i<total;i++){
+                let w=random(o.lightStickWidth),h=random(o.lightStickHeight);
+                aOffset.push((i-1)*stickoffset*2+stickoffset*Math.random());
+                let color=pickRandom(colors); aColor.push(color.r,color.g,color.b); aMetrics.push(w,h);
+            }
+            instanced.setAttribute('aOffset',new THREE.InstancedBufferAttribute(new Float32Array(aOffset),1,false));
+            instanced.setAttribute('aColor',new THREE.InstancedBufferAttribute(new Float32Array(aColor),3,false));
+            instanced.setAttribute('aMetrics',new THREE.InstancedBufferAttribute(new Float32Array(aMetrics),2,false));
+            const material=new THREE.ShaderMaterial({fragmentShader:sideSticksFragment,vertexShader:sideSticksVertex,side:THREE.DoubleSide,
+                uniforms:Object.assign({uTravelLength:{value:o.length},uTime:{value:0}},this.webgl.fogUniforms,o.distortion.uniforms)});
+            material.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <getDistortion_vertex>',o.distortion.getDistortion);};
+            const mesh=new THREE.Mesh(instanced,material); mesh.frustumCulled=false; this.webgl.scene.add(mesh); this.mesh=mesh;
+        }
+        update(time){ this.mesh.material.uniforms.uTime.value=time; }
+    }
+
+    /* ── Main App Class ── */
+    const renderer = new THREE.WebGLRenderer({ antialias:false, alpha:true });
+    renderer.setSize(container.offsetWidth, container.offsetHeight, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const camera = new THREE.PerspectiveCamera(opts.fov, container.offsetWidth/container.offsetHeight, 0.1, 10000);
+    camera.position.set(0, 8, -5);
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+    const fog = new THREE.Fog(opts.colors.background, opts.length*0.2, opts.length*500);
+    scene.fog = fog;
+
+    const fogUniforms = { fogColor:{value:fog.color}, fogNear:{value:fog.near}, fogFar:{value:fog.far} };
+    const webgl = { scene, fogUniforms };
+    const clock = new THREE.Clock();
+
+    const road = new Road(webgl, opts); road.init();
+    const leftLights = new CarLights(webgl, opts, opts.colors.leftCars, opts.movingAwaySpeed, new THREE.Vector2(0, 1-opts.carLightsFade));
+    leftLights.init(); leftLights.mesh.position.setX(-opts.roadWidth/2 - opts.islandWidth/2);
+    const rightLights = new CarLights(webgl, opts, opts.colors.rightCars, opts.movingCloserSpeed, new THREE.Vector2(1, 0+opts.carLightsFade));
+    rightLights.init(); rightLights.mesh.position.setX(opts.roadWidth/2 + opts.islandWidth/2);
+    const sticks = new LightsSticks(webgl, opts);
+    sticks.init(); sticks.mesh.position.setX(-(opts.roadWidth + opts.islandWidth/2));
+
+    /* ── Post-processing ── */
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new EffectPass(camera, new BloomEffect({ luminanceThreshold:0.2, luminanceSmoothing:0, resolutionScale:1 }));
+    composer.addPass(bloomPass);
+    const smaaPass = new EffectPass(camera, new SMAAEffect({ preset:SMAAPreset.MEDIUM, searchImage:SMAAEffect.searchImageDataURL, areaImage:SMAAEffect.areaImageDataURL }));
+    smaaPass.renderToScreen = true;
+    composer.addPass(smaaPass);
+
+    /* ── Speed-up interaction ── */
+    let fovTarget = opts.fov, speedUpTarget = 0, speedUp = 0, timeOffset = 0;
+    container.addEventListener('mousedown', ()=>{ fovTarget=opts.fovSpeedUp; speedUpTarget=opts.speedUp; });
+    container.addEventListener('mouseup', ()=>{ fovTarget=opts.fov; speedUpTarget=0; });
+    container.addEventListener('mouseout', ()=>{ fovTarget=opts.fov; speedUpTarget=0; });
+    container.addEventListener('touchstart', ()=>{ fovTarget=opts.fovSpeedUp; speedUpTarget=opts.speedUp; }, {passive:true});
+    container.addEventListener('touchend', ()=>{ fovTarget=opts.fov; speedUpTarget=0; }, {passive:true});
+
+    /* ── Resize ── */
+    function onResize(){
+        const w=container.offsetWidth, h=container.offsetHeight;
+        renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); composer.setSize(w,h);
+    }
+    window.addEventListener('resize', onResize);
+
+    /* ── Animation Loop ── */
+    function tick(){
+        requestAnimationFrame(tick);
+        const delta = clock.getDelta();
+        let lerpPct = Math.exp(-(-60*Math.log2(1-0.1))*delta);
+        speedUp += lerp(speedUp, speedUpTarget, lerpPct, 0.00001);
+        timeOffset += speedUp*delta;
+        let time = clock.elapsedTime + timeOffset;
+        rightLights.update(time); leftLights.update(time); sticks.update(time); road.update(time);
+        let fovChange = lerp(camera.fov, fovTarget, lerpPct);
+        if(fovChange!==0){ camera.fov+=fovChange*delta*6; camera.updateProjectionMatrix(); }
+        if(opts.distortion.getJS){
+            const d=opts.distortion.getJS(0.025,time);
+            camera.lookAt(new THREE.Vector3(camera.position.x+d.x, camera.position.y+d.y, camera.position.z+d.z));
+            camera.updateProjectionMatrix();
+        }
+        composer.render(delta);
+    }
+    tick();
+})();
+}
+</script>

@@ -23,6 +23,17 @@
     {!! Script::globals() !!}
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
 
+    {{-- Three.js importmap for Hyperspeed hero effect --}}
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "postprocessing": "https://cdn.jsdelivr.net/npm/postprocessing@6.36.4/build/index.js"
+        }
+    }
+    </script>
+
     {{-- Frosted Glass Morphism Design System --}}
     <style>
         :root {
@@ -116,17 +127,37 @@
             transition: all 0.3s ease;
         }
 
-        /* Glass header */
+        /* Glass header — transparent on dark hero, solid on scroll */
         .glass-header {
             background: rgba(240,244,248,0.6);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--glass-border);
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
         .glass-header.scrolled {
             background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        /* Dark hero override: transparent header with white text on home page */
+        .dark-hero .glass-header:not(.scrolled) {
+            background: rgba(0,0,0,0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .dark-hero .glass-header:not(.scrolled) a:not(.btn-accent),
+        .dark-hero .glass-header:not(.scrolled) span,
+        .dark-hero .glass-header:not(.scrolled) svg {
+            color: rgba(255,255,255,0.85) !important;
+            stroke: rgba(255,255,255,0.7);
+            transition: color 0.3s, stroke 0.3s;
+        }
+        .dark-hero .glass-header:not(.scrolled) a:not(.btn-accent):hover {
+            color: #03fcf4 !important;
         }
 
         /* Buttons */
@@ -205,6 +236,10 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+
+        /* Hyperspeed canvas container */
+        #hyperspeed-container { position: absolute; inset: 0; overflow: hidden; }
+        #hyperspeed-container canvas { width: 100%; height: 100%; display: block; }
 
         /* Hero app mockup glow */
         .hero-mockup-glow {
@@ -302,7 +337,7 @@
         }
     </style>
 </head>
-<body class="antialiased font-body glass-page sm:overflow-x-hidden">
+<body class="antialiased font-body glass-page sm:overflow-x-hidden {{ request()->is('/') ? 'dark-hero' : '' }}">
 
     {{-- Animated background blobs --}}
     <div class="glass-bg-blobs">
