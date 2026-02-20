@@ -53,6 +53,7 @@
     "AdminUserReport": true,
     "AdminUsers": true,
     "AppAIContents": true,
+    "AppAnalytics": true,
     "AppAITools": true,
     "AppAIPrompts": true,
     "AppAIPublishing": true,
