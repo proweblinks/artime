@@ -566,7 +566,7 @@
                     @endfor
                 </div>
                 <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
-                    {{ __(""The Video Wizard is mind-blowing!"") }}
+                    {{ __("'The Video Wizard is mind-blowing!'") }}
                 </h3>
                 <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
                     {{ __("I described a product launch video and ARTime created the script, generated all the visuals, added voiceover, and exported a professional video in under 10 minutes. This would have taken my team days.") }}
@@ -582,7 +582,7 @@
                     @endfor
                 </div>
                 <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
-                    {{ __(""Content Studio saved our brand"") }}
+                    {{ __("'Content Studio saved our brand'") }}
                 </h3>
                 <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
                     {{ __("We pasted our website URL and it extracted our entire brand identity. Now every campaign, every creative, every ad looks perfectly on-brand — without hiring a designer.") }}
@@ -598,7 +598,7 @@
                     @endfor
                 </div>
                 <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">
-                    {{ __(""Finally, one tool for everything"") }}
+                    {{ __("'Finally, one tool for everything'") }}
                 </h3>
                 <p class="mb-6 leading-relaxed" style="color: var(--text-secondary);">
                     {{ __("I used to juggle five different apps for social media, video, and design. ARTime replaced them all. The AI publishing automation alone saves me 15 hours a week.") }}
