@@ -773,55 +773,58 @@ if (window.innerWidth > 768) {
 
     /* ── GLSL Shader Chunks ── */
     const carLightsFragment = `
-        #define USE_FOG;
-        ${THREE.ShaderChunk['fog_pars_fragment']}
-        varying vec3 vColor; varying vec2 vUv; uniform vec2 uFade;
-        void main(){
-            vec3 color=vec3(vColor); float alpha=smoothstep(uFade.x,uFade.y,vUv.x);
-            gl_FragColor=vec4(color,alpha); if(gl_FragColor.a<0.0001)discard;
-            ${THREE.ShaderChunk['fog_fragment']}
-        }
+#define USE_FOG
+${THREE.ShaderChunk['fog_pars_fragment']}
+varying vec3 vColor; varying vec2 vUv; uniform vec2 uFade;
+void main(){
+    vec3 color=vec3(vColor); float alpha=smoothstep(uFade.x,uFade.y,vUv.x);
+    gl_FragColor=vec4(color,alpha); if(gl_FragColor.a<0.0001)discard;
+    ${THREE.ShaderChunk['fog_fragment']}
+}
     `;
     const carLightsVertex = `
-        #define USE_FOG;
-        ${THREE.ShaderChunk['fog_pars_vertex']}
-        attribute vec3 aOffset; attribute vec3 aMetrics; attribute vec3 aColor;
-        uniform float uTravelLength; uniform float uTime;
-        varying vec2 vUv; varying vec3 vColor;
-        ${opts.distortion.getDistortion}
-        void main(){
-            vec3 transformed=position.xyz; float radius=aMetrics.r; float myLength=aMetrics.g; float speed=aMetrics.b;
-            transformed.xy*=radius; transformed.z*=myLength;
-            transformed.z+=myLength-mod(uTime*speed+aOffset.z,uTravelLength); transformed.xy+=aOffset.xy;
-            float progress=abs(transformed.z/uTravelLength); transformed.xyz+=getDistortion(progress);
-            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
-            vUv=uv; vColor=aColor;
-            ${THREE.ShaderChunk['fog_vertex']}
-        }
+#define USE_FOG
+${THREE.ShaderChunk['fog_pars_vertex']}
+attribute vec3 aOffset; attribute vec3 aMetrics; attribute vec3 aColor;
+uniform float uTravelLength; uniform float uTime;
+varying vec2 vUv; varying vec3 vColor;
+${opts.distortion.getDistortion}
+void main(){
+    vec3 transformed=position.xyz; float radius=aMetrics.r; float myLength=aMetrics.g; float speed=aMetrics.b;
+    transformed.xy*=radius; transformed.z*=myLength;
+    transformed.z+=myLength-mod(uTime*speed+aOffset.z,uTravelLength); transformed.xy+=aOffset.xy;
+    float progress=abs(transformed.z/uTravelLength); transformed.xyz+=getDistortion(progress);
+    vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+    vUv=uv; vColor=aColor;
+    ${THREE.ShaderChunk['fog_vertex']}
+}
     `;
     const sideSticksVertex = `
-        #define USE_FOG;
-        ${THREE.ShaderChunk['fog_pars_vertex']}
-        attribute float aOffset; attribute vec3 aColor; attribute vec2 aMetrics;
-        uniform float uTravelLength; uniform float uTime; varying vec3 vColor;
-        mat4 rotationY(in float angle){return mat4(cos(angle),0,sin(angle),0, 0,1.0,0,0, -sin(angle),0,cos(angle),0, 0,0,0,1);}
-        ${opts.distortion.getDistortion}
-        void main(){
-            vec3 transformed=position.xyz; float width=aMetrics.x; float height=aMetrics.y;
-            transformed.xy*=vec2(width,height); float time=mod(uTime*60.*2.+aOffset,uTravelLength);
-            transformed=(rotationY(3.14/2.)*vec4(transformed,1.)).xyz;
-            transformed.z+=-uTravelLength+time; float progress=abs(transformed.z/uTravelLength);
-            transformed.xyz+=getDistortion(progress); transformed.y+=height/2.; transformed.x+=-width/2.;
-            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
-            vColor=aColor;
-            ${THREE.ShaderChunk['fog_vertex']}
-        }
+#define USE_FOG
+${THREE.ShaderChunk['fog_pars_vertex']}
+attribute float aOffset; attribute vec3 aColor; attribute vec2 aMetrics;
+uniform float uTravelLength; uniform float uTime; varying vec3 vColor;
+mat4 rotationY(in float angle){return mat4(cos(angle),0,sin(angle),0, 0,1.0,0,0, -sin(angle),0,cos(angle),0, 0,0,0,1);}
+${opts.distortion.getDistortion}
+void main(){
+    vec3 transformed=position.xyz; float width=aMetrics.x; float height=aMetrics.y;
+    transformed.xy*=vec2(width,height); float time=mod(uTime*60.*2.+aOffset,uTravelLength);
+    transformed=(rotationY(3.14/2.)*vec4(transformed,1.)).xyz;
+    transformed.z+=-uTravelLength+time; float progress=abs(transformed.z/uTravelLength);
+    transformed.xyz+=getDistortion(progress); transformed.y+=height/2.; transformed.x+=-width/2.;
+    vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+    vColor=aColor;
+    ${THREE.ShaderChunk['fog_vertex']}
+}
     `;
     const sideSticksFragment = `
-        #define USE_FOG;
-        ${THREE.ShaderChunk['fog_pars_fragment']}
-        varying vec3 vColor;
-        void main(){ gl_FragColor=vec4(vColor,1.); ${THREE.ShaderChunk['fog_fragment']} }
+#define USE_FOG
+${THREE.ShaderChunk['fog_pars_fragment']}
+varying vec3 vColor;
+void main(){
+    gl_FragColor=vec4(vColor,1.);
+    ${THREE.ShaderChunk['fog_fragment']}
+}
     `;
     const roadMarkings_vars = `
         uniform float uLanes; uniform vec3 uBrokenLinesColor; uniform vec3 uShoulderLinesColor;
@@ -836,29 +839,41 @@ if (window.innerWidth > 768) {
         brokenLines=mix(brokenLines,sideLines,uv.x);
     `;
     const islandFragment = `
-        #define USE_FOG; varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
-        ${THREE.ShaderChunk['fog_pars_fragment']}
-        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
+#define USE_FOG
+varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
+${THREE.ShaderChunk['fog_pars_fragment']}
+void main(){
+    vec2 uv=vUv; vec3 color=vec3(uColor);
+    gl_FragColor=vec4(color,1.);
+    ${THREE.ShaderChunk['fog_fragment']}
+}
     `;
     const roadFragment = `
-        #define USE_FOG; varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
-        ${roadMarkings_vars}
-        ${THREE.ShaderChunk['fog_pars_fragment']}
-        void main(){ vec2 uv=vUv; vec3 color=vec3(uColor); ${roadMarkings_fragment} gl_FragColor=vec4(color,1.); ${THREE.ShaderChunk['fog_fragment']} }
+#define USE_FOG
+varying vec2 vUv; uniform vec3 uColor; uniform float uTime;
+${roadMarkings_vars}
+${THREE.ShaderChunk['fog_pars_fragment']}
+void main(){
+    vec2 uv=vUv; vec3 color=vec3(uColor);
+    ${roadMarkings_fragment}
+    gl_FragColor=vec4(color,1.);
+    ${THREE.ShaderChunk['fog_fragment']}
+}
     `;
     const roadVertex = `
-        #define USE_FOG; uniform float uTime;
-        ${THREE.ShaderChunk['fog_pars_vertex']}
-        uniform float uTravelLength; varying vec2 vUv;
-        ${opts.distortion.getDistortion}
-        void main(){
-            vec3 transformed=position.xyz;
-            vec3 distortion=getDistortion((transformed.y+uTravelLength/2.)/uTravelLength);
-            transformed.x+=distortion.x; transformed.z+=distortion.y; transformed.y+=-1.*distortion.z;
-            vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
-            vUv=uv;
-            ${THREE.ShaderChunk['fog_vertex']}
-        }
+#define USE_FOG
+uniform float uTime;
+${THREE.ShaderChunk['fog_pars_vertex']}
+uniform float uTravelLength; varying vec2 vUv;
+${opts.distortion.getDistortion}
+void main(){
+    vec3 transformed=position.xyz;
+    vec3 distortion=getDistortion((transformed.y+uTravelLength/2.)/uTravelLength);
+    transformed.x+=distortion.x; transformed.z+=distortion.y; transformed.y+=-1.*distortion.z;
+    vec4 mvPosition=modelViewMatrix*vec4(transformed,1.); gl_Position=projectionMatrix*mvPosition;
+    vUv=uv;
+    ${THREE.ShaderChunk['fog_vertex']}
+}
     `;
 
     /* ── Road Class ── */
