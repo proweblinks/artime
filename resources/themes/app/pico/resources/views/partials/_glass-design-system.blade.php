@@ -100,22 +100,28 @@
 .sidebar .sidebar-header {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 .sidebar .sidebar-logo-wrap {
     display: flex;
     align-items: center;
     height: 100%;
+    flex: 1;
+    min-width: 0;
 }
 
 .sidebar .sidebar-logo-link {
     display: flex;
     align-items: center;
+    height: 100%;
+    padding: 10px 0;
 }
 
 .sidebar .sidebar-logo-img {
     max-width: 160px;
-    max-height: 44px;
+    max-height: 48px;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -124,8 +130,8 @@
 
 /* Collapsed sidebar — smaller logo */
 .sidebar-small .sidebar:not(:hover) .sidebar-logo-img {
-    max-width: 40px;
-    max-height: 40px;
+    max-width: 44px;
+    max-height: 44px;
 }
 
 /* Sidebar toggle button */
