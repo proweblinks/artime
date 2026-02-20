@@ -26,6 +26,8 @@ class ContentBusinessDna extends Model
         'images',
         'raw_scrape_data',
         'status',
+        'progress_step',
+        'progress_message',
     ];
 
     protected $casts = [

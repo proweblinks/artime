@@ -3,7 +3,9 @@
 namespace Modules\AppAIContents\Services;
 
 use AI;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Modules\AppAIContents\Models\ContentBusinessDna;
 use Modules\AppAIContents\Models\ContentCampaignIdea;
 
@@ -29,13 +31,29 @@ class BusinessDnaService
         }
 
         try {
-            // Scrape the website
+            // Step 1: Scraping website
+            $this->updateProgress($dna, 1, 'Scraping website...');
             $scraped = $this->scraper->scrape($url);
             $dna->raw_scrape_data = $scraped;
             $dna->save();
 
-            // Use AI to analyze the scraped content
+            // Step 2: Analyzing brand identity
+            $this->updateProgress($dna, 2, 'Analyzing brand identity...');
             $analysis = $this->aiAnalyze($scraped, $teamId);
+
+            // Step 3: Validating & downloading images
+            $this->updateProgress($dna, 3, 'Validating images...');
+            $validatedImages = $this->validateAndFilterImages($scraped['images'] ?? []);
+            $storedImages = $this->downloadAndStoreImages($validatedImages, $teamId);
+
+            // Auto-download logo if found
+            $logoPath = null;
+            if (!empty($scraped['logo'])) {
+                $logoPath = $this->downloadLogo($scraped['logo'], $teamId);
+            }
+
+            // Step 4: Generating campaign ideas
+            $this->updateProgress($dna, 4, 'Generating campaign ideas...');
 
             // Update DNA with analysis results
             $dna->update([
@@ -49,18 +67,160 @@ class BusinessDnaService
                 'business_overview' => $analysis['business_overview'] ?? '',
                 'language' => $analysis['language'] ?? 'English',
                 'language_code' => $analysis['language_code'] ?? ($scraped['language_code'] ?: 'en'),
-                'images' => array_map(fn($url) => ['url' => $url, 'caption' => ''], array_slice($scraped['images'], 0, 12)),
-                'status' => 'ready',
+                'images' => $storedImages,
+                'logo_path' => $logoPath,
             ]);
 
             // Generate DNA-based campaign suggestions
             $this->generateDnaSuggestions($dna);
 
+            // Step 5: Complete
+            $this->updateProgress($dna, 5, 'Complete!');
+            $dna->update(['status' => 'ready']);
+
             return $dna->fresh();
         } catch (\Throwable $e) {
             Log::error('BusinessDnaService::analyzeWebsite failed', ['error' => $e->getMessage()]);
-            $dna->update(['status' => 'failed']);
+            $dna->update(['status' => 'failed', 'progress_message' => 'Analysis failed: ' . mb_substr($e->getMessage(), 0, 100)]);
             throw $e;
+        }
+    }
+
+    protected function updateProgress(ContentBusinessDna $dna, int $step, string $message): void
+    {
+        $dna->update([
+            'progress_step' => $step,
+            'progress_message' => $message,
+        ]);
+    }
+
+    /**
+     * Server-side image validation via HEAD requests.
+     * Filters out broken URLs, tiny files, and non-image content types.
+     */
+    public function validateAndFilterImages(array $candidates): array
+    {
+        $validated = [];
+
+        // Limit candidates to check (avoid too many HTTP requests)
+        $toCheck = array_slice($candidates, 0, 20);
+
+        foreach ($toCheck as $candidate) {
+            $url = $candidate['url'] ?? '';
+            if (empty($url)) continue;
+
+            try {
+                $response = Http::timeout(5)
+                    ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; ARTimeBot/1.0)'])
+                    ->head($url);
+
+                if (!$response->successful()) continue;
+
+                $contentType = $response->header('Content-Type') ?? '';
+                if (!str_starts_with($contentType, 'image/')) continue;
+
+                $contentLength = (int)($response->header('Content-Length') ?? 0);
+
+                // Skip tiny images (< 5KB — likely icons/bullets)
+                if ($contentLength > 0 && $contentLength < 5120) continue;
+
+                $validated[] = [
+                    'url' => $url,
+                    'source' => $candidate['source'] ?? 'unknown',
+                    'size' => $contentLength,
+                ];
+            } catch (\Throwable $e) {
+                // Skip silently — broken URL, timeout, etc.
+                continue;
+            }
+        }
+
+        // Sort: og:image/twitter:image first, then by file size descending
+        usort($validated, function ($a, $b) {
+            $prioritySources = ['og:image', 'twitter:image'];
+            $aIsPriority = in_array($a['source'], $prioritySources);
+            $bIsPriority = in_array($b['source'], $prioritySources);
+
+            if ($aIsPriority && !$bIsPriority) return -1;
+            if (!$aIsPriority && $bIsPriority) return 1;
+
+            return ($b['size'] ?? 0) <=> ($a['size'] ?? 0);
+        });
+
+        return array_slice($validated, 0, 12);
+    }
+
+    /**
+     * Download validated images to local storage.
+     */
+    protected function downloadAndStoreImages(array $validatedImages, int $teamId): array
+    {
+        $stored = [];
+        $disk = Storage::disk('public');
+
+        foreach ($validatedImages as $img) {
+            try {
+                $response = Http::timeout(10)
+                    ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; ARTimeBot/1.0)'])
+                    ->get($img['url']);
+
+                if (!$response->successful()) continue;
+
+                $contentType = $response->header('Content-Type') ?? 'image/jpeg';
+                $ext = match (true) {
+                    str_contains($contentType, 'png') => 'png',
+                    str_contains($contentType, 'gif') => 'gif',
+                    str_contains($contentType, 'webp') => 'webp',
+                    default => 'jpg',
+                };
+
+                $filename = 'img_' . uniqid() . '.' . $ext;
+                $path = "content-studio/{$teamId}/images/{$filename}";
+
+                $disk->put($path, $response->body());
+
+                $stored[] = [
+                    'url' => url('/public/storage/' . $path),
+                    'path' => $path,
+                    'caption' => '',
+                    'source' => $img['source'] ?? 'scraped',
+                ];
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * Download logo to local storage.
+     */
+    protected function downloadLogo(string $logoUrl, int $teamId): ?string
+    {
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; ARTimeBot/1.0)'])
+                ->get($logoUrl);
+
+            if (!$response->successful()) return null;
+
+            $contentType = $response->header('Content-Type') ?? 'image/png';
+            $ext = match (true) {
+                str_contains($contentType, 'png') => 'png',
+                str_contains($contentType, 'svg') => 'svg',
+                str_contains($contentType, 'ico') => 'ico',
+                str_contains($contentType, 'webp') => 'webp',
+                default => 'png',
+            };
+
+            $path = "content-studio/{$teamId}/logo/logo_" . uniqid() . '.' . $ext;
+            Storage::disk('public')->put($path, $response->body());
+
+            return $path;
+        } catch (\Throwable $e) {
+            Log::warning('Logo download failed', ['url' => $logoUrl, 'error' => $e->getMessage()]);
+            return null;
         }
     }
 

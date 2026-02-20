@@ -19,6 +19,8 @@ class BusinessDna extends Component
     public bool $isAnalyzing = false;
     public ?string $editingField = null;
     public bool $justCompleted = false;
+    public int $progressStep = 0;
+    public string $progressMessage = '';
 
     protected $listeners = ['switch-dna' => 'onSwitchDna'];
 
@@ -104,7 +106,13 @@ class BusinessDna extends Component
 
         $this->dna = ContentBusinessDna::find($this->dnaId);
 
-        if ($this->dna && in_array($this->dna->status, ['ready', 'failed'])) {
+        if (!$this->dna) return;
+
+        // Update progress tracking
+        $this->progressStep = $this->dna->progress_step ?? 0;
+        $this->progressMessage = $this->dna->progress_message ?? '';
+
+        if (in_array($this->dna->status, ['ready', 'failed'])) {
             $this->isAnalyzing = false;
             if ($this->dna->status === 'ready') {
                 $this->justCompleted = true;
