@@ -100,13 +100,13 @@
 
 				&:hover{
 					color: $blue;
-					background-color: rgba(139, 92, 246, 0.15);
+					background-color: rgba($blue, 0.1);
 				}
 
-				// Active state - light purple background with left rounded corners
+				// Active state - light primary background with left rounded corners
 				&.text-primary,
 				&.active {
-					background-color: rgba(139, 92, 246, 0.18);
+					background-color: rgba($blue, 0.14);
 				}
 
 				.menu-bullet{

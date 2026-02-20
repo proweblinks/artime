@@ -16,7 +16,7 @@
 		    <div>
 		        <label for="fullname" class="block text-gray-700 font-semibold mb-2">{{ __("Full Name") }}</label>
 		        <input type="text" id="fullname" name="fullname"
-		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		               placeholder="{{ __('Enter your full name') }}" required>
 		    </div>
 
@@ -24,7 +24,7 @@
 		    <div>
 		        <label for="email" class="block text-gray-700 font-semibold mb-2">{{ __("Email Address") }}</label>
 		        <input type="email" id="email" name="email"
-		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		               placeholder="{{ __('Enter your email address') }}" required>
 		    </div>
 
@@ -32,7 +32,7 @@
 		    <div>
 		        <label for="username" class="block text-gray-700 font-semibold mb-2">{{ __("Username") }}</label>
 		        <input type="text" id="username" name="username"
-		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		               placeholder="{{ __('Choose a username') }}" required>
 		    </div>
 
@@ -40,7 +40,7 @@
 		    <div>
 		        <label for="password" class="block text-gray-700 font-semibold mb-2">{{ __("Password") }}</label>
 		        <input type="password" id="password" name="password"
-		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		               placeholder="{{ __('Enter your password') }}" required>
 		    </div>
 
@@ -48,7 +48,7 @@
 		    <div>
 		        <label for="password_confirmation" class="block text-gray-700 font-semibold mb-2">{{ __("Confirm Password") }}</label>
 		        <input type="password" id="password_confirmation" name="password_confirmation"
-		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		               class="input input-bordered input-lg w-full px-4 py-3.5 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		               placeholder="{{ __('Re-enter your password') }}" required>
 		    </div>
 
@@ -56,7 +56,7 @@
 		    <div>
 		        <label for="timezone" class="block text-gray-700 font-semibold mb-2">{{ __("Timezone") }}</label>
 		        <select id="timezone" name="timezone"
-		                class="select select-bordered input-lg w-full px-4 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 outline-none"
+		                class="select select-bordered input-lg w-full px-4 text-gray-700 font-medium bg-white border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 outline-none"
 		                required>
 		            <option value="">{{ __("Select your timezone") }}</option>
 		            @foreach(timezone_identifiers_list() as $tz)
@@ -77,7 +77,7 @@
                         <input class="w-4 h-4" id="accep_terms" name="accep_terms" type="checkbox" value="1" required>
                         <label class="ml-2 text-gray-700 font-medium" for="accep_terms" >
                             <span>{{ __("I agree to the") }}</span>
-                            <a class="text-indigo-600 hover:text-indigo-700" href="{{ url('terms-of-service') }}">{{ __("Terms & Conditions") }}</a>
+                            <a class="text-blue-600 hover:text-blue-500" href="{{ url('terms-of-service') }}">{{ __("Terms & Conditions") }}</a>
                         </label>
                     </div>
                 </div>
@@ -88,14 +88,14 @@
 
 		    <!-- Submit -->
 		    <button type="submit"
-		            class="mb-8 py-4 px-9 w-full text-white font-semibold border border-indigo-700 rounded-xl shadow-4xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200">
+		            class="mb-8 py-4 px-9 w-full text-white font-semibold border border-gray-900 rounded-xl shadow-4xl focus:ring focus:ring-blue-200 bg-gray-900 hover:bg-black transition ease-in-out duration-200">
 		        {{ __("Sign Up") }}
 		    </button>
 
 		    <!-- Switch to Sign In -->
 		    <p class="text-center text-base-content/80 pt-4">
 		        {{ __("Already have an account?") }}
-		        <a href="{{ url('auth/login') }}" class="text-indigo-600 hover:text-indigo-700 font-medium">{{ __("Sign in") }}</a>
+		        <a href="{{ url('auth/login') }}" class="text-blue-600 hover:text-blue-500 font-medium">{{ __("Sign in") }}</a>
 		    </p>
 		</form>
 

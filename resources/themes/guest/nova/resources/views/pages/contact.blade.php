@@ -16,7 +16,7 @@
         <p class="mb-4 text-sm font-bold uppercase tracking-px">Website</p>
         <ul class="mb-8">
           <li class="text-lg text-gray-600 font-medium leading-normal">
-            <a href="{{ get_option('contact_company_website', '#') }}" class="text-indigo-700 hover:underline" target="_blank">
+            <a href="{{ get_option('contact_company_website', '#') }}" class="text-blue-700 hover:underline" target="_blank">
               {{ get_option('contact_company_website', 'https://yourcompany.com') }}
             </a>
           </li>

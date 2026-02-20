@@ -32,7 +32,7 @@
                 <!-- Action Button -->
                 <div class="mt-8">
                     <a href="{{ url('auth/login') }}"
-                       class="mb-8 py-4 px-9 w-full inline-block text-white font-semibold border border-indigo-700 rounded-xl shadow-4xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200 text-center">
+                       class="mb-8 py-4 px-9 w-full inline-block text-white font-semibold border border-gray-900 rounded-xl shadow-4xl focus:ring focus:ring-blue-200 bg-gray-900 hover:bg-black transition ease-in-out duration-200 text-center">
                         <i class="fa fa-arrow-left mr-2"></i>
                         {{ __("Back to Login") }}
                     </a>

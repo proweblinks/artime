@@ -14,11 +14,11 @@
             </div>
             <label class="block mb-4">
                 <p class="mb-2 text-gray-700 font-semibold leading-normal">{{ __("Email or Username") }}</p>
-                <input type="text" id="username" name="username" class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300" placeholder="{{ __('Enter username or email address') }}">
+                <input type="text" id="username" name="username" class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-blue-200" placeholder="{{ __('Enter username or email address') }}">
             </label>
             <label class="block mb-5">
                 <p class="mb-2 text-gray-700 font-semibold leading-normal">{{ __("Password") }}</p>
-                <input id="password" type="password" name="password" class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300" placeholder="{{ __('Enter your Password') }}">
+                <input id="password" type="password" name="password" class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-blue-200" placeholder="{{ __('Enter your Password') }}">
             </label>
             <div class="mb-3">
                 {!! Captcha::render(); !!}
@@ -33,13 +33,13 @@
                         </label>
                     </div>
 
-                    <a href="{{ url('auth/forgot-password') }}" class="text-indigo-600 hover:text-indigo-700 font-medium">{{ __("Forgot Password?") }}</a>
+                    <a href="{{ url('auth/forgot-password') }}" class="text-blue-600 hover:text-blue-500 font-medium">{{ __("Forgot Password?") }}</a>
                 </div>
             </div>
 
             <div class="msg-error mb-2"></div>
 
-            <button type="submit" class="mb-8 py-4 px-9 w-full text-white font-semibold border border-indigo-700 rounded-xl shadow-4xl focus:ring focus:ring-indigo-300 bg-indigo-600 hover:bg-indigo-700 transition ease-in-out duration-200">
+            <button type="submit" class="mb-8 py-4 px-9 w-full text-white font-semibold border border-gray-900 rounded-xl shadow-4xl focus:ring focus:ring-blue-200 bg-gray-900 hover:bg-black transition ease-in-out duration-200">
                 {{ __("Sign In") }}
             </button>
                 @php
@@ -86,7 +86,7 @@
         @if(get_option("auth_signup_page_status", 1))
             <p class="text-center pt-4">
                 {{ __("Don't have an account?") }}
-                <a href="{{ url('auth/signup') }}" class="text-indigo-600 hover:text-indigo-700 font-medium">{{ __("Sign up") }}</a>
+                <a href="{{ url('auth/signup') }}" class="text-blue-600 hover:text-blue-500 font-medium">{{ __("Sign up") }}</a>
             </p>
         @endif
     </div>

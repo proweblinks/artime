@@ -846,7 +846,7 @@
     @if(!empty($detectionSummary['totalSegments']))
     <div class="detection-summary-panel mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
         <h4 class="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Detection Summary
@@ -862,7 +862,7 @@
 
             {{-- Needs Lip-sync --}}
             <div class="bg-gray-900/50 rounded p-2 text-center">
-                <div class="text-lg font-semibold text-purple-400">{{ $detectionSummary['needsLipSync'] ?? 0 }}</div>
+                <div class="text-lg font-semibold text-blue-400">{{ $detectionSummary['needsLipSync'] ?? 0 }}</div>
                 <div class="text-xs text-gray-400">Lip-sync</div>
             </div>
 

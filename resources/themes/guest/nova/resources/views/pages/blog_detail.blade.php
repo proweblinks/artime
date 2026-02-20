@@ -15,7 +15,7 @@
 		    <div class="mb-6">
 		        <div class="flex flex-wrap items-center gap-2 mb-4">
 		            @if($blogDetail->category)
-		                <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm font-medium rounded-lg">
+		                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-lg">
 		                    {{ $blogDetail->category->name }}
 		                </span>
 		            @endif
@@ -42,14 +42,14 @@
 				    <ul class="space-y-3">
 				    	<li>
 			                <a href="{{ route('blogs') }}"
-			                   class="text-base text-gray-600 hover:text-indigo-600 transition-colors">
+			                   class="text-base text-gray-600 hover:text-blue-600 transition-colors">
 			                   {{ __("All Categories") }} ({{ $countPostBlog }})
 			                </a>
 			            </li>
 				        @foreach($categories as $cat)
 				            <li>
 				                <a href="{{ url('blogs/'.$cat->slug) }}"
-				                   class="text-base text-gray-600 hover:text-indigo-600 transition-colors">
+				                   class="text-base text-gray-600 hover:text-blue-600 transition-colors">
 				                    {{ $cat->name }} ({{ $cat->articles_count }})
 				                </a>
 				            </li>
@@ -63,7 +63,7 @@
 				    <div class="flex flex-wrap gap-2">
 				        @foreach($tags as $tag)
 				            <a href="{{ url('blogs/tag/'.$tag->slug) }}"
-				               class="px-3 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-sm font-medium rounded-lg transition duration-200">
+				               class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm font-medium rounded-lg transition duration-200">
 				                {{ $tag->name }}
 				            </a>
 				        @endforeach
@@ -80,7 +80,7 @@
 				                         alt="Post thumbnail"
 				                         class="w-15 h-15 object-cover rounded-lg flex-shrink-0"/>
 				                    <div>
-				                        <h4 class="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition duration-200 line-clamp-2">
+				                        <h4 class="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition duration-200 line-clamp-2">
 				                            {{ $blog->title }}
 				                        </h4>
 				                        <p class="text-xs text-gray-500 mt-1">

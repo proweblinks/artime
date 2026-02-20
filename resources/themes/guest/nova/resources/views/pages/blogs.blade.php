@@ -20,9 +20,9 @@
 	                    </button>
 	                </div>
 	                <div class="mb-4">
-	                    <input class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300" type="text" name="keyword" placeholder="{{ __("Enter your keyword") }}"/>
+	                    <input class="px-4 py-3.5 w-full text-gray-400 font-medium placeholder-gray-400 bg-white outline-none border border-gray-300 rounded-lg focus:ring focus:ring-blue-200" type="text" name="keyword" placeholder="{{ __("Enter your keyword") }}"/>
 	                </div>
-	                <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors">{{ __("Search") }}</button>
+	                <button type="submit" class="w-full py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-black transition-colors">{{ __("Search") }}</button>
                 </form>
             </div>
         </div>
@@ -49,14 +49,14 @@
 				    <ul class="space-y-3">
 				        <li>
 				            <a href="{{ route('blogs') }}"
-				               class="text-base transition-colors {{ (request()->routeIs('blogs')) ? 'text-indigo-600 font-semibold' : 'text-gray-600 hover:text-indigo-600' }}">
+				               class="text-base transition-colors {{ (request()->routeIs('blogs')) ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600' }}">
 				                {{ __("All Categories") }} ({{ $countPostBlog }})
 				            </a>
 				        </li>
 				        @foreach($categories as $cat)
 				            <li>
 			               		<a href="{{ url('blogs/'.$cat->slug) }}"
-				                   class="text-base transition-colors {{ (Request::segment(2) == $cat->slug) ? 'text-indigo-600 font-semibold' : 'text-gray-600 hover:text-indigo-600' }}">
+				                   class="text-base transition-colors {{ (Request::segment(2) == $cat->slug) ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600' }}">
 				                    {{ $cat->name }} ({{ $cat->articles_count }})
 				                </a>
 				            </li>
@@ -70,7 +70,7 @@
 				    <div class="flex flex-wrap gap-2">
 				        @foreach($tags as $tag)
 				            <a href="{{ url('blogs/tag/'.$tag->slug) }}"
-				               class="px-3 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-sm font-medium rounded-lg transition duration-200">
+				               class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm font-medium rounded-lg transition duration-200">
 				                {{ $tag->name }}
 				            </a>
 				        @endforeach
@@ -90,21 +90,21 @@
 			                    <div class="flex items-center gap-2 mb-3">
 			                        {{-- Category --}}
 			                        @if($blog->category)
-			                            <span class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded">{{ $blog->category->name }}</span>
+			                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">{{ $blog->category->name }}</span>
 			                        @endif
 			                        <span class="text-sm text-gray-500">
 			                            {{ $blog->created ? \Carbon\Carbon::parse($blog->created)->format('d M Y') : '' }}
 			                        </span>
 			                    </div>
 			                    <h4 class="text-xl font-bold font-heading leading-snug text-gray-900 mb-3">
-								    <a href="{{ route('blog.detail', $blog->slug) }}" class="hover:text-indigo-600 transition-colors">
+								    <a href="{{ route('blog.detail', $blog->slug) }}" class="hover:text-blue-600 transition-colors">
 								        {{ $blog->title }}
 								    </a>
 								</h4>
 			                    <p class="text-base text-gray-600 mb-4">
 			                        {{ Str::limit(strip_tags($blog->desc), 120) }}
 			                    </p>
-			                    <a href="{{ route('blog.detail', $blog->slug) }}" class="text-indigo-600 font-medium hover:text-indigo-700 transition-colors">
+			                    <a href="{{ route('blog.detail', $blog->slug) }}" class="text-blue-600 font-medium hover:text-blue-500 transition-colors">
 			                        {{ __("Read more") }}  →
 			                    </a>
 			                </div>
@@ -122,7 +122,7 @@
 							</svg>
 			                <h3 class="text-2xl font-bold text-gray-500 mb-2">{{ __("No blog posts found") }}</h3>
 			                <p class="text-gray-400 mb-6">{{ __("We couldn't find any blog posts matching your criteria.") }}</p>
-			                <a href="{{ route('blogs') }}" class="inline-block px-5 py-3 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition">{{ __("Back to All Blogs") }}</a>
+			                <a href="{{ route('blogs') }}" class="inline-block px-5 py-3 bg-gray-900 text-white rounded-lg font-semibold shadow hover:bg-black transition">{{ __("Back to All Blogs") }}</a>
 			            </div>
 			        @endforelse
 			    </div>
