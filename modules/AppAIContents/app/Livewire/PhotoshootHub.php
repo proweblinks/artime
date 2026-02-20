@@ -106,6 +106,8 @@ class PhotoshootHub extends Component
 
     public function pollResults()
     {
+        if (!$this->isGenerating) return;
+
         $teamId = auth()->user()->current_team_id ?? auth()->id();
         $latest = ContentPhotoshoot::where('team_id', $teamId)
             ->orderByDesc('created_at')

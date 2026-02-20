@@ -159,6 +159,8 @@ class CreativeEditor extends Component
 
     public function pollFixLayout()
     {
+        if (!$this->isFixingLayout) return;
+
         $this->creative = ContentCreative::with('versions')->find($this->creativeId);
         if ($this->creative && $this->creative->versions->count() >= $this->totalVersions) {
             $this->isFixingLayout = false;

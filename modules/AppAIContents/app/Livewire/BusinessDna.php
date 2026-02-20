@@ -18,6 +18,9 @@ class BusinessDna extends Component
     public string $websiteUrl = '';
     public bool $isAnalyzing = false;
     public ?string $editingField = null;
+    public bool $justCompleted = false;
+
+    protected $listeners = ['switch-dna' => 'onSwitchDna'];
 
     // Edit form values
     public string $editBrandName = '';
@@ -38,6 +41,19 @@ class BusinessDna extends Component
     public function mount(?int $dnaId = null)
     {
         $this->dnaId = $dnaId;
+        $this->loadDna();
+    }
+
+    public function onSwitchDna(?int $newDnaId)
+    {
+        $this->dnaId = $newDnaId;
+        $this->dna = null;
+        $this->isAnalyzing = false;
+        $this->justCompleted = false;
+        $this->editingField = null;
+        $this->websiteUrl = '';
+        $this->logoUpload = null;
+        $this->imageUploads = [];
         $this->loadDna();
     }
 
@@ -83,14 +99,14 @@ class BusinessDna extends Component
 
     public function pollAnalysis()
     {
-        if (!$this->dnaId) return;
+        if (!$this->isAnalyzing || !$this->dnaId) return;
 
         $this->dna = ContentBusinessDna::find($this->dnaId);
 
         if ($this->dna && in_array($this->dna->status, ['ready', 'failed'])) {
             $this->isAnalyzing = false;
             if ($this->dna->status === 'ready') {
-                $this->dispatch('dna-ready', dnaId: $this->dnaId)->to('app-ai-contents::content-hub');
+                $this->justCompleted = true;
             }
         }
     }

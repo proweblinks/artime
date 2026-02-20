@@ -17,7 +17,6 @@ class ContentHub extends Component
         'open-editor' => 'openEditor',
         'go-back' => 'goBack',
         'switch-section' => 'switchSection',
-        'dna-ready' => 'onDnaReady',
     ];
 
     public function mount()
@@ -50,6 +49,7 @@ class ContentHub extends Component
             $this->section = 'dna';
             $this->activeCampaignId = null;
             $this->activeCreativeId = null;
+            $this->dispatch('switch-dna', newDnaId: $dna->id)->to('app-ai-contents::business-dna');
         }
     }
 
@@ -59,6 +59,7 @@ class ContentHub extends Component
         $this->section = 'dna';
         $this->activeCampaignId = null;
         $this->activeCreativeId = null;
+        $this->dispatch('switch-dna', newDnaId: null)->to('app-ai-contents::business-dna');
     }
 
     public function openCampaign(int $campaignId)

@@ -1,4 +1,4 @@
-<div class="cs-app">
+<div class="cs-app" x-data @dna-ready.window="$wire.onDnaReady($event.detail.dnaId)">
     @include('appaicontents::livewire.partials._design-system')
 
     {{-- Gradient Mesh Background --}}
@@ -103,7 +103,7 @@
         <main class="cs-main-full">
             <div class="cs-content">
                 @if($section === 'dna')
-                    @livewire('app-ai-contents::business-dna', ['dnaId' => $dnaId], key('dna-' . ($dnaId ?? 'new')))
+                    @livewire('app-ai-contents::business-dna', ['dnaId' => $dnaId], key('dna-section'))
 
                 @elseif($section === 'campaigns')
                     @if($activeCreativeId)

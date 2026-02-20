@@ -29,10 +29,20 @@ class CampaignCreatives extends Component
 
     public function pollCreatives()
     {
+        if (!$this->isGenerating && !$this->animatingId) return;
+
         $this->campaign = ContentCampaign::with('creatives')->find($this->campaignId);
 
         if ($this->campaign && $this->campaign->status === 'ready') {
             $this->isGenerating = false;
+        }
+
+        // Check if animation completed
+        if ($this->animatingId) {
+            $creative = ContentCreative::find($this->animatingId);
+            if ($creative && ($creative->video_url || $creative->video_path)) {
+                $this->animatingId = null;
+            }
         }
     }
 

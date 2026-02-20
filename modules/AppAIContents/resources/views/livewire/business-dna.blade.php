@@ -1,8 +1,19 @@
-<div
+<div>
+    {{-- Polling element (nested, not on root — reliable across Livewire morphs) --}}
     @if($isAnalyzing)
-        wire:poll.5s="pollAnalysis"
+        <div wire:poll.3s="pollAnalysis" style="display:none;"></div>
     @endif
->
+
+    {{-- Notify parent when DNA analysis just completed --}}
+    @if($justCompleted && $dna)
+        <div x-data x-init="
+            $nextTick(() => {
+                $dispatch('dna-ready', { dnaId: {{ $dna->id }} });
+                $wire.set('justCompleted', false);
+            });
+        " style="display:none;"></div>
+    @endif
+
     {{-- Page Header --}}
     <div class="cs-page-header">
         <div class="cs-page-icon"><i class="fa-light fa-dna"></i></div>

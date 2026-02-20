@@ -1,9 +1,8 @@
-<div
+<div x-data="{ showAddSheet: @entangle('showAddSheet') }">
     @if($isGenerating || $animatingId)
-        wire:poll.3s="pollCreatives"
+        <div wire:poll.3s="pollCreatives" style="display:none;"></div>
     @endif
-    x-data="{ showAddSheet: @entangle('showAddSheet') }"
->
+
     {{-- Back Breadcrumb --}}
     <div class="cs-breadcrumb" wire:click="goBack">
         <i class="fa-light fa-arrow-left"></i>

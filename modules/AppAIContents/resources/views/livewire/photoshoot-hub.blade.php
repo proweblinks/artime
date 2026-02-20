@@ -1,8 +1,8 @@
-<div
+<div>
     @if($isGenerating)
-        wire:poll.3s="pollResults"
+        <div wire:poll.3s="pollResults" style="display:none;"></div>
     @endif
->
+
     {{-- Page Header --}}
     <div class="cs-page-header">
         <div class="cs-page-icon"><i class="fa-light fa-camera-retro"></i></div>

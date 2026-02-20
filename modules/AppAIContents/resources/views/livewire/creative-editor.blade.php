@@ -1,8 +1,8 @@
-<div
+<div>
     @if($isFixingLayout)
-        wire:poll.3s="pollFixLayout"
+        <div wire:poll.3s="pollFixLayout" style="display:none;"></div>
     @endif
->
+
     {{-- Back Breadcrumb --}}
     <div class="cs-breadcrumb" wire:click="goBack">
         <i class="fa-light fa-arrow-left"></i>
