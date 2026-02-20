@@ -13,7 +13,7 @@
         "uri": "app/analytics",
         "role": "client",
         "platform": 1,
-        "section": "",
+        "section": "top",
         "tab_id": 1,
         "position": 200000,
         "name": "Analytics",

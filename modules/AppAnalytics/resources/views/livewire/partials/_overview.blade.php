@@ -74,7 +74,9 @@
                                     <div class="d-flex align-items-center gap-8">
                                         <i class="{{ $config['icon'] ?? '' }}" style="color: {{ $config['color'] ?? '#666' }}"></i>
                                         <span class="fw-5">{{ $config['name'] ?? ucfirst($platform) }}</span>
-                                        @if($data['name'] ?? '')
+                                        @if(($data['accounts'] ?? 1) > 1)
+                                            <span class="text-gray-400 fs-12">{{ $data['accounts'] }} {{ __('accounts') }}</span>
+                                        @elseif($data['name'] ?? '')
                                             <span class="text-gray-400 fs-12">{{ $data['name'] }}</span>
                                         @endif
                                     </div>

@@ -76,7 +76,7 @@
     {{-- Content area --}}
     <div class="px-4 py-4" style="min-height: 500px;">
         {{-- Loading state --}}
-        <div wire:loading.flex class="d-flex align-items-center justify-content-center py-5">
+        <div wire:loading.flex class="align-items-center justify-content-center py-5">
             <div class="spinner-border text-indigo-500" role="status">
                 <span class="visually-hidden">{{ __('Loading...') }}</span>
             </div>

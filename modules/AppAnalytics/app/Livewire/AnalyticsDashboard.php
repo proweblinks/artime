@@ -194,6 +194,12 @@ class AnalyticsDashboard extends Component
         $this->loading = true;
         $this->errorMessage = '';
 
+        // Reset data between tab switches to prevent stale data from showing
+        $this->platformData = [];
+        $this->postsData = [];
+        $this->dailyData = [];
+        $this->audienceData = [];
+
         $teamId = $this->getTeamId();
         $endDate = Carbon::now();
         $startDate = Carbon::now()->subDays((int) $this->dateRange);
@@ -245,7 +251,20 @@ class AnalyticsDashboard extends Component
 
             if ($data['success'] ?? false) {
                 $platformSummary = $this->normalizePlatformOverview($platform, $data);
-                $overview['platforms'][$platform] = $platformSummary;
+
+                // Aggregate multiple accounts per platform instead of overwriting
+                if (isset($overview['platforms'][$platform])) {
+                    $existing = $overview['platforms'][$platform];
+                    $existing['followers'] = ($existing['followers'] ?? 0) + ($platformSummary['followers'] ?? 0);
+                    $existing['reach'] = ($existing['reach'] ?? 0) + ($platformSummary['reach'] ?? 0);
+                    $existing['engagement'] = ($existing['engagement'] ?? 0) + ($platformSummary['engagement'] ?? 0);
+                    $existing['accounts'] = ($existing['accounts'] ?? 1) + 1;
+                    $overview['platforms'][$platform] = $existing;
+                } else {
+                    $platformSummary['accounts'] = 1;
+                    $overview['platforms'][$platform] = $platformSummary;
+                }
+
                 $overview['total_followers'] += $platformSummary['followers'] ?? 0;
                 $overview['total_reach'] += $platformSummary['reach'] ?? 0;
                 $overview['total_engagement'] += $platformSummary['engagement'] ?? 0;
