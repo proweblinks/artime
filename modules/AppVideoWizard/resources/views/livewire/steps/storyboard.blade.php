@@ -410,7 +410,7 @@ function getCameraMovementIcon($movement) {
             <div class="vw-storyboard-pill {{ $allImagesReady ? 'complete' : '' }}">
                 <span>🖼️</span>
                 <span class="pill-value">{{ $imagesReady }}/{{ $totalScenes }}</span>
-                <span style="color: var(--vw-text-secondary);">{{ __('images') }}</span>
+                <span style="color: var(--vw-text-secondary);">{{ $imagesReady === 1 ? __('image') : __('images') }}</span>
             </div>
             @if($multiShotMode['enabled'])
                 @php $shotStats = $this->getShotStatistics(); @endphp
@@ -462,16 +462,7 @@ function getCameraMovementIcon($movement) {
                 <span class="vw-shortcut-badge">?</span>
             </button>
 
-            {{-- Settings Toggle --}}
-            <button type="button"
-                    class="vw-settings-toggle"
-                    :class="{ 'active': showSettings }"
-                    @click="showSettings = !showSettings">
-                <span>⚙️</span>
-                <span>{{ __('Settings') }}</span>
-            </button>
-
-            {{-- Multi-Shot Toggle (promoted from sidebar) --}}
+            {{-- Multi-Shot Toggle (topbar) --}}
             <button type="button"
                     class="vw-topbar-mode-btn {{ $multiShotMode['enabled'] ? 'active' : '' }}"
                     wire:click="toggleMultiShotMode"
@@ -548,9 +539,8 @@ function getCameraMovementIcon($movement) {
                      @mousedown.prevent="startResize($event)"></div>
 
                 {{-- Sidebar Header --}}
-                <div class="vw-sidebar-header">
-                    <span class="vw-sidebar-title">{{ __('Settings') }}</span>
-                    <button type="button" @click="toggleSidebar()" style="background: none; border: none; cursor: pointer; color: var(--at-text-muted); font-size: 0.8rem; padding: 0.25rem;" title="{{ __('Collapse') }}">
+                <div class="vw-sidebar-header" style="justify-content: flex-end;">
+                    <button type="button" @click="toggleSidebar()" style="background: none; border: none; cursor: pointer; color: var(--at-text-muted); font-size: 0.8rem; padding: 0.25rem;" title="{{ __('Collapse sidebar') }}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
                     </button>
                 </div>
@@ -637,24 +627,6 @@ function getCameraMovementIcon($movement) {
                                         : __('All shots use fast template-only prompts')
                                     }}
                                 </p>
-                            </div>
-                        </div>
-
-                        {{-- Multi-Shot Toggle --}}
-                        <div class="vw-sidebar-section open">
-                            <div class="vw-sidebar-section-body" style="padding-top: 0.5rem;">
-                                <div class="vw-sidebar-toggle">
-                                    <span class="vw-sidebar-toggle-label">
-                                        <span>🎬</span>
-                                        {{ __('Multi-Shot Mode') }}
-                                        <span class="vw-badge vw-badge-pro" style="font-size: 0.5rem; padding: 0.1rem 0.3rem;">PRO</span>
-                                    </span>
-                                    <div class="vw-sidebar-toggle-switch {{ $multiShotMode['enabled'] ? 'active' : '' }}"
-                                         wire:click="toggleMultiShotMode">
-                                        <div class="vw-sidebar-toggle-track"></div>
-                                        <div class="vw-sidebar-toggle-thumb"></div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
@@ -912,16 +884,8 @@ function getCameraMovementIcon($movement) {
 
                 </div>
 
-                {{-- Collapse Button at bottom --}}
-                <button type="button"
-                        class="vw-sidebar-collapse-btn"
-                        @click="toggleSidebar()">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="11 17 6 12 11 7"></polyline>
-                        <polyline points="18 17 13 12 18 7"></polyline>
-                    </svg>
-                    <span>{{ __('Collapse') }}</span>
-                </button>
+
+
             </div>
 
             {{-- ========================================
@@ -996,64 +960,52 @@ function getCameraMovementIcon($movement) {
                         ];
                         $selectedModel = $storyboard['imageModel'] ?? 'nanobanana';
                     @endphp
-                <div class="vw-bento-grid">
-                    {{-- Stats Cards --}}
-                    <div class="vw-bento-card span-3">
-                        <div class="vw-bento-stat purple">
-                            <div class="vw-bento-stat-value">{{ $totalScenesCount }}</div>
-                            <div class="vw-bento-stat-label">{{ __('Scenes') }}</div>
-                        </div>
+                <div class="vw-stats-strip">
+                    <div class="vw-stats-strip-item">
+                        <span class="vw-stats-strip-value" style="color: var(--at-primary);">{{ $totalScenesCount }}</span>
+                        <span class="vw-stats-strip-label">{{ __('Scenes') }}</span>
                     </div>
                     @if($multiShotMode['enabled'] && $shotStats)
-                    <div class="vw-bento-card span-3">
-                        <div class="vw-bento-stat cyan">
-                            <div class="vw-bento-stat-value">{{ $shotStats['decomposedScenes'] }}</div>
-                            <div class="vw-bento-stat-label">{{ __('Decomposed') }}</div>
-                        </div>
+                    <div class="vw-stats-strip-divider"></div>
+                    <div class="vw-stats-strip-item">
+                        <span class="vw-stats-strip-value" style="color: #06b6d4;">{{ $shotStats['decomposedScenes'] }}</span>
+                        <span class="vw-stats-strip-label">{{ __('Decomposed') }}</span>
                     </div>
-                    <div class="vw-bento-card span-3">
-                        <div class="vw-bento-stat green">
-                            <div class="vw-bento-stat-value">{{ $shotStats['totalShots'] }}</div>
-                            <div class="vw-bento-stat-label">{{ __('Total Shots') }}</div>
-                        </div>
+                    <div class="vw-stats-strip-divider"></div>
+                    <div class="vw-stats-strip-item">
+                        <span class="vw-stats-strip-value" style="color: #10b981;">{{ $shotStats['totalShots'] }}</span>
+                        <span class="vw-stats-strip-label">{{ __('Shots') }}</span>
                     </div>
                     @else
-                    <div class="vw-bento-card span-3">
-                        <div class="vw-bento-stat green">
-                            <div class="vw-bento-stat-value">{{ $imagesReadyCount }}/{{ $totalScenesCount }}</div>
-                            <div class="vw-bento-stat-label">{{ __('Images') }}</div>
-                        </div>
+                    <div class="vw-stats-strip-divider"></div>
+                    <div class="vw-stats-strip-item">
+                        <span class="vw-stats-strip-value" style="color: #10b981;">{{ $imagesReadyCount }}/{{ $totalScenesCount }}</span>
+                        <span class="vw-stats-strip-label">{{ __('Images') }}</span>
                     </div>
                     @endif
-                    <div class="vw-bento-card span-3">
-                        <div class="vw-bento-stat amber">
-                            <div class="vw-bento-stat-value">{{ $sceneTiming['sceneDuration'] }}s</div>
-                            <div class="vw-bento-stat-label">{{ __('Per Scene') }}</div>
+                    <div class="vw-stats-strip-divider"></div>
+                    <div class="vw-stats-strip-item">
+                        <span class="vw-stats-strip-value" style="color: #f59e0b;">{{ $sceneTiming['sceneDuration'] }}s</span>
+                        <span class="vw-stats-strip-label">{{ __('Per Scene') }}</span>
+                    </div>
+                    @if($multiShotMode['enabled'] && $shotStats && $shotStats['totalShots'] > 0)
+                    <div class="vw-stats-strip-divider"></div>
+                    <div class="vw-stats-strip-item" style="flex: 1; min-width: 120px;">
+                        <div style="display: flex; align-items: center; gap: 0.35rem; width: 100%;">
+                            <span class="vw-stats-strip-label">🖼️</span>
+                            <div style="flex: 1; height: 4px; background: var(--at-border); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: #10b981; border-radius: 2px; transition: width 0.3s;"></div>
+                            </div>
+                            <span class="vw-stats-strip-label" style="font-weight: 600;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
                         </div>
                     </div>
-
-                    @if($multiShotMode['enabled'] && $shotStats)
-                    {{-- Progress Cards (Multi-shot mode) --}}
-                    <div class="vw-bento-card span-6">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: var(--vw-text); display: flex; align-items: center; gap: 0.35rem;">
-                                🖼️ {{ __('Images Generated') }}
-                            </span>
-                            <span style="font-size: 0.8rem; font-weight: 600; color: #10b981;">{{ $shotStats['shotsWithImages'] }}/{{ $shotStats['totalShots'] }}</span>
-                        </div>
-                        <div style="height: 8px; background: var(--vw-border); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; width: {{ $shotStats['imageProgress'] }}%; background: linear-gradient(90deg, #10b981, #22c55e); border-radius: 4px; transition: width 0.3s;"></div>
-                        </div>
-                    </div>
-                    <div class="vw-bento-card span-6">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.75rem; color: var(--vw-text); display: flex; align-items: center; gap: 0.35rem;">
-                                🎬 {{ __('Videos Generated') }}
-                            </span>
-                            <span style="font-size: 0.8rem; font-weight: 600; color: #06b6d4;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
-                        </div>
-                        <div style="height: 8px; background: var(--vw-border); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: linear-gradient(90deg, #06b6d4, #22d3ee); border-radius: 4px; transition: width 0.3s;"></div>
+                    <div class="vw-stats-strip-item" style="flex: 1; min-width: 120px;">
+                        <div style="display: flex; align-items: center; gap: 0.35rem; width: 100%;">
+                            <span class="vw-stats-strip-label">🎬</span>
+                            <div style="flex: 1; height: 4px; background: var(--at-border); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ $shotStats['videoProgress'] }}%; background: #06b6d4; border-radius: 2px; transition: width 0.3s;"></div>
+                            </div>
+                            <span class="vw-stats-strip-label" style="font-weight: 600;">{{ $shotStats['shotsWithVideos'] }}/{{ $shotStats['totalShots'] }}</span>
                         </div>
                     </div>
                     @endif
@@ -1129,16 +1081,17 @@ function getCameraMovementIcon($movement) {
                 $paginatedData = $this->paginatedScenes;
                 $showPagination = $paginatedData['totalPages'] > 1;
             @endphp
-            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.06); border-radius: 0.5rem; margin-bottom: 1rem;">
+            @php $imgCount = count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))); @endphp
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.06); border-radius: 0.5rem; margin-bottom: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                     <span>🖼️</span>
-                    <span style="font-weight: 600; color: #10b981;">{{ count(array_filter($storyboard['scenes'] ?? [], fn($s) => !empty($s['imageUrl']))) }}</span>
-                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('images') }}</span>
+                    <span style="font-weight: 600; color: #10b981;">{{ $imgCount }}</span>
+                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ $imgCount === 1 ? __('image') : __('images') }}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                     <span>🎬</span>
                     <span style="font-weight: 600; color: var(--vw-primary);">{{ $paginatedData['totalScenes'] }}</span>
-                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('scenes') }}</span>
+                    <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ $paginatedData['totalScenes'] === 1 ? __('scene') : __('scenes') }}</span>
                 </div>
                 @if($showPagination)
                     <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">
@@ -1364,12 +1317,7 @@ function getCameraMovementIcon($movement) {
                             </div>
                         @endif
 
-                        {{-- MAIN Badge - Below scene number when chain data is ready --}}
-                        @if($hasChainData && ($storyboard['promptChain']['enabled'] ?? true))
-                            <div style="position: absolute; top: 3rem; left: {{ $imageUrl ? '5rem' : '0.75rem' }}; background: rgba(236,72,153,0.9); color: white; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; z-index: 10; letter-spacing: 0.3px;">
-                                {{ __('MAIN') }}
-                            </div>
-                        @endif
+                        {{-- MAIN Badge removed — all scenes are MAIN when chain is enabled, badge adds no info --}}
 
                         {{-- Main Image Content Area --}}
                         <div class="vw-scene-image-container">
@@ -1666,7 +1614,7 @@ function getCameraMovementIcon($movement) {
 
                     {{-- Card Action Bar — Progressive disclosure --}}
                     @if($imageUrl)
-                        <div class="vw-card-actions" x-data="{ overflow: false }" @click.outside="overflow = false">
+                        <div class="vw-card-actions" x-data="{ overflow: false }" @click.outside="overflow = false" @keydown.escape.window="overflow = false">
                             <button type="button" class="vw-card-action-btn vw-card-action-btn--primary" wire:click="openImageStudio('scene', {{ $index }})" title="{{ __('AI Image Studio') }}">
                                 ✨ {{ __('Edit') }}
                             </button>
@@ -1915,7 +1863,7 @@ function getCameraMovementIcon($movement) {
                         ];
                     @endphp
 
-                    @if(!empty($speechSegments) || !empty($narration))
+                    @if($imageUrl && (!empty($speechSegments) || !empty($narration)))
                         <div style="padding: 0.3rem 0.75rem;" x-data="{ voiceModalOpen: false }">
                             <div class="vw-scene-dialogue" style="display: flex; justify-content: space-between; align-items: center;">
                                 {{-- Voice Types clickable badge --}}
@@ -2446,27 +2394,29 @@ function getCameraMovementIcon($movement) {
     @include('appvideowizard::livewire.modals.scene-dna')
 
     {{-- Phase 3: Initialize Bible Items for @ Mention System --}}
+    @php
+        $bibleItemsArray = [];
+        foreach ($sceneMemory['characterBible']['characters'] ?? [] as $char) {
+            $bibleItemsArray[] = [
+                'type' => 'character',
+                'icon' => '👤',
+                'name' => $char['name'] ?? 'Character',
+                'tag' => '@' . Str::slug($char['name'] ?? 'character'),
+                'image' => $char['referenceImage'] ?? null,
+            ];
+        }
+        foreach ($sceneMemory['locationBible']['locations'] ?? [] as $loc) {
+            $bibleItemsArray[] = [
+                'type' => 'location',
+                'icon' => '📍',
+                'name' => $loc['name'] ?? 'Location',
+                'tag' => '@' . Str::slug($loc['name'] ?? 'location'),
+                'image' => $loc['referenceImage'] ?? null,
+            ];
+        }
+    @endphp
     <script>
-        window.bibleItems = [
-            @foreach($sceneMemory['characterBible']['characters'] ?? [] as $char)
-            {
-                type: 'character',
-                icon: '👤',
-                name: @js($char['name'] ?? 'Character'),
-                tag: '@' + @js(Str::slug($char['name'] ?? 'character')),
-                image: @js($char['referenceImage'] ?? null)
-            },
-            @endforeach
-            @foreach($sceneMemory['locationBible']['locations'] ?? [] as $loc)
-            {
-                type: 'location',
-                icon: '📍',
-                name: @js($loc['name'] ?? 'Location'),
-                tag: '@' + @js(Str::slug($loc['name'] ?? 'location')),
-                image: @js($loc['referenceImage'] ?? null)
-            },
-            @endforeach
-        ];
+        window.bibleItems = {!! json_encode($bibleItemsArray) !!};
     </script>
 
     {{-- Edit Prompt Modal --}}

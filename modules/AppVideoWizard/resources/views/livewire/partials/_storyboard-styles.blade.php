@@ -2997,71 +2997,42 @@
        PHASE 2: UI UPGRADE - Bento Grid Layout
        ======================================== */
 
-    .vw-bento-grid {
-        display: grid;
-        grid-template-columns: repeat(12, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .vw-bento-card {
+    .vw-stats-strip {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
         background: rgba(0,0,0,0.02);
-        border: 1px solid rgba(0,0,0,0.04);
-        border-radius: 1rem;
-        padding: 1rem;
-        transition: all 0.2s ease;
+        border: 1px solid var(--at-border);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
     }
 
-    .vw-bento-card:hover {
-        border-color: rgba(var(--vw-primary-rgb), 0.12);
-        background: rgba(0,0,0,0.02);
+    .vw-stats-strip-item {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
     }
 
-    .vw-bento-card.span-3 { grid-column: span 3; }
-    .vw-bento-card.span-4 { grid-column: span 4; }
-    .vw-bento-card.span-6 { grid-column: span 6; }
-    .vw-bento-card.span-8 { grid-column: span 8; }
-    .vw-bento-card.span-12 { grid-column: span 12; }
-
-    @media (max-width: 1200px) {
-        .vw-bento-card.span-3 { grid-column: span 6; }
-        .vw-bento-card.span-4 { grid-column: span 6; }
-    }
-
-    @media (max-width: 768px) {
-        .vw-bento-grid {
-            grid-template-columns: 1fr;
-        }
-        .vw-bento-card.span-3,
-        .vw-bento-card.span-4,
-        .vw-bento-card.span-6,
-        .vw-bento-card.span-8 {
-            grid-column: span 1;
-        }
-    }
-
-    .vw-bento-stat {
-        text-align: center;
-    }
-
-    .vw-bento-stat-value {
-        font-size: 2rem;
+    .vw-stats-strip-value {
+        font-size: 1rem;
         font-weight: 700;
         line-height: 1;
-        margin-bottom: 0.25rem;
     }
 
-    .vw-bento-stat-label {
-        font-size: 0.7rem;
-        color: var(--vw-text-secondary);
+    .vw-stats-strip-label {
+        font-size: 0.65rem;
+        color: var(--at-text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
 
-    .vw-bento-stat.purple .vw-bento-stat-value { color: var(--vw-primary); }
-    .vw-bento-stat.cyan .vw-bento-stat-value { color: #22d3ee; }
-    .vw-bento-stat.green .vw-bento-stat-value { color: #34d399; }
-    .vw-bento-stat.amber .vw-bento-stat-value { color: #d97706; }
+    .vw-stats-strip-divider {
+        width: 1px;
+        height: 20px;
+        background: var(--at-border);
+    }
 
     /* ========================================
        PHASE 2: UI UPGRADE - Collapsible Panels
