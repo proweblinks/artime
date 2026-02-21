@@ -31815,13 +31815,16 @@ PROMPT;
         if ($this->preConfigureWaitingShots) {
             $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
             $currentShot = $shots[$shotIndex] ?? [];
-            $selectedModel = 'seedance';
             $selectedDuration = $currentShot['selectedDuration'] ?? 8;
 
             foreach ($shots as $idx => $shot) {
                 if ($idx > $shotIndex && empty($shot['videoUrl']) && !empty($shot['imageUrl'])) {
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedVideoModel'] = $selectedModel;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedVideoModel'] = 'seedance';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedDuration'] = $selectedDuration;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceQuality'] = $currentShot['seedanceQuality'] ?? 'pro';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedResolution'] = $currentShot['selectedResolution'] ?? '1080p';
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceChaosMode'] = $currentShot['seedanceChaosMode'] ?? false;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceBackgroundMusic'] = $currentShot['seedanceBackgroundMusic'] ?? false;
                 }
             }
         }

@@ -1637,6 +1637,98 @@ window.multiShotVideoPolling = function() {
                 </div>
             </div>
 
+            {{-- Seedance Settings --}}
+            @php
+                $shotPath = "multiShotMode.decomposedScenes.{$videoModelSelectorSceneIndex}.shots.{$videoModelSelectorShotIndex}";
+                $curQuality = $selShot['seedanceQuality'] ?? 'pro';
+                $curResolution = $selShot['selectedResolution'] ?? '1080p';
+                $curCameraMove = $selShot['seedanceCameraMove'] ?? 'none';
+                $curCameraIntensity = $selShot['seedanceCameraMoveIntensity'] ?? 'moderate';
+            @endphp
+            <div class="msm-seedance-settings" x-data="{
+                quality: $wire.entangle('{{ $shotPath }}.seedanceQuality'),
+                resolution: $wire.entangle('{{ $shotPath }}.selectedResolution'),
+                chaosMode: $wire.entangle('{{ $shotPath }}.seedanceChaosMode'),
+                bgMusic: $wire.entangle('{{ $shotPath }}.seedanceBackgroundMusic'),
+                cameraMove: '{{ $curCameraMove }}',
+                cameraIntensity: '{{ $curCameraIntensity }}',
+                init() {
+                    this.$watch('quality', (val) => {
+                        if (val === 'fast' && this.resolution === '480p') {
+                            this.resolution = '720p';
+                        }
+                    });
+                },
+                setCamera(move) {
+                    this.cameraMove = move;
+                    $wire.$set('{{ $shotPath }}.seedanceCameraMove', move);
+                },
+                setIntensity(val) {
+                    this.cameraIntensity = val;
+                    $wire.$set('{{ $shotPath }}.seedanceCameraMoveIntensity', val);
+                }
+            }">
+                {{-- Quality & Resolution --}}
+                <div class="msm-qr-row">
+                    <div class="msm-qr-group">
+                        <label>{{ __('Quality') }}</label>
+                        <select x-model="quality" class="msm-settings-select">
+                            <option value="pro">{{ __('Pro') }} ({{ __('Best') }})</option>
+                            <option value="fast">{{ __('Fast') }} ({{ __('Cheaper') }})</option>
+                        </select>
+                    </div>
+                    <div class="msm-qr-group">
+                        <label>{{ __('Resolution') }}</label>
+                        <select x-model="resolution" class="msm-settings-select">
+                            <option value="480p" x-show="quality !== 'fast'">480p</option>
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Camera Movement --}}
+                <div class="msm-camera-ctrl">
+                    <div class="msm-camera-header">
+                        <label>🎥 {{ __('Camera') }}</label>
+                        <button type="button" class="msm-chaos-btn" :class="{ 'active': chaosMode }" @click="chaosMode = !chaosMode">
+                            🔥 {{ __('CHAOS') }}
+                        </button>
+                    </div>
+                    <div class="msm-chaos-hint" x-show="chaosMode" x-transition x-cloak>
+                        🎥 {{ __('Auto: Handheld + Dynamic camera') }}
+                    </div>
+                    <div class="msm-camera-grid" x-show="!chaosMode" x-transition>
+                        @foreach([
+                            ['id' => 'none', 'label' => 'None'],
+                            ['id' => 'push-in', 'label' => 'Push In'],
+                            ['id' => 'pull-out', 'label' => 'Pull Out'],
+                            ['id' => 'pan-left', 'label' => 'Pan L'],
+                            ['id' => 'pan-right', 'label' => 'Pan R'],
+                            ['id' => 'orbit', 'label' => 'Orbit'],
+                            ['id' => 'tracking', 'label' => 'Track'],
+                            ['id' => 'handheld', 'label' => 'Handheld'],
+                        ] as $move)
+                        <button type="button" class="msm-cam-pill" :class="{ 'active': cameraMove === '{{ $move['id'] }}' }" @click="setCamera('{{ $move['id'] }}')">{{ $move['label'] }}</button>
+                        @endforeach
+                    </div>
+                    <div class="msm-cam-intensity" x-show="!chaosMode && cameraMove !== 'none'" x-transition x-cloak>
+                        <label>{{ __('Intensity') }}</label>
+                        <div class="msm-cam-intensity-pills">
+                            @foreach(['subtle' => 'Subtle', 'moderate' => 'Moderate', 'dynamic' => 'Dynamic'] as $intId => $intLabel)
+                            <button type="button" class="msm-int-pill" :class="{ 'active': cameraIntensity === '{{ $intId }}' }" @click="setIntensity('{{ $intId }}')">{{ $intLabel }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Background Music --}}
+                <label class="msm-music-toggle">
+                    <input type="checkbox" x-model="bgMusic">
+                    <span>🎵 {{ __('Background Music') }}</span>
+                </label>
+            </div>
+
             {{-- Duration Selector --}}
             <div class="msm-dur-selector">
                 <label>{{ __('Duration') }}</label>
@@ -2252,6 +2344,33 @@ window.multiShotVideoPolling = function() {
 .msm-btn-voice:hover { background: linear-gradient(135deg, var(--vw-border-accent), rgba(var(--vw-primary-rgb), 0.35)); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(var(--vw-primary-rgb), 0.08); }
 .msm-btn-voice:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .msm-lipsync-hint { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(251,191,36,0.1); border-radius: 6px; border: 1px solid rgba(251,191,36,0.2); color: #d97706; font-size: 0.8rem; }
+
+/* Seedance Settings Panel */
+.msm-seedance-settings { margin: 0.75rem 0; padding: 0.75rem; background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 10px; }
+.msm-qr-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; }
+.msm-qr-group { flex: 1; }
+.msm-qr-group label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--vw-text-secondary); margin-bottom: 0.25rem; }
+.msm-settings-select { width: 100%; padding: 0.4rem 0.5rem; background: #fff; border: 1px solid var(--vw-border); border-radius: 6px; font-size: 0.8rem; color: var(--vw-text); cursor: pointer; }
+.msm-settings-select:focus { border-color: var(--vw-border-focus); outline: none; }
+.msm-camera-ctrl { margin-bottom: 0.6rem; }
+.msm-camera-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+.msm-camera-header label { font-size: 0.8rem; font-weight: 600; color: var(--vw-text); margin: 0; }
+.msm-chaos-btn { padding: 0.25rem 0.6rem; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; color: #dc2626; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
+.msm-chaos-btn:hover { background: rgba(239,68,68,0.15); }
+.msm-chaos-btn.active { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: #b91c1c; box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+.msm-chaos-hint { font-size: 0.75rem; color: #dc2626; padding: 0.35rem 0.5rem; background: rgba(239,68,68,0.06); border-radius: 6px; margin-bottom: 0.35rem; }
+.msm-camera-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; margin-bottom: 0.35rem; }
+.msm-cam-pill { padding: 0.3rem 0.2rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 6px; font-size: 0.7rem; color: var(--vw-text); cursor: pointer; transition: all 0.2s ease; text-align: center; }
+.msm-cam-pill:hover { background: rgba(0,0,0,0.06); }
+.msm-cam-pill.active { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.5); color: #0891b2; font-weight: 600; }
+.msm-cam-intensity { margin-bottom: 0.35rem; }
+.msm-cam-intensity label { display: block; font-size: 0.7rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem; }
+.msm-cam-intensity-pills { display: flex; gap: 0.25rem; }
+.msm-int-pill { flex: 1; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 6px; font-size: 0.7rem; color: var(--vw-text); cursor: pointer; text-align: center; transition: all 0.2s ease; }
+.msm-int-pill:hover { background: rgba(0,0,0,0.06); }
+.msm-int-pill.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.5); color: #2563eb; font-weight: 600; }
+.msm-music-toggle { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--vw-text); cursor: pointer; padding: 0.2rem 0 0; }
+.msm-music-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: #06b6d4; cursor: pointer; }
 
 /* Animations */
 @keyframes msm-spin { to { transform: rotate(360deg); } }
