@@ -4751,8 +4751,8 @@
 .vw-pro-timeline {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, rgba(15, 15, 25, 0.98) 0%, rgba(10, 10, 18, 0.99) 100%);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
     position: relative;
     min-height: 280px;
 }
@@ -4766,9 +4766,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.03);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     gap: 1rem;
     flex-shrink: 0;
 }
@@ -4782,7 +4782,7 @@
 .vw-toolbar-divider {
     width: 1px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     margin: 0 0.25rem;
 }
 
@@ -4797,10 +4797,10 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem 0.6rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.4rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.45);
     font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
@@ -4808,13 +4808,13 @@
 }
 
 .vw-track-toggle:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-track-toggle.is-active {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-toggle-dot {
@@ -4844,10 +4844,10 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.4rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -4858,9 +4858,9 @@
 }
 
 .vw-tool-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--vw-text, #1a1a2e);
+    border-color: rgba(0, 0, 0, 0.12);
 }
 
 .vw-tool-btn:disabled {
@@ -4887,9 +4887,9 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.25rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.03);
     border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-zoom-btn {
@@ -4900,7 +4900,7 @@
     height: 28px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     cursor: pointer;
     border-radius: 0.3rem;
     transition: all 0.2s;
@@ -4912,8 +4912,8 @@
 }
 
 .vw-zoom-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-zoom-btn:disabled {
@@ -4923,7 +4923,7 @@
 
 .vw-zoom-fit {
     margin-left: 0.25rem;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
     padding-left: 0.35rem;
     border-radius: 0;
 }
@@ -4939,7 +4939,7 @@
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 2px;
     cursor: pointer;
 }
@@ -4962,7 +4962,7 @@
     min-width: 42px;
     font-size: 0.7rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     text-align: center;
 }
 
@@ -4972,7 +4972,7 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.4rem 0.75rem;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: 0.4rem;
     font-family: 'SF Mono', Monaco, 'Consolas', monospace;
     font-size: 0.8rem;
@@ -4984,11 +4984,11 @@
 }
 
 .vw-time-sep {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .vw-time-total {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
 }
 
 /* ==========================================================================
@@ -5006,8 +5006,8 @@
 .vw-track-headers {
     width: 120px;
     min-width: 120px;
-    background: rgba(0, 0, 0, 0.3);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.02);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -5019,14 +5019,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .vw-clock-icon {
     width: 16px;
     height: 16px;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .vw-track-header {
@@ -5034,9 +5034,9 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     position: relative;
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .vw-header-color-bar {
@@ -5075,7 +5075,7 @@
 .vw-header-label {
     font-size: 0.7rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
 }
 
@@ -5098,7 +5098,7 @@
     height: 22px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     border-radius: 0.25rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -5110,8 +5110,8 @@
 }
 
 .vw-header-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--vw-text, #1a1a2e);
 }
 
 /* ==========================================================================
@@ -5131,13 +5131,13 @@
 }
 
 .vw-timeline-scroll::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .vw-timeline-scroll::-webkit-scrollbar-thumb {
     background: rgba(3, 252, 244, 0.3);
     border-radius: 5px;
-    border: 2px solid rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(0, 0, 0, 0.04);
 }
 
 .vw-timeline-scroll::-webkit-scrollbar-thumb:hover {
@@ -5151,8 +5151,8 @@
 .vw-time-ruler {
     height: 32px;
     min-height: 32px;
-    background: linear-gradient(180deg, rgba(30, 30, 50, 0.8) 0%, rgba(20, 20, 35, 0.9) 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     position: relative;
     cursor: pointer;
 }
@@ -5162,8 +5162,8 @@
     inset: 0;
     background-image: repeating-linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.03) 0px,
-        rgba(255, 255, 255, 0.03) 1px,
+        rgba(0, 0, 0, 0.04) 0px,
+        rgba(0, 0, 0, 0.04) 1px,
         transparent 1px,
         transparent 60px
     );
@@ -5174,17 +5174,17 @@
     bottom: 0;
     width: 1px;
     height: 8px;
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .vw-ruler-mark.is-major {
     height: 14px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .vw-ruler-mark.is-sub {
     height: 5px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.08);
 }
 
 .vw-ruler-label {
@@ -5193,7 +5193,7 @@
     left: 4px;
     font-size: 0.65rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     white-space: nowrap;
     font-family: 'SF Mono', Monaco, monospace;
 }
@@ -5245,7 +5245,7 @@
     color: white;
     white-space: nowrap;
     font-family: 'SF Mono', Monaco, monospace;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* ==========================================================================
@@ -5259,12 +5259,12 @@
 
 .vw-track {
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     background-size: 60px 100%;
     background-image: repeating-linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.02) 0px,
-        rgba(255, 255, 255, 0.02) 1px,
+        rgba(0, 0, 0, 0.02) 0px,
+        rgba(0, 0, 0, 0.02) 1px,
         transparent 1px,
         transparent 60px
     );
@@ -5292,7 +5292,7 @@
     justify-content: center;
     gap: 0.5rem;
     height: 100%;
-    color: rgba(255, 255, 255, 0.25);
+    color: rgba(0, 0, 0, 0.25);
     font-size: 0.75rem;
 }
 
@@ -5321,7 +5321,7 @@
 }
 
 .vw-clip.is-hovered {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
 }
 
 .vw-clip.is-selected {
@@ -5349,7 +5349,7 @@
     display: flex;
     height: 100%;
     gap: 1px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
 
@@ -5358,7 +5358,7 @@
     min-width: 40px;
     background-size: cover;
     background-position: center;
-    border-right: 1px solid rgba(0, 0, 0, 0.3);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .vw-filmstrip-thumb:last-child {
@@ -5376,7 +5376,7 @@
 .vw-scene-num {
     font-size: 1.5rem;
     font-weight: 800;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.2);
 }
 
 .vw-clip-info {
@@ -5457,12 +5457,12 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.25rem 0.6rem;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(4px);
     border-radius: 1rem;
     font-size: 0.65rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
 }
 
@@ -5491,7 +5491,7 @@
     padding: 0 0.5rem;
     font-size: 0.65rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -5519,13 +5519,13 @@
 
 .vw-trim-left {
     left: 0;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
     border-radius: 0.4rem 0 0 0.4rem;
 }
 
 .vw-trim-right {
     right: 0;
-    background: linear-gradient(-90deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+    background: linear-gradient(-90deg, rgba(0, 0, 0, 0.1) 0%, transparent 100%);
     border-radius: 0 0.4rem 0.4rem 0;
 }
 
@@ -5536,14 +5536,14 @@
     transform: translate(-50%, -50%);
     width: 4px;
     height: 20px;
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 2px;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
 .vw-trim-handle:hover .vw-trim-grip {
-    background: white;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
 }
 
 /* ==========================================================================
@@ -5600,13 +5600,12 @@
     bottom: calc(100% + 8px);
     right: 12px;
     width: 220px;
-    background: rgba(20, 20, 35, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.75rem;
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        0 8px 32px rgba(0, 0, 0, 0.1);
     z-index: 200;
     overflow: hidden;
 }
@@ -5616,8 +5615,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.6rem 0.75rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-inspector-title {
@@ -5626,7 +5625,7 @@
     gap: 0.4rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-inspector-icon {
@@ -5636,7 +5635,7 @@
 }
 
 .vw-inspector-clip-num {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     font-weight: 400;
 }
 
@@ -5646,10 +5645,10 @@
     justify-content: center;
     width: 22px;
     height: 22px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
     border-radius: 0.3rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -5660,8 +5659,8 @@
 }
 
 .vw-inspector-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-inspector-body {
@@ -5677,13 +5676,13 @@
 
 .vw-inspector-label {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
 }
 
 .vw-inspector-value {
     font-size: 0.7rem;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
     font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -5691,8 +5690,8 @@
     display: flex;
     gap: 0.35rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-inspector-action {
@@ -5701,10 +5700,10 @@
     align-items: center;
     justify-content: center;
     padding: 0.4rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text, #1a1a2e);
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -5715,8 +5714,8 @@
 }
 
 .vw-inspector-action:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-inspector-action.vw-action-danger:hover {
@@ -5788,11 +5787,11 @@
     justify-content: center;
     width: 20px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-left: none;
     border-radius: 0 0.4rem 0.4rem 0;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -5818,11 +5817,11 @@
     left: 0;
     margin-top: 4px;
     min-width: 140px;
-    background: rgba(20, 20, 35, 0.98);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     padding: 0.35rem;
     z-index: 100;
 }
@@ -5831,7 +5830,7 @@
     padding: 0.4rem 0.6rem;
     font-size: 0.65rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -5845,14 +5844,14 @@
     background: transparent;
     border: none;
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-snap-option:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .vw-snap-option.is-active {
@@ -5938,7 +5937,7 @@
 .vw-trim-line {
     width: 2px;
     height: 12px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 1px;
 }
 
@@ -6004,7 +6003,7 @@
     top: 0;
     width: 2px;
     height: 100%;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
     pointer-events: none;
     z-index: 95;
 }
@@ -6016,7 +6015,7 @@
     left: -4px;
     width: 10px;
     height: 10px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 50%;
 }
 
@@ -6168,8 +6167,8 @@
         45deg,
         transparent,
         transparent 10px,
-        rgba(255, 255, 255, 0.03) 10px,
-        rgba(255, 255, 255, 0.03) 20px
+        rgba(0, 0, 0, 0.03) 10px,
+        rgba(0, 0, 0, 0.03) 20px
     );
     pointer-events: none;
 }
@@ -6208,7 +6207,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.5);
     border-radius: 0.4rem;
     pointer-events: none;
 }
@@ -6216,7 +6215,7 @@
 .vw-clip-lock-overlay svg {
     width: 20px;
     height: 20px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 /* ==========================================================================
@@ -6244,7 +6243,7 @@
    ========================================================================== */
 
 .vw-tool-selector {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: 0.5rem;
     padding: 0.15rem;
 }
@@ -6268,13 +6267,12 @@
 .vw-context-menu {
     position: fixed;
     min-width: 200px;
-    background: rgba(20, 20, 35, 0.98);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.6rem;
     box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        0 12px 40px rgba(0, 0, 0, 0.12);
     z-index: 1000;
     overflow: hidden;
     padding: 0.35rem;
@@ -6289,7 +6287,7 @@
     background: transparent;
     border: none;
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.8rem;
     text-align: left;
     cursor: pointer;
@@ -6308,16 +6306,16 @@
 
 .vw-context-item kbd {
     padding: 0.15rem 0.4rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 0.25rem;
     font-size: 0.65rem;
     font-family: 'SF Mono', Monaco, monospace;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
 }
 
 .vw-context-item:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-context-item:hover:not(:disabled) svg {
@@ -6340,7 +6338,7 @@
 
 .vw-context-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.08);
     margin: 0.3rem 0;
 }
 
@@ -6503,7 +6501,7 @@
 .vw-shortcuts-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -6515,13 +6513,12 @@
     width: 90%;
     max-width: 700px;
     max-height: 80vh;
-    background: rgba(20, 20, 35, 0.98);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 1rem;
     box-shadow:
-        0 25px 80px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        0 25px 80px rgba(0, 0, 0, 0.15);
     overflow: hidden;
 }
 
@@ -6530,15 +6527,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-shortcuts-header h3 {
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-shortcuts-close {
@@ -6547,17 +6544,17 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
     border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-shortcuts-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-shortcuts-close svg {
@@ -6588,7 +6585,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.4rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .vw-shortcut-row:last-child {
@@ -6601,19 +6598,19 @@
     justify-content: center;
     min-width: 24px;
     padding: 0.25rem 0.5rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.3rem;
     font-size: 0.7rem;
     font-family: 'SF Mono', Monaco, monospace;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
 }
 
 .vw-shortcut-row span {
     flex: 1;
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text, #1a1a2e);
 }
 
 /* ==========================================================================
@@ -6684,8 +6681,8 @@
     align-items: center;
     justify-content: center;
     height: 32px;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-expand-headers-btn {
@@ -6694,17 +6691,17 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
     border-radius: 0.3rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-expand-headers-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-expand-headers-btn svg {
@@ -6721,13 +6718,13 @@
 .vw-track-header {
     position: relative;
     display: flex;
-    background: rgba(20, 20, 30, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     transition: opacity 0.2s, background 0.2s;
 }
 
 .vw-track-header.is-collapsed {
-    background: rgba(15, 15, 25, 0.9);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .vw-track-header.is-muted {
@@ -6739,12 +6736,12 @@
 }
 
 .vw-track-header.is-locked {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .vw-track-header.is-dragging {
     opacity: 0.8;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     z-index: 100;
 }
 
@@ -6783,7 +6780,7 @@
 .vw-drag-grip span {
     width: 4px;
     height: 1px;
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 1px;
 }
 
@@ -6821,7 +6818,7 @@
 .vw-header-label {
     font-size: 0.7rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -6840,17 +6837,17 @@
     justify-content: center;
     width: 20px;
     height: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.25rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-header-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-header-btn svg {
@@ -6894,13 +6891,13 @@
     gap: 0.35rem;
     margin-top: 0.35rem;
     padding-top: 0.35rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .vw-volume-icon {
     width: 12px;
     height: 12px;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .vw-volume-slider {
@@ -6908,7 +6905,7 @@
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 2px;
     cursor: pointer;
 }
@@ -6938,7 +6935,7 @@
 
 .vw-volume-value {
     font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     min-width: 28px;
     text-align: right;
 }
@@ -6956,17 +6953,17 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
     border-radius: 0.2rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-header-collapse:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-header-collapse svg {
@@ -7093,10 +7090,10 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.35rem 0.5rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
@@ -7104,8 +7101,8 @@
 }
 
 .vw-zoom-preset-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.12);
 }
 
 .vw-zoom-preset-btn svg {
@@ -7121,10 +7118,10 @@
     transform: translateX(-50%);
     margin-bottom: 0.5rem;
     min-width: 140px;
-    background: rgba(20, 20, 30, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     z-index: 100;
 }
@@ -7137,15 +7134,15 @@
     padding: 0.5rem 0.75rem;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.1s;
 }
 
 .vw-zoom-preset-item:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-zoom-preset-item.is-active {
@@ -7165,16 +7162,16 @@
 
 .vw-zoom-preset-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.08);
     margin: 0.25rem 0;
 }
 
 .vw-shortcut-hint {
     font-size: 0.65rem;
     padding: 0.15rem 0.35rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 0.2rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -7184,8 +7181,8 @@
 
 .vw-timeline-minimap {
     position: relative;
-    background: rgba(15, 15, 25, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
     padding: 0.5rem 0.75rem;
     overflow: hidden;
 }
@@ -7202,19 +7199,19 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .vw-minimap-time {
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(0, 0, 0, 0.35);
     font-family: 'SF Mono', Monaco, monospace;
 }
 
 .vw-minimap-tracks {
     position: relative;
     height: 24px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 0.25rem;
     overflow: hidden;
 }
@@ -7279,7 +7276,7 @@
     transform: translateY(-50%);
     width: 4px;
     height: 12px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 2px;
     opacity: 0;
     transition: opacity 0.15s;
@@ -7347,8 +7344,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: rgba(10, 10, 20, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .vw-transport-btn {
@@ -7357,17 +7354,17 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-transport-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-transport-btn:disabled {
@@ -7389,7 +7386,7 @@
 .vw-transport-divider {
     width: 1px;
     height: 20px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 /* Audio Scrub Button */
@@ -7421,11 +7418,11 @@
 .vw-shuttle-display {
     min-width: 50px;
     padding: 0.25rem 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: 0.25rem;
     font-size: 0.7rem;
     font-family: 'SF Mono', Monaco, monospace;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
     text-align: center;
 }
 
@@ -7474,7 +7471,7 @@
     align-items: center;
     gap: 0.35rem;
     padding: 0.35rem 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
     border-radius: 0.35rem;
     font-family: 'SF Mono', Monaco, monospace;
 }
@@ -7482,16 +7479,16 @@
 .vw-current-time {
     font-size: 0.85rem;
     font-weight: 500;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-time-separator {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .vw-total-time {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
 }
 
 /* ==========================================================================
@@ -7697,10 +7694,10 @@
     right: 10px;
     width: 320px;
     max-height: 400px;
-    background: rgba(20, 20, 30, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.75rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     z-index: 200;
     display: flex;
     flex-direction: column;
@@ -7712,14 +7709,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-markers-header h3 {
     margin: 0;
     font-size: 0.85rem;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-markers-actions {
@@ -7734,10 +7731,10 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.35rem 0.5rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.7rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -7745,8 +7742,8 @@
 
 .vw-markers-add-btn:hover,
 .vw-markers-export-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.12);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-markers-add-btn svg,
@@ -7769,14 +7766,14 @@
     background: transparent;
     border: none;
     border-radius: 0.25rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-panel-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-panel-close svg {
@@ -7802,7 +7799,7 @@
 }
 
 .vw-marker-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .vw-marker-item.is-selected {
@@ -7827,7 +7824,7 @@
 .vw-marker-name {
     font-size: 0.8rem;
     font-weight: 500;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -7836,17 +7833,17 @@
 .vw-marker-name-input {
     width: 100%;
     padding: 0.25rem 0.5rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(3, 252, 244, 0.4);
     border-radius: 0.25rem;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.8rem;
     outline: none;
 }
 
 .vw-marker-time {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -7881,7 +7878,7 @@
 }
 
 .vw-color-option.is-selected {
-    border-color: white;
+    border-color: var(--vw-text, #1a1a2e);
 }
 
 .vw-marker-edit-btn,
@@ -7891,17 +7888,17 @@
     justify-content: center;
     width: 22px;
     height: 22px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.04);
     border: none;
     border-radius: 0.25rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-marker-edit-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-marker-delete-btn:hover {
@@ -7923,7 +7920,7 @@
     justify-content: center;
     padding: 2rem 1rem;
     text-align: center;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .vw-markers-empty svg {
@@ -7936,7 +7933,7 @@
 .vw-markers-empty p {
     margin: 0 0 0.35rem;
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-markers-empty span {
@@ -7950,7 +7947,7 @@
     justify-content: center;
     gap: 0.75rem;
     padding: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-markers-nav button {
@@ -7959,17 +7956,17 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .vw-markers-nav button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-markers-nav button svg {
@@ -7979,17 +7976,17 @@
 
 .vw-markers-nav span {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary, rgba(0,0,0,0.5));
 }
 
 /* Marker Context Menu */
 .vw-marker-menu {
     position: fixed;
     min-width: 160px;
-    background: rgba(20, 20, 30, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.5rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     z-index: 300;
     padding: 0.35rem;
 }
@@ -8003,14 +8000,14 @@
     background: transparent;
     border: none;
     border-radius: 0.35rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.1s;
 }
 
 .vw-marker-menu button:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .vw-marker-menu button.vw-danger:hover {
@@ -8025,7 +8022,7 @@
 
 .vw-marker-menu-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.08);
     margin: 0.25rem 0;
 }
 
@@ -8044,10 +8041,10 @@
     left: 10px;
     width: 280px;
     max-height: 450px;
-    background: rgba(20, 20, 30, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.75rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     z-index: 200;
     display: flex;
     flex-direction: column;
@@ -8059,30 +8056,30 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .vw-transitions-header h3 {
     margin: 0;
     font-size: 0.85rem;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 .vw-transitions-categories {
     display: flex;
     gap: 0.25rem;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     overflow-x: auto;
 }
 
 .vw-transitions-categories button {
     padding: 0.3rem 0.6rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.55);
     font-size: 0.7rem;
     white-space: nowrap;
     cursor: pointer;
@@ -8090,7 +8087,7 @@
 }
 
 .vw-transitions-categories button:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.08);
 }
 
 .vw-transitions-categories button.is-active {
@@ -8113,16 +8110,16 @@
     flex-direction: column;
     align-items: center;
     padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.5rem;
     cursor: grab;
     transition: all 0.15s;
 }
 
 .vw-transition-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.12);
 }
 
 .vw-transition-item.is-previewing {
@@ -8227,13 +8224,13 @@
 
 .vw-transition-name {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text, #1a1a2e);
     text-align: center;
 }
 
 .vw-transition-duration {
     font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -8242,20 +8239,20 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .vw-transitions-help svg {
     width: 14px;
     height: 14px;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
 
 .vw-transitions-help span {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 /* ==========================================================================
@@ -8322,7 +8319,7 @@
 .vw-clip-transition svg {
     width: 10px;
     height: 10px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.5);
 }
 
 /* ==========================================================================
@@ -8515,9 +8512,9 @@
 .vw-clip.vw-clip-loading {
     background: linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        rgba(255, 255, 255, 0.05) 100%
+        rgba(0, 0, 0, 0.04) 0%,
+        rgba(0, 0, 0, 0.08) 50%,
+        rgba(0, 0, 0, 0.04) 100%
     );
     background-size: 200% 100%;
     animation: vw-shimmer 1.5s infinite;
@@ -8560,7 +8557,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(0, 0, 0, 0.08);
     border-radius: 50%;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -8582,7 +8579,7 @@
 .vw-swipe-hint svg {
     width: 20px;
     height: 20px;
-    color: white;
+    color: var(--vw-text, #1a1a2e);
 }
 
 /* Tablet responsive improvements */

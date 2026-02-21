@@ -143,14 +143,14 @@ if (typeof window.aiEditCanvas === 'undefined') {
      x-init="initCanvas()"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(236,72,153,0.3); border-radius: 1rem; width: 100%; max-width: 900px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(236,72,153,0.3); border-radius: 1rem; width: 100%; max-width: 900px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
-        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h3 style="margin: 0; color: white; font-size: 1.1rem; font-weight: 600;">{{ __('AI Edit') }}</h3>
-                <p style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Paint over areas you want to change, then describe the edit') }}</p>
+                <h3 style="margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600;">{{ __('AI Edit') }}</h3>
+                <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.8rem;">{{ __('Paint over areas you want to change, then describe the edit') }}</p>
             </div>
-            <button type="button" wire:click="closeAIEditModal" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" wire:click="closeAIEditModal" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Content --}}
@@ -183,23 +183,23 @@ if (typeof window.aiEditCanvas === 'undefined') {
                                     @touchmove.prevent="draw($event)"
                                     @touchend="stopDrawing()"></canvas>
                         @else
-                            <div style="height: 300px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5);">
+                            <div style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--vw-text-secondary);">
                                 {{ __('No image available') }}
                             </div>
                         @endif
                     </div>
 
                     {{-- Brush Controls --}}
-                    <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 0.5rem;">
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.03); border-radius: 0.5rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: rgba(255,255,255,0.6); font-size: 0.75rem;">{{ __('Brush') }}:</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('Brush') }}:</span>
                             <input type="range"
                                    min="10"
                                    max="100"
                                    x-model="brushSize"
                                    wire:model.change="aiEditBrushSize"
                                    style="width: 100px; accent-color: #ec4899;">
-                            <span style="color: white; font-size: 0.75rem; min-width: 35px;" x-text="brushSize + 'px'"></span>
+                            <span style="color: var(--vw-text); font-size: 0.75rem; min-width: 35px;" x-text="brushSize + 'px'"></span>
                         </div>
                         <button type="button"
                                 @click="clearMask()"
@@ -208,7 +208,7 @@ if (typeof window.aiEditCanvas === 'undefined') {
                         </button>
                         <div style="margin-left: auto; display: flex; align-items: center; gap: 0.35rem;">
                             <div style="width: 12px; height: 12px; background: rgba(236,72,153,0.5); border-radius: 50%;"></div>
-                            <span style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">{{ __('Painted area will be edited') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.7rem;">{{ __('Painted area will be edited') }}</span>
                         </div>
                     </div>
                 </div>
@@ -217,15 +217,15 @@ if (typeof window.aiEditCanvas === 'undefined') {
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
                     {{-- Edit Prompt --}}
                     <div>
-                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 0.5rem;">{{ __('What do you want to change?') }}</label>
+                        <label style="display: block; color: var(--vw-text); font-size: 0.85rem; margin-bottom: 0.5rem;">{{ __('What do you want to change?') }}</label>
                         <textarea wire:model.blur="aiEditPrompt"
                                   placeholder="{{ __('Describe your desired changes...') }}"
-                                  style="width: 100%; height: 100px; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem; resize: none;"></textarea>
+                                  style="width: 100%; height: 100px; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.85rem; resize: none;"></textarea>
                     </div>
 
                     {{-- Quick Suggestions --}}
                     <div>
-                        <label style="display: block; color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Quick Edits') }}</label>
+                        <label style="display: block; color: var(--vw-text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">{{ __('Quick Edits') }}</label>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
                             @foreach([
                                 'Remove object',
@@ -239,7 +239,7 @@ if (typeof window.aiEditCanvas === 'undefined') {
                             ] as $suggestion)
                                 <button type="button"
                                         wire:click="$set('aiEditPrompt', '{{ $suggestion }}')"
-                                        style="padding: 0.3rem 0.6rem; background: rgba(3,252,244,0.1); border: 1px solid rgba(3,252,244,0.3); border-radius: 0.25rem; color: rgba(255,255,255,0.7); font-size: 0.7rem; cursor: pointer;">
+                                        style="padding: 0.3rem 0.6rem; background: rgba(3,252,244,0.1); border: 1px solid rgba(3,252,244,0.3); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.7rem; cursor: pointer;">
                                     {{ __($suggestion) }}
                                 </button>
                             @endforeach
@@ -249,7 +249,7 @@ if (typeof window.aiEditCanvas === 'undefined') {
                     {{-- Tips --}}
                     <div style="background: rgba(236,72,153,0.08); border: 1px solid rgba(236,72,153,0.2); border-radius: 0.5rem; padding: 0.75rem;">
                         <div style="color: #f472b6; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.35rem;">{{ __('Tips') }}</div>
-                        <ul style="color: rgba(255,255,255,0.6); font-size: 0.7rem; margin: 0; padding-left: 1rem; line-height: 1.5;">
+                        <ul style="color: var(--vw-text-secondary); font-size: 0.7rem; margin: 0; padding-left: 1rem; line-height: 1.5;">
                             <li>{{ __('Paint over the exact area you want to change') }}</li>
                             <li>{{ __('Be specific in your description') }}</li>
                             <li>{{ __('Use "remove" to delete objects') }}</li>
@@ -270,10 +270,10 @@ if (typeof window.aiEditCanvas === 'undefined') {
         </div>
 
         {{-- Footer --}}
-        <div style="padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <button type="button"
                     wire:click="closeAIEditModal"
-                    style="padding: 0.6rem 1rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer;">
+                    style="padding: 0.6rem 1rem; background: transparent; border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); cursor: pointer;">
                 {{ __('Cancel') }}
             </button>
             <button type="button"

@@ -129,23 +129,24 @@
 .sfc-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000400; /* Popup-within-modal layer */
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
 }
 
 .sfc-modal {
-    background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px);
     border-radius: 1rem;
     max-width: 900px;
     width: 95%;
     max-height: 90vh;
     overflow: hidden;
-    border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3), 0 0 40px rgba(var(--vw-primary-rgb), 0.06);
+    border: 1px solid var(--vw-border);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.12), 0 0 40px rgba(var(--vw-primary-rgb), 0.04);
 }
 
 .sfc-header {
@@ -154,7 +155,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .sfc-title {
@@ -230,7 +231,7 @@
 .sfc-image-frame {
     position: relative;
     aspect-ratio: 16 / 9;
-    background: #0d0d14;
+    background: #f1f5f9;
     border-radius: 0.75rem;
     overflow: hidden;
     border: 1px solid var(--vw-border);
@@ -407,7 +408,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .sfc-btn {
@@ -426,8 +427,8 @@
 }
 
 .sfc-btn-secondary {
-    background: var(--vw-border);
-    color: #d1d5db;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--vw-text-secondary);
 }
 
 .sfc-btn-secondary:hover:not(:disabled) {

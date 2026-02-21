@@ -844,49 +844,49 @@
 
     {{-- Detection Summary Panel (Phase 1.5) --}}
     @if(!empty($detectionSummary['totalSegments']))
-    <div class="detection-summary-panel mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-        <h4 class="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="detection-summary-panel mt-6 p-4 bg-white/70 rounded-lg border border-base-300">
+        <h4 class="text-sm font-medium text-base-content/70 mb-3 flex items-center gap-2">
+            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Detection Summary
-            <span class="text-xs text-gray-500 ml-auto">Auto-detected from script</span>
+            <span class="text-xs text-base-content/50 ml-auto">Auto-detected from script</span>
         </h4>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {{-- Total Segments --}}
-            <div class="bg-gray-900/50 rounded p-2 text-center">
-                <div class="text-lg font-semibold text-white">{{ $detectionSummary['totalSegments'] ?? 0 }}</div>
-                <div class="text-xs text-gray-400">Segments</div>
+            <div class="bg-base-200/50 rounded p-2 text-center">
+                <div class="text-lg font-semibold text-base-content">{{ $detectionSummary['totalSegments'] ?? 0 }}</div>
+                <div class="text-xs text-base-content/50">Segments</div>
             </div>
 
             {{-- Needs Lip-sync --}}
-            <div class="bg-gray-900/50 rounded p-2 text-center">
-                <div class="text-lg font-semibold text-blue-400">{{ $detectionSummary['needsLipSync'] ?? 0 }}</div>
-                <div class="text-xs text-gray-400">Lip-sync</div>
+            <div class="bg-base-200/50 rounded p-2 text-center">
+                <div class="text-lg font-semibold text-primary">{{ $detectionSummary['needsLipSync'] ?? 0 }}</div>
+                <div class="text-xs text-base-content/50">Lip-sync</div>
             </div>
 
             {{-- Voiceover Only --}}
-            <div class="bg-gray-900/50 rounded p-2 text-center">
-                <div class="text-lg font-semibold text-blue-400">{{ $detectionSummary['voiceoverOnly'] ?? 0 }}</div>
-                <div class="text-xs text-gray-400">Voiceover</div>
+            <div class="bg-base-200/50 rounded p-2 text-center">
+                <div class="text-lg font-semibold text-primary">{{ $detectionSummary['voiceoverOnly'] ?? 0 }}</div>
+                <div class="text-xs text-base-content/50">Voiceover</div>
             </div>
 
             {{-- Duration --}}
-            <div class="bg-gray-900/50 rounded p-2 text-center">
-                <div class="text-lg font-semibold text-green-400">{{ number_format(($detectionSummary['estimatedDuration'] ?? 0) / 60, 1) }}m</div>
-                <div class="text-xs text-gray-400">Est. Duration</div>
+            <div class="bg-base-200/50 rounded p-2 text-center">
+                <div class="text-lg font-semibold text-success">{{ number_format(($detectionSummary['estimatedDuration'] ?? 0) / 60, 1) }}m</div>
+                <div class="text-xs text-base-content/50">Est. Duration</div>
             </div>
         </div>
 
         {{-- Characters Detected --}}
         @if(!empty($detectionSummary['characters']))
-        <div class="border-t border-gray-700 pt-3 mt-3">
-            <div class="text-xs text-gray-400 mb-2">Characters Detected</div>
+        <div class="border-t border-base-300 pt-3 mt-3">
+            <div class="text-xs text-base-content/50 mb-2">Characters Detected</div>
             <div class="flex flex-wrap gap-2">
                 @foreach($detectionSummary['characters'] as $character)
                 <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs
-                    {{ $character['voiceId'] ? 'bg-green-900/30 text-green-400 border border-green-700/50' : 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' }}">
+                    {{ $character['voiceId'] ? 'bg-success/10 text-success border border-success/30' : 'bg-warning/10 text-warning border border-warning/30' }}">
                     <span>{{ $character['name'] }}</span>
                     @if($character['voiceId'])
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -900,22 +900,22 @@
                 </div>
                 @endforeach
             </div>
-            <div class="text-xs text-gray-500 mt-2">
-                <span class="text-green-400">&#9679;</span> Voice assigned
-                <span class="ml-3 text-yellow-400">&#9679;</span> Needs voice in Character Bible
+            <div class="text-xs text-base-content/50 mt-2">
+                <span class="text-success">&#9679;</span> Voice assigned
+                <span class="ml-3 text-warning">&#9679;</span> Needs voice in Character Bible
             </div>
         </div>
         @endif
 
         {{-- Speech Types Breakdown --}}
         @if(!empty($detectionSummary['speechTypes']))
-        <div class="border-t border-gray-700 pt-3 mt-3">
-            <div class="text-xs text-gray-400 mb-2">Speech Types</div>
+        <div class="border-t border-base-300 pt-3 mt-3">
+            <div class="text-xs text-base-content/50 mb-2">Speech Types</div>
             <div class="flex flex-wrap gap-2">
                 @foreach($detectionSummary['speechTypes'] as $type => $count)
-                <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-gray-900/50 text-gray-300">
+                <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-base-200/50 text-base-content/70">
                     <span class="capitalize">{{ $type }}</span>
-                    <span class="text-gray-500">({{ $count }})</span>
+                    <span class="text-base-content/50">({{ $count }})</span>
                 </div>
                 @endforeach
             </div>

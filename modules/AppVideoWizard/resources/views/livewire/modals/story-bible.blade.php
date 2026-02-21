@@ -4,7 +4,7 @@
      wire:key="story-bible-modal"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 0.5rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(251,191,36,0.3); border-radius: 0.75rem; width: 100%; max-width: 1000px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(251,191,36,0.3); border-radius: 0.75rem; width: 100%; max-width: 1000px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
 
         {{-- Header --}}
         <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.05));">
@@ -22,7 +22,7 @@
                 </h3>
                 <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.7rem;">{{ __('The DNA that constrains all video generation - characters, locations, visual style') }}</p>
             </div>
-            <button type="button" wire:click="closeStoryBibleModal" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" wire:click="closeStoryBibleModal" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Error Display --}}
@@ -47,7 +47,7 @@
         @endif
 
         {{-- Tabs --}}
-        <div style="display: flex; gap: 0.25rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); flex-shrink: 0; background: rgba(0,0,0,0.2); overflow-x: auto;">
+        <div style="display: flex; gap: 0.25rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); flex-shrink: 0; background: rgba(0,0,0,0.02); overflow-x: auto;">
             @foreach(['overview' => ['icon' => '📋', 'label' => 'Overview'], 'characters' => ['icon' => '👥', 'label' => 'Characters'], 'locations' => ['icon' => '🏛️', 'label' => 'Locations'], 'style' => ['icon' => '🎨', 'label' => 'Visual Style'], 'cinematography' => ['icon' => '🎬', 'label' => 'Cinematography']] as $tabKey => $tabInfo)
                 <button type="button"
                         wire:click="setStoryBibleTab('{{ $tabKey }}')"
@@ -68,10 +68,10 @@
 
             {{-- Loading Overlay when generating --}}
             @if($storyBible['status'] === 'generating')
-                <div style="position: absolute; inset: 0; background: rgba(20,20,35,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; gap: 1rem;">
+                <div style="position: absolute; inset: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; gap: 1rem;">
                     <div style="width: 48px; height: 48px; border: 3px solid rgba(251,191,36,0.2); border-top-color: #d97706; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                     <div style="text-align: center;">
-                        <div style="color: #fcd34d; font-size: 0.9rem; font-weight: 600;">{{ __('Generating Story Bible...') }}</div>
+                        <div style="color: #d97706; font-size: 0.9rem; font-weight: 600;">{{ __('Generating Story Bible...') }}</div>
                         <div style="color: var(--vw-text-secondary); font-size: 0.7rem; margin-top: 0.25rem;">{{ __('Creating characters, locations, and structure') }}</div>
                     </div>
                 </div>
@@ -88,7 +88,7 @@
                             <input type="text"
                                    wire:model.blur="storyBible.title"
                                    placeholder="{{ __('Video title...') }}"
-                                   style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.85rem;">
+                                   style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.85rem;">
                         </div>
 
                         {{-- Logline --}}
@@ -96,7 +96,7 @@
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Logline') }}</label>
                             <textarea wire:model.blur="storyBible.logline"
                                       placeholder="{{ __('One-sentence summary of your story...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
+                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.8rem; min-height: 60px; resize: vertical;"></textarea>
                         </div>
 
                         {{-- Theme & Tone Row --}}
@@ -106,14 +106,14 @@
                                 <input type="text"
                                        wire:model.blur="storyBible.theme"
                                        placeholder="{{ __('Core message...') }}"
-                                       style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
+                                       style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                             </div>
                             <div>
                                 <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Tone') }}</label>
                                 <input type="text"
                                        wire:model.blur="storyBible.tone"
                                        placeholder="{{ __('Emotional feel...') }}"
-                                       style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
+                                       style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                             </div>
                         </div>
 
@@ -190,7 +190,7 @@
                             @forelse($storyBible['characters'] ?? [] as $charIndex => $char)
                                 <div wire:click="editBibleCharacter({{ $charIndex }})"
                                      style="padding: 0.5rem; background: {{ $editingBibleCharacterIndex === $charIndex ? 'rgba(251,191,36,0.15)' : 'rgba(0,0,0,0.02)' }}; border: 1px solid {{ $editingBibleCharacterIndex === $charIndex ? 'rgba(251,191,36,0.5)' : 'var(--vw-border)' }}; border-radius: 0.375rem; cursor: pointer;">
-                                    <div style="font-weight: 600; color: white; font-size: 0.75rem; margin-bottom: 0.15rem;">{{ $char['name'] ?: __('Unnamed') }}</div>
+                                    <div style="font-weight: 600; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.15rem;">{{ $char['name'] ?: __('Unnamed') }}</div>
                                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                                         <span style="background: rgba(var(--vw-primary-rgb), 0.08); color: var(--vw-text-secondary); padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem;">{{ ucfirst($char['role'] ?? 'supporting') }}</span>
                                         @if(!empty($char['description']))
@@ -222,12 +222,12 @@
                                         <input type="text"
                                                wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.name"
                                                placeholder="{{ __('Full name...') }}"
-                                               style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.8rem;">
+                                               style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.8rem;">
                                     </div>
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Role') }}</label>
                                         <select wire:model.change="storyBible.characters.{{ $editingBibleCharacterIndex }}.role"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
+                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                                             <option value="protagonist">{{ __('Protagonist') }}</option>
                                             <option value="antagonist">{{ __('Antagonist') }}</option>
                                             <option value="supporting">{{ __('Supporting') }}</option>
@@ -244,7 +244,7 @@
                                     </label>
                                     <textarea wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.description"
                                               placeholder="{{ __('Age, gender, ethnicity, build, hair color/style, eye color, distinctive features, typical clothing...') }}"
-                                              style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 80px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 80px; resize: vertical;"></textarea>
                                     <p style="margin: 0.15rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.55rem;">{{ __('Be specific - this description will be used in every image prompt featuring this character') }}</p>
                                 </div>
 
@@ -253,7 +253,7 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Character Arc') }}</label>
                                     <textarea wire:model.blur="storyBible.characters.{{ $editingBibleCharacterIndex }}.arc"
                                               placeholder="{{ __('How does this character change throughout the story?') }}"
-                                              style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
 
                                 {{-- Traits --}}
@@ -274,7 +274,7 @@
                                                x-model="newTrait"
                                                @keydown.enter.prevent="if(newTrait.trim()) { $wire.addBibleCharacterTrait({{ $editingBibleCharacterIndex }}, newTrait.trim()); newTrait = ''; }"
                                                placeholder="{{ __('Add trait...') }}"
-                                               style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                               style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                         <button type="button"
                                                 @click="if(newTrait.trim()) { $wire.addBibleCharacterTrait({{ $editingBibleCharacterIndex }}, newTrait.trim()); newTrait = ''; }"
                                                 style="padding: 0.3rem 0.5rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.6rem; cursor: pointer;">
@@ -318,7 +318,7 @@
                             @forelse($storyBible['locations'] ?? [] as $locIndex => $loc)
                                 <div wire:click="editBibleLocation({{ $locIndex }})"
                                      style="padding: 0.5rem; background: {{ $editingBibleLocationIndex === $locIndex ? 'rgba(6,182,212,0.15)' : 'rgba(0,0,0,0.02)' }}; border: 1px solid {{ $editingBibleLocationIndex === $locIndex ? 'rgba(6,182,212,0.5)' : 'var(--vw-border)' }}; border-radius: 0.375rem; cursor: pointer;">
-                                    <div style="font-weight: 600; color: white; font-size: 0.75rem; margin-bottom: 0.15rem;">{{ $loc['name'] ?: __('Unnamed') }}</div>
+                                    <div style="font-weight: 600; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.15rem;">{{ $loc['name'] ?: __('Unnamed') }}</div>
                                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                                         <span style="background: rgba(6,182,212,0.2); color: #0891b2; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem;">{{ ucfirst($loc['type'] ?? 'interior') }}</span>
                                         <span style="background: rgba(251,191,36,0.2); color: #fcd34d; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.55rem;">{{ $loc['timeOfDay'] ?? 'day' }}</span>
@@ -347,7 +347,7 @@
                                     <input type="text"
                                            wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.name"
                                            placeholder="{{ __('e.g., Corporate Office, Beach at Sunset...') }}"
-                                           style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.8rem;">
+                                           style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.8rem;">
                                 </div>
 
                                 {{-- Type & Time of Day --}}
@@ -355,7 +355,7 @@
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
                                         <select wire:model.change="storyBible.locations.{{ $editingBibleLocationIndex }}.type"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
+                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.7rem;">
                                             <option value="interior">{{ __('Interior') }}</option>
                                             <option value="exterior">{{ __('Exterior') }}</option>
                                             <option value="abstract">{{ __('Abstract') }}</option>
@@ -364,7 +364,7 @@
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Time of Day') }}</label>
                                         <select wire:model.change="storyBible.locations.{{ $editingBibleLocationIndex }}.timeOfDay"
-                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
+                                                style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.7rem;">
                                             <option value="day">{{ __('Day') }}</option>
                                             <option value="night">{{ __('Night') }}</option>
                                             <option value="dawn">{{ __('Dawn') }}</option>
@@ -377,7 +377,7 @@
                                         <input type="text"
                                                wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.atmosphere"
                                                placeholder="{{ __('tense, peaceful...') }}"
-                                               style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.7rem;">
+                                               style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.7rem;">
                                     </div>
                                 </div>
 
@@ -389,7 +389,7 @@
                                     </label>
                                     <textarea wire:model.blur="storyBible.locations.{{ $editingBibleLocationIndex }}.description"
                                               placeholder="{{ __('Architecture, materials, colors, key objects, textures, lighting conditions...') }}"
-                                              style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 100px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 100px; resize: vertical;"></textarea>
                                     <p style="margin: 0.15rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.55rem;">{{ __('Be specific - this description will be used in every image prompt set in this location') }}</p>
                                 </div>
 
@@ -424,7 +424,7 @@
                                 <button type="button"
                                         wire:click="$set('storyBible.visualStyle.mode', '{{ $mode }}')"
                                         style="padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; text-align: center; border: 2px solid {{ ($storyBible['visualStyle']['mode'] ?? 'cinematic-realistic') === $mode ? 'rgba(236,72,153,0.6)' : 'var(--vw-border)' }}; background: {{ ($storyBible['visualStyle']['mode'] ?? 'cinematic-realistic') === $mode ? 'rgba(236,72,153,0.15)' : 'rgba(0,0,0,0.02)' }};">
-                                    <div style="font-weight: 600; color: {{ ($storyBible['visualStyle']['mode'] ?? 'cinematic-realistic') === $mode ? '#be185d' : 'white' }}; font-size: 0.8rem; margin-bottom: 0.25rem;">{{ $info['label'] }}</div>
+                                    <div style="font-weight: 600; color: {{ ($storyBible['visualStyle']['mode'] ?? 'cinematic-realistic') === $mode ? '#be185d' : 'var(--vw-text)' }}; font-size: 0.8rem; margin-bottom: 0.25rem;">{{ $info['label'] }}</div>
                                     <div style="color: var(--vw-text-secondary); font-size: 0.65rem;">{{ $info['desc'] }}</div>
                                 </button>
                             @endforeach
@@ -437,13 +437,13 @@
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Color Palette') }}</label>
                             <textarea wire:model.blur="storyBible.visualStyle.colorPalette"
                                       placeholder="{{ __('e.g., Cool blues with warm amber accents, desaturated earth tones...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
+                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Lighting Style') }}</label>
                             <textarea wire:model.blur="storyBible.visualStyle.lighting"
                                       placeholder="{{ __('e.g., Natural window light with dramatic shadows, soft diffused studio lighting...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
+                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                     </div>
 
@@ -453,13 +453,13 @@
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Camera Language') }}</label>
                             <textarea wire:model.blur="storyBible.visualStyle.cameraLanguage"
                                       placeholder="{{ __('e.g., Steady handheld, smooth dolly movements, intimate close-ups...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
+                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.25rem; text-transform: uppercase;">{{ __('Visual References') }}</label>
                             <textarea wire:model.blur="storyBible.visualStyle.references"
                                       placeholder="{{ __('e.g., Blade Runner meets The Social Network, Pixar style with moody lighting...') }}"
-                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
+                                      style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; min-height: 70px; resize: vertical;"></textarea>
                         </div>
                     </div>
 
@@ -505,7 +505,7 @@
                     {{-- Auto-Detect Toggle --}}
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(0,0,0,0.03); border-radius: 0.5rem;">
                         <div>
-                            <div style="color: white; font-weight: 600; font-size: 0.85rem;">{{ __('Auto-Detect Patterns') }}</div>
+                            <div style="color: var(--vw-text); font-weight: 600; font-size: 0.85rem;">{{ __('Auto-Detect Patterns') }}</div>
                             <div style="color: var(--vw-text-secondary); font-size: 0.7rem;">{{ __('AI automatically detects which patterns to use based on scene content') }}</div>
                         </div>
                         <label style="position: relative; display: inline-block; width: 44px; height: 24px;">
@@ -546,7 +546,7 @@
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Min Shot Variety:') }}</span>
                                 <input type="number" wire:model.blur="storyBible.cinematography.globalRules.minShotVariety"
                                        min="2" max="6" value="{{ $globalRules['minShotVariety'] ?? 3 }}"
-                                       style="width: 50px; padding: 0.25rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.75rem; text-align: center;">
+                                       style="width: 50px; padding: 0.25rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.75rem; text-align: center;">
                             </div>
                         </div>
                     </div>
@@ -558,7 +558,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Default Pattern:') }}</span>
                                 <select wire:model.live="storyBible.cinematography.dialogueSettings.defaultPattern"
-                                        style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
+                                        style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                                     <option value="shot_reverse_shot">{{ __('Shot/Reverse Shot (Standard)') }}</option>
                                     <option value="over_shoulder">{{ __('Over-the-Shoulder') }}</option>
                                     <option value="two_shot">{{ __('Two-Shot Coverage') }}</option>
@@ -587,7 +587,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                                 <span style="color: var(--vw-text); font-size: 0.75rem;">{{ __('Default Pattern:') }}</span>
                                 <select wire:model.live="storyBible.cinematography.actionSettings.defaultPattern"
-                                        style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem;">
+                                        style="flex: 1; padding: 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem;">
                                     <option value="action_reaction">{{ __('Action/Reaction (Standard)') }}</option>
                                     <option value="object_reveal">{{ __('Object Reveal (Amulet Pattern)') }}</option>
                                     <option value="chase_sequence">{{ __('Chase Sequence') }}</option>
@@ -612,7 +612,7 @@
                     {{-- Available Patterns Preview --}}
                     <div>
                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.65rem; margin-bottom: 0.5rem; text-transform: uppercase;">{{ __('Available Cinematic Patterns') }} <span style="color: var(--vw-text-secondary);">(33 patterns)</span></label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-height: 200px; overflow-y: auto; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-height: 200px; overflow-y: auto; padding: 0.5rem; background: rgba(0,0,0,0.02); border-radius: 0.5rem;">
                             @php
                                 $patternCategories = [
                                     'Dialogue' => ['shot_reverse_shot', 'over_shoulder', 'two_shot', 'interview_coverage'],
@@ -638,7 +638,7 @@
         </div>
 
         {{-- Footer --}}
-        <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(0,0,0,0.2);">
+        <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(0,0,0,0.02);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 @if($storyBible['status'] === 'ready')
                     <span style="color: #10b981; font-size: 0.7rem;">

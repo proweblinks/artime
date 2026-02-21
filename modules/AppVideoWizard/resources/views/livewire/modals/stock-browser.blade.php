@@ -79,25 +79,25 @@ class="vw-modal-overlay"
 style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
          @click.away="close()"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(3,252,244,0.3); border-radius: 1rem; width: 100%; max-width: 950px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(3,252,244,0.3); border-radius: 1rem; width: 100%; max-width: 950px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
-        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h3 style="margin: 0; color: white; font-size: 1.1rem; font-weight: 600;">📷 {{ __('Stock Media Browser') }}</h3>
-                <p style="margin: 0.25rem 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.8rem;">{{ __('Free royalty-free media from Pexels') }}</p>
+                <h3 style="margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600;">📷 {{ __('Stock Media Browser') }}</h3>
+                <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.8rem;">{{ __('Free royalty-free media from Pexels') }}</p>
             </div>
-            <button type="button" @click="close()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" @click="close()" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Search Bar --}}
-        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border);">
             <div style="display: flex; gap: 0.5rem;">
                 <input type="text"
                        x-model="searchQuery"
                        @keydown.enter="search()"
                        placeholder="{{ __('Search for images or videos...') }}"
-                       style="flex: 1; padding: 0.75rem 1rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.9rem;">
-                <select x-model="mediaType" style="padding: 0.75rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.5rem; color: white; font-size: 0.85rem;">
+                       style="flex: 1; padding: 0.75rem 1rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.9rem;">
+                <select x-model="mediaType" style="padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.85rem;">
                     <option value="image">📷 {{ __('Images') }}</option>
                     <option value="video">🎬 {{ __('Videos') }}</option>
                 </select>
@@ -109,7 +109,7 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
         </div>
 
         {{-- AI Suggestions Section --}}
-        <div style="padding: 0.6rem 1.25rem; background: rgba(3, 252, 244, 0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="padding: 0.6rem 1.25rem; background: rgba(3, 252, 244, 0.05); border-bottom: 1px solid var(--vw-border);">
             {{-- Loading State --}}
             <template x-if="loadingAiSuggestions">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -128,14 +128,14 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
                         {{-- Primary Suggestion --}}
                         <button type="button"
                                 @click="applySuggestion(suggestedQuery)"
-                                style="padding: 0.3rem 0.6rem; background: linear-gradient(135deg, rgba(3,252,244,0.4), rgba(236,72,153,0.3)); border: 1px solid rgba(3,252,244,0.5); border-radius: 1rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
+                                style="padding: 0.3rem 0.6rem; background: linear-gradient(135deg, rgba(3,252,244,0.4), rgba(236,72,153,0.3)); border: 1px solid rgba(3,252,244,0.5); border-radius: 1rem; color: var(--vw-text); cursor: pointer; font-size: 0.75rem; font-weight: 500;">
                             ✨ <span x-text="suggestedQuery"></span>
                         </button>
                         {{-- Alternative Suggestions --}}
                         <template x-for="query in alternativeQueries" :key="query">
                             <button type="button"
                                     @click="applySuggestion(query)"
-                                    style="padding: 0.3rem 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 1rem; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 0.7rem;"
+                                    style="padding: 0.3rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 1rem; color: var(--vw-text-secondary); cursor: pointer; font-size: 0.7rem;"
                                     x-text="query">
                             </button>
                         </template>
@@ -147,13 +147,13 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
             <template x-if="!loadingAiSuggestions && !suggestedQuery">
                 <div>
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
-                        <span style="color: rgba(255,255,255,0.6); font-size: 0.7rem;">🏷️ {{ __('Quick Search') }}:</span>
+                        <span style="color: var(--vw-text-secondary); font-size: 0.7rem;">🏷️ {{ __('Quick Search') }}:</span>
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
                         @foreach(['nature', 'business', 'technology', 'people', 'abstract', 'city', 'office', 'lifestyle'] as $tag)
                             <button type="button"
                                     @click="applySuggestion('{{ $tag }}')"
-                                    style="padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 1rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.7rem;">
+                                    style="padding: 0.25rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 1rem; color: var(--vw-text-secondary); cursor: pointer; font-size: 0.7rem;">
                                 {{ ucfirst(__($tag)) }}
                             </button>
                         @endforeach
@@ -166,7 +166,7 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
         <div style="flex: 1; overflow-y: auto; padding: 1rem 1.25rem;">
             {{-- Searching State --}}
             <template x-if="isSearching && results.length === 0">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: rgba(255,255,255,0.6); gap: 1rem;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: var(--vw-text-secondary); gap: 1rem;">
                     <div style="width: 2rem; height: 2rem; border: 3px solid rgba(3,252,244,0.3); border-top-color: #03fcf4; border-radius: 50%; animation: vw-spin 0.8s linear infinite;"></div>
                     <span>{{ __('Searching...') }}</span>
                 </div>
@@ -174,7 +174,7 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
 
             {{-- No Results State --}}
             <template x-if="!isSearching && results.length === 0 && searchQuery">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: rgba(255,255,255,0.6); gap: 1rem;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: var(--vw-text-secondary); gap: 1rem;">
                     <span style="font-size: 3rem;">🔍</span>
                     <p>{{ __('No results found. Try a different search term.') }}</p>
                 </div>
@@ -182,7 +182,7 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
 
             {{-- Initial State --}}
             <template x-if="!isSearching && results.length === 0 && !searchQuery">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: rgba(255,255,255,0.5); gap: 1rem;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: var(--vw-text-secondary); gap: 1rem;">
                     <span style="font-size: 4rem;">📷</span>
                     <p style="font-size: 1rem;">{{ __('Search for stock media') }}</p>
                     <p style="font-size: 0.8rem;">{{ __('Use AI suggestions or enter your own search term') }}</p>
@@ -193,10 +193,10 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
             <div x-show="results.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
                 <template x-for="media in results" :key="media.id">
                     <div @click="selectMedia(media)"
-                         style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; overflow: hidden; cursor: pointer; transition: all 0.2s;"
+                         style="background: rgba(0,0,0,0.02); border: 1px solid var(--vw-border); border-radius: 0.5rem; overflow: hidden; cursor: pointer; transition: all 0.2s;"
                          :style="{ 'border-color': media.selected ? '#03fcf4' : '' }"
                          onmouseover="this.style.borderColor='rgba(3,252,244,0.5)'; this.style.transform='translateY(-2px)'"
-                         onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.transform='none'">
+                         onmouseout="this.style.borderColor=''; this.style.transform='none'">
                         <div style="position: relative; aspect-ratio: 16/10; background: rgba(0,0,0,0.3);">
                             <img :src="media.thumbnail || media.preview" :alt="media.id" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
                             {{-- Video Duration Badge --}}
@@ -210,8 +210,8 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
                             <div style="position: absolute; top: 0.35rem; left: 0.35rem; background: rgba(0,0,0,0.7); color: white; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.6rem; text-transform: uppercase;" x-text="media.source"></div>
                         </div>
                         <div style="padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 0.65rem; color: rgba(255,255,255,0.5); text-transform: capitalize;" x-text="media.type"></span>
-                            <span style="font-size: 0.65rem; color: rgba(255,255,255,0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px;" x-text="'by ' + media.author"></span>
+                            <span style="font-size: 0.65rem; color: var(--vw-text-secondary); text-transform: capitalize;" x-text="media.type"></span>
+                            <span style="font-size: 0.65rem; color: var(--vw-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px;" x-text="'by ' + media.author"></span>
                         </div>
                     </div>
                 </template>
@@ -219,14 +219,14 @@ style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; a
         </div>
 
         {{-- Footer with Attribution --}}
-        <div style="padding: 0.75rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-            <div style="color: rgba(255,255,255,0.4); font-size: 0.7rem;">
+        <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="color: var(--vw-text-secondary); font-size: 0.7rem;">
                 {{ __('Photos and videos provided by') }}
                 <a href="https://www.pexels.com" target="_blank" style="color: #06b6d4; text-decoration: none;">Pexels</a>
             </div>
             <button type="button"
                     @click="close()"
-                    style="padding: 0.5rem 1rem; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 0.85rem;">
+                    style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text-secondary); cursor: pointer; font-size: 0.85rem;">
                 {{ __('Close') }}
             </button>
         </div>

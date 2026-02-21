@@ -5,7 +5,7 @@
      wire:key="location-bible-modal-child"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 0.5rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
@@ -21,7 +21,7 @@
                         <span style="background: var(--vw-border); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-size: 0.55rem;">{{ count($storyBible['locations']) }}</span>
                     </button>
                 @endif
-                <button type="button" wire:click="closeModal" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+                <button type="button" wire:click="closeModal" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
             </div>
         </div>
 
@@ -111,7 +111,7 @@
                                     @endif
                                 </div>
                                 <div style="flex: 1; min-width: 0;">
-                                    <div style="color: white; font-size: 0.7rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $location['name'] ?? __('Unnamed') }}</div>
+                                    <div style="color: var(--vw-text); font-size: 0.7rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $location['name'] ?? __('Unnamed') }}</div>
                                     <div style="color: var(--vw-text-secondary); font-size: 0.55rem;">{{ ucfirst($location['type'] ?? 'exterior') }} - {{ ucfirst($location['timeOfDay'] ?? 'day') }}</div>
                                     @if(!empty($location['referenceImage']))
                                         <div style="color: #10b981; font-size: 0.5rem;">{{ __('Reference') }}</div>
@@ -137,7 +137,7 @@
                             {{-- Reference Image Preview --}}
                             <div style="width: 170px; flex-shrink: 0;">
                                 <label style="display: block; color: var(--vw-text); font-size: 0.65rem; margin-bottom: 0.25rem;">{{ __('Reference Image') }}</label>
-                                <div style="width: 170px; height: 100px; background: rgba(0,0,0,0.3); border: 1px dashed rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                                <div style="width: 170px; height: 100px; background: rgba(0,0,0,0.05); border: 1px dashed rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
                                     @if(!empty($currentLocation['referenceImage']))
                                         <img src="{{ $currentLocation['referenceImage'] }}" style="width: 100%; height: 100%; object-fit: cover;">
                                         <button type="button"
@@ -197,19 +197,19 @@
                                     <input type="text"
                                            wire:model.blur="locationBible.locations.{{ $editIndex }}.name"
                                            placeholder="{{ __('e.g., Downtown Office, Forest Clearing...') }}"
-                                           style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.3rem; color: white; font-size: 0.8rem;">
+                                           style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.3rem; color: var(--vw-text); font-size: 0.8rem;">
                                 </div>
 
                                 {{-- Quick Templates --}}
                                 <div style="margin-bottom: 0.4rem;">
                                     <div style="font-size: 0.55rem; color: var(--vw-text-secondary); margin-bottom: 0.15rem;">{{ __('Quick Templates') }}</div>
                                     <div style="display: flex; gap: 0.2rem; flex-wrap: wrap;">
-                                        <button type="button" wire:click="applyLocationTemplate('urban-night')" style="padding: 0.15rem 0.3rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Urban Night') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('forest')" style="padding: 0.15rem 0.3rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Forest') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('tech-lab')" style="padding: 0.15rem 0.3rem; background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Tech Lab') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('desert')" style="padding: 0.15rem 0.3rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Desert') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('industrial')" style="padding: 0.15rem 0.3rem; background: rgba(107, 114, 128, 0.3); border: 1px solid rgba(107, 114, 128, 0.5); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Industrial') }}</button>
-                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.15rem 0.3rem; background: rgba(3, 252, 244, 0.2); border: 1px solid rgba(3, 252, 244, 0.4); border-radius: 0.15rem; color: white; font-size: 0.5rem; cursor: pointer;">{{ __('Space') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('urban-night')" style="padding: 0.15rem 0.3rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Urban Night') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('forest')" style="padding: 0.15rem 0.3rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Forest') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('tech-lab')" style="padding: 0.15rem 0.3rem; background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Tech Lab') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('desert')" style="padding: 0.15rem 0.3rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Desert') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('industrial')" style="padding: 0.15rem 0.3rem; background: rgba(107, 114, 128, 0.3); border: 1px solid rgba(107, 114, 128, 0.5); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Industrial') }}</button>
+                                        <button type="button" wire:click="applyLocationTemplate('space')" style="padding: 0.15rem 0.3rem; background: rgba(3, 252, 244, 0.2); border: 1px solid rgba(3, 252, 244, 0.4); border-radius: 0.15rem; color: var(--vw-text); font-size: 0.5rem; cursor: pointer;">{{ __('Space') }}</button>
                                     </div>
                                 </div>
 
@@ -218,7 +218,7 @@
                                     <div style="flex: 1;">
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Type') }}</label>
                                         <select wire:model.change="locationBible.locations.{{ $editIndex }}.type"
-                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="exterior">{{ __('Exterior') }}</option>
                                             <option value="interior">{{ __('Interior') }}</option>
                                             <option value="abstract">{{ __('Abstract') }}</option>
@@ -227,7 +227,7 @@
                                     <div style="flex: 1;">
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Time of Day') }}</label>
                                         <select wire:model.change="locationBible.locations.{{ $editIndex }}.timeOfDay"
-                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="day">{{ __('Day') }}</option>
                                             <option value="night">{{ __('Night') }}</option>
                                             <option value="dawn">{{ __('Dawn') }}</option>
@@ -238,7 +238,7 @@
                                     <div style="flex: 1;">
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Weather') }}</label>
                                         <select wire:model.change="locationBible.locations.{{ $editIndex }}.weather"
-                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="clear">{{ __('Clear') }}</option>
                                             <option value="cloudy">{{ __('Cloudy') }}</option>
                                             <option value="rainy">{{ __('Rainy') }}</option>
@@ -253,7 +253,7 @@
                                 <div style="margin-bottom: 0.4rem;">
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Mood / Atmosphere') }}</label>
                                     <select wire:model.change="locationBible.locations.{{ $editIndex }}.mood"
-                                            style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                            style="width: 100%; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                         <option value="neutral">{{ __('Neutral') }}</option>
                                         <option value="tense">{{ __('Tense / Dramatic') }}</option>
                                         <option value="peaceful">{{ __('Peaceful / Serene') }}</option>
@@ -269,7 +269,7 @@
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.1rem;">{{ __('Visual Description') }}</label>
                             <textarea wire:model.blur="locationBible.locations.{{ $editIndex }}.description"
                                       placeholder="{{ __('Describe the environment in detail: architecture, colors, textures, key elements...') }}"
-                                      style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.3rem; color: white; font-size: 0.7rem; min-height: 45px; resize: none;"></textarea>
+                                      style="width: 100%; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.3rem; color: var(--vw-text); font-size: 0.7rem; min-height: 45px; resize: none;"></textarea>
                         </div>
 
                         {{-- Lighting Style --}}
@@ -278,7 +278,7 @@
                             <input type="text"
                                    wire:model.blur="locationBible.locations.{{ $editIndex }}.lightingStyle"
                                    placeholder="{{ __('e.g., Neon signs with wet surface reflections, dramatic rim lighting') }}"
-                                   style="width: 100%; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                   style="width: 100%; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                         </div>
 
                         {{-- Scene Assignment --}}
@@ -380,7 +380,7 @@
                                 @if($hasAssignedScenes)
                                     <div style="display: flex; gap: 0.35rem; margin-bottom: 0.5rem;">
                                         <select x-model="newStateScene"
-                                                style="width: 70px; padding: 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem;">
+                                                style="width: 70px; padding: 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem;">
                                             <option value="">{{ __('Scene') }}</option>
                                             @foreach($assignedScenes as $sceneIdx)
                                                 <option value="{{ $sceneIdx }}">S{{ $sceneIdx + 1 }}</option>
@@ -390,7 +390,7 @@
                                                x-model="newStateText"
                                                @keydown.enter.prevent="if(newStateScene !== '' && newStateText.trim()) { $wire.addLocationState({{ $editIndex }}, parseInt(newStateScene), newStateText.trim()); newStateScene = ''; newStateText = ''; }"
                                                placeholder="{{ __('State description (e.g., damaged, foggy)') }}"
-                                               style="flex: 1; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem;">
+                                               style="flex: 1; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem;">
                                         <button type="button"
                                                 @click="if(newStateScene !== '' && newStateText.trim()) { $wire.addLocationState({{ $editIndex }}, parseInt(newStateScene), newStateText.trim()); newStateScene = ''; newStateText = ''; }"
                                                 style="padding: 0.35rem 0.5rem; background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); border-radius: 0.35rem; color: #fcd34d; font-size: 0.65rem; cursor: pointer;">

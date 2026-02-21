@@ -15,7 +15,7 @@
         .vw-scene-inspector-modal > div:last-child {
             position: sticky;
             bottom: 0;
-            background: rgba(20,20,35,0.98);
+            background: #ffffff;
             border-top: 1px solid var(--vw-border);
             padding: 0.75rem 1rem;
         }
@@ -84,7 +84,7 @@
              window.scrollTo(0, $data.scrollY);
              $wire.closeSceneTextInspector();
          "
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 920px; max-height: 96vh; max-height: 100dvh; display: flex; flex-direction: column; overflow: hidden;">
 
         {{-- Header --}}
         <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
@@ -109,7 +109,7 @@
                         window.scrollTo(0, $data.scrollY);
                         $wire.closeSceneTextInspector();
                     "
-                    style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                    style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;">&times;</button>
         </div>
 
         {{-- Content --}}
@@ -424,7 +424,7 @@
                                 <div style="padding: 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.08); border-radius: 0.5rem;">
                                     {{-- Shot Header with badges (PRMT-05, PRMT-06) --}}
                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--vw-border);">
-                                        <span style="font-size: 0.75rem; font-weight: 600; color: white;">Shot {{ $shotIndex + 1 }}</span>
+                                        <span style="font-size: 0.75rem; font-weight: 600; color: var(--vw-text);">Shot {{ $shotIndex + 1 }}</span>
 
                                         {{-- Shot Type Badge (PRMT-05) --}}
                                         <span style="font-size: 0.6rem; font-weight: 600; color: #a5b4fc; padding: 0.15rem 0.4rem; background: rgba(99,102,241,0.3); border-radius: 0.25rem; border: 1px solid rgba(99,102,241,0.4);">
@@ -474,7 +474,7 @@
                                                     <span x-show="copied" style="color: #10b981;">Copied!</span>
                                                 </button>
                                             </div>
-                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.04); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                                 {{ $imagePrompt }}
                                             </div>
                                         </div>
@@ -516,7 +516,7 @@
                                                     <span x-show="copied" style="color: #10b981;">Copied!</span>
                                                 </button>
                                             </div>
-                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                            <div style="font-size: 0.75rem; color: var(--vw-text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.04); padding: 0.5rem; border-radius: 0.25rem; max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
                                                 {{ $videoPrompt }}
                                             </div>
                                         </div>
@@ -555,7 +555,7 @@
                         window.scrollTo(0, $data.scrollY);
                         $wire.closeSceneTextInspector();
                     "
-                    style="padding: 0.75rem 1.5rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: white; font-size: 0.75rem; cursor: pointer; min-width: 48px; min-height: 48px; touch-action: manipulation;">
+                    style="padding: 0.75rem 1.5rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.375rem; color: var(--vw-text); font-size: 0.75rem; cursor: pointer; min-width: 48px; min-height: 48px; touch-action: manipulation;">
                 {{ __('Close') }}
             </button>
         </div>

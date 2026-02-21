@@ -1712,8 +1712,8 @@
 
     .vw-scene-empty.has-bg-image::before {
         background: linear-gradient(135deg,
-            rgba(0, 0, 0, 0.6),
-            rgba(15, 15, 30, 0.7));
+            rgba(255, 255, 255, 0.6),
+            rgba(255, 255, 255, 0.7));
         opacity: 1;
     }
 
@@ -3636,8 +3636,8 @@
         inset: 0;
         background: linear-gradient(to bottom,
             transparent 0%,
-            rgba(15, 15, 28, 0.5) 50%,
-            rgba(15, 15, 28, 1) 100%
+            rgba(255, 255, 255, 0.5) 50%,
+            rgba(255, 255, 255, 1) 100%
         );
         animation: vw-reveal-scan 2s ease-in-out infinite;
     }

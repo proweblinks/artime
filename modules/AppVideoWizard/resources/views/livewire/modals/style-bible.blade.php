@@ -8,7 +8,7 @@
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 0.5rem;">
     <div class="vw-modal"
          @click.away="isOpen = false"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 780px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 780px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
@@ -23,7 +23,7 @@
                         🔄 {{ __('Sync from Story Bible') }}
                     </button>
                 @endif
-                <button type="button" @click="isOpen = false" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+                <button type="button" @click="isOpen = false" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
             </div>
         </div>
 
@@ -132,7 +132,7 @@
                 <label style="display: block; color: var(--vw-text); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual Style') }}</label>
                 <textarea wire:model.blur="sceneMemory.styleBible.style"
                           placeholder="{{ __('e.g., Photorealistic with cinematic framing, shallow depth of field...') }}"
-                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
             </div>
 
             {{-- Color Grade --}}
@@ -140,7 +140,7 @@
                 <label style="display: block; color: var(--vw-text); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Color Grade') }}</label>
                 <textarea wire:model.blur="sceneMemory.styleBible.colorGrade"
                           placeholder="{{ __('e.g., Teal and orange color grading, lifted blacks, desaturated skin tones...') }}"
-                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
 
             {{-- Atmosphere --}}
@@ -148,7 +148,7 @@
                 <label style="display: block; color: var(--vw-text); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Atmosphere & Mood') }}</label>
                 <textarea wire:model.blur="sceneMemory.styleBible.atmosphere"
                           placeholder="{{ __('e.g., Moody, mysterious, with volumetric lighting and subtle haze...') }}"
-                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
 
             {{-- Camera Language --}}
@@ -156,7 +156,7 @@
                 <label style="display: block; color: var(--vw-text); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Camera Language') }}</label>
                 <textarea wire:model.blur="sceneMemory.styleBible.camera"
                           placeholder="{{ __('e.g., Shot on ARRI Alexa, anamorphic lenses, wide establishing shots...') }}"
-                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
 
             {{-- Visual DNA --}}
@@ -164,7 +164,7 @@
                 <label style="display: block; color: var(--vw-text); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual DNA (Additional Keywords)') }}</label>
                 <textarea wire:model.blur="sceneMemory.styleBible.visualDNA"
                           placeholder="{{ __('e.g., high quality, detailed, professional, 8K resolution, sharp focus...') }}"
-                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 40px; resize: vertical;"></textarea>
             </div>
 
             {{-- Lighting Section (Collapsible) --}}
@@ -173,20 +173,20 @@
                     <span style="color: var(--vw-text); font-size: 0.65rem; font-weight: 500;">💡 {{ __('Lighting Setup') }}</span>
                     <span x-text="open ? '−' : '+'" style="color: var(--vw-text-secondary); font-size: 0.8rem;"></span>
                 </button>
-                <div x-show="open" x-collapse style="padding: 0.5rem; background: rgba(0,0,0,0.2);">
+                <div x-show="open" x-collapse style="padding: 0.5rem; background: rgba(0,0,0,0.02);">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
                         {{-- Setup --}}
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Setup') }}</label>
                             <input type="text" wire:model.blur="sceneMemory.styleBible.lighting.setup"
                                    placeholder="{{ __('e.g., three-point lighting') }}"
-                                   style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                   style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                         </div>
                         {{-- Intensity --}}
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Intensity') }}</label>
                             <select wire:model.change="sceneMemory.styleBible.lighting.intensity"
-                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="high-key">{{ __('High-key (bright)') }}</option>
                                 <option value="normal">{{ __('Normal') }}</option>
@@ -197,7 +197,7 @@
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
                             <select wire:model.change="sceneMemory.styleBible.lighting.type"
-                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="natural">{{ __('Natural') }}</option>
                                 <option value="studio">{{ __('Studio') }}</option>
@@ -209,7 +209,7 @@
                         <div>
                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Mood') }}</label>
                             <select wire:model.change="sceneMemory.styleBible.lighting.mood"
-                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                    style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                 <option value="">{{ __('Select...') }}</option>
                                 <option value="dramatic">{{ __('Dramatic') }}</option>
                                 <option value="soft">{{ __('Soft') }}</option>

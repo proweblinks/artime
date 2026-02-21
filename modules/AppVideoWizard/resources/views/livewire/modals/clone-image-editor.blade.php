@@ -4,7 +4,7 @@
      x-data="{ activeTab: @entangle('cloneImageEditorTab') }"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
 
         {{-- Header --}}
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
@@ -15,7 +15,7 @@
                 </h3>
                 <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.8rem;">{{ __('Edit or reimagine your first frame before creating video') }}</p>
             </div>
-            <button type="button" wire:click="closeCloneImageEditor" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" wire:click="closeCloneImageEditor" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Tab Bar --}}
@@ -40,7 +40,7 @@
         <div style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid rgba(0,0,0,0.04);">
 
             {{-- Image Preview (shared between tabs) --}}
-            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.04);">
+            <div style="position: relative; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.04);">
                 @if(!empty($videoAnalysisResult['firstFrameUrl']))
                     <img src="{{ $videoAnalysisResult['firstFrameUrl'] }}" alt="{{ __('First frame preview') }}"
                          style="width: 100%; max-height: 320px; object-fit: contain; display: block; background: #000;">
@@ -131,7 +131,7 @@
                               wire:model.blur="cloneImageEditPrompt"
                               rows="3"
                               placeholder="{{ __('Describe what you want to change...') }}"
-                              style="width: 100%; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: white; font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
+                              style="width: 100%; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: vertical; outline: none; font-family: inherit;"
                               onfocus="this.style.borderColor='var(--vw-border-focus)'"
                               onblur="this.style.borderColor='var(--vw-border)'"></textarea>
                 </div>
@@ -181,7 +181,7 @@
                                   wire:model.blur="cloneImageEditPrompt"
                                   rows="2"
                                   placeholder="{{ __('Describe a custom style, e.g. "Medieval tapestry", "Neon noir"...') }}"
-                                  style="flex: 1; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: white; font-size: 0.85rem; resize: none; outline: none; font-family: inherit;"
+                                  style="flex: 1; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: var(--vw-text); font-size: 0.85rem; resize: none; outline: none; font-family: inherit;"
                                   onfocus="this.style.borderColor='rgba(236,72,153,0.5)'"
                                   onblur="this.style.borderColor='var(--vw-border)'"></textarea>
                         <button type="button"

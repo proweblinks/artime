@@ -1,13 +1,13 @@
 {{-- Face Correction Panel (shown inside Frame Capture modal) --}}
-<div style="border-top: 1px solid rgba(255,255,255,0.1); padding: 1rem 1.25rem; background: rgba(0,0,0,0.2);">
+<div style="border-top: 1px solid var(--vw-border); padding: 1rem 1.25rem; background: rgba(0,0,0,0.03);">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-        <div style="font-size: 0.9rem; font-weight: 600; color: white; display: flex; align-items: center; gap: 0.5rem;">
+        <div style="font-size: 0.9rem; font-weight: 600; color: var(--vw-text); display: flex; align-items: center; gap: 0.5rem;">
             <span style="font-size: 1.2rem;">🎭</span> {{ __('Fix Character Faces') }}
         </div>
-        <button type="button" wire:click="closeFaceCorrectionPanel" style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1rem;">✕</button>
+        <button type="button" wire:click="closeFaceCorrectionPanel" style="background: none; border: none; color: var(--vw-text-secondary); cursor: pointer; font-size: 1rem;">✕</button>
     </div>
 
-    <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 1rem;">
+    <div style="color: var(--vw-text-secondary); font-size: 0.75rem; margin-bottom: 1rem;">
         {{ __('Select characters whose faces need correction. Their Character Bible portraits will be used as reference.') }}
     </div>
 
@@ -18,17 +18,17 @@
                 $isSelected = in_array($index, $selectedFaceCorrectionCharacters ?? []);
             @endphp
             <div wire:click="toggleFaceCorrectionCharacter({{ $index }})"
-                 style="cursor: pointer; padding: 0.5rem; background: {{ $isSelected ? 'rgba(3, 252, 244, 0.2)' : 'rgba(255,255,255,0.05)' }}; border: 2px solid {{ $isSelected ? 'rgba(3, 252, 244, 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                 style="cursor: pointer; padding: 0.5rem; background: {{ $isSelected ? 'rgba(3, 252, 244, 0.1)' : 'rgba(0,0,0,0.03)' }}; border: 2px solid {{ $isSelected ? 'rgba(3, 252, 244, 0.5)' : 'var(--vw-border)' }}; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
                 @if(!empty($char['referenceImage']))
                     <img src="{{ $char['referenceImage'] }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 0.25rem;">
                 @else
-                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 0.25rem; display: flex; align-items: center; justify-content: center;">
-                        <span style="color: rgba(255,255,255,0.4);">👤</span>
+                    <div style="width: 40px; height: 40px; background: rgba(0,0,0,0.04); border-radius: 0.25rem; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: var(--vw-text-secondary);">👤</span>
                     </div>
                 @endif
                 <div>
-                    <div style="font-size: 0.75rem; font-weight: 600; color: white;">{{ $char['name'] ?? 'Character' }}</div>
-                    <div style="font-size: 0.6rem; color: {{ $isSelected ? 'rgba(3, 252, 244, 0.8)' : 'rgba(255,255,255,0.3)' }};">
+                    <div style="font-size: 0.75rem; font-weight: 600; color: var(--vw-text);">{{ $char['name'] ?? 'Character' }}</div>
+                    <div style="font-size: 0.6rem; color: {{ $isSelected ? 'rgba(3, 252, 244, 0.8)' : 'var(--vw-text-secondary)' }};">
                         {{ $isSelected ? '✓ ' . __('Selected') : __('Click to select') }}
                     </div>
                 </div>
@@ -40,25 +40,25 @@
     @if($faceCorrectionStatus === 'done' || $faceCorrectionStatus === 'processing')
         <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
             <div style="flex: 1;">
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 0.25rem;">{{ __('BEFORE') }}</div>
-                <div style="border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9;">
+                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem;">{{ __('BEFORE') }}</div>
+                <div style="border: 1px solid var(--vw-border); border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9;">
                     @if($capturedFrame)
                         <img src="{{ $capturedFrame }}" style="width: 100%; height: 100%; object-fit: cover;">
                     @endif
                 </div>
             </div>
             <div style="flex: 1;">
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-bottom: 0.25rem;">{{ __('AFTER') }}</div>
-                <div style="border: 1px solid {{ $faceCorrectionStatus === 'done' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3);">
+                <div style="font-size: 0.65rem; color: var(--vw-text-secondary); margin-bottom: 0.25rem;">{{ __('AFTER') }}</div>
+                <div style="border: 1px solid {{ $faceCorrectionStatus === 'done' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(255,255,255,0.2)' }}; border-radius: 0.5rem; overflow: hidden; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.04);">
                     @if($faceCorrectionStatus === 'processing')
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
                             <div style="width: 24px; height: 24px; border: 2px solid rgba(3, 252, 244, 0.3); border-top-color: #03fcf4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                            <span style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">{{ __('Processing...') }}</span>
+                            <span style="color: var(--vw-text-secondary); font-size: 0.7rem;">{{ __('Processing...') }}</span>
                         </div>
                     @elseif($correctedFrameUrl)
                         <img src="{{ $correctedFrameUrl }}" style="width: 100%; height: 100%; object-fit: cover;">
                     @else
-                        <span style="color: rgba(255,255,255,0.3); font-size: 0.75rem;">{{ __('Click "Apply Correction"') }}</span>
+                        <span style="color: var(--vw-text-secondary); font-size: 0.75rem;">{{ __('Click "Apply Correction"') }}</span>
                     @endif
                 </div>
             </div>
@@ -70,7 +70,7 @@
         <div style="margin-bottom: 1rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: rgba(3, 252, 244, 0.1); border-radius: 0.5rem; border: 1px solid rgba(3, 252, 244, 0.3);">
                 <div style="width: 20px; height: 20px; border: 2px solid rgba(3, 252, 244, 0.3); border-top-color: #03fcf4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <div style="color: white; font-size: 0.85rem;">{{ __('Correcting faces with AI...') }}</div>
+                <div style="color: var(--vw-text); font-size: 0.85rem;">{{ __('Correcting faces with AI...') }}</div>
             </div>
         </div>
     @endif
@@ -96,7 +96,7 @@
         <button type="button"
                 wire:click="saveCorrectedFrame"
                 @if(!$correctedFrameUrl || $faceCorrectionStatus !== 'done') disabled @endif
-                style="flex: 1; padding: 0.75rem; background: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(16, 185, 129, 0.2)' }}; border: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'none' : '1px solid rgba(16, 185, 129, 0.3)' }}; border-radius: 0.5rem; color: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'white' : 'rgba(255,255,255,0.5)' }}; font-weight: 600; cursor: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'pointer' : 'not-allowed' }}; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                style="flex: 1; padding: 0.75rem; background: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(16, 185, 129, 0.2)' }}; border: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'none' : '1px solid rgba(16, 185, 129, 0.3)' }}; border-radius: 0.5rem; color: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'white' : 'var(--vw-text-secondary)' }}; font-weight: 600; cursor: {{ $correctedFrameUrl && $faceCorrectionStatus === 'done' ? 'pointer' : 'not-allowed' }}; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
             ✓ {{ __('Save Corrected Frame') }}
         </button>
     </div>

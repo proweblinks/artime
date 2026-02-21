@@ -517,7 +517,7 @@
         display: flex;
         gap: 0.25rem;
         padding: 0.25rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.5rem;
     }
 
@@ -530,7 +530,7 @@
         padding: 0.5rem;
         border: none;
         background: transparent;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         font-weight: 600;
         cursor: pointer;
@@ -539,12 +539,12 @@
     }
 
     .vw-audio-tab-btn:hover {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--vw-text);
     }
 
     .vw-audio-tab-btn.active {
         background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-section-content {
@@ -580,18 +580,18 @@
     .vw-smart-title {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-smart-desc {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-smart-content {
         margin-top: 0.75rem;
         padding-top: 0.75rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-analyze-btn {
@@ -626,8 +626,8 @@
     .vw-spinner {
         width: 14px;
         height: 14px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
+        border: 2px solid rgba(0, 0, 0, 0.15);
+        border-top-color: var(--vw-text);
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
     }
@@ -638,7 +638,7 @@
 
     .vw-smart-hint {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-top: 0.5rem;
         text-align: center;
     }
@@ -646,7 +646,7 @@
     /* Audio Mixer */
     .vw-audio-mixer {
         padding: 0.75rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.5rem;
     }
 
@@ -654,7 +654,7 @@
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.75rem;
     }
 
@@ -680,7 +680,7 @@
     .vw-channel-name {
         flex: 1;
         font-size: 0.8rem;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-channel-value {
@@ -691,7 +691,7 @@
 
     .vw-channel-meter {
         height: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 2px;
         overflow: hidden;
         margin-bottom: 0.35rem;
@@ -715,7 +715,7 @@
         width: 100%;
         height: 6px;
         -webkit-appearance: none;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 3px;
         cursor: pointer;
     }
@@ -746,7 +746,7 @@
         height: 50px;
         padding-top: 0.5rem;
         margin-top: 0.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-visual-bar {
@@ -772,7 +772,7 @@
     /* Ducking Card */
     .vw-ducking-card {
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
@@ -789,19 +789,19 @@
     .vw-ducking-title {
         display: block;
         font-size: 0.8rem;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-ducking-desc {
         display: block;
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-duck-settings {
         margin-top: 0.5rem;
         padding-top: 0.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid var(--vw-border);
     }
 
     /* Voice Section */
@@ -817,12 +817,12 @@
         gap: 0.4rem;
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-voice-control {
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
@@ -834,7 +834,7 @@
 
     .vw-control-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-control-value {
@@ -846,7 +846,7 @@
     /* Processing Card */
     .vw-processing-card {
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
@@ -856,7 +856,7 @@
         gap: 0.4rem;
         font-size: 0.8rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin-bottom: 0.6rem;
     }
 
@@ -865,7 +865,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.4rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
     }
 
     .vw-process-option:last-child {
@@ -879,25 +879,25 @@
 
     .vw-option-name {
         font-size: 0.75rem;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-option-desc {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     /* Voice Presets */
     .vw-voice-presets {
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
     .vw-presets-label {
         font-size: 0.7rem;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.5rem;
     }
 
@@ -909,23 +909,23 @@
     .vw-preset-btn {
         flex: 1;
         padding: 0.5rem;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-preset-btn:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.04);
     }
 
     .vw-preset-btn.active {
         background: rgba(3, 252, 244, 0.2);
         border-color: rgba(3, 252, 244, 0.4);
-        color: white;
+        color: var(--vw-text);
     }
 
     /* Music Toggle */
@@ -934,7 +934,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.5rem;
     }
 
@@ -956,12 +956,12 @@
     .vw-toggle-title {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-toggle-desc {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* Toggle Switch */
@@ -990,7 +990,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.1);
         transition: 0.3s;
         border-radius: 24px;
     }
@@ -1067,20 +1067,20 @@
     .vw-track-name {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-track-artist {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-change-btn {
         padding: 0.4rem 0.6rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border: none;
         border-radius: 0.35rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.7rem;
         cursor: pointer;
     }
@@ -1091,10 +1091,10 @@
         align-items: center;
         gap: 0.5rem;
         padding: 1.5rem;
-        background: rgba(0, 0, 0, 0.2);
-        border: 2px dashed rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.02);
+        border: 2px dashed var(--vw-border);
         border-radius: 0.5rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -1115,7 +1115,7 @@
     /* Music Volume */
     .vw-music-volume {
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
@@ -1127,7 +1127,7 @@
 
     .vw-volume-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-volume-value {
@@ -1140,7 +1140,7 @@
         display: flex;
         justify-content: space-between;
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         margin-top: 0.25rem;
     }
 
@@ -1148,7 +1148,7 @@
         width: 100%;
         height: 6px;
         -webkit-appearance: none;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 3px;
         cursor: pointer;
     }
@@ -1186,15 +1186,15 @@
 
     .vw-fade-item label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-select-sm {
         padding: 0.4rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.75rem;
         cursor: pointer;
     }
@@ -1205,7 +1205,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.5rem 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.03);
         border-radius: 0.4rem;
     }
 
@@ -1221,7 +1221,7 @@
 
     .vw-loop-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text-secondary);
     }
 
     /* Music Browser Overlay */
@@ -1243,8 +1243,8 @@
         width: 90%;
         max-width: 600px;
         max-height: 80vh;
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
-        border: 1px solid rgba(6, 182, 212, 0.3);
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         display: flex;
         flex-direction: column;
@@ -1256,13 +1256,13 @@
         align-items: center;
         justify-content: space-between;
         padding: 1rem 1.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--vw-border);
     }
 
     .vw-browser-header h3 {
         font-size: 1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin: 0;
     }
 
@@ -1271,15 +1271,15 @@
         height: 32px;
         border-radius: 0.5rem;
         border: none;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
         font-size: 1.25rem;
         cursor: pointer;
     }
 
     .vw-browser-filters {
         padding: 0.75rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid var(--vw-border);
     }
 
     .vw-search-box {
@@ -1287,27 +1287,27 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.5rem;
         margin-bottom: 0.75rem;
     }
 
     .vw-search-icon {
         font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     .vw-search-input {
         flex: 1;
         border: none;
         background: transparent;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.85rem;
         outline: none;
     }
 
     .vw-search-input::placeholder {
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     .vw-category-tabs {
@@ -1318,17 +1318,17 @@
 
     .vw-cat-btn {
         padding: 0.35rem 0.6rem;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.7rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-cat-btn:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.04);
     }
 
     .vw-cat-btn.active {
@@ -1348,7 +1348,7 @@
         align-items: center;
         gap: 0.6rem;
         padding: 0.6rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.02);
         border: 1px solid transparent;
         border-radius: 0.5rem;
         margin-bottom: 0.35rem;
@@ -1387,20 +1387,20 @@
     .vw-track-title {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-track-meta {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-track-mood {
         font-size: 0.65rem;
         padding: 0.2rem 0.4rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 0.25rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         text-transform: capitalize;
     }
 
@@ -1419,7 +1419,7 @@
     .vw-no-tracks {
         text-align: center;
         padding: 2rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
     }
 
     .vw-no-tracks span {
@@ -1433,7 +1433,7 @@
         justify-content: flex-end;
         gap: 0.75rem;
         padding: 1rem 1.25rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-btn-secondary,
@@ -1448,8 +1448,8 @@
     }
 
     .vw-btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
     }
 
     .vw-btn-primary {
@@ -1475,7 +1475,7 @@
 
     .vw-setting-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-setting-value {
@@ -1500,7 +1500,7 @@
 
     .vw-tip-text {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text-secondary);
         line-height: 1.4;
     }
 

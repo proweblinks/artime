@@ -80,11 +80,11 @@
      }"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 1000400; padding: 0.5rem; overflow-y: auto;"
      wire:click.self="closeShotPreviewModal">
-    <div style="max-width: 900px; width: 100%; background: linear-gradient(135deg, #1a1a2e, #0f172a); border-radius: 0.75rem; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); overflow: hidden; max-height: 98vh; display: flex; flex-direction: column; margin: auto;">
+    <div style="max-width: 900px; width: 100%; background: #ffffff; border-radius: 0.75rem; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); overflow: hidden; max-height: 98vh; display: flex; flex-direction: column; margin: auto;">
         {{-- Header (compact) --}}
         <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
-                <div style="font-size: 1rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <div style="font-size: 1rem; font-weight: 700; color: var(--vw-text); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                     <span style="background: rgba(var(--vw-primary-rgb), 0.12); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.85rem;">{{ $shotPreviewShotIndex + 1 }}</span>
                     <span>{{ __('Shot Preview') }} - {{ ucfirst($shot['type'] ?? 'Shot') }}</span>
 
@@ -121,7 +121,7 @@
         <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
             {{-- Tab Buttons (Alpine.js for instant switching, no server round-trip) --}}
             @if($hasVideo)
-                <div style="display: flex; gap: 0.4rem; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); flex-shrink: 0;">
+                <div style="display: flex; gap: 0.4rem; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.03); flex-shrink: 0;">
                     <button type="button"
                             @click="previewTab = 'image'"
                             :style="previewTab === 'image'
@@ -140,7 +140,7 @@
             @endif
 
             {{-- Preview Container --}}
-            <div style="background: rgba(0,0,0,0.4); min-height: 280px; height: 45vh; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+            <div style="background: rgba(0,0,0,0.05); min-height: 280px; height: 45vh; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                 {{-- Image Preview (Alpine.js controlled visibility) --}}
                 @if($hasImage)
                     <img x-show="previewTab === 'image' || !{{ $hasVideo ? 'true' : 'false' }}"
@@ -187,7 +187,7 @@
             <div style="padding: 0.5rem 0.75rem; background: rgba(var(--vw-primary-rgb), 0.04); border-top: 1px solid rgba(var(--vw-primary-rgb), 0.08); flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                     <span style="font-size: 0.65rem; color: #f472b6; font-weight: 600;">🎬 {{ __('ACTION (for video)') }}</span>
-                    <span style="font-size: 0.8rem; color: white;">{{ __('Shot') }} {{ $shotPreviewShotIndex + 1 }}: {{ $shot['narrativeBeat']['action'] ?? $shot['action'] ?? __('establish phase') }}</span>
+                    <span style="font-size: 0.8rem; color: var(--vw-text);">{{ __('Shot') }} {{ $shotPreviewShotIndex + 1 }}: {{ $shot['narrativeBeat']['action'] ?? $shot['action'] ?? __('establish phase') }}</span>
                     @if(!$isLastShot)
                         <span style="font-size: 0.65rem; color: var(--vw-text-secondary); font-style: italic;">→ {{ __('Frame chains to next shot') }}</span>
                     @endif
@@ -285,7 +285,7 @@
                 </div>
 
                 {{-- Content Box --}}
-                <div style="background: rgba(0,0,0,0.3); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
+                <div style="background: rgba(0,0,0,0.04); border-radius: 0.5rem; padding: 0.75rem; border-left: 3px solid {{ $hasDialogue || $hasMonologue ? '#ec4899' : ($hasNarration ? '#64748b' : '#3b82f6') }};">
                     @php
                         $speechSegments = $shot['speechSegments'] ?? [];
                         $charactersInShot = $shot['charactersInShot'] ?? [];
@@ -426,7 +426,7 @@
             @endif
 
             {{-- Prompts Section (compact) --}}
-            <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--vw-border); flex-shrink: 0;">
+            <div style="padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.03); border-top: 1px solid var(--vw-border); flex-shrink: 0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
                     {{-- Image Prompt --}}
                     <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.4rem; padding: 0.4rem;">
@@ -537,7 +537,7 @@
                 <button type="button"
                         wire:click="openVideoModelSelector({{ $shotPreviewSceneIndex }}, {{ $shotPreviewShotIndex }})"
                         wire:loading.attr="disabled"
-                        style="flex: 1; min-width: 100px; padding: 0.5rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
+                        style="flex: 1; min-width: 100px; padding: 0.5rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 0.4rem; color: var(--vw-text); cursor: pointer; font-size: 0.75rem; font-weight: 500;">
                     🎬 {{ __('Re-Animate') }}
                 </button>
             @endif
@@ -547,7 +547,7 @@
                 <button type="button"
                         wire:click="closeShotPreviewModal"
                         x-on:click="setTimeout(() => $wire.openFrameCaptureModal({{ $shotPreviewSceneIndex }}, {{ $shotPreviewShotIndex }}), 100)"
-                        style="flex: 1; min-width: 120px; padding: 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(var(--vw-primary-rgb), 0.12)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.4rem; color: white; cursor: pointer; font-size: 0.75rem; font-weight: 500;">
+                        style="flex: 1; min-width: 120px; padding: 0.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(var(--vw-primary-rgb), 0.12)); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 0.4rem; color: var(--vw-text); cursor: pointer; font-size: 0.75rem; font-weight: 500;">
                     🎯 {{ __('Capture Frame') }} → {{ __('Shot') }} {{ $shotPreviewShotIndex + 2 }}
                 </button>
             @endif

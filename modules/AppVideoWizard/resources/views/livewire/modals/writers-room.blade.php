@@ -17,7 +17,7 @@
             position: fixed;
             inset: 0;
             z-index: 1000100;
-            background: #0f0f14;
+            background: #ffffff;
             display: flex;
             flex-direction: column;
             animation: wr-fadeIn 0.3s ease;
@@ -31,7 +31,7 @@
         /* Header Bar */
         .wr-header {
             height: 56px;
-            background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 0.98) 100%);
+            background: #ffffff;
             border-bottom: 1px solid rgba(var(--vw-primary-rgb), 0.08);
             display: flex;
             align-items: center;
@@ -226,7 +226,7 @@
         .wr-bible-panel {
             width: 280px;
             min-width: 280px;
-            background: rgba(15, 15, 20, 0.95);
+            background: #ffffff;
         }
 
         .wr-bible-section {
@@ -317,7 +317,7 @@
         /* Script Panel (Center) */
         .wr-script-panel {
             flex: 1;
-            background: rgba(18, 18, 24, 0.95);
+            background: #ffffff;
             min-width: 400px;
         }
 
@@ -328,7 +328,7 @@
         }
 
         .wr-scene-card {
-            background: rgba(30, 30, 40, 0.8);
+            background: rgba(0, 0, 0, 0.02);
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 0.75rem;
             overflow: hidden;
@@ -349,8 +349,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0.75rem 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(0,0,0,0.03);
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
         }
 
         .wr-scene-number {
@@ -425,7 +425,7 @@
             width: 100%;
             min-height: 80px;
             padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.03);
             border: 1px solid var(--vw-border);
             border-radius: 0.5rem;
             color: var(--vw-text);
@@ -455,8 +455,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0.75rem 1rem;
-            background: rgba(0, 0, 0, 0.15);
-            border-top: 1px solid rgba(0,0,0,0.03);
+            background: rgba(0, 0, 0, 0.02);
+            border-top: 1px solid rgba(0,0,0,0.04);
         }
 
         .wr-scene-references {
@@ -521,12 +521,12 @@
         .wr-storyboard-panel {
             width: 320px;
             min-width: 320px;
-            background: rgba(15, 15, 20, 0.95);
+            background: #ffffff;
         }
 
         .wr-storyboard-preview {
             aspect-ratio: 16/9;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.04);
             border: 1px solid var(--vw-border);
             border-radius: 0.5rem;
             overflow: hidden;
@@ -564,7 +564,7 @@
 
         .wr-thumb {
             aspect-ratio: 16/9;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.04);
             border: 2px solid transparent;
             border-radius: 0.375rem;
             overflow: hidden;
@@ -596,7 +596,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.6);
             border-radius: 4px;
             font-size: 0.65rem;
             font-weight: 600;
@@ -614,7 +614,7 @@
         /* Stats Bar */
         .wr-stats-bar {
             height: 36px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.02);
             border-top: 1px solid rgba(0,0,0,0.04);
             display: flex;
             align-items: center;
@@ -654,12 +654,12 @@
         .wr-popover {
             position: fixed;
             z-index: 1000150;
-            background: rgba(30, 30, 45, 0.98);
+            background: #ffffff;
             border: 1px solid var(--vw-border-accent);
             border-radius: 0.75rem;
             padding: 1rem;
             width: 280px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
             animation: wr-popIn 0.2s ease;
         }
 
@@ -791,7 +791,7 @@
                 {{-- Story Info --}}
                 @if(!empty($storyBible['title']))
                     <div class="wr-bible-section">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.375rem;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: var(--vw-text); margin-bottom: 0.375rem;">
                             {{ $storyBible['title'] }}
                         </div>
                         @if(!empty($storyBible['logline']))

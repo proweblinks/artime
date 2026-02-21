@@ -238,7 +238,8 @@
 .fc-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -250,9 +251,10 @@
     width: 100%;
     max-width: 700px;
     max-height: 96vh;
-    background: linear-gradient(180deg, #1e2a3a 0%, #0f172a 100%);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--vw-border);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -263,7 +265,7 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--vw-border);
     flex-shrink: 0;
 }
 
@@ -287,29 +289,29 @@
 .fc-title {
     font-size: 16px;
     font-weight: 600;
-    color: white;
+    color: var(--vw-text);
 }
 
 .fc-subtitle {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary);
     margin-top: 2px;
 }
 
 .fc-close {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary);
     cursor: pointer;
     padding: 4px;
 }
 .fc-close:hover {
-    color: white;
+    color: var(--vw-text);
 }
 
 .fc-video-container {
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
 }
 
@@ -335,7 +337,7 @@
 .fc-frame-label {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--vw-text-secondary);
     letter-spacing: 0.5px;
     margin-bottom: 8px;
 }
@@ -343,13 +345,13 @@
 .fc-frame-preview {
     position: relative;
     aspect-ratio: 16/9;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border: 2px dashed var(--vw-border);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .fc-frame-preview.has-image {
@@ -368,7 +370,7 @@
 
 .fc-frame-placeholder {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--vw-text-secondary);
     text-align: center;
     padding: 12px;
 }
@@ -379,7 +381,7 @@
     align-items: center;
     gap: 4px;
     padding-top: 40px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--vw-text-secondary);
 }
 .fc-transfer span {
     font-size: 10px;
@@ -389,11 +391,11 @@
 .fc-server-info {
     margin: 0 16px 10px;
     padding: 6px 10px;
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.15);
     border-radius: 4px;
     font-size: 11px;
-    color: rgba(165, 180, 252, 0.8);
+    color: #6366f1;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -403,13 +405,14 @@
 .fc-loading-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--vw-text-secondary);
     font-size: 13px;
     z-index: 10;
 }
@@ -417,7 +420,7 @@
 .fc-spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(0, 0, 0, 0.08);
     border-top-color: #ec4899;
     border-radius: 50%;
     animation: fc-spin 0.8s linear infinite;
@@ -431,7 +434,7 @@
     display: flex;
     gap: 10px;
     padding: 12px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--vw-border);
     flex-shrink: 0;
 }
 
@@ -465,10 +468,10 @@
 .fc-btn-purple-outline {
     background: transparent;
     border: 2px solid #03fcf4;
-    color: #67e8f9;
+    color: #0891b2;
 }
 .fc-btn-purple-outline:hover:not(:disabled) {
-    background: rgba(3, 252, 244, 0.1);
+    background: rgba(3, 252, 244, 0.08);
 }
 .fc-btn-purple-outline:disabled {
     opacity: 0.5;
@@ -485,9 +488,9 @@
 }
 
 .fc-btn-teal-disabled {
-    background: rgba(20, 184, 166, 0.2);
+    background: rgba(20, 184, 166, 0.1);
     border: none;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--vw-text-secondary);
     cursor: not-allowed;
 }
 </style>

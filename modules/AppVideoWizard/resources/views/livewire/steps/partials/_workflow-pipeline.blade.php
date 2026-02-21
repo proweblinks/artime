@@ -14,14 +14,14 @@
 
     /* Node card */
     .vw-node-card {
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         margin-bottom: 0;
         transition: border-color 0.2s, box-shadow 0.2s;
         overflow: hidden;
     }
-    .vw-node-card:hover { border-color: #475569; }
+    .vw-node-card:hover { border-color: rgba(0, 0, 0, 0.15); }
     .vw-node-card.status-completed { border-left: 3px solid #22c55e; }
     .vw-node-card.status-running { border-left: 3px solid #3b82f6; }
     .vw-node-card.status-waiting { border-left: 3px solid #eab308; }
@@ -38,7 +38,7 @@
         cursor: pointer;
         user-select: none;
     }
-    .vw-node-header:hover { background: #1a2332; }
+    .vw-node-header:hover { background: rgba(0, 0, 0, 0.03); }
 
     .vw-node-status-icon {
         width: 1.25rem;
@@ -50,7 +50,7 @@
         font-size: 0.6rem;
         flex-shrink: 0;
     }
-    .vw-node-status-icon.pending { background: #334155; color: #94a3b8; }
+    .vw-node-status-icon.pending { background: #e2e8f0; color: #64748b; }
     .vw-node-status-icon.running { background: #1d4ed8; color: #fff; animation: pulse-blue 1.5s infinite; }
     .vw-node-status-icon.waiting { background: #854d0e; color: #d97706; animation: pulse-yellow 2s infinite; }
     .vw-node-status-icon.paused { background: #92400e; color: #d97706; }
@@ -70,7 +70,7 @@
     .vw-node-name {
         font-size: 0.8rem;
         font-weight: 600;
-        color: #e2e8f0;
+        color: var(--vw-text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -92,14 +92,14 @@
         text-transform: uppercase;
         letter-spacing: 0.03em;
     }
-    .vw-node-type-badge.ai_text { background: #1e3a5f; color: #60a5fa; }
-    .vw-node-type-badge.ai_image { background: #3b1f5e; color: #c084fc; }
-    .vw-node-type-badge.ai_video { background: #5c1e1e; color: #dc2626; }
-    .vw-node-type-badge.transform { background: #1a3a2a; color: #16a34a; }
-    .vw-node-type-badge.user_input { background: #3b3a1e; color: #92400e; }
-    .vw-node-type-badge.poll_wait { background: #2d2415; color: #d97706; }
-    .vw-node-type-badge.conditional { background: #1e293b; color: #94a3b8; }
-    .vw-node-type-badge.compose { background: #1a2e3b; color: #0891b2; }
+    .vw-node-type-badge.ai_text { background: #dbeafe; color: #1d4ed8; }
+    .vw-node-type-badge.ai_image { background: #f3e8ff; color: #7c3aed; }
+    .vw-node-type-badge.ai_video { background: #fee2e2; color: #dc2626; }
+    .vw-node-type-badge.transform { background: #dcfce7; color: #16a34a; }
+    .vw-node-type-badge.user_input { background: #fef3c7; color: #92400e; }
+    .vw-node-type-badge.poll_wait { background: #fef3c7; color: #d97706; }
+    .vw-node-type-badge.conditional { background: #f1f5f9; color: #475569; }
+    .vw-node-type-badge.compose { background: #e0f2fe; color: #0891b2; }
 
     .vw-node-timing {
         font-size: 0.65rem;
@@ -108,7 +108,7 @@
     }
 
     .vw-node-expand-icon {
-        color: #475569;
+        color: #94a3b8;
         font-size: 0.7rem;
         transition: transform 0.2s;
         flex-shrink: 0;
@@ -126,15 +126,15 @@
         content: '';
         width: 2px;
         height: 100%;
-        background: #334155;
+        background: #e2e8f0;
     }
 
     /* Parallel split indicator */
     .vw-parallel-badge {
         font-size: 0.6rem;
         color: #64748b;
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 0.75rem;
         padding: 0.1rem 0.5rem;
         position: absolute;
@@ -144,9 +144,9 @@
 
     /* Expanded node detail panel */
     .vw-node-detail {
-        border-top: 1px solid #1e293b;
+        border-top: 1px solid var(--vw-border);
         padding: 0.75rem;
-        background: #0f172a;
+        background: #f8fafc;
     }
 
     .vw-node-detail-section {
@@ -167,12 +167,12 @@
     }
 
     .vw-node-detail-content {
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
         padding: 0.5rem;
         font-size: 0.75rem;
-        color: #cbd5e1;
+        color: var(--vw-text);
         white-space: pre-wrap;
         word-break: break-word;
         max-height: 12rem;
@@ -182,12 +182,12 @@
     }
 
     .vw-node-detail-textarea {
-        background: #1e293b;
-        border: 1px solid #475569;
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 0.35rem;
         padding: 0.5rem;
         font-size: 0.75rem;
-        color: #e2e8f0;
+        color: var(--vw-text);
         width: 100%;
         min-height: 6rem;
         resize: vertical;
@@ -210,22 +210,22 @@
         font-size: 0.7rem;
         padding: 0.3rem 0.6rem;
         border-radius: 0.3rem;
-        border: 1px solid #334155;
-        background: #1e293b;
-        color: #94a3b8;
+        border: 1px solid var(--vw-border);
+        background: #ffffff;
+        color: #64748b;
         cursor: pointer;
         transition: all 0.15s;
     }
-    .vw-node-btn:hover { background: #334155; color: #e2e8f0; }
+    .vw-node-btn:hover { background: #f1f5f9; color: var(--vw-text); }
     .vw-node-btn.primary { background: #1d4ed8; border-color: #2563eb; color: #fff; }
     .vw-node-btn.primary:hover { background: #2563eb; }
     .vw-node-btn.danger { color: #dc2626; }
-    .vw-node-btn.danger:hover { background: #7f1d1d; border-color: #991b1b; }
+    .vw-node-btn.danger:hover { background: #fef2f2; border-color: #fecaca; }
 
     /* Error display */
     .vw-node-error {
-        background: #450a0a;
-        border: 1px solid #991b1b;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
         border-radius: 0.3rem;
         padding: 0.4rem 0.6rem;
         font-size: 0.7rem;
@@ -254,7 +254,7 @@
     .vw-pipeline-header h4 {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #e2e8f0;
+        color: var(--vw-text);
         margin: 0;
     }
     .vw-pipeline-status {
@@ -263,11 +263,11 @@
         border-radius: 0.75rem;
         font-weight: 600;
     }
-    .vw-pipeline-status.running { background: #1e3a5f; color: #60a5fa; }
-    .vw-pipeline-status.paused { background: #3b3a1e; color: #92400e; }
-    .vw-pipeline-status.completed { background: #14532d; color: #4ade80; }
-    .vw-pipeline-status.failed { background: #450a0a; color: #dc2626; }
-    .vw-pipeline-status.pending { background: #1e293b; color: #94a3b8; }
+    .vw-pipeline-status.running { background: #dbeafe; color: #1d4ed8; }
+    .vw-pipeline-status.paused { background: #fef3c7; color: #92400e; }
+    .vw-pipeline-status.completed { background: #dcfce7; color: #166534; }
+    .vw-pipeline-status.failed { background: #fef2f2; color: #dc2626; }
+    .vw-pipeline-status.pending { background: #f1f5f9; color: #64748b; }
 </style>
 
 @php
@@ -509,7 +509,7 @@
                                     <i class="fa-solid fa-shapes"></i> {{ __('Detected Energy Type') }}
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="background: #1e3a5f; color: #60a5fa; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-weight: 700;">
+                                    <span style="background: #dbeafe; color: #1d4ed8; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-weight: 700;">
                                         {{ $skeletonOutput['skeleton_type'] ?? 'Unknown' }}
                                     </span>
                                     <span style="color: #64748b; font-size: 0.7rem;">
@@ -541,7 +541,7 @@
                                             <div style="font-size: 0.65rem; color: #22c55e; font-weight: 600; margin-bottom: 0.2rem;">
                                                 <i class="fa-solid fa-plus"></i> FITTED ({{ $skeletonOutput['fitted_word_count'] ?? '?' }} words)
                                             </div>
-                                            <div class="vw-node-detail-content" style="border-color: #166534; max-height: 8rem; font-size: 0.7rem;">{{ $skeletonOutput['fitted_prompt'] }}</div>
+                                            <div class="vw-node-detail-content" style="border-color: #86efac; max-height: 8rem; font-size: 0.7rem;">{{ $skeletonOutput['fitted_prompt'] }}</div>
                                         </div>
                                     @endif
                                 </div>
@@ -569,11 +569,11 @@
                                         $score = $complianceOutput['score'] ?? 0;
                                         $violationCount = $complianceOutput['violation_count'] ?? 0;
                                         if ($score >= 80) {
-                                            $scoreBg = '#166534'; $scoreColor = '#4ade80'; $scoreLabel = 'PASS';
+                                            $scoreBg = '#dcfce7'; $scoreColor = '#166534'; $scoreLabel = 'PASS';
                                         } elseif ($score >= 50) {
-                                            $scoreBg = '#713f12'; $scoreColor = '#facc15'; $scoreLabel = 'WARN';
+                                            $scoreBg = '#fef3c7'; $scoreColor = '#92400e'; $scoreLabel = 'WARN';
                                         } else {
-                                            $scoreBg = '#7f1d1d'; $scoreColor = '#f87171'; $scoreLabel = 'FAIL';
+                                            $scoreBg = '#fef2f2'; $scoreColor = '#dc2626'; $scoreLabel = 'FAIL';
                                         }
                                     @endphp
                                     <span style="background: {{ $scoreBg }}; color: {{ $scoreColor }}; font-size: 0.85rem; padding: 0.25rem 0.7rem; border-radius: 0.3rem; font-weight: 700;">
@@ -648,7 +648,7 @@
                                             <div style="font-size: 0.65rem; color: #22c55e; font-weight: 600; margin-bottom: 0.2rem;">
                                                 <i class="fa-solid fa-plus"></i> POST-COMPLIANCE ({{ $complianceOutput['fixed_word_count'] ?? '?' }} words)
                                             </div>
-                                            <div class="vw-node-detail-content" style="border-color: #166534; max-height: 8rem; font-size: 0.7rem;">{{ $complianceOutput['fixed_prompt'] }}</div>
+                                            <div class="vw-node-detail-content" style="border-color: #86efac; max-height: 8rem; font-size: 0.7rem;">{{ $complianceOutput['fixed_prompt'] }}</div>
                                         </div>
                                     @endif
                                 </div>

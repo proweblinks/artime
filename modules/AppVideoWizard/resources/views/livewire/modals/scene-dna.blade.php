@@ -4,7 +4,7 @@
      wire:key="scene-dna-modal"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 0.5rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(6,182,212,0.3); border-radius: 0.75rem; width: 100%; max-width: 1000px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(6,182,212,0.3); border-radius: 0.75rem; width: 100%; max-width: 1000px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         @php
             $sceneDNA = $sceneMemory['sceneDNA'] ?? [];
@@ -31,7 +31,7 @@
                     <span wire:loading.remove wire:target="buildSceneDNA">&#x1F504; {{ __('Refresh') }}</span>
                     <span wire:loading wire:target="buildSceneDNA">{{ __('Syncing...') }}</span>
                 </button>
-                <button type="button" wire:click="$set('showSceneDNAModal', false)" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+                <button type="button" wire:click="$set('showSceneDNAModal', false)" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
             </div>
         </div>
 
@@ -111,7 +111,7 @@
                             {{-- Enable toggle --}}
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: rgba(236,72,153,0.08); border: 1px solid rgba(236,72,153,0.2); border-radius: 0.5rem;">
                                 <div>
-                                    <div style="color: white; font-size: 0.8rem; font-weight: 600;">{{ __('Enable Global Style') }}</div>
+                                    <div style="color: var(--vw-text); font-size: 0.8rem; font-weight: 600;">{{ __('Enable Global Style') }}</div>
                                     <div style="color: var(--vw-text-secondary); font-size: 0.65rem;">{{ __('Apply consistent visual style to all scenes') }}</div>
                                 </div>
                                 <label style="display: flex; align-items: center; cursor: pointer;">
@@ -138,7 +138,7 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual Style') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.style"
                                               placeholder="{{ __('e.g., Photorealistic with cinematic framing...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
                                 </div>
 
                                 {{-- Color Grade --}}
@@ -146,7 +146,7 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Color Grade') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.colorGrade"
                                               placeholder="{{ __('e.g., Teal and orange, lifted blacks...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
                                 </div>
 
                                 {{-- Atmosphere --}}
@@ -154,7 +154,7 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Atmosphere & Mood') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.atmosphere"
                                               placeholder="{{ __('e.g., Moody, mysterious, volumetric lighting...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
                                 </div>
 
                                 {{-- Camera Language --}}
@@ -162,7 +162,7 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Camera Language') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.camera"
                                               placeholder="{{ __('e.g., Shot on ARRI Alexa, anamorphic lenses...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 60px; resize: vertical;"></textarea>
                                 </div>
                             </div>
 
@@ -174,12 +174,12 @@
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Setup') }}</label>
                                         <input type="text" wire:model.blur="sceneMemory.styleBible.lighting.setup"
                                                placeholder="{{ __('e.g., three-point') }}"
-                                               style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                               style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                     </div>
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Intensity') }}</label>
                                         <select wire:model.change="sceneMemory.styleBible.lighting.intensity"
-                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="">-</option>
                                             <option value="high-key">{{ __('High-key') }}</option>
                                             <option value="normal">{{ __('Normal') }}</option>
@@ -189,7 +189,7 @@
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Type') }}</label>
                                         <select wire:model.change="sceneMemory.styleBible.lighting.type"
-                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="">-</option>
                                             <option value="natural">{{ __('Natural') }}</option>
                                             <option value="studio">{{ __('Studio') }}</option>
@@ -199,7 +199,7 @@
                                     <div>
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.55rem; margin-bottom: 0.15rem;">{{ __('Mood') }}</label>
                                         <select wire:model.change="sceneMemory.styleBible.lighting.mood"
-                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.65rem;">
+                                                style="width: 100%; padding: 0.3rem 0.4rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.65rem;">
                                             <option value="">-</option>
                                             <option value="dramatic">{{ __('Dramatic') }}</option>
                                             <option value="soft">{{ __('Soft') }}</option>
@@ -215,13 +215,13 @@
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Visual DNA (Quality Keywords)') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.visualDNA"
                                               placeholder="{{ __('e.g., 8K, detailed, professional, sharp focus...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
                                 <div>
                                     <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.2rem;">{{ __('Negative Prompt (Avoid)') }}</label>
                                     <textarea wire:model.blur="sceneMemory.styleBible.negativePrompt"
                                               placeholder="{{ __('e.g., blurry, low quality, watermark...') }}"
-                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid rgba(239,68,68,0.15); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
+                                              style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.03); border: 1px solid rgba(239,68,68,0.15); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 50px; resize: vertical;"></textarea>
                                 </div>
                             </div>
 
@@ -241,7 +241,7 @@
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                         <div>
                                             <div style="color: #0891b2; font-size: 0.65rem; font-weight: 600;">{{ __('Scene') }} {{ $sceneIndex + 1 }}</div>
-                                            <div style="color: white; font-size: 0.75rem; font-weight: 500; margin-top: 0.1rem;">{{ Str::limit($sceneData['sceneTitle'] ?? '', 30) }}</div>
+                                            <div style="color: var(--vw-text); font-size: 0.75rem; font-weight: 500; margin-top: 0.1rem;">{{ Str::limit($sceneData['sceneTitle'] ?? '', 30) }}</div>
                                         </div>
                                         <div style="display: flex; gap: 0.25rem;">
                                             @if(!empty($sceneData['characters']))
@@ -358,7 +358,7 @@
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                             <div style="display: flex; align-items: center; gap: 0.35rem;">
                                                 <span style="color: var(--vw-primary); font-size: 0.7rem;">&#x1F464;</span>
-                                                <span style="color: white; font-weight: 600; font-size: 0.75rem;">{{ $charName }}</span>
+                                                <span style="color: var(--vw-text); font-weight: 600; font-size: 0.75rem;">{{ $charName }}</span>
                                             </div>
                                             <span style="color: var(--vw-text-secondary); font-size: 0.6rem;">
                                                 {{ count($locations) }} {{ __('locations') }} &middot; {{ $sceneCount }} {{ __('scenes') }}
@@ -394,7 +394,7 @@
         </div>
 
         {{-- Footer Actions --}}
-            <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(0,0,0,0.2);">
+            <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: rgba(0,0,0,0.02);">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                     {{-- Auto-sync toggle --}}
                     <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
@@ -415,7 +415,7 @@
                     </button>
                     <button type="button"
                             wire:click="$set('showSceneDNAModal', false)"
-                            style="padding: 0.35rem 0.7rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.65rem; cursor: pointer;">
+                            style="padding: 0.35rem 0.7rem; background: var(--vw-border); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.65rem; cursor: pointer;">
                         {{ __('Close') }}
                     </button>
                 </div>

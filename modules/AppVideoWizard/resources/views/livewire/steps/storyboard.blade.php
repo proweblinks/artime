@@ -1914,7 +1914,7 @@ function getCameraMovementIcon($movement) {
                                         x-transition:leave-start="opacity-100 transform scale-100"
                                         x-transition:leave-end="opacity-0 transform scale-95"
                                         @click.outside="voiceModalOpen = false"
-                                        style="background: linear-gradient(135deg, rgba(30,30,50,0.99), rgba(20,20,40,1)); border: 1px solid var(--vw-border-focus); border-radius: 0.75rem; box-shadow: 0 25px 50px rgba(0,0,0,0.3); width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;"
+                                        style="background: #ffffff; border: 1px solid var(--vw-border-focus); border-radius: 0.75rem; box-shadow: 0 25px 50px rgba(0,0,0,0.12); width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;"
                                     >
                                         {{-- Modal Header --}}
                                         <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
@@ -1934,7 +1934,7 @@ function getCameraMovementIcon($movement) {
                                         </div>
 
                                         {{-- Summary Bar --}}
-                                        <div style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.2); display: flex; gap: 1rem; flex-shrink: 0;">
+                                        <div style="padding: 0.5rem 1rem; background: rgba(0,0,0,0.02); display: flex; gap: 1rem; flex-shrink: 0;">
                                             @php
                                                 $lipSyncCount = collect($speechSegments)->filter(fn($s) => ($typeIcons[$s['type'] ?? 'narrator']['lipSync'] ?? false))->count();
                                                 $voiceoverCount = $totalSegments - $lipSyncCount;
@@ -2041,7 +2041,7 @@ function getCameraMovementIcon($movement) {
                                                 type="button"
                                                 wire:click="openSceneTextInspector({{ $index }})"
                                                 @click="voiceModalOpen = false"
-                                                style="flex: 1; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.25)); border: 1px solid var(--vw-border-focus); border-radius: 0.4rem; color: white; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
+                                                style="flex: 1; padding: 0.5rem 0.75rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.12), rgba(6,182,212,0.25)); border: 1px solid var(--vw-border-focus); border-radius: 0.4rem; color: var(--vw-text); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;"
                                             >
                                                 <span>🔍</span>
                                                 <span>{{ __('Full Inspector') }}</span>

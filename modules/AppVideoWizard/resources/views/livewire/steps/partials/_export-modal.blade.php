@@ -644,8 +644,9 @@
 <style>
     /* Export Modal Full */
     .vw-export-modal-full {
-        background: linear-gradient(135deg, rgba(20, 20, 35, 0.98), rgba(15, 15, 30, 0.98));
-        border: 1px solid rgba(3, 252, 244, 0.3);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--vw-border);
         border-radius: 1.25rem;
         width: 95%;
         max-width: 680px;
@@ -653,7 +654,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(3, 252, 244, 0.15);
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.12), 0 0 60px rgba(3, 252, 244, 0.06);
     }
 
     /* Export Header */
@@ -662,8 +663,8 @@
         align-items: center;
         justify-content: space-between;
         padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--vw-border);
+        background: rgba(0, 0, 0, 0.03);
     }
 
     .vw-export-title {
@@ -679,7 +680,7 @@
     .vw-export-title h3 {
         font-size: 1.1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin: 0;
     }
 
@@ -695,7 +696,7 @@
         display: flex;
         justify-content: space-around;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.75rem;
         margin-bottom: 1rem;
     }
@@ -714,12 +715,12 @@
     .vw-stat-value {
         font-size: 1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-stat-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -730,7 +731,7 @@
         gap: 0.5rem;
         margin-bottom: 1rem;
         padding: 0.25rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.5rem;
     }
 
@@ -744,7 +745,7 @@
         background: transparent;
         border: none;
         border-radius: 0.4rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;
@@ -752,13 +753,14 @@
     }
 
     .vw-export-tab:hover {
-        color: white;
-        background: rgba(255, 255, 255, 0.05);
+        color: var(--vw-text);
+        background: rgba(0, 0, 0, 0.04);
     }
 
     .vw-export-tab.active {
-        color: white;
-        background: linear-gradient(135deg, rgba(3, 252, 244, 0.3), rgba(6, 182, 212, 0.2));
+        color: var(--vw-text);
+        background: rgba(3, 252, 244, 0.12);
+        border: 1px solid rgba(3, 252, 244, 0.2);
     }
 
     /* Export Section */
@@ -783,8 +785,8 @@
         flex-direction: column;
         align-items: center;
         padding: 0.75rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.6rem;
         cursor: pointer;
         transition: all 0.25s;
@@ -792,13 +794,13 @@
     }
 
     .vw-platform-card:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.15);
         transform: translateY(-2px);
     }
 
     .vw-platform-card.active {
-        background: rgba(3, 252, 244, 0.15);
+        background: rgba(3, 252, 244, 0.1);
     }
 
     .vw-platform-icon {
@@ -809,13 +811,13 @@
     .vw-platform-name {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         text-align: center;
     }
 
     .vw-platform-desc {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-align: center;
         margin-top: 0.2rem;
     }
@@ -839,7 +841,7 @@
         gap: 0.4rem;
         font-size: 0.8rem;
         font-weight: 500;
-        color: white;
+        color: var(--vw-text);
         margin-bottom: 0.6rem;
     }
 
@@ -856,8 +858,8 @@
         flex-direction: column;
         align-items: center;
         padding: 0.6rem 0.8rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
@@ -865,24 +867,24 @@
     }
 
     .vw-quality-btn:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.15);
     }
 
     .vw-quality-btn.active {
-        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        background: rgba(3, 252, 244, 0.1);
         border-color: #03fcf4;
     }
 
     .vw-quality-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-quality-res {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-premium-badge {
@@ -909,29 +911,29 @@
         flex-direction: column;
         align-items: center;
         padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.4rem;
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-fps-btn:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .vw-fps-btn.active {
-        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        background: rgba(3, 252, 244, 0.1);
         border-color: #03fcf4;
     }
 
     .vw-fps-unit {
         font-size: 0.55rem;
         font-weight: 400;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* Select */
@@ -939,10 +941,10 @@
     .vw-select-sm {
         width: 100%;
         padding: 0.6rem 0.8rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: white;
+        color: var(--vw-text);
         font-size: 0.8rem;
         cursor: pointer;
     }
@@ -960,8 +962,8 @@
 
     .vw-select option,
     .vw-select-sm option {
-        background: #1a1a2e;
-        color: white;
+        background: #ffffff;
+        color: var(--vw-text);
     }
 
     /* Format Options */
@@ -976,19 +978,19 @@
         flex-direction: column;
         align-items: center;
         padding: 0.75rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .vw-format-btn:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .vw-format-btn.active {
-        background: linear-gradient(135deg, rgba(3, 252, 244, 0.2), rgba(6, 182, 212, 0.15));
+        background: rgba(3, 252, 244, 0.1);
         border-color: #03fcf4;
     }
 
@@ -1000,12 +1002,12 @@
     .vw-format-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-format-desc {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-align: center;
     }
 
@@ -1024,7 +1026,7 @@
 
     .vw-audio-option label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Final Summary */
@@ -1047,14 +1049,14 @@
 
     .vw-final-label {
         font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         text-transform: uppercase;
     }
 
     .vw-final-value {
         font-size: 0.8rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     /* Progress View */
@@ -1084,13 +1086,13 @@
     .vw-progress-header h4 {
         font-size: 1.1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin: 0 0 0.5rem 0;
     }
 
     .vw-progress-subtitle {
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin: 0;
     }
 
@@ -1101,7 +1103,7 @@
 
     .vw-progress-bar-large {
         height: 12px;
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.08);
         border-radius: 6px;
         overflow: hidden;
         margin-bottom: 0.75rem;
@@ -1130,12 +1132,12 @@
     .vw-progress-percent {
         font-size: 1.5rem;
         font-weight: 700;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-progress-scene {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     /* Scene Indicators */
@@ -1146,7 +1148,7 @@
     .vw-indicators-label {
         display: block;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         margin-bottom: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -1164,8 +1166,8 @@
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: rgba(0, 0, 0, 0.4);
-        border: 2px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
+        border: 2px solid var(--vw-border);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1192,7 +1194,7 @@
     .vw-dot-number {
         font-size: 0.7rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         z-index: 1;
     }
 
@@ -1218,7 +1220,7 @@
         gap: 0.5rem;
         text-align: left;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.5rem;
     }
 
@@ -1228,12 +1230,12 @@
         gap: 0.5rem;
         padding: 0.4rem 0.6rem;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--vw-text-secondary);
         transition: all 0.3s;
     }
 
     .vw-step.active {
-        color: white;
+        color: var(--vw-text);
         background: rgba(3, 252, 244, 0.1);
         border-radius: 0.4rem;
     }
@@ -1267,13 +1269,13 @@
     .vw-export-complete-view h4 {
         font-size: 1.25rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin: 0 0 0.5rem 0;
     }
 
     .vw-complete-text {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin: 0 0 1.5rem 0;
     }
 
@@ -1282,7 +1284,7 @@
         align-items: center;
         gap: 1rem;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.75rem;
         margin-bottom: 1.5rem;
     }
@@ -1308,12 +1310,12 @@
     .vw-preview-name {
         font-size: 0.9rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-preview-meta {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     /* Download Actions */
@@ -1348,12 +1350,12 @@
     }
 
     .vw-download-btn.secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
     }
 
     .vw-download-btn.secondary:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.1);
     }
 
     /* Share Options */
@@ -1363,12 +1365,12 @@
         justify-content: center;
         gap: 0.75rem;
         padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-share-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-share-buttons {
@@ -1381,7 +1383,7 @@
         height: 36px;
         border-radius: 50%;
         border: none;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.2s;
@@ -1400,8 +1402,8 @@
     /* Export Footer */
     .vw-export-footer {
         padding: 1rem 1.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid var(--vw-border);
+        background: rgba(0, 0, 0, 0.03);
     }
 
     .vw-footer-actions {
@@ -1424,12 +1426,12 @@
     }
 
     .vw-export-btn.secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
     }
 
     .vw-export-btn.secondary:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.1);
     }
 
     .vw-export-btn.primary {

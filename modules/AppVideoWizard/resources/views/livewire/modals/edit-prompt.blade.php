@@ -89,14 +89,14 @@
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
          @click.away="isOpen = false"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <h3 style="margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600;">✏️ {{ __('Edit Scene') }} {{ $editPromptSceneIndex + 1 }}</h3>
                 <p style="margin: 0.25rem 0 0 0; color: var(--vw-text-secondary); font-size: 0.8rem;">{{ __('Modify scene properties and visual description') }}</p>
             </div>
-            <button type="button" @click="isOpen = false" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+            <button type="button" @click="isOpen = false" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
         </div>
 
         {{-- Tab Navigation --}}
@@ -132,7 +132,7 @@
                              style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
                     <div style="flex: 1;">
-                        <div style="font-weight: 600; color: white; font-size: 0.9rem; margin-bottom: 0.25rem;">
+                        <div style="font-weight: 600; color: var(--vw-text); font-size: 0.9rem; margin-bottom: 0.25rem;">
                             {{ $script['scenes'][$editPromptSceneIndex]['title'] ?? __('Scene') . ' ' . ($editPromptSceneIndex + 1) }}
                         </div>
                         <div style="color: var(--vw-text-secondary); font-size: 0.75rem; margin-bottom: 0.5rem;">
@@ -160,14 +160,14 @@
                                   @input="handleMentionInput($event)"
                                   @keydown="handleMentionKeydown($event)"
                                   placeholder="{{ __('Describe what you want to see in this scene... Use @character or @location to reference your bible items.') }}"
-                                  style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
+                                  style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.85rem; min-height: 120px; resize: vertical;"></textarea>
 
                         {{-- @ Mention Autocomplete Dropdown --}}
                         <div class="vw-mention-autocomplete"
                              x-show="mention.active && filteredMentions.length > 0"
                              x-transition
                              x-cloak
-                             style="position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: rgba(20, 20, 35, 0.98); border: 1px solid var(--vw-border-accent); border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 100; margin-top: 0.25rem;">
+                             style="position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #ffffff; border: 1px solid var(--vw-border-accent); border-radius: 0.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.1); z-index: 100; margin-top: 0.25rem;">
                             <template x-for="(item, idx) in filteredMentions" :key="item.tag">
                                 <div class="vw-mention-item"
                                      :class="{ 'active': mention.selectedIndex === idx }"
@@ -181,7 +181,7 @@
                                         <div style="width: 32px; height: 32px; border-radius: 0.35rem; background: rgba(var(--vw-primary-rgb), 0.08); display: flex; align-items: center; justify-content: center; font-size: 1rem;" x-text="item.icon"></div>
                                     </template>
                                     <div style="flex: 1;">
-                                        <div style="font-size: 0.8rem; color: white; font-weight: 500;" x-text="item.name"></div>
+                                        <div style="font-size: 0.8rem; color: var(--vw-text); font-weight: 500;" x-text="item.name"></div>
                                         <div style="font-size: 0.65rem; color: var(--vw-primary); font-family: monospace;" x-text="item.tag"></div>
                                     </div>
                                     <span style="font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: rgba(var(--vw-primary-rgb), 0.08); color: var(--vw-text-secondary);" x-text="item.type"></span>
@@ -214,7 +214,7 @@
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
                         {{-- Enhancement Style Selector --}}
                         <select wire:model.change="expanderStyle"
-                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.75rem; cursor: pointer;">
                             <option value="cinematic">🎬 {{ __('Cinematic') }}</option>
                             <option value="action">⚡ {{ __('Action') }}</option>
                             <option value="emotional">💔 {{ __('Emotional') }}</option>
@@ -260,7 +260,7 @@
                         {{-- Scene Selector --}}
                         @if($useReferenceScene)
                         <select wire:model.change="referenceSceneIndex"
-                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.75rem; cursor: pointer;">
+                                style="padding: 0.4rem 0.6rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.75rem; cursor: pointer;">
                             <option value="">{{ __('Select reference scene...') }}</option>
                             @for($i = 0; $i < $editPromptSceneIndex; $i++)
                                 @if(isset($storyboard['scenes'][$i]['imageUrl']))
@@ -325,7 +325,7 @@
                     <label style="display: block; color: var(--vw-text); font-size: 0.75rem; margin-bottom: 0.35rem;">{{ __('Narration / Voiceover Text') }}</label>
                     <textarea wire:model.blur="editSceneNarration"
                               placeholder="{{ __('Enter the narration or dialogue for this scene...') }}"
-                              style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: white; font-size: 0.85rem; min-height: 150px; resize: vertical;"></textarea>
+                              style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.5rem; color: var(--vw-text); font-size: 0.85rem; min-height: 150px; resize: vertical;"></textarea>
                     <p style="color: var(--vw-text-secondary); font-size: 0.7rem; margin-top: 0.35rem;">
                         💡 {{ __('This text will be used for voiceover generation and scene context.') }}
                     </p>
@@ -342,7 +342,7 @@
                             @foreach([3, 5, 8, 10, 15] as $duration)
                                 <button type="button"
                                         wire:click="$set('editSceneDuration', {{ $duration }})"
-                                        style="flex: 1; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.6)' : 'var(--vw-border)' }}; background: {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.2)' : 'rgba(0,0,0,0.03)' }}; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                                        style="flex: 1; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.6)' : 'var(--vw-border)' }}; background: {{ $editSceneDuration === $duration ? 'rgba(6,182,212,0.2)' : 'rgba(0,0,0,0.03)' }}; color: var(--vw-text); cursor: pointer; font-size: 0.85rem; font-weight: 600;">
                                     {{ $duration }}s
                                 </button>
                             @endforeach
@@ -375,7 +375,7 @@
                             @foreach($transitions as $value => $trans)
                                 <button type="button"
                                         wire:click="$set('editSceneTransition', '{{ $value }}')"
-                                        style="padding: 0.5rem; border-radius: 0.35rem; border: 1px solid {{ $editSceneTransition === $value ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; background: {{ $editSceneTransition === $value ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; color: white; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                                        style="padding: 0.5rem; border-radius: 0.35rem; border: 1px solid {{ $editSceneTransition === $value ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; background: {{ $editSceneTransition === $value ? 'rgba(var(--vw-primary-rgb), 0.08)' : 'rgba(0,0,0,0.03)' }}; color: var(--vw-text); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
                                     <span>{{ $trans['icon'] }}</span>
                                     <span>{{ __($trans['label']) }}</span>
                                 </button>

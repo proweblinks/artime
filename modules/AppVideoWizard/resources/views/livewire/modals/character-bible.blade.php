@@ -4,7 +4,7 @@
      wire:key="character-bible-modal-{{ $editCharacterIndex ?? 'main' }}"
      style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 0.5rem;">
     <div class="vw-modal"
-         style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 880px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: #ffffff; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.75rem; width: 100%; max-width: 880px; max-height: 96vh; display: flex; flex-direction: column; overflow: hidden;">
         {{-- Header --}}
         <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <div>
@@ -20,7 +20,7 @@
                         <span style="background: var(--vw-border); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-size: 0.55rem;">{{ count($storyBible['characters']) }}</span>
                     </button>
                 @endif
-                <button type="button" wire:click="closeCharacterBibleModal" style="background: none; border: none; color: white; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
+                <button type="button" wire:click="closeCharacterBibleModal" style="background: none; border: none; color: var(--vw-text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem; line-height: 1;">&times;</button>
             </div>
         </div>
 
@@ -89,7 +89,7 @@
                         <div wire:click="editCharacter({{ $index }})"
                              style="padding: 0.4rem; background: {{ ($editingCharacterIndex ?? 0) === $index ? 'rgba(var(--vw-primary-rgb), 0.06)' : 'rgba(0,0,0,0.02)' }}; border: 1px solid {{ ($editingCharacterIndex ?? 0) === $index ? 'var(--vw-border-focus)' : 'var(--vw-border)' }}; border-radius: 0.375rem; cursor: pointer; display: flex; gap: 0.4rem; align-items: center;">
                             {{-- Portrait Thumbnail --}}
-                            <div style="width: 35px; height: 45px; border-radius: 0.25rem; overflow: hidden; background: rgba(0,0,0,0.3); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 35px; height: 45px; border-radius: 0.25rem; overflow: hidden; background: rgba(0,0,0,0.05); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                                 @if(!empty($character['referenceImage']))
                                     <img src="{{ $character['referenceImage'] }}" alt="{{ $character['name'] }}" style="width: 100%; height: 100%; object-fit: cover;">
                                 @else
@@ -97,7 +97,7 @@
                                 @endif
                             </div>
                             <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; color: white; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $character['name'] ?: __('Unnamed') }}</div>
+                                <div style="font-weight: 600; color: var(--vw-text); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $character['name'] ?: __('Unnamed') }}</div>
                                 <div style="color: var(--vw-text-secondary); font-size: 0.55rem; margin-top: 0.1rem;">
                                     {{ count($character['scenes'] ?? $character['appliedScenes'] ?? []) }} {{ __('scenes') }}
                                     @if(!empty($character['referenceImage']))
@@ -126,7 +126,7 @@
                     <div style="display: flex; gap: 0.75rem;">
                         {{-- Portrait Preview --}}
                         <div style="width: 130px; flex-shrink: 0;">
-                            <div style="width: 130px; height: 155px; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.4); border: 1px solid var(--vw-border); display: flex; align-items: center; justify-content: center; position: relative;">
+                            <div style="width: 130px; height: 155px; border-radius: 0.5rem; overflow: hidden; background: rgba(0,0,0,0.06); border: 1px solid var(--vw-border); display: flex; align-items: center; justify-content: center; position: relative;">
                                 @if(!empty($currentChar['referenceImage']))
                                     <img src="{{ $currentChar['referenceImage'] }}" alt="{{ $currentChar['name'] }}" style="width: 100%; height: 100%; object-fit: cover;">
                                     <button type="button"
@@ -196,7 +196,7 @@
                                 <input type="text"
                                        wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.name"
                                        placeholder="{{ __('e.g., Sarah, The Detective...') }}"
-                                       style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.75rem;">
+                                       style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.75rem;">
                             </div>
 
                             {{-- Quick Templates --}}
@@ -215,7 +215,7 @@
                                 <label style="display: block; color: var(--vw-text-secondary); font-size: 0.6rem; margin-bottom: 0.15rem;">{{ __('Visual Description') }}</label>
                                 <textarea wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.description"
                                           placeholder="{{ __('e.g., Mid-30s woman with short dark hair, sharp features, wears a leather jacket...') }}"
-                                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: white; font-size: 0.7rem; min-height: 55px; resize: vertical;"></textarea>
+                                          style="width: 100%; padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.35rem; color: var(--vw-text); font-size: 0.7rem; min-height: 55px; resize: vertical;"></textarea>
                             </div>
 
                             {{-- Character Traits (Expandable) --}}
@@ -250,7 +250,7 @@
                                                x-model="newTrait"
                                                @keydown.enter.prevent="if(newTrait.trim()) { $wire.addCharacterTrait({{ $editIndex }}, newTrait.trim()); newTrait = ''; }"
                                                placeholder="{{ __('Add trait (e.g., confident, mysterious)') }}"
-                                               style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                               style="flex: 1; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                         <button type="button"
                                                 @click="if(newTrait.trim()) { $wire.addCharacterTrait({{ $editIndex }}, newTrait.trim()); newTrait = ''; }"
                                                 style="padding: 0.3rem 0.5rem; background: rgba(var(--vw-primary-rgb), 0.08); border: 1px solid var(--vw-border-accent); border-radius: 0.25rem; color: var(--vw-text-secondary); font-size: 0.55rem; cursor: pointer;">
@@ -353,16 +353,16 @@
                                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.2rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.color"
                                                    placeholder="{{ __('Color') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.style"
                                                    placeholder="{{ __('Style') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.length"
                                                    placeholder="{{ __('Length') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.hair.texture"
                                                    placeholder="{{ __('Texture') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                         </div>
                                     </div>
 
@@ -376,17 +376,17 @@
                                         </div>
                                         <textarea wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.outfit"
                                                   placeholder="{{ __('Outfit description (e.g., fitted black jacket, slim pants)') }}"
-                                                  style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem; min-height: 28px; resize: none; margin-bottom: 0.2rem;"></textarea>
+                                                  style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem; min-height: 28px; resize: none; margin-bottom: 0.2rem;"></textarea>
                                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.colors"
                                                    placeholder="{{ __('Colors') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.style"
                                                    placeholder="{{ __('Style') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.wardrobe.footwear"
                                                    placeholder="{{ __('Footwear') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                         </div>
                                     </div>
 
@@ -402,10 +402,10 @@
                                             </div>
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.style"
                                                    placeholder="{{ __('Style (minimal, bold...)') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem; margin-bottom: 0.15rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem; margin-bottom: 0.15rem;">
                                             <input type="text" wire:model.blur="sceneMemory.characterBible.characters.{{ $editIndex }}.makeup.details"
                                                    placeholder="{{ __('Details') }}"
-                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.55rem;">
+                                                   style="width: 100%; padding: 0.2rem 0.3rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.55rem;">
                                         </div>
 
                                         {{-- Accessories --}}
@@ -426,7 +426,7 @@
                                                 <input type="text" x-model="newAcc"
                                                        @keydown.enter.prevent="if(newAcc.trim()) { $wire.addCharacterAccessory({{ $editIndex }}, newAcc.trim()); newAcc = ''; }"
                                                        placeholder="{{ __('Add...') }}"
-                                                       style="flex: 1; padding: 0.15rem 0.25rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: white; font-size: 0.5rem;">
+                                                       style="flex: 1; padding: 0.15rem 0.25rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.2rem; color: var(--vw-text); font-size: 0.5rem;">
                                                 <button type="button"
                                                         @click="if(newAcc.trim()) { $wire.addCharacterAccessory({{ $editIndex }}, newAcc.trim()); newAcc = ''; }"
                                                         style="padding: 0.15rem 0.25rem; background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); border-radius: 0.2rem; color: #fcd34d; font-size: 0.45rem; cursor: pointer;">+</button>
@@ -482,7 +482,7 @@
                                         <div>
                                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.1rem;">{{ __('Voice') }}</label>
                                             <select wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.voice.id"
-                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                                 <option value="">{{ __('Auto (by gender)') }}</option>
                                                 <option value="alloy">Alloy ({{ __('Neutral/Balanced') }})</option>
                                                 <option value="echo">Echo ({{ __('Male/Deep') }})</option>
@@ -497,7 +497,7 @@
                                         <div>
                                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.1rem;">{{ __('Gender') }}</label>
                                             <select wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.voice.gender"
-                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                                 <option value="">{{ __('Auto-detect') }}</option>
                                                 <option value="male">{{ __('Male') }}</option>
                                                 <option value="female">{{ __('Female') }}</option>
@@ -512,7 +512,7 @@
                                         <div>
                                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.1rem;">{{ __('Style') }}</label>
                                             <select wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.voice.style"
-                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                                 <option value="natural">{{ __('Natural') }}</option>
                                                 <option value="warm">{{ __('Warm') }}</option>
                                                 <option value="authoritative">{{ __('Authoritative') }}</option>
@@ -528,7 +528,7 @@
                                         <div>
                                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.1rem;">{{ __('Pitch') }}</label>
                                             <select wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.voice.pitch"
-                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                                 <option value="low">{{ __('Low') }}</option>
                                                 <option value="medium">{{ __('Medium') }}</option>
                                                 <option value="high">{{ __('High') }}</option>
@@ -553,7 +553,7 @@
                                         <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.15rem;">{{ __('Emotion Preview') }}</label>
                                         <div style="display: flex; gap: 0.3rem; align-items: center;">
                                             <select wire:model="previewEmotion"
-                                                    style="flex: 1; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.55rem;">
+                                                    style="flex: 1; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.55rem;">
                                                 <option value="">{{ __('Neutral') }}</option>
                                                 <option value="trembling">{{ __('Trembling') }}</option>
                                                 <option value="whisper">{{ __('Whisper') }}</option>
@@ -584,7 +584,7 @@
                                         <div>
                                             <label style="display: block; color: var(--vw-text-secondary); font-size: 0.5rem; margin-bottom: 0.1rem;">{{ __('Speaking Role') }}</label>
                                             <select wire:model.live="sceneMemory.characterBible.characters.{{ $editIndex }}.speakingRole"
-                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: white; font-size: 0.6rem;">
+                                                    style="width: 100%; padding: 0.25rem 0.35rem; background: rgba(0,0,0,0.04); border: 1px solid var(--vw-border); border-radius: 0.25rem; color: var(--vw-text); font-size: 0.6rem;">
                                                 <option value="dialogue">{{ __('Dialogue') }} - {{ __('Speaks in scenes') }}</option>
                                                 <option value="monologue">{{ __('Monologue') }} - {{ __('Thinking/narrating') }}</option>
                                                 <option value="narrator">{{ __('Narrator') }} - {{ __('Tells the story') }}</option>

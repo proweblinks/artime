@@ -6,12 +6,12 @@
        ============================================ */
 
     .vw-script-step .vw-script-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%);
+        background: #ffffff;
         border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .vw-script-step .vw-script-header {
@@ -557,8 +557,8 @@
 
     .vw-script-step .vw-full-script-content {
         position: relative;
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%);
-        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         padding: 1.5rem;
         max-width: 800px;
@@ -820,8 +820,8 @@
     }
 
     .vw-script-step .vw-scene-transition-select option {
-        background: #1a1a2e;
-        color: #ffffff;
+        background: #ffffff;
+        color: var(--vw-text, #1a1a2e);
     }
 
     .vw-script-step .vw-scene-actions {
@@ -1556,8 +1556,8 @@
     }
 
     .vw-script-step .vw-narrative-select option {
-        background: #1a1a2e;
-        color: #ffffff;
+        background: #ffffff;
+        color: var(--vw-text, #1a1a2e);
     }
 
     .vw-script-step .vw-option-description {
@@ -2124,14 +2124,14 @@
                                 <span style="font-size: 1rem;">{{ $style['icon'] }}</span>
                             @endif
                             <div style="flex: 1;">
-                                <span style="color: white; font-weight: 500; font-size: 0.9rem;">{{ __('Batch') }} {{ $batch['batchNumber'] }}</span>
+                                <span style="color: var(--vw-text); font-weight: 500; font-size: 0.9rem;">{{ __('Batch') }} {{ $batch['batchNumber'] }}</span>
                                 <span style="color: var(--vw-text-secondary); font-size: 0.8rem; margin-left: 0.5rem;">
                                     {{ __('Scenes') }} {{ $batch['startScene'] }}-{{ $batch['endScene'] }}
                                 </span>
                             </div>
                             @if($batch['status'] === 'error')
                                 <button wire:click="retryBatch({{ $batchIndex }})"
-                                        style="background: rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.5); color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                        style="background: rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.5); color: #dc2626; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;">
                                     🔄 {{ __('Retry') }}
                                 </button>
                             @endif
@@ -2190,7 +2190,7 @@
             <div style="margin-bottom: 1.25rem; padding: 1rem; background: rgba(var(--vw-primary-rgb), 0.04); border: 1px solid rgba(var(--vw-primary-rgb), 0.08); border-radius: 0.75rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
                     <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 0.25rem;">🎬 {{ __('Pacing & Scene Structure') }}</div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--vw-text); margin-bottom: 0.25rem;">🎬 {{ __('Pacing & Scene Structure') }}</div>
                         <div style="font-size: 0.7rem; color: var(--vw-text-secondary);">{{ __('Hollywood-style: scenes contain multiple shots') }}</div>
                     </div>
                     <div style="text-align: right;">
@@ -2898,7 +2898,7 @@
     {{-- Scene Overwrite Confirmation Modal --}}
     @if($showSceneOverwriteModal)
         <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);">
-            <div style="background: linear-gradient(135deg, rgba(30, 30, 45, 0.98) 0%, rgba(20, 20, 35, 1) 100%); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);">
+            <div style="background: #ffffff; border: 1px solid var(--vw-border); border-radius: 1rem; padding: 2rem; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
                 {{-- Header --}}
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
                     <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #ef4444); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
@@ -2923,7 +2923,7 @@
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
                     {{-- Replace Option --}}
                     <button wire:click="confirmSceneOverwrite('replace')"
-                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.75rem; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
+                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3)); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 0.75rem; color: var(--vw-text); font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
                             onmouseover="this.style.background='linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.4))'"
                             onmouseout="this.style.background='linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3))'">
                         <span style="font-size: 1.25rem;">🔄</span>
@@ -2935,7 +2935,7 @@
 
                     {{-- Append Option --}}
                     <button wire:click="confirmSceneOverwrite('append')"
-                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3)); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 0.75rem; color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
+                            style="width: 100%; padding: 1rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3)); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 0.75rem; color: var(--vw-text); font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;"
                             onmouseover="this.style.background='linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.4))'"
                             onmouseout="this.style.background='linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3))'">
                         <span style="font-size: 1.25rem;">➕</span>

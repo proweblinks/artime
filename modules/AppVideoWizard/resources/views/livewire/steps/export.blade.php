@@ -5,12 +5,12 @@
     }
 
     .vw-export-card {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.95) 0%, rgba(20, 20, 35, 0.98) 100%) !important;
+        background: #ffffff !important;
         border: 1px solid rgba(var(--vw-primary-rgb), 0.08) !important;
         border-radius: 1rem !important;
         padding: 1.5rem !important;
         margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
     }
 
     .vw-export-header {
@@ -479,7 +479,7 @@
             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04), rgba(6, 182, 212, 0.1)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                 <span style="font-size: 1.25rem;">🎬</span>
                 <div style="flex: 1;">
-                    <div style="font-size: 0.85rem; color: white; font-weight: 600;">{{ __('Hollywood Multi-Shot Mode') }}</div>
+                    <div style="font-size: 0.85rem; color: var(--vw-text); font-weight: 600;">{{ __('Hollywood Multi-Shot Mode') }}</div>
                     <div style="font-size: 0.7rem; color: var(--vw-text-secondary);">
                         {{ $exportStats['sceneCount'] }} {{ __('scenes') }} •
                         {{ $exportStats['videoCount'] }} {{ __('shot clips') }} •

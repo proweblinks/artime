@@ -846,7 +846,7 @@
         bottom: 0;
         width: 100vw !important;
         height: 100vh !important;
-        background: #0a0a12;
+        background: #ffffff;
         z-index: 999999;
         overflow: hidden;
     }
@@ -939,7 +939,7 @@
 
     .vw-multishot-stats {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
     }
 
     .vw-multishot-progress {
@@ -952,7 +952,7 @@
     .vw-progress-bar {
         flex: 1;
         height: 6px;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 3px;
         overflow: hidden;
     }
@@ -984,8 +984,8 @@
     .vw-properties-panel {
         width: 180px;
         min-width: 180px;
-        background: rgba(15, 15, 25, 0.98);
-        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        background: #ffffff;
+        border-left: 1px solid var(--vw-border);
         padding: 0.75rem;
         display: flex;
         flex-direction: column;
@@ -998,9 +998,9 @@
         gap: 0.4rem;
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--vw-border);
         margin-bottom: 0.25rem;
     }
 
@@ -1013,18 +1013,18 @@
 
     .vw-prop-item.toggle {
         padding: 0.5rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.4rem;
     }
 
     .vw-prop-label {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-prop-value {
         font-size: 0.7rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text);
         font-weight: 500;
     }
 
@@ -1034,7 +1034,7 @@
 
     .vw-prop-divider {
         height: 1px;
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--vw-border);
         margin: 0.5rem 0;
     }
 
@@ -1059,7 +1059,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.1);
         transition: 0.3s;
         border-radius: 18px;
     }
@@ -1087,7 +1087,7 @@
     /* Shortcuts Reference */
     .vw-shortcuts-ref {
         padding: 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.4rem;
         margin-top: 0.25rem;
     }
@@ -1097,13 +1097,13 @@
         align-items: center;
         gap: 0.35rem;
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
         padding: 0.2rem 0;
     }
 
     .vw-shortcut kbd {
         padding: 0.1rem 0.3rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.06);
         border-radius: 0.2rem;
         font-family: inherit;
         font-size: 0.6rem;
@@ -1113,8 +1113,8 @@
     .vw-timeline-bar {
         height: 50px;
         min-height: 50px;
-        background: rgba(15, 15, 25, 0.98);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: #ffffff;
+        border-top: 1px solid var(--vw-border);
         display: flex;
         align-items: center;
         padding: 0 1rem;
@@ -1134,8 +1134,8 @@
         flex-direction: column;
         align-items: center;
         padding: 0.35rem 0.75rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--vw-border);
         border-radius: 0.4rem;
         cursor: pointer;
         transition: all 0.2s;
@@ -1155,12 +1155,12 @@
     .vw-scene-thumb {
         font-size: 0.75rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-scene-duration {
         font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--vw-text-secondary);
     }
 
     .vw-timeline-actions {
@@ -1172,10 +1172,10 @@
     .vw-timeline-total {
         font-size: 0.85rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         font-family: 'SF Mono', Monaco, monospace;
         padding: 0.35rem 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.4rem;
     }
 
@@ -1195,12 +1195,12 @@
     }
 
     .vw-export-modal {
-        background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
-        border: 1px solid rgba(3, 252, 244, 0.3);
+        background: #ffffff;
+        border: 1px solid var(--vw-border);
         border-radius: 1rem;
         width: 90%;
         max-width: 480px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
     }
 
     .vw-modal-header {
@@ -1208,13 +1208,13 @@
         align-items: center;
         justify-content: space-between;
         padding: 1rem 1.25rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--vw-border);
     }
 
     .vw-modal-header h3 {
         font-size: 1rem;
         font-weight: 600;
-        color: white;
+        color: var(--vw-text);
         margin: 0;
     }
 
@@ -1223,15 +1223,15 @@
         height: 32px;
         border-radius: 0.5rem;
         border: none;
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
         font-size: 1.25rem;
         cursor: pointer;
         transition: background 0.2s;
     }
 
     .vw-modal-close:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.1);
     }
 
     .vw-modal-body {
@@ -1240,7 +1240,7 @@
 
     .vw-modal-text {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--vw-text-secondary);
         margin: 0 0 1rem 0;
         line-height: 1.5;
     }
@@ -1249,7 +1249,7 @@
         display: flex;
         gap: 1rem;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.5rem;
     }
 
@@ -1258,7 +1258,7 @@
         align-items: center;
         gap: 0.4rem;
         font-size: 0.8rem;
-        color: white;
+        color: var(--vw-text);
     }
 
     .vw-summary-icon {
@@ -1287,7 +1287,7 @@
 
     .vw-warning-text {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--vw-text-secondary);
         margin: 0;
     }
 
@@ -1296,7 +1296,7 @@
         justify-content: flex-end;
         gap: 0.75rem;
         padding: 1rem 1.25rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--vw-border);
     }
 
     .vw-modal-btn {
@@ -1310,12 +1310,12 @@
     }
 
     .vw-modal-btn.secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--vw-text);
     }
 
     .vw-modal-btn.secondary:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.1);
     }
 
     .vw-modal-btn.primary {
