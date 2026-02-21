@@ -5,7 +5,7 @@
 @section('css')
 <style>
     .main {
-        background: #f0f4f8 !important;
+        background: #ffffff !important;
         overflow-y: auto !important;
     }
     .main > .border-bottom {

@@ -12,13 +12,13 @@
 /* --- A. Design Tokens --- */
 :root {
     /* Backgrounds */
-    --at-bg-deep: #f0f4f8;
+    --at-bg-deep: #ffffff;
     --at-bg-surface: rgba(255, 255, 255, 0.55);
     --at-bg-surface-solid: #ffffff;
     --at-bg-elevated: rgba(255, 255, 255, 0.35);
     --at-bg-hover: rgba(255, 255, 255, 0.65);
     --at-bg-input: rgba(255, 255, 255, 0.7);
-    --at-bg-overlay: rgba(240, 244, 248, 0.85);
+    --at-bg-overlay: rgba(255, 255, 255, 0.85);
 
     /* Borders */
     --at-border: rgba(255, 255, 255, 0.35);
