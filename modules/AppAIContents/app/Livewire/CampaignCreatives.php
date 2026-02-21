@@ -16,6 +16,8 @@ class CampaignCreatives extends Component
     public bool $showAddSheet = false;
     public string $addCreativePrompt = '';
     public ?int $menuOpenId = null;
+    public bool $showStyleModal = false;
+    public ?int $styleCreativeId = null;
 
     public function mount(int $campaignId)
     {
@@ -98,15 +100,36 @@ class CampaignCreatives extends Component
         $this->menuOpenId = $this->menuOpenId === $creativeId ? null : $creativeId;
     }
 
+    public function openStyleExplorer(int $creativeId)
+    {
+        $this->styleCreativeId = $creativeId;
+        $this->showStyleModal = true;
+    }
+
+    public function applyStyle(string $stylePreset)
+    {
+        $creative = ContentCreative::find($this->styleCreativeId);
+        if (!$creative || !$creative->isAiGenerated()) return;
+
+        $this->showStyleModal = false;
+        $this->isGenerating = true;
+
+        dispatch(function () use ($creative, $stylePreset) {
+            $service = new CreativeService();
+            $service->generateStyledCreative($creative, $stylePreset);
+        })->afterResponse();
+    }
+
     public function addCreative()
     {
         if (empty(trim($this->addCreativePrompt)) || !$this->campaign) return;
 
         $this->showAddSheet = false;
+        $this->isGenerating = true;
 
         dispatch(function () {
             $service = new CreativeService();
-            $service->generateCreatives($this->campaign, 1);
+            $service->generateSingleAiCreative($this->campaign);
         })->afterResponse();
 
         $this->addCreativePrompt = '';

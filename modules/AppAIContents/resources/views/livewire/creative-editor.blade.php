@@ -116,7 +116,13 @@
                         @endif
                         <i class="fa-light fa-pen" style="position: absolute; top: 4px; right: 4px; font-size: 10px; color: var(--cs-primary-text); background: var(--cs-bg-surface); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"></i>
                     </div>
-                    <div style="font-size: 12px; color: var(--cs-text-muted); margin-top: 4px;">{{ __('Generated Image') }}</div>
+                    <div style="font-size: 12px; color: var(--cs-text-muted); margin-top: 4px;">
+                        @if(($creative->source_type ?? 'ai') === 'ai')
+                            <span style="color: rgb(139,92,246);"><i class="fa-light fa-sparkles" style="font-size: 10px;"></i> {{ __('AI Generated') }}</span>
+                        @else
+                            <span style="color: rgb(16,185,129);"><i class="fa-light fa-camera" style="font-size: 10px;"></i> {{ __('Brand Image') }}</span>
+                        @endif
+                    </div>
                 </div>
                 @endif
             </div>

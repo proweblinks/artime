@@ -14,6 +14,9 @@ class ContentCreative extends Model
         'campaign_id',
         'team_id',
         'type',
+        'source_type',
+        'source_image_path',
+        'style_preset',
         'image_path',
         'image_url',
         'video_path',
@@ -60,5 +63,15 @@ class ContentCreative extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Team::class);
+    }
+
+    public function isAiGenerated(): bool
+    {
+        return ($this->source_type ?? 'ai') === 'ai';
+    }
+
+    public function isBrandImage(): bool
+    {
+        return $this->source_type === 'brand_image';
     }
 }

@@ -37,6 +37,19 @@
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
                 @foreach($campaign->creatives as $creative)
                     <div class="cs-creative-card" x-data="{ menuOpen: false }">
+                        {{-- Source Badge --}}
+                        <div style="position: absolute; top: 8px; left: 8px; z-index: 2;">
+                            @if(($creative->source_type ?? 'ai') === 'ai')
+                                <span style="background: rgba(139,92,246,0.85); color: white; font-size: 11px; padding: 2px 8px; border-radius: 12px; backdrop-filter: blur(4px);">
+                                    <i class="fa-light fa-sparkles" style="font-size: 10px;"></i> AI
+                                </span>
+                            @else
+                                <span style="background: rgba(16,185,129,0.85); color: white; font-size: 11px; padding: 2px 8px; border-radius: 12px; backdrop-filter: blur(4px);">
+                                    <i class="fa-light fa-camera" style="font-size: 10px;"></i> {{ __('Brand') }}
+                                </span>
+                            @endif
+                        </div>
+
                         {{-- Image / Video --}}
                         @if($creative->type === 'video' && $creative->video_url)
                             <div style="position: relative;" x-data="{ playing: false }">
@@ -111,6 +124,14 @@
                                         @if($animatingId === $creative->id) disabled @endif>
                                     <i class="fa-light fa-font-case" style="text-decoration: line-through;"></i>
                                 </button>
+                                @if(($creative->source_type ?? 'ai') === 'ai')
+                                    <button class="cs-btn cs-btn-icon"
+                                            style="background: rgba(139,92,246,0.6); color: white; border: none; width: 32px; height: 32px; min-width: 32px; backdrop-filter: blur(8px);"
+                                            wire:click="openStyleExplorer({{ $creative->id }})"
+                                            title="{{ __('Explore Styles') }}">
+                                        <i class="fa-light fa-palette"></i>
+                                    </button>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -124,6 +145,29 @@
                 </button>
             </div>
         @endif
+    @endif
+
+    {{-- ━━━ Style Picker Modal ━━━ --}}
+    @if($showStyleModal)
+        <div class="cs-bottom-sheet open" x-transition style="z-index: 101;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 600; margin: 0;">{{ __('Choose a Style') }}</h3>
+                <button class="cs-modal-close" wire:click="$set('showStyleModal', false)">
+                    <i class="fa-light fa-xmark"></i>
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                @foreach(\Modules\AppAIContents\Services\CreativeService::STYLE_PRESETS as $slug => $preset)
+                    <button class="cs-btn" style="padding: 12px 8px; text-align: center; border: 1px solid var(--cs-border); border-radius: var(--cs-radius-md);"
+                            wire:click="applyStyle('{{ $slug }}')">
+                        <div style="font-size: 13px; font-weight: 500;">{{ __($preset['label']) }}</div>
+                    </button>
+                @endforeach
+            </div>
+        </div>
+        <div wire:click="$set('showStyleModal', false)"
+             style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100;"
+             x-transition.opacity></div>
     @endif
 
     {{-- ━━━ Add Creative Bottom Sheet ━━━ --}}

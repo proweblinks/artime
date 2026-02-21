@@ -12,66 +12,148 @@ use Modules\AppAIContents\Models\ContentCreativeVersion;
 
 class CreativeService
 {
+    const STYLE_PRESETS = [
+        'photographic'  => ['label' => 'Photographic',  'modifier' => 'Shot on a professional DSLR camera, natural lighting, shallow depth of field, realistic photograph'],
+        'cinematic'     => ['label' => 'Cinematic',      'modifier' => 'Cinematic film still, anamorphic lens, dramatic lighting, 35mm film grain, movie-like composition'],
+        'golden_hour'   => ['label' => 'Golden Hour',    'modifier' => 'Golden hour warm sunlight, soft lens flare, warm tones, magic hour photography'],
+        'aerial'        => ['label' => 'Aerial View',    'modifier' => 'Aerial drone photography, bird\'s eye view, sweeping landscape, high altitude perspective'],
+        'lifestyle'     => ['label' => 'Lifestyle',      'modifier' => 'Lifestyle photography, candid moment, authentic feel, warm and inviting atmosphere'],
+        'studio'        => ['label' => 'Studio',         'modifier' => 'Professional studio photography, clean backdrop, perfect lighting, product showcase quality'],
+        'documentary'   => ['label' => 'Documentary',    'modifier' => 'Documentary style, raw and authentic, photojournalistic approach, real moments captured'],
+        'minimalist'    => ['label' => 'Minimalist',     'modifier' => 'Minimalist composition, clean lines, negative space, elegant simplicity'],
+        'urban'         => ['label' => 'Urban',          'modifier' => 'Urban photography, city environment, modern architecture, street-level perspective'],
+        'nature'        => ['label' => 'Nature',         'modifier' => 'Nature photography, organic elements, environmental portrait, natural world beauty'],
+    ];
+
     public function generateCreatives(ContentCampaign $campaign, int $count = 4): void
     {
         $dna = $campaign->dna;
+        $sortOrder = 0;
 
-        for ($i = 0; $i < $count; $i++) {
+        // Slot 1: AI-generated photorealistic image
+        try {
+            $this->generateAiCreative($campaign, $dna, $sortOrder++, 'photographic');
+        } catch (\Throwable $e) {
+            Log::error("CreativeService: AI creative failed", ['error' => $e->getMessage()]);
+        }
+
+        // Slots 2-4: Brand images from DNA library
+        $brandImages = $this->selectBrandImages($dna, $campaign, $count - 1);
+
+        foreach ($brandImages as $brandImage) {
             try {
-                // Generate image
-                $imageResult = $this->generateImage($campaign, $dna, $i);
-
-                // Generate text overlay content
-                $textContent = $this->generateTextContent($campaign, $dna, $i);
-
-                $creative = ContentCreative::create([
-                    'campaign_id' => $campaign->id,
-                    'team_id' => $campaign->team_id,
-                    'type' => 'image',
-                    'image_path' => $imageResult['path'] ?? null,
-                    'image_url' => $imageResult['url'] ?? null,
-                    'header_text' => $textContent['header'] ?? '',
-                    'description_text' => $textContent['description'] ?? '',
-                    'cta_text' => $textContent['cta'] ?? '',
-                    'sort_order' => $i,
-                    'metadata' => [
-                        'generation_prompt' => $imageResult['prompt'] ?? '',
-                        'variation_index' => $i,
-                    ],
-                ]);
-
-                // Save first version
-                ContentCreativeVersion::create([
-                    'creative_id' => $creative->id,
-                    'version_number' => 1,
-                    'image_path' => $creative->image_path,
-                    'image_url' => $creative->image_url,
-                    'header_text' => $creative->header_text,
-                    'description_text' => $creative->description_text,
-                    'cta_text' => $creative->cta_text,
-                    'metadata' => $creative->metadata,
-                    'created_at' => now(),
-                ]);
+                $this->generateBrandImageCreative($campaign, $dna, $brandImage, $sortOrder++);
             } catch (\Throwable $e) {
-                Log::error("CreativeService: Failed to generate creative {$i}", ['error' => $e->getMessage()]);
+                Log::error("CreativeService: Brand image creative failed", ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Fallback: if fewer than 3 brand images available, fill remaining with AI
+        $created = ContentCreative::where('campaign_id', $campaign->id)->count();
+        while ($created < $count) {
+            try {
+                $this->generateAiCreative($campaign, $dna, $sortOrder++);
+                $created++;
+            } catch (\Throwable $e) {
+                Log::error("CreativeService: Fallback AI creative failed", ['error' => $e->getMessage()]);
+                break;
             }
         }
 
         $campaign->update(['status' => 'ready']);
     }
 
-    protected function generateImage(ContentCampaign $campaign, ContentBusinessDna $dna, int $variationIndex): array
+    protected function generateAiCreative(ContentCampaign $campaign, ContentBusinessDna $dna, int $sortOrder, ?string $stylePreset = null): ?ContentCreative
+    {
+        $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset);
+        $textContent = $this->generateTextContent($campaign, $dna, $sortOrder);
+
+        $creative = ContentCreative::create([
+            'campaign_id' => $campaign->id,
+            'team_id' => $campaign->team_id,
+            'type' => 'image',
+            'source_type' => 'ai',
+            'style_preset' => $stylePreset ?? 'photographic',
+            'image_path' => $imageResult['path'] ?? null,
+            'image_url' => $imageResult['url'] ?? null,
+            'header_text' => $textContent['header'] ?? '',
+            'description_text' => $textContent['description'] ?? '',
+            'cta_text' => $textContent['cta'] ?? '',
+            'sort_order' => $sortOrder,
+            'metadata' => [
+                'generation_prompt' => $imageResult['prompt'] ?? '',
+                'variation_index' => $sortOrder,
+            ],
+        ]);
+
+        ContentCreativeVersion::create([
+            'creative_id' => $creative->id,
+            'version_number' => 1,
+            'image_path' => $creative->image_path,
+            'image_url' => $creative->image_url,
+            'header_text' => $creative->header_text,
+            'description_text' => $creative->description_text,
+            'cta_text' => $creative->cta_text,
+            'metadata' => $creative->metadata,
+            'created_at' => now(),
+        ]);
+
+        return $creative;
+    }
+
+    protected function generateBrandImageCreative(ContentCampaign $campaign, ContentBusinessDna $dna, array $brandImage, int $sortOrder): ?ContentCreative
+    {
+        $dimensions = $this->getAspectDimensions($campaign->aspect_ratio);
+        $croppedPath = $this->smartCropImage($brandImage['path'], $dimensions['width'], $dimensions['height'], $campaign->team_id);
+
+        $imagePath = $croppedPath ?? $brandImage['path'];
+        $imageUrl = url('/public/storage/' . $imagePath);
+
+        $textContent = $this->generateTextContent($campaign, $dna, $sortOrder);
+
+        $creative = ContentCreative::create([
+            'campaign_id' => $campaign->id,
+            'team_id' => $campaign->team_id,
+            'type' => 'image',
+            'source_type' => 'brand_image',
+            'source_image_path' => $brandImage['path'],
+            'image_path' => $imagePath,
+            'image_url' => $imageUrl,
+            'header_text' => $textContent['header'] ?? '',
+            'description_text' => $textContent['description'] ?? '',
+            'cta_text' => $textContent['cta'] ?? '',
+            'sort_order' => $sortOrder,
+            'metadata' => [
+                'brand_image_caption' => $brandImage['caption'] ?? '',
+                'brand_image_source' => $brandImage['source'] ?? '',
+                'variation_index' => $sortOrder,
+            ],
+        ]);
+
+        ContentCreativeVersion::create([
+            'creative_id' => $creative->id,
+            'version_number' => 1,
+            'image_path' => $creative->image_path,
+            'image_url' => $creative->image_url,
+            'header_text' => $creative->header_text,
+            'description_text' => $creative->description_text,
+            'cta_text' => $creative->cta_text,
+            'metadata' => $creative->metadata,
+            'created_at' => now(),
+        ]);
+
+        return $creative;
+    }
+
+    protected function generatePhotorealisticImage(ContentCampaign $campaign, ContentBusinessDna $dna, ?string $stylePreset = null): array
     {
         $brandColors = implode(', ', $dna->colors ?? ['#03fcf4', '#1a1a2e']);
         $aesthetic = implode(', ', $dna->brand_aesthetic ?? ['modern-clean']);
         $tone = implode(', ', $dna->brand_tone ?? ['professional']);
-        $variations = [
-            'dramatic cinematic lighting with depth',
-            'soft natural ambient light, airy feel',
-            'bold high-contrast with vivid colors',
-            'subtle gradient tones, elegant and refined',
-        ];
-        $variation = $variations[$variationIndex % count($variations)];
+        $overview = $dna->business_overview ?? $dna->brand_name;
+
+        $preset = $stylePreset ?? 'photographic';
+        $styleModifier = self::STYLE_PRESETS[$preset]['modifier'] ?? self::STYLE_PRESETS['photographic']['modifier'];
 
         $aspectLabel = match($campaign->aspect_ratio) {
             '1:1' => 'square composition',
@@ -79,19 +161,14 @@ class CreativeService
             default => 'vertical story composition (9:16)',
         };
 
-        $prompt = "Create a premium social media marketing visual for the campaign '{$campaign->title}'. "
-            . "Brand: {$dna->brand_name}. Visual style: {$aesthetic}. Mood: {$variation}. "
-            . "Use brand colors ({$brandColors}) as inspiration for the color palette. "
-            . "The image should feel {$tone}. {$aspectLabel}. "
+        $prompt = "Create a premium photorealistic social media image for the campaign '{$campaign->title}'. "
+            . "Business: {$dna->brand_name} — {$overview}. "
+            . "Visual style: {$aesthetic}. {$styleModifier}. "
+            . "Use brand colors ({$brandColors}) as inspiration. The image should feel {$tone}. "
+            . "{$aspectLabel}. MUST be a photorealistic photograph, NOT an illustration, NOT a cartoon, NOT a 3D render. "
             . "Professional quality, editorial grade. Do NOT include any text or words in the image.";
 
-        $aspectMap = [
-            '9:16' => ['width' => 720, 'height' => 1280],
-            '1:1'  => ['width' => 1024, 'height' => 1024],
-            '4:5'  => ['width' => 864, 'height' => 1080],
-        ];
-
-        $dimensions = $aspectMap[$campaign->aspect_ratio] ?? $aspectMap['9:16'];
+        $dimensions = $this->getAspectDimensions($campaign->aspect_ratio);
 
         try {
             $result = AI::process($prompt, 'image', [
@@ -121,10 +198,164 @@ class CreativeService
                 }
             }
         } catch (\Throwable $e) {
-            Log::error('CreativeService::generateImage failed', ['error' => $e->getMessage()]);
+            Log::error('CreativeService::generatePhotorealisticImage failed', ['error' => $e->getMessage()]);
         }
 
         return ['path' => null, 'url' => null, 'prompt' => $prompt];
+    }
+
+    protected function selectBrandImages(ContentBusinessDna $dna, ContentCampaign $campaign, int $count = 3): array
+    {
+        $images = $dna->images ?? [];
+
+        // Filter to images with valid paths that exist on disk
+        $validImages = [];
+        foreach ($images as $img) {
+            if (!empty($img['path']) && Storage::disk('public')->exists($img['path'])) {
+                $validImages[] = $img;
+            }
+        }
+
+        if (empty($validImages)) {
+            return [];
+        }
+
+        if (count($validImages) <= $count) {
+            return $validImages;
+        }
+
+        // Use AI to pick the best images for this campaign
+        try {
+            $imageList = '';
+            foreach ($validImages as $i => $img) {
+                $caption = $img['caption'] ?? 'No caption';
+                $source = $img['source'] ?? 'unknown';
+                $imageList .= "[" . ($i + 1) . "] {$caption} (source: {$source})\n";
+            }
+
+            $prompt = "Given this campaign '{$campaign->title}' ({$campaign->description}) for brand '{$dna->brand_name}' ({$dna->business_overview}), "
+                . "select the {$count} most relevant images from this list:\n{$imageList}\n"
+                . "Return ONLY a JSON array of the numbers, e.g. [1, 3, 5]. No other text.";
+
+            $result = AI::process($prompt, 'text', ['maxResult' => 1], $campaign->team_id);
+            $text = $result['data'][0] ?? '';
+
+            if (preg_match('/\[[\d,\s]+\]/', $text, $match)) {
+                $indices = json_decode($match[0], true);
+                if (is_array($indices)) {
+                    $selected = [];
+                    foreach ($indices as $idx) {
+                        $i = (int)$idx - 1;
+                        if (isset($validImages[$i])) {
+                            $selected[] = $validImages[$i];
+                        }
+                    }
+                    if (count($selected) >= 1) {
+                        return array_slice($selected, 0, $count);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('CreativeService: AI image selection failed, using first N', ['error' => $e->getMessage()]);
+        }
+
+        // Fallback: first N images (og:image priority — already sorted by BusinessDnaService)
+        return array_slice($validImages, 0, $count);
+    }
+
+    protected function smartCropImage(string $sourcePath, int $targetWidth, int $targetHeight, int $teamId): ?string
+    {
+        if (!extension_loaded('gd')) {
+            Log::warning('CreativeService: GD extension not available, skipping smart crop');
+            return null;
+        }
+
+        $fullPath = Storage::disk('public')->path($sourcePath);
+
+        if (!file_exists($fullPath)) {
+            return null;
+        }
+
+        try {
+            $info = getimagesize($fullPath);
+            if (!$info) return null;
+
+            $sourceW = $info[0];
+            $sourceH = $info[1];
+            $mime = $info['mime'];
+
+            $source = match($mime) {
+                'image/jpeg' => imagecreatefromjpeg($fullPath),
+                'image/png' => imagecreatefrompng($fullPath),
+                'image/webp' => imagecreatefromwebp($fullPath),
+                default => null,
+            };
+
+            if (!$source) return null;
+
+            // Calculate center crop to target aspect ratio
+            $targetRatio = $targetWidth / $targetHeight;
+            $sourceRatio = $sourceW / $sourceH;
+
+            if ($sourceRatio > $targetRatio) {
+                // Source is wider — crop sides
+                $cropH = $sourceH;
+                $cropW = (int)($sourceH * $targetRatio);
+                $cropX = (int)(($sourceW - $cropW) / 2);
+                $cropY = 0;
+            } else {
+                // Source is taller — crop top/bottom
+                $cropW = $sourceW;
+                $cropH = (int)($sourceW / $targetRatio);
+                $cropX = 0;
+                $cropY = (int)(($sourceH - $cropH) / 2);
+            }
+
+            $cropped = imagecrop($source, [
+                'x' => $cropX,
+                'y' => $cropY,
+                'width' => $cropW,
+                'height' => $cropH,
+            ]);
+
+            if (!$cropped) {
+                imagedestroy($source);
+                return null;
+            }
+
+            // Scale to target dimensions
+            $scaled = imagescale($cropped, $targetWidth, $targetHeight);
+            imagedestroy($cropped);
+            imagedestroy($source);
+
+            if (!$scaled) return null;
+
+            $filename = "content-studio/{$teamId}/" . uniqid() . ".jpg";
+            $savePath = Storage::disk('public')->path($filename);
+
+            // Ensure directory exists
+            $dir = dirname($savePath);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            imagejpeg($scaled, $savePath, 90);
+            imagedestroy($scaled);
+
+            return $filename;
+        } catch (\Throwable $e) {
+            Log::error('CreativeService::smartCropImage failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    protected function getAspectDimensions(string $aspectRatio): array
+    {
+        return match($aspectRatio) {
+            '1:1'  => ['width' => 1024, 'height' => 1024],
+            '4:5'  => ['width' => 864, 'height' => 1080],
+            default => ['width' => 720, 'height' => 1280],
+        };
     }
 
     protected function generateTextContent(ContentCampaign $campaign, ContentBusinessDna $dna, int $index): array
@@ -181,12 +412,22 @@ PROMPT;
         $campaign = $creative->campaign;
         $dna = $campaign->dna;
 
-        // Regenerate image with slightly different prompt
-        $imageResult = $this->generateImage($campaign, $dna, $creative->current_version);
+        if ($creative->isBrandImage() && $creative->source_image_path) {
+            // Re-crop the original brand image
+            $dimensions = $this->getAspectDimensions($campaign->aspect_ratio);
+            $newPath = $this->smartCropImage($creative->source_image_path, $dimensions['width'], $dimensions['height'], $creative->team_id);
+            $imageResult = [
+                'path' => $newPath ?? $creative->image_path,
+                'url' => $newPath ? url('/public/storage/' . $newPath) : $creative->image_url,
+                'prompt' => 'Brand image re-crop',
+            ];
+        } else {
+            // AI: regenerate with same or default style preset
+            $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $creative->style_preset);
+        }
 
-        $newVersion = $creative->current_version + 1;
+        $newVersion = ($creative->current_version ?? 0) + 1;
 
-        // Create new version
         ContentCreativeVersion::create([
             'creative_id' => $creative->id,
             'version_number' => $newVersion,
@@ -202,6 +443,35 @@ PROMPT;
         $creative->update([
             'image_path' => $imageResult['path'] ?? $creative->image_path,
             'image_url' => $imageResult['url'] ?? $creative->image_url,
+            'current_version' => $newVersion,
+        ]);
+    }
+
+    public function generateStyledCreative(ContentCreative $creative, string $stylePreset): void
+    {
+        $campaign = $creative->campaign;
+        $dna = $campaign->dna;
+
+        $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset);
+
+        $newVersion = ($creative->current_version ?? 0) + 1;
+
+        ContentCreativeVersion::create([
+            'creative_id' => $creative->id,
+            'version_number' => $newVersion,
+            'image_path' => $imageResult['path'] ?? $creative->image_path,
+            'image_url' => $imageResult['url'] ?? $creative->image_url,
+            'header_text' => $creative->header_text,
+            'description_text' => $creative->description_text,
+            'cta_text' => $creative->cta_text,
+            'metadata' => ['style_preset' => $stylePreset, 'prompt' => $imageResult['prompt'] ?? ''],
+            'created_at' => now(),
+        ]);
+
+        $creative->update([
+            'image_path' => $imageResult['path'] ?? $creative->image_path,
+            'image_url' => $imageResult['url'] ?? $creative->image_url,
+            'style_preset' => $stylePreset,
             'current_version' => $newVersion,
         ]);
     }
@@ -243,7 +513,6 @@ PROMPT;
         $newCreative->current_version = 1;
         $newCreative->save();
 
-        // Save version
         ContentCreativeVersion::create([
             'creative_id' => $newCreative->id,
             'version_number' => 1,
@@ -255,9 +524,7 @@ PROMPT;
             'created_at' => now(),
         ]);
 
-        // If different aspect ratio, regenerate image
         if ($newAspectRatio !== $creative->campaign->aspect_ratio) {
-            // Update campaign aspect ratio reference in metadata
             $newCreative->update([
                 'metadata' => array_merge($newCreative->metadata ?? [], ['aspect_ratio' => $newAspectRatio]),
             ]);
@@ -295,6 +562,16 @@ PROMPT;
             Log::error('animateCreative failed', ['error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    public function generateSingleAiCreative(ContentCampaign $campaign): void
+    {
+        $dna = $campaign->dna;
+        $sortOrder = ContentCreative::where('campaign_id', $campaign->id)->max('sort_order') + 1;
+
+        $this->generateAiCreative($campaign, $dna, $sortOrder, 'photographic');
+
+        $campaign->update(['status' => 'ready']);
     }
 
     protected function downloadAndStore(string $url, int $teamId, string $ext = 'png'): string
