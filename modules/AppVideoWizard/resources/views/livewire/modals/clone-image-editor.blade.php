@@ -2,7 +2,7 @@
 @if($showCloneImageEditorModal)
 <div class="vw-modal-overlay"
      x-data="{ activeTab: @entangle('cloneImageEditorTab') }"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
          style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(var(--vw-primary-rgb), 0.12); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
 

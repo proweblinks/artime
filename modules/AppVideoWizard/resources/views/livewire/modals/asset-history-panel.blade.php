@@ -2,11 +2,11 @@
 @if($showAssetHistoryPanel)
 {{-- Backdrop --}}
 <div wire:click="closeAssetHistory"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 10000000; cursor: pointer;"></div>
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 1000199; cursor: pointer;"></div>
 
 {{-- Panel --}}
 <div x-data="{ filterType: 'all' }"
-     style="position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw; background: var(--vw-bg-surface); border-left: 2px solid var(--vw-border-accent); z-index: 10000001; display: flex; flex-direction: column; animation: assetHistorySlideIn 0.3s ease-out;">
+     style="position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw; background: var(--vw-bg-surface); border-left: 2px solid var(--vw-border-accent); z-index: 1000200; display: flex; flex-direction: column; animation: assetHistorySlideIn 0.3s ease-out;">
 
     {{-- Header --}}
     <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--vw-border); display: flex; justify-content: space-between; align-items: center;">

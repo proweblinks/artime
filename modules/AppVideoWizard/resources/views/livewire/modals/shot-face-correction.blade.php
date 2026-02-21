@@ -133,7 +133,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2147483649; /* Higher than multi-shot modal (2147483647) */
+    z-index: 1000400; /* Popup-within-modal layer */
     backdrop-filter: blur(4px);
 }
 

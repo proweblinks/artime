@@ -16,7 +16,7 @@
         .writers-room-overlay {
             position: fixed;
             inset: 0;
-            z-index: 9998;
+            z-index: 1000100;
             background: #0f0f14;
             display: flex;
             flex-direction: column;
@@ -653,7 +653,7 @@
         /* Reference Popover */
         .wr-popover {
             position: fixed;
-            z-index: 10000;
+            z-index: 1000150;
             background: rgba(30, 30, 45, 0.98);
             border: 1px solid var(--vw-border-accent);
             border-radius: 0.75rem;

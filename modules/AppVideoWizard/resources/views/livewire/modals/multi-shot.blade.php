@@ -1866,7 +1866,7 @@ window.multiShotVideoPolling = function() {
     background: linear-gradient(135deg, #0a0a12 0%, #12121f 30%, #1a1a2e 50%, #12121f 70%, #0a0a12 100%);
     display: flex !important;
     flex-direction: column;
-    z-index: 2147483647 !important; /* Maximum z-index to cover everything */
+    z-index: 1000300 !important; /* Full-screen modal layer */
     overflow: hidden !important;
     isolation: isolate;
     transform: translateZ(0); /* Force GPU layer */
@@ -2312,7 +2312,7 @@ window.multiShotVideoPolling = function() {
 .msm-spinner.cyan { border-top-color: #06b6d4; border-right-color: rgba(6,182,212,0.4); width: 48px; height: 48px; }
 
 /* Popup Modal - Glass Style */
-.msm-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2147483648; }
+.msm-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000400; }
 .msm-popup { background: linear-gradient(135deg, rgba(25,25,40,0.98), rgba(15,15,28,0.99)); border: 1px solid rgba(6,182,212,0.35); border-radius: 16px; width: 380px; max-width: 95vw; box-shadow: 0 25px 80px rgba(0,0,0,0.3), 0 0 60px rgba(6,182,212,0.15); }
 .msm-popup-header { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.25rem; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(59,130,246,0.1)); border-bottom: 1px solid rgba(0,0,0,0.04); border-radius: 16px 16px 0 0; }
 .msm-popup-header h4 { margin: 0; color: var(--vw-text); font-size: 1.1rem; font-weight: 600; }

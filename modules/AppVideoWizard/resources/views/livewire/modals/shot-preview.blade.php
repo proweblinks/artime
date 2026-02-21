@@ -78,7 +78,7 @@
              }
          }
      }"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 2147483648; padding: 0.5rem; overflow-y: auto;"
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 1000400; padding: 0.5rem; overflow-y: auto;"
      wire:click.self="closeShotPreviewModal">
     <div style="max-width: 900px; width: 100%; background: linear-gradient(135deg, #1a1a2e, #0f172a); border-radius: 0.75rem; border: 1px solid rgba(var(--vw-primary-rgb), 0.12); overflow: hidden; max-height: 98vh; display: flex; flex-direction: column; margin: auto;">
         {{-- Header (compact) --}}

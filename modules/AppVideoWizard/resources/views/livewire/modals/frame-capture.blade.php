@@ -242,7 +242,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1002;
+    z-index: 1000100;
     padding: 0.5rem;
 }
 

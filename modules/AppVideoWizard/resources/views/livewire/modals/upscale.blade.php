@@ -1,7 +1,7 @@
 {{-- Upscale Quality Modal --}}
 @if($showUpscaleModal)
 <div class="vw-modal-overlay"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
          style="background: linear-gradient(135deg, rgba(30,30,45,0.98), rgba(20,20,35,0.99)); border: 1px solid rgba(251,191,36,0.3); border-radius: 1rem; width: 100%; max-width: 500px; overflow: hidden;">
         {{-- Header --}}

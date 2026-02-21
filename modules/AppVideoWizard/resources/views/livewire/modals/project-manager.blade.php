@@ -7,7 +7,7 @@
         editingProjectName: ''
      }"
      class="vw-modal-overlay"
-     style="z-index: 1000;"
+     style="z-index: 1000100;"
      @keydown.escape.window="$wire.closeProjectManager()">
 
     {{-- Modal Backdrop --}}

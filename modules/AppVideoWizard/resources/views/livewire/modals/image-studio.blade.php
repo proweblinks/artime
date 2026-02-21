@@ -2,7 +2,7 @@
 @if($showImageStudioModal)
 <div class="vw-modal-overlay"
      x-data="{ activeTab: @entangle('imageStudioTab') }"
-     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000000; padding: 1rem;">
+     style="position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000100; padding: 1rem;">
     <div class="vw-modal"
          style="background: var(--vw-bg-surface); border: 1px solid var(--vw-border-accent); border-radius: 1rem; width: 100%; max-width: 800px; max-height: 95vh; display: flex; flex-direction: column; overflow: hidden;">
 
