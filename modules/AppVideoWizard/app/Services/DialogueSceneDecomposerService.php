@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
  * DialogueSceneDecomposerService
  *
  * Decomposes multi-character dialogue scenes into Shot/Reverse Shot pattern.
- * Each shot features ONE character speaking their line, enabling Multitalk lip-sync.
+ * Each shot features ONE character speaking their line, enabling Seedance lip-sync.
  *
  * Hollywood Pattern:
  * - Two-shot establishing → CU Character A speaks → CU Character B responds → repeat
@@ -893,11 +893,6 @@ class DialogueSceneDecomposerService
      */
     protected function enforceSingleCharacterConstraint(array $shots, array $options = []): array
     {
-        if (($options['animationModel'] ?? null) === 'infinitetalk') {
-            Log::info('DialogueSceneDecomposer: Skipping single-character constraint for InfiniteTalk dialogue mode');
-            return $shots;
-        }
-
         $conversions = [];
 
         foreach ($shots as $index => &$shot) {
@@ -1444,7 +1439,7 @@ class DialogueSceneDecomposerService
             'speakingCharacters' => [$speaker], // For audio/lip-sync targeting
             'characterIndex' => $charData['characterIndex'] ?? null,
             'dialogue' => $exchange['text'],
-            'monologue' => $exchange['text'], // Same as dialogue for Multitalk
+            'monologue' => $exchange['text'], // Same as dialogue for Seedance
             'voiceId' => $charData['voiceId'] ?? 'echo',
             'useMultitalk' => true,
             'emotionalIntensity' => $emotionalIntensity,
@@ -2513,11 +2508,6 @@ class DialogueSceneDecomposerService
             'animationModel' => $options['animationModel'] ?? null,
         ]);
 
-        // Phase 14: Merge adjacent dialogue pairs for InfiniteTalk multi-face mode
-        if (($options['animationModel'] ?? null) === 'infinitetalk') {
-            $shots = $this->mergeDialoguePairsForMultiFace($shots);
-        }
-
         // Phase 12: Validate 180-degree rule (SCNE-04)
         $axisViolations = $this->validate180DegreeRule($shots);
         if (!empty($axisViolations)) {
@@ -2690,7 +2680,7 @@ class DialogueSceneDecomposerService
         // Check for empty shots
         foreach ($shots as $idx => $shot) {
             if (($shot['useMultitalk'] ?? false) && empty($shot['dialogue'])) {
-                $errors[] = "Shot {$idx} marked for Multitalk but has no dialogue";
+                $errors[] = "Shot {$idx} marked for lip-sync but has no dialogue";
             }
 
             if (($shot['useMultitalk'] ?? false) && empty($shot['voiceId'])) {
@@ -3213,7 +3203,7 @@ class DialogueSceneDecomposerService
                 $current['charactersInShot'] = [$currentSpeaker, $nextSpeaker];
                 $current['speakingCharacters'] = [$currentSpeaker, $nextSpeaker];
                 $current['speakerCount'] = 2;
-                $current['selectedVideoModel'] = 'infinitetalk';
+                $current['selectedVideoModel'] = 'seedance';
 
                 // Preserve voice IDs from both shots
                 $voiceId1 = $current['voiceId'] ?? null;
@@ -3251,7 +3241,7 @@ class DialogueSceneDecomposerService
                     ],
                 ];
 
-                Log::info('DialogueSceneDecomposer: Merged dialogue pair for InfiniteTalk multi-face', [
+                Log::info('DialogueSceneDecomposer: Merged dialogue pair for multi-face', [
                     'speaker1' => $currentSpeaker,
                     'speaker2' => $nextSpeaker,
                     'voiceId1' => $voiceId1,

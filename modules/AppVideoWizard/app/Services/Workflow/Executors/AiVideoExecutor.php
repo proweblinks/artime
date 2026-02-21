@@ -9,7 +9,7 @@ use Modules\AppVideoWizard\Services\AnimationService;
 
 /**
  * Executes AI video generation nodes.
- * Wraps AnimationService for Seedance/InfiniteTalk — async with polling.
+ * Wraps AnimationService for Seedance — async with polling.
  */
 class AiVideoExecutor implements NodeExecutorInterface
 {

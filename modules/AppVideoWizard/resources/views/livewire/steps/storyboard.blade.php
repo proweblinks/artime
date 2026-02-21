@@ -1942,7 +1942,7 @@ function getCameraMovementIcon($movement) {
                                             @if($lipSyncCount > 0)
                                                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                                                     <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
-                                                    <span style="font-size: 0.7rem; color: #16a34a;">{{ $lipSyncCount }} {{ __('Multitalk (Lip-sync)') }}</span>
+                                                    <span style="font-size: 0.7rem; color: #16a34a;">{{ $lipSyncCount }} {{ __('Seedance (Lip-sync)') }}</span>
                                                 </div>
                                             @endif
                                             @if($voiceoverCount > 0)
@@ -1978,7 +1978,7 @@ function getCameraMovementIcon($movement) {
                                                         @endif
                                                         <span style="flex: 1;"></span>
                                                         @if($needsLipSync)
-                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(16,185,129,0.2); color: #16a34a; border-radius: 0.2rem; border: 1px solid rgba(16,185,129,0.3);">MULTITALK</span>
+                                                            <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(16,185,129,0.2); color: #16a34a; border-radius: 0.2rem; border: 1px solid rgba(16,185,129,0.3);">SEEDANCE</span>
                                                         @else
                                                             <span style="font-size: 0.6rem; padding: 0.15rem 0.35rem; background: rgba(14,165,233,0.2); color: #0891b2; border-radius: 0.2rem; border: 1px solid rgba(14,165,233,0.3);">TTS</span>
                                                         @endif

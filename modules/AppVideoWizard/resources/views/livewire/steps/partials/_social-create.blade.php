@@ -1430,7 +1430,7 @@
                         @if($isSeedance)
                             <i class="fa-solid fa-bolt"></i> Seedance &mdash; {{ __('Auto-generated audio') }}
                         @elseif(!empty($selectedIdea['audioType']))
-                            <i class="fa-solid fa-microphone"></i> InfiniteTalk &mdash; {{ $selectedIdea['audioType'] === 'music-lipsync' ? 'Music Lip-Sync' : 'Voiceover' }}
+                            <i class="fa-solid fa-microphone"></i> Seedance &mdash; {{ $selectedIdea['audioType'] === 'music-lipsync' ? 'Music Lip-Sync' : 'Voiceover' }}
                         @endif
                     </span>
                 </div>
@@ -1699,7 +1699,7 @@
                 </div>
             </div>
             @else
-            {{-- Section 2: Audio (InfiniteTalk mode) --}}
+            {{-- Section 2: Audio (Seedance lip-sync mode) --}}
             <div class="vw-social-section {{ ($audioStatus === 'ready') ? 'completed' : '' }}">
                 <div class="vw-social-section-header">
                     <div class="vw-social-section-num">
@@ -1797,7 +1797,7 @@
                     </div>
                     <div>
                         <div class="vw-social-section-title">{{ $isSeedance ? __('Generate Video') : __('Animate with Lip-Sync') }}</div>
-                        <div class="vw-social-section-subtitle">{{ $isSeedance ? __('Seedance creates video + audio from your prompt') : __('InfiniteTalk brings your character to life') }}</div>
+                        <div class="vw-social-section-subtitle">{{ __('Seedance creates video + audio from your prompt') }}</div>
                     </div>
                     @if($videoStatus !== 'pending')
                         <span class="vw-social-status-badge {{ $videoStatus }}">{{ ucfirst($videoStatus) }}</span>
@@ -1842,7 +1842,7 @@
                     </button>
                 @endif
 
-                {{-- Swap Speaker Faces button for dialogue shots (InfiniteTalk only) --}}
+                {{-- Swap Speaker Faces button for dialogue shots (Seedance only) --}}
                 @if(!$isSeedance && $isDialogueShot && count($charactersInShot) >= 2 && $audioStatus === 'ready')
                     <div class="vw-social-face-order" style="margin-top: 0.5rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--vw-text-secondary);">

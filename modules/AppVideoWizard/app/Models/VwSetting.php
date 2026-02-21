@@ -67,11 +67,7 @@ class VwSetting extends Model
      */
     protected static array $legacyOptionMapping = [
         'api_runpod_key' => 'runpod_api_key',
-        'api_runpod_multitalk_endpoint' => 'runpod_multitalk_endpoint',
-        'api_runpod_infinitetalk_endpoint' => 'runpod_infinitetalk_endpoint',
         'api_runpod_hidream_endpoint' => 'runpod_hidream_endpoint',
-        'api_minimax_key' => 'ai_minimax_api_key',
-        'api_minimax_group_id' => 'minimax_group_id',
     ];
 
     /**

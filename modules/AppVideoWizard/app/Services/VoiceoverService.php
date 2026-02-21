@@ -271,7 +271,7 @@ class VoiceoverService
             $silentDuration = max(1.0, $currentTime);
             foreach ($silentSpeakerIndices as $idx) {
                 $speaker = $speakers[$idx];
-                $silentUrl = InfiniteTalkService::generateSilentWavUrl($project->id, $silentDuration);
+                $silentUrl = VideoUtilService::generateSilentWavUrl($project->id, $silentDuration);
                 $audioSegments[$idx] = [
                     'name' => $speaker['name'],
                     'voiceId' => 'silent',

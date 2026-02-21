@@ -21,7 +21,7 @@ use Modules\AppVideoWizard\Services\TransitionVocabulary;
  *
  * Sources:
  * - Runway Text to Video Prompting Guide
- * - MiniMax/Hailuo Prompt Guide
+ * - Video Prompt Guide
  * - Sora 2 Best Practices
  * - Higgsfield Testing Results
  *

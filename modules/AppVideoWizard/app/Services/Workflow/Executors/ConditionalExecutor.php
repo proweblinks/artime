@@ -7,7 +7,7 @@ use Modules\AppVideoWizard\Services\Workflow\NodeExecutorInterface;
 
 /**
  * Evaluates a condition and returns which branch to take.
- * Used for branching logic (e.g., seedance vs infinitetalk paths).
+ * Used for branching logic (e.g., seedance video generation paths).
  */
 class ConditionalExecutor implements NodeExecutorInterface
 {

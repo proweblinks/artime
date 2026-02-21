@@ -755,8 +755,8 @@
                     <p>{{ __('AI generates video + voice + sound effects from a single prompt. Perfect for visual gags, animals in situations, dramatic scenes.') }}</p>
                     <span class="vw-engine-badge">{{ __('Auto Audio') }}</span>
                 </div>
-                <div class="vw-engine-card {{ $videoEngine === 'infinitetalk' ? 'active' : '' }}"
-                     wire:click="setVideoEngine('infinitetalk')">
+                <div class="vw-engine-card {{ $videoEngine === 'seedance' ? 'active' : '' }}"
+                     wire:click="setVideoEngine('seedance')">
                     <div class="vw-engine-icon"><i class="fas fa-comments"></i></div>
                     <h4>{{ __('Lip-Sync Talking') }}</h4>
                     <p>{{ __('Characters speak with precise lip-sync from custom voices. Perfect for dialogue, narration, character conversations.') }}</p>

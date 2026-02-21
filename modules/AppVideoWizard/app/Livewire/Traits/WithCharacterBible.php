@@ -102,7 +102,7 @@ trait WithCharacterBible
             'referenceImageStatus' => 'none',    // 'none' | 'generating' | 'ready' | 'error'
 
             // ═══════════════════════════════════════════════════════════════════
-            // CHARACTER VOICE SYSTEM - For Multitalk lip-sync and voiceover
+            // CHARACTER VOICE SYSTEM - For lip-sync and voiceover
             // ═══════════════════════════════════════════════════════════════════
             'voice' => [
                 'id' => null,               // TTS voice ID: alloy, echo, fable, onyx, nova, shimmer
@@ -301,7 +301,7 @@ trait WithCharacterBible
 
     /**
      * Update character voice settings.
-     * Used for Multitalk lip-sync and character-specific voiceover.
+     * Used for lip-sync and character-specific voiceover.
      *
      * @param int $characterIndex Character index in Character Bible
      * @param string $field Voice field to update: id, gender, style, speed, pitch

@@ -28,7 +28,7 @@ use Modules\AppVideoWizard\Services\NarrativeMomentService;
  * - Per-shot duration based on action/dialogue density
  * - Shot type sequence for professional cinematography
  * - Camera movements for each shot
- * - Which shots need lip-sync (Multitalk) vs standard animation (MiniMax)
+ * - Seedance v1.5 Pro for all video animation
  * - Story beats and energy progression per shot (Phase 6)
  */
 class ShotIntelligenceService
@@ -926,7 +926,7 @@ class ShotIntelligenceService
 
         // Determine if lip-sync is needed
         $needsLipSync = $shotData['needsLipSync'] ?? $shotData['needs_lip_sync'] ?? false;
-        $model = $needsLipSync ? 'multitalk' : 'minimax';
+        $model = 'seedance';
 
         // Get available durations for the model
         $availableDurations = $this->getAvailableDurations($model);
@@ -989,18 +989,7 @@ class ShotIntelligenceService
      */
     protected function getAvailableDurations(string $model): array
     {
-        $settingSlug = $model === 'multitalk'
-            ? 'animation_multitalk_durations'
-            : 'animation_minimax_durations';
-
-        $defaults = $model === 'multitalk' ? [5, 10, 15, 20] : [5, 6, 10];
-        $durations = VwSetting::getValue($settingSlug, $defaults);
-
-        if (is_string($durations)) {
-            $durations = json_decode($durations, true) ?? $defaults;
-        }
-
-        return array_map('intval', (array) $durations);
+        return [4, 5, 6, 8, 10, 12];
     }
 
     /**
@@ -1064,9 +1053,9 @@ class ShotIntelligenceService
      * Get optimal duration based on shot type.
      * This provides intelligent defaults when AI doesn't specify or as fallback.
      */
-    protected function getOptimalDurationForShotType(string $type, bool $needsLipSync = false, string $model = 'minimax'): int
+    protected function getOptimalDurationForShotType(string $type, bool $needsLipSync = false, string $model = 'seedance'): int
     {
-        // If needs lip-sync, use longer durations (multitalk supports 5-20s)
+        // If needs lip-sync, use longer durations
         if ($needsLipSync) {
             return 10; // Default dialogue duration
         }
@@ -1134,7 +1123,7 @@ class ShotIntelligenceService
         $needsLipSync = $this->needsLipSync($scene);
 
         // Get optimal duration based on shot type
-        $model = $needsLipSync ? 'multitalk' : 'minimax';
+        $model = 'seedance';
         $duration = $this->getOptimalDurationForShotType($type, $needsLipSync, $model);
 
         return [
@@ -1265,7 +1254,7 @@ class ShotIntelligenceService
                 'voiceoverSegments' => $needsLipSync ? 0 : 1,
                 'segments' => [],
                 'sceneNeedsLipSync' => $needsLipSync,
-                'recommendedModel' => $needsLipSync ? 'multitalk' : 'minimax',
+                'recommendedModel' => 'seedance',
             ];
         }
 
@@ -1291,7 +1280,7 @@ class ShotIntelligenceService
                 'speaker' => $segment['speaker'] ?? null,
                 'characterId' => $segment['characterId'] ?? null,
                 'needsLipSync' => $needsLipSync,
-                'recommendedModel' => $needsLipSync ? 'multitalk' : 'minimax',
+                'recommendedModel' => 'seedance',
                 'text' => $segment['text'] ?? '',
                 'duration' => $segment['duration'] ?? null,
                 'startTime' => $segment['startTime'] ?? null,
@@ -1306,7 +1295,7 @@ class ShotIntelligenceService
             'segments' => $segmentInfo,
             'sceneNeedsLipSync' => $lipSyncCount > 0,
             'isMixed' => ($lipSyncCount > 0 && $voiceoverCount > 0),
-            'recommendedModel' => $lipSyncCount > 0 ? 'multitalk' : 'minimax',
+            'recommendedModel' => 'seedance',
         ];
     }
 
@@ -1314,19 +1303,15 @@ class ShotIntelligenceService
      * Get the recommended video model for a specific segment.
      *
      * @param array $segment Speech segment data
-     * @return string Model name ('multitalk' or 'minimax')
+     * @return string Model name ('seedance')
      */
     public function getModelForSegment(array $segment): string
     {
-        $segmentType = $segment['type'] ?? 'narrator';
-        $needsLipSync = in_array($segmentType, ['monologue', 'dialogue'], true)
-            || !empty($segment['needsLipSync']);
-
-        return $needsLipSync ? 'multitalk' : 'minimax';
+        return 'seedance';
     }
 
     /**
-     * Get lip-sync segments only (for Multitalk routing).
+     * Get lip-sync segments only.
      *
      * @param array $scene Scene data
      * @return array Only segments that need lip-sync animation
@@ -1343,7 +1328,7 @@ class ShotIntelligenceService
     }
 
     /**
-     * Get voiceover-only segments (for Minimax routing).
+     * Get voiceover-only segments.
      *
      * @param array $scene Scene data
      * @return array Only segments that are voiceover (no lip-sync)

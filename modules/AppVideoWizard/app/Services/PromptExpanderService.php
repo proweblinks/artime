@@ -16,7 +16,7 @@ use App\Services\OpenAIService;
  *
  * Sources:
  * - Runway Text to Video Prompting Guide
- * - MiniMax/Hailuo Prompt Guide
+ * - Video Prompt Guide
  * - Sora 2 Best Practices
  * - Higgsfield Testing Results
  */
@@ -720,7 +720,7 @@ SYSTEM;
      */
     protected function generateVideoSubjectAction(string $imagePrompt, string $shotType): string
     {
-        // Use "the subject" for image-to-video per MiniMax/Runway best practices
+        // Use "the subject" for image-to-video per industry best practices
         $actions = [
             'extreme-wide' => 'The subject moves subtly within the vast environment, their presence grounded in the scene',
             'wide' => 'The subject advances through the space with purposeful movement, body language conveying intent',

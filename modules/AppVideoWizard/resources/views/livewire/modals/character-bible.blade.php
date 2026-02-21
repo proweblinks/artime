@@ -437,7 +437,7 @@
                             </div>
 
                             {{-- ═══════════════════════════════════════════════════════════════════ --}}
-                            {{-- CHARACTER VOICE - For Multitalk lip-sync and voiceover --}}
+                            {{-- CHARACTER VOICE - For Seedance lip-sync and voiceover --}}
                             {{-- ═══════════════════════════════════════════════════════════════════ --}}
                             @php
                                 $voiceSettings = $currentChar['voice'] ?? [];
@@ -605,7 +605,7 @@
 
                                     {{-- Help text --}}
                                     <p style="color: var(--vw-text-secondary); font-size: 0.45rem; margin-top: 0.25rem; line-height: 1.3;">
-                                        {{ __('Voice settings are used for TTS voiceover generation and Multitalk lip-sync. Mark as Narrator if this character narrates the story.') }}
+                                        {{ __('Voice settings are used for TTS voiceover generation and Seedance lip-sync. Mark as Narrator if this character narrates the story.') }}
                                     </p>
                                 </div>
                             </div>

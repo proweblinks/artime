@@ -215,20 +215,20 @@
                 {{-- Section Header with Speech Type Badge --}}
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
                     @if($speechType === 'dialogue')
-                        {{-- Dialogue: Character talking to others - needs Multitalk lip-sync --}}
+                        {{-- Dialogue: Character talking to others - needs Seedance lip-sync --}}
                         <span style="background: linear-gradient(135deg, #ec4899, var(--vw-primary)); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: white;">
                             💬 {{ __('DIALOGUE') }}
                         </span>
                         <span style="background: rgba(236, 72, 153, 0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: #be185d;">
-                            🎬 {{ __('Multitalk Lip-Sync') }}
+                            🎬 {{ __('Seedance Lip-Sync') }}
                         </span>
                     @elseif($speechType === 'monologue')
-                        {{-- Character Monologue: On-screen character speaking alone - needs Multitalk lip-sync --}}
+                        {{-- Character Monologue: On-screen character speaking alone - needs Seedance lip-sync --}}
                         <span style="background: linear-gradient(135deg, var(--vw-primary), #03fcf4); padding: 0.25rem 0.6rem; border-radius: 0.3rem; font-size: 0.75rem; font-weight: 700; color: #0a2e2e;">
                             🗣️ {{ __('CHARACTER MONOLOGUE') }}
                         </span>
                         <span style="background: rgba(var(--vw-primary-rgb), 0.08); padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; color: var(--vw-text-secondary);">
-                            🎬 {{ __('Multitalk Lip-Sync') }}
+                            🎬 {{ __('Seedance Lip-Sync') }}
                         </span>
                     @elseif($speechType === 'narrator' || $hasNarration)
                         {{-- Narrator: Off-screen voice - TTS only, no lip-sync --}}
@@ -392,7 +392,7 @@
                         <div style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem;">
                             <span style="color: rgba(236, 72, 153, 0.9);">⚡</span>
                             <span style="color: var(--vw-text-secondary);">{{ __('Generation') }}:</span>
-                            <span style="color: #f472b6; font-weight: 600;">{{ __('Multitalk') }}</span>
+                            <span style="color: #f472b6; font-weight: 600;">{{ __('Seedance') }}</span>
                             <span style="color: var(--vw-text-secondary);">({{ __('lip-sync video with audio') }})</span>
                         </div>
                     @else

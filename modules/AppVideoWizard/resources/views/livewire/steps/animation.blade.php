@@ -2251,7 +2251,7 @@
                                     <div style="display: flex; align-items: center; gap: 0.4rem;">
                                         <span style="font-size: 0.85rem;">🎥</span>
                                         <span style="font-size: 0.75rem; font-weight: 600; color: var(--vw-text);">{{ __('Camera Movement') }}</span>
-                                        <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(6,182,212,0.2); color: #06b6d4; border-radius: 0.25rem;">{{ __('Minimax AI') }}</span>
+                                        <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(6,182,212,0.2); color: #06b6d4; border-radius: 0.25rem;">{{ __('Seedance AI') }}</span>
                                         @if($hasScriptMovements)
                                             <span style="font-size: 0.55rem; padding: 0.15rem 0.35rem; background: rgba(3,252,244,0.2); color: #67e8f9; border-radius: 0.25rem;">{{ __('AI Suggested') }}</span>
                                         @endif

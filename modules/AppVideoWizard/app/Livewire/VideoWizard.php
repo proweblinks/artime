@@ -62,25 +62,9 @@ class VideoWizard extends Component
     use WithLocationBible;
 
     /**
-     * Video model constants for consistent routing.
-     * Minimax: For narrator/internal (TTS voiceover, no lip-sync)
-     * Multitalk: For dialogue/monologue (lip-sync animation)
+     * Video model constant — Seedance is the sole video generation engine.
      */
-    public const VIDEO_MODEL_MINIMAX = 'minimax';
-    public const VIDEO_MODEL_MULTITALK = 'multitalk';
-    public const VIDEO_MODEL_INFINITETALK = 'infinitetalk';
-
-    /**
-     * Speech types that require lip-sync animation.
-     * Character's lips move on screen - requires Multitalk.
-     */
-    public const LIPSYNC_TYPES = ['dialogue', 'monologue'];
-
-    /**
-     * Speech types that are voiceover-only.
-     * No lip movement - uses Minimax with TTS overlay.
-     */
-    public const VOICEOVER_TYPES = ['narrator', 'internal'];
+    public const VIDEO_MODEL_SEEDANCE = 'seedance';
 
     // Import file for project import
     public $importFile;
@@ -1154,10 +1138,7 @@ class VideoWizard extends Component
         ],
     ];
 
-    // Dialogue animation mode: 'single_take' (one continuous render) or 'dual_take' (two renders per speaker, concatenated)
-    public string $dialogueAnimMode = 'single_take';
-
-    // Video engine for social content: 'seedance' (cinematic scene w/ auto audio) or 'infinitetalk' (lip-sync talking)
+    // Video engine — Seedance only
     public string $videoEngine = 'seedance';
 
     // Chaos level for viral idea generation (0-100)
@@ -1396,8 +1377,6 @@ class VideoWizard extends Component
     public bool $isGeneratingPortrait = false;
     public bool $isSyncingCharacterBible = false;
 
-    // InfiniteTalk Dialogue Mode
-    public bool $infiniteTalkDialogueMode = false;
     public ?string $previewEmotion = null;  // VOC-12: Emotion for voice preview
 
     // =========================================================================
@@ -2860,54 +2839,23 @@ class VideoWizard extends Component
     /**
      * Get available durations for an animation model from dynamic settings.
      *
-     * @param string $model 'minimax' or 'multitalk'
+     * @param string $model Animation model (default: seedance)
      * @return array Array of available durations in seconds
      */
-    public function getAvailableDurations(string $model = 'minimax'): array
+    public function getAvailableDurations(string $model = 'seedance'): array
     {
-        $settingSlug = match ($model) {
-            'multitalk' => 'animation_multitalk_durations',
-            'infinitetalk' => 'animation_infinitetalk_durations',
-            default => 'animation_minimax_durations',
-        };
-
-        $defaults = match ($model) {
-            'multitalk' => [5, 10, 15, 20],
-            'infinitetalk' => [5, 10, 15, 30, 60],
-            default => [5, 6, 10],
-        };
-
-        $durations = $this->getDynamicSetting($settingSlug, $defaults);
-
-        // Ensure we have an array of integers
-        if (is_string($durations)) {
-            $durations = json_decode($durations, true) ?? $defaults;
-        }
-
-        return array_map('intval', (array) $durations);
+        return [4, 5, 6, 8, 10, 12];
     }
 
     /**
-     * Get default duration for an animation model from dynamic settings.
+     * Get default duration for Seedance animation.
      *
-     * @param string $model 'minimax', 'multitalk', or 'infinitetalk'
+     * @param string $model Unused, kept for API compatibility
      * @return int Default duration in seconds
      */
-    public function getDefaultDuration(string $model = 'minimax'): int
+    public function getDefaultDuration(string $model = 'seedance'): int
     {
-        $settingSlug = match ($model) {
-            'multitalk' => 'animation_multitalk_default_duration',
-            'infinitetalk' => 'animation_infinitetalk_default_duration',
-            default => 'animation_minimax_default_duration',
-        };
-
-        $default = match ($model) {
-            'multitalk' => 10,
-            'infinitetalk' => 10,
-            default => 6,
-        };
-
-        return (int) $this->getDynamicSetting($settingSlug, $default);
+        return 8;
     }
 
     /**
@@ -3042,7 +2990,7 @@ class VideoWizard extends Component
 
                 // Recover: reconstruct pendingJob from stored metadata
                 if ($taskId) {
-                    $provider = $shot['videoProvider'] ?? 'infinitetalk';
+                    $provider = $shot['videoProvider'] ?? 'wavespeed';
                     $endpointId = $shot['videoEndpointId'] ?? null;
                     $jobType = $shot['videoJobType'] ?? 'shot_video';
                     $jobKey = "{$jobType}_{$sceneIndex}_{$shotIndex}";
@@ -3811,9 +3759,9 @@ class VideoWizard extends Component
             'speakingCharacter' => $speakingCharacter,
             'charactersInShot' => $charactersInShot,
             'faceOrder' => $charactersInShot, // Default to Character Bible order; updated by Gemini Vision after image generation
-            'needsLipSync' => !$isSeedance,
-            'selectedVideoModel' => $isSeedance ? 'seedance' : 'infinitetalk',
-            'selectedResolution' => $isSeedance ? '1080p' : '720p',
+            'needsLipSync' => false,
+            'selectedVideoModel' => 'seedance',
+            'selectedResolution' => '1080p',
             'seedanceQuality' => 'pro',
             'seedanceCameraMove' => 'none',
             'seedanceCameraMoveIntensity' => 'moderate',
@@ -6026,21 +5974,10 @@ PROMPT;
 
     /**
      * Set the video engine for social content mode.
-     * Resets concept ideas when engine changes since different engines produce different idea styles.
      */
     public function setVideoEngine(string $engine): void
     {
-        if (!in_array($engine, ['seedance', 'infinitetalk'])) {
-            return;
-        }
-
-        if ($this->videoEngine !== $engine) {
-            $this->videoEngine = $engine;
-            // Reset ideas when engine changes — different engines need different idea styles
-            $this->conceptVariations = [];
-            $this->selectedConceptIndex = null;
-            $this->concept['socialContent'] = null;
-        }
+        $this->videoEngine = 'seedance';
     }
 
     /**
@@ -6407,7 +6344,7 @@ PROMPT;
     public function setClipDuration(string $duration): void
     {
         // Get valid durations dynamically from settings
-        $validDurations = array_map(fn($d) => $d . 's', $this->getAvailableDurations('minimax'));
+        $validDurations = array_map(fn($d) => $d . 's', $this->getAvailableDurations());
 
         if (in_array($duration, $validDurations)) {
             $this->content['videoModel']['duration'] = $duration;
@@ -9533,14 +9470,14 @@ PROMPT;
         foreach ($this->pendingJobs as $jobKey => $job) {
             $jobType = $job['type'] ?? '';
 
-            if ($jobType !== 'shot_video' && $jobType !== 'dual_take' && $jobType !== 'video_extend' && $jobType !== 'segment_regen') {
+            if ($jobType !== 'shot_video' && $jobType !== 'video_extend' && $jobType !== 'segment_regen') {
                 \Log::info('📡 Skipping non-video job', ['jobKey' => $jobKey, 'type' => $jobType]);
                 continue;
             }
 
             $videoJobsPolled++;
             $taskId = $job['taskId'] ?? null;
-            $provider = $job['provider'] ?? 'minimax';
+            $provider = $job['provider'] ?? 'wavespeed';
             $endpointId = $job['endpointId'] ?? null;
             $sceneIndex = $job['sceneIndex'] ?? null;
             $shotIndex = $job['shotIndex'] ?? null;
@@ -9615,177 +9552,7 @@ PROMPT;
                             }
                         }
 
-                        // --- DUAL TAKE: Store individual take video, handle sequential dispatch ---
-                        if ($jobType === 'dual_take') {
-                            $isTake1 = str_contains($jobKey, 'take1');
-                            $takeUrlKey = $isTake1 ? 'dualTake1VideoUrl' : 'dualTake2VideoUrl';
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex][$takeUrlKey] = $finalVideoUrl;
-                            unset($this->pendingJobs[$jobKey]);
-                            $hasUpdates = true;
-
-                            $shotData = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
-                            $t1Done = !empty($shotData['dualTake1VideoUrl']);
-                            $t2Done = !empty($shotData['dualTake2VideoUrl']);
-                            $diagProjectId = $this->projectId ?? 0;
-
-                            \Log::info("📡 ✅ DualTake: {$takeUrlKey} ready", [
-                                'sceneIndex' => $sceneIndex,
-                                'shotIndex' => $shotIndex,
-                                'take1Done' => $t1Done,
-                                'take2Done' => $t2Done,
-                                'videoUrl' => substr($finalVideoUrl, 0, 100) . '...',
-                            ]);
-
-                            // --- Diagnostic: TAKE1_COMPLETE or TAKE2_COMPLETE ---
-                            $completeStep = $isTake1 ? 'TAKE1_COMPLETE' : 'TAKE2_COMPLETE';
-                            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, $completeStep, 'done', [
-                                'videoUrl' => $finalVideoUrl,
-                                'executionTime' => $result['executionTime'] ?? null,
-                            ], ($isTake1 ? 'Take 1' : 'Take 2') . ' rendering complete');
-
-                            // Take 1 just completed — extract last frame and dispatch Take 2
-                            if ($isTake1 && $t1Done && !$t2Done) {
-                                $take2Config = $shotData['dualTake2Config'] ?? null;
-                                if ($take2Config) {
-                                    \Log::info('📡 🎬 DualTake: Take 1 done — extracting last frame for Take 2 input');
-
-                                    // Extract last frame from Take 1 video
-                                    $lastFrameUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::extractLastFrame(
-                                        $finalVideoUrl,
-                                        $this->projectId ?? 0
-                                    );
-
-                                    $take2ImageUrl = $shotData['imageUrl'] ?? '';
-
-                                    \Log::info('📡 🎬 DualTake: Dispatching Take 2 with original image (last frame extracted: ' . ($lastFrameUrl ? 'yes' : 'no') . ')', [
-                                        'take2ImageUrl' => substr($take2ImageUrl, 0, 100),
-                                        'audioUrl_face0' => substr($take2Config['audioUrl'] ?? '', -60),
-                                        'audioUrl2_face1' => substr($take2Config['audioUrl2'] ?? '', -60),
-                                        'prompt_preview' => substr($take2Config['prompt'] ?? '', 0, 200),
-                                    ]);
-
-                                    // --- Diagnostic: PAYLOAD_TAKE2 ---
-                                    $t2PersonCount = $take2Config['personCount'] ?? 'multi';
-                                    $t2PayloadData = [
-                                        'image_url' => $take2ImageUrl,
-                                        'wav_url' => $take2Config['audioUrl'] ?? '',
-                                        'person_count' => $t2PersonCount,
-                                        'max_frame' => $take2Config['maxFrame'] ?? 0,
-                                    ];
-                                    $t2PayloadInner = [
-                                        'imageUrl' => $take2ImageUrl,
-                                        'prompt' => substr($take2Config['prompt'] ?? '', 0, 200) . '...',
-                                        'model' => $take2Config['selectedModel'] ?? '',
-                                        'duration' => $take2Config['duration'] ?? 0,
-                                        'audioUrl' => $take2Config['audioUrl'] ?? '',
-                                        'person_count' => $t2PersonCount,
-                                        'max_frame' => $take2Config['maxFrame'] ?? 0,
-                                    ];
-                                    if ($t2PersonCount === 'multi' && !empty($take2Config['audioUrl2'])) {
-                                        $t2PayloadData['wav_url_2'] = $take2Config['audioUrl2'];
-                                        $t2PayloadInner['audio_url_2'] = $take2Config['audioUrl2'];
-                                    }
-                                    $t2PayloadData['_payload'] = $t2PayloadInner;
-                                    \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'PAYLOAD_TAKE2', 'done', $t2PayloadData, 'RunPod payload for Take 2');
-
-                                    // Dispatch Take 2
-                                    try {
-                                        $animationService2 = app(\Modules\AppVideoWizard\Services\AnimationService::class);
-                                        $project2 = \Modules\AppVideoWizard\Models\WizardProject::find($this->projectId);
-
-                                        if ($project2) {
-                                            $take2Key = "dual_take2_{$sceneIndex}_{$shotIndex}";
-                                            $take2AnimParams = [
-                                                'imageUrl' => $take2ImageUrl,
-                                                'prompt' => $take2Config['prompt'],
-                                                'model' => $take2Config['selectedModel'],
-                                                'duration' => $take2Config['duration'],
-                                                'audioUrl' => $take2Config['audioUrl'],
-                                                'audioDuration' => $take2Config['audioDuration'],
-                                                'person_count' => $t2PersonCount,
-                                                'max_frame' => $take2Config['maxFrame'],
-                                                'aspect_ratio' => $this->aspectRatio,
-                                            ];
-                                            // Only include audio_url_2 in multi mode
-                                            if ($t2PersonCount === 'multi' && !empty($take2Config['audioUrl2'])) {
-                                                $take2AnimParams['audio_url_2'] = $take2Config['audioUrl2'];
-                                            }
-                                            $result2 = $animationService2->generateAnimation($project2, $take2AnimParams);
-
-                                            if ($result2['success'] && isset($result2['taskId'])) {
-                                                $this->pendingJobs[$take2Key] = [
-                                                    'taskId' => $result2['taskId'],
-                                                    'type' => 'dual_take',
-                                                    'sceneIndex' => $sceneIndex,
-                                                    'shotIndex' => $shotIndex,
-                                                    'provider' => $result2['provider'] ?? 'infinitetalk',
-                                                    'endpointId' => $result2['endpointId'] ?? null,
-                                                    'takeKey' => $take2Key,
-                                                ];
-                                                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId'] = $result2['taskId'];
-
-                                                // --- Diagnostic: DISPATCH_TAKE2 ---
-                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'done', [
-                                                    'taskId' => $result2['taskId'],
-                                                    'provider' => $result2['provider'] ?? 'infinitetalk',
-                                                ], "Take 2 dispatched — taskId: {$result2['taskId']}");
-
-                                                // --- Diagnostic: POLLING_TAKE2 (initial) ---
-                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'POLLING_TAKE2', 'start', [
-                                                    'taskId' => $result2['taskId'],
-                                                ], 'Waiting for Take 2 to complete...');
-
-                                                \Log::info('📡 🎬 DualTake: Take 2 dispatched successfully', [
-                                                    'taskId' => $result2['taskId'],
-                                                ]);
-                                            } else {
-                                                // --- Diagnostic: DISPATCH_TAKE2 error ---
-                                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'error', [
-                                                    'error' => $result2['error'] ?? 'Unknown',
-                                                ], 'Take 2 dispatch FAILED');
-
-                                                \Log::error('📡 ❌ DualTake: Failed to dispatch Take 2', [
-                                                    'error' => $result2['error'] ?? 'Unknown',
-                                                ]);
-                                                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                                                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Take 2 dispatch failed: ' . ($result2['error'] ?? 'Unknown');
-                                            }
-                                        }
-                                    } catch (\Exception $e2) {
-                                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DISPATCH_TAKE2', 'error', [
-                                            'error' => $e2->getMessage(),
-                                        ], 'Take 2 dispatch exception');
-
-                                        \Log::error('📡 ❌ DualTake: Exception dispatching Take 2', ['error' => $e2->getMessage()]);
-                                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Take 2 dispatch failed: ' . $e2->getMessage();
-                                    }
-                                } else {
-                                    \Log::error('📡 ❌ DualTake: Take 1 done but no Take 2 config found');
-                                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Take 2 config missing';
-                                }
-                            }
-
-                            // Both takes complete — assemble final video
-                            if ($t1Done && $t2Done) {
-                                // --- Diagnostic: ASSEMBLY ---
-                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'ASSEMBLY', 'start', [
-                                    'take1_video' => $shotData['dualTake1VideoUrl'] ?? '',
-                                    'take2_video' => $finalVideoUrl,
-                                ], 'Concatenating Take 1 + Take 2 via ffmpeg...');
-
-                                $this->assembleDualTakeVideo($sceneIndex, $shotIndex);
-
-                                // --- Diagnostic: DONE ---
-                                $assembledShot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
-                                $assemblyStatus = ($assembledShot['videoStatus'] ?? '') === 'ready' ? 'done' : 'error';
-                                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($diagProjectId, 'DONE', $assemblyStatus, [
-                                    'final_video' => $assembledShot['videoUrl'] ?? 'ASSEMBLY FAILED',
-                                    'videoStatus' => $assembledShot['videoStatus'] ?? 'unknown',
-                                ], $assemblyStatus === 'done' ? 'Pipeline complete — video ready!' : 'Assembly failed');
-                            }
-                        } elseif ($jobType === 'video_extend') {
+                        if ($jobType === 'video_extend') {
                             // --- VIDEO EXTEND: assemble extended video ---
                             \Log::info('📡 ✅ Video Extend clip READY — assembling', [
                                 'sceneIndex' => $sceneIndex,
@@ -9832,7 +9599,7 @@ PROMPT;
                             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $initialSegments;
 
                             // Track in asset history (with segments for full restore)
-                            $videoModel = $jobType === 'dual_take' ? 'infinitetalk' : ($shotData['selectedVideoModel'] ?? 'minimax');
+                            $videoModel = 'seedance';
                             $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shotData['videoPrompt'] ?? null, $videoModel, $initialSegments);
 
                             $hasUpdates = true;
@@ -9850,38 +9617,14 @@ PROMPT;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Video upload failed - no video URL received';
                         $hasUpdates = true;
                     }
-                    if ($jobType !== 'dual_take') {
-                        unset($this->pendingJobs[$jobKey]);
-                    }
+                    unset($this->pendingJobs[$jobKey]);
 
                 } elseif (in_array($status, ['failed', 'cancelled', 'timeout', 'error'])) {
                     // Video generation failed
-                    if ($jobType === 'dual_take') {
-                        // For dual take, mark the whole shot as failed
-                        $failedTake = str_contains($jobKey, 'take1') ? 'POLLING_TAKE1' : 'POLLING_TAKE2';
-                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog(
-                            $this->projectId ?? 0, $failedTake, 'error',
-                            ['status' => $status, 'error' => $result['error'] ?? 'Unknown'],
-                            "Job FAILED with status: {$status}"
-                        );
-                        \Log::warning('📡 ❌ DualTake job FAILED — marking shot as error', [
-                            'jobKey' => $jobKey,
-                            'status' => $status,
-                            'error' => $result['error'] ?? 'Unknown error',
-                        ]);
-                    }
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = $result['error'] ?? 'Generation failed';
                     unset($this->pendingJobs[$jobKey]);
                     $hasUpdates = true;
-
-                    // If dual take failed, also remove the other take's pending job
-                    if ($jobType === 'dual_take') {
-                        $otherKey = str_contains($jobKey, 'take1')
-                            ? str_replace('take1', 'take2', $jobKey)
-                            : str_replace('take2', 'take1', $jobKey);
-                        unset($this->pendingJobs[$otherKey]);
-                    }
 
                     // If video extend failed, reset extend mode
                     if ($jobType === 'video_extend') {
@@ -9899,17 +9642,6 @@ PROMPT;
                         'error' => $result['error'] ?? 'Unknown error',
                     ]);
                 } else {
-                    // Still processing — update diagnostic with polling status
-                    if ($jobType === 'dual_take') {
-                        $pollingStep = str_contains($jobKey, 'take1') ? 'POLLING_TAKE1' : 'POLLING_TAKE2';
-                        $startedAt = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] ?? 0;
-                        $elapsedSec = $startedAt ? (now()->timestamp - $startedAt) : 0;
-                        \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog(
-                            $this->projectId ?? 0, $pollingStep, 'start',
-                            ['status' => $status, 'elapsed' => $elapsedSec . 's', 'taskId' => $taskId],
-                            "Status: {$status} — elapsed {$elapsedSec}s"
-                        );
-                    }
                     \Log::info('📡 ⏳ Still processing...', ['status' => $status]);
                 }
 
@@ -9932,7 +9664,7 @@ PROMPT;
         }
 
         // Dispatch completion event if no more pending video jobs
-        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'dual_take', 'video_extend', 'segment_regen']));
+        $hasVideoJobs = collect($this->pendingJobs)->contains(fn($job) => in_array($job['type'] ?? '', ['shot_video', 'video_extend', 'segment_regen']));
         if (!$hasVideoJobs) {
             \Log::info('📡 All video jobs complete - dispatching video-generation-complete');
             $this->dispatch('video-generation-complete');
@@ -10847,7 +10579,7 @@ PROMPT;
                 'stylePrompt2' => $shot['stylePrompt2'] ?? null,
             ],
             'animation' => [
-                'model' => $shot['selectedVideoModel'] ?? 'infinitetalk',
+                'model' => $shot['selectedVideoModel'] ?? 'seedance',
                 'prompt' => $shot['animationPrompt'] ?? $this->buildAnimationDebugPrompt($shot, $scene),
                 'faceOrder' => $shot['faceOrder'] ?? $shot['charactersInShot'] ?? [],
                 'charactersInShot' => $shot['charactersInShot'] ?? [],
@@ -10867,11 +10599,7 @@ PROMPT;
     {
         if (empty($shot)) return null;
         try {
-            $speechType = $shot['speechType'] ?? 'monologue';
-            if ($speechType === 'dialogue' && count($shot['charactersInShot'] ?? []) >= 2) {
-                return $this->buildInfiniteTalkDialoguePrompt($shot, $scene);
-            }
-            return $this->buildInfiniteTalkPrompt($shot, $scene);
+            return $this->buildShotMotionPrompt($shot, 'seedance', $scene);
         } catch (\Throwable $e) {
             return null;
         }
@@ -11860,7 +11588,7 @@ PROMPT;
     protected function pollVideoJob(string $jobKey, array $job, $animationService): void
     {
         $taskId = $job['taskId'] ?? null;
-        $provider = $job['provider'] ?? 'minimax';
+        $provider = $job['provider'] ?? 'wavespeed';
         $endpointId = $job['endpointId'] ?? null;
         $sceneIndex = $job['sceneIndex'] ?? null;
         $shotIndex = $job['shotIndex'] ?? null;
@@ -20345,7 +20073,7 @@ PROMPT;
             'scriptTone' => $this->scriptTone ?? null,
 
             // Available durations from settings for DynamicShotEngine
-            'availableDurations' => $this->getAvailableDurations('minimax'),
+            'availableDurations' => $this->getAvailableDurations(),
 
             // PHASE 23: Continuity enforcement settings from storyBible
             // These flow to ShotIntelligenceService for Hollywood continuity analysis
@@ -20627,14 +20355,6 @@ PROMPT;
                 'lip_sync_segments' => count($lipSyncSegments),
             ]);
 
-            // Auto-enable InfiniteTalk dialogue mode when endpoint is available and scene has dialogue
-            if (!$this->infiniteTalkDialogueMode && !empty(get_option('runpod_infinitetalk_endpoint', ''))) {
-                $this->infiniteTalkDialogueMode = true;
-                Log::info('Auto-enabled InfiniteTalk dialogue mode for dialogue scene', [
-                    'sceneIndex' => $sceneIndex,
-                ]);
-            }
-
             // Create shots FROM speech segments (1:1 mapping)
             $shotsFromSpeech = $this->createShotsFromSpeechSegments($sceneIndex, $speechSegments);
 
@@ -20647,7 +20367,7 @@ PROMPT;
                     $shotsFromSpeech,
                     $scene,
                     $characterBible,
-                    ['animationModel' => $this->getPreferredAnimationModel()]
+                    ['animationModel' => 'seedance']
                 );
 
                 // Convert to standard shot format
@@ -20734,7 +20454,7 @@ PROMPT;
             $dialogueShots = $dialogueDecomposer->decomposeDialogueScene($scene, $characterBible, [
                 'includeEstablishing' => true,
                 'includeReactionShots' => true,
-                'animationModel' => $this->getPreferredAnimationModel(),
+                'animationModel' => 'seedance',
             ]);
 
             if (!empty($dialogueShots)) {
@@ -20906,11 +20626,11 @@ PROMPT;
                 // Camera movement
                 'cameraMovement' => $cameraMovement,
 
-                // Video model (default to minimax, or multitalk if lip-sync needed)
-                'selectedVideoModel' => $shotNeedsLipSync ? 'multitalk' : 'minimax',
+                // Video model
+                'selectedVideoModel' => 'seedance',
                 'needsLipSync' => $shotNeedsLipSync,
 
-                // Audio layer for Multitalk lip-sync
+                // Audio layer
                 'dialogue' => $shotDialogue,
                 'monologue' => $shotNeedsLipSync ? $shotDialogue : null, // Text content for voiceover
                 'speakingCharacters' => [],
@@ -21547,7 +21267,7 @@ PROMPT;
                     'selectedDuration' => $dialogueShot['duration'] ?? 5,
                     'durationClass' => $this->getDurationClass($dialogueShot['duration'] ?? 5),
                     'cameraMovement' => $cameraMovement,
-                    'selectedVideoModel' => 'minimax',
+                    'selectedVideoModel' => 'seedance',
                     'needsLipSync' => false,
                     'useMultitalk' => false,
                     'speakingCharacter' => null,
@@ -21639,14 +21359,12 @@ PROMPT;
                 'cameraMovement' => $cameraMovement,
 
                 // ═══════════════════════════════════════════════════════════════════
-                // DIALOGUE/MULTITALK SPECIFIC FIELDS
+                // DIALOGUE SPECIFIC FIELDS
                 // These enable the Shot/Reverse Shot pattern with character voices
                 // ═══════════════════════════════════════════════════════════════════
 
                 // Video model selection
-                'selectedVideoModel' => $isSpeaking
-                    ? ($dialogueShot['selectedVideoModel'] ?? 'multitalk')
-                    : 'minimax',
+                'selectedVideoModel' => 'seedance',
                 'needsLipSync' => $isSpeaking,
 
                 // Speaking character info
@@ -22575,7 +22293,7 @@ PROMPT;
             'imageStatus' => 'pending',
             'videoUrl' => null,
             'videoStatus' => 'pending',
-            'selectedVideoModel' => 'minimax',
+            'selectedVideoModel' => 'seedance',
         ];
 
         // Build visual description
@@ -22949,13 +22667,10 @@ PROMPT;
             $cameraMovement = $aiShot['cameraMovement'] ?? $this->getCameraMovementForShot($shotType['type'], $i);
             $duration = $aiShot['duration'] ?? $this->getClipDuration();
 
-            // Determine video model based on AI recommendation
+            // Video model - always use seedance
             $needsLipSync = $aiShot['needsLipSync'] ?? false;
-            $recommendedModel = $aiShot['recommendedModel'] ?? ($needsLipSync ? 'multitalk' : 'minimax');
-
-            // Auto-select model if enabled
-            $autoSelectModel = (bool) $this->getDynamicSetting('animation_auto_select_model', true);
-            $selectedVideoModel = $autoSelectModel && $needsLipSync ? 'multitalk' : 'minimax';
+            $recommendedModel = 'seedance';
+            $selectedVideoModel = 'seedance';
 
             // Get dialogue for this specific shot
             $shotDialogue = $this->getDialogueForShot($scene, $i, count($shots));
@@ -23026,7 +22741,7 @@ PROMPT;
                 'needsLipSync' => $needsLipSync,
                 'aiRecommendedModel' => $recommendedModel,
 
-                // Audio layer for Multitalk lip-sync
+                // Audio layer
                 'dialogue' => $this->getDialogueForShot($scene, $i, count($analysis['shots'])),
                 'speakingCharacters' => [],
                 'monologue' => null,           // Text content for voiceover
@@ -23141,10 +22856,10 @@ PROMPT;
                 'cameraMovement' => $cameraMovement,
 
                 // Video model (default)
-                'selectedVideoModel' => 'minimax',
+                'selectedVideoModel' => 'seedance',
                 'needsLipSync' => false,
 
-                // Audio layer for Multitalk lip-sync
+                // Audio layer
                 'dialogue' => $this->getDialogueForShot($scene, $i, $shotCount),
                 'speakingCharacters' => [],
                 'monologue' => null,           // Text content for voiceover
@@ -26036,7 +25751,7 @@ PROMPT;
             // If shot has character dialogue, mark for lip-sync
             if ($needsLipSync) {
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['needsLipSync'] = true;
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'seedance';
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['monologue'] = $shotDialogue;
 
                 // Build multi-speaker array (VOC-06)
@@ -27319,9 +27034,9 @@ PROMPT;
         }
 
         // Types that require lip-sync (character's lips move on screen)
-        $lipSyncTypes = self::LIPSYNC_TYPES;
+        $lipSyncTypes = ['dialogue', 'monologue'];
         // Types that are voiceover-only (no lip movement)
-        $voiceoverTypes = self::VOICEOVER_TYPES;
+        $voiceoverTypes = ['narrator', 'internal'];
 
         $segmentCount = count($speechSegments);
         $segmentsPerShot = max(1, ceil($segmentCount / $shotCount));
@@ -27393,12 +27108,12 @@ PROMPT;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['needsLipSync'] = $needsLipSync;
 
                 if ($needsLipSync) {
-                    // Dialogue/monologue - requires Multitalk for lip-sync animation
-                    // CRITICAL: Set BOTH dialogue AND monologue for Multitalk panel
+                    // Dialogue/monologue - lip-sync animation
+                    // CRITICAL: Set BOTH dialogue AND monologue fields
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['dialogue'] = $shotDialogue;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['monologue'] = $shotDialogue;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['speakingCharacters'] = array_keys($speakers);
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = self::VIDEO_MODEL_MULTITALK;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = 'seedance';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['needsLipSync'] = true;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['useMultitalk'] = true;
 
@@ -27416,8 +27131,8 @@ PROMPT;
                         $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['voiceId'] = $speakersArray[0]['voiceId'];
                     }
                 } else {
-                    // No lip-sync needed - use Minimax with TTS voiceover
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = self::VIDEO_MODEL_MINIMAX;
+                    // No lip-sync needed - use Seedance with TTS voiceover
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['selectedVideoModel'] = 'seedance';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['needsLipSync'] = false;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIdx]['useMultitalk'] = false;
                 }
@@ -27468,7 +27183,7 @@ PROMPT;
     protected function createShotsFromSpeechSegments(int $sceneIndex, array $speechSegments): array
     {
         $shots = [];
-        $lipSyncTypes = self::LIPSYNC_TYPES;
+        $lipSyncTypes = ['dialogue', 'monologue'];
         $skippedCount = 0;
         $emptyTextCount = 0;
 
@@ -27500,7 +27215,7 @@ PROMPT;
                         'hasNarratorVoiceover' => true,
                         'speechType' => 'narrator',
                         'narratorShot' => true,
-                        'selectedVideoModel' => self::VIDEO_MODEL_MINIMAX,
+                        'selectedVideoModel' => 'seedance',
                         'type' => 'wide',
                         'purpose' => 'establishing',
                         'segmentIndex' => $segmentIndex,
@@ -27583,7 +27298,7 @@ PROMPT;
                 'speakingCharacters' => [$speaker],
                 'charactersInShot' => $allCharNames, // Must match faces in IMAGE (collage always has all scene chars), not speakers
                 'allSceneCharacters' => $allCharNames, // Keep backup for later use
-                'selectedVideoModel' => $this->getPreferredAnimationModel() ?? self::VIDEO_MODEL_MULTITALK,
+                'selectedVideoModel' => 'seedance',
                 'type' => SpeechSegment::TYPE_DIALOGUE, // Will be refined by DialogueSceneDecomposerService
                 'purpose' => $isDialogueSegment ? 'dialogue' : 'monologue',
                 'segmentIndex' => $segmentIndex,
@@ -27810,7 +27525,7 @@ PROMPT;
                 // Check if shot already has dialogue/monologue segments (lip-sync types)
                 $hasDialogueSegments = !empty(array_filter($existingSegments, function($s) {
                     $type = $s['type'] ?? null;
-                    return $type !== null && in_array(strtolower($type), self::LIPSYNC_TYPES);
+                    return $type !== null && in_array(strtolower($type), ['dialogue', 'monologue']);
                 }));
 
                 // Also check if dialogue/monologue text fields were set by decomposer
@@ -27819,10 +27534,10 @@ PROMPT;
 
                 // If shot has NO dialogue/monologue at all, narrator is PRIMARY
                 if (!$hasAnyDialogue) {
-                    // Narrator-only shot: use TTS voiceover, NOT Multitalk lip-sync
+                    // Narrator-only shot: use TTS voiceover, no lip-sync
                     $shots[$shotIdx]['speechSegments'] = array_merge($existingSegments, $shotNarrators);
                     $shots[$shotIdx]['needsLipSync'] = false;
-                    $shots[$shotIdx]['selectedVideoModel'] = self::VIDEO_MODEL_MINIMAX;
+                    $shots[$shotIdx]['selectedVideoModel'] = 'seedance';
                     $shots[$shotIdx]['useMultitalk'] = false;
                     $shots[$shotIdx]['speechType'] = 'narrator';
                 } else {
@@ -27908,7 +27623,7 @@ PROMPT;
                 'videoPrompt' => "Gentle, cinematic movement. {$visualDescription}",
                 'imageStatus' => 'pending',
                 'videoStatus' => 'pending',
-                'selectedVideoModel' => 'minimax', // No lip-sync needed
+                'selectedVideoModel' => 'seedance', // No lip-sync needed
             ];
         }
 
@@ -28092,64 +27807,12 @@ PROMPT;
             // Check if shot needs lip-sync
             $needsLipSync = $shot['needsLipSync'] ?? false;
 
-            // For InfiniteTalk dialogue with 2 chars, also require audioUrl2
-            $isDialogueMissingAudio2 = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK])
-                && ($shot['isDialogueShot'] ?? false)
-                && count($shot['charactersInShot'] ?? []) >= 2
-                && empty($shot['audioUrl2']);
-
-            // Skip if already has audio (unless force regenerate or dialogue missing speaker 2)
-            if (!$force && !$isDialogueMissingAudio2 && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
+            // Skip if already has audio (unless force regenerate)
+            if (!$force && !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready') {
                 $skipped++;
-            } elseif ($needsLipSync || $force || $isDialogueMissingAudio2) {
-                $segmentType = $shot['segmentType'] ?? null;
-                $isDialogueSegment = ($segmentType === 'dialogue');
-                $isInfiniteTalkShot = in_array($shot['selectedVideoModel'] ?? '', [self::VIDEO_MODEL_INFINITETALK]);
-                $hasMultipleChars = count($shot['charactersInShot'] ?? []) >= 2;
-
-                if ($isInfiniteTalkShot && $isDialogueSegment && $hasMultipleChars) {
-                    // Dialogue: generate dual audio (speaker + non-speaker)
-                    $this->generateDialogueVoiceover($sceneIndex, $shotIndex);
-                    Log::info('Routed to dialogue voiceover for InfiniteTalk multi-face', [
-                        'sceneIndex' => $sceneIndex,
-                        'shotIndex' => $shotIndex,
-                        'segmentType' => $segmentType,
-                        'characters' => $shot['charactersInShot'],
-                    ]);
-                } else {
-                    // Monologue, narrator, or non-InfiniteTalk: single speaker voiceover
-                    $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
-                }
+            } elseif ($needsLipSync || $force) {
+                $this->generateShotVoiceover($sceneIndex, $shotIndex, $options);
                 $generated++;
-            }
-
-            // Auto-generate silent WAV for non-speaking face in InfiniteTalk multi-face shots
-            $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? $shot;
-            $isInfiniteTalk = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk']);
-            $shotSegType = $shot['segmentType'] ?? null;
-
-            $hasMultipleFaces = count($shot['charactersInShot'] ?? []) >= 2;
-            $hasNoSecondAudio = empty($shot['audioUrl2']);
-            $hasFirstAudio = !empty($shot['audioUrl']);
-
-            // Auto-generate silent WAV for non-speaking face in InfiniteTalk multi-face shots
-            // Applies to both dialogue and monologue — any 2-face shot with only 1 audio track
-            if ($isInfiniteTalk && $hasMultipleFaces && $hasNoSecondAudio && $hasFirstAudio) {
-                $silentDuration = max($shot['audioDuration'] ?? 5, 1.0);
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioUrl2'] =
-                    \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['audioDuration2'] = $silentDuration;
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['voiceId2'] = 'silent';
-                // Do NOT set isDialogueShot=true for monologue — the animation block must
-                // distinguish real dialogue (2 speakers) from monologue+silent-WAV (1 speaker)
-                // so it can use the position-aware monologue path instead of the dialogue path
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['hasAutoSilentWav'] = true;
-                Log::info('Auto-generated silent WAV for non-speaking face', [
-                    'sceneIndex' => $sceneIndex,
-                    'shotIndex' => $shotIndex,
-                    'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
-                    'silentDuration' => $silentDuration,
-                ]);
             }
         }
 
@@ -28422,7 +28085,7 @@ PROMPT;
                 'style' => $this->animation['narrator']['style'] ?? 'storytelling',
             ],
             'characters' => [],
-            'multitalkEnabled' => in_array($narrationStyle, ['dialogue', 'narrator']),
+            'lipSyncEnabled' => in_array($narrationStyle, ['dialogue', 'narrator']),
         ];
 
         // Build character voice mapping
@@ -28667,7 +28330,7 @@ PROMPT;
                 'voiceoverSegments' => $needsLipSync ? 0 : 1,
                 'segments' => [],
                 'sceneNeedsLipSync' => $needsLipSync,
-                'recommendedModel' => $needsLipSync ? 'multitalk' : 'minimax',
+                'recommendedModel' => 'seedance',
             ];
         }
     }
@@ -28846,7 +28509,7 @@ PROMPT;
                     'shotIndex' => $shotIdx,
                     'id' => $shot['id'] ?? "shot-{$sceneIdx}-{$shotIdx}",
                     'needsLipSync' => $shot['needsLipSync'] ?? false,
-                    'selectedVideoModel' => $shot['selectedVideoModel'] ?? 'minimax',
+                    'selectedVideoModel' => $shot['selectedVideoModel'] ?? 'seedance',
                     'hasDialogue' => !empty($shot['dialogue']),
                     'hasMonologue' => !empty($shot['monologue']),
                     'hasAudio' => !empty($shot['audioUrl']),
@@ -28855,16 +28518,6 @@ PROMPT;
 
                 if ($shotData['needsLipSync']) {
                     $diagnostics['summary']['shotsNeedingLipSync']++;
-                }
-
-                // Check for routing issues
-                if ($shotData['needsLipSync'] && $shotData['selectedVideoModel'] !== 'multitalk') {
-                    $diagnostics['issues'][] = [
-                        'type' => 'model_mismatch',
-                        'scene' => $sceneIdx,
-                        'shot' => $shotIdx,
-                        'message' => "Shot {$sceneIdx}-{$shotIdx}: Needs lip-sync but model is '{$shotData['selectedVideoModel']}', should be 'multitalk'",
-                    ];
                 }
 
                 $diagnostics['shots'][] = $shotData;
@@ -32122,44 +31775,20 @@ PROMPT;
     }
 
     /**
-     * Set video model for selected shot.
+     * Set video model for selected shot — always Seedance.
      */
     public function setVideoModel(string $model): void
     {
         $sceneIndex = $this->videoModelSelectorSceneIndex;
         $shotIndex = $this->videoModelSelectorShotIndex;
 
-        $validModels = ['minimax', 'multitalk', 'infinitetalk'];
-        if (!in_array($model, $validModels)) {
-            return;
-        }
+        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'seedance';
 
-        // Check Multitalk availability
-        if ($model === 'multitalk') {
-            $multitalkEndpoint = get_option('runpod_multitalk_endpoint', '');
-            if (empty($multitalkEndpoint)) {
-                $this->error = __('Multitalk endpoint not configured');
-                return;
-            }
-        }
-
-        // Check InfiniteTalk availability
-        if ($model === 'infinitetalk') {
-            $infinitetalkEndpoint = get_option('runpod_infinitetalk_endpoint', '');
-            if (empty($infinitetalkEndpoint)) {
-                $this->error = __('InfiniteTalk endpoint not configured');
-                return;
-            }
-        }
-
-        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = $model;
-
-        // Adjust duration based on model - using dynamic durations from settings
-        $currentDuration = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] ?? 6;
-        $validDurations = $this->getAvailableDurations($model);
+        $currentDuration = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] ?? 8;
+        $validDurations = $this->getAvailableDurations();
 
         if (!in_array($currentDuration, $validDurations)) {
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = $validDurations[0];
+            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedDuration'] = 8;
         }
     }
 
@@ -32186,8 +31815,8 @@ PROMPT;
         if ($this->preConfigureWaitingShots) {
             $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
             $currentShot = $shots[$shotIndex] ?? [];
-            $selectedModel = $currentShot['selectedVideoModel'] ?? 'minimax';
-            $selectedDuration = $currentShot['selectedDuration'] ?? 6;
+            $selectedModel = 'seedance';
+            $selectedDuration = $currentShot['selectedDuration'] ?? 8;
 
             foreach ($shots as $idx => $shot) {
                 if ($idx > $shotIndex && empty($shot['videoUrl']) && !empty($shot['imageUrl'])) {
@@ -32448,7 +32077,7 @@ PROMPT;
         }
 
         // Get valid durations dynamically based on selected model
-        $selectedModel = $decomposed['shots'][$shotIndex]['selectedVideoModel'] ?? 'minimax';
+        $selectedModel = $decomposed['shots'][$shotIndex]['selectedVideoModel'] ?? 'seedance';
         $validDurations = $this->getAvailableDurations($selectedModel);
 
         if (!in_array($duration, $validDurations)) {
@@ -32618,37 +32247,7 @@ PROMPT;
 
         try {
             $animationService = app(\Modules\AppVideoWizard\Services\AnimationService::class);
-            $selectedModel = $shot['selectedVideoModel'] ?? 'minimax';
-
-            // Get audio URL for Multitalk/InfiniteTalk lip-sync
-            $audioUrl = null;
-            $audioDuration = null;
-            if (in_array($selectedModel, ['multitalk', 'infinitetalk'])) {
-                $audioUrl = $shot['audioUrl'] ?? $shot['voiceoverUrl'] ?? null;
-                $audioDuration = $shot['audioDuration'] ?? null;
-            }
-
-            // For Multitalk/InfiniteTalk: use audio duration + padding for smooth transitions
-            // For other models: use selected/shot duration
-            if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && $audioDuration) {
-                // Add 2.0 second padding to prevent last word cutoff (matches dialogue padding)
-                $endPadding = 2.0;
-                $audioDuration2 = $shot['audioDuration2'] ?? null;
-                $maxDuration = $audioDuration2 ? max($audioDuration, $audioDuration2) : $audioDuration;
-                $duration = ceil($maxDuration + $endPadding);
-            } else {
-                $duration = $shot['selectedDuration'] ?? $shot['duration'] ?? 6;
-            }
-
-            \Log::info('🎬 Animation request', [
-                'model' => $selectedModel,
-                'duration' => $duration,
-                'audioDuration' => $audioDuration,
-                'audioDuration2' => $shot['audioDuration2'] ?? null,
-                'isDialogueShot' => $shot['isDialogueShot'] ?? false,
-                'hasAudioUrl2' => !empty($shot['audioUrl2']),
-                'charactersInShot' => $shot['charactersInShot'] ?? [],
-                'speakingCharacter' => $shot['speakingCharacter'] ?? null,
+            \Log::info('🎬 Animation request (Seedance)', [
                 'imageUrl' => substr($shot['imageUrl'] ?? '', 0, 80) . '...',
             ]);
 
@@ -32659,436 +32258,67 @@ PROMPT;
                 $this->workflowTrackNode('generate_video', 'running');
             }
 
-            // ——— Seedance fast-path: no audio needed, uses videoPrompt ———
-            if ($selectedModel === 'seedance') {
-                $videoPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
-                $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
-                $seedanceResolution = $this->resolveSeedanceResolution($shot);
-
-                \Log::info('🎬 Seedance mode - no audio required', [
-                    'promptLength' => strlen($videoPrompt),
-                    'duration' => $seedanceDuration,
-                    'resolution' => $seedanceResolution,
-                ]);
-
-                if ($this->projectId) {
-                    $project = WizardProject::find($this->projectId);
-                    if ($project) {
-                        $assembledPrompt = $this->assembleSeedancePrompt($videoPrompt, $shot);
-                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $assembledPrompt;
-
-                        $result = $animationService->generateAnimation($project, [
-                            'model' => 'seedance',
-                            'imageUrl' => $shot['imageUrl'],
-                            'prompt' => $assembledPrompt,
-                            'duration' => $seedanceDuration,
-                            'resolution' => $seedanceResolution,
-                            'aspect_ratio' => $this->aspectRatio,
-                            'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
-                            'variant' => $shot['seedanceQuality'] ?? 'pro',
-                            'end_image_url' => $shot['imageUrl'], // Bookend: same face at start and end
-                        ]);
-
-                        if ($result['success'] && isset($result['taskId'])) {
-                            $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
-                            $this->pendingJobs[$jobKey] = [
-                                'taskId' => $result['taskId'],
-                                'type' => 'shot_video',
-                                'sceneIndex' => $sceneIndex,
-                                'shotIndex' => $shotIndex,
-                                'provider' => $result['provider'] ?? 'wavespeed',
-                                'endpointId' => null,
-                            ];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = 'wavespeed';
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEstimatedSeconds'] = $seedanceDuration * 30;
-
-                            $this->dispatch('video-generation-started', [
-                                'taskId' => $result['taskId'],
-                                'sceneIndex' => $sceneIndex,
-                                'shotIndex' => $shotIndex,
-                            ]);
-                            $this->saveProject();
-                        } elseif ($result['success'] && isset($result['videoUrl'])) {
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                            // Initialize segments and track in history with segments
-                            $seedVidDuration = $this->getVideoDuration($result['videoUrl']) ?? (float) ($seedanceDuration ?? 10);
-                            $seedSegments = [[
-                                'videoUrl' => $result['videoUrl'],
-                                'duration' => $seedVidDuration,
-                                'thumbnailUrl' => $shot['imageUrl'] ?? '',
-                                'prompt' => $shot['videoPrompt'] ?? '',
-                                'type' => 'original',
-                                'intensity' => 0,
-                            ]];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $seedSegments;
-                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $result['videoUrl'], $shot['videoPrompt'] ?? null, 'seedance', $seedSegments);
-                            $this->saveProject();
-                        } else {
-                            throw new \Exception($result['error'] ?? __('Seedance video generation failed'));
-                        }
-                    }
-                }
-                $this->isLoading = false;
-                return;
-            }
-
-            // Validate audio availability for Multitalk/InfiniteTalk
-            if (in_array($selectedModel, ['multitalk', 'infinitetalk']) && empty($audioUrl)) {
-                $modelName = $selectedModel === 'infinitetalk' ? 'InfiniteTalk' : 'Multitalk';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = __("{$modelName} requires audio");
-                $this->isLoading = false;
-                $this->dispatch('generation-error', [
-                    'message' => __("{$modelName} requires audio. Please generate voiceover first."),
-                    'type' => 'lipsync_no_audio',
-                    'sceneIndex' => $sceneIndex,
-                    'shotIndex' => $shotIndex,
-                ]);
-                \Log::warning("{$modelName} selected but no audio available", [
-                    'sceneIndex' => $sceneIndex,
-                    'shotIndex' => $shotIndex,
-                ]);
-                return;
-            }
-
-            if (in_array($selectedModel, ['multitalk', 'infinitetalk'])) {
-                \Log::info("🎬 {$selectedModel} audio URL found", ['audioUrl' => substr($audioUrl, 0, 80) . '...']);
-            }
-
-            // InfiniteTalk mode: person_count must match FACES IN THE IMAGE
-            // 'single' → image has 1 face (I2V_single.json workflow)
-            // 'multi'  → image has 2 faces (I2V_multi.json workflow), each face gets separate audio
-            // For multi-face + single speaker: send silent WAV to mute the non-speaking face
-            $extraAnimOptions = [];
-            if ($selectedModel === 'infinitetalk') {
-                $extraAnimOptions['aspect_ratio'] = $this->aspectRatio;
-
-                // person_count MUST match faces in the IMAGE, not speech type
-                // I2V_single.json has no face masking → lip-syncs ALL faces (broken for 2-face images)
-                // I2V_multi.json uses FaceDetectMask → separate audio per face (correct)
-                // Use segmentType + speakingCharacters to distinguish REAL dialogue (2 speakers)
-                // from monologue+silent-WAV (1 speaker, position-aware audio routing)
-                // Dialogue: segmentType=dialogue OR speakingCharacters>=2 (merged dialogue pairs)
-                // Monologue: segmentType=monologue AND speakingCharacters=1 (even with audioUrl2 silent WAV)
-                $isRealDialogue = ($shot['segmentType'] ?? '') === 'dialogue' || count($shot['speakingCharacters'] ?? []) >= 2;
-                $isDialogueShot = !empty($shot['audioUrl2']) && $isRealDialogue && count($shot['charactersInShot'] ?? []) >= 2;
-                $charactersInShot = $shot['charactersInShot'] ?? [];
-                $hasMultipleFaces = count($charactersInShot) >= 2;
-
-                // OTS (over-the-shoulder) detection: one character faces camera, other seen from behind
-                // Speaker may be behind camera → lip-syncing would animate the WRONG face
-                // Solution: silent audio on all faces → natural movement, no incorrect lip-sync
-                // Voiceover audio is overlaid during assembly/export
-                $shotTypeStr = strtolower($shot['type'] ?? $shot['shotType'] ?? '');
-                $isOTSShot = in_array($shotTypeStr, ['over-shoulder', 'over-the-shoulder', 'ots']);
-
-                if ($isOTSShot && $hasMultipleFaces) {
-                    // OTS shot: speaker's back is to camera, listener's face is visible
-                    // FaceDetectMask only detects the VISIBLE face (listener) as Face 0
-                    // Speaker's face is NOT detectable (back of head) — no Face slot for speaker
-                    // Problem: audio assigned to undetectable Face 1 gets DROPPED by the worker
-                    // Solution: silent audio on BOTH faces (no lip-sync), then overlay speaker
-                    //           audio onto the output video via ffmpeg post-processing
-                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
-                    $extraAnimOptions['person_count'] = 'multi';
-                    $projectId = $this->projectId ?? 0;
-
-                    // Save speaker's audio URL for post-processing overlay
-                    $extraAnimOptions['ots_overlay_audio'] = $audioUrl;
-
-                    // Both faces get silent audio (worker drops undetectable Face 1 audio anyway)
-                    $audioUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-
-                    \Log::info('InfiniteTalk: MULTI mode (OTS - silent both faces, audio overlay post-process)', [
-                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
-                        'charactersInShot' => $charactersInShot,
-                        'shotType' => $shotTypeStr,
-                        'otsOverlayAudio' => substr($extraAnimOptions['ots_overlay_audio'], 0, 80),
-                        'reason' => 'OTS: speaker back to camera, listener visible. Silent on both faces, ffmpeg overlay after generation.',
-                    ]);
-                } elseif ($isDialogueShot && $hasMultipleFaces) {
-                    // --- DUAL TAKE MODE CHECK ---
-                    if ($this->dialogueAnimMode === 'dual_take') {
-                        $scene = $this->script['scenes'][$sceneIndex] ?? [];
-                        $this->dispatchDualTakeJobs($sceneIndex, $shotIndex, $shot, $scene, $animationService, $audioUrl, $audioDuration, $selectedModel);
-                        $this->isLoading = false;
-                        return;
-                    }
-
-                    // Full dialogue (2 audio tracks, 2+ faces): timeline-synced audio
-                    $extraAnimOptions['person_count'] = 'multi';
-                    $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
-
-                    // Face-order detection: faceOrder stores left-to-right character positions
-                    // from Gemini Vision. We need to:
-                    // 1. Build timeline in SCRIPT ORDER (speaker1 first, speaker2 second)
-                    // 2. Then assign output tracks to the correct face positions
-                    $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
-                    $speaker1Name = $charactersInShot[0] ?? '';
-                    $speaker2Name = $charactersInShot[1] ?? '';
-                    $audioUrl2ForSync = $shot['audioUrl2'];
-
-                    // Determine if speaker1 is on the left or right face
-                    $speaker1IsLeftFace = true; // default: assume script order matches face order
-                    if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
-                        $leftFace = strtolower(trim($faceOrder[0]));
-                        $sp1Lower = strtolower(trim($speaker1Name));
-                        $speaker1IsLeftFace = ($leftFace === $sp1Lower)
-                            || str_contains($leftFace, $sp1Lower)
-                            || str_contains($sp1Lower, $leftFace);
-                    }
-
-                    // Step 1: Build timeline in SCRIPT ORDER — speaker1 always speaks first in time
-                    // audioUrl = speaker1's raw audio, audioUrl2ForSync = speaker2's raw audio
-                    $timelineSync = \Modules\AppVideoWizard\Services\InfiniteTalkService::buildTimelineSyncedAudio(
-                        $this->projectId ?? 0,
-                        $audioUrl,              // speaker1 audio → plays first (0 to duration1)
-                        (float) $audioDuration,
-                        $audioUrl2ForSync,      // speaker2 audio → plays second (duration1+pause to end)
-                        $audioDuration2Val
-                    );
-
-                    if ($timelineSync['success']) {
-                        // timelineSync['audioUrl1'] = Track with [speaker1 audio][silence]
-                        // timelineSync['audioUrl2'] = Track with [silence][speaker2 audio]
-
-                        if ($speaker1IsLeftFace) {
-                            // Speaker1 is left face → Track1 to wav_url (Face 0), Track2 to wav_url_2 (Face 1)
-                            $audioUrl = $timelineSync['audioUrl1'];
-                            $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl2'];
-                        } else {
-                            // Speaker1 is RIGHT face → swap output tracks
-                            // Track1 (speaker1 audio first) → wav_url_2 (Face 1 / right = speaker1)
-                            // Track2 (speaker2 audio second) → wav_url (Face 0 / left = speaker2)
-                            $audioUrl = $timelineSync['audioUrl2'];
-                            $extraAnimOptions['audio_url_2'] = $timelineSync['audioUrl1'];
-
-                            \Log::info('InfiniteTalk: SWAPPING timeline tracks — speaker1 is on the right face', [
-                                'faceOrder' => $faceOrder,
-                                'speaker1' => $speaker1Name,
-                                'speaker2' => $speaker2Name,
-                                'action' => 'Track1→wav_url_2 (right/speaker1), Track2→wav_url (left/speaker2)',
-                                'timeline' => "0-{$audioDuration}s: {$speaker1Name} speaks (right), then {$speaker2Name} speaks (left)",
-                            ]);
-                        }
-
-                        $duration = (int) ceil($timelineSync['totalDuration'] + 1.0);
-                        \Log::info('InfiniteTalk: MULTI mode (dialogue) - timeline-synced audio', [
-                            'totalDuration' => $timelineSync['totalDuration'],
-                            'videoDuration' => $duration,
-                            'speakingOrder' => "{$speaker1Name} first, {$speaker2Name} second",
-                            'speaker1Face' => $speaker1IsLeftFace ? 'left (Face 0)' : 'right (Face 1)',
-                            'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $faceOrder,
-                        ]);
-                    } else {
-                        $extraAnimOptions['audio_url_2'] = $audioUrl2ForSync;
-                        \Log::warning('InfiniteTalk: MULTI mode (dialogue) - timeline sync failed, using raw audio', [
-                            'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $faceOrder,
-                        ]);
-                    }
-                } elseif ($hasMultipleFaces) {
-                    // Multi-face image with single speaker (monologue OR single-speaker dialogue)
-                    // Must use MULTI mode + silent WAV to keep non-speaking face still
-                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
-                    $extraAnimOptions['person_count'] = 'multi';
-                    $projectId = $this->projectId ?? 0;
-
-                    // Face ordering: FaceDetectMask sorts faces left-to-right
-                    // wav_url → Face 0 (leftmost), wav_url_2 → Face 1
-                    // Use faceOrder (from Gemini Vision detection) if available, fallback to charactersInShot
-                    $speakingChar = $shot['speakingCharacter'] ?? null;
-                    $faceOrderMono = $shot['faceOrder'] ?? $charactersInShot;
-
-                    if (count($faceOrderMono) >= 2) {
-                        // Use detected face order for accurate speaker-to-face mapping
-                        $speakerIndex = $speakingChar ? array_search($speakingChar, $faceOrderMono) : 0;
-                    } else {
-                        $speakerIndex = 0;
-                    }
-                    if ($speakerIndex === false) $speakerIndex = 0;
-
-                    if ($speakerIndex === 0) {
-                        // Speaker is Face 0: speaker audio → wav_url, silence → wav_url_2
-                        $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                        \Log::info('InfiniteTalk: MULTI mode (monologue, speaker=Face0)', [
-                            'speakingCharacter' => $speakingChar,
-                            'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $charactersInShot,
-                        ]);
-                    } else {
-                        // Speaker is Face 1+: silence → wav_url (Face 0), speaker audio → wav_url_2
-                        $extraAnimOptions['audio_url_2'] = $audioUrl;
-                        $audioUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($projectId, $silentDuration);
-                        \Log::info('InfiniteTalk: MULTI mode (monologue, speaker=Face1)', [
-                            'speakingCharacter' => $speakingChar,
-                            'speakerIndex' => $speakerIndex,
-                            'charactersInShot' => $charactersInShot,
-                            'faceOrder' => $charactersInShot,
-                        ]);
-                    }
-                } else {
-                    // Single face in image: standard single mode (safe for I2V_single.json)
-                    $extraAnimOptions['person_count'] = 'single';
-                    \Log::info('InfiniteTalk: SINGLE mode - one face in image', [
-                        'speakingCharacter' => $shot['speakingCharacter'] ?? 'unknown',
-                    ]);
-                }
-            }
-
-            // Validate InfiniteTalk multi-mode has all required data
-            if ($selectedModel === 'infinitetalk' && ($extraAnimOptions['person_count'] ?? '') === 'multi') {
-                if (empty($audioUrl)) {
-                    \Log::error('InfiniteTalk multi-mode: missing primary audio', [
-                        'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
-                    ]);
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Missing primary audio for InfiniteTalk';
-                    $this->isLoading = false;
-                    return;
-                }
-                $audioUrl2Check = $extraAnimOptions['audio_url_2'] ?? null;
-                if (empty($audioUrl2Check)) {
-                    \Log::warning('InfiniteTalk multi-mode: missing audio_url_2, generating silent fallback', [
-                        'sceneIndex' => $sceneIndex, 'shotIndex' => $shotIndex,
-                    ]);
-                    $silentDuration = max($audioDuration ?? $duration ?? 5, 1.0);
-                    $extraAnimOptions['audio_url_2'] = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateSilentWavUrl($this->projectId ?? 0, $silentDuration);
-                }
-            }
-
-            // InfiniteTalk max_frame — must cover full dialogue duration
-            // For dialogue shots, $duration includes both speakers + pause + padding
-            if ($selectedModel === 'infinitetalk') {
-                $fps = 24;
-                $maxSafeDuration = ($isDialogueShot && $hasMultipleFaces) ? 35 : 30;
-                $extraAnimOptions['max_frame'] = min((int)($duration * $fps), $maxSafeDuration * $fps);
-            }
+            $videoPrompt = $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '';
+            $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
+            $seedanceResolution = $this->resolveSeedanceResolution($shot);
 
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
-                    // Build motion description for the shot, optimized for selected model
-                    $scene = $this->script['scenes'][$sceneIndex] ?? [];
-                    $motionPrompt = $this->buildShotMotionPrompt($shot, $selectedModel, $scene);
+                    $assembledPrompt = $this->assembleSeedancePrompt($videoPrompt, $shot);
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $assembledPrompt;
 
-                    // Store the prompt for debug panel display
-                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $motionPrompt;
-
-                    $animParams = array_merge([
+                    $result = $animationService->generateAnimation($project, [
+                        'model' => 'seedance',
                         'imageUrl' => $shot['imageUrl'],
-                        'prompt' => $motionPrompt,
-                        'model' => $selectedModel,
-                        'duration' => $duration,
-                        'audioUrl' => $audioUrl,
-                        'audioDuration' => $audioDuration,
-                    ], $extraAnimOptions);
-
-                    // Seedance face bookending: same image at start and end to constrain drift
-                    if ($selectedModel === 'seedance') {
-                        $animParams['end_image_url'] = $shot['imageUrl'];
-                    }
-
-                    $result = $animationService->generateAnimation($project, $animParams);
-
-                    \Log::info('🎬 Animation result', [
-                        'success' => $result['success'] ?? false,
-                        'hasVideoUrl' => isset($result['videoUrl']),
-                        'taskId' => $result['taskId'] ?? 'none',
-                        'provider' => $result['provider'] ?? 'unknown',
-                        'error' => $result['error'] ?? null,
+                        'prompt' => $assembledPrompt,
+                        'duration' => $seedanceDuration,
+                        'resolution' => $seedanceResolution,
+                        'aspect_ratio' => $this->aspectRatio,
+                        'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
+                        'variant' => $shot['seedanceQuality'] ?? 'pro',
+                        'end_image_url' => $shot['imageUrl'],
                     ]);
 
-                    if ($result['success']) {
-                        if (isset($result['videoUrl'])) {
-                            $temporaryUrl = $result['videoUrl'];
-                            $finalVideoUrl = $temporaryUrl;
+                    if ($result['success'] && isset($result['taskId'])) {
+                        $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
+                        $this->pendingJobs[$jobKey] = [
+                            'taskId' => $result['taskId'],
+                            'type' => 'shot_video',
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                            'provider' => 'wavespeed',
+                            'endpointId' => null,
+                        ];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = 'wavespeed';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEstimatedSeconds'] = $seedanceDuration * 30;
 
-                            // Download and store video permanently to prevent URL expiration
-                            if ($animationService->isTemporaryUrl($temporaryUrl)) {
-                                try {
-                                    $storeResult = $animationService->downloadAndStoreVideo(
-                                        $temporaryUrl,
-                                        $project,
-                                        $sceneIndex,
-                                        $shotIndex,
-                                        $selectedModel
-                                    );
-
-                                    if ($storeResult['success'] && !empty($storeResult['permanentUrl'])) {
-                                        $finalVideoUrl = $storeResult['permanentUrl'];
-                                    }
-                                } catch (\Exception $e) {
-                                    \Log::error('Exception storing video in generateShotVideo', ['error' => $e->getMessage()]);
-                                }
-                            }
-
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalVideoUrl;
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-                            // Initialize segments and track in history with segments
-                            $immVidDuration = $this->getVideoDuration($finalVideoUrl) ?? 10.0;
-                            $immSegments = [[
-                                'videoUrl' => $finalVideoUrl,
-                                'duration' => $immVidDuration,
-                                'thumbnailUrl' => $shot['imageUrl'] ?? '',
-                                'prompt' => $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '',
-                                'type' => 'original',
-                                'intensity' => 0,
-                            ]];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $immSegments;
-                            $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $finalVideoUrl, $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? null, $selectedModel, $immSegments);
-                            \Log::info('🎬 Video immediately ready', ['videoUrl' => substr($finalVideoUrl, 0, 80)]);
-                        } elseif (isset($result['taskId'])) {
-                            // Async job - store for polling
-                            $jobKey = "shot_video_{$sceneIndex}_{$shotIndex}";
-                            $this->pendingJobs[$jobKey] = [
-                                'taskId' => $result['taskId'],
-                                'type' => 'shot_video',
-                                'sceneIndex' => $sceneIndex,
-                                'shotIndex' => $shotIndex,
-                                'provider' => $result['provider'] ?? 'minimax',
-                                'endpointId' => $result['endpointId'] ?? null,
-                            ];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoTaskId'] = $result['taskId'];
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoProvider'] = $result['provider'] ?? 'minimax';
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEndpointId'] = $result['endpointId'] ?? null;
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
-
-                            // Estimate rendering time based on model and duration
-                            // Multitalk: ~50-60 seconds per second of video (frame-by-frame lip-sync)
-                            // InfiniteTalk: ~40-50 seconds per second of video (unlimited-length lip-sync)
-                            // MiniMax: ~30-45 seconds per second of video
-                            $estimatedSeconds = match ($selectedModel) {
-                                'multitalk' => ($audioDuration ?? $duration) * 55,
-                                'infinitetalk' => ($audioDuration ?? $duration) * 45,
-                                default => $duration * 35,
-                            };
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEstimatedSeconds'] = (int) $estimatedSeconds;
-
-                            \Log::info('🎬 Video task submitted - dispatching video-generation-started', [
-                                'taskId' => $result['taskId'],
-                                'jobKey' => $jobKey,
-                                'pendingJobsCount' => count($this->pendingJobs),
-                                'pendingJobKeys' => array_keys($this->pendingJobs),
-                            ]);
-
-                            // Dispatch event to start polling
-                            $this->dispatch('video-generation-started', [
-                                'taskId' => $result['taskId'],
-                                'sceneIndex' => $sceneIndex,
-                                'shotIndex' => $shotIndex,
-                            ]);
-                        }
+                        $this->dispatch('video-generation-started', [
+                            'taskId' => $result['taskId'],
+                            'sceneIndex' => $sceneIndex,
+                            'shotIndex' => $shotIndex,
+                        ]);
+                        $this->saveProject();
+                    } elseif ($result['success'] && isset($result['videoUrl'])) {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $result['videoUrl'];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
+                        $seedVidDuration = $this->getVideoDuration($result['videoUrl']) ?? (float) $seedanceDuration;
+                        $seedSegments = [[
+                            'videoUrl' => $result['videoUrl'],
+                            'duration' => $seedVidDuration,
+                            'thumbnailUrl' => $shot['imageUrl'] ?? '',
+                            'prompt' => $shot['videoPrompt'] ?? '',
+                            'type' => 'original',
+                            'intensity' => 0,
+                        ]];
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = $seedSegments;
+                        $this->addAssetHistoryEntry('shot', $sceneIndex, $shotIndex, 'video', 'animated', $result['videoUrl'], $shot['videoPrompt'] ?? null, 'seedance', $seedSegments);
                         $this->saveProject();
                     } else {
-                        throw new \Exception($result['error'] ?? __('Animation failed'));
+                        throw new \Exception($result['error'] ?? __('Seedance video generation failed'));
                     }
                 }
             }
@@ -33099,464 +32329,6 @@ PROMPT;
         } finally {
             $this->isLoading = false;
         }
-    }
-
-    /**
-     * Dispatch Dual Take mode for dialogue animation.
-     * Take 1 is dispatched immediately. When it completes, its last frame is
-     * extracted and used as the input image for Take 2, ensuring smooth visual
-     * continuity at the transition. Speaker audio gets a noise floor mixed in
-     * to prevent character freeze during speech pauses.
-     */
-    protected function dispatchDualTakeJobs(
-        int $sceneIndex,
-        int $shotIndex,
-        array $shot,
-        array $scene,
-        $animationService,
-        string $audioUrl,
-        ?float $audioDuration,
-        string $selectedModel
-    ): void {
-        try {
-            $projectId = $this->projectId ?? 0;
-            $project = \Modules\AppVideoWizard\Models\WizardProject::find($projectId);
-            if (!$project) {
-                throw new \Exception('Project not found for dual take dispatch');
-            }
-
-            // --- Pipeline Diagnostic: Initialize ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::clearPipelineLog($projectId);
-            $projectTitle = $project->name ?? "Project {$projectId}";
-            $diagnosticUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateDiagnosticHtml($projectId, $projectTitle);
-
-            $charactersInShot = $shot['charactersInShot'] ?? [];
-            $speaker1Name = $charactersInShot[0] ?? '';
-            $speaker2Name = $charactersInShot[1] ?? '';
-            $audioDuration2Val = (float) ($shot['audioDuration2'] ?? $audioDuration ?? 2.0);
-            $audioUrl2 = $shot['audioUrl2'] ?? '';
-            $faceOrder = $shot['faceOrder'] ?? $charactersInShot;
-            $humanFaces = $shot['humanFaces'] ?? [];
-            $detectableFaces = $shot['detectableFaces'] ?? 2;
-            $fps = 24;
-
-            // Determine face positions (left-right order from Gemini)
-            $speaker1IsLeftFace = true;
-            if (count($faceOrder) >= 2 && !empty($speaker1Name)) {
-                $leftFace = strtolower(trim($faceOrder[0]));
-                $sp1Lower = strtolower(trim($speaker1Name));
-                $speaker1IsLeftFace = ($leftFace === $sp1Lower)
-                    || str_contains($leftFace, $sp1Lower)
-                    || str_contains($sp1Lower, $leftFace);
-            }
-
-            // Determine audio routing strategy based on expected face detection
-            $useSingleFaceStrategy = ($detectableFaces < 2);
-
-            // Identify which speaker has a human-detectable face
-            $speaker1HasHumanFace = $humanFaces[$speaker1Name] ?? true;
-            $speaker2HasHumanFace = $humanFaces[$speaker2Name] ?? true;
-
-            // Per-take person_count: use "single" when speaker's face can't be detected
-            // by InsightFace (non-human characters). In single mode, the entire image is
-            // audio-driven — the prompt guides which character moves/speaks.
-            // In multi mode, InsightFace targets specific detected faces for lip-sync.
-            $take1PersonCount = ($useSingleFaceStrategy && !$speaker1HasHumanFace) ? 'single' : 'multi';
-            $take2PersonCount = ($useSingleFaceStrategy && !$speaker2HasHumanFace) ? 'single' : 'multi';
-
-            // --- Diagnostic: INIT ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'INIT', 'done', [
-                'characters' => $charactersInShot,
-                'faceOrder' => $faceOrder,
-                'humanFaces' => $humanFaces,
-                'detectableFaces' => $detectableFaces,
-                'useSingleFaceStrategy' => $useSingleFaceStrategy,
-                'speaker1IsLeftFace' => $speaker1IsLeftFace,
-                'speaker1HasHumanFace' => $speaker1HasHumanFace,
-                'speaker2HasHumanFace' => $speaker2HasHumanFace,
-                'take1PersonCount' => $take1PersonCount,
-                'take2PersonCount' => $take2PersonCount,
-            ], "Characters: {$speaker1Name} vs {$speaker2Name}");
-
-            \Log::info('🎬 DualTake: Sequential mode — dispatching Take 1 first', [
-                'speaker1' => $speaker1Name,
-                'speaker2' => $speaker2Name,
-                'speaker1IsLeftFace' => $speaker1IsLeftFace,
-                'useSingleFaceStrategy' => $useSingleFaceStrategy,
-                'speaker1HasHumanFace' => $speaker1HasHumanFace,
-                'speaker2HasHumanFace' => $speaker2HasHumanFace,
-                'audioDuration1' => $audioDuration,
-                'audioDuration2' => $audioDuration2Val,
-            ]);
-
-            // --- Diagnostic: VOICE_INFO ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'VOICE_INFO', 'done', [
-                'speaker1_name' => $speaker1Name,
-                'speaker1_duration' => $audioDuration ? round($audioDuration, 2) . 's' : 'unknown',
-                'speaker1_audio' => $audioUrl,
-                'speaker2_name' => $speaker2Name,
-                'speaker2_duration' => round($audioDuration2Val, 2) . 's',
-                'speaker2_audio' => $audioUrl2,
-            ], "Speaker 1: {$speaker1Name} ({$audioDuration}s) | Speaker 2: {$speaker2Name} ({$audioDuration2Val}s)");
-
-            // --- Add noise floor to SPEAKER audio to prevent freeze during speech pauses ---
-            $speaker1AudioUrl = $audioUrl;
-            $speaker2AudioUrl = $audioUrl2;
-
-            $enhanced1 = \Modules\AppVideoWizard\Services\InfiniteTalkService::addNoiseFloorToAudio($audioUrl, $projectId);
-            if ($enhanced1) {
-                $speaker1AudioUrl = $enhanced1;
-                \Log::info('🎬 DualTake: Noise floor added to speaker 1 audio');
-            }
-
-            $enhanced2 = \Modules\AppVideoWizard\Services\InfiniteTalkService::addNoiseFloorToAudio($audioUrl2, $projectId);
-            if ($enhanced2) {
-                $speaker2AudioUrl = $enhanced2;
-                \Log::info('🎬 DualTake: Noise floor added to speaker 2 audio');
-            }
-
-            // --- TAKE 1: Speaker 1 speaks, Speaker 2 listens ---
-            $take1AudioDur = $audioDuration ?? 5.0;
-            $take1Duration = (int) ceil($take1AudioDur + 0.5);
-            $take1MaxFrame = min($take1Duration * $fps, 30 * $fps);
-            // TRUE SILENCE for the listening face — zero amplitude prevents lip-sync bleed
-            $take1SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateTrueSilentWavUrl($projectId, $take1AudioDur + 0.25);
-
-            // Build monologue-style prompt focused on speaker 1 (with dual take mouth suppression)
-            $take1Shot = array_merge($shot, [
-                'speakingCharacter' => $speaker1Name,
-                'isDialogueShot' => false,
-                'isDualTake' => true,
-            ]);
-            $take1Prompt = $this->buildInfiniteTalkPrompt($take1Shot, $scene);
-
-            // Assign audio to correct faces based on per-take person_count
-            if ($take1PersonCount === 'single') {
-                // Single mode: only wav_url, drives the entire image
-                // Speaker's audio goes directly — no face detection needed
-                $take1AudioFace0 = $speaker1AudioUrl;
-                $take1AudioFace1 = null; // Not used in single mode
-            } elseif ($useSingleFaceStrategy) {
-                if ($speaker1HasHumanFace) {
-                    $take1AudioFace0 = $speaker1AudioUrl;
-                    $take1AudioFace1 = $take1SilentUrl;
-                } else {
-                    $take1AudioFace0 = $take1SilentUrl;
-                    $take1AudioFace1 = $speaker1AudioUrl;
-                }
-            } else {
-                if ($speaker1IsLeftFace) {
-                    $take1AudioFace0 = $speaker1AudioUrl;
-                    $take1AudioFace1 = $take1SilentUrl;
-                } else {
-                    $take1AudioFace0 = $take1SilentUrl;
-                    $take1AudioFace1 = $speaker1AudioUrl;
-                }
-            }
-
-            // --- Diagnostic: AUDIO_ROUTING_TAKE1 ---
-            if ($take1PersonCount === 'single') {
-                $take1RoutingBranch = 'SINGLE MODE: speaker NOT human-detectable → audio drives entire image';
-            } elseif ($useSingleFaceStrategy) {
-                $take1RoutingBranch = $speaker1HasHumanFace ? 'MULTI: speaker1 IS human → wav_url=speech' : 'MULTI: speaker1 NOT human → wav_url=silence';
-            } else {
-                $take1RoutingBranch = $speaker1IsLeftFace ? 'MULTI 2-face: speaker1 on LEFT → wav_url=speech' : 'MULTI 2-face: speaker1 on RIGHT → wav_url=silence';
-            }
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE1', 'done', [
-                'person_count' => $take1PersonCount,
-                'strategy' => $take1PersonCount === 'single' ? 'Single mode (non-human speaker)' : ($useSingleFaceStrategy ? 'Multi-face (' . $detectableFaces . ' detectable)' : 'Multi-face (2+ detectable)'),
-                'branch' => $take1RoutingBranch,
-                'wav_url_face0' => $take1AudioFace0,
-                'wav_url_2_face1' => $take1AudioFace1 ?? 'N/A (single mode)',
-                'silence_type' => $take1PersonCount === 'single' ? 'N/A (no silence needed)' : 'TRUE SILENCE (zero amplitude)',
-            ], $take1RoutingBranch);
-
-            // --- Diagnostic: PROMPT_TAKE1 ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PROMPT_TAKE1', 'done', [
-                '_prompt' => $take1Prompt,
-            ], "Prompt for {$speaker1Name} speaking, {$speaker2Name} listening");
-
-            // --- Prepare Take 2 config (dispatched later when Take 1 completes) ---
-            $take2Duration = (int) ceil($audioDuration2Val + 0.5);
-            $take2MaxFrame = min($take2Duration * $fps, 30 * $fps);
-            // TRUE SILENCE for the listening face in Take 2
-            $take2SilentUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::generateTrueSilentWavUrl($projectId, $audioDuration2Val + 0.25);
-
-            $take2Shot = array_merge($shot, [
-                'speakingCharacter' => $speaker2Name,
-                'isDialogueShot' => false,
-                'isDualTake' => true,
-            ]);
-            $take2Prompt = $this->buildInfiniteTalkPrompt($take2Shot, $scene);
-
-            if ($take2PersonCount === 'single') {
-                // Single mode: only wav_url, drives the entire image
-                $take2AudioFace0 = $speaker2AudioUrl;
-                $take2AudioFace1 = null; // Not used in single mode
-            } elseif ($useSingleFaceStrategy) {
-                if ($speaker2HasHumanFace) {
-                    $take2AudioFace0 = $speaker2AudioUrl;
-                    $take2AudioFace1 = $take2SilentUrl;
-                } else {
-                    $take2AudioFace0 = $take2SilentUrl;
-                    $take2AudioFace1 = $speaker2AudioUrl;
-                }
-            } else {
-                if ($speaker1IsLeftFace) {
-                    $take2AudioFace0 = $take2SilentUrl;
-                    $take2AudioFace1 = $speaker2AudioUrl;
-                } else {
-                    $take2AudioFace0 = $speaker2AudioUrl;
-                    $take2AudioFace1 = $take2SilentUrl;
-                }
-            }
-
-            // --- Diagnostic: AUDIO_ROUTING_TAKE2 ---
-            if ($take2PersonCount === 'single') {
-                $take2RoutingBranch = 'SINGLE MODE: speaker NOT human-detectable → audio drives entire image';
-            } elseif ($useSingleFaceStrategy) {
-                $take2RoutingBranch = $speaker2HasHumanFace ? 'MULTI: speaker2 IS human → wav_url=speech' : 'MULTI: speaker2 NOT human → wav_url=silence';
-            } else {
-                $take2RoutingBranch = $speaker1IsLeftFace ? 'MULTI 2-face: speaker2 on RIGHT → wav_url_2=speech' : 'MULTI 2-face: speaker2 on LEFT → wav_url=speech';
-            }
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'AUDIO_ROUTING_TAKE2', 'done', [
-                'person_count' => $take2PersonCount,
-                'strategy' => $take2PersonCount === 'single' ? 'Single mode (non-human speaker)' : ($useSingleFaceStrategy ? 'Multi-face (' . $detectableFaces . ' detectable)' : 'Multi-face (2+ detectable)'),
-                'branch' => $take2RoutingBranch,
-                'wav_url_face0' => $take2AudioFace0,
-                'wav_url_2_face1' => $take2AudioFace1 ?? 'N/A (single mode)',
-                'silence_type' => $take2PersonCount === 'single' ? 'N/A (no silence needed)' : 'TRUE SILENCE (zero amplitude)',
-            ], $take2RoutingBranch);
-
-            // --- Diagnostic: PROMPT_TAKE2 ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PROMPT_TAKE2', 'done', [
-                '_prompt' => $take2Prompt,
-            ], "Prompt for {$speaker2Name} speaking, {$speaker1Name} listening");
-
-            // Mark shot as dual take mode and clear any old take URLs from previous render
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode'] = true;
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'processing';
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['diagnosticUrl'] = $diagnosticUrl;
-            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1VideoUrl']);
-            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2VideoUrl']);
-            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId']);
-            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2TaskId']);
-
-            // Store Take 2 config on the shot — will be dispatched when Take 1 completes
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake2Config'] = [
-                'prompt' => $take2Prompt,
-                'duration' => $take2Duration,
-                'maxFrame' => $take2MaxFrame,
-                'audioUrl' => $take2AudioFace0,
-                'audioUrl2' => $take2AudioFace1,
-                'audioDuration' => $audioDuration2Val,
-                'selectedModel' => $selectedModel,
-                'personCount' => $take2PersonCount,
-            ];
-
-            // --- Diagnostic: TAKE2_CONFIG_STORED ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'TAKE2_CONFIG_STORED', 'done', [
-                'duration' => $take2Duration,
-                'maxFrame' => $take2MaxFrame,
-                'audioDuration' => $audioDuration2Val,
-            ], 'Take 2 config stored — will dispatch after Take 1 completes');
-
-            // Store prompts for debug panel
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] =
-                "DUAL TAKE MODE (Sequential)\n\n--- Take 1 ({$speaker1Name}) ---\n{$take1Prompt}\n\n--- Take 2 ({$speaker2Name}) ---\n{$take2Prompt}";
-
-            // --- Dispatch ONLY Take 1 now ---
-            $take1Key = "dual_take1_{$sceneIndex}_{$shotIndex}";
-
-            // Compute resolution for diagnostic payload logging
-            $resolution = \Modules\AppVideoWizard\Services\InfiniteTalkService::getResolutionForAspectRatio($this->aspectRatio);
-            $payloadWidth = $resolution['width'];
-            $payloadHeight = $resolution['height'];
-            // Multi-mode scaling
-            $maxDim = 768;
-            if ($payloadWidth > $maxDim || $payloadHeight > $maxDim) {
-                $scale = min($maxDim / $payloadWidth, $maxDim / $payloadHeight);
-                $payloadWidth = (int) (floor(round($payloadWidth * $scale) / 8) * 8);
-                $payloadHeight = (int) (floor(round($payloadHeight * $scale) / 8) * 8);
-            }
-
-            // --- Diagnostic: PAYLOAD_TAKE1 ---
-            $take1PayloadData = [
-                'image_url' => $shot['imageUrl'] ?? '',
-                'wav_url' => $take1AudioFace0,
-                'person_count' => $take1PersonCount,
-                'max_frame' => $take1MaxFrame,
-                'width' => $payloadWidth,
-                'height' => $payloadHeight,
-                'aspect_ratio' => $this->aspectRatio,
-            ];
-            $take1PayloadInner = [
-                'imageUrl' => $shot['imageUrl'] ?? '',
-                'prompt' => substr($take1Prompt, 0, 200) . '...',
-                'model' => $selectedModel,
-                'duration' => $take1Duration,
-                'audioUrl' => $take1AudioFace0,
-                'person_count' => $take1PersonCount,
-                'max_frame' => $take1MaxFrame,
-            ];
-            if ($take1PersonCount === 'multi' && $take1AudioFace1 !== null) {
-                $take1PayloadData['wav_url_2'] = $take1AudioFace1;
-                $take1PayloadInner['audio_url_2'] = $take1AudioFace1;
-            }
-            $take1PayloadData['_payload'] = $take1PayloadInner;
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'PAYLOAD_TAKE1', 'done', $take1PayloadData, 'RunPod payload for Take 1');
-
-            \Log::info("🎬 DualTake: Take 1 audio assignment", [
-                'wav_url_face0' => substr($take1AudioFace0, -60),
-                'wav_url2_face1' => substr($take1AudioFace1, -60),
-                'speaker1IsLeftFace' => $speaker1IsLeftFace,
-                'faceOrder' => $faceOrder,
-                'face0_is' => $speaker1IsLeftFace ? $speaker1Name . ' (SPEECH)' : $speaker2Name . ' (SILENT)',
-                'face1_is' => $speaker1IsLeftFace ? $speaker2Name . ' (SILENT)' : $speaker1Name . ' (SPEECH)',
-            ]);
-
-            $take1AnimParams = [
-                'imageUrl' => $shot['imageUrl'],
-                'prompt' => $take1Prompt,
-                'model' => $selectedModel,
-                'duration' => $take1Duration,
-                'audioUrl' => $take1AudioFace0,
-                'audioDuration' => $audioDuration ?? 5.0,
-                'person_count' => $take1PersonCount,
-                'max_frame' => $take1MaxFrame,
-                'aspect_ratio' => $this->aspectRatio,
-            ];
-            // Only include audio_url_2 in multi mode
-            if ($take1PersonCount === 'multi' && $take1AudioFace1 !== null) {
-                $take1AnimParams['audio_url_2'] = $take1AudioFace1;
-            }
-            $result = $animationService->generateAnimation($project, $take1AnimParams);
-
-            \Log::info("🎬 DualTake: Take 1 ({$speaker1Name}) dispatch result", [
-                'success' => $result['success'] ?? false,
-                'taskId' => $result['taskId'] ?? 'none',
-                'error' => $result['error'] ?? null,
-            ]);
-
-            if ($result['success'] && isset($result['taskId'])) {
-                $this->pendingJobs[$take1Key] = [
-                    'taskId' => $result['taskId'],
-                    'type' => 'dual_take',
-                    'sceneIndex' => $sceneIndex,
-                    'shotIndex' => $shotIndex,
-                    'provider' => $result['provider'] ?? 'infinitetalk',
-                    'endpointId' => $result['endpointId'] ?? null,
-                    'takeKey' => $take1Key,
-                ];
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTake1TaskId'] = $result['taskId'];
-                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoEndpointId'] = $result['endpointId'] ?? null;
-
-                // --- Diagnostic: DISPATCH_TAKE1 ---
-                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'DISPATCH_TAKE1', 'done', [
-                    'taskId' => $result['taskId'],
-                    'provider' => $result['provider'] ?? 'infinitetalk',
-                    'endpointId' => $result['endpointId'] ?? null,
-                ], "Take 1 dispatched — taskId: {$result['taskId']}");
-            } else {
-                // --- Diagnostic: DISPATCH_TAKE1 error ---
-                \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'DISPATCH_TAKE1', 'error', [
-                    'error' => $result['error'] ?? 'Unknown',
-                ], 'Take 1 dispatch FAILED');
-                throw new \Exception("Failed to dispatch Take 1 ({$speaker1Name}): " . ($result['error'] ?? 'Unknown error'));
-            }
-
-            // --- Diagnostic: POLLING_TAKE1 (initial) ---
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'POLLING_TAKE1', 'start', [
-                'taskId' => $result['taskId'],
-            ], 'Waiting for Take 1 to complete...');
-
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoJobStartedAt'] = now()->timestamp;
-            $this->saveProject();
-
-            // Dispatch events: start polling + auto-open diagnostic tab
-            $this->dispatch('video-generation-started', [
-                'taskId' => 'dual_take',
-                'sceneIndex' => $sceneIndex,
-                'shotIndex' => $shotIndex,
-            ]);
-            $this->dispatch('open-diagnostic', url: $diagnosticUrl);
-
-            \Log::info('🎬 DualTake: Take 1 dispatched — Take 2 will start when Take 1 completes', [
-                'pendingJobKeys' => array_keys($this->pendingJobs),
-                'diagnosticUrl' => $diagnosticUrl,
-            ]);
-
-        } catch (\Exception $e) {
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take dispatch failed: ' . $e->getMessage();
-            unset($this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['dualTakeMode']);
-            $this->error = __('Dual Take failed: ') . $e->getMessage();
-            \Log::error('🎬 DualTake: Dispatch error', ['error' => $e->getMessage()]);
-
-            // Log error to diagnostic pipeline
-            $projectId = $this->projectId ?? 0;
-            \Modules\AppVideoWizard\Services\InfiniteTalkService::writePipelineLog($projectId, 'ERROR', 'error', [
-                'error' => $e->getMessage(),
-            ], 'Pipeline failed: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Assemble a Dual Take video by concatenating Take 1 + Take 2 via ffmpeg.
-     * Called when both dual_take jobs have completed and their video URLs are stored.
-     */
-    protected function assembleDualTakeVideo(int $sceneIndex, int $shotIndex): void
-    {
-        $shot = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex] ?? [];
-        $videoUrl1 = $shot['dualTake1VideoUrl'] ?? '';
-        $videoUrl2 = $shot['dualTake2VideoUrl'] ?? '';
-
-        if (empty($videoUrl1) || empty($videoUrl2)) {
-            \Log::error('🎬 DualTake assembly: missing video URLs', [
-                'hasUrl1' => !empty($videoUrl1),
-                'hasUrl2' => !empty($videoUrl2),
-            ]);
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take assembly failed: missing video URLs';
-            return;
-        }
-
-        \Log::info('🎬 DualTake: Assembling final video', [
-            'sceneIndex' => $sceneIndex,
-            'shotIndex' => $shotIndex,
-            'take1Url' => substr($videoUrl1, 0, 80),
-            'take2Url' => substr($videoUrl2, 0, 80),
-        ]);
-
-        $projectId = $this->projectId ?? 0;
-        $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateVideos($videoUrl1, $videoUrl2, $projectId);
-
-        if ($finalUrl) {
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoUrl'] = $finalUrl;
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'ready';
-
-            // Initialize segments array for Video Extend support
-            $videoDuration = $this->getVideoDuration($finalUrl) ?? 10.0;
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['segments'] = [[
-                'videoUrl' => $finalUrl,
-                'duration' => $videoDuration,
-                'thumbnailUrl' => $shot['imageUrl'] ?? '',
-                'prompt' => $shot['videoPrompt'] ?? $shot['animationPrompt'] ?? '',
-                'type' => 'original',
-                'intensity' => 0,
-            ]];
-
-            \Log::info('🎬 DualTake: Assembly complete — video READY!', [
-                'finalUrl' => substr($finalUrl, 0, 100),
-            ]);
-        } else {
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoStatus'] = 'error';
-            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['videoError'] = 'Dual Take assembly failed: ffmpeg concatenation error';
-
-            \Log::error('🎬 DualTake: Assembly FAILED');
-        }
-
-        $this->saveProject();
     }
 
     // ========================================================================
@@ -33590,7 +32362,7 @@ PROMPT;
 
         try {
             // Extract the frame at the specified timestamp
-            $frameUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::extractFrameAtTimestamp(
+            $frameUrl = \Modules\AppVideoWizard\Services\VideoUtilService::extractFrameAtTimestamp(
                 $shot['videoUrl'],
                 $timestamp,
                 $this->projectId ?? 0
@@ -34087,7 +32859,7 @@ PROMPT;
             } else {
                 // The cut point falls within this segment — trim it
                 $localCutTime = $timestamp - $cumulative;
-                $trimmedUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::trimVideoToTimestamp(
+                $trimmedUrl = \Modules\AppVideoWizard\Services\VideoUtilService::trimVideoToTimestamp(
                     $seg['videoUrl'],
                     $localCutTime,
                     $projectId
@@ -34247,7 +33019,7 @@ PROMPT;
         $shot['segments'] = $segments;
 
         // Concatenate all segment videos
-        $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+        $finalUrl = \Modules\AppVideoWizard\Services\VideoUtilService::concatenateMultipleVideos($videoUrls, $projectId);
 
         if ($finalUrl) {
             $shot['videoUrl'] = $finalUrl;
@@ -34625,7 +33397,7 @@ PROMPT;
 
             // If no thumbnail, extract from video
             if (empty($frameUrl) && !empty($videoUrl)) {
-                $frameUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::extractFrameAtTimestamp(
+                $frameUrl = \Modules\AppVideoWizard\Services\VideoUtilService::extractFrameAtTimestamp(
                     $videoUrl, $frameTime, $this->projectId ?? 0
                 );
 
@@ -34849,7 +33621,7 @@ PROMPT;
             unset($seg);
             $shot['segments'] = $segments;
 
-            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+            $finalUrl = \Modules\AppVideoWizard\Services\VideoUtilService::concatenateMultipleVideos($videoUrls, $projectId);
             $shot['videoUrl'] = $finalUrl ?: $localUrl;
         }
 
@@ -34892,7 +33664,7 @@ PROMPT;
             // Multiple segments — re-concatenate
             $videoUrls = array_column($segments, 'videoUrl');
             $projectId = $this->projectId ?? 0;
-            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+            $finalUrl = \Modules\AppVideoWizard\Services\VideoUtilService::concatenateMultipleVideos($videoUrls, $projectId);
 
             if ($finalUrl) {
                 $shot['videoUrl'] = $finalUrl;
@@ -34937,7 +33709,7 @@ PROMPT;
         } else {
             $videoUrls = array_column($segments, 'videoUrl');
             $projectId = $this->projectId ?? 0;
-            $finalUrl = \Modules\AppVideoWizard\Services\InfiniteTalkService::concatenateMultipleVideos($videoUrls, $projectId);
+            $finalUrl = \Modules\AppVideoWizard\Services\VideoUtilService::concatenateMultipleVideos($videoUrls, $projectId);
 
             if ($finalUrl) {
                 $shot['videoUrl'] = $finalUrl;
@@ -35043,23 +33815,8 @@ PROMPT;
     /**
      * Build motion prompt for a shot.
      */
-    protected function buildShotMotionPrompt(array $shot, string $model = 'minimax', array $scene = []): string
+    protected function buildShotMotionPrompt(array $shot, string $model = 'seedance', array $scene = []): string
     {
-        // For InfiniteTalk dialogue (two-person), use specialized prompt
-        if ($model === 'infinitetalk' && ($shot['isDialogueShot'] ?? false)) {
-            return $this->buildInfiniteTalkDialoguePrompt($shot, $scene);
-        }
-
-        // For InfiniteTalk single-person, use single-person prompt
-        if ($model === 'infinitetalk') {
-            return $this->buildInfiniteTalkPrompt($shot, $scene);
-        }
-
-        // For Multitalk, use specialized lip-sync optimized prompt
-        if ($model === 'multitalk') {
-            return $this->buildMultitalkPrompt($shot, $scene);
-        }
-
         $prompt = '';
 
         // Use narrative beat motion description if available
@@ -35085,194 +33842,6 @@ PROMPT;
         }
 
         return $prompt;
-    }
-
-    /**
-     * Build prompt optimized for Multitalk lip-sync animation.
-     * Multitalk works best with minimal prompts focused on facial expressions.
-     */
-    protected function buildMultitalkPrompt(array $shot, array $scene): string
-    {
-        $charData = $scene['characters'][0] ?? 'the subject';
-        $character = is_array($charData) ? ($charData['name'] ?? 'the subject') : $charData;
-        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
-        $action = $shot['subjectAction'] ?? $shot['action'] ?? 'speaking';
-
-        // Emotion-specific expression mappings
-        $emotionExpressions = [
-            'tense' => 'serious, focused expression with slight tension',
-            'mysterious' => 'subtle knowing look, enigmatic expression',
-            'dramatic' => 'intense emotional expression',
-            'romantic' => 'soft, warm expression with gentle eyes',
-            'action' => 'determined, alert expression',
-            'neutral' => 'natural, calm expression',
-            'hopeful' => 'optimistic expression with bright eyes',
-            'dark' => 'somber, brooding expression',
-            'happy' => 'joyful expression with natural smile',
-            'sad' => 'melancholic expression with emotional depth',
-            'angry' => 'fierce, intense gaze',
-        ];
-
-        $expressionDesc = $emotionExpressions[$emotion] ?? $emotionExpressions['neutral'];
-
-        // Multitalk works best with minimal, focused prompts
-        // Use scene-aware physicality for consistent movement direction
-        $speakerPhysicality = $this->getPhysicalityDirection($shot, $scene, 'speaker');
-
-        $prompt = "{$character} speaking with natural lip movement, ";
-        $prompt .= "{$expressionDesc}, ";
-        $prompt .= "{$speakerPhysicality}, ";
-        $prompt .= "eyes alive with thought, ";
-        $prompt .= "realistic facial micro-expressions, ";
-        $prompt .= "natural breathing motion";
-
-        return $prompt;
-    }
-
-    /**
-     * Build prompt for InfiniteTalk single-person mode.
-     * Creates rich scene direction from actual script content, character description,
-     * and species-specific animation. When multiple characters are in frame,
-     * explicitly identifies the speaker and keeps others still.
-     */
-    protected function buildInfiniteTalkPrompt(array $shot, array $scene): string
-    {
-        $speakerName = $shot['speakingCharacter'] ?? null;
-        $charactersInShot = $shot['charactersInShot'] ?? [];
-        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
-        $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
-
-        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
-
-        // Pull rich context from social content idea
-        $idea = $this->concept['socialContent']
-            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
-            ?? [];
-        $situation = $idea['situation'] ?? $scene['visualDescription'] ?? '';
-        $ideaCharacters = $idea['characters'] ?? [];
-
-        // Get full character description
-        $getCharDesc = function(?string $name) use ($ideaCharacters, $characterBible): string {
-            if (!$name) return '';
-            foreach ($ideaCharacters as $c) {
-                if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    $desc = $c['description'] ?? '';
-                    $expr = $c['expression'] ?? '';
-                    return $expr ? "{$desc}, {$expr}" : $desc;
-                }
-            }
-            foreach ($characterBible as $c) {
-                if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    return $c['appearance'] ?? $c['description'] ?? '';
-                }
-            }
-            return '';
-        };
-
-        $multipleInFrame = count($charactersInShot) >= 2
-            || count($scene['characters'] ?? []) >= 2;
-
-        // Get monologue text for emotional arc
-        $speechSegments = $scene['speechSegments'] ?? [];
-        $monoText = '';
-        foreach ($speechSegments as $seg) {
-            if (strcasecmp($seg['speaker'] ?? '', $speakerName ?? '') === 0) {
-                $monoText = $seg['text'] ?? '';
-                break;
-            }
-        }
-        if (!$monoText) {
-            $monoText = $idea['audioDescription'] ?? '';
-        }
-
-        $species = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
-        $speciesDirection = $this->getSpeciesAnimationDirection($species, 'speaker');
-        $speakerDesc = $getCharDesc($speakerName);
-
-        // Single character in frame
-        if (!$multipleInFrame) {
-            $who = $speakerName ?: 'the character';
-            $parts = [];
-
-            // Scene setting
-            $sceneSummary = $this->condenseToSentence($situation, 100);
-            if ($sceneSummary) {
-                $parts[] = "SCENE: {$sceneSummary}";
-            }
-
-            // Character direction
-            $charBlock = "{$who}";
-            if ($speakerDesc) $charBlock .= " ({$this->condenseToSentence($speakerDesc, 80)})";
-            $charBlock .= " delivering a monologue: {$speciesDirection}, {$emotionIntensity}";
-            if ($monoText) {
-                $arc = $this->detectLineEmotion($monoText);
-                $charBlock .= ". Performance: {$arc}";
-            }
-            $parts[] = $charBlock;
-
-            $parts[] = ($species === 'human')
-                ? "Eyes alive with thought, breathing naturally between phrases, micro-expressions shifting with each emotional beat, NO repetitive head nodding"
-                : "Exaggerated facial movements for clear visual speech, whole face animated with character personality, NO repetitive head nodding";
-
-            return implode(". \n", $parts);
-        }
-
-        // Multiple characters in frame — specify speaker + silent characters
-        $speakerLabel = $speakerName ?: 'the speaking character';
-        if ($speakerDesc) {
-            $speakerLabel = "{$speakerName} ({$this->condenseToSentence($speakerDesc, 60)})";
-        }
-
-        $speakerSpecies = $this->getCharacterSpecies($speakerName ?? '', $characterBible);
-        $speakerAnimation = $this->getSpeciesAnimationDirection($speakerSpecies, 'speaker');
-
-        $parts = [];
-
-        // Scene setting
-        $sceneSummary = $this->condenseToSentence($situation, 100);
-        if ($sceneSummary) {
-            $parts[] = "SCENE: {$sceneSummary}";
-        }
-
-        // Speaker direction
-        $speakerBlock = "Only {$speakerLabel} is speaking — {$speakerAnimation}, {$emotionIntensity}";
-        if ($monoText) {
-            $arc = $this->detectLineEmotion($monoText);
-            $speakerBlock .= ". Performance: {$arc}";
-        }
-        $parts[] = $speakerBlock;
-
-        // Silent characters
-        $otherNames = array_values(array_filter($charactersInShot, fn($n) => strcasecmp($n, $speakerName ?? '') !== 0));
-        if (empty($otherNames)) {
-            foreach ($scene['characters'] ?? [] as $charName) {
-                $name = is_array($charName) ? ($charName['name'] ?? '') : $charName;
-                if ($name && strcasecmp($name, $speakerName ?? '') !== 0) {
-                    $otherNames[] = $name;
-                }
-            }
-        }
-
-        if (!empty($otherNames)) {
-            // In dual take mode, suppress mouth movement for ALL listeners (even animals)
-            // since each take focuses entirely on one speaker and we want zero lip-sync bleed.
-            // In single take mode, only suppress human listeners to preserve animal animations.
-            $isDualTake = $shot['isDualTake'] ?? false;
-            foreach ($otherNames as $otherName) {
-                $otherDesc = $getCharDesc($otherName);
-                $listenerSpecies = $this->getCharacterSpecies($otherName, $characterBible);
-                $listenerAnimation = $this->getSpeciesAnimationDirection($listenerSpecies, 'listener');
-                $label = $otherDesc ? "{$otherName} ({$this->condenseToSentence($otherDesc, 50)})" : $otherName;
-                $mouthDirective = ($isDualTake || $listenerSpecies === 'human')
-                    ? ', absolutely NO speaking or mouth opening, mouth CLOSED'
-                    : '';
-                $parts[] = "{$label}: listening silently, {$listenerAnimation}{$mouthDirective}";
-            }
-        }
-
-        $parts[] = "NO repetitive head nodding from any character";
-
-        return implode(". \n", $parts);
     }
 
     /**
@@ -35481,220 +34050,6 @@ PROMPT;
     }
 
     /**
-     * Build prompt for InfiniteTalk two-person dialogue mode (multi).
-     * Creates a TIMELINE-BASED cinematic scene direction that tells the model
-     * exactly what each character does in each phase of the dialogue.
-     * The timeline matches the audio track order: speaker1 (charactersInShot[0]) speaks first.
-     */
-    protected function buildInfiniteTalkDialoguePrompt(array $shot, array $scene): string
-    {
-        $speakers = $shot['dialogueSpeakers'] ?? [];
-        $charactersInShot = $shot['charactersInShot'] ?? [];
-        $characterBible = $this->sceneMemory['characterBible']['characters'] ?? [];
-        $emotion = $shot['emotion'] ?? $scene['mood'] ?? 'neutral';
-
-        // char1 speaks FIRST in the timeline, char2 speaks SECOND
-        $char1 = $speakers[0]['name'] ?? ($charactersInShot[0] ?? ($scene['characters'][0] ?? 'Person A'));
-        $char2 = $speakers[1]['name'] ?? ($charactersInShot[1] ?? ($scene['characters'][1] ?? 'Person B'));
-        if (is_array($char1)) $char1 = $char1['name'] ?? 'Person A';
-        if (is_array($char2)) $char2 = $char2['name'] ?? 'Person B';
-
-        // Pull rich context
-        $idea = $this->concept['socialContent']
-            ?? $this->conceptVariations[$this->selectedConceptIndex ?? 0]
-            ?? [];
-        $situation = $idea['situation'] ?? $scene['visualDescription'] ?? '';
-        $dialogueLines = $idea['dialogueLines'] ?? [];
-        $ideaCharacters = $idea['characters'] ?? [];
-
-        // Character descriptions
-        $getCharDesc = function(string $name) use ($ideaCharacters, $characterBible): string {
-            foreach ($ideaCharacters as $c) {
-                if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    return $c['description'] ?? '';
-                }
-            }
-            foreach ($characterBible as $c) {
-                if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    return $c['appearance'] ?? $c['description'] ?? '';
-                }
-            }
-            return '';
-        };
-
-        $getCharExpression = function(string $name) use ($ideaCharacters): string {
-            foreach ($ideaCharacters as $c) {
-                if (strcasecmp($c['name'] ?? '', $name) === 0) {
-                    return $c['expression'] ?? '';
-                }
-            }
-            return '';
-        };
-
-        $desc1 = $getCharDesc($char1);
-        $desc2 = $getCharDesc($char2);
-        $expr1 = $getCharExpression($char1);
-        $expr2 = $getCharExpression($char2);
-
-        // Species + animation directions
-        $species1 = $this->getCharacterSpecies($char1, $characterBible);
-        $species2 = $this->getCharacterSpecies($char2, $characterBible);
-        $anim1 = $this->getSpeciesAnimationDirection($species1, 'speaker');
-        $anim2 = $this->getSpeciesAnimationDirection($species2, 'speaker');
-        $listen1 = $this->getSpeciesAnimationDirection($species1, 'listener');
-        $listen2 = $this->getSpeciesAnimationDirection($species2, 'listener');
-
-        // Extract what each character actually SAYS for action direction
-        $char1Lines = [];
-        $char2Lines = [];
-        foreach ($dialogueLines as $line) {
-            $speaker = $line['speaker'] ?? '';
-            $text = $line['text'] ?? '';
-            if (strcasecmp($speaker, $char1) === 0) {
-                $char1Lines[] = $text;
-            } elseif (strcasecmp($speaker, $char2) === 0) {
-                $char2Lines[] = $text;
-            }
-        }
-
-        // Build physical action cues from dialogue content
-        $char1Actions = $this->extractPhysicalActions($char1Lines, $expr1, $species1);
-        $char2Actions = $this->extractPhysicalActions($char2Lines, $expr2, $species2);
-
-        $emotionIntensity = $this->getEmotionIntensityDirection($emotion);
-
-        // Build TIMELINE prompt
-        $parts = [];
-
-        // Scene context
-        $sceneSummary = $this->condenseToSentence($situation, 200);
-        if ($sceneSummary) {
-            $parts[] = "SCENE: {$sceneSummary}";
-        }
-
-        // PHASE 1: char1 speaks first
-        $phase1 = "FIRST HALF — {$char1} speaks";
-        if ($desc1) $phase1 .= " ({$this->condenseToSentence($desc1, 60)})";
-        $phase1 .= ": {$anim1}, {$char1Actions}";
-        $phase1 .= ". Meanwhile {$char2} LISTENS in silence: {$listen2}, absolutely NO mouth movement, NO speaking";
-        $parts[] = $phase1;
-
-        // PHASE 2: char2 responds
-        $phase2 = "SECOND HALF — {$char2} responds";
-        if ($desc2) $phase2 .= " ({$this->condenseToSentence($desc2, 60)})";
-        $phase2 .= ": {$anim2}, {$char2Actions}";
-        $phase2 .= ". Meanwhile {$char1} LISTENS in silence: {$listen1}, absolutely NO mouth movement, NO speaking";
-        $parts[] = $phase2;
-
-        // Global rules
-        $parts[] = "RULES: only the active speaker moves their mouth synced to audio, "
-                 . "{$emotionIntensity}, "
-                 . "body movement escalates with emotion, "
-                 . "NO repetitive head nodding from either character";
-
-        return implode(". \n", $parts);
-    }
-
-    /**
-     * Extract physical action cues from dialogue lines and character expression.
-     * Returns a description of what the character physically DOES while speaking.
-     */
-    protected function extractPhysicalActions(array $lines, string $expression, string $species): string
-    {
-        $actions = [];
-
-        // Expression-based actions
-        if ($expression) {
-            $exprLower = strtolower($expression);
-            if (str_contains($exprLower, 'yell') || str_contains($exprLower, 'scream')) {
-                $actions[] = 'leaning forward aggressively, gesturing with hands';
-            }
-            if (str_contains($exprLower, 'frustrat') || str_contains($exprLower, 'angry')) {
-                $actions[] = 'shoulders tensed, sharp jabbing gestures';
-            }
-            if (str_contains($exprLower, 'sarcas') || str_contains($exprLower, 'deadpan')) {
-                $actions[] = 'one eyebrow raised, slow deliberate head movements';
-            }
-            if (str_contains($exprLower, 'smug') || str_contains($exprLower, 'proud')) {
-                $actions[] = 'chin lifted with pride, chest puffed out';
-            }
-        }
-
-        // Dialogue content analysis
-        $allText = strtolower(implode(' ', $lines));
-        $exclamations = 0;
-        foreach ($lines as $line) { $exclamations += substr_count($line, '!'); }
-        $capsWords = 0;
-        foreach ($lines as $line) { $capsWords += preg_match_all('/[A-Z]{3,}/', $line); }
-
-        if ($capsWords >= 2) $actions[] = 'explosive physical energy, whole body emphasizing words';
-        elseif ($exclamations >= 2) $actions[] = 'animated gestures getting bigger with each outburst';
-
-        if (preg_match('/\b(slam|punch|bang|pound|hit)\b/', $allText)) $actions[] = 'slamming hands down with emphasis';
-        if (preg_match('/\b(wave|point|gesture|throw)\b/', $allText)) $actions[] = 'waving and pointing dramatically';
-        if (preg_match('/\b(hiss|arch|leap|claw|scratch)\b/', $allText)) $actions[] = 'arching body aggressively, hackles raised';
-        if (preg_match('/\b(meow|purr|growl)\b/', $allText)) $actions[] = 'primal physical intensity, whole body vibrating';
-
-        // Species-specific physical actions
-        if ($species === 'cat' && empty($actions)) {
-            $actions[] = 'tail lashing, ears flat, body coiled with feline intensity';
-        } elseif ($species === 'dog' && empty($actions)) {
-            $actions[] = 'whole body animated, ears perked, head bobbing with enthusiasm';
-        }
-
-        if (empty($actions)) {
-            $actions[] = 'expressive body language matching the emotional delivery';
-        }
-
-        return implode(', ', $actions);
-    }
-
-    /**
-     * Summarize a character's dialogue lines into a brief emotional arc description.
-     */
-    protected function summarizeDialogueArc(array $lines): string
-    {
-        if (empty($lines)) return '';
-
-        $count = count($lines);
-        if ($count === 1) {
-            return $this->detectLineEmotion($lines[0]);
-        }
-
-        $first = $this->detectLineEmotion($lines[0]);
-        $last = $this->detectLineEmotion($lines[$count - 1]);
-
-        if ($first === $last) return $first;
-        return "starts {$first}, escalates to {$last}";
-    }
-
-    /**
-     * Detect the emotional quality of a dialogue line from its content.
-     */
-    protected function detectLineEmotion(string $line): string
-    {
-        $upper = strtoupper($line);
-        $lowerLine = strtolower($line);
-
-        // Count emphasis markers
-        $exclamations = substr_count($line, '!');
-        $caps = preg_match_all('/[A-Z]{3,}/', $line);
-        $questions = substr_count($line, '?');
-
-        if ($exclamations >= 2 || $caps >= 2) return 'explosive rage — screaming, face contorted with fury';
-        if ($exclamations >= 1 && $caps >= 1) return 'angry outburst — voice raised, aggressive gestures';
-        if ($questions >= 1 && $exclamations >= 1) return 'incredulous disbelief — demanding answers';
-        if ($questions >= 1) return 'questioning with rising frustration';
-
-        if (preg_match('/\b(worst|hate|terrible|horrible|disgusting)\b/i', $line)) return 'bitter contempt — sneering with disgust';
-        if (preg_match('/\b(love|beautiful|amazing|perfect|masterpiece)\b/i', $line)) return 'passionate pride — chest puffing with conviction';
-        if (preg_match('/\b(meow|hiss|purr|growl|bark|roar)\b/i', $line)) return 'primal fury — losing composure completely';
-        if (preg_match('/\b(sir|please|excuse)\b/i', $line)) return 'strained politeness — barely containing frustration';
-
-        return 'measured delivery with building intensity';
-    }
-
-    /**
      * Condense a text to a max character length, cutting at sentence/phrase boundary.
      */
     protected function condenseToSentence(string $text, int $maxLen): string
@@ -35717,19 +34072,7 @@ PROMPT;
     }
 
     /**
-     * Get the preferred animation model based on InfiniteTalk dialogue mode.
-     */
-    protected function getPreferredAnimationModel(): ?string
-    {
-        $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
-        if ($itAvail && $this->infiniteTalkDialogueMode) {
-            return 'infinitetalk';
-        }
-        return null;
-    }
-
-    /**
-     * Generate dual-track dialogue voiceover for InfiniteTalk multi-person mode.
+     * Generate dual-track dialogue voiceover for multi-person mode.
      * Generates separate audio for each speaker and stores as audioUrl / audioUrl2.
      */
     public function generateDialogueVoiceover(int $sceneIndex, int $shotIndex): void
@@ -36075,52 +34418,10 @@ PROMPT;
             return;
         }
 
-        $skippedLipSync = 0;
-        $itAvail = !empty(get_option('runpod_infinitetalk_endpoint', ''));
-        $mtAvail = !empty(get_option('runpod_multitalk_endpoint', ''));
-        $lipSyncAvail = $itAvail || $mtAvail;
-
         foreach ($decomposed['shots'] as $shotIndex => $shot) {
             if (!empty($shot['imageUrl']) && ($shot['videoStatus'] ?? 'pending') !== 'ready') {
-                // Check if shot needs lip-sync
-                $needsLipSync = $shot['needsLipSync'] ?? false;
-                $hasAudio = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
-
-                if ($needsLipSync && $lipSyncAvail) {
-                    if ($hasAudio) {
-                        // Has audio - respect existing model selection, or pick best available
-                        $currentModel = $shot['selectedVideoModel'] ?? null;
-                        if ($currentModel === 'infinitetalk' && $itAvail) {
-                            // Already set to InfiniteTalk and it's available - keep it
-                        } elseif ($itAvail) {
-                            // Prefer InfiniteTalk when available
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'infinitetalk';
-                        } elseif ($mtAvail) {
-                            // Fall back to Multitalk
-                            $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['selectedVideoModel'] = 'multitalk';
-                        }
-                        $this->generateShotVideo($sceneIndex, $shotIndex);
-                    } else {
-                        // Needs lip-sync but no audio - skip and warn
-                        $skippedLipSync++;
-                        Log::info('Skipping lip-sync shot without audio in Animate All', [
-                            'sceneIndex' => $sceneIndex,
-                            'shotIndex' => $shotIndex,
-                        ]);
-                    }
-                } else {
-                    // Regular shot - use default model
-                    $this->generateShotVideo($sceneIndex, $shotIndex);
-                }
+                $this->generateShotVideo($sceneIndex, $shotIndex);
             }
-        }
-
-        // Show warning if some shots were skipped
-        if ($skippedLipSync > 0) {
-            $this->dispatch('generation-warning', [
-                'message' => __(':count shot(s) with dialogue were skipped - generate voiceover first to use Multitalk.', ['count' => $skippedLipSync]),
-                'type' => 'lipsync_skipped',
-            ]);
         }
     }
 
@@ -36146,15 +34447,6 @@ PROMPT;
             if ($needsLipSync) {
                 $total++;
                 $audioReady = !empty($shot['audioUrl']) && ($shot['audioStatus'] ?? '') === 'ready';
-
-                // For InfiniteTalk dialogue shots with 2 characters, also require audioUrl2
-                $isInfiniteTalkDialogue = in_array($shot['selectedVideoModel'] ?? '', ['multitalk', 'infinitetalk'])
-                    && ($shot['isDialogueShot'] ?? false)
-                    && count($shot['charactersInShot'] ?? []) >= 2;
-
-                if ($audioReady && $isInfiniteTalkDialogue && empty($shot['audioUrl2'])) {
-                    $audioReady = false; // Speaker 2 still needs audio
-                }
 
                 if ($audioReady) {
                     $hasAudio++;

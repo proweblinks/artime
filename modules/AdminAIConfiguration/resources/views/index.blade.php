@@ -396,30 +396,6 @@
                         <small class="text-muted">{{ __('Endpoint ID for HiDream image generation. Used in Video Wizard storyboard.') }}</small>
                     </div>
 
-                    {{-- Multitalk Endpoint --}}
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <span class="badge bg-info me-2">Video</span>
-                            {{ __('Multitalk (Lip-Sync Video)') }}
-                        </label>
-                        <input type="text" class="form-control" name="runpod_multitalk_endpoint"
-                               value="{{ get_option('runpod_multitalk_endpoint', '') }}"
-                               placeholder="{{ __('Enter Multitalk endpoint ID') }}">
-                        <small class="text-muted">{{ __('Endpoint ID for Multitalk lip-sync video generation.') }}</small>
-                    </div>
-
-                    {{-- InfiniteTalk Endpoint --}}
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <span class="badge bg-warning me-2">Video</span>
-                            {{ __('InfiniteTalk (Unlimited Talking Video)') }}
-                        </label>
-                        <input type="text" class="form-control" name="runpod_infinitetalk_endpoint"
-                               value="{{ get_option('runpod_infinitetalk_endpoint', '') }}"
-                               placeholder="{{ __('e.g., 1vpe0xf4u9vrdl') }}">
-                        <small class="text-muted">{{ __('Endpoint ID for InfiniteTalk unlimited-length talking video generation with lip-sync. Supports image-to-video and video-to-video.') }}</small>
-                    </div>
-
                     {{-- Kokoro TTS Endpoint --}}
                     <div class="mb-3">
                         <label class="form-label">
