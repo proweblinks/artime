@@ -1323,6 +1323,7 @@ class VideoWizard extends Component
     public string $shotMonologueEdit = ''; // Editable monologue text for current shot
     public string $shotVoiceSelection2 = 'echo'; // Voice for second character (dialogue mode) - male default for contrast
     public string $shotMonologueEdit2 = ''; // Dialogue text for second character
+    public string $dialogueAnimMode = 'single_take'; // Dialogue animation mode: single_take or dual_take (social content)
     public bool $showVoiceRegenerateOptions = false; // Toggle to show voice regenerate UI when audio already exists
     public string $activeTtsProvider = 'openai'; // Active TTS provider: openai, kokoro
     #[Locked]
