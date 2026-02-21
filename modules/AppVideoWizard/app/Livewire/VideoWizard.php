@@ -3957,8 +3957,11 @@ class VideoWizard extends Component
      */
     protected function mapDecompositionCameraToSeedance(string $movementSlug): string
     {
+        // Normalize: lowercase, trim, convert spaces to hyphens for consistent lookup
+        $normalized = str_replace(' ', '-', strtolower(trim($movementSlug)));
+
         $mapping = [
-            // Direct matches
+            // Direct Seedance pill values
             'push-in'   => 'push-in',
             'pull-out'  => 'pull-out',
             'pan-left'  => 'pan-left',
@@ -3986,9 +3989,30 @@ class VideoWizard extends Component
             'static'    => 'none',
             'hold'      => 'none',
             'locked'    => 'none',
+            // Natural language from AI decomposition (space→hyphen normalized)
+            'gentle-push-in' => 'push-in',
+            'gentle-pull-out' => 'pull-out',
+            'gentle-pan' => 'pan-left',
+            'subtle-movement' => 'handheld',
+            'subtle-push' => 'push-in',
+            'subtle-drift' => 'handheld',
+            'drift' => 'handheld',
+            'slow-drift' => 'handheld',
+            'slight-push-in' => 'push-in',
+            'slow-zoom-in' => 'push-in',
+            'slow-zoom-out' => 'pull-out',
+            'slow-orbit' => 'orbit',
+            'slow-track' => 'tracking',
+            'slow-tracking' => 'tracking',
+            'pan' => 'pan-left',
+            'push' => 'push-in',
+            'pull' => 'pull-out',
+            'dolly' => 'push-in',
+            'zoom' => 'push-in',
+            'tilt' => 'crane-up',
         ];
 
-        return $mapping[strtolower($movementSlug)] ?? 'none';
+        return $mapping[$normalized] ?? 'none';
     }
 
     /**
@@ -4021,7 +4045,15 @@ class VideoWizard extends Component
 
         foreach ($shots as $idx => $shot) {
             $cameraMovement = $shot['cameraMovement'] ?? [];
-            $movementSlug = $shot['movementSlug'] ?? ($cameraMovement['type'] ?? 'static');
+
+            // Handle cameraMovement being either a string ("slow pan") or an array ({type, motion, speed, intensity})
+            if (is_string($cameraMovement)) {
+                $movementSlug = $shot['movementSlug'] ?? $cameraMovement;
+                $rawIntensity = $shot['movementIntensity'] ?? null;
+            } else {
+                $movementSlug = $shot['movementSlug'] ?? ($cameraMovement['type'] ?? 'static');
+                $rawIntensity = $shot['movementIntensity'] ?? ($cameraMovement['intensity'] ?? null);
+            }
 
             // Only bridge if Seedance camera is still at default 'none'
             if (($shot['seedanceCameraMove'] ?? 'none') !== 'none') {
@@ -4034,8 +4066,6 @@ class VideoWizard extends Component
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMove'] = $seedanceMove;
                 $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMoveSource'] = 'ai';
 
-                // Map intensity
-                $rawIntensity = $shot['movementIntensity'] ?? ($cameraMovement['intensity'] ?? null);
                 if ($rawIntensity !== null) {
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMoveIntensity'] =
                         $this->mapDecompositionIntensityToSeedance($rawIntensity);
