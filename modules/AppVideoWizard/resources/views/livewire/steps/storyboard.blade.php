@@ -66,10 +66,7 @@ function getCameraMovementIcon($movement) {
     viewMode: 'grid',
     selectedCard: null,
     isGenerating: false,
-    // NEW: Sidebar layout state
     sidebarCollapsed: false,
-    // Sidebar sections are now always visible (accordion)
-    // Resizable sidebar
     sidebarWidth: parseInt(localStorage.getItem('storyboard-sidebar-width')) || 320,
     isResizing: false,
     resizeStartX: 0,
@@ -77,7 +74,6 @@ function getCameraMovementIcon($movement) {
     toggleSidebar() {
         this.sidebarCollapsed = !this.sidebarCollapsed;
     },
-    // (setActiveSection removed — accordion layout)
     startResize(e) {
         this.isResizing = true;
         this.resizeStartX = e.clientX;
