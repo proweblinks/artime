@@ -452,6 +452,8 @@ PROMPT;
         $campaign = $creative->campaign;
         $dna = $campaign->dna;
 
+        $campaign->update(['status' => 'generating']);
+
         $imageResult = $this->generatePhotorealisticImage($campaign, $dna, $stylePreset);
 
         $newVersion = ($creative->current_version ?? 0) + 1;
@@ -474,6 +476,8 @@ PROMPT;
             'style_preset' => $stylePreset,
             'current_version' => $newVersion,
         ]);
+
+        $campaign->update(['status' => 'ready']);
     }
 
     public function helpMeWrite(string $field, ContentCreative $creative): string
@@ -567,6 +571,8 @@ PROMPT;
     public function generateSingleAiCreative(ContentCampaign $campaign): void
     {
         $dna = $campaign->dna;
+        $campaign->update(['status' => 'generating']);
+
         $sortOrder = ContentCreative::where('campaign_id', $campaign->id)->max('sort_order') + 1;
 
         $this->generateAiCreative($campaign, $dna, $sortOrder, 'photographic');
