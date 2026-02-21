@@ -931,6 +931,22 @@ window.multiShotVideoPolling = function() {
                                             CLIMAX
                                         </span>
                                     @endif
+
+                                    {{-- Seedance Setting Badges --}}
+                                    @if(($shot['seedanceQuality'] ?? 'pro') === 'fast')
+                                        <span class="vw-shot-badge" style="background:rgba(234,179,8,0.12);color:#92400e;" title="{{ __('Fast quality variant') }}">FAST</span>
+                                    @endif
+                                    @if(($shot['seedanceCameraMove'] ?? 'none') !== 'none')
+                                        <span class="vw-shot-badge" style="background:rgba(6,182,212,0.12);color:#0891b2;" title="{{ ucfirst(str_replace('-',' ',$shot['seedanceCameraMove'])) }}{{ ($shot['seedanceCameraMoveSource'] ?? '') === 'ai' ? ' (AI)' : '' }}">
+                                            🎥 {{ strtoupper(Str::limit(str_replace('-','', $shot['seedanceCameraMove']), 5, '')) }}{{ ($shot['seedanceCameraMoveSource'] ?? '') === 'ai' ? '✨' : '' }}
+                                        </span>
+                                    @endif
+                                    @if($shot['seedanceChaosMode'] ?? false)
+                                        <span class="vw-shot-badge" style="background:rgba(239,68,68,0.12);color:#dc2626;" title="{{ __('Chaos mode active') }}">🔥</span>
+                                    @endif
+                                    @if($shot['seedanceBackgroundMusic'] ?? false)
+                                        <span class="vw-shot-badge" style="background:rgba(168,85,247,0.12);color:#7c3aed;" title="{{ __('Background music enabled') }}">🎵</span>
+                                    @endif
                                 </div>
 
                                 {{-- PHASE 6: Shot Speech/Text Display --}}
@@ -1644,15 +1660,23 @@ window.multiShotVideoPolling = function() {
                 $curResolution = $selShot['selectedResolution'] ?? '1080p';
                 $curCameraMove = $selShot['seedanceCameraMove'] ?? 'none';
                 $curCameraIntensity = $selShot['seedanceCameraMoveIntensity'] ?? 'moderate';
+                $aiCameraSource = $selShot['seedanceCameraMoveSource'] ?? null;
+                $curGenerateAudio = $selShot['seedanceGenerateAudio'] ?? true;
+                $curMusicMood = $selShot['musicMood'] ?? '';
+                $shotNeedsLipSync = $selShot['needsLipSync'] ?? false;
+                $shotHasDialogue = !empty($selShot['dialogue']) || !empty($selShot['monologue']);
+                $antiSpeechAuto = !($shotNeedsLipSync || $shotHasDialogue);
             @endphp
             <div class="msm-seedance-settings" x-data="{
                 quality: $wire.entangle('{{ $shotPath }}.seedanceQuality'),
                 resolution: $wire.entangle('{{ $shotPath }}.selectedResolution'),
                 chaosMode: $wire.entangle('{{ $shotPath }}.seedanceChaosMode'),
                 bgMusic: $wire.entangle('{{ $shotPath }}.seedanceBackgroundMusic'),
+                generateAudio: $wire.entangle('{{ $shotPath }}.seedanceGenerateAudio'),
                 cameraMove: '{{ $curCameraMove }}',
                 cameraIntensity: '{{ $curCameraIntensity }}',
                 init() {
+                    if (this.generateAudio === undefined || this.generateAudio === null) this.generateAudio = true;
                     this.$watch('quality', (val) => {
                         if (val === 'fast' && this.resolution === '480p') {
                             this.resolution = '720p';
@@ -1662,10 +1686,17 @@ window.multiShotVideoPolling = function() {
                 setCamera(move) {
                     this.cameraMove = move;
                     $wire.$set('{{ $shotPath }}.seedanceCameraMove', move);
+                    $wire.$set('{{ $shotPath }}.seedanceCameraMoveSource', 'user');
                 },
                 setIntensity(val) {
                     this.cameraIntensity = val;
                     $wire.$set('{{ $shotPath }}.seedanceCameraMoveIntensity', val);
+                },
+                acceptAiCamera() {
+                    const aiMove = '{{ $curCameraMove }}';
+                    if (aiMove !== 'none') {
+                        this.setCamera(aiMove);
+                    }
                 }
             }">
                 {{-- Quality & Resolution --}}
@@ -1691,6 +1722,9 @@ window.multiShotVideoPolling = function() {
                 <div class="msm-camera-ctrl">
                     <div class="msm-camera-header">
                         <label>🎥 {{ __('Camera') }}</label>
+                        @if($aiCameraSource === 'ai' && $curCameraMove !== 'none')
+                            <span class="msm-ai-badge" title="{{ __('AI recommended this camera movement') }}">AI: {{ ucfirst(str_replace('-', ' ', $curCameraMove)) }}</span>
+                        @endif
                         <button type="button" class="msm-chaos-btn" :class="{ 'active': chaosMode }" @click="chaosMode = !chaosMode">
                             🔥 {{ __('CHAOS') }}
                         </button>
@@ -1722,11 +1756,36 @@ window.multiShotVideoPolling = function() {
                     </div>
                 </div>
 
-                {{-- Background Music --}}
-                <label class="msm-music-toggle">
-                    <input type="checkbox" x-model="bgMusic">
-                    <span>🎵 {{ __('Background Music') }}</span>
-                </label>
+                {{-- Audio Controls Row --}}
+                <div class="msm-audio-controls">
+                    {{-- Background Music --}}
+                    <label class="msm-music-toggle">
+                        <input type="checkbox" x-model="bgMusic">
+                        <span>🎵 {{ __('Background Music') }}</span>
+                    </label>
+                    {{-- Generate Audio --}}
+                    <label class="msm-music-toggle">
+                        <input type="checkbox" x-model="generateAudio">
+                        <span>🔊 {{ __('Generate Audio') }}</span>
+                    </label>
+                </div>
+
+                {{-- Speech Audio Indicator --}}
+                @if($shotHasDialogue || $shotNeedsLipSync)
+                    <div class="msm-speech-indicator">
+                        <span class="msm-speech-badge msm-speech-badge--active">🗣️ {{ __('Speech audio enabled') }} — {{ __('characters will speak') }}</span>
+                    </div>
+                @elseif(!$antiSpeechAuto)
+                    <div class="msm-speech-indicator">
+                        <span class="msm-speech-badge">🔇 {{ __('Speech suppressed') }} — {{ __('SFX & ambient only') }}</span>
+                    </div>
+                @endif
+
+                {{-- Apply to All Shots --}}
+                <button type="button" class="msm-apply-all-btn" wire:click="applySeedanceSettingsToAllShots({{ $videoModelSelectorSceneIndex }}, {{ $videoModelSelectorShotIndex }})" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="applySeedanceSettingsToAllShots">📋 {{ __('Apply Settings to All Shots') }}</span>
+                    <span wire:loading wire:target="applySeedanceSettingsToAllShots">⏳</span>
+                </button>
             </div>
 
             {{-- Duration Selector --}}
@@ -2369,8 +2428,16 @@ window.multiShotVideoPolling = function() {
 .msm-int-pill { flex: 1; padding: 0.3rem; background: rgba(0,0,0,0.03); border: 1px solid var(--vw-border); border-radius: 6px; font-size: 0.7rem; color: var(--vw-text); cursor: pointer; text-align: center; transition: all 0.2s ease; }
 .msm-int-pill:hover { background: rgba(0,0,0,0.06); }
 .msm-int-pill.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.5); color: #2563eb; font-weight: 600; }
+.msm-audio-controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.4rem; }
 .msm-music-toggle { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--vw-text); cursor: pointer; padding: 0.2rem 0 0; }
 .msm-music-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: #06b6d4; cursor: pointer; }
+.msm-ai-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.5rem; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; font-size: 0.65rem; font-weight: 700; color: #059669; letter-spacing: 0.3px; }
+.msm-speech-indicator { margin-top: 0.5rem; }
+.msm-speech-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 500; background: rgba(100,116,139,0.08); color: var(--vw-text-secondary); border: 1px solid rgba(100,116,139,0.15); }
+.msm-speech-badge--active { background: rgba(16,185,129,0.08); color: #059669; border-color: rgba(16,185,129,0.2); }
+.msm-apply-all-btn { width: 100%; margin-top: 0.6rem; padding: 0.5rem 0.75rem; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; color: #6366f1; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-align: center; }
+.msm-apply-all-btn:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); }
+.msm-apply-all-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Animations */
 @keyframes msm-spin { to { transform: rotate(360deg); } }

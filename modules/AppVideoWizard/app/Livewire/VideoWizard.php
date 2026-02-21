@@ -3843,7 +3843,9 @@ class VideoWizard extends Component
                 $prompt
             );
         } else {
-            $prompt .= ' Energetic background music playing throughout.';
+            $musicMood = $shot['musicMood'] ?? '';
+            $musicDesc = !empty($musicMood) ? ucfirst($musicMood) : 'Energetic';
+            $prompt .= " {$musicDesc} background music playing throughout.";
         }
 
         // Camera: Chaos Mode auto-forces handheld+dynamic, otherwise use picker
@@ -3866,6 +3868,59 @@ class VideoWizard extends Component
         }
 
         return $prompt;
+    }
+
+    /**
+     * Enrich a video prompt with Hollywood formula components when the base prompt is sparse.
+     * Uses VideoPromptBuilderService for professional cinematography layers.
+     */
+    protected function enrichWithHollywoodPrompt(string $basePrompt, array $shot, int $sceneIndex): string
+    {
+        // Skip if prompt is already rich (>200 chars likely means it was pre-built)
+        if (strlen($basePrompt) > 200) {
+            return $basePrompt;
+        }
+
+        try {
+            $promptBuilder = app(VideoPromptBuilderService::class);
+            $scene = $this->script['scenes'][$sceneIndex] ?? $this->script['scenes'][0] ?? [];
+
+            $shotData = [
+                'type' => $shot['type'] ?? $shot['shotType'] ?? 'medium',
+                'duration' => $shot['selectedDuration'] ?? 8,
+                'subjectAction' => $shot['subjectAction'] ?? $shot['description'] ?? $basePrompt,
+                'needsLipSync' => $shot['needsLipSync'] ?? false,
+                'characters' => $shot['charactersInShot'] ?? [],
+            ];
+
+            $context = [
+                'mood' => $shot['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? 'cinematic',
+                'genre' => 'cinematic',
+                'qualityLevel' => 'cinematic',
+                'narration' => $scene['narration'] ?? '',
+            ];
+
+            $result = $promptBuilder->buildPrompt($shotData, $context);
+
+            if (($result['success'] ?? false) && !empty($result['prompt'])) {
+                // Use Hollywood prompt as the base, but prepend original prompt content
+                // if it contains specific shot description not in the Hollywood output
+                $hollywoodPrompt = $result['prompt'];
+
+                // If base prompt has specific content, merge it
+                if (!empty($basePrompt) && strlen($basePrompt) > 20) {
+                    return trim($basePrompt) . '. ' . $hollywoodPrompt;
+                }
+
+                return $hollywoodPrompt;
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Hollywood prompt enrichment failed, using base prompt', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $basePrompt;
     }
 
     /**
@@ -3893,6 +3948,115 @@ class VideoWizard extends Component
         ];
 
         return $movements[$move] ?? '';
+    }
+
+    /**
+     * Map AI-recommended camera movement slugs from ShotIntelligenceService
+     * to Seedance-compatible pill values.
+     */
+    protected function mapDecompositionCameraToSeedance(string $movementSlug): string
+    {
+        $mapping = [
+            // Direct matches
+            'push-in'   => 'push-in',
+            'pull-out'  => 'pull-out',
+            'pan-left'  => 'pan-left',
+            'pan-right' => 'pan-right',
+            'orbit'     => 'orbit',
+            'tracking'  => 'tracking',
+            'handheld'  => 'handheld',
+            'crane-up'  => 'crane-up',
+            // ShotIntelligence slug aliases
+            'slow-push' => 'push-in',
+            'slow-pan'  => 'pan-left',
+            'dolly-in'  => 'push-in',
+            'dolly-out' => 'pull-out',
+            'dolly-zoom' => 'push-in',
+            'zoom-in'   => 'push-in',
+            'zoom-out'  => 'pull-out',
+            'tilt-up'   => 'crane-up',
+            'tilt-down' => 'crane-up',
+            'crane'     => 'crane-up',
+            'jib'       => 'crane-up',
+            'steadicam' => 'tracking',
+            'follow'    => 'tracking',
+            'whip-pan'  => 'pan-left',
+            'rack-focus' => 'none',
+            'static'    => 'none',
+            'hold'      => 'none',
+            'locked'    => 'none',
+        ];
+
+        return $mapping[strtolower($movementSlug)] ?? 'none';
+    }
+
+    /**
+     * Map AI-recommended movement intensity to Seedance intensity values.
+     */
+    protected function mapDecompositionIntensityToSeedance($intensity): string
+    {
+        if (is_string($intensity)) {
+            $valid = ['subtle', 'moderate', 'dynamic'];
+            return in_array(strtolower($intensity), $valid) ? strtolower($intensity) : 'moderate';
+        }
+
+        if (is_numeric($intensity)) {
+            $val = (float) $intensity;
+            if ($val <= 0.33) return 'subtle';
+            if ($val <= 0.66) return 'moderate';
+            return 'dynamic';
+        }
+
+        return 'moderate';
+    }
+
+    /**
+     * Post-process decomposed shots to bridge AI camera recommendations to Seedance fields.
+     * Called after decomposeScene() stores shots.
+     */
+    protected function bridgeCameraRecommendationsToSeedance(int $sceneIndex): void
+    {
+        $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+
+        foreach ($shots as $idx => $shot) {
+            $cameraMovement = $shot['cameraMovement'] ?? [];
+            $movementSlug = $shot['movementSlug'] ?? ($cameraMovement['type'] ?? 'static');
+
+            // Only bridge if Seedance camera is still at default 'none'
+            if (($shot['seedanceCameraMove'] ?? 'none') !== 'none') {
+                continue;
+            }
+
+            $seedanceMove = $this->mapDecompositionCameraToSeedance($movementSlug);
+
+            if ($seedanceMove !== 'none') {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMove'] = $seedanceMove;
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMoveSource'] = 'ai';
+
+                // Map intensity
+                $rawIntensity = $shot['movementIntensity'] ?? ($cameraMovement['intensity'] ?? null);
+                if ($rawIntensity !== null) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMoveIntensity'] =
+                        $this->mapDecompositionIntensityToSeedance($rawIntensity);
+                }
+            }
+        }
+    }
+
+    /**
+     * Propagate scene-level musicMood to each shot for mood-aware background music.
+     */
+    protected function propagateSceneMoodToShots(int $sceneIndex): void
+    {
+        $scene = $this->script['scenes'][$sceneIndex] ?? [];
+        $musicMood = $scene['musicMood'] ?? $scene['mood'] ?? $scene['emotionalBeat'] ?? '';
+
+        $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+        foreach ($shots as $idx => $shot) {
+            if (empty($shot['musicMood'])) {
+                $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['musicMood'] = $musicMood;
+            }
+        }
     }
 
     /**
@@ -20287,6 +20451,12 @@ PROMPT;
                 $this->extractCollageQuadrantsToShots($sceneIndex);
             }
 
+            // Bridge AI camera recommendations to Seedance fields
+            $this->bridgeCameraRecommendationsToSeedance($sceneIndex);
+
+            // Propagate scene-level musicMood to shots
+            $this->propagateSceneMoodToShots($sceneIndex);
+
             // Enrich shots with monologue for lip-sync (pre-extract for needsLipSync shots)
             // This must happen AFTER storing so extractShotMonologue can access the shots
             $this->enrichShotsWithMonologueStored($sceneIndex);
@@ -26464,7 +26634,7 @@ PROMPT;
     /**
      * Detect the left-to-right order of characters in a generated image.
      * Uses Gemini Vision to analyze which character is on which side.
-     * This is critical for InfiniteTalk multi-face dialogue: wav_url → Face 0 (left), wav_url_2 → Face 1 (right).
+     * This is critical for multi-face dialogue: ensures correct audio track assignment to each character.
      *
      * @param string $imageUrl URL of the generated image
      * @param array $characters Character data from concept (with name, description)
@@ -31825,6 +31995,12 @@ PROMPT;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['selectedResolution'] = $currentShot['selectedResolution'] ?? '1080p';
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceChaosMode'] = $currentShot['seedanceChaosMode'] ?? false;
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceBackgroundMusic'] = $currentShot['seedanceBackgroundMusic'] ?? false;
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceGenerateAudio'] = $currentShot['seedanceGenerateAudio'] ?? true;
+                    // Preserve AI camera recommendations unless user explicitly changed them
+                    if (($currentShot['seedanceCameraMoveSource'] ?? '') !== 'ai') {
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMove'] = $currentShot['seedanceCameraMove'] ?? 'none';
+                        $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx]['seedanceCameraMoveIntensity'] = $currentShot['seedanceCameraMoveIntensity'] ?? 'moderate';
+                    }
                 }
             }
         }
@@ -31834,6 +32010,35 @@ PROMPT;
 
         // Generate video
         $this->generateShotVideo($sceneIndex, $shotIndex);
+    }
+
+    /**
+     * Apply current shot's Seedance settings to ALL shots in the scene.
+     * Called from the "Apply to All Shots" UI button.
+     */
+    public function applySeedanceSettingsToAllShots(int $sceneIndex, int $sourceShotIndex): void
+    {
+        $shots = $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'] ?? [];
+        $sourceShot = $shots[$sourceShotIndex] ?? null;
+        if (!$sourceShot) return;
+
+        $settingsToApply = [
+            'seedanceQuality', 'selectedResolution', 'selectedDuration',
+            'seedanceCameraMove', 'seedanceCameraMoveIntensity',
+            'seedanceChaosMode', 'seedanceBackgroundMusic',
+            'seedanceGenerateAudio',
+        ];
+
+        foreach ($shots as $idx => $shot) {
+            if ($idx === $sourceShotIndex) continue;
+            foreach ($settingsToApply as $key) {
+                if (isset($sourceShot[$key])) {
+                    $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$idx][$key] = $sourceShot[$key];
+                }
+            }
+        }
+
+        $this->saveProject();
     }
 
     /**
@@ -32265,11 +32470,23 @@ PROMPT;
             $seedanceDuration = (int) ($shot['selectedDuration'] ?? 8);
             $seedanceResolution = $this->resolveSeedanceResolution($shot);
 
+            // Hollywood Prompt Enhancement: use VideoPromptBuilderService for rich prompts
+            $videoPrompt = $this->enrichWithHollywoodPrompt($videoPrompt, $shot, $sceneIndex);
+
             if ($this->projectId) {
                 $project = WizardProject::find($this->projectId);
                 if ($project) {
                     $assembledPrompt = $this->assembleSeedancePrompt($videoPrompt, $shot);
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['animationPrompt'] = $assembledPrompt;
+
+                    // Determine anti-speech: disable for shots with dialogue/lip-sync
+                    $shotNeedsLipSync = $shot['needsLipSync'] ?? false;
+                    $shotHasDialogue = !empty($shot['dialogue']) || !empty($shot['monologue']);
+                    $antiSpeech = !($shotNeedsLipSync || $shotHasDialogue);
+                    // Allow explicit override from shot settings
+                    if (isset($shot['seedanceAntiSpeech'])) {
+                        $antiSpeech = (bool) $shot['seedanceAntiSpeech'];
+                    }
 
                     $result = $animationService->generateAnimation($project, [
                         'model' => 'seedance',
@@ -32281,6 +32498,8 @@ PROMPT;
                         'camera_fixed' => !($shot['seedanceChaosMode'] ?? false) && ($shot['seedanceCameraMove'] ?? 'none') === 'none',
                         'variant' => $shot['seedanceQuality'] ?? 'pro',
                         'end_image_url' => $shot['imageUrl'],
+                        'anti_speech' => $antiSpeech,
+                        'generate_audio' => $shot['seedanceGenerateAudio'] ?? true,
                     ]);
 
                     if ($result['success'] && isset($result['taskId'])) {

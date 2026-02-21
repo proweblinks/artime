@@ -337,7 +337,7 @@ class VwSetting extends Model
             self::CATEGORY_NARRATIVE_BEATS => 'Narrative Beat Patterns',
             self::CATEGORY_CHARACTER_ENRICHMENT => 'Character Enrichment',
             self::CATEGORY_SHOT_INTELLIGENCE => 'Shot Intelligence',
-            self::CATEGORY_ANIMATION => 'Animation Models',
+            self::CATEGORY_ANIMATION => 'Seedance / Video Animation',
             self::CATEGORY_DURATION => 'Duration Settings',
             self::CATEGORY_SCENE => 'Scene Processing',
             self::CATEGORY_EXPORT => 'Export Settings',

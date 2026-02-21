@@ -45,13 +45,14 @@ class WaveSpeedService
             return ['success' => false, 'error' => 'WaveSpeed API key not configured. Add it in Admin Panel > AI Configuration.'];
         }
 
-        // Append anti-speech/anti-dubbing suffix to prevent Seedance from generating
-        // spoken dialogue, voiceover, or foreign language speech in the audio track.
-        // Seedance (ByteDance) has no language parameter and occasionally adds Chinese
-        // speech. This suffix ensures only sound effects and ambient audio are generated.
-        $antiSpeechSuffix = ' No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
-        if (!str_contains($prompt, 'No speech, no dialogue')) {
-            $prompt = rtrim($prompt) . $antiSpeechSuffix;
+        // Anti-speech suffix: prevents Seedance from generating unwanted spoken dialogue.
+        // Disabled when the shot has dialogue/lip-sync so characters can speak naturally.
+        $antiSpeech = $options['anti_speech'] ?? true;
+        if ($antiSpeech) {
+            $antiSpeechSuffix = ' No speech, no dialogue, no voiceover, no dubbing, no singing, no spoken words. Sound effects and ambient audio only.';
+            if (!str_contains($prompt, 'No speech, no dialogue')) {
+                $prompt = rtrim($prompt) . $antiSpeechSuffix;
+            }
         }
 
         $payload = [
