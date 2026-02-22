@@ -206,12 +206,20 @@ RULES;
         try {
             $subject = $this->buildSubjectPart($shot, $context);
             $action = $this->buildActionPart($shot, $context);
+            $sceneContext = $this->buildSceneContextPart($shot, $context);
+            $continuity = $this->buildContinuityPart($shot, $context);
             $camera = $this->buildCameraPart($shot, $context);
             $style = $this->buildStylePart($shot, $context);
             $audio = $this->buildAudioDirection($shot, $context);
 
-            // Assemble: Subject + Action. Camera. Style. Audio.
-            $parts = array_filter([$subject . ' ' . $action, $camera, $style]);
+            // Assemble: Subject Action. Scene Context. Continuity. Camera. Style. Audio.
+            $parts = array_filter([
+                $subject . ' ' . $action,
+                $sceneContext,
+                $continuity,
+                $camera,
+                $style,
+            ]);
             $prompt = implode('. ', $parts) . '.';
 
             if (!empty($audio)) {
@@ -229,6 +237,8 @@ RULES;
                 'parts' => [
                     'subject' => $subject,
                     'action' => $action,
+                    'sceneContext' => $sceneContext,
+                    'continuity' => $continuity,
                     'camera' => $camera,
                     'style' => $style,
                     'audio' => $audio,
@@ -250,43 +260,77 @@ RULES;
     }
 
     /**
-     * Build the Subject part. For I2V: "The subject" (Seedance best practice).
+     * Build the Subject part with character names, roles, and brief descriptions.
      */
     public function buildSubjectPart(array $shot, array $context): string
     {
-        // For image-to-video, the image IS the subject. Seedance docs recommend "The subject".
         $characters = $shot['charactersInShot'] ?? $shot['characters'] ?? [];
+        $bibleChars = $context['characterBible']['characters'] ?? [];
 
-        if (count($characters) > 1) {
-            return 'The subjects';
+        if (empty($characters) || empty($bibleChars)) {
+            return count($characters) > 1 ? 'The subjects' : 'The subject';
         }
 
-        // If character bible has a name, use it
-        $characterBible = $context['characterBible'] ?? [];
-        if (!empty($characters) && !empty($characterBible)) {
-            $charName = is_array($characters[0]) ? ($characters[0]['name'] ?? null) : $characters[0];
-            if ($charName) {
-                return 'The subject';
+        $descriptions = [];
+        foreach ($characters as $charRef) {
+            $charName = is_array($charRef) ? ($charRef['name'] ?? '') : $charRef;
+            if (empty($charName)) continue;
+
+            $bibleEntry = $this->findCharacterInBible($charName, $bibleChars);
+
+            if ($bibleEntry) {
+                $name = strtoupper($bibleEntry['name']);
+                $role = $bibleEntry['role'] ?? 'character';
+                $brief = $this->buildBriefCharacterDescription($bibleEntry);
+                $descriptions[] = !empty($brief)
+                    ? "{$name} ({$role}, {$brief})"
+                    : "{$name} ({$role})";
+            } else {
+                $descriptions[] = strtoupper($charName);
             }
         }
 
-        return 'The subject';
+        if (empty($descriptions)) {
+            return count($characters) > 1 ? 'The subjects' : 'The subject';
+        }
+
+        return implode(' and ', $descriptions);
     }
 
     /**
-     * Build the Action part. ONE clear verb, present tense.
+     * Build the Action part: dialogue attribution + physical action.
      *
-     * Priority: shot['subjectAction'] → extractActualStoryAction() → narration extraction → fallback.
+     * Priority: dialogue with speaker → subjectAction → description extraction → fallback.
      */
     public function buildActionPart(array $shot, array $context): string
     {
-        // Priority 1: Explicit subjectAction from decomposition
-        $subjectAction = $shot['subjectAction'] ?? '';
-        if (!empty($subjectAction) && strlen($subjectAction) > 5) {
-            return $this->cleanActionVerb($subjectAction);
+        $parts = [];
+
+        // 1. Dialogue with speaker attribution (skip narrator shots)
+        $dialogue = $shot['dialogue'] ?? $shot['monologue'] ?? '';
+        $isNarrator = ($shot['speechType'] ?? '') === 'narrator';
+
+        if (!empty($dialogue) && !$isNarrator) {
+            $clean = trim(strip_tags($dialogue));
+            $truncated = $this->truncateAtWordBoundary($clean, 80);
+            $parts[] = "says \"{$truncated}\"";
         }
 
-        // Priority 2: Extract from shot description
+        // 2. Physical action from subjectAction
+        $subjectAction = $shot['subjectAction'] ?? '';
+        if (!empty($subjectAction) && strlen($subjectAction) > 5) {
+            $cleaned = $this->cleanActionVerb($subjectAction);
+            // Avoid duplicating speech verbs if we already have dialogue
+            if (empty($dialogue) || !preg_match('/^(?:speaks?|says?|talking)\b/i', $cleaned)) {
+                $parts[] = $cleaned;
+            }
+        }
+
+        if (!empty($parts)) {
+            return implode(', ', $parts);
+        }
+
+        // Fallback: extract from description or use shot-type fallback
         $description = $shot['description'] ?? '';
         if (!empty($description) && strlen($description) > 10) {
             $extracted = $this->extractActionFromDescription($description);
@@ -295,7 +339,6 @@ RULES;
             }
         }
 
-        // Priority 3: Fallback library by shot type
         $shotType = $shot['type'] ?? $shot['shotType'] ?? 'medium';
         return $this->getFallbackAction($shotType);
     }
@@ -764,6 +807,128 @@ RULES;
     {
         $endpoint = VwSetting::getValue('seedance_v2_endpoint', '');
         return !empty($endpoint);
+    }
+
+    // =========================================================================
+    // Character & scene context helpers
+    // =========================================================================
+
+    /**
+     * Build scene context part from visual description.
+     */
+    public function buildSceneContextPart(array $shot, array $context): string
+    {
+        $visual = $context['visualDescription'] ?? '';
+        $sceneTitle = $context['sceneTitle'] ?? '';
+
+        if (empty($visual) && empty($sceneTitle)) {
+            return '';
+        }
+
+        $text = !empty($visual) ? $visual : $sceneTitle;
+        return $this->truncateAtWordBoundary($text, 80);
+    }
+
+    /**
+     * Build continuity part referencing the previous shot.
+     */
+    public function buildContinuityPart(array $shot, array $context): string
+    {
+        $prev = $shot['previousShot'] ?? null;
+        if (!$prev) {
+            return '';
+        }
+
+        $prevType = $prev['type'] ?? $prev['shotType'] ?? 'shot';
+        $prevChar = $prev['speakingCharacter'] ?? '';
+        $prevAction = $prev['subjectAction'] ?? '';
+
+        $parts = [ucfirst($prevType) . ' shot'];
+        if (!empty($prevChar)) {
+            $parts[] = 'of ' . strtoupper($prevChar);
+        }
+        if (!empty($prevAction) && strlen($prevAction) < 40) {
+            $parts[] = $prevAction;
+        }
+
+        return '[Previous: ' . implode(', ', $parts) . ']';
+    }
+
+    /**
+     * Find a character in the bible by name (case-insensitive).
+     */
+    protected function findCharacterInBible(string $name, array $bibleChars): ?array
+    {
+        $nameLower = strtolower(trim($name));
+
+        foreach ($bibleChars as $char) {
+            $charName = $char['name'] ?? '';
+            if (strtolower(trim($charName)) === $nameLower) {
+                return $char;
+            }
+        }
+
+        // Partial match (first name)
+        $firstName = explode(' ', $nameLower)[0];
+        foreach ($bibleChars as $char) {
+            $charName = strtolower(trim($char['name'] ?? ''));
+            if (str_starts_with($charName, $firstName) || str_starts_with($firstName, explode(' ', $charName)[0])) {
+                return $char;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build a brief 2-3 identifier description from a character bible entry.
+     * Example: "mid-30s, auburn hair, tactical jacket"
+     */
+    protected function buildBriefCharacterDescription(array $character): string
+    {
+        $parts = [];
+
+        // Age/gender from description
+        $description = $character['description'] ?? '';
+        if (preg_match('/\b((?:early|mid|late)[- ]?\d{2}s?)\b/i', $description, $m)) {
+            $parts[] = strtolower($m[1]);
+        }
+
+        // Hair color
+        $hairColor = $character['hair']['color'] ?? '';
+        if (!empty($hairColor)) {
+            $parts[] = strtolower($hairColor) . ' hair';
+        }
+
+        // Key wardrobe item (first comma-separated item)
+        $outfit = $character['wardrobe']['outfit'] ?? $character['wardrobe']['top'] ?? '';
+        if (!empty($outfit)) {
+            $firstItem = trim(explode(',', $outfit)[0]);
+            if (strlen($firstItem) < 30) {
+                $parts[] = strtolower($firstItem);
+            }
+        }
+
+        return implode(', ', array_slice($parts, 0, 3));
+    }
+
+    /**
+     * Truncate text at the last word boundary before the limit.
+     */
+    protected function truncateAtWordBoundary(string $text, int $limit): string
+    {
+        $text = trim($text);
+        if (mb_strlen($text) <= $limit) {
+            return $text;
+        }
+
+        $truncated = mb_substr($text, 0, $limit);
+        $lastSpace = mb_strrpos($truncated, ' ');
+        if ($lastSpace !== false && $lastSpace > $limit * 0.5) {
+            $truncated = mb_substr($truncated, 0, $lastSpace);
+        }
+
+        return rtrim($truncated, '.,;: ');
     }
 
     // =========================================================================

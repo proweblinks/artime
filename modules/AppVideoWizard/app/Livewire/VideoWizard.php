@@ -3910,6 +3910,10 @@ class VideoWizard extends Component
                     'movementSlug' => $shot['movementSlug'] ?? null,
                     'cameraMovement' => $shot['cameraMovement'] ?? [],
                     'selectedDuration' => $shot['selectedDuration'] ?? 8,
+                    'dialogue' => $shot['dialogue'] ?? $shot['monologue'] ?? '',
+                    'speakingCharacter' => $shot['speakingCharacter'] ?? '',
+                    'speechType' => $shot['speechType'] ?? '',
+                    'narratorText' => $shot['narratorText'] ?? $shot['narration'] ?? '',
                 ];
 
                 $context = [
@@ -3917,7 +3921,9 @@ class VideoWizard extends Component
                     'genre' => $genrePreset['slug'] ?? 'cinematic',
                     'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                     'atmosphere' => $genrePreset['atmosphere'] ?? '',
-                    'characterBible' => $this->script['characterBible'] ?? [],
+                    'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+                    'visualDescription' => $scene['visualDescription'] ?? '',
+                    'sceneTitle' => $scene['title'] ?? '',
                 ];
 
                 $result = $service->buildPrompt($shotData, $context);
@@ -24385,12 +24391,11 @@ PROMPT;
                     $subjectAction = $this->extractActionFromNarration($visualDescription);
                 }
             } elseif (!empty($dialogue) && !empty($speakingChar)) {
-                // Dialogue shots: character speaks with physical action
-                $cleanDialogue = trim(strip_tags($dialogue));
-                $shortDialogue = mb_strlen($cleanDialogue) > 60
-                    ? mb_substr($cleanDialogue, 0, 57) . '...'
-                    : $cleanDialogue;
-                $subjectAction = "speaks passionately, saying \"{$shortDialogue}\"";
+                // Dialogue shots: extract physical action (SeedancePromptService handles dialogue text separately)
+                $subjectAction = $this->extractActionFromNarration($visualDescription);
+                if (empty($subjectAction)) {
+                    $subjectAction = 'speaks with intensity';
+                }
             } else {
                 // Visual-only/reaction shots: derive from visual description
                 $subjectAction = $this->extractActionFromNarration($visualDescription);
@@ -24416,6 +24421,13 @@ PROMPT;
                 'selectedDuration' => $shot['selectedDuration'] ?? $shot['duration'] ?? 6,
                 'sceneIndex' => $sceneIndex,
                 'movementSlug' => null,
+                'dialogue' => $dialogue,
+                'speakingCharacter' => $speakingChar,
+                'speechType' => $shot['speechType'] ?? '',
+                'narratorText' => $narratorText,
+                'visualDescription' => $visualDescription,
+                'sceneTitle' => $sceneTitle,
+                'previousShot' => $i > 0 ? $shots[$i - 1] : null,
             ];
 
             // Map camera movement to slug for SeedancePromptService
@@ -24553,6 +24565,11 @@ PROMPT;
                 'hasDialogue' => $shotContext['hasDialogue'] ?? false,
                 'charactersInShot' => $shotContext['charactersInShot'] ?? [],
                 'selectedDuration' => $shotContext['selectedDuration'] ?? 8,
+                'dialogue' => $shotContext['dialogue'] ?? '',
+                'speakingCharacter' => $shotContext['speakingCharacter'] ?? '',
+                'speechType' => $shotContext['speechType'] ?? '',
+                'narratorText' => $shotContext['narratorText'] ?? '',
+                'previousShot' => $shotContext['previousShot'] ?? null,
             ];
 
             $scene = [];
@@ -24568,7 +24585,9 @@ PROMPT;
                 'genre' => $genrePreset['slug'] ?? 'cinematic',
                 'narration' => $this->extractCharacterLinesOnly($scene['narration'] ?? ''),
                 'atmosphere' => $genrePreset['atmosphere'] ?? '',
-                'characterBible' => $this->script['characterBible'] ?? [],
+                'characterBible' => $this->sceneMemory['characterBible'] ?? [],
+                'visualDescription' => $shotContext['visualDescription'] ?? $visualDescription,
+                'sceneTitle' => $shotContext['sceneTitle'] ?? '',
             ];
 
             $result = $service->buildPrompt($shot, $context);
