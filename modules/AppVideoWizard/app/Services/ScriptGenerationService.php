@@ -3370,14 +3370,7 @@ PROMPT;
 
         // For dialogue or special cases, we might need to transform it
         if ($narrationStyle === 'dialogue') {
-            // Try DB prompt template first
-            $prompt = $this->promptService->getCompiledPrompt('voiceover_dialogue', [
-                'narration' => $narration,
-                'tone' => $tone,
-            ]);
-
-            if (empty($prompt)) {
-                $prompt = <<<PROMPT
+            $prompt = <<<PROMPT
 Refine and enhance this character dialogue for natural delivery and lip-sync video generation.
 
 DIALOGUE: {$narration}
@@ -3391,12 +3384,9 @@ Enhance the dialogue to:
 
 RESPOND WITH ONLY THE ENHANCED DIALOGUE TEXT (no explanation):
 PROMPT;
-            }
 
-            $dbSettings = $this->promptService->getPromptSettings('voiceover_dialogue');
             $result = $this->callAIWithEngine($prompt, $aiEngine, $teamId, [
                 'maxResult' => 1,
-                'temperature' => $dbSettings['temperature'] ?? 0.7,
             ]);
 
             if (!empty($result['error'])) {

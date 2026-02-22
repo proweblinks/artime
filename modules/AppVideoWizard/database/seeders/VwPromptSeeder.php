@@ -233,30 +233,6 @@ PROMPT
             ],
 
             [
-                'slug' => 'voiceover_dialogue',
-                'name' => 'Voiceover Dialogue Conversion',
-                'description' => 'Enhances character dialogue with natural conversational flow. Used to refine speech segments for lip-sync video generation.',
-                'model' => 'gpt-4',
-                'temperature' => 0.7,
-                'max_tokens' => 500,
-                'variables' => ['narration', 'tone'],
-                'prompt_template' => <<<'PROMPT'
-Refine and enhance this character dialogue for natural delivery and lip-sync video generation.
-
-DIALOGUE: {{narration}}
-TONE: {{tone}}
-
-Enhance the dialogue to:
-1. Sound natural and conversational when spoken aloud
-2. Use CHARACTER: format (e.g., SARAH: I can't believe this.)
-3. Include appropriate pauses and emotional beats
-4. Be optimized for lip-sync video generation
-
-RESPOND WITH ONLY THE ENHANCED DIALOGUE TEXT (no explanation):
-PROMPT
-            ],
-
-            [
                 'slug' => 'script_improve',
                 'name' => 'Script Improvement',
                 'description' => 'Improves and refines an existing script based on specific instructions. Maintains the original structure while enhancing content.',
