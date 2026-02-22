@@ -12247,15 +12247,20 @@ PROMPT;
             $styleParts = [];
 
             if (!empty($styleBible['style'])) {
-                $styleParts[] = $styleBible['style'];
+                $styleVal = $styleBible['style'];
+                if (is_array($styleVal)) {
+                    $styleParts = array_merge($styleParts, array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($styleVal))));
+                } elseif (is_string($styleVal)) {
+                    $styleParts[] = $styleVal;
+                }
             }
-            if (!empty($styleBible['colorGrade'])) {
+            if (!empty($styleBible['colorGrade']) && is_string($styleBible['colorGrade'])) {
                 $styleParts[] = $styleBible['colorGrade'];
             }
-            if (!empty($styleBible['atmosphere'])) {
+            if (!empty($styleBible['atmosphere']) && is_string($styleBible['atmosphere'])) {
                 $styleParts[] = $styleBible['atmosphere'];
             }
-            if (!empty($styleBible['camera'])) {
+            if (!empty($styleBible['camera']) && is_string($styleBible['camera'])) {
                 $styleParts[] = $styleBible['camera'];
             }
 
@@ -12263,7 +12268,7 @@ PROMPT;
                 $parts[] = 'STYLE: ' . implode(', ', $styleParts);
             }
 
-            if (!empty($styleBible['visualDNA'])) {
+            if (!empty($styleBible['visualDNA']) && is_string($styleBible['visualDNA'])) {
                 $parts[] = 'QUALITY: ' . $styleBible['visualDNA'];
             }
         }
@@ -18935,12 +18940,13 @@ PROMPT;
      */
     protected function buildStyleReferencePrompt(array $styleBible): string
     {
-        // Extract style elements
-        $style = $styleBible['style'] ?? '';
-        $colorGrade = $styleBible['colorGrade'] ?? '';
-        $atmosphere = $styleBible['atmosphere'] ?? '';
-        $camera = $styleBible['camera'] ?? '';
-        $visualDNA = $styleBible['visualDNA'] ?? '';
+        // Extract style elements (style may be array with sub-keys or a string)
+        $rawStyle = $styleBible['style'] ?? '';
+        $style = is_array($rawStyle) ? implode(', ', array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($rawStyle)))) : (string) $rawStyle;
+        $colorGrade = is_string($styleBible['colorGrade'] ?? '') ? ($styleBible['colorGrade'] ?? '') : '';
+        $atmosphere = is_string($styleBible['atmosphere'] ?? '') ? ($styleBible['atmosphere'] ?? '') : '';
+        $camera = is_string($styleBible['camera'] ?? '') ? ($styleBible['camera'] ?? '') : '';
+        $visualDNA = is_string($styleBible['visualDNA'] ?? '') ? ($styleBible['visualDNA'] ?? '') : '';
 
         // Detect style medium (film, digital, animation, etc.)
         $medium = $this->detectStyleMedium($style, $visualDNA);
@@ -22987,7 +22993,16 @@ PROMPT;
 
         // 5. Style and lighting from Style Bible
         if ($this->sceneMemory['styleBible']['enabled'] && !empty($this->sceneMemory['styleBible']['style'])) {
-            $parts[] = $this->sceneMemory['styleBible']['style'];
+            $styleData = $this->sceneMemory['styleBible']['style'];
+            if (is_array($styleData)) {
+                // Style Bible is structured — flatten to string
+                $styleParts = array_filter(array_map(fn($v) => is_string($v) ? $v : null, array_values($styleData)));
+                if (!empty($styleParts)) {
+                    $parts[] = implode(', ', $styleParts);
+                }
+            } elseif (is_string($styleData)) {
+                $parts[] = $styleData;
+            }
         }
 
         // 6. CRITICAL: User's Technical Specs (photorealistic, realistic textures, etc.)
@@ -30310,15 +30325,6 @@ PROMPT;
                     // Use enhanced prompt with shot context (pass shot array directly)
                     $enhancedPrompt = $this->buildEnhancedShotImagePrompt($shot, $sceneIndex);
 
-                    // DEBUG: Trace the enhanced prompt for location context verification
-                    \Log::debug('ShotImage: Enhanced prompt built', [
-                        'sceneIndex' => $sceneIndex,
-                        'shotIndex' => $shotIndex,
-                        'promptLength' => strlen($enhancedPrompt),
-                        'hasLocationContext' => str_contains($enhancedPrompt, 'LOCATION:'),
-                        'promptPreview' => substr($enhancedPrompt, 0, 500),
-                    ]);
-
                     // Store image prompt for debug UI
                     $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imagePrompt'] = $enhancedPrompt;
 
@@ -30404,6 +30410,13 @@ PROMPT;
                 }
             }
         } catch (\Exception $e) {
+            \Log::error('VideoWizard: generateShotImage failed', [
+                'sceneIndex' => $sceneIndex,
+                'shotIndex' => $shotIndex,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['status'] = 'error';
             $this->multiShotMode['decomposedScenes'][$sceneIndex]['shots'][$shotIndex]['imageStatus'] = 'error';
             $this->error = __('Failed to generate shot image: ') . $e->getMessage();
