@@ -6,12 +6,12 @@
        ============================================ */
 
     .vw-script-step .vw-script-card {
-        background: #ffffff;
-        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
+        background: var(--vw-bg-surface);
+        border: none;
         border-radius: 1rem;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-script-header {
@@ -36,7 +36,7 @@
     .vw-script-step .vw-script-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
         margin: 0;
     }
 
@@ -48,8 +48,8 @@
 
     /* Direct Concept Card */
     .vw-script-step .vw-direct-concept-card {
-        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.06) 0%, rgba(88, 28, 135, 0.2) 100%);
-        border: 1px solid rgba(var(--vw-primary-rgb), 0.12);
+        background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.04) 0%, rgba(88, 28, 135, 0.06) 100%);
+        border: 1px solid rgba(var(--vw-primary-rgb), 0.08);
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
@@ -105,7 +105,7 @@
     .vw-script-step .vw-direct-concept-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.75rem;
     }
 
@@ -189,7 +189,7 @@
     .vw-script-step .vw-selector-label {
         font-size: 0.95rem;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.75rem;
     }
 
@@ -218,24 +218,25 @@
         align-items: center;
         justify-content: center;
         padding: 1rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.5rem;
         color: var(--vw-text);
         cursor: pointer;
         transition: all 0.2s;
         text-align: center;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-selector-btn:hover {
-        border-color: var(--vw-border-accent);
+        box-shadow: var(--vw-clay-hover);
         background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
     .vw-script-step .vw-selector-btn.selected {
-        border-color: var(--vw-border-focus);
+        box-shadow: var(--vw-clay-active);
         background: linear-gradient(135deg, rgba(var(--vw-primary-rgb), 0.08) 0%, rgba(var(--vw-primary-rgb), 0.04) 100%);
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-selector-btn-title {
@@ -257,11 +258,11 @@
     .vw-script-step .vw-instructions-textarea {
         width: 100%;
         min-height: 100px;
-        background: rgba(0, 0, 0, 0.4);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 1rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.95rem;
         line-height: 1.6;
         resize: vertical;
@@ -338,11 +339,12 @@
     }
 
     .vw-script-step .vw-scene-card {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1rem;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-scene-header {
@@ -368,13 +370,13 @@
 
     .vw-script-step .vw-scene-title {
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-scene-duration {
         font-size: 0.8rem;
         color: var(--vw-text-secondary);
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
     }
@@ -390,13 +392,14 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.5rem;
         padding: 0.875rem 1.25rem;
         margin-bottom: 1.25rem;
         flex-wrap: wrap;
         gap: 1rem;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-script-stats-left {
@@ -423,7 +426,7 @@
     .vw-script-step .vw-script-stat-value {
         font-size: 1rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-script-stat-value.highlight {
@@ -444,11 +447,12 @@
 
     /* Voice & Dialogue Status Panel */
     .vw-script-step .vw-voice-status-panel {
-        background: rgba(0, 0, 0, 0.25);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.75rem;
         padding: 1.25rem;
         margin-bottom: 1.5rem;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-voice-status-header {
@@ -464,7 +468,7 @@
         gap: 0.5rem;
         font-size: 0.95rem;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-voice-pending-badge {
@@ -492,7 +496,7 @@
     }
 
     .vw-script-step .vw-voice-stat-card {
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.02);
         border: 1px solid rgba(0,0,0,0.04);
         border-radius: 0.5rem;
         padding: 1rem;
@@ -502,7 +506,7 @@
     .vw-script-step .vw-voice-stat-value {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--vw-text);
         margin-bottom: 0.25rem;
     }
 
@@ -516,14 +520,15 @@
         display: inline-flex;
         align-items: center;
         gap: 0.375rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         color: var(--vw-text);
         padding: 0.5rem 0.875rem;
         border-radius: 0.375rem;
         font-size: 0.85rem;
         cursor: pointer;
         transition: all 0.2s;
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-script-step .vw-full-script-btn:hover {
@@ -611,20 +616,21 @@
 
     /* Advanced Scene Cards */
     .vw-script-step .vw-advanced-scene-card {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.75rem;
         margin-bottom: 1rem;
         overflow: hidden;
-        transition: border-color 0.2s;
+        transition: box-shadow 0.2s;
+        box-shadow: var(--vw-clay);
     }
 
     .vw-script-step .vw-advanced-scene-card:hover {
-        border-color: rgba(var(--vw-primary-rgb), 0.12);
+        box-shadow: var(--vw-clay-hover);
     }
 
     .vw-script-step .vw-advanced-scene-card.expanded {
-        border-color: var(--vw-border-accent);
+        box-shadow: var(--vw-clay-active);
     }
 
     .vw-script-step .vw-scene-card-header {
@@ -677,7 +683,7 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.25rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 0.25rem;
         font-size: 0.75rem;
         color: var(--vw-text-secondary);
@@ -736,11 +742,11 @@
     .vw-script-step .vw-scene-textarea {
         width: 100%;
         min-height: 80px;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
         padding: 0.75rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.9rem;
         line-height: 1.5;
         resize: vertical;
@@ -790,10 +796,10 @@
     .vw-script-step .vw-scene-duration-input {
         width: 80px;
         padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.9rem;
         text-align: center;
     }
@@ -805,10 +811,10 @@
 
     .vw-script-step .vw-scene-transition-select {
         padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.9rem;
         cursor: pointer;
         min-width: 120px;
@@ -837,13 +843,14 @@
         justify-content: center;
         width: 32px;
         height: 32px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.375rem;
         color: var(--vw-text-secondary);
         cursor: pointer;
         transition: all 0.2s;
         font-size: 0.9rem;
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-script-step .vw-scene-action-btn:hover:not(:disabled) {
@@ -953,7 +960,7 @@
     }
 
     .vw-script-step .vw-speech-type-select {
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         padding: 0.375rem 0.75rem;
@@ -1006,8 +1013,8 @@
         display: flex;
         gap: 0.5rem;
         padding: 0.75rem;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
-        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        background: rgba(0, 0, 0, 0.015);
         transition: background 0.2s;
     }
 
@@ -1101,7 +1108,7 @@
 
     .vw-script-step .vw-segment-text-input {
         width: 100%;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         padding: 0.5rem;
@@ -1153,7 +1160,7 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 0.75rem;
-        background: rgba(0, 0, 0, 0.15);
+        background: rgba(0, 0, 0, 0.02);
     }
 
     .vw-script-step .vw-segment-add-btn {
@@ -1210,7 +1217,7 @@
     .vw-script-step .vw-segment-type-select,
     .vw-script-step .vw-segment-speaker-select {
         padding: 0.375rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.375rem;
         color: var(--vw-text);
@@ -1298,17 +1305,18 @@
         align-items: center;
         justify-content: center;
         padding: 0.625rem 0.5rem;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--vw-border);
+        background: var(--vw-bg-elevated);
+        border: none;
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
         text-align: center;
         min-height: 60px;
+        box-shadow: var(--vw-clay-sm);
     }
 
     .vw-script-step .vw-narrative-preset-btn:hover {
-        border-color: var(--vw-border-accent);
+        box-shadow: var(--vw-clay-hover);
         background: rgba(var(--vw-primary-rgb), 0.04);
     }
 
@@ -1331,14 +1339,14 @@
     }
 
     .vw-script-step .vw-narrative-preset-btn.selected .vw-preset-name {
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     /* Cascading preset organization styles */
     .vw-script-step .vw-format-toggle {
         display: inline-flex;
         margin-left: 0.75rem;
-        background: rgba(0, 0, 0, 0.3);
+        background: var(--vw-bg-elevated);
         border-radius: 0.375rem;
         padding: 0.125rem;
         border: 1px solid var(--vw-border);
@@ -1364,7 +1372,7 @@
 
     .vw-script-step .vw-format-btn.active {
         background: linear-gradient(135deg, var(--vw-border-accent) 0%, rgba(var(--vw-primary-rgb), 0.3) 100%);
-        color: #ffffff;
+        color: var(--vw-text-on-primary, #ffffff);
         box-shadow: 0 0 8px rgba(var(--vw-primary-rgb), 0.12);
     }
 
@@ -1528,7 +1536,7 @@
     .vw-script-step .vw-narrative-option-label {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #ffffff;
+        color: var(--vw-text);
     }
 
     .vw-script-step .vw-option-sublabel {
@@ -1541,10 +1549,10 @@
     .vw-script-step .vw-narrative-select {
         width: 100%;
         padding: 0.625rem 0.75rem;
-        background: rgba(0, 0, 0, 0.4);
+        background: var(--vw-bg-elevated);
         border: 1px solid var(--vw-border);
         border-radius: 0.5rem;
-        color: #ffffff;
+        color: var(--vw-text);
         font-size: 0.85rem;
         cursor: pointer;
         transition: border-color 0.2s;
@@ -1565,7 +1573,7 @@
         color: var(--vw-text-secondary);
         line-height: 1.4;
         padding: 0.375rem;
-        background: rgba(0, 0, 0, 0.2);
+        background: rgba(0, 0, 0, 0.02);
         border-radius: 0.25rem;
     }
 </style>
@@ -2222,7 +2230,7 @@
                 </div>
 
                 {{-- Scene/Shot Preview --}}
-                <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 0.6rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 0.6rem; background: rgba(0,0,0,0.03); border-radius: 0.5rem;">
                     <div style="text-align: center;">
                         <div style="font-size: 1.25rem; font-weight: 700; color: var(--vw-primary);">{{ $sceneCount }}</div>
                         <div style="font-size: 0.65rem; color: var(--vw-text-secondary);">{{ __('scenes') }}</div>
