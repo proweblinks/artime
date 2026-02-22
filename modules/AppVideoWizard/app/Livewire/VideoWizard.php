@@ -16916,34 +16916,97 @@ PROMPT;
 
             // Build location data with search terms
             $locationSearchData = [];
+            $commonExclusions = ['the', 'and', 'with', 'from', 'into', 'area', 'place', 'room', 'space',
+                'this', 'that', 'where', 'which', 'what', 'when', 'will', 'have', 'been', 'their',
+                'there', 'here', 'very', 'much', 'also', 'just', 'only', 'over', 'such', 'some',
+                'than', 'them', 'then', 'each', 'more', 'most', 'other', 'many', 'about'];
             foreach ($storyBibleLocations as $idx => $bibleLoc) {
                 $name = $bibleLoc['name'] ?? '';
                 if (empty($name)) continue;
 
                 $lowerName = strtolower($name);
 
-                // Build search terms
+                // Build search terms from name
                 $searchTermsFull = [$lowerName];
-                $nameParts = preg_split('/[\s\-_]+/', $lowerName);
+                $nameParts = preg_split('/[\s\-_\']+/', $lowerName);
                 $searchTermsParts = [];
-                $commonExclusions = ['the', 'and', 'with', 'from', 'into', 'area', 'place', 'room', 'space'];
                 foreach ($nameParts as $part) {
-                    if (strlen($part) >= 4 && !in_array($part, $commonExclusions)) {
-                        $searchTermsParts[] = $part;
+                    $clean = preg_replace('/[^a-z0-9]/', '', $part);
+                    if (strlen($clean) >= 4 && !in_array($clean, $commonExclusions)) {
+                        $searchTermsParts[] = $clean;
                     }
                 }
+
+                // Build search terms from description + keyElements (for keyword matching)
+                $descriptionKeywords = [];
+                $descText = strtolower($bibleLoc['description'] ?? '');
+                $keyElements = $bibleLoc['keyElements'] ?? [];
+                if (is_array($keyElements)) {
+                    $descText .= ' ' . implode(' ', array_map('strtolower', $keyElements));
+                }
+                // Extract meaningful words (5+ chars) from description
+                $descWords = preg_split('/[\s,.\-_\'\";\:\/\(\)]+/', $descText);
+                foreach ($descWords as $word) {
+                    $clean = preg_replace('/[^a-z0-9]/', '', $word);
+                    if (strlen($clean) >= 5 && !in_array($clean, $commonExclusions)) {
+                        $descriptionKeywords[] = $clean;
+                    }
+                }
+                $descriptionKeywords = array_unique($descriptionKeywords);
 
                 $locationSearchData[$idx] = [
                     'name' => $name,
                     'lowerName' => $lowerName,
                     'fullTerms' => $searchTermsFull,
                     'partTerms' => $searchTermsParts,
+                    'descriptionKeywords' => $descriptionKeywords,
+                    'appearsInActs' => $bibleLoc['appearsInActs'] ?? [],
                     'bibleLoc' => $bibleLoc,
                 ];
             }
 
+            // STEP 3A: Compute scene-to-act mapping using Story Bible act percentages
+            // This lets us use location.appearsInActs for scoring
+            $sceneActMap = []; // sceneIdx => actNumber
+            $acts = $this->storyBible['acts'] ?? [];
+            $totalSceneCount = count($scenes);
+            if (!empty($acts) && $totalSceneCount > 0) {
+                // Build cumulative scene thresholds from act percentages
+                $actThresholds = []; // [{actNumber, startScene, endScene}]
+                $cumulative = 0;
+                foreach ($acts as $actIdx => $act) {
+                    $pct = $act['percentage'] ?? (100 / count($acts));
+                    $startScene = (int) round($cumulative / 100 * $totalSceneCount);
+                    $cumulative += $pct;
+                    $endScene = (int) round($cumulative / 100 * $totalSceneCount) - 1;
+                    // Ensure last act captures remaining scenes
+                    if ($actIdx === count($acts) - 1) {
+                        $endScene = $totalSceneCount - 1;
+                    }
+                    $actThresholds[] = [
+                        'actNumber' => $act['actNumber'] ?? ($actIdx + 1),
+                        'start' => $startScene,
+                        'end' => max($startScene, $endScene),
+                    ];
+                }
+                // Map each scene to its act
+                foreach ($sceneTexts as $sceneIdx => $text) {
+                    foreach ($actThresholds as $threshold) {
+                        if ($sceneIdx >= $threshold['start'] && $sceneIdx <= $threshold['end']) {
+                            $sceneActMap[$sceneIdx] = $threshold['actNumber'];
+                            break;
+                        }
+                    }
+                }
+                Log::debug('LocationBible: Scene-to-act mapping computed', [
+                    'actThresholds' => $actThresholds,
+                    'sceneActMap' => $sceneActMap,
+                ]);
+            }
+
             // Compute match scores for ALL location-scene pairs
-            // Score: 100 = explicit field exact match, 80 = explicit field partial, 50 = full name in text, 20 = part match
+            // Score hierarchy: 100=explicit exact, 80=explicit partial, 70=explicit parts,
+            //   50=full name in text, 35=appearsInActs match, 30=description keywords, 20=name part match
             $matchScores = []; // sceneIdx => [locIdx => score]
             foreach ($sceneTexts as $sceneIdx => $text) {
                 $matchScores[$sceneIdx] = [];
@@ -16970,7 +17033,7 @@ PROMPT;
                         }
                     }
 
-                    // PRIORITY 2: Full name in scene text (if no explicit match)
+                    // PRIORITY 2: Full name in scene text
                     if ($score < 50) {
                         foreach ($locData['fullTerms'] as $term) {
                             if (strpos($text, $term) !== false) {
@@ -16980,7 +17043,31 @@ PROMPT;
                         }
                     }
 
-                    // PRIORITY 3: Part match in scene text (lowest score)
+                    // PRIORITY 3: Act-based matching via appearsInActs
+                    // If this scene's act matches location's appearsInActs, score 35
+                    if ($score < 35 && !empty($locData['appearsInActs']) && isset($sceneActMap[$sceneIdx])) {
+                        $sceneAct = $sceneActMap[$sceneIdx];
+                        if (in_array($sceneAct, $locData['appearsInActs'])) {
+                            $score = max($score, 35);
+                        }
+                    }
+
+                    // PRIORITY 4: Description/keyElements keyword matching
+                    // Match meaningful words from location description against scene text
+                    if ($score < 30 && !empty($locData['descriptionKeywords'])) {
+                        $keywordHits = 0;
+                        foreach ($locData['descriptionKeywords'] as $keyword) {
+                            if (strpos($text, $keyword) !== false) {
+                                $keywordHits++;
+                            }
+                        }
+                        // Require at least 2 keyword hits to avoid false positives
+                        if ($keywordHits >= 2) {
+                            $score = max($score, 30);
+                        }
+                    }
+
+                    // PRIORITY 5: Name part match in scene text (lowest score)
                     if ($score < 20 && !empty($locData['partTerms'])) {
                         foreach ($locData['partTerms'] as $term) {
                             if (strpos($text, $term) !== false) {
@@ -17007,6 +17094,19 @@ PROMPT;
                     }
                 }
             }
+
+            // Log scoring results for debugging
+            $scoreSummary = [];
+            foreach ($matchScores as $sceneIdx => $locScores) {
+                foreach ($locScores as $locIdx => $score) {
+                    $locName = $locationSearchData[$locIdx]['name'] ?? "loc_{$locIdx}";
+                    $scoreSummary[] = "scene{$sceneIdx}->{$locName}={$score}";
+                }
+            }
+            Log::debug('LocationBible: Scoring results', [
+                'hasActMap' => !empty($sceneActMap),
+                'scores' => implode(', ', $scoreSummary) ?: 'NO MATCHES',
+            ]);
 
             if (!empty($protectedScenes)) {
                 Log::debug('LocationBible: Protected scenes from user modifications', [
@@ -17129,8 +17229,8 @@ PROMPT;
                 $syncedLocations[] = $locationBibleFormat;
             }
 
-            // STEP 4: Intelligent scene distribution for locations without detected scenes
-            // This ensures locations are spread across scenes instead of first location getting "all"
+            // STEP 4: Act-aware scene distribution for locations without detected scenes
+            // Uses appearsInActs from Story Bible to assign scenes to the correct act
             $totalScenes = count($scenes);
             if ($totalScenes > 0 && count($syncedLocations) > 0) {
                 // Find which scenes are already covered
@@ -17147,46 +17247,87 @@ PROMPT;
                     }
                 }
 
-                // If we have locations without scenes, distribute them evenly across uncovered scenes
+                // If we have locations without scenes, try act-aware distribution first
                 if (!empty($locationsWithoutScenes)) {
-                    $uncoveredScenes = [];
-                    for ($i = 0; $i < $totalScenes; $i++) {
-                        if (!isset($coveredScenes[$i])) {
-                            $uncoveredScenes[] = $i;
+                    // Try act-aware distribution using appearsInActs + sceneActMap
+                    if (!empty($sceneActMap)) {
+                        foreach ($locationsWithoutScenes as $arrKey => $locIdx) {
+                            $appearsInActs = $storyBibleLocations[$locIdx]['appearsInActs'] ?? [];
+                            if (empty($appearsInActs)) continue;
+
+                            // Find uncovered scenes in this location's acts
+                            $actScenes = [];
+                            foreach ($sceneActMap as $sceneIdx => $actNum) {
+                                if (in_array($actNum, $appearsInActs) && !isset($coveredScenes[$sceneIdx])) {
+                                    $actScenes[] = $sceneIdx;
+                                }
+                            }
+                            // If no uncovered scenes in target acts, use any scene in target acts
+                            if (empty($actScenes)) {
+                                foreach ($sceneActMap as $sceneIdx => $actNum) {
+                                    if (in_array($actNum, $appearsInActs)) {
+                                        $actScenes[] = $sceneIdx;
+                                    }
+                                }
+                            }
+                            if (!empty($actScenes)) {
+                                $syncedLocations[$locIdx]['scenes'] = array_values(array_unique($actScenes));
+                                sort($syncedLocations[$locIdx]['scenes']);
+                                foreach ($actScenes as $s) {
+                                    $coveredScenes[$s] = true;
+                                }
+                                unset($locationsWithoutScenes[$arrKey]);
+                            }
+                        }
+                        $locationsWithoutScenes = array_values($locationsWithoutScenes);
+
+                        if (!empty($locationsWithoutScenes)) {
+                            Log::debug('LocationBible: Act-aware distribution partial — remaining locations', [
+                                'remaining' => count($locationsWithoutScenes),
+                            ]);
                         }
                     }
 
-                    if (!empty($uncoveredScenes)) {
-                        // Distribute uncovered scenes evenly among locations without scenes
-                        $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithoutScenes)));
-                        $scenePointer = 0;
-
-                        foreach ($locationsWithoutScenes as $locIdx) {
-                            $assignedScenes = [];
-                            for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
-                                $assignedScenes[] = $uncoveredScenes[$scenePointer];
-                                $scenePointer++;
+                    // Fallback: distribute remaining uncovered scenes evenly
+                    if (!empty($locationsWithoutScenes)) {
+                        $uncoveredScenes = [];
+                        for ($i = 0; $i < $totalScenes; $i++) {
+                            if (!isset($coveredScenes[$i])) {
+                                $uncoveredScenes[] = $i;
                             }
-                            $syncedLocations[$locIdx]['scenes'] = $assignedScenes;
-                            sort($syncedLocations[$locIdx]['scenes']);
                         }
 
-                        Log::debug('LocationBible: Distributed locations without scenes', [
-                            'locationsDistributed' => count($locationsWithoutScenes),
-                            'scenesDistributed' => count($uncoveredScenes),
-                        ]);
-                    } else {
-                        // All scenes are covered but some locations have no scenes
-                        // Assign each unassigned location to at least one scene (round-robin)
-                        $sceneIdx = 0;
-                        foreach ($locationsWithoutScenes as $locIdx) {
-                            $syncedLocations[$locIdx]['scenes'] = [$sceneIdx % $totalScenes];
-                            $sceneIdx++;
-                        }
+                        if (!empty($uncoveredScenes)) {
+                            $scenesPerLocation = max(1, (int) ceil(count($uncoveredScenes) / count($locationsWithoutScenes)));
+                            $scenePointer = 0;
 
-                        Log::debug('LocationBible: All scenes covered, assigned locations round-robin', [
-                            'locationsAssigned' => count($locationsWithoutScenes),
-                        ]);
+                            foreach ($locationsWithoutScenes as $locIdx) {
+                                $assignedScenes = [];
+                                for ($j = 0; $j < $scenesPerLocation && $scenePointer < count($uncoveredScenes); $j++) {
+                                    $assignedScenes[] = $uncoveredScenes[$scenePointer];
+                                    $scenePointer++;
+                                }
+                                $syncedLocations[$locIdx]['scenes'] = $assignedScenes;
+                                sort($syncedLocations[$locIdx]['scenes']);
+                            }
+
+                            Log::debug('LocationBible: Distributed locations without scenes', [
+                                'locationsDistributed' => count($locationsWithoutScenes),
+                                'scenesDistributed' => count($uncoveredScenes),
+                            ]);
+                        } else {
+                            // All scenes are covered but some locations have no scenes
+                            // Assign each unassigned location to at least one scene (round-robin)
+                            $sceneIdx = 0;
+                            foreach ($locationsWithoutScenes as $locIdx) {
+                                $syncedLocations[$locIdx]['scenes'] = [$sceneIdx % $totalScenes];
+                                $sceneIdx++;
+                            }
+
+                            Log::debug('LocationBible: All scenes covered, assigned locations round-robin', [
+                                'locationsAssigned' => count($locationsWithoutScenes),
+                            ]);
+                        }
                     }
                 }
             }
